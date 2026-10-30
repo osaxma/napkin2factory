@@ -409,9 +409,10 @@ def build_assembly(
         ],
     )
     if render:
-        bb = props["bbox"]
-        mid_z = (bb["min"][2] + bb["max"][2]) / 2
-        render_views(scene_for_assembly(leaves), out_dir / "renders", section_z=mid_z)
+        # section through the mass centroid: a body on a tall stand is cut where the mass is
+        render_views(
+            scene_for_assembly(leaves), out_dir / "renders", section_z=props["centroid"]["z"]
+        )
     built = BuiltAssembly(
         assembly=asm, result=result, leaves=leaves, props=props, reads=log.keys, out_dir=out_dir
     )

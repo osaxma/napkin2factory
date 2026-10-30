@@ -82,6 +82,9 @@ def _match(a: list[tuple[float, float]], b: list[tuple[float, float]], tol: floa
 
 def check_interface(product: Product, iface: Interface, build_dir: Path) -> InterfaceReport:
     """Compare the parties' recorded patterns (bolt-pattern) or face records (mating-face)."""
+    from napkin2factory.geometry.accessors import resolve_interface
+
+    iface = resolve_interface(product, iface)
     rep = InterfaceReport()
     patterns: dict[str, Any] = {}
     for party in iface.parties:

@@ -311,3 +311,59 @@ Renders are outputs of the part rules and `render` is in their key (S-029), so a
 built with `--no-render` would rebuild parts and wipe their renders. `n2f check`,
 `n2f signoff` and `n2f ecr close` build with renders on; `--no-render` is only for
 `n2f build` and `n2f release`.
+
+## Review gate 2 (UX) — outcome (2026-10-30)
+A fresh-context reviewer played a non-technical owner. Five blockers, all fixed: `n2f snapshot`
+and `n2f discard` are the owner-level save/undo and the release refusal names them (B1);
+`n2f init .` sets up change tracking on an existing product folder (B2); EXAMPLE sign-offs
+show as such in `n2f check` and `n2f release` refuses them unless
+`--allow-example-signoffs` is passed for a demonstration (B3); the report says
+"draft — changed since Revision vX" instead of "Revision vX" once the model is edited (B4);
+`n2f signoff` refreshes the checks and saves, and `n2f status` says when the checks are out
+of date (B5). Concerns fixed: owner vocabulary throughout `n2f check`, owner-friendly table
+headers and hidden `verify` column, clickable drawings, honest `ecr close` next step, diff
+rev label, versions hint, changelog order, impact legend, disclaimer in drawings and CSV,
+manual wording in the enclosure example, the test-only parameter removed from the template.
+Left for later: C13 (terminal wrapping), C14/C15 (URI prefixes in owner tables), C4
+(design-time wording for inspection sign-offs) → BACKLOG B-0007…B-0009.
+
+## S-042 — EXAMPLE sign-offs are visible everywhere and gate releases (2026-10-30)
+A sign-off with `example: true` makes a safety requirement `signed`, but the check message
+starts with "EXAMPLE SIGN-OFF, NOT A REVIEW", the CLI prints "signed off (EXAMPLE, not a
+review)", the report labels it, and `n2f release` refuses unless
+`--allow-example-signoffs` is given (the demos pass it and print a warning). Example products
+ship with example sign-offs so their matrices are green and the demos run unattended (D9).
+
+## S-043 — Drawings read features and flat patterns from the part's files (2026-10-30)
+The assembly rule reloads already-built parts from STEP; those objects carry no features or
+flat pattern in memory, and the drawing rule used to trust them, producing a drawing without
+a flat view. Drawings now read `features.json` and `flat_pattern.json` from
+`build/parts/<id>/` and take only the shape from memory. Regression test in
+`tests/unit/test_drawings.py`.
+
+## S-044 — `kind: reference` parts (2026-10-30)
+Owner-supplied or existing items (a wall stud, screws the owner already has) are neither
+bought nor made: `kind: reference` parts carry no cost, need no source, are excluded from the
+custom ratio and interference (unless the other part is custom), and the manufacturer column
+says they are not quoted. Requested by the intake simulation.
+
+## S-045 — Interface frames may reference parameters (2026-10-30)
+Frame coordinates accept numbers (mm), quantity strings and `param://` references, resolved
+with the spec when the interface is read (S-014). The kiln's hinge and mount frames follow
+the guard dimensions, so ECR-001 moves the holes with the box.
+
+## S-046 — Interference volume by inclusion–exclusion (2026-10-30)
+`n2f check` measures overlap as V_a + V_b − V(a ∪ b) instead of V(a ∩ b). OCCT's direct
+boolean common reported a spurious 15 cm³ for the kiln peephole plug sitting coaxially in its
+slightly larger hole (demo-design.sh, ECR-002); the fuse is robust there. The direct common
+remains the fallback when a fuse fails. `[verify]` with a stress corpus of coaxial fits.
+
+## Kiln engineering decisions (2026-10-30)
+See `examples/kiln/model/decisions.yaml` DEC-001…DEC-011. The notable one: the owner's
+60 degC touch limit cannot be met by a single skin at 1200 degC with any sensible wall
+(the inner shell computes to ~109 degC with 64 mm brick + 125 mm fiber), so the kiln has
+a ventilated touch guard whose radiation-balance temperature computes to ~53 degC
+(`calc://thermal.guard_temperature`). `[verify]`: K23 k = 0.25 W/m·K, fiber board
+k = 0.12 W/m·K and ρ = 260 kg/m³, film coefficient 10 W/m²·K, emissivities 0.9, Kanthal A1
+ρ = 1.45 Ω·mm²/m, K-factor table, sheet-metal rule thresholds. Element 3 kW / 5 h heat-up
+(DEC-004) after 2.5 kW / 4 h gave a margin of 1.0.

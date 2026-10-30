@@ -81,6 +81,11 @@ def validate_bom(product: Product, build_dir: Path, offline: bool | None = None)
             "status": "ok",
             "notes": [],
         }
+        if part.kind == "reference":
+            row["tiers"]["structural"] = "reference"
+            row["status"] = "ok"
+            rows[part.uri] = row
+            continue
         if part.kind == "custom":
             missing = [
                 k

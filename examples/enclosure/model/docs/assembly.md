@@ -8,8 +8,8 @@ depends_on: [part://base, part://lid, part://bracket, iface://lid-base-mount]
 
 # Assembly
 
-1. Fit the two {{ part("bracket").name }} brackets to the back wall of the {{ part("base").name }} with the supplied M6 hardware, {{ P["bracket-spacing"] }} apart.
-2. Lay the {{ part("lid").name }} ({{ P["lid-thickness"] }} sheet) on the lip and fasten it with four {{ part("m4x10-screw").name }}.
+1. Fit the two wall brackets ({{ part("bracket").name }}) to the back wall of the {{ part("base").name | lower }}, {{ P["bracket-spacing"] }} apart, using M6 bolts and wall anchors suited to your wall (not part of this bill of materials).
+2. Lay the {{ part("lid").name | lower }} ({{ P["lid-thickness"] }} sheet) on the lip and fasten it with four screws ({{ part("m4x10-screw").name }}).
 
 ## Manufacturer note
 

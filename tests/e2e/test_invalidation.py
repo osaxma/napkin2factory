@@ -86,6 +86,12 @@ def test_unused_parameter_rebuilds_only_validate_and_the_report(enclosure_built:
 
     The report lists every parameter's value, so it (and the site that copies it) does.
     """
+    params = enclosure_built / "model" / "parameters.yaml"
+    params.write_text(
+        params.read_text()
+        + '  unused-note-count: {value: 3, unit: "", description: A parameter nothing reads}\n'
+    )
+    _build(enclosure_built)  # adding a parameter changes set://params → report reruns once
     _set_param(enclosure_built, "unused-note-count", "4")
     impact = compute_impact(
         load_product(enclosure_built), [parse_set("param://unused-note-count=4")]

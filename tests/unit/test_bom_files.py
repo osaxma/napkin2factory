@@ -55,6 +55,7 @@ def test_csv(built: Path) -> None:
 
     tot = dict(r for r in csv.reader(totals.splitlines()) if r)
     rollups = _rollups(built)
+    tot.pop("note", None)  # the disclaimer row (S-042)
     assert list(tot) == [
         "total_cost_usd",
         "total_mass_kg",

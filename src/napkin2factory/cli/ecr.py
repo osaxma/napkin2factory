@@ -123,9 +123,9 @@ def close(
     else:
         for uri, (old, new) in result["bumped"].items():
             console.print(f"  {uri}: rev {old} → {new}")
+        nxt = result.get("next_step") or "`n2f release vX.Y.Z`"
         console.print(
-            f"[green]✓[/green] {ecr_id} closed · stage: {result['stage']} · next: "
-            "`n2f release vX.Y.Z` when ready"
+            f"[green]✓[/green] {ecr_id} closed · stage: {result['stage']} · next: {escape(nxt)}"
         )
 
 

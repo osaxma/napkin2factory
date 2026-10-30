@@ -22,12 +22,12 @@ NOT_A_PROJECT = (
     "(it also sets up change tracking)"
 )
 NOT_TRACKED = (
-    "this product folder isn't under change tracking yet — run `n2f init` here, "
-    "or start from `n2f init <dir>` next time"
+    "this product folder isn't under change tracking yet — run `n2f init .` inside it "
+    "to set tracking up (nothing else changes)"
 )
 UNSAVED = (
-    "you have unsaved changes; snapshot them (`n2f ecr apply` does this) "
-    "or discard them before releasing"
+    "you have changes that are not saved yet: `n2f snapshot` saves them, "
+    "`n2f discard` drops them, or `n2f ecr new …` files them as a change request"
 )
 NO_GIT = "git is not installed or not on PATH; install git (https://git-scm.com) and try again"
 
@@ -211,6 +211,11 @@ class Vcs:
     def tag(self, name: str, message: str) -> None:
         """Mark the current snapshot as a released Revision."""
         self._git("tag", "-a", name, "-m", message)
+
+    def discard(self) -> None:
+        """Drop every change since the last snapshot (tracked files restored, new files removed)."""
+        self._git("checkout", "--", ".")
+        self._git("clean", "-fdq", "--exclude=build")
 
     def worktree_add(self, ref: str, path: Path) -> None:
         """Materialise an earlier Revision in a scratch folder (for `n2f diff`)."""

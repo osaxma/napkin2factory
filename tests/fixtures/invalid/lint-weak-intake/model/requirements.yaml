@@ -1,0 +1,11 @@
+# What a hurried intake produces: vague, unverifiable, unallocated.
+requirements:
+  - id: REQ-001
+    title: Strong enough
+    statement: The bracket should be strong enough for a normal shelf.
+    category: performance
+  - id: REQ-002
+    title: Looks nice
+    statement: The finish should be adequate.
+    category: usability
+    verify: {kind: manual}

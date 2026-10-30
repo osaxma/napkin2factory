@@ -72,7 +72,15 @@ def evidence_key(
     if u.scheme == "bom":
         entry = manifest.entries.get("bom")
         return entry.output_hash if entry else "missing"
-    if u.scheme in ("req", "param", "dec", "iface"):
+    if u.scheme == "iface":
+        if u.id not in product.interfaces:
+            return "missing"
+        from napkin2factory.geometry.accessors import resolve_interface
+
+        return sha256_json(
+            resolve_interface(product, product.interfaces[u.id]).model_dump(mode="json")
+        )
+    if u.scheme in ("req", "param", "dec"):
         try:
             obj = product.resolve(u.base)
         except KeyError:

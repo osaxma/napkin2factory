@@ -64,6 +64,8 @@ def _props_mass(build_dir: Path | None, part: Part) -> tuple[float | None, str]:
 
 def manufacturer_column(part: Part, qty: int) -> str:
     """The "what to tell the manufacturer" text for a row."""
+    if part.kind == "reference":
+        return f"supplied by the owner / already exists: {part.name} ({qty}×); not quoted"
     if part.kind == "cots":
         src = part.source
         return f"buy {qty}× {part.name}" + (f" ({src.vendor} {src.mpn})" if src else "")
@@ -82,6 +84,8 @@ def manufacturer_column(part: Part, qty: int) -> str:
 
 def sourcing_status(part: Part) -> str:
     """Complete | unverified | missing — before the URL/catalog tiers run (M4 refines)."""
+    if part.kind == "reference":
+        return "reference"
     if part.kind != "cots":
         return "custom"
     if part.source is None:
@@ -228,7 +232,9 @@ def compute_rollups(
         part_count += agg["total_qty"]
         if agg["kind"] == "custom":
             custom += agg["total_qty"]
-        if agg["unit_cost"] is None:
+        if agg["kind"] == "reference":
+            pass  # not bought, not made: contributes mass but no cost
+        elif agg["unit_cost"] is None:
             cost_known = False
         else:
             total_cost += agg["unit_cost"] * agg["total_qty"]

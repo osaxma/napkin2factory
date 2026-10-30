@@ -6,7 +6,7 @@ UV ?= uv
 PY := $(UV) run
 EXAMPLES_FAST := examples/bracket examples/enclosure
 
-.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast clean
+.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos clean
 
 check: lint types unit golden examples-fast todo-grep
 
@@ -34,8 +34,17 @@ examples-fast:
 	  fi; \
 	done
 
-check-full: check
-	@echo "check-full: kiln and demos are added at M8"
+check-full: check kiln demos
+	N2F_TIMING=1 $(PY) pytest tests/e2e/test_timing.py -q
+
+kiln:
+	@echo "== examples/kiln"
+	cd examples/kiln && $(PY) n2f validate && $(PY) n2f lint && $(PY) n2f build && $(PY) n2f check
+	$(PY) python tests/validate_outputs.py examples/kiln
+	N2F_TIMING=1 $(PY) pytest tests/e2e/test_kiln.py -q
+
+demos:
+	N2F_TIMING=1 $(PY) pytest tests/e2e/test_demos.py -q
 
 templates:
 	$(PY) python -m napkin2factory.templates.sync

@@ -29,7 +29,7 @@ def _run(*args: str, cwd: Path, ok: bool = True):  # type: ignore[no-untyped-def
 
 @pytest.fixture(scope="module")
 def released(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Enclosure released as v1.0.0 after an example sign-off, then ECR-001 applied and closed."""
+    """Enclosure released as v1.0.0 after an example sign-off (gate-2 B1/B3 behaviours)."""
     root = copy_product(
         EXAMPLES / "enclosure", tmp_path_factory.mktemp("rel") / "enclosure", git=True
     )
@@ -37,7 +37,16 @@ def released(tmp_path_factory: pytest.TempPathFactory) -> Path:
     # release refused: safety requirement not signed
     r = _run("release", "v1.0.0", cwd=root, ok=False)
     assert r.returncode == 3 and "REQ-004" in r.stderr and "sign-off" in r.stderr
-    _run(
+    # a hand edit without a save: the refusal names the owner-level verbs (B1)
+    (root / "model/intake.md").write_text((root / "model/intake.md").read_text() + "\nnote\n")
+    r = _run("release", "v1.0.0", cwd=root, ok=False)
+    assert r.returncode == 4 and "n2f snapshot" in r.stderr and "n2f discard" in r.stderr
+    r = _run("snapshot", "-m", "intake note", cwd=root)
+    assert "saved as snapshot" in r.stdout
+    r = _run("snapshot", cwd=root)
+    assert "nothing changed" in r.stdout
+    # signing off saves automatically (B1) and refreshes the checks (B5)
+    r = _run(
         "signoff",
         "REQ-004",
         "--by",
@@ -47,15 +56,19 @@ def released(tmp_path_factory: pytest.TempPathFactory) -> Path:
         "--example",
         cwd=root,
     )
-    # release refused: unsaved changes (the sign-off file)
-    r = _run("release", "v1.0.0", cwd=root, ok=False)
-    assert r.returncode == 4 and "unsaved changes" in r.stderr
-    from napkin2factory.core.vcs import Vcs
-
-    Vcs(root).snapshot("sign off REQ-004")
-    r = _run("release", "v1.0.0", "--no-render", "--json", cwd=root)
+    assert "saved" in r.stdout and "EXAMPLE" in r.stdout
+    st = json.loads(_run("status", "--json", cwd=root).stdout)
+    assert st["stage"] == "verify", st
+    r = _run("check", cwd=root)
+    assert "EXAMPLE" in r.stdout
+    # an EXAMPLE sign-off does not release a safety requirement (B3)
+    r = _run("release", "v1.0.0", "--no-render", cwd=root, ok=False)
+    assert r.returncode == 3 and "EXAMPLE" in r.stderr and "allow-example-signoffs" in r.stderr
+    r = _run("release", "v1.0.0", "--no-render", "--allow-example-signoffs", "--json", cwd=root)
     out = json.loads(r.stdout)
     assert out["version"] == "v1.0.0" and Path(out["zip"]).is_file()
+    from napkin2factory.core.vcs import Vcs
+
     assert Vcs(root).tags() == ["v1.0.0"]
     return root
 
@@ -94,7 +107,7 @@ def test_release_refused_when_evidence_changed(released: Path) -> None:
     from napkin2factory.core.vcs import Vcs
 
     Vcs(root).snapshot("tweak")
-    r = _run("release", "v1.0.1", "--no-render", cwd=root, ok=False)
+    r = _run("release", "v1.0.1", "--no-render", "--allow-example-signoffs", cwd=root, ok=False)
     assert r.returncode == 3 and "REQ-004" in r.stderr and "evidence changed" in r.stderr
     params.write_text(text)
     Vcs(root).snapshot("revert")
@@ -108,7 +121,7 @@ def test_release_refused_when_a_check_fails(released: Path) -> None:
     from napkin2factory.core.vcs import Vcs
 
     Vcs(root).snapshot("tighten")
-    r = _run("release", "v1.0.1", "--no-render", cwd=root, ok=False)
+    r = _run("release", "v1.0.1", "--no-render", "--allow-example-signoffs", cwd=root, ok=False)
     assert r.returncode == 3 and "REQ-001" in r.stderr
     req.write_text(text)
     Vcs(root).snapshot("revert")
@@ -117,9 +130,17 @@ def test_release_refused_when_a_check_fails(released: Path) -> None:
 def test_release_requires_project_root(tmp_path: Path) -> None:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=False)
     r = _run("release", "v1.0.0", cwd=root, ok=False)
-    assert r.returncode == 4 and "n2f init" in r.stderr
+    assert r.returncode == 4 and "n2f init ." in r.stderr
     r = _run("diff", "v1.0.0", "working", cwd=root, ok=False)
-    assert r.returncode == 4 and "n2f init" in r.stderr
+    assert r.returncode == 4 and "n2f init ." in r.stderr
+    # and the advice works: init on the existing folder sets up tracking (gate-2 B2)
+    r = _run("init", ".", cwd=root)
+    assert "change tracking set up" in r.stdout
+    r = _run("init", ".", cwd=root)
+    assert "already has change tracking" in r.stdout
+    # the bracket has no safety requirements, so with tracking set up it releases
+    r = _run("release", "v1.0.0", "--no-render", cwd=root)
+    assert "Revision" in r.stdout and "released" in r.stdout
 
 
 def test_ecr_then_release_then_diff(released: Path) -> None:
@@ -154,12 +175,14 @@ def test_ecr_then_release_then_diff(released: Path) -> None:
         cwd=root,
     )
     _run("ecr", "close", "ECR-001", cwd=root)
-    r = _run("release", "v1.1.0", "--no-render", "--json", cwd=root)
+    r = _run("release", "v1.1.0", "--no-render", "--allow-example-signoffs", "--json", cwd=root)
     out = json.loads(r.stdout)
     assert out["closed_ecrs"] == ["ECR-001"]
     import yaml
 
     assert yaml.safe_load((root / "changes/ECR-001.yaml").read_text())["released_in"] == "v1.1.0"
+    r = _run("diff", "v1.0.0", "v9.9.9", cwd=root, ok=False)
+    assert r.returncode == 3 and "versions.html" in r.stderr
     r = _run("diff", "v1.0.0", "v1.1.0", "--json", cwd=root)
     d = json.loads(r.stdout)
     page = Path(d["page"])

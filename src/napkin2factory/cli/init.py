@@ -46,7 +46,9 @@ def write_skeleton(dest: Path, template: str, product_id: str, name: str) -> lis
 @handle_errors
 def init(
     directory: Path = typer.Argument(
-        ..., help="Folder to create (its name becomes the product id)."
+        ".",
+        help="Folder to create (its name becomes the product id); an existing product folder "
+        "gets change tracking set up.",
     ),
     template: str = typer.Option("blank", "--template", "-t", help="blank | bracket | enclosure"),
     name: str | None = typer.Option(None, "--name", help="Product display name."),
@@ -57,6 +59,30 @@ def init(
 ) -> None:
     """Start a new product folder from a template."""
     dest = Path(directory).resolve()
+    if (dest / "n2f.yaml").is_file():
+        # an existing product: only set up change tracking (and add missing agent files)
+        added = []
+        common = TEMPLATES_DIR / "_common"
+        for src in sorted(p for p in common.rglob("*") if p.is_file()):
+            target = dest / src.relative_to(common)
+            if not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(src.read_bytes())
+                added.append(str(target.relative_to(dest)))
+        vcs = Vcs(dest)
+        was_tracked = vcs.is_tracked() and vcs.is_repo_root()
+        vcs.init()
+        sha = vcs.snapshot("Start change tracking" if not was_tracked else "Add agent files")
+        if json_out:
+            emit_json({"dir": str(dest), "tracking": True, "snapshot": sha, "added": added})
+        elif was_tracked and not added:
+            console.print("this product folder already has change tracking; nothing to do")
+        else:
+            console.print(
+                f"[green]✓[/green] change tracking set up for {dest}"
+                + (f"; added {len(added)} agent file(s)" if added else "")
+            )
+        return
     product_id = slugify(dest.name)
     display = name or dest.name.replace("-", " ").replace("_", " ").strip().capitalize()
     files = write_skeleton(dest, template, product_id, display)

@@ -58,6 +58,21 @@ def _bbox_overlap(a: Any, b: Any, tol: float = 0.01) -> bool:
     return all(a1[i] > b0[i] + tol and b1[i] > a0[i] + tol for i in range(3))
 
 
+def _common_volume(a: Any, b: Any) -> float:
+    """Overlap volume by inclusion–exclusion: V_a + V_b − V_fused (S-046).
+
+    OCCT computes a fuse far more robustly than a direct boolean common for coaxial or
+    near-touching solids (a rod in a slightly larger hole gave a spurious 15 cm³ common).
+    Falls back to the direct common when the fuse fails.
+    """
+    try:
+        fused = a + b
+        vol = float(a.volume) + float(b.volume) - _volume(fused)
+        return max(vol, 0.0) if vol > -1.0 else 0.0
+    except Exception:
+        return _volume(a & b)
+
+
 def _volume(common: Any) -> float:
     """Volume of a boolean result (a shape, or a ShapeList in build123d ≥ 0.12)."""
     if common is None:
@@ -108,7 +123,7 @@ def check_interference(product: Product, asm_id: str, build_dir: Path) -> Interf
                 product.parts[uri_a.replace("part://", "")],
                 product.parts[uri_b.replace("part://", "")],
             )
-            if part_a.kind == "cots" and part_b.kind == "cots":
+            if part_a.kind != "custom" and part_b.kind != "custom":
                 report.pairs_skipped_cots += 1
                 continue
             pair = frozenset({uri_a, uri_b})
@@ -122,8 +137,7 @@ def check_interference(product: Product, asm_id: str, build_dir: Path) -> Interf
                 continue
             report.pairs_checked += 1
             try:
-                common = shape_a & shape_b
-                vol = _volume(common)
+                vol = _common_volume(shape_a, shape_b)
             except Exception as exc:  # OCCT boolean failures are reported, not hidden
                 report.interferences.append(
                     {

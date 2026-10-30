@@ -155,6 +155,13 @@ def write_csv(path: Path, rollups: dict[str, Any]) -> Path:
         writer.writerow([])
         for label, key in TOTALS:
             writer.writerow([label, _csv_value(rollups.get(key))])
+        writer.writerow(
+            [
+                "note",
+                "This design was produced with an AI system and has not been reviewed "
+                "by a licensed engineer.",
+            ]
+        )
     return path
 
 

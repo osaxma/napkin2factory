@@ -29,6 +29,18 @@ STATUS_STYLE = {
     "needs-human": "magenta",
     "signed": "cyan",
 }
+OWNER_WORDS = {
+    "pass": "OK",
+    "fail": "needs attention",
+    "warn": "worth a look",
+    "skip": "not checked",
+    "needs-human": "needs your sign-off",
+    "signed": "signed off",
+}
+
+
+def _word(status: str, persona: str) -> str:
+    return OWNER_WORDS.get(status, status) if persona == "owner" else status
 
 
 def _ensure_checks(product, offline: bool = False):  # type: ignore[no-untyped-def]
@@ -46,7 +58,7 @@ def check(
     all_rows: bool = typer.Option(False, "--all", help="Show passing rule-pack rows too."),
     json_out: bool = JsonOption,
 ) -> None:
-    """Verify every requirement and rule; exit 2 if anything fails."""
+    """Check every requirement and rule, and show what needs attention."""
     product = load_product(product_root(dir))
     data = _ensure_checks(product)
     if json_out or format == "json":
@@ -68,11 +80,17 @@ def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ign
     t.add_column("what the check found")
     for row in data["matrix"]["requirements"]:
         res = next(r for r in data["results"] if r["id"] == f"req://{row['id']}")
-        msg = res["persona_message"] if persona == "owner" else res["message"]
+        msg = res["message"]
+        if row["status"] == "signed" and "EXAMPLE" in msg:
+            word = (
+                "signed off (EXAMPLE, not a review)" if persona == "owner" else "signed (EXAMPLE)"
+            )
+        else:
+            word = _word(row["status"], persona)
         t.add_row(
             row["id"] + (" ⚠" if row["safety"] else ""),
             escape(row["title"]),
-            f"[{STATUS_STYLE[row['status']]}]{row['status']}[/]",
+            f"[{STATUS_STYLE[row['status']]}]{word}[/]",
             escape(msg),
         )
     console.print(t)
@@ -94,12 +112,14 @@ def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ign
             t2.add_row(
                 escape(r["id"]),
                 escape(r["subject"]),
-                f"[{STATUS_STYLE[r['status']]}]{r['status']}[/]",
-                escape(r["persona_message"] if persona == "owner" else r["message"]),
+                f"[{STATUS_STYLE[r['status']]}]{_word(r['status'], persona)}[/]",
+                escape(r["message"]),
             )
         console.print(t2)
     s = data["summary"]
-    console.print(" · ".join(f"[{STATUS_STYLE[k]}]{v} {k}[/]" for k, v in s.items() if v))
+    console.print(
+        " · ".join(f"[{STATUS_STYLE[k]}]{v} {_word(k, persona)}[/]" for k, v in s.items() if v)
+    )
 
 
 def render_md(data: dict) -> str:  # type: ignore[type-arg]
@@ -165,7 +185,7 @@ def signoff(
     dir: Path | None = DirOption,
     json_out: bool = JsonOption,
 ) -> None:
-    """Record a human sign-off for a requirement, bound to the current evidence (D25)."""
+    """Record that a person reviewed a requirement; it stays valid until the evidence changes."""
     from napkin2factory.core.checks.evidence import evidence_key
     from napkin2factory.core.yamlio import write_yaml
 
@@ -210,14 +230,19 @@ def signoff(
     }
     path = product.paths.signoffs / f"{rid}.yaml"
     write_yaml(path, payload)
+    # refresh the checks so `n2f status` agrees, and save: a sign-off is a record
+    _ensure_checks(load_product(product.root))
+    from napkin2factory.core.vcs import Vcs
+
+    vcs = Vcs(product.root)
+    saved = None
+    if vcs.is_tracked() and vcs.is_repo_root():
+        saved = vcs.snapshot(f"Sign off {rid}" + (" (EXAMPLE)" if example else ""))
     if json_out:
-        emit_json({"written": str(path), **payload})
+        emit_json({"written": str(path), "snapshot": saved, **payload})
     else:
         console.print(
-            f"[green]✓[/green] sign-off for {rid} recorded in {path.relative_to(product.root)}"
-            + (" [yellow](EXAMPLE)[/yellow]" if example else "")
+            f"[green]✓[/green] sign-off for {rid} recorded and saved"
+            + (" [yellow](EXAMPLE SIGN-OFF, NOT A REVIEW)[/yellow]" if example else "")
         )
-        console.print(
-            "  it stays valid while the evidence it cites is unchanged; "
-            "`n2f check` shows it as signed"
-        )
+        console.print("  it stays valid while the evidence it cites is unchanged")

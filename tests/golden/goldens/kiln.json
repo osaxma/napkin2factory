@@ -1,0 +1,28 @@
+{
+  "mass": 107.77,
+  "bbox": [
+    907.0,
+    652.0,
+    1355.0
+  ],
+  "instances": 22,
+  "parts": [
+    "part://controller-box",
+    "part://door-brick",
+    "part://door-fiber",
+    "part://door-skin",
+    "part://fiber-back",
+    "part://fiber-side",
+    "part://fiber-slab",
+    "part://guard-shell",
+    "part://hinge",
+    "part://latch",
+    "part://liner-back",
+    "part://liner-side",
+    "part://liner-slab",
+    "part://outer-shell",
+    "part://pid-controller",
+    "part://ssr",
+    "part://stand"
+  ]
+}

@@ -46,6 +46,18 @@ class StageReport:
         }
 
 
+def _checks_stale(product: Product, build_dir: Path, manifest: Manifest) -> bool:
+    """True when the ``checks`` rule would rerun (something it read changed)."""
+    try:
+        from napkin2factory.core.graph.rules import build_rules
+        from napkin2factory.core.graph.runner import needs_run
+
+        rule = next(r for r in build_rules(product) if r.id == "checks")
+        return needs_run(rule, product, manifest, build_dir)[0]
+    except Exception:
+        return False
+
+
 def compute_stage(product: Product, build_dir: Path | None = None) -> StageReport:
     """Derive the stage from the model, the build manifest, checks.json and change tracking."""
     from napkin2factory.core import lint as lint_mod
@@ -84,6 +96,9 @@ def compute_stage(product: Product, build_dir: Path | None = None) -> StageRepor
     if not checks_path.is_file() or "checks" not in manifest.entries:
         verify_blockers.append("checks have not run — run `n2f check`")
         counts: dict[str, int] = {}
+    elif _checks_stale(product, build_dir, manifest):
+        verify_blockers.append("the checks are out of date — run `n2f check` to refresh")
+        counts = {}
     else:
         data = json.loads(checks_path.read_text(encoding="utf-8"))
         counts = data.get("summary", {})

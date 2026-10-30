@@ -251,7 +251,7 @@ def test_broken_product_exits_2(tmp_path: Path) -> None:
     req.write_text(req.read_text().replace('op: "<=", value: 150 mm', 'op: "<=", value: 100 mm'))
     r = n2f("check", cwd=root)
     assert r.returncode == 2, r.stdout + r.stderr
-    assert "fail" in r.stdout
+    assert "needs attention" in r.stdout  # owner vocabulary for a failing row
     ok = n2f("check", "--json", cwd=EXAMPLES / "bracket")
     assert ok.returncode == 0
     assert json.loads(ok.stdout)["summary"]["fail"] == 0

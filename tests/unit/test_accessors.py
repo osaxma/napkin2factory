@@ -12,7 +12,7 @@ def test_param_reads_are_recorded():
     assert P.mm("box-length") == 200.0
     assert P["lid-length"].to("mm").magnitude == 224.0  # expression: records only the expr param
     assert log.keys == ["param://box-length", "param://lid-length"]
-    assert "param://unused-note-count" not in log
+    assert "param://lid-width" not in log
 
 
 def test_interface_read_records_iface_and_its_params():

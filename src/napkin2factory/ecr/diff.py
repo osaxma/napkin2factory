@@ -53,8 +53,8 @@ def _data_for_ref(product: Product, ref: str, scratch: Path, render: bool) -> Pa
     vcs.require_repo_root()
     if not vcs.ref_exists(ref):
         raise DiffError(
-            f"{ref!r} is not a released Revision or snapshot of this product; "
-            "`n2f ecr list` shows released versions"
+            f"{ref!r} is not a released Revision of this product; "
+            "build/site/versions.html lists them (or use 'working' for the current model)"
         )
     wt = scratch / f"wt-{re.sub(r'[^A-Za-z0-9.]+', '-', ref)}"
     vcs.worktree_add(ref, wt)
@@ -197,12 +197,15 @@ def compute_diff(a: Path, b: Path) -> dict[str, Any]:
             )
             decl_changed = parts_a[pid] != parts_b[pid]
             if geo_changed or decl_changed:
+                rev_a, rev_b = parts_a[pid]["rev"], parts_b[pid]["rev"]
                 parts.append(
                     {
                         "id": pid,
                         "uri": f"part://{pid}",
                         "state": CHANGED,
-                        "rev": f"{parts_a[pid]['rev']} → {parts_b[pid]['rev']}",
+                        "rev": f"{rev_a} → {rev_b}"
+                        if rev_a != rev_b
+                        else f"{rev_b} (bumps when the change request closes)",
                         "name": parts_b[pid]["name"],
                         "geometry": geo_changed,
                         "declared": decl_changed,
@@ -281,10 +284,21 @@ def compute_diff(a: Path, b: Path) -> dict[str, Any]:
 
 
 def _glb_b64(data: Path) -> str:
-    glbs = (
-        sorted((data / "assemblies").glob("*.model.glb")) if (data / "assemblies").is_dir() else []
-    )
-    return base64.b64encode(glbs[0].read_bytes()).decode() if glbs else ""
+    """The top-level assembly's GLB (not a sub-assembly that happens to sort first)."""
+    if not (data / "assemblies").is_dir():
+        return ""
+    glbs = {p.name[: -len(".model.glb")]: p for p in (data / "assemblies").glob("*.model.glb")}
+    if not glbs:
+        return ""
+    model = _load(data, "model.json") or {}
+    children = {
+        c["uri"].split("://")[1]
+        for a in model.get("assemblies", {}).values()
+        for c in a.get("children", [])
+        if c["uri"].startswith("asm://")
+    }
+    tops = [name for name in sorted(glbs) if name not in children] or sorted(glbs)
+    return base64.b64encode(glbs[tops[0]].read_bytes()).decode()
 
 
 def render_diff(

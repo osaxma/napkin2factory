@@ -94,9 +94,24 @@ def resolve_interface(product: Product, iface: Interface, log: ReadLog | None = 
             return [sub(x) for x in v]
         return v
 
+    from napkin2factory.core.units import mm as _mm_
+
+    def frame_mm(frame: Any) -> Any:
+        origin = []
+        for c in frame.origin:
+            c = sub(c)
+            origin.append(float(c) if isinstance(c, (int, float)) else float(_mm_(c)))
+        return frame.model_copy(update={"origin": origin})
+
     spec = iface.spec
     data = {name: sub(getattr(spec, name)) for name in type(spec).model_fields}
-    return iface.model_copy(update={"spec": type(spec).model_validate(data)})
+    return iface.model_copy(
+        update={
+            "spec": type(spec).model_validate(data),
+            "frame": frame_mm(iface.frame),
+            "frames": {k: frame_mm(f) for k, f in iface.frames.items()},
+        }
+    )
 
 
 class InterfaceAccessor(Mapping[str, Interface]):

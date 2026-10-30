@@ -332,18 +332,33 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     from napkin2factory.core.vcs import Vcs
 
     revision = None
+    last_revision = None
+    clean = True
     try:
         v = Vcs(product.root)
-        revision = v.tag_for_head() if v.is_tracked() else None
+        if v.is_tracked():
+            clean = v.is_clean()
+            revision = v.tag_for_head()
+            tags = v.tags()
+            last_revision = tags[-1] if tags else None
     except Exception:
         revision = None
+    if revision and not clean:
+        revision = None  # an edited model is not the released Revision (gate-2 B4)
     stage_label = {
         "intake": "Intake",
         "design": "Design",
         "verify": "Verify",
         "released": f"Released {revision or ''}".strip(),
     }[stage.stage]
-    revision_label = f"Revision {revision}" if revision else f"draft · snapshot {snapshot_date}"
+    if revision:
+        revision_label = f"Revision {revision}"
+    elif last_revision:
+        revision_label = f"draft — changed since Revision {last_revision}"
+    elif snapshot_date == "unsnapshotted":
+        revision_label = "draft — not saved yet"
+    else:
+        revision_label = f"draft · saved {snapshot_date}"
 
     return {
         "product": product.manifest.product,

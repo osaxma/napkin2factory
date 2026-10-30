@@ -20,4 +20,3 @@ parameters:
   cable-cutout-height: {value: 20, unit: mm, description: Cable entry on the back wall}
   lid-length:        {expr: "box-length + 2 * lip-width + 2 * lid-overhang", unit: mm, description: Lid outer length}
   lid-width:         {expr: "box-width + 2 * lip-width + 2 * lid-overhang", unit: mm, description: Lid outer width}
-  unused-note-count: {value: 3, unit: "", description: A parameter nothing reads (used by the invalidation tests)}

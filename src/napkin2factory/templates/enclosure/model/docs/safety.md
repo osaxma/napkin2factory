@@ -16,5 +16,5 @@ engineer. Have it checked by a qualified person before building or using it.
 
 ## Hazards
 
-- Sheet edges are sharp until deburred: {{ req("REQ-004").statement }}
+- Sheet edges are sharp until deburred. The manufacturer package requires: {{ req("REQ-004").statement | lower }}
 - The box is a metal enclosure; if it houses mains-powered electronics it must be earthed by a qualified person.
