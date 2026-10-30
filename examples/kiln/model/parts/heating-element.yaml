@@ -1,0 +1,12 @@
+id: heating-element
+rev: A
+name: Heating element coil, Kanthal A1 1.6 mm
+kind: cots
+process: none
+geometry: none
+source: {vendor: Kanthal, mpn: A1-1.6mm, url: "https://www.kanthal.com/en/products/material-datasheets/wire/resistance-heating-wire-and-resistance-wire/kanthal-a-1/", verified: false}
+cost: {unit: 60 USD, basis: estimate, note: "wire for one coil set incl. spare"}
+lead_time: 14 d
+mass: 0.6 kg
+satisfies: [req://REQ-006, req://REQ-015]
+notes: Wound on site from wire; length from calc://element.wire_length. No electrical design is part of this package.

@@ -1,0 +1,11 @@
+id: m6x16-bolt
+rev: A
+name: M6 x 16 socket-head cap screw
+kind: cots
+process: none
+geometry: none
+source: {vendor: McMaster-Carr, mpn: 91290A318, url: "https://www.mcmaster.com/91290A318/", verified: false}
+cost: {unit: 0.40 USD, basis: catalog}
+lead_time: 5 d
+mass: 8 g
+satisfies: [req://REQ-011]

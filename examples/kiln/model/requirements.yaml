@@ -1,0 +1,149 @@
+# Requirements: atomic, testable, each with a verify method and an allocation.
+requirements:
+  - id: REQ-001
+    title: Useful firing volume
+    statement: The chamber provides at least 8 liter of clear firing volume.
+    category: performance
+    priority: must
+    verify: {kind: param_bound, target: param://chamber-volume, op: ">=", value: 8 liter}
+    allocation: [param://chamber-width, param://chamber-depth, param://chamber-height, part://liner-side]
+    rationale: A 200 mm cube holds a test tile rack or a 150 mm pot.
+    source: intake
+  - id: REQ-002
+    title: Footprint
+    statement: The complete kiln including the controller box is at most 1000 mm wide.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: "asm://kiln#props.bbox.x", op: "<=", value: 1000 mm}
+    allocation: [asm://kiln, part://guard-shell, part://controller-box]
+    rationale: The owner's alcove is about 1 m wide once the controller sits beside the body (DEC-011).
+    source: intake
+  - id: REQ-003
+    title: Touchable surfaces stay cool
+    statement: Any surface a user can touch during operation stays below 60 degC at steady state with the chamber at 1200 degC.
+    category: safety
+    safety: true
+    priority: must
+    verify: {kind: calc, target: calc://thermal.guard_temperature, op: "<", value: 60 degC}
+    allocation: [part://guard-shell, param://fiber-thickness, param://guard-gap, part://liner-side]
+    rationale: Burn prevention. The inner shell runs hotter (see calc://thermal.skin_temperature); only the ventilated guard is touchable. See DEC-003.
+    source: intake
+  - id: REQ-004
+    title: Mass
+    statement: The complete kiln including the stand has a mass below 120 kg.
+    category: mass
+    priority: should
+    verify: {kind: geometry_prop, target: "asm://kiln#props.mass", op: "<", value: 120 kg}
+    allocation: [asm://kiln, param://fiber-thickness, param://brick-thickness]
+    rationale: Delivered in parts; the body is lifted onto the stand by two people with bricks and door out (DEC-008).
+    source: intake
+  - id: REQ-005
+    title: Cost target
+    statement: The bill of materials totals less than 1500 USD at a quantity of 1.
+    category: cost
+    priority: should
+    verify: {kind: bom_rollup, target: "bom://rollups#total_cost", op: "<", value: 1500 USD}
+    allocation: [part://outer-shell, part://guard-shell, part://stand, part://liner-side]
+    source: intake
+  - id: REQ-006
+    title: Element power within the circuit
+    statement: The heating element draws at most 3000 W from a 230 V supply so a dedicated 16 A circuit has margin.
+    category: performance
+    priority: must
+    verify: {kind: param_bound, target: param://element-power, op: "<=", value: 3000 W}
+    allocation: [param://element-power, param://mains-voltage, part://heating-element]
+    rationale: 3000 W / 230 V = 13 A, below 16 A. See DEC-006.
+    source: design
+  - id: REQ-007
+    title: Controller away from the hot zone
+    statement: The controller enclosure is mounted outside the touch guard with at least 40 mm of free air between them, and its inside stays below 50 degC.
+    category: safety
+    safety: true
+    priority: must
+    verify: {kind: manual, note: "Measure the controller box inside temperature after one hour at 1200 degC; it must read below 50 degC."}
+    allocation: [part://controller-box, param://controller-standoff, iface://controller-shell]
+    rationale: Electronics derate above 50 degC; the SSR needs air.
+    source: design
+  - id: REQ-008
+    title: Dedicated circuit disclosed
+    statement: The installation manual states that a dedicated 16 A circuit installed by a licensed electrician is required, and the controller box carries a label saying so.
+    category: safety
+    safety: true
+    priority: must
+    verify: {kind: manual, note: "Read the installation manual and check the label text; sign off."}
+    allocation: [doc://installation, part://controller-box, param://circuit-rating]
+    source: design
+  - id: REQ-009
+    title: Door interlock and latch
+    statement: The door has a positive latch, and the operation manual requires the element to be switched off before the door is opened; an interlock switch is a documented installer option.
+    category: safety
+    safety: true
+    priority: must
+    verify: {kind: manual, note: "Confirm the latch holds the door closed against a 50 N pull and that the operation manual states the interlock requirement."}
+    allocation: [part://latch, asm://door, doc://operation]
+    source: design
+  - id: REQ-010
+    title: Parts do not collide
+    statement: No two parts of the assembly overlap in space.
+    category: geometry
+    priority: must
+    verify: {kind: interference, target: asm://kiln}
+    allocation: [asm://kiln]
+    source: design
+  - id: REQ-011
+    title: Shell bolts to the stand
+    statement: The guard's four mounting holes line up with the stand's holes within 0.5 mm.
+    category: interface
+    priority: must
+    verify: {kind: interface, target: iface://shell-frame-mount}
+    allocation: [part://guard-shell, part://stand, iface://shell-frame-mount]
+    source: design
+  - id: REQ-012
+    title: Hinge holes agree
+    statement: The door skin's hinge holes line up with the guard lip's within 0.5 mm.
+    category: interface
+    priority: must
+    verify: {kind: interface, target: iface://shell-door-hinge}
+    allocation: [part://guard-shell, part://door-skin, iface://shell-door-hinge]
+    source: design
+  - id: REQ-013
+    title: Two side liners
+    statement: The assembly uses exactly 2 side liners.
+    category: manufacturing
+    priority: should
+    verify: {kind: count, target: part://liner-side, op: "==", value: 2}
+    allocation: [asm://kiln]
+    source: design
+  - id: REQ-014
+    title: Door swing
+    statement: The door opens to at least 100 degree so the chamber can be loaded from the front.
+    category: usability
+    priority: should
+    verify: {kind: param_bound, target: param://door-swing, op: ">=", value: 100 degree}
+    allocation: [asm://door, param://door-swing]
+    source: intake
+  - id: REQ-015
+    title: Element wire fits the spool
+    statement: The element needs less than 40 m of 1.6 mm Kanthal A1 wire.
+    category: manufacturing
+    priority: should
+    verify: {kind: calc, target: calc://element.wire_length, op: "<", value: 40 m}
+    allocation: [part://heating-element, param://element-power, param://element-wire-diameter]
+    source: design
+  - id: REQ-016
+    title: Power margin over heat loss
+    statement: The rated element power exceeds the steady loss plus heat-up power by a margin of at least 20 percent (ratio 1.2).
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://element.power_margin, op: ">=", value: 1.2}
+    allocation: [param://element-power, param://heat-up-time, param://fiber-thickness]
+    rationale: Otherwise the kiln never reaches temperature or takes all day.
+    source: design
+  - id: REQ-017
+    title: Lead time
+    statement: No part has a lead time above 30 d.
+    category: manufacturing
+    priority: should
+    verify: {kind: bom_rollup, target: "bom://rollups#max_lead_time", op: "<=", value: 30 d}
+    allocation: [part://outer-shell, part://stand]
+    source: intake

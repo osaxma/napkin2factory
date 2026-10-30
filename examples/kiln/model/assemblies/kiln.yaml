@@ -1,0 +1,24 @@
+id: kiln
+rev: A
+name: Mini electric test kiln
+geometry: {module: geometry/kiln.py}
+children:
+  - {part: part://outer-shell, qty: 1}
+  - {part: part://guard-shell, qty: 1}
+  - {part: part://liner-slab, qty: 2}
+  - {part: part://liner-side, qty: 2}
+  - {part: part://liner-back, qty: 1}
+  - {part: part://fiber-slab, qty: 2}
+  - {part: part://fiber-side, qty: 2}
+  - {part: part://fiber-back, qty: 1}
+  - {asm: asm://door, qty: 1}
+  - {part: part://heating-element, qty: 1}
+  - {part: part://controller-box, qty: 1}
+  - {part: part://pid-controller, qty: 1}
+  - {part: part://ssr, qty: 1}
+  - {part: part://thermocouple, qty: 1}
+  - {part: part://stand, qty: 1}
+  - {part: part://m6x16-bolt, qty: 8}
+  - {part: part://m6-nut, qty: 8}
+exploded: {axis: z, spacing: 120 mm}
+satisfies: [req://REQ-002, req://REQ-004, req://REQ-010, req://REQ-013]

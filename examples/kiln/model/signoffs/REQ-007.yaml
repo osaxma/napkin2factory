@@ -1,0 +1,15 @@
+requirement: req://REQ-007
+by: Example Reviewer (not a real review)
+role: human
+date: '2026-10-30'
+statement: Example sign-off shipped with the kiln example; a real reviewer must repeat
+  this check.
+evidence:
+- part://controller-box
+- param://controller-standoff
+- iface://controller-shell
+evidence_keys:
+  part://controller-box: sha256:17f7bbac518aca0f06f7ffc4adf67ee921dacc938667af0c65b67a18b3e26872
+  param://controller-standoff: sha256:3b42f8e0cc21010be377985e47dbbd0f4577538fa6efb7a8af4d628be5fa2880
+  iface://controller-shell: sha256:ffed8800d8a22ad9922493cc0bb267090f5a5b171862d2b589d1cd27f0eb0c61
+example: true

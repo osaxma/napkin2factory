@@ -1,0 +1,12 @@
+id: thermocouple
+rev: A
+name: Type K thermocouple probe
+kind: cots
+process: none
+geometry: none
+source: {vendor: Omega Engineering, mpn: KTSS-18G-12, url: "https://www.omega.com/en-us/temperature-measurement/temperature-probes/probes-with-lead-wires/p/KTSS-HH", verified: false}
+cost: {unit: 40 USD, basis: estimate}
+lead_time: 7 d
+mass: 0.05 kg
+satisfies: [req://REQ-007]
+notes: Inserted through a Ø8 mm hole drilled in the back wall at chamber mid-height (installer); BOM-only in this Revision.

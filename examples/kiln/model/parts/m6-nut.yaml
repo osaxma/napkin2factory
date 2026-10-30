@@ -1,0 +1,11 @@
+id: m6-nut
+rev: A
+name: M6 hex nut, zinc
+kind: cots
+process: none
+geometry: none
+source: {vendor: McMaster-Carr, mpn: 90591A151, url: "https://www.mcmaster.com/90591A151/", verified: false}
+cost: {unit: 0.10 USD, basis: catalog}
+lead_time: 5 d
+mass: 2.5 g
+satisfies: [req://REQ-011]

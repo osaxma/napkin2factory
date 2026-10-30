@@ -1,0 +1,11 @@
+id: ssr
+rev: A
+name: Solid-state relay, 25 A
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 45 mm, width: 58 mm, height: 30 mm}}
+source: {vendor: Crydom, mpn: D2425, url: "https://www.sensata.com/products/relays/d24-series-panel-mount-ssr-d2425", verified: false}
+cost: {unit: 35 USD, basis: estimate}
+lead_time: 7 d
+mass: 0.1 kg
+satisfies: [req://REQ-007]

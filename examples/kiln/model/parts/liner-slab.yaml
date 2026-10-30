@@ -1,0 +1,14 @@
+id: liner-slab
+rev: A
+name: Floor / roof slab (K23)
+kind: custom
+process: cut-block
+material: {name: K23 insulating firebrick, spec: "Morgan K-23, 1260 degC class"}
+finish: as cut
+tolerance_class: ISO2768-c
+geometry:
+  kit: block
+  args: {length: param://liner-outer-width, width: param://liner-outer-depth, height: param://brick-thickness}
+satisfies: [req://REQ-001, req://REQ-003]
+cost: {unit: 50 USD, basis: estimate, note: "two off: floor and roof"}
+lead_time: 10 d

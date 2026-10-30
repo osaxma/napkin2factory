@@ -1,0 +1,19 @@
+requirement: req://REQ-003
+by: Example Reviewer (not a real review)
+role: human
+date: '2026-10-30'
+statement: Example sign-off shipped with the kiln example; a real reviewer must repeat
+  this check.
+evidence:
+- calc://thermal.guard_temperature
+- part://guard-shell
+- param://fiber-thickness
+- param://guard-gap
+- part://liner-side
+evidence_keys:
+  calc://thermal.guard_temperature: sha256:fcc8c6e0d50d3fbb9e22fd4f67641f18af8f4a449f424ba3eb10b09d32202bbb
+  part://guard-shell: sha256:524e8df6973ad3a94877f6b3aa3638802c2366d34b52e1e14fc3ef8c33541b7b
+  param://fiber-thickness: sha256:ec757bce727d6f3a9b150928d649f79a42978791f444b922bdea6abcde94c88c
+  param://guard-gap: sha256:42f346993894b0e80beb9f3d3d6dfd511d69179ec68ecf394eb3efc44afcd8ca
+  part://liner-side: sha256:0279bd5791b97dfc892cda735ff81a6217fe34f678ba4fdc2efc4f4d57028573
+example: true

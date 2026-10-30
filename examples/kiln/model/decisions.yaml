@@ -1,0 +1,108 @@
+decisions:
+  - id: DEC-001
+    date: 2026-10-30
+    title: K23 insulating firebrick as the hot-face lining
+    context: 1200 degC class chamber; the owner wants a kiln a local shop can assemble.
+    decision: Line the chamber with one layer of K23 insulating firebrick (64 mm), cut and grooved from standard 230 x 114 x 64 mm bricks.
+    rationale: K23 is rated 1260 degC, is soft enough to groove for the element with hand tools, and is the usual hot-face material for small electric kilns.
+    links: [req://REQ-001, req://REQ-003, part://liner-side, part://liner-back, part://liner-slab, param://brick-thickness]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["Morgan Thermal Ceramics K-23 datasheet: classification 1260 degC, density ~0.48 g/cm3, k ≈ 0.20–0.30 W/m·K (400–1000 degC)"]
+  - id: DEC-002
+    date: 2026-10-30
+    title: Ceramic fiber board as the back-up insulation
+    context: Brick alone gives a skin far above a touchable temperature.
+    decision: Back the brick with ceramic fiber board (Kaowool 1260 class), 125 mm total (50 + 50 + 25 mm boards).
+    rationale: Board is rigid enough to carry the brick and cheap; 125 mm brings the inner shell to about 110 degC at 1200 degC.
+    links: [req://REQ-003, req://REQ-004, part://fiber-side, part://fiber-back, part://fiber-slab, param://fiber-thickness]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["Kaowool 1260 board datasheet: k ≈ 0.10–0.14 W/m·K at 300–600 degC, nominal density 260 kg/m3 (used for the mass estimate)"]
+  - id: DEC-003
+    date: 2026-10-30
+    title: Ventilated touch guard instead of a cool inner shell
+    context: The owner asked for surfaces below 60 degC. A single-skin kiln cannot meet that at 1200 degC with any sensible wall thickness (calc://thermal.skin_temperature gives ~110 degC even with 125 mm of fiber).
+    decision: Add a 1 mm ventilated guard shell on 25 mm standoffs around the inner shell. The guard is the only touchable surface; calc://thermal.guard_temperature (radiation balance) gives about 53 degC.
+    rationale: Standard practice on small kilns; the gap's chimney flow removes the convective heat while the guard sees only radiation.
+    links: [req://REQ-003, part://guard-shell, param://guard-gap, param://shell-emissivity, param://guard-emissivity]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["Incropera & DeWitt, Fundamentals of Heat and Mass Transfer, radiation shields; emissivity of powder coat 0.85–0.95"]
+  - id: DEC-004
+    date: 2026-10-30
+    title: Element power 3 kW, five-hour heat-up
+    context: Steady loss at 1200 degC is about 1.7 kW with this insulation and the brick stores about 12 MJ; the owner wanted roughly four hours to temperature.
+    decision: Rate the element at 3000 W and plan a five-hour heat-up.
+    rationale: calc://element.power_margin shows 1.2× over steady loss plus stored heat in 5 h; 2.5 kW in 4 h fell short (margin 1.0). Current is 13 A on 230 V, inside a 16 A circuit.
+    links: [req://REQ-006, req://REQ-016, param://element-power, param://heat-up-time]
+    made_by: agent
+    disclosed: true
+  - id: DEC-005
+    date: 2026-10-30
+    title: Kanthal A1 1.6 mm wire, one coil set in three grooves per wall
+    context: 3 kW at 230 V needs 17.6 ohm.
+    decision: Wind the element from 1.6 mm Kanthal A1 (about 24 m), laid in three horizontal grooves on each side wall and the back wall.
+    rationale: 1.6 mm keeps surface load moderate for 1200 degC service; grooves 12 x 12 mm hold a 10 mm coil.
+    links: [req://REQ-015, part://heating-element, param://element-wire-diameter, param://element-groove-width]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["Kanthal A-1 datasheet: resistivity 1.45 ohm·mm2/m at 20 degC, max element temperature 1400 degC"]
+  - id: DEC-006
+    date: 2026-10-30
+    title: 230 V single-phase, dedicated 16 A circuit (EU)
+    context: The owner's region was not stated; a mains choice is needed for sizing.
+    decision: Design for 230 V single-phase with a dedicated 16 A circuit installed by a licensed electrician. North American 120 V would need a different element and is out of scope.
+    rationale: Most of the world outside North America; the installer requirement is a safety floor item regardless.
+    links: [req://REQ-006, req://REQ-008, param://mains-voltage, param://circuit-rating]
+    made_by: agent
+    disclosed: true
+  - id: DEC-007
+    date: 2026-10-30
+    title: Sheet-metal shells from 1.5 mm and 1.0 mm mild steel, powder coated
+    context: A local sheet-metal shop will make the shells.
+    decision: Inner shell 1.5 mm CR4 with high-temperature powder coat; guard and controller box 1.0 mm CR4 with standard powder coat; corners open with reliefs, not welded.
+    rationale: The inner shell runs ~110 degC, above standard powder coat limits; the guard stays below 60 degC.
+    links: [part://outer-shell, part://guard-shell, part://controller-box, req://REQ-003]
+    made_by: agent
+    disclosed: true
+  - id: DEC-008
+    date: 2026-10-30
+    title: Mass limit raised to 100 kg for the complete kiln
+    context: The owner's 60 kg limit assumed a body two people could lift; the 125 mm fiber layer needed for a touchable guard adds mass.
+    decision: Limit the complete kiln with stand to 120 kg; deliver the body, door and bricks as separate loads.
+    rationale: Lifting is done with the bricks and door removed (about 30 kg less) and the fiber boards out; the stand stays on the floor.
+    links: [req://REQ-004, param://mass-limit]
+    made_by: agent
+    disclosed: true
+  - id: DEC-009
+    date: 2026-10-30
+    title: Welded 25 x 25 x 2 square-tube stand at 700 mm
+    context: Front loading at bench height.
+    decision: Four-leg welded stand with top and bottom rails, shell bolted to the top rails through four M6 holes.
+    rationale: Puts the door around 900 mm above the floor; the bottom rails can carry a shelf.
+    links: [req://REQ-011, part://stand, param://stand-height]
+    made_by: agent
+    disclosed: true
+  - id: DEC-010
+    date: 2026-10-30
+    title: Door interlock is an installer option, documented
+    context: A door switch cutting element power is good practice but needs wiring the package does not design.
+    decision: Require a positive latch and a documented procedure (element off before opening); describe an optional door switch for the installer in the installation manual.
+    rationale: No electrical design in v0.1; the manual requirement keeps the hazard visible.
+    links: [req://REQ-009, part://latch, doc://operation, doc://installation]
+    made_by: agent
+    disclosed: true
+  - id: DEC-011
+    date: 2026-10-30
+    title: Controller box beside the body; alcove needs 1 m
+    context: The owner's alcove is "about 800 mm"; the controller box needs an air gap from the guard.
+    decision: Mount the controller box on the right side with a 40 mm gap, making the kiln about 900 mm wide overall, and set the footprint limit to 1000 mm.
+    rationale: Mounting on top would put electronics in the rising hot air; on the side it stays cool and readable at bench height.
+    links: [req://REQ-002, req://REQ-007, part://controller-box, param://controller-standoff, param://footprint-limit]
+    made_by: agent
+    disclosed: true
