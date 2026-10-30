@@ -1,0 +1,103 @@
+[project]
+name = "napkin2factory"
+version = "0.1.0"
+description = "From napkin to factory: a text-only product model compiled into a manufacturable technical data package, with an engineering-change loop that rebuilds exactly what changed."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.13,<3.15"
+authors = [{ name = "osama" }]
+keywords = ["cad", "build123d", "manufacturing", "bom", "engineering-change", "eco"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Manufacturing",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+  "build123d>=0.12,<0.13",
+  "pint>=0.24",
+  "pydantic>=2.9",
+  "pyyaml>=6.0",
+  "ruamel.yaml>=0.18",
+  "typer>=0.15",
+  "jinja2>=3.1",
+  "ezdxf>=1.3",
+  "openpyxl>=3.1",
+  "typst>=0.13",
+  "numpy>=2.0",
+  "httpx>=0.27",
+  "pygltflib>=1.16",
+  "markdown-it-py>=3.0",
+  "rich>=13.0",
+  "packaging>=24.0",
+]
+
+[project.scripts]
+n2f = "napkin2factory.cli.app:main"
+
+[project.urls]
+Homepage = "https://github.com/osaxma/napkin2factory"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "hypothesis>=6.115",
+  "lxml>=5.3",
+  "selectolax>=0.3",
+  "actionlint-py>=1.7",
+  "twine>=6.0",
+  "types-PyYAML",
+  "types-openpyxl",
+  "playwright>=1.48",
+  "pillow>=11.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/napkin2factory"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/napkin2factory", "README.md", "LICENSE", "pyproject.toml"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+extend-exclude = ["src/napkin2factory/report/vendor", "src/napkin2factory/templates", "examples", "docs/history"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "D", "E722"]
+ignore = ["D203", "D213", "D105", "D107"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["OCP", "OCP.*", "build123d", "build123d.*", "ezdxf", "ezdxf.*", "pygltflib", "pygltflib.*", "typst", "pint", "pint.*", "markdown_it", "markdown_it.*", "ruamel", "ruamel.*", "selectolax", "selectolax.*", "lxml", "lxml.*", "hypothesis", "hypothesis.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -p no:cacheprovider"
+markers = ["timing: timing assertions (only under N2F_TIMING=1)"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["napkin2factory.core"]
+branch = false

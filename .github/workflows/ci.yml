@@ -1,0 +1,31 @@
+name: ci
+on:
+  push:
+    branches: [main, v0.1-build]
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *"   # nightly: make check-full with timing assertions
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run playwright install chromium
+      - run: make check
+  check-full:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    env:
+      N2F_TIMING: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run playwright install chromium
+      - run: make check-full
