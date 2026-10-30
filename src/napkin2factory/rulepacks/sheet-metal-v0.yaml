@@ -1,0 +1,44 @@
+# Sheet-metal design rules v0. Thresholds are conservative shop rules of thumb for mild
+# steel air bending; confirm with the fabricator (DECISIONS.md tags them [verify]).
+# Sources: common sheet-metal design guides (e.g. Protolabs / Xometry sheet-metal design
+# guidelines; Machinery's Handbook bend allowance tables) — nominal values, not a standard.
+pack: sheet-metal-v0
+title: Sheet-metal manufacturability (v0)
+applies_to: {process: sheet-metal}
+rules:
+  - id: min-bend-radius
+    title: Inside bend radius at least 1 × sheet thickness
+    severity: fail
+    check: min_bend_radius
+    params: {factor: 1.0}
+    message: "bend {label} radius {radius} mm is below {min} mm (1 × thickness {thickness} mm)"
+  - id: min-hole-diameter
+    title: Hole diameter at least 1 × sheet thickness
+    severity: fail
+    check: min_hole_diameter
+    params: {factor: 1.0}
+    message: "hole {label} Ø{diameter} mm is below the sheet thickness {thickness} mm"
+  - id: hole-to-bend
+    title: Hole centre at least 2 × t + r from a bend line
+    severity: fail
+    check: hole_to_bend
+    params: {factor_t: 2.0, factor_r: 1.0}
+    message: "hole {label} is {distance} mm from a bend; needs at least {min} mm"
+  - id: min-flange
+    title: Flange (flat after a bend) at least 4 × t
+    severity: fail
+    check: min_flange
+    params: {factor: 4.0}
+    message: "flange {label} is {height} mm; needs at least {min} mm to bend reliably"
+  - id: relief-present
+    title: Corner reliefs where bends meet
+    severity: fail
+    check: relief_present
+    params: {}
+    message: "{bends} bends meet at corners but no reliefs are declared"
+  - id: flat-pattern-present
+    title: Flat pattern available for the laser/punch
+    severity: warn
+    check: flat_pattern_present
+    params: {}
+    message: "no flat pattern was generated; the shop will have to unfold the part"

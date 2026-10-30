@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.1-build` · **Current milestone:** M3 done → review gate 1, then M4
+**Branch:** `v0.1-build` · **Current milestone:** M4 done (review gate 1 running) → M5
 **Resume order:** `GRAND_PLAN.md` → this file → `DECISIONS.md` → `git log --oneline -30` → `make check`
 
 ## Environment (host facts a cold reader needs)
@@ -50,14 +50,22 @@
   verdicts, `--jobs 2` ≡ `--jobs 1`, clean, missing output). `make check` runs the full
   `n2f build` for both examples (~2.5 min).
 
-## Next (M4)
-Review gate 1 first (fresh-context reviewer on `core/graph`, `core/model`, accessors; §8.3).
-Then M4: `core/checks/` evaluators for every verify kind (param_bound, geometry_prop,
-bom_rollup, calc, interference with D29 allowed-contact, count, interface, manual), rule-pack
-runner (`rulepacks/sheet-metal-v0.yaml`, `general-v0.yaml`) over features.json, BOM
-validation tiers (D15) → `validation.json`, sign-offs (D9/D25) + `n2f signoff`, doc
-staleness, check matrix, `n2f check`, stage computation + `n2f status`. Coverage ≥ 80 % on
-core added to `make check`.
+- **M4** — `core/checks/` (results, evidence keys S-024, calc runner, evaluators per verify
+  kind with the safety ladder S-026, interference with D29 allowed contact, interface
+  conformance, stage computation, engine writing `checks.json` with matrix + summary),
+  `rulepacks/` (sheet-metal-v0, general-v0; named checks S-022), `catalog/common.yaml`,
+  `bom/validation.py` (D15 tiers, offline default S-023), `n2f check|status|signoff`.
+  Tests `tests/e2e/test_checks.py`: overlapping/touching blocks, mating-face allowed
+  contact, interface mismatch, tight bend radius fails, sign-off ladder incl. evidence
+  change, refuse signing a failing requirement, exit code 2, stage progression incl. warn
+  never moving the stage, doc staleness, calc requirement with recorded reads.
+
+## Next (M5)
+Fold in review gate 1 findings (blockers fixed, rest to BACKLOG). Then M5: drawings (D11:
+three views + iso, hidden lines, dims, hole table, title block in `<g id="titleblock">`,
+flat-pattern view + DXF), BOM CSV/XLSX, docs HTML (markdown-it-py) + PDF (Typst emitter),
+the real self-contained report (D13/D17) with viewer, galleries, matrix, persona toggle,
+`n2f serve`, Playwright smoke, `validate_outputs.py` extended.
 
 ## Open risks
 - Plan's Linux DoD is exercised only in CI (S-001).

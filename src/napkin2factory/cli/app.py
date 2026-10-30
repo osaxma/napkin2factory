@@ -6,6 +6,7 @@ import typer
 
 from napkin2factory import __version__
 from napkin2factory.cli import build as build_cmd
+from napkin2factory.cli import check as check_cmd
 from napkin2factory.cli import graph as graph_cmd
 from napkin2factory.cli import init as init_cmd
 from napkin2factory.cli import validate as validate_cmd
@@ -38,6 +39,9 @@ app.command("validate")(validate_cmd.validate)
 app.command("lint")(validate_cmd.lint)
 app.command("build")(build_cmd.build)
 app.command("graph")(graph_cmd.graph)
+app.command("check")(check_cmd.check)
+app.command("status")(check_cmd.status)
+app.command("signoff")(check_cmd.signoff)
 app.command("impact")(graph_cmd.impact)
 
 

@@ -1,0 +1,29 @@
+# General rules v0: what every part needs before a manufacturer can quote it.
+pack: general-v0
+title: General manufacturability (v0)
+applies_to: {}
+rules:
+  - id: custom-part-complete
+    title: Custom parts declare process, material, finish and tolerance class
+    severity: fail
+    check: custom_part_complete
+    params: {}
+    message: "{uri} is missing {missing}"
+  - id: part-in-assembly
+    title: Every part belongs to an assembly
+    severity: warn
+    check: part_in_assembly
+    params: {}
+    message: "{uri} is not used by any assembly"
+  - id: cots-has-source
+    title: Bought parts name a vendor, part number and link
+    severity: fail
+    check: cots_has_source
+    params: {}
+    message: "{uri} has no source (vendor, mpn, url)"
+  - id: cots-source-verified
+    title: Bought-part links were checked
+    severity: warn
+    check: cots_source_verified
+    params: {}
+    message: "{uri}: the vendor link is marked unverified"
