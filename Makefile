@@ -8,7 +8,7 @@ EXAMPLES_FAST := examples/bracket examples/enclosure
 
 .PHONY: check check-full lint types unit templates goldens todo-grep examples-fast clean
 
-check: lint types unit
+check: lint types unit examples-fast
 
 lint:
 	$(PY) ruff check src tests
@@ -18,7 +18,15 @@ types:
 	$(PY) mypy src/napkin2factory/core
 
 unit:
-	$(PY) pytest tests/smoke tests/unit
+	$(PY) pytest tests/smoke tests/unit tests/e2e
+
+examples-fast:
+	@for ex in $(EXAMPLES_FAST); do \
+	  if [ -d $$ex ]; then \
+	    echo "== $$ex"; \
+	    (cd $$ex && $(PY) n2f validate && $(PY) n2f lint) || exit 1; \
+	  fi; \
+	done
 
 check-full: check
 	@echo "check-full: kiln and demos are added at M8"

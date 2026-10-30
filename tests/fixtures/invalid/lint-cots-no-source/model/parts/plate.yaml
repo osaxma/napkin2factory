@@ -1,0 +1,5 @@
+id: plate
+name: Bolt
+kind: cots
+cost:
+  unit: 1 USD

@@ -1,0 +1,27 @@
+# Requirements: atomic, testable, each with a verify method and an allocation.
+requirements:
+  - id: REQ-001
+    title: Fits the envelope
+    statement: The bracket's longest dimension is at most 150 mm so it fits behind the shelf lip.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: "part://l-bracket#props.bbox.x", op: "<=", value: 150 mm}
+    allocation: [part://l-bracket, param://bracket-length]
+    rationale: The shelf lip leaves 150 mm of clearance.
+    source: intake
+  - id: REQ-002
+    title: Light enough to ship as a letter
+    statement: Each bracket has a mass below 0.5 kg.
+    category: mass
+    priority: should
+    verify: {kind: geometry_prop, target: "part://l-bracket#props.mass", op: "<", value: 0.5 kg}
+    allocation: [part://l-bracket, param://bracket-thickness]
+    source: intake
+  - id: REQ-003
+    title: Unit cost
+    statement: The bill of materials totals less than 30 USD per bracket at a quantity of 10.
+    category: cost
+    priority: must
+    verify: {kind: bom_rollup, target: "bom://rollups#total_cost", op: "<", value: 30 USD}
+    allocation: [part://l-bracket]
+    source: intake

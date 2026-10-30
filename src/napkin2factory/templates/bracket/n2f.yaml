@@ -1,0 +1,8 @@
+schema: 1
+system: ">=0.1,<0.2"
+product:
+  id: bracket
+  name: Wall bracket for a 10 kg shelf
+  description: A single sheet-metal L-bracket. The smallest complete napkin2factory product.
+units: metric
+manufacturer_profile: null

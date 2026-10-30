@@ -1,0 +1,5 @@
+persona: owner
+domains: {mechanical: novice, thermal: novice, electrical: novice, manufacturing: novice}
+verbosity: normal
+delegation: balanced
+language: en

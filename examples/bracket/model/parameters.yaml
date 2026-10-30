@@ -1,0 +1,12 @@
+# Named values with units. Geometry and docs reference these by name, never raw numbers.
+parameters:
+  bracket-length:    {value: 120, unit: mm, description: Horizontal leg (shelf side), owner: intake}
+  bracket-height:    {value: 80,  unit: mm, description: Vertical leg (wall side)}
+  bracket-width:     {value: 60,  unit: mm, description: Width across the bend}
+  bracket-thickness: {value: 4,   unit: mm, description: Sheet thickness}
+  bend-radius:       {value: 4,   unit: mm, description: Inside bend radius (equals thickness)}
+  hole-diameter:     {value: 9,   unit: mm, description: Clearance for M8 fasteners}
+  hole-spacing:      {value: 36,  unit: mm, description: Pitch between the two holes on each leg}
+  hole-inset:        {value: 20,  unit: mm, description: Hole centre distance from the leg end}
+  shelf-load:        {value: 10,  unit: kg, description: Mass the shelf carries, owner: intake}
+  envelope-max:      {expr: "bracket-length + bend-radius + bracket-thickness", unit: mm, description: Largest dimension the bracket may reach}

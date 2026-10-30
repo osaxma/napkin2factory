@@ -1,0 +1,7 @@
+id: bracket
+rev: A
+name: Wall bracket
+geometry: {module: geometry/bracket.py}
+children:
+  - {part: part://l-bracket, qty: 1}
+exploded: {axis: z, spacing: 50 mm}

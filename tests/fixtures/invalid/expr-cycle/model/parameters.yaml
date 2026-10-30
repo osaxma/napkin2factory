@@ -1,0 +1,13 @@
+parameters:
+  width:
+    value: 80
+    unit: mm
+  thick:
+    value: 3
+    unit: mm
+  a:
+    expr: b + 1
+    unit: mm
+  b:
+    expr: a + 1
+    unit: mm

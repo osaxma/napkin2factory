@@ -1,0 +1,26 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+      - run: uv tool install "napkin2factory>=0.1,<0.2"
+      - run: n2f build && n2f check
+      - run: n2f release "${GITHUB_REF_NAME}" --dry-run
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: build/release/*.zip
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+      - uses: actions/deploy-pages@v4

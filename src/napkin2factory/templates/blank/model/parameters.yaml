@@ -1,0 +1,2 @@
+# Named values with units. Geometry and docs reference these by name, never raw numbers.
+parameters: {}

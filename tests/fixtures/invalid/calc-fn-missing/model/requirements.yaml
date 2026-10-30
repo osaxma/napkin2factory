@@ -1,0 +1,12 @@
+requirements:
+- id: REQ-001
+  title: Size
+  statement: Width is at most 100 mm.
+  category: geometry
+  verify:
+    kind: calc
+    target: calc://thermal.skin
+    op: <
+    value: 60 degC
+  allocation:
+  - part://plate
