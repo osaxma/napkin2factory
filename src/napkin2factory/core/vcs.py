@@ -220,6 +220,11 @@ class Vcs:
         """Remove a scratch folder created by :meth:`worktree_add`."""
         self._git("worktree", "remove", "--force", str(path), check=False)
 
+    def changed_in_last_snapshot(self) -> list[str]:
+        """Files the most recent snapshot changed (empty before the second snapshot)."""
+        proc = self._git("diff", "--name-only", "HEAD~1", "HEAD", check=False)
+        return [ln for ln in proc.stdout.splitlines() if ln.strip()] if proc.returncode == 0 else []
+
     def diff_names(self, ref_a: str, ref_b: str) -> list[str]:
         """Files that differ between two Revisions."""
         proc = self._git("diff", "--name-only", ref_a, ref_b)

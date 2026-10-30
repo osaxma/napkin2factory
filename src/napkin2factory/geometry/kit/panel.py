@@ -278,4 +278,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         dims=dims,
         flat_pattern=flat,
         props={"developed_area": flat.area},
+        flat_map=lambda p: (
+            (p[0], p[1]) if abs(p[0]) <= a.width / 2 and abs(p[1]) <= a.height / 2 else None
+        ),
     )

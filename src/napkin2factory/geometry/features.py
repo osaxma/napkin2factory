@@ -7,6 +7,7 @@ Rule packs (M4) evaluate ``features.json``; drawings (M5) place ``dims`` as call
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
@@ -184,12 +185,16 @@ class PartResult:
     cut_list: list[CutItem] = field(default_factory=list)
     props: dict[str, Any] = field(default_factory=dict)  # generator-declared extras
     notes: list[str] = field(default_factory=list)
+    #: 3D point on the part → its 2D position in ``flat_pattern`` (None if not mappable).
+    #: Set by generators that know their unfold; the build uses it to carry interface holes
+    #: into the flat pattern (S-034).
+    flat_map: Callable[[Vec3], Vec2 | None] | None = field(default=None, repr=False, compare=False)
 
 
 def to_json(obj: Any) -> Any:
     """Dataclasses → plain JSON-able structures (tuples become lists)."""
     if hasattr(obj, "__dataclass_fields__"):
-        return {k: to_json(v) for k, v in asdict(obj).items()}
+        return {k: to_json(v) for k, v in asdict(obj).items() if not callable(v)}
     if isinstance(obj, dict):
         return {str(k): to_json(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):

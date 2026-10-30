@@ -48,6 +48,16 @@ def _bbox(res):
     return bb.X, bb.Y, bb.Z
 
 
+def _inside(pt, poly):
+    """Even-odd ray-casting point-in-polygon test."""
+    x, y = pt
+    inside = False
+    for (x1, y1), (x2, y2) in zip(poly, poly[1:] + poly[:1]):
+        if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
+            inside = not inside
+    return inside
+
+
 def _flat_ratio(res):
     return res.flat_pattern.area * res.features.thickness / res.shape.volume
 
@@ -96,6 +106,25 @@ def test_bracket_basic(check_golden):
     hole = r.features.holes[0]
     assert hole.bend_distance == pytest.approx(55 - 12)
     assert hole.edge_distance == pytest.approx(12 - 3.3)
+
+
+def test_bracket_flat_map():
+    r = run("bracket_l", BRACKET, KitContext("b"))
+    assert r.flat_map is not None
+    dev = r.props["developed_length"]
+    assert len(r.features.holes) == 4
+    for hole, (flat_xy, _) in zip(r.features.holes, r.flat_pattern.holes, strict=True):
+        got = r.flat_map(hole.center)
+        assert got is not None
+        assert got == pytest.approx(flat_xy, abs=1e-6)
+        expected_x = dev - 12 if hole.axis == (0.0, 0.0, 1.0) else 12
+        assert got == pytest.approx((expected_x, hole.center[1]), abs=1e-6)
+        assert _inside(got, r.flat_pattern.outline)
+    assert r.flat_map((60, 0, 2)) == pytest.approx((dev, 0))  # horizontal free end, top face
+    assert r.flat_map((2, 10, 40)) == pytest.approx((0, 10))  # vertical free end, inner face
+    assert r.flat_map((1, 0, 1)) is None  # in the bend zone
+    assert r.flat_map((30, 0, 10)) is None  # in the air
+    assert r.flat_map((30, 26, 0)) is None  # beyond the width
 
 
 def test_bracket_rejects_bad_geometry():
@@ -163,6 +192,30 @@ def test_enclosure_basic(check_golden, tmp_path):
     back = import_step(str(path))
     assert len(back.solids()) == 1
     assert back.volume == pytest.approx(r.shape.volume, rel=1e-4)
+
+
+def test_enclosure_flat_map():
+    r = run("enclosure", {**ENCLOSURE, "cutouts": []}, KitContext("e"))
+    fm, flat = r.flat_map, r.flat_pattern
+    assert fm is not None
+    base = fm((10, 20, 0))
+    assert base == pytest.approx((10, 20))
+    assert _inside(base, flat.outline)
+    lip = fm((0, 60 + 6, 60))
+    assert lip is not None and _inside(lip, flat.outline)
+    lines = {label: (p1, p2) for p1, p2, _, label in flat.bend_lines}
+    assert lip[1] > lines["B-back"][0][1]
+    assert lip[1] > lines["L-back"][0][1]  # beyond the lip bend too: it is on the lip flat
+    wall = fm((-30, -60, 30))  # front wall outer face
+    assert wall is not None and _inside(wall, flat.outline)
+    assert lines["L-front"][0][1] < wall[1] < lines["B-front"][0][1]
+    side = fm((100 + 6, 10, 60))  # right lip
+    assert side is not None and _inside(side, flat.outline)
+    assert side[0] > lines["L-right"][0][0]
+    assert fm((0, -59, 1)) is None  # front base bend zone
+    assert fm((0, 61, 59)) is None  # back lip bend zone
+    assert fm((99, 59, 30)) is None  # open corner
+    assert fm((0, 0, 30)) is None  # inside the tray
 
 
 def test_enclosure_without_lip():
