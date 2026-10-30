@@ -1,0 +1,14 @@
+id: door-fiber
+rev: A
+name: Door fiber board
+kind: custom
+process: cut-sheet
+material: {name: ceramic fiber board, spec: "Kaowool 1260 board, 50 + 50 + 50 mm stack + strip", density: 260 kg/m**3}
+finish: as cut
+tolerance_class: ISO2768-c
+geometry:
+  kit: panel
+  args: {width: param://liner-outer-width, height: param://liner-outer-height, thickness: param://door-fiber-thickness}
+satisfies: [req://REQ-003]
+cost: {unit: 18 USD, basis: estimate}
+lead_time: 10 d

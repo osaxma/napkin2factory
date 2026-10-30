@@ -1,0 +1,116 @@
+diff --git a/model/assemblies/door.yaml b/model/assemblies/door.yaml
+index 764057b..089584f 100644
+--- a/model/assemblies/door.yaml
++++ b/model/assemblies/door.yaml
+@@ -8,5 +8,6 @@ children:
+   - {part: part://door-brick, qty: 1}
+   - {part: part://hinge, qty: 2}
+   - {part: part://latch, qty: 1}
++  - {part: part://peephole-plug, qty: 1}
+ exploded: {axis: y, spacing: 60 mm}
+ satisfies: [req://REQ-009, req://REQ-014]
+diff --git a/model/docs/manufacturer-notes.md b/model/docs/manufacturer-notes.md
+index 5b7e6ab..1ad622e 100644
+--- a/model/docs/manufacturer-notes.md
++++ b/model/docs/manufacturer-notes.md
+@@ -41,6 +41,11 @@ the BOM.
+ - Ceramic fiber board 1260 class: boards to the panel drawings, {{ P["fiber-thickness"] }}
+   total thickness per wall from 50 + 50 + 25 mm boards.
+ 
++## Peephole (ECR-002)
++
++Drill the door brick Ø25 mm at chamber mid-height, 60 mm right of centre, to line up with
++the Ø25 mm holes in the door skin and door fiber (in their DXFs).
++
+ ## Open points for quotation
+ 
+ - Standoffs for the guard (M6 × 25 mm spacers, 16 off) are not drawn; supply from stock.
+diff --git a/model/docs/operation.md b/model/docs/operation.md
+index 19023cd..77139a5 100644
+--- a/model/docs/operation.md
++++ b/model/docs/operation.md
+@@ -28,6 +28,11 @@ depends_on: [req://REQ-009, part://latch, part://pid-controller, param://max-tem
+ **Switch the element off at the isolator before opening the door.** {{ req("REQ-009").statement }}
+ Open the door only below 200 degC, standing to the hinge side; the escaping air is hot.
+ 
++## Peephole
++
++Remove the plug only while wearing eye protection rated for infrared; the glare at 1200 degC
++can damage eyesight. Replace the plug at once; never leave the peephole open.
++
+ ## After firing
+ 
+ Let the kiln cool to room temperature before unloading. The guard may be touched; the
+diff --git a/model/geometry/door.py b/model/geometry/door.py
+index 9c8f3c1..c5e6b8b 100644
+--- a/model/geometry/door.py
++++ b/model/geometry/door.py
+@@ -28,4 +28,6 @@ def build(P, I, parts):  # noqa: N803
+     for i, z in enumerate((-door_h / 2 + 80.0, door_h / 2 - 140.0)):
+         res.add(place("part://hinge", parts["hinge"], translate=(hinge_x, -skin_t - 6.0 - 1.0, z), label=f"hinge-{i + 1}"))
+     res.add(place("part://latch", parts["latch"], translate=(door_w / 2 - 70.0, -skin_t - 7.5 - 1.0, -12.5), label="latch"))
++    # peephole plug (ECR-002): a Ø24 rod through the Ø25 hole in skin and fiber, 10 mm proud outside
++    res.add(place("part://peephole-plug", parts["peephole-plug"], translate=(P.mm("peephole-offset"), -skin_t - 10.0, 0.0), label="peephole-plug"))
+     return res
+diff --git a/model/parameters.yaml b/model/parameters.yaml
+index 6860462..d290189 100644
+--- a/model/parameters.yaml
++++ b/model/parameters.yaml
+@@ -40,6 +40,8 @@ parameters:
+   # --- door ---
+   door-skin-thickness: {value: 1.5, unit: mm, description: "Door outer sheet"}
+   door-gap:            {value: 2, unit: mm, description: "Clearance between the door skin and the guard lip (seal space)"}
++  peephole-diameter:   {value: 25, unit: mm, description: "Peephole through the door (ECR-002)"}
++  peephole-offset:     {value: 60, unit: mm, description: "Peephole centre to the right of the door centre (ECR-002)"}
+   door-fiber-thickness: {expr: "fiber-thickness + guard-gap + guard-thickness + door-gap", unit: mm, description: "Door fiber plug: from the skin's back face to the brick line (125 + 25 + 1 + 2 mm, three boards plus a strip)"}
+   door-overlap:        {value: 20, unit: mm, description: "Door skin extends past the guard opening on each side"}
+   door-width:          {expr: "guard-outer-width + 2 * door-overlap", unit: mm, description: "Door skin width"}
+diff --git a/model/parts/door-fiber.yaml b/model/parts/door-fiber.yaml
+index ccf5cfc..466c222 100644
+--- a/model/parts/door-fiber.yaml
++++ b/model/parts/door-fiber.yaml
+@@ -8,7 +8,12 @@ finish: as cut
+ tolerance_class: ISO2768-c
+ geometry:
+   kit: panel
+-  args: {width: param://liner-outer-width, height: param://liner-outer-height, thickness: param://door-fiber-thickness}
++  args:
++    width: param://liner-outer-width
++    height: param://liner-outer-height
++    thickness: param://door-fiber-thickness
++    holes:
++      - {center: [param://peephole-offset, 0], diameter: param://peephole-diameter, label: peephole}
+ satisfies: [req://REQ-003]
+ cost: {unit: 18 USD, basis: estimate}
+ lead_time: 10 d
+diff --git a/model/parts/door-skin.yaml b/model/parts/door-skin.yaml
+index c95b18b..821f1ce 100644
+--- a/model/parts/door-skin.yaml
++++ b/model/parts/door-skin.yaml
+@@ -13,6 +13,8 @@ geometry:
+     height: param://door-height
+     thickness: param://door-skin-thickness
+     corner_radius: 8 mm
++    holes:
++      - {center: [param://peephole-offset, 0], diameter: param://peephole-diameter, label: peephole}
+ interfaces: [iface://shell-door-hinge]
+ satisfies: [req://REQ-009, req://REQ-012]
+ cost: {unit: 45 USD, basis: estimate, note: "laser cut flat, powder coat"}
+diff --git a/model/parts/peephole-plug.yaml b/model/parts/peephole-plug.yaml
+new file mode 100644
+index 0000000..c7c999b
+--- /dev/null
++++ b/model/parts/peephole-plug.yaml
+@@ -0,0 +1,12 @@
++id: peephole-plug
++rev: A
++name: Ceramic peephole plug, Ø25 mm
++kind: cots
++process: none
++geometry: {kit: tube, args: {shape: round, size: 24 mm, wall: 0, length: 60 mm, axis: y}}
++source: {vendor: Kilns & Furnaces (generic), mpn: PEEP-25, url: "https://www.kilnsandfurnaces.co.uk/", verified: false}
++cost: {unit: 12 USD, basis: estimate}
++lead_time: 7 d
++mass: 0.08 kg
++satisfies: [req://REQ-009]
++notes: Tapered refractory plug; sits in the peephole with a thumb grip outside (ECR-002).

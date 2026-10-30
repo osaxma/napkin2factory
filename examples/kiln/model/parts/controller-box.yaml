@@ -1,0 +1,24 @@
+id: controller-box
+rev: A
+name: Controller enclosure
+kind: custom
+process: sheet-metal
+material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}
+finish: powder coat, black
+tolerance_class: ISO2768-m
+geometry:
+  kit: enclosure
+  args:
+    length: param://controller-box-width
+    width: param://controller-box-depth
+    height: param://controller-box-height
+    thickness: param://controller-sheet
+    bend_radius: 1 mm
+    flange: 10 mm
+    cutouts:
+      - {face: front, center: [-40, 10], width: 46 mm, height: 46 mm, corner_radius: 1 mm, label: pid-cutout}
+      - {face: base, center: [0, 0], width: 30 mm, height: 20 mm, corner_radius: 3 mm, label: cable-entry}
+interfaces: [iface://controller-shell]
+satisfies: [req://REQ-007]
+cost: {unit: 70 USD, basis: estimate}
+lead_time: 15 d

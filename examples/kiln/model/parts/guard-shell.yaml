@@ -1,0 +1,29 @@
+id: guard-shell
+rev: A
+name: Ventilated touch guard
+kind: custom
+process: sheet-metal
+material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}
+finish: powder coat, black
+tolerance_class: ISO2768-m
+geometry:
+  kit: enclosure
+  args:
+    # Same orientation as the inner shell: a tray open on +Z, rotated by the assembly to face front.
+    length: param://guard-outer-width
+    width: param://guard-outer-height
+    height: param://guard-outer-depth
+    thickness: param://guard-thickness
+    bend_radius: 1 mm
+    flange: 15 mm
+    cutouts:
+      # vent slots low on the left/right walls and high on the base (which becomes the back) — chimney flow
+      - {face: left, center: [0, -120], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-left-low}
+      - {face: right, center: [0, -120], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-right-low}
+      - {face: left, center: [0, 120], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-left-high}
+      - {face: right, center: [0, 120], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-right-high}
+interfaces: [iface://shell-frame-mount, iface://shell-door-hinge, iface://controller-shell]
+satisfies: [req://REQ-003, req://REQ-002]
+cost: {unit: 160 USD, basis: estimate, note: "laser cut with vent slots, 8 bends, powder coat"}
+lead_time: 15 d
+manufacturer_notes: Mounts on 25 mm standoffs over the inner shell (standoffs not modelled; see manufacturer notes page). Vent slots must stay open.

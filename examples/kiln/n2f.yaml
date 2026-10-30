@@ -1,0 +1,8 @@
+schema: 1
+system: ">=0.1,<0.2"
+product:
+  id: kiln
+  name: Mini electric test kiln
+  description: Front-loading 200 × 200 × 200 mm test kiln, 1200 °C class, single-phase 230 V. The complete napkin2factory showcase.
+units: metric
+manufacturer_profile: null

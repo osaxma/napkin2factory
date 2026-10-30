@@ -1,0 +1,11 @@
+id: hinge
+rev: A
+name: Weld-on steel hinge, 50 mm
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 50 mm, width: 12 mm, height: 60 mm}}
+source: {vendor: McMaster-Carr, mpn: 1635A21, url: "https://www.mcmaster.com/1635A21/", verified: false}
+cost: {unit: 9 USD, basis: catalog}
+lead_time: 5 d
+mass: 0.12 kg
+satisfies: [req://REQ-012]

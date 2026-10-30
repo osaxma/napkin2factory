@@ -1,0 +1,15 @@
+requirement: req://REQ-008
+by: Example Reviewer (not a real review)
+role: human
+date: '2026-10-30'
+statement: Example sign-off shipped with the kiln example; a real reviewer must repeat
+  this check.
+evidence:
+- doc://installation
+- part://controller-box
+- param://circuit-rating
+evidence_keys:
+  doc://installation: sha256:69cc423aef3b85b52c4fd6d0dc9bc26ac61399e1e74c5422aab4b535d05e4095
+  part://controller-box: sha256:17f7bbac518aca0f06f7ffc4adf67ee921dacc938667af0c65b67a18b3e26872
+  param://circuit-rating: sha256:95fce4b018f8b504b0102ac1aac59d633f8196c6adfde32e950b66f5654751b8
+example: true

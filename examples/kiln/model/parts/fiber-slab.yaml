@@ -1,0 +1,14 @@
+id: fiber-slab
+rev: A
+name: Floor / roof fiber board
+kind: custom
+process: cut-sheet
+material: {name: ceramic fiber board, spec: "Kaowool 1260 board, 50 + 50 + 25 mm stack", density: 260 kg/m**3}
+finish: as cut
+tolerance_class: ISO2768-c
+geometry:
+  kit: panel
+  args: {width: param://fiber-box-width, height: param://fiber-box-depth, thickness: param://fiber-thickness}
+satisfies: [req://REQ-003]
+cost: {unit: 22 USD, basis: estimate, note: "two off: floor and roof"}
+lead_time: 10 d

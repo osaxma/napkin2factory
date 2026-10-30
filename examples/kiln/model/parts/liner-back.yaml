@@ -1,0 +1,12 @@
+id: liner-back
+rev: A
+name: Back liner (K23 with element grooves)
+kind: custom
+process: cut-block
+material: {name: K23 insulating firebrick, spec: "Morgan K-23, 1260 degC class"}
+finish: as cut
+tolerance_class: ISO2768-c
+geometry: {module: geometry/liner_back.py}
+satisfies: [req://REQ-001, req://REQ-003]
+cost: {unit: 45 USD, basis: estimate}
+lead_time: 10 d

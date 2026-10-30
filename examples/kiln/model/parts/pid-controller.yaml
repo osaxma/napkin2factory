@@ -1,0 +1,11 @@
+id: pid-controller
+rev: A
+name: PID temperature controller, 48 x 48 mm
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 48 mm, width: 100 mm, height: 48 mm}}
+source: {vendor: Omron, mpn: E5CC-QX2ASM-800, url: "https://www.ia.omron.com/products/family/3049/", verified: false}
+cost: {unit: 120 USD, basis: estimate}
+lead_time: 7 d
+mass: 0.15 kg
+satisfies: [req://REQ-007]

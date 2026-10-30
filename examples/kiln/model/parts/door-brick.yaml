@@ -1,0 +1,15 @@
+id: door-brick
+rev: A
+name: Door insulation block (K23)
+kind: custom
+process: cut-block
+material: {name: K23 insulating firebrick, spec: "Morgan K-23, 1260 degC class"}
+finish: as cut
+tolerance_class: ISO2768-c
+geometry:
+  kit: block
+  args: {length: param://chamber-width, width: param://brick-thickness, height: param://chamber-height}
+satisfies: [req://REQ-003]
+cost: {unit: 40 USD, basis: estimate, note: "cut from standard bricks, see cut list"}
+lead_time: 10 d
+manufacturer_notes: Cut from standard 230 x 114 x 64 mm K23 bricks with a saw; joints filled with refractory mortar.

@@ -1,0 +1,12 @@
+id: door
+rev: A
+name: Door
+geometry: {module: geometry/door.py}
+children:
+  - {part: part://door-skin, qty: 1}
+  - {part: part://door-fiber, qty: 1}
+  - {part: part://door-brick, qty: 1}
+  - {part: part://hinge, qty: 2}
+  - {part: part://latch, qty: 1}
+exploded: {axis: y, spacing: 60 mm}
+satisfies: [req://REQ-009, req://REQ-014]

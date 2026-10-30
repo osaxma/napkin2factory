@@ -1,0 +1,23 @@
+id: outer-shell
+rev: A
+name: Outer sheet-metal shell
+kind: custom
+process: sheet-metal
+material: {name: mild steel, spec: "1.5 mm CR4 (DC01)"}
+finish: high-temperature powder coat, black
+tolerance_class: ISO2768-m
+geometry:
+  kit: enclosure
+  args:
+    # Built as a tray open on +Z; the assembly rotates it so the opening faces the front (−Y).
+    length: param://shell-outer-width
+    width: param://shell-outer-height
+    height: param://shell-outer-depth
+    thickness: param://shell-thickness
+    bend_radius: param://shell-bend-radius
+    flange: param://shell-flange
+interfaces: []
+satisfies: [req://REQ-002, req://REQ-004, req://REQ-005]
+cost: {unit: 180 USD, basis: estimate, note: "laser cut, 8 bends, high-temp powder coat, quantity 1"}
+lead_time: 15 d
+manufacturer_notes: Corners open (relief), not welded. High-temperature powder coat rated 200 degC minimum. Deburr all edges.
