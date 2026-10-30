@@ -10,4 +10,4 @@ geometry: {module: geometry/liner_side.py}
 satisfies: [req://REQ-001, req://REQ-003, req://REQ-013]
 cost: {unit: 55 USD, basis: estimate, note: "cut and grooved from standard bricks"}
 lead_time: 10 d
-manufacturer_notes: Grooves are cut on the chamber face; see the drawing. Brick is soft — cut dry with a hand saw or band saw.
+manufacturer_notes: Grooves are cut on the chamber face over the front 200 mm only (blind at the back); a round-bottomed or chamfered groove is acceptable. Two identical pieces (the right-hand one is turned round). May be one piece from large-format K23 or two pieces with a vertical mortar joint away from the grooves. Brick is soft — cut dry with a hand saw or band saw.

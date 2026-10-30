@@ -16,9 +16,13 @@ geometry:
     bend_radius: 1 mm
     flange: 10 mm
     cutouts:
-      - {face: front, center: [-40, 10], width: 46 mm, height: 46 mm, corner_radius: 1 mm, label: pid-cutout}
-      - {face: base, center: [0, 0], width: 30 mm, height: 20 mm, corner_radius: 3 mm, label: cable-entry}
-interfaces: [iface://controller-shell]
-satisfies: [req://REQ-007]
-cost: {unit: 70 USD, basis: estimate}
+      - {face: front, center: [-70, 20], width: param://controller-cutout, height: param://controller-cutout, corner_radius: 1 mm, label: pid-cutout}
+      - {face: front, center: [-10, 20], width: param://controller-cutout, height: param://controller-cutout, corner_radius: 1 mm, label: limit-cutout}
+      - {face: base, center: [-80, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-mains}
+      - {face: base, center: [0, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-element}
+      - {face: base, center: [80, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-thermocouples}
+interfaces: [iface://controller-mount]
+satisfies: [req://REQ-007, req://REQ-008]
+cost: {unit: 80 USD, basis: estimate}
 lead_time: 15 d
+manufacturer_notes: Instrument cutouts 45 +0.6/0 mm (48 × 48 DIN). Three Ø20.5 gland holes in the base. Closed corners. Mounts on four 40 mm standoffs against the guard's right wall (holes in the DXF).

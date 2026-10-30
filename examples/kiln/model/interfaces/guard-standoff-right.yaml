@@ -1,0 +1,10 @@
+id: guard-standoff-right
+kind: bolt-pattern
+parties: [part://outer-shell, part://guard-shell]
+description: Four M6 standoffs (25 mm) between the shell's right wall and the guard's right wall; holes in both.
+frame: {origin: [0, 0, 0], normal: [1, 0, 0]}
+frames:
+  # tray coordinates for both: x across, y = kiln height, z = depth (the guard's base sits one gap behind the shell's)
+  part://outer-shell: {origin: [param://shell-half-width, 0, param://standoff-pattern-z-shell], normal: [1, 0, 0], x_axis: [0, 0, 1]}
+  part://guard-shell: {origin: [param://guard-half-width, 0, param://standoff-pattern-z-guard], normal: [1, 0, 0], x_axis: [0, 0, 1]}
+spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://standoff-spacing-depth, param://standoff-spacing-height], fastener: part://m6x16-bolt, depth: 20 mm}

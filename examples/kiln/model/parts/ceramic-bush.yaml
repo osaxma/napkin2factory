@@ -1,0 +1,12 @@
+id: ceramic-bush
+rev: A
+name: Ceramic element-tail bush, 14 mm
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic kiln supplier, mpn: TAIL-BUSH-14, url: "https://www.omega.com/en-us/", verified: false}
+cost: {unit: 6 USD, basis: estimate}
+lead_time: 7 d
+mass: 20 g
+satisfies: [req://REQ-019]
+notes: One per element tail through the back wall; keeps the tail off the steel.

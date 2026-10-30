@@ -20,6 +20,14 @@ Safety ladder (S-026): computed `fail` → fail; `safety: true` → `needs-human
 sign-off → `signed`; non-safety `manual` → `needs-human` → `pass` with a sign-off; a
 sign-off is valid while every evidence key it recorded is unchanged (D25).
 
+A sign-off flagged `example: true` (the example products ship with them; `n2f signoff
+--example`) keeps its row `signed` and labelled "EXAMPLE SIGN-OFF, NOT A REVIEW", but it
+verifies nothing: `summary.example` counts it instead of `summary.signed`, `n2f check` and
+`n2f status` print "N example sign-offs (not reviews)", the report header shows "N example
+sign-offs — not reviews" in amber, and the Verify gate stays open until a real person
+replaces them. `n2f release` refuses them unless `--allow-example-signoffs` is given for a
+demonstration, in which case the release goes ahead and the report keeps the labels.
+
 ## Rule packs (`rulepacks/*.yaml`)
 
 `sheet-metal-v0`: bend radius ≥ 1 t, hole ⌀ ≥ 1 t, hole-to-bend ≥ 2 t + r, flange ≥ 4 t,
@@ -37,5 +45,8 @@ quantities), `doc://x` staleness (recorded reads vs current values), `bom://vali
 ## Stage and gates (`n2f status`)
 
 Intake: requirements and operator pass lint. Design: every custom part has geometry and is
-built. Verify: no `fail`, no `needs-human`. Released: a Revision tag exists for a clean
-tree. `warn` never changes the stage.
+built. Verify: no `fail`, no `needs-human`, no example sign-offs. Released: a Revision tag
+exists for a clean tree. `warn` never changes the stage. Example sign-offs are caveats, not
+blockers: the stage reads `verify` (in verification, not verified), `next` says to replace
+them or release with `--allow-example-signoffs`, and a demonstration Revision made that way
+still counts as released.

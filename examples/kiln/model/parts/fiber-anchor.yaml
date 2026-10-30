@@ -1,0 +1,12 @@
+id: fiber-anchor
+rev: A
+name: Stainless ceramic-fiber anchor with washer
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic kiln supplier, mpn: FIBER-ANCHOR-150, url: "https://www.omega.com/en-us/", verified: false}
+cost: {unit: 3 USD, basis: estimate}
+lead_time: 7 d
+mass: 15 g
+satisfies: [req://REQ-003]
+notes: Four hold the door fiber plug to the door tray.

@@ -1,0 +1,12 @@
+id: limit-controller
+rev: A
+name: Over-temperature limit controller, 48 x 48 mm, latching
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 48 mm, width: 100 mm, height: 48 mm}}
+source: {vendor: Omron, mpn: E5CC-RX2ASM-800, url: "https://www.ia.omron.com/products/family/3049/", verified: false}
+cost: {unit: 120 USD, basis: estimate, note: "configured as a high-limit alarm with manual reset [verify a dedicated FM-approved limit controller if the owner's insurer requires one]"}
+lead_time: 7 d
+mass: 0.15 kg
+satisfies: [req://REQ-018]
+notes: Independent of the PID controller, on its own thermocouple; its relay drops the contactor when the chamber exceeds param://over-temperature-limit.

@@ -9,3 +9,4 @@ cost: {unit: 120 USD, basis: estimate}
 lead_time: 7 d
 mass: 0.15 kg
 satisfies: [req://REQ-007]
+notes: Panel cutout 45 +0.6/0 mm. Drives the solid-state relay; the limit controller and door switch sit in series via the contactor.

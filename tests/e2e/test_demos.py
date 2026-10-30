@@ -6,7 +6,11 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from tests.conftest import EXAMPLES
+
+pytestmark = pytest.mark.full  # make check-full (D27)
 
 DEMOS = EXAMPLES / "kiln"
 GIT_WORDS = ("fatal:", "branch", "commit", "merge", "repository")

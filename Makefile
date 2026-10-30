@@ -20,7 +20,7 @@ types:
 export N2F_OFFLINE ?= 1
 
 unit:
-	$(PY) pytest tests/smoke tests/unit tests/e2e --cov=napkin2factory.core --cov-report=term-missing:skip-covered --cov-fail-under=80
+	$(PY) pytest tests/smoke tests/unit tests/e2e -m "not full" --cov=napkin2factory.core --cov-report=term-missing:skip-covered --cov-fail-under=80
 
 golden:
 	$(PY) pytest tests/golden

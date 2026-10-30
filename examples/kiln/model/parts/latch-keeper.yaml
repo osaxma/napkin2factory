@@ -1,0 +1,14 @@
+id: latch-keeper
+rev: A
+name: Latch keeper bracket
+kind: custom
+process: machining
+material: {name: mild steel, spec: "40 x 30 x 3 angle, S235, cut to length"}
+finish: powder coat, black
+tolerance_class: ISO2768-m
+geometry: {module: geometry/latch_keeper.py}
+interfaces: [iface://guard-latch-keeper]
+satisfies: [req://REQ-009]
+cost: {unit: 12 USD, basis: estimate}
+lead_time: 10 d
+manufacturer_notes: Bolts to the guard's right wall with two M6 bolts and nuts; the draw latch's keeper plate is riveted to the outward leg on assembly.

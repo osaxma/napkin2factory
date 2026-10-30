@@ -8,7 +8,16 @@ finish: as cut
 tolerance_class: ISO2768-c
 geometry:
   kit: panel
-  args: {width: param://liner-outer-width, height: param://liner-outer-height, thickness: param://fiber-thickness}
+  args:
+    width: param://fiber-inner-width
+    height: param://fiber-inner-height
+    thickness: param://fiber-thickness
+    holes:
+      - {center: [param://tail-neg-hole-x, param://tail-hole-z], diameter: param://tail-hole-brick, label: tail-left}
+      - {center: [param://tail-hole-x, param://tail-hole-z], diameter: param://tail-hole-brick, label: tail-right}
+      - {center: [param://thermocouple-neg-offset-x, 0], diameter: param://thermocouple-hole, label: thermocouple-control}
+      - {center: [param://thermocouple-offset-x, 0], diameter: param://thermocouple-hole, label: thermocouple-limit}
 satisfies: [req://REQ-003]
 cost: {unit: 20 USD, basis: estimate}
 lead_time: 10 d
+manufacturer_notes: Drill the four through-holes after bonding the stack; they line up with the back liner's holes.

@@ -1,0 +1,11 @@
+id: m6-standoff-40
+rev: A
+name: M6 female-female hex standoff, 40 mm, steel
+kind: cots
+process: none
+geometry: none
+source: {vendor: McMaster-Carr, mpn: 93655A141, url: "https://www.mcmaster.com/93655A141/", verified: false}
+cost: {unit: 1.60 USD, basis: catalog}
+lead_time: 5 d
+mass: 18 g
+satisfies: [req://REQ-007]

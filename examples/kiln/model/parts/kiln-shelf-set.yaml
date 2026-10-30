@@ -1,0 +1,12 @@
+id: kiln-shelf-set
+rev: A
+name: Cordierite shelf 180 x 180 x 10 mm with three 25 mm posts
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic kiln supplier, mpn: SHELF-180-SET, url: "https://www.omega.com/en-us/", verified: false}
+cost: {unit: 30 USD, basis: estimate}
+lead_time: 7 d
+mass: 1.2 kg
+satisfies: [req://REQ-001]
+notes: Protects the floor brick from glaze drips; posts keep ware off the floor and clear of the lowest element groove.

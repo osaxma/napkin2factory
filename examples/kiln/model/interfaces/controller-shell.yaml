@@ -1,9 +1,0 @@
-id: controller-shell
-kind: mating-face
-parties: [part://controller-box, part://guard-shell]
-description: The controller box hangs on brackets beside the guard with an air gap; the mating face is its mounting footprint on the guard's right wall.
-frame: {origin: [0, 0, 0], normal: [1, 0, 0]}
-frames:
-  part://controller-box: {origin: ["-100 mm", 0, "75 mm"], normal: [-1, 0, 0]}
-  part://guard-shell: {origin: [param://guard-half-width, 0, param://guard-half-depth], normal: [1, 0, 0]}
-spec: {width: param://controller-box-depth, depth: param://controller-box-height, flatness_note: "sheet, as bent; 40 mm standoffs between"}

@@ -8,5 +8,5 @@ source: {vendor: Kanthal, mpn: A1-1.6mm, url: "https://www.kanthal.com/en/produc
 cost: {unit: 60 USD, basis: estimate, note: "wire for one coil set incl. spare"}
 lead_time: 14 d
 mass: 0.6 kg
-satisfies: [req://REQ-006, req://REQ-015]
-notes: Wound on site from wire; length from calc://element.wire_length. No electrical design is part of this package.
+satisfies: [req://REQ-006, req://REQ-015, req://REQ-021, req://REQ-022]
+notes: Wound on site from wire on a 9 mm mandrel; length from calc://element.wire_length, turns and stretched pitch from calc://element.coil_turns and calc://element.pitch_factor. Lies in five grooves per wall (two sides and the back) with the tails leaving through the back wall. No electrical design is part of this package.

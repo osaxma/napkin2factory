@@ -11,11 +11,16 @@ parameters:
   fiber-thickness:     {value: 125, unit: mm, description: "Ceramic fiber board outside the brick (three boards, 50+50+25; see DEC-003)"}
   wall-thickness:      {expr: "brick-thickness + fiber-thickness", unit: mm, description: "Total insulation thickness per wall"}
   brick-conductivity:  {value: 0.25, unit: "W/(m*K)", description: "K23 thermal conductivity at ~700 degC mean [verify, Morgan datasheet 0.20–0.30]"}
-  fiber-conductivity:  {value: 0.12, unit: "W/(m*K)", description: "Ceramic fiber board conductivity at ~300 degC mean [verify]"}
-  skin-film-coefficient: {value: 10, unit: "W/(m**2*K)", description: "Natural convection film coefficient on a warm vertical sheet, nominal [verify]"}
-  shell-emissivity:    {value: 0.9, unit: "", description: "Emissivity of the powder-coated inner shell [verify, 0.85–0.95 typical]"}
-  guard-emissivity:    {value: 0.9, unit: "", description: "Emissivity of the powder-coated guard [verify]"}
-  guard-gap:           {value: 25,  unit: mm, description: "Ventilated air gap between the hot shell and the touch guard"}
+  fiber-conductivity:  {value: 0.15, unit: "W/(m*K)", description: "Ceramic fiber board conductivity at ~400 degC mean [verify, Kaowool 1260 board 0.12–0.18 over 400–700 degC]"}
+  brick-density:       {value: 480, unit: "kg/m**3", description: "K23 bulk density [verify, Morgan datasheet 0.48 g/cm3]"}
+  brick-specific-heat: {value: 1000, unit: "J/(kg*K)", description: "K23 specific heat, mean over the heat-up [verify, 1.0–1.1 kJ/kg·K]"}
+  fiber-density:       {value: 260, unit: "kg/m**3", description: "Ceramic fiber board density [verify, Kaowool 1260 board nominal 260]"}
+  fiber-specific-heat: {value: 1050, unit: "J/(kg*K)", description: "Ceramic fiber board specific heat [verify, 1.0–1.1 kJ/kg·K]"}
+  convection-coefficient: {value: 5, unit: "W/(m**2*K)", description: "Natural-convection film coefficient on a vertical sheet a few tens of K above the air; radiation is computed separately [verify, 1.42 (dT/L)^0.25 gives 4–5]"}
+  gap-air-temperature: {value: 50, unit: degC, description: "Assumed air temperature in the ventilated gap between shell and guard [verify by measurement]"}
+  shell-emissivity:    {value: 0.9, unit: "", description: "Emissivity of the powder-coated inner shell and door tray [verify, 0.85–0.95 typical]"}
+  guard-emissivity:    {value: 0.9, unit: "", description: "Emissivity of the powder-coated guards, both faces [verify]"}
+  guard-gap:           {value: 25,  unit: mm, description: "Ventilated air gap between the hot shell and the touch guard (also between door tray and door guard)"}
   guard-thickness:     {value: 1.0, unit: mm, description: "Touch-guard sheet"}
   guard-outer-width:   {expr: "shell-outer-width + 2 * guard-gap + 2 * guard-thickness", unit: mm, description: "Guard outside width"}
   guard-outer-depth:   {expr: "shell-outer-depth + 2 * guard-gap + guard-thickness", unit: mm, description: "Guard outside depth (air gap in front of the shell lip and behind the shell)"}
@@ -23,51 +28,129 @@ parameters:
   touch-limit:         {value: 60, unit: degC, description: "Maximum temperature of a surface a user can touch", owner: intake}
   # --- derived sizes ---
   liner-outer-width:   {expr: "chamber-width + 2 * brick-thickness", unit: mm, description: "Brick box outer width (X)"}
-  liner-outer-depth:   {expr: "chamber-depth + 2 * brick-thickness", unit: mm, description: "Brick box depth including the door brick (Y)"}
+  liner-outer-depth:   {expr: "chamber-depth + brick-thickness", unit: mm, description: "Brick box depth (Y): chamber plus the back liner; the door slab is part of the door"}
   liner-outer-height:  {expr: "chamber-height + 2 * brick-thickness", unit: mm, description: "Brick box outer height (Z)"}
+  lining-clearance:    {value: 3,   unit: mm, description: "Fit clearance between the brick box and the fiber box on each side (saw-cut bricks, mortar joints)"}
+  fiber-inner-width:   {expr: "liner-outer-width + 2 * lining-clearance", unit: mm, description: "Fiber box inside width (X); also the door opening"}
+  fiber-inner-height:  {expr: "liner-outer-height + 2 * lining-clearance", unit: mm, description: "Fiber box inside height (Z)"}
+  door-seal-gap:       {value: 2, unit: mm, description: "Fiber gasket strip between the door's brick slab and the brick box front"}
   fiber-clearance:     {value: 2,   unit: mm, description: "Fit clearance between the fiber boards and the shell walls (boards are saw-cut)"}
-  fiber-box-width:     {expr: "liner-outer-width + 2 * fiber-thickness", unit: mm, description: "Fiber box outer width (X): fits the brick box exactly"}
-  fiber-box-depth:     {expr: "liner-outer-depth + 2 * fiber-thickness", unit: mm, description: "Fiber box outer depth (Y), door plug included"}
-  shell-inner-width:   {expr: "fiber-box-width + 2 * fiber-clearance", unit: mm, description: "Inside of the sheet shell (X)"}
+  fiber-box-width:     {expr: "fiber-inner-width + 2 * fiber-thickness", unit: mm, description: "Fiber box outer width (X)"}
+  fiber-box-depth:     {expr: "fiber-thickness + brick-thickness + door-seal-gap + liner-outer-depth + lining-clearance + fiber-thickness", unit: mm, description: "Fiber box outer depth (Y): door plug region, door slab, gasket, brick box, clearance, back board"}
+  fiber-box-height:    {expr: "fiber-inner-height + 2 * fiber-thickness", unit: mm, description: "Fiber box outer height (Z)"}
+  shell-inner-width:   {expr: "fiber-box-width + 2 * fiber-clearance", unit: mm, description: "Inside of the sheet shell (X); critical dimension for the shop"}
   shell-inner-depth:   {expr: "fiber-box-depth + fiber-clearance", unit: mm, description: "Inside of the sheet shell (Y): clearance behind the fiber only"}
-  shell-inner-height:  {expr: "liner-outer-height + 2 * fiber-thickness + 2 * fiber-clearance", unit: mm, description: "Inside of the sheet shell (Z)"}
-  shell-thickness:     {value: 1.5, unit: mm, description: "Outer shell sheet"}
+  shell-inner-height:  {expr: "fiber-box-height + 2 * fiber-clearance", unit: mm, description: "Inside of the sheet shell (Z); critical dimension for the shop"}
+  shell-thickness:     {value: 1.2, unit: mm, description: "Inner shell sheet (DEC-007: the lining load goes through the bottom standoffs into the stand rails)"}
   shell-bend-radius:   {value: 1.5, unit: mm, description: "Inside bend radius of the shell"}
-  shell-flange:        {value: 15,  unit: mm, description: "Outward lip around the shell's front opening (door frame)"}
+  shell-flange:        {value: 15,  unit: mm, description: "Outward lip around the shell's front opening"}
   shell-outer-width:   {expr: "shell-inner-width + 2 * shell-thickness", unit: mm, description: "Shell outside width"}
   shell-outer-depth:   {expr: "shell-inner-depth + shell-thickness", unit: mm, description: "Shell outside depth"}
   shell-outer-height:  {expr: "shell-inner-height + 2 * shell-thickness", unit: mm, description: "Shell outside height"}
-  # --- door ---
-  door-skin-thickness: {value: 1.5, unit: mm, description: "Door outer sheet"}
-  door-gap:            {value: 2, unit: mm, description: "Clearance between the door skin and the guard lip (seal space)"}
-  door-fiber-thickness: {expr: "fiber-thickness + guard-gap + guard-thickness + door-gap", unit: mm, description: "Door fiber plug: from the skin's back face to the brick line (125 + 25 + 1 + 2 mm, three boards plus a strip)"}
-  door-overlap:        {value: 20, unit: mm, description: "Door skin extends past the guard opening on each side"}
-  door-width:          {expr: "guard-outer-width + 2 * door-overlap", unit: mm, description: "Door skin width"}
-  door-height:         {expr: "guard-outer-height + 2 * door-overlap", unit: mm, description: "Door skin height"}
+  # --- standoffs between shell and guard (16 off, four per wall) ---
+  standoff-edge-inset: {value: 100, unit: mm, description: "Standoff holes sit this far in from each shell wall's edges"}
+  standoff-spacing-width:  {expr: "shell-outer-width - 2 * standoff-edge-inset", unit: mm, description: "Standoff hole pitch across the top and bottom walls (X)"}
+  standoff-spacing-height: {expr: "shell-outer-height - 2 * standoff-edge-inset", unit: mm, description: "Standoff hole pitch up the side walls (Z)"}
+  standoff-spacing-depth:  {expr: "shell-outer-depth - 2 * standoff-edge-inset", unit: mm, description: "Standoff hole pitch along the depth (Y), all four walls"}
+  mount-pattern-z-shell: {expr: "guard-half-depth - guard-gap", unit: mm, description: "The stand bolt pattern centre in the shell tray's depth axis (bottom standoffs sit on the stand bolts)"}
+  standoff-pattern-z-shell: {expr: "shell-outer-depth / 2", unit: mm, description: "Standoff pattern centre along the shell tray's depth axis"}
+  standoff-pattern-z-guard: {expr: "shell-outer-depth / 2 + guard-gap", unit: mm, description: "The same centre in the guard tray's depth axis (the guard's base sits one gap behind the shell's)"}
+  shell-half-width:    {expr: "shell-outer-width / 2", unit: mm, description: "Half the shell width"}
+  shell-half-height:   {expr: "shell-outer-height / 2", unit: mm, description: "Half the shell height"}
+  shell-neg-half-width:  {expr: "(0 - 1) * shell-half-width", unit: mm, description: "Minus half the shell width"}
+  shell-neg-half-height: {expr: "(0 - 1) * shell-half-height", unit: mm, description: "Minus half the shell height"}
+  # --- rear penetrations (element tails and thermocouples) ---
+  tail-hole-inset:     {value: 30, unit: mm, description: "Element tail exits this far in from the chamber side walls"}
+  tail-hole-x:         {expr: "chamber-width / 2 - tail-hole-inset", unit: mm, description: "Element tail exits, either side of the back wall centre"}
+  tail-neg-hole-x:     {expr: "(0 - 1) * tail-hole-x", unit: mm, description: "Mirror of tail-hole-x"}
+  tail-hole-z:         {expr: "chamber-height / (element-grooves-per-wall + 1) - chamber-height / 2", unit: mm, description: "Element tails leave at the lowest groove, measured from the chamber centre"}
+  tail-hole-z-shell:   {expr: "tail-hole-z - fiber-clearance", unit: mm, description: "Tail hole height in the shell and guard (their centre is fiber-clearance above the chamber centre)"}
+  tail-hole-brick:     {value: 14, unit: mm, description: "Tail hole through the back liner and fiber (ceramic bush)"}
+  tail-hole-shell:     {value: 20, unit: mm, description: "Tail hole through the shell (bush shoulder)"}
+  tail-hole-guard:     {value: 32, unit: mm, description: "Tail opening through the guard (terminal and lead clearance)"}
+  thermocouple-hole:   {value: 10, unit: mm, description: "Thermocouple sheath hole through brick and fiber at chamber mid-height"}
+  thermocouple-hole-shell: {value: 14, unit: mm, description: "Thermocouple hole through the shell and guard"}
+  thermocouple-z-shell: {expr: "(0 - 1) * fiber-clearance", unit: mm, description: "Thermocouple hole height in the shell and guard (chamber mid-height, measured from the shell centre)"}
+  thermocouple-offset-x: {value: 40, unit: mm, description: "Control and limit thermocouples sit either side of the back wall centre"}
+  thermocouple-neg-offset-x: {expr: "(0 - 1) * thermocouple-offset-x", unit: mm, description: "Mirror of thermocouple-offset-x"}
+  # --- door (a plug door: tray, fiber plug, brick slab; guard tray in front) ---
+  door-skin-thickness: {value: 1.5, unit: mm, description: "Door tray sheet"}
+  door-tray-depth:     {value: 60, unit: mm, description: "Door tray walls wrap around the guard's front lip"}
+  door-gap:            {value: 2, unit: mm, description: "Clearance between the plug front and the guard lip plane"}
+  door-fiber-thickness: {expr: "fiber-thickness + guard-gap + guard-thickness + door-gap", unit: mm, description: "Door fiber plug depth: from the tray's inner face to the brick line (125 + 25 + 1 + 2 mm, three boards plus a strip)"}
+  door-plug-depth:     {expr: "door-fiber-thickness + brick-thickness", unit: mm, description: "Total plug depth (fiber plus brick slab)"}
+  door-plug-clearance: {value: 5, unit: mm, description: "Clearance between the plug and the fiber opening on each side at the front"}
+  door-plug-width:     {expr: "fiber-inner-width - 2 * door-plug-clearance", unit: mm, description: "Plug width at the front face"}
+  door-plug-height:    {expr: "fiber-inner-height - 2 * door-plug-clearance", unit: mm, description: "Plug height at the front face"}
+  door-plug-taper:     {value: 6, unit: degree, description: "Plug sides taper inwards towards the chamber so the latch-side corner clears the opening on the swing (calc://swing.plug_clearance)"}
+  door-face-spread:    {value: 1.5, unit: "", description: "Heat spreading in the door tray's steel face [verify]"}
+  door-overlap:        {value: 10, unit: mm, description: "Door tray inside edge clears the guard's lip edge by this much on each side"}
+  door-width:          {expr: "guard-outer-width + 2 * shell-flange + 2 * door-overlap", unit: mm, description: "Door tray outside width"}
+  door-height:         {expr: "guard-outer-height + 2 * shell-flange + 2 * door-overlap", unit: mm, description: "Door tray outside height"}
+  door-guard-gap:      {value: 4, unit: mm, description: "Clearance between the door tray walls and the door guard walls"}
+  door-guard-thickness: {value: 1.0, unit: mm, description: "Door guard sheet"}
+  door-guard-width:    {expr: "door-width + 2 * door-guard-gap + 2 * door-guard-thickness", unit: mm, description: "Door guard outside width"}
+  door-guard-height:   {expr: "door-height + 2 * door-guard-gap + 2 * door-guard-thickness", unit: mm, description: "Door guard outside height"}
+  door-guard-overrun:  {value: 2, unit: mm, description: "Door guard walls end this far past the door tray walls"}
+  door-guard-depth:    {expr: "door-skin-thickness + guard-gap + door-guard-thickness + door-tray-depth + door-guard-overrun", unit: mm, description: "Door guard depth: wraps the tray and ends 2 mm past the tray walls"}
+  door-guard-offset:   {expr: "door-skin-thickness + guard-gap + door-guard-thickness", unit: mm, description: "Door guard base sits this far in front of the plug face"}
+  door-guard-vent-v:   {value: -31, unit: mm, description: "Vent slot position in the door guard's top and bottom walls (tray coordinates: over the air gap)"}
+  door-standoff-inset: {value: 120, unit: mm, description: "Door standoffs sit this far in from the tray edges (outside the plug)"}
+  door-standoff-spacing-x: {expr: "door-width - 2 * door-standoff-inset", unit: mm, description: "Door standoff pitch (X), outside the plug"}
+  door-standoff-spacing-z: {expr: "door-height - 2 * door-standoff-inset", unit: mm, description: "Door standoff pitch (Z)"}
   door-swing:          {value: 110, unit: degree, description: "Door opening angle (hinge on the left)"}
-  door-clearance:      {expr: "door-width", unit: mm, description: "Clearance needed beside the kiln for the door to swing"}
+  door-clearance:      {value: 300, unit: mm, description: "Space beside the hinge side for the door at full swing: door width × |cos 110°| ≈ 240 mm plus hand room [verify]"}
+  swing-clearance-min: {value: 3, unit: mm, description: "Minimum clearance between the plug's latch-side corner and the opening during the swing (REQ-020)"}
+  # --- hinge post and latch keeper (on the guard's side walls) ---
+  hinge-post-setback:  {value: 4, unit: mm, description: "Hinge post web sits this far behind the door guard's wall ends"}
+  hinge-pin-setback:   {value: 2, unit: mm, description: "Hinge pin axis sits this far in front of the hinge post web"}
+  hinge-post-y:        {expr: "door-tray-depth + hinge-post-setback", unit: mm, description: "Hinge post web sits 4 mm behind the door guard's wall ends"}
+  hinge-post-reach:    {expr: "door-guard-width / 2 - guard-outer-width / 2", unit: mm, description: "Hinge post web reaches from the guard wall out to the door guard's wall plane"}
+  hinge-post-length:   {value: 500, unit: mm, description: "Hinge post (angle) length"}
+  hinge-post-thickness: {value: 3, unit: mm, description: "Hinge post angle thickness"}
+  hinge-post-leg:      {value: 40, unit: mm, description: "Hinge post leg against the guard wall"}
+  hinge-post-bolt-spacing: {value: 140, unit: mm, description: "Pitch of the four M6 bolts holding the hinge post to the guard"}
+  hinge-post-z-guard:  {expr: "guard-outer-depth - hinge-post-y - hinge-post-leg / 2", unit: mm, description: "Hinge post bolt line in the guard tray's depth axis"}
+  hinge-barrel:        {value: 12, unit: mm, description: "Weld-on hinge barrel diameter (modelled as a square proxy)"}
+  hinge-pin-x:         {expr: "(0 - 1) * (door-guard-width / 2 + door-guard-thickness + hinge-barrel / 2)", unit: mm, description: "Hinge pin axis, X (just outside the door guard's left wall)"}
+  hinge-pin-y:         {expr: "hinge-post-y - hinge-pin-setback", unit: mm, description: "Hinge pin axis, Y from the guard lip plane (between the door guard's wall end and the post web)"}
+  hinge-spacing:       {value: 400, unit: mm, description: "Vertical distance between the two hinges"}
+  latch-keeper-z-guard: {expr: "guard-outer-depth - hinge-post-y - hinge-post-leg / 2", unit: mm, description: "Latch keeper bolt line in the guard tray's depth axis"}
   # --- element ---
   mains-voltage:       {value: 230, unit: V, description: "Single-phase mains (EU); see DEC-006"}
   circuit-rating:      {value: 16, unit: A, description: "Dedicated circuit the installer must provide"}
-  element-power:       {value: 3000, unit: W, description: "Heating element rated power (DEC-004)"}
+  element-power:       {value: 2500, unit: W, description: "Heating element rated power (DEC-004)"}
   element-wire-diameter: {value: 1.6, unit: mm, description: "Kanthal A1 wire"}
   element-resistivity: {value: 1.45, unit: "ohm*mm**2/m", description: "Kanthal A1 resistivity at 20 degC (Kanthal datasheet)"}
-  element-groove-width: {value: 12, unit: mm, description: "Groove in the side and back bricks for the coil"}
-  element-groove-depth: {value: 12, unit: mm, description: "Groove depth into the brick"}
-  element-grooves-per-wall: {value: 3, unit: "", description: "Horizontal grooves per side wall"}
-  heat-up-time:        {value: 5, unit: hour, description: "Time to reach max-temperature from cold (DEC-004)"}
+  element-coil-diameter: {value: 12, unit: mm, description: "Coil outside diameter (wound on a 9 mm mandrel)"}
+  element-groove-width: {value: 14, unit: mm, description: "Groove in the side and back bricks for the coil"}
+  element-groove-depth: {value: 14, unit: mm, description: "Groove depth into the brick"}
+  element-grooves-per-wall: {value: 5, unit: "", description: "Horizontal grooves per wall (two sides and the back)"}
+  element-surface-load-limit: {value: 2.0, unit: "W/cm**2", description: "Maximum wire surface load for Kanthal A1 in grooves at 1200 degC furnace temperature [verify, Kanthal handbook]"}
+  element-pitch-factor-min: {value: 2, unit: "", description: "Coil pitch at least this many wire diameters when stretched into the grooves"}
+  heat-up-time:        {value: 7, unit: hour, description: "Time to reach max-temperature from cold (DEC-004)"}
   # --- controller box ---
-  controller-box-width:  {value: 200, unit: mm, description: "Controller enclosure (X)"}
+  controller-box-width:  {value: 260, unit: mm, description: "Controller enclosure (X)"}
   controller-box-depth:  {value: 120, unit: mm, description: "Controller enclosure (Y)"}
-  controller-box-height: {value: 150, unit: mm, description: "Controller enclosure (Z)"}
+  controller-box-height: {value: 160, unit: mm, description: "Controller enclosure (Z)"}
   controller-sheet:      {value: 1.0, unit: mm, description: "Controller enclosure sheet"}
+  controller-cutout:     {value: 45, unit: mm, description: "Panel cutout for 48 × 48 DIN instruments (45 +0.6/0)"}
   controller-standoff:   {value: 40, unit: mm, description: "Air gap between the guard and the controller box"}
+  controller-mount-y:    {expr: "guard-outer-height / 2 - controller-box-height / 2", unit: mm, description: "Controller mount pattern centre up the guard's right wall (tray coordinates)"}
+  controller-mount-spacing-y: {value: 60, unit: mm, description: "Controller mount pitch along the depth"}
+  controller-mount-spacing-z: {value: 100, unit: mm, description: "Controller mount pitch up the wall"}
+  controller-half-width: {expr: "controller-box-width / 2", unit: mm, description: "Half the controller box width"}
+  controller-neg-half-width: {expr: "(0 - 1) * controller-half-width", unit: mm, description: "Minus half the controller box width"}
+  controller-half-height: {expr: "controller-box-height / 2", unit: mm, description: "Half the controller box height"}
+  gland-hole:            {value: 20.5, unit: mm, description: "M20 cable gland clearance"}
   footprint-limit:       {value: 1000, unit: mm, description: "Alcove width available including the controller box (DEC-011)"}
+  over-temperature-limit: {value: 1250, unit: degC, description: "Independent limit device trips here, below the lining's 1260 degC class (REQ-018)"}
   # --- stand ---
   stand-height:        {value: 700, unit: mm, description: "Frame height so the door is at bench height"}
   stand-tube:          {value: 25,  unit: mm, description: "Square tube size"}
-  stand-tube-wall:     {value: 2,   unit: mm, description: "Square tube wall"}
-  stand-inset:         {value: 30,  unit: mm, description: "Frame rails sit this far inside the guard's footprint so the bolts land on the rails"}
+  stand-tube-wall:     {value: 1.5, unit: mm, description: "Square tube wall"}
+  stand-door-clearance: {value: 5, unit: mm, description: "Gap between the door's wall ends (door closed) and the stand's front legs"}
+  stand-inset:         {expr: "door-guard-depth - door-guard-offset - door-gap + stand-door-clearance", unit: mm, description: "Frame rails sit this far inside the guard's footprint: the front legs stand behind the door guard's walls (which hang below the guard's bottom and end 60 mm behind the lip plane), and the bolts land on the rails"}
   stand-width:         {expr: "guard-outer-width - 2 * stand-inset", unit: mm, description: "Frame footprint (X)"}
   stand-depth:         {expr: "guard-outer-depth - 2 * stand-inset", unit: mm, description: "Frame footprint (Y)"}
   mount-bolt-inset:     {expr: "stand-inset + stand-tube / 2", unit: mm, description: "Mounting holes this far in from the guard's bottom edges (on the rail centre lines)"}
@@ -75,15 +158,14 @@ parameters:
   mount-bolt-spacing-y: {expr: "guard-outer-depth - 2 * mount-bolt-inset", unit: mm, description: "Guard-to-frame bolt pattern (Y)"}
   # frame helpers (interface frames are written in each part's own coordinates)
   guard-half-width:     {expr: "guard-outer-width / 2", unit: mm, description: "Half the guard width"}
+  guard-neg-half-width: {expr: "(0 - 1) * guard-half-width", unit: mm, description: "Minus half the guard width"}
   guard-half-height:    {expr: "guard-outer-height / 2", unit: mm, description: "Half the guard height"}
   guard-neg-half-height: {expr: "(0 - 1) * guard-half-height", unit: mm, description: "Minus half the guard height (tray −Y wall)"}
   guard-half-depth:     {expr: "guard-outer-depth / 2", unit: mm, description: "Half the guard depth"}
-  guard-lip-offset:     {value: 7.5, unit: mm, description: "Hinge column sits in the middle of the 15 mm lip"}
-  guard-lip-x:          {expr: "(0 - 1) * (guard-half-width + guard-lip-offset)", unit: mm, description: "Hinge column x on the −X lip, in tray coordinates"}
+  guard-vent-low-offset: {value: 60, unit: mm, description: "Inlet slots this far above the guard's bottom edge"}
+  guard-vent-low-u:     {expr: "guard-outer-height / 2 - guard-vent-low-offset", unit: mm, description: "Inlet slots this far below the guard's mid-height (tray u axis points down)"}
   mount-bolt-clearance: {value: 6.6, unit: mm, description: "Clearance holes for M6"}
-  hinge-bolt-clearance: {value: 6.6, unit: mm, description: "Clearance holes for the hinge bolts"}
-  hinge-bolt-spacing:   {value: 50, unit: mm, description: "Hinge leaf hole pitch"}
   # --- targets ---
-  target-unit-cost:    {value: 900, unit: USD, description: "Target cost at quantity 1", owner: intake}
+  target-unit-cost:    {value: 2500, unit: USD, description: "Target cost at quantity 1 (DEC-012; the intake said about 1500 USD)", owner: intake}
   mass-limit:          {value: 120, unit: kg, description: "Complete kiln with stand; the body is lifted onto the stand by two people with the door and bricks out (DEC-008)"}
-  chamber-volume:      {expr: "chamber-width * chamber-depth * chamber-height", unit: liter, description: "Useful firing volume"}
+  chamber-volume:      {expr: "chamber-width * chamber-depth * chamber-height", unit: liter, description: "Gross interior volume of the chamber"}

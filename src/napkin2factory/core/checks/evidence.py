@@ -38,6 +38,14 @@ def evidence_key(
             return str(rec.get("key", "missing"))
         return sha256_file(product.paths.calcs / f"{u.id.split('.')[0]}.py")
     if u.scheme == "part":
+        part = product.parts.get(u.id)
+        if part is None:
+            return "missing"
+        if not part.has_geometry:
+            # a bought or reference part without geometry: its record is the evidence
+            # (source, cost, notes), minus the revision label (S-050)
+            record = part.model_dump(mode="json", exclude={"rev"})
+            return sha256_json(record)
         # geometry identity, not the manifest hash: a revision bump must not void a sign-off
         part_dir = build_dir / "parts" / u.id
         props_path = part_dir / "props.json"

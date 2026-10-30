@@ -1,0 +1,12 @@
+id: fiber-gasket
+rev: A
+name: Ceramic fiber gasket strip and blanket (consumable)
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic kiln supplier, mpn: FIBER-GASKET-KIT, url: "https://www.omega.com/en-us/", verified: false}
+cost: {unit: 20 USD, basis: estimate}
+lead_time: 7 d
+mass: 0.3 kg
+satisfies: [req://REQ-003]
+notes: 3 mm paper strip on the door slab's face (the door seal) and blanket packed into the tapered gap around the plug.

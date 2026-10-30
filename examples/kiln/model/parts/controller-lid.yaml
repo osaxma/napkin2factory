@@ -1,0 +1,15 @@
+id: controller-lid
+rev: A
+name: Controller enclosure lid
+kind: custom
+process: cut-sheet
+material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}
+finish: powder coat, black
+tolerance_class: ISO2768-m
+geometry:
+  kit: panel
+  args: {width: param://controller-box-width, height: param://controller-box-depth, thickness: param://controller-sheet, corner_radius: 3 mm}
+satisfies: [req://REQ-007]
+cost: {unit: 15 USD, basis: estimate}
+lead_time: 15 d
+manufacturer_notes: Sits on the box's 10 mm lips; fixed with four self-tapping screws drilled on assembly.

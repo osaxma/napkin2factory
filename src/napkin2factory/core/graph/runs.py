@@ -117,7 +117,11 @@ def make_asm_run(asm_id: str) -> Any:
     """Run function for ``asm:<id>``; loads children from disk if not built this run."""
 
     def run(ctx: RunContext) -> RunResult:
-        from napkin2factory.geometry.build import build_assembly, load_built_part
+        from napkin2factory.geometry.build import (
+            build_assembly,
+            load_built_assembly,
+            load_built_part,
+        )
 
         asm = ctx.product.assemblies[asm_id]
         for c in asm.children:
@@ -128,9 +132,9 @@ def make_asm_run(asm_id: str) -> Any:
             ):
                 ctx.built_parts[c.part.id] = load_built_part(ctx.product, c.part.id, ctx.build_dir)
             if c.asm is not None and c.asm.id not in ctx.built_asms:
-                raise RuntimeError(
-                    f"asm://{asm_id}: sub-assembly asm://{c.asm.id} was not built first "
-                    "(rule order bug)"
+                # The sub-assembly's own run was skipped as up to date (S-049): reload it.
+                ctx.built_asms[c.asm.id] = load_built_assembly(
+                    ctx.product, c.asm.id, ctx.build_dir, ctx.built_parts
                 )
         built = build_assembly(
             ctx.product, asm_id, ctx.built_parts, ctx.built_asms, ctx.build_dir, render=ctx.render

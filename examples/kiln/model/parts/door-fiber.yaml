@@ -1,14 +1,13 @@
 id: door-fiber
 rev: A
-name: Door fiber board
+name: Door fiber plug
 kind: custom
 process: cut-sheet
-material: {name: ceramic fiber board, spec: "Kaowool 1260 board, 50 + 50 + 50 mm stack + strip", density: 260 kg/m**3}
-finish: as cut
+material: {name: ceramic fiber board, spec: "Kaowool 1260 board, 50 + 50 + 50 mm stack + 3 mm paper strip, bonded with rigidizer", density: 260 kg/m**3}
+finish: as cut; exposed faces rigidized
 tolerance_class: ISO2768-c
-geometry:
-  kit: panel
-  args: {width: param://liner-outer-width, height: param://liner-outer-height, thickness: param://door-fiber-thickness}
-satisfies: [req://REQ-003]
-cost: {unit: 18 USD, basis: estimate}
+geometry: {module: geometry/door_fiber.py}
+satisfies: [req://REQ-003, req://REQ-020]
+cost: {unit: 30 USD, basis: estimate, note: "three boards and a strip bonded, then cut with a 6° taper"}
 lead_time: 10 d
+manufacturer_notes: Sides taper 6° towards the chamber (see the drawing); the three boards and the paper strip are bonded into one plug with rigidizer before the taper is cut.

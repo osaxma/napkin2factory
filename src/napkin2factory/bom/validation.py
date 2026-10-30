@@ -2,8 +2,9 @@
 
 Results land in ``build/bom/validation.json``; unverified sources render as visible
 warnings in the BOM, never hidden.  URL checks use HEAD with a short timeout and are
-cached in ``build/bom/url-cache.json`` for seven days.  ``N2F_OFFLINE=1`` (or
-``n2f build --offline``) skips the network tier and marks it ``skipped``.
+cached in ``build/bom/url-cache.json`` for seven days.  ``N2F_OFFLINE=1`` skips the
+network tier and marks it ``skipped``; ``n2f build --offline`` sets that variable before
+the build starts, and ``make check`` exports it so the test-suite never goes online.
 """
 
 from __future__ import annotations

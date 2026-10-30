@@ -39,6 +39,13 @@ def test_init_then_validate_and_lint(tmp_path: Path, template: str):
         assert "commit" not in out and "branch" not in out, out
 
 
+def test_init_hint_points_to_build_and_warns_about_the_kernel(tmp_path: Path):
+    r = n2f("init", str(tmp_path / "hinted"), "--template", "blank")
+    assert r.returncode == 0, r.stderr
+    assert "next: `n2f build`" in r.stdout and "CAD kernel" in r.stdout, r.stdout
+    assert "AI client" in r.stdout
+
+
 def test_init_refuses_non_empty(tmp_path: Path):
     (tmp_path / "x").mkdir()
     (tmp_path / "x" / "f").write_text("1")

@@ -1,0 +1,12 @@
+id: m6-rivnut
+rev: A
+name: M6 threaded insert (rivet nut), steel
+kind: cots
+process: none
+geometry: none
+source: {vendor: McMaster-Carr, mpn: 95105A170, url: "https://www.mcmaster.com/95105A170/", verified: false}
+cost: {unit: 0.60 USD, basis: catalog}
+lead_time: 5 d
+mass: 4 g
+satisfies: [req://REQ-011]
+notes: Set into the stand's top rails at the four mounting holes (the rails are hollow tube).

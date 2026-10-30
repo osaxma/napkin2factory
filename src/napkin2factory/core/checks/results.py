@@ -3,6 +3,10 @@
 Statuses: ``pass`` | ``fail`` | ``warn`` | ``skip`` | ``needs-human`` | ``signed``.
 Only ``fail`` blocks (``warn`` never does, D10); ``needs-human`` blocks release until a
 valid sign-off turns it into ``signed`` (D9/D25).
+
+A sign-off flagged ``example: true`` (shipped with the example products) keeps the row
+``signed`` and labelled, but the summary counts it under ``example`` rather than
+``signed``: it is not a review and never verifies anything.
 """
 
 from __future__ import annotations
@@ -13,6 +17,9 @@ from typing import Any, Literal
 Status = Literal["pass", "fail", "warn", "skip", "needs-human", "signed"]
 BLOCKING: frozenset[str] = frozenset({"fail"})
 HUMAN: frozenset[str] = frozenset({"needs-human"})
+#: Keys of the summary, in display order.  ``example`` is not a row status: it counts the
+#: ``signed`` rows whose sign-off is an example (not a review).
+SUMMARY_KEYS: tuple[str, ...] = ("pass", "fail", "warn", "skip", "needs-human", "signed", "example")
 
 
 @dataclass
@@ -60,9 +67,34 @@ OWNER_WORDS: dict[str, str] = {
 }
 
 
+def is_example_signoff(status: str, detail: dict[str, Any]) -> bool:
+    """True for a ``signed`` row whose sign-off is flagged ``example`` (not a review)."""
+    signoff = detail.get("signoff") or {}
+    return status == "signed" and bool(signoff.get("example"))
+
+
+def _example_noun(n: int) -> tuple[str, str]:
+    noun = "example sign-off" if n == 1 else "example sign-offs"
+    tail = "not a review" if n == 1 else "not reviews"
+    return f"{n} {noun}", tail
+
+
+def example_signoff_words(n: int) -> str:
+    """``"4 example sign-offs (not reviews)"``: the CLI counter, the same in both personas."""
+    head, tail = _example_noun(n)
+    return f"{head} ({tail})"
+
+
+def example_signoff_why(n: int) -> str:
+    """``"4 example sign-offs — not reviews"``: the report header and the Verify gate's reason."""
+    head, tail = _example_noun(n)
+    return f"{head} — {tail}"
+
+
 def summarize(results: list[CheckResult]) -> dict[str, int]:
-    """Counts per status."""
-    out: dict[str, int] = {s: 0 for s in ("pass", "fail", "warn", "skip", "needs-human", "signed")}
+    """Counts per status; ``signed`` holds real sign-offs only, ``example`` the example ones."""
+    out: dict[str, int] = dict.fromkeys(SUMMARY_KEYS, 0)
     for r in results:
-        out[r.status] = out.get(r.status, 0) + 1
+        key = "example" if is_example_signoff(r.status, r.detail) else r.status
+        out[key] = out.get(key, 0) + 1
     return out

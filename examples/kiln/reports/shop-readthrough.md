@@ -1,5 +1,16 @@
 # Shop read-through — kiln manufacturer package (Rev A draft)
 
+> **Status of this read-through.** Written by the gate-3 reviewer against the Rev A draft as it
+> stood at milestone M8 (2026-10-30). It is kept verbatim as the launch-day credibility artifact.
+> The Rev A package was reworked afterwards: standoff, hinge-post, latch-keeper, controller-mount,
+> element-tail and thermocouple holes are now in the DXFs; the hinges moved from the guard's lip to
+> a bolted angle post; the door is a tray-and-guard plug door with 5 mm clearance and a 6° taper;
+> the shells may be quoted as multi-piece weldments with closed corners (the one-piece flat is a
+> reference development); the controller box has a lid, 45 +0.6/0 cutouts and gland holes; the
+> notes no longer contradict the DXF. Still open for the shop: the K23 cut plan from standard bricks
+> (large-format allowed), rigidizer on exposed fiber, and the powder-coat system (named in the notes,
+> to be confirmed). Nobody at a real shop has read either version.
+
 > Produced by an AI reviewer role-playing the two suppliers, for the launch-day package.
 > Nobody at a real shop has read this package. The reviewer read only what a Revision
 > would ship: `build/drawings/*.svg`, `build/drawings/*-flat.dxf`, `build/bom/bom.xlsx`,

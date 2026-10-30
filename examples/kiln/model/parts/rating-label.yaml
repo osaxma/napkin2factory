@@ -1,0 +1,12 @@
+id: rating-label
+rev: A
+name: Rating and warning label, engraved laminate 120 x 60 mm
+kind: cots
+process: none
+geometry: none
+source: {vendor: local engraving shop, mpn: LABEL-KILN-RATING-01, url: "https://www.mcmaster.com/labels/", verified: false}
+satisfies: [req://REQ-008]
+cost: {unit: 12 USD, basis: estimate}
+lead_time: 7 d
+mass: 20 g
+notes: 'Two-ply laminate, white on red. Text: "Dedicated 16 A circuit at 230 V. Installation by a licensed electrician only. Surfaces behind the guards are hot." Fixed to the controller box front with two rivets.'

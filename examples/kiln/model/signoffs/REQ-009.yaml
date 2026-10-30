@@ -2,14 +2,18 @@ requirement: req://REQ-009
 by: Example Reviewer (not a real review)
 role: human
 date: '2026-10-30'
-statement: Example sign-off shipped with the kiln example; a real reviewer must repeat
-  this check.
+statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
+  against the built kiln.
 evidence:
 - part://latch
+- part://door-switch
+- part://contactor
 - asm://door
 - doc://operation
 evidence_keys:
   part://latch: sha256:9e4d269b4fcef7a9ccd81d29e5c593db1683b467c980900320d470c2e0119803
-  asm://door: sha256:478b53a841714b95ba708da13c344c69b9f94c674aa9563673fa5b269f89036e
-  doc://operation: sha256:01eb2df5a67013f8b17199ccc29d75301cebe64a871ebd0f12e11b7a3c28b318
+  part://door-switch: sha256:5692940d6bb4d6987d1268e2606555a638e060d000db188e7586252b26112ef9
+  part://contactor: sha256:34aa515ff8296217ce966a773e19be2d299f89ee3d31db6b93d26adf93edce1d
+  asm://door: sha256:f55443179dea7e1d4ca7a5a5a26dafe997e5bcbba89a8ed5892cf005101acbca
+  doc://operation: sha256:71110227e50b366581c4955c4f1c89c29d163aa1ab202b199ef7071b2c3d3350
 example: true

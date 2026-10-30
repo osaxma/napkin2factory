@@ -10,5 +10,6 @@ geometry:
   kit: block
   args: {length: param://liner-outer-width, width: param://liner-outer-depth, height: param://brick-thickness}
 satisfies: [req://REQ-001, req://REQ-003]
+manufacturer_notes: Two off (floor and roof). May be two pieces with a mortar joint across the depth.
 cost: {unit: 50 USD, basis: estimate, note: "two off: floor and roof"}
 lead_time: 10 d

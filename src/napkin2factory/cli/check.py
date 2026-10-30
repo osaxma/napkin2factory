@@ -18,6 +18,7 @@ from napkin2factory.cli.common import (
     handle_errors,
     product_root,
 )
+from napkin2factory.core.checks.results import example_signoff_words
 from napkin2factory.core.errors import CheckFailed, N2FError
 from napkin2factory.core.loader import load_product
 
@@ -28,6 +29,7 @@ STATUS_STYLE = {
     "skip": "dim",
     "needs-human": "magenta",
     "signed": "cyan",
+    "example": "yellow",  # summary-only key: example sign-offs are not reviews
 }
 OWNER_WORDS = {
     "pass": "OK",
@@ -116,10 +118,18 @@ def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ign
                 escape(r["message"]),
             )
         console.print(t2)
-    s = data["summary"]
-    console.print(
-        " · ".join(f"[{STATUS_STYLE[k]}]{v} {_word(k, persona)}[/]" for k, v in s.items() if v)
-    )
+    console.print(render_summary(data["summary"], persona))
+
+
+def render_summary(summary: dict[str, int], persona: str) -> str:
+    """The one-line footer: counts per status; example sign-offs are named, never "signed off"."""
+    parts = []
+    for k, v in summary.items():
+        if not v:
+            continue
+        text = example_signoff_words(v) if k == "example" else f"{v} {_word(k, persona)}"
+        parts.append(f"[{STATUS_STYLE.get(k, '')}]{text}[/]")
+    return " · ".join(parts)
 
 
 def render_md(data: dict) -> str:  # type: ignore[type-arg]
@@ -156,11 +166,13 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
         mark = "[green]✓[/green]" if g.ok else "[yellow]○[/yellow]"
         console.print(f"  {mark} {names[g.name]}")
         if not g.ok:
-            for b in g.blockers[: 6 if persona == "owner" else 20]:
+            # blockers first, then caveats (example sign-offs: the gate is open, not blocked)
+            reasons = g.blockers + g.caveats
+            for b in reasons[: 6 if persona == "owner" else 20]:
                 console.print(f"      [dim]•[/dim] {escape(b)}")
-            if len(g.blockers) > 6 and persona == "owner":
+            if len(reasons) > 6 and persona == "owner":
                 console.print(
-                    f"      [dim]… and {len(g.blockers) - 6} more "
+                    f"      [dim]… and {len(reasons) - 6} more "
                     "(`n2f status --json` lists all)[/dim]"
                 )
             break

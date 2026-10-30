@@ -1,0 +1,23 @@
+id: door-tray
+rev: A
+name: Door tray
+kind: custom
+process: sheet-metal
+material: {name: mild steel, spec: "1.5 mm CR4 (DC01)"}
+finish: high-temperature powder coat, black
+tolerance_class: ISO2768-m
+geometry:
+  kit: enclosure
+  args:
+    # A shallow tray whose walls wrap around the guard's front lip; the plug is bonded to its inner face.
+    length: param://door-width
+    width: param://door-height
+    height: param://door-tray-depth
+    thickness: param://door-skin-thickness
+    bend_radius: 1.5 mm
+    flange: 0 mm
+interfaces: [iface://door-guard-standoff]
+satisfies: [req://REQ-009, req://REQ-003]
+cost: {unit: 60 USD, basis: estimate, note: "laser cut, 4 bends, high-temp powder coat"}
+lead_time: 15 d
+manufacturer_notes: Closed corners (spot weld or rivet the reliefs). The fiber plug is bonded to the inner face with refractory adhesive and held by four ceramic-fiber anchors; drill the anchor holes on assembly.
