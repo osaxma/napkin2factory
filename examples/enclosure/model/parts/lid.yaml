@@ -1,0 +1,19 @@
+id: lid
+rev: A
+name: Lid
+kind: custom
+process: cut-sheet
+material: {name: mild steel, spec: "1.5 mm CR4 (DC01)"}
+finish: powder coat, grey
+tolerance_class: ISO2768-m
+geometry:
+  kit: panel
+  args:
+    width: param://lid-length
+    height: param://lid-width
+    thickness: param://lid-thickness
+    corner_radius: 5 mm
+interfaces: [iface://lid-base-mount]
+satisfies: [req://REQ-001, req://REQ-003, req://REQ-004, req://REQ-005]
+cost: {unit: 9 USD, basis: estimate, note: "laser cut flat, powder coat"}
+lead_time: 10 d

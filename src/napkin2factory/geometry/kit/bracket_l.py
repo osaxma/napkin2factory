@@ -1,0 +1,216 @@
+"""``bracket_l``: a sheet-metal L bracket — two legs joined by one 90° bend.
+
+Frame: the outer corner of the L (the virtual sharp of the outer mould lines) is the
+origin.  The horizontal leg runs along +X (``z ∈ [0, t]``), the vertical leg along +Z
+(``x ∈ [0, t]``), and the width is along Y centred on 0.  The bend is a quarter annulus
+of inside radius ``bend_radius`` whose centre is at ``x = z = bend_radius + thickness``.
+
+The solid is one L cross-section (straight legs plus inner/outer arcs) in the XZ plane,
+extruded ±width/2 along Y, with holes subtracted.  The flat pattern is a strip
+``flat_vertical + bend_allowance + flat_horizontal`` long, vertical leg first.
+"""
+
+from __future__ import annotations
+
+import math
+
+from build123d import (
+    BuildLine,
+    BuildPart,
+    BuildSketch,
+    CenterArc,
+    Cylinder,
+    Line,
+    Location,
+    Locations,
+    Mode,
+    Plane,
+    extrude,
+    make_face,
+)
+
+from napkin2factory.geometry.features import (
+    Bend,
+    Dim,
+    Features,
+    Flange,
+    FlatPattern,
+    Hole,
+    PartResult,
+    polygon_area,
+)
+from napkin2factory.geometry.kit import KitArgs, KitContext
+from napkin2factory.geometry.kit._common import Count, Length, require_positive
+from napkin2factory.geometry.kit._sheet import bend_allowance, developed_l, k_factor
+
+
+class HoleSpec(KitArgs):
+    """Holes in each leg: a row across the width at ``inset`` from the leg's free end."""
+
+    diameter: Length
+    spacing: Length | None = None  # centre-to-centre across the width; default width / count
+    inset: Length | None = None  # from the free end; default: middle of the leg's flat
+    count: Count = 2  # per leg
+
+
+class Args(KitArgs):
+    """``bracket_l`` arguments (lengths in any unit; converted to mm)."""
+
+    length: Length  # horizontal leg, outer
+    height: Length  # vertical leg, outer
+    width: Length
+    thickness: Length
+    bend_radius: Length | None = None  # inside radius; default = thickness
+    holes: HoleSpec | None = None
+    process: str = "sheet-metal"
+
+
+ARGS = Args
+
+
+def _row(count: int, spacing: float) -> list[float]:
+    """Y positions of ``count`` holes ``spacing`` apart, centred on 0."""
+    return [-spacing * (count - 1) / 2 + spacing * i for i in range(count)]
+
+
+def generate(a: Args, ctx: KitContext) -> PartResult:
+    """Build the L bracket (see the module docstring for the frame)."""
+    r = a.thickness if a.bend_radius is None else a.bend_radius
+    t, w = a.thickness, a.width
+    require_positive(length=a.length, height=a.height, width=w, thickness=t, bend_radius=r)
+    big_r = r + t  # outside bend radius; the bend tangent lines sit at x = big_r, z = big_r
+    flat_h, flat_v = a.length - big_r, a.height - big_r
+    for name, leg, flat in (("length", a.length, flat_h), ("height", a.height, flat_v)):
+        if flat < t:
+            raise ValueError(
+                f"{name} {leg:g} mm is too short: a leg needs at least bend_radius + "
+                f"2 × thickness = {big_r + t:g} mm to leave a flat after the bend"
+            )
+    k = k_factor(r, t)
+    ba = bend_allowance(r, t, 90.0, k)
+
+    # holes: (leg, inset, ys) per leg
+    rows: list[tuple[str, float, list[float]]] = []
+    h = a.holes
+    if h is not None and h.count > 0:
+        require_positive(hole_diameter=h.diameter)
+        spacing = h.spacing if h.spacing is not None else w / h.count
+        if h.count > 1 and spacing <= h.diameter:
+            raise ValueError(
+                f"hole spacing {spacing:g} mm is not larger than the hole diameter "
+                f"{h.diameter:g} mm: the holes overlap"
+            )
+        ys = _row(h.count, spacing)
+        if max(abs(y) for y in ys) + h.diameter / 2 >= w / 2:
+            raise ValueError(
+                f"{h.count} holes of {h.diameter:g} mm at {spacing:g} mm spacing break the "
+                f"side edges of a {w:g} mm wide bracket"
+            )
+        for leg, flat in (("horizontal", flat_h), ("vertical", flat_v)):
+            inset = h.inset if h.inset is not None else flat / 2
+            if inset - h.diameter / 2 <= 0:
+                raise ValueError(
+                    f"{leg} leg hole at inset {inset:g} mm breaks the free end "
+                    f"(diameter {h.diameter:g} mm)"
+                )
+            if flat - inset - h.diameter / 2 < 0:
+                raise ValueError(
+                    f"{leg} leg hole at inset {inset:g} mm cuts into the bend zone: its edge "
+                    f"is {flat - inset - h.diameter / 2:g} mm past the bend tangent line"
+                )
+            rows.append((leg, inset, ys))
+
+    with BuildPart() as bp:
+        with BuildSketch(Plane.XZ):  # sketch (u, v) = world (x, z)
+            with BuildLine():
+                Line((big_r, 0), (a.length, 0))
+                Line((a.length, 0), (a.length, t))
+                Line((a.length, t), (big_r, t))
+                CenterArc((big_r, big_r), r, 270, -90)  # inner arc → (t, big_r)
+                Line((t, big_r), (t, a.height))
+                Line((t, a.height), (0, a.height))
+                Line((0, a.height), (0, big_r))
+                CenterArc((big_r, big_r), big_r, 180, 90)  # outer arc → (big_r, 0)
+            make_face()
+        extrude(amount=w / 2, both=True)
+        if h is not None:
+            for leg, inset, ys in rows:
+                if leg == "horizontal":
+                    locs = [Location((a.length - inset, y, t / 2)) for y in ys]
+                else:
+                    locs = [Location((t / 2, y, a.height - inset), (0, 90, 0)) for y in ys]
+                with Locations(*locs):
+                    Cylinder(h.diameter / 2, 3 * t, mode=Mode.SUBTRACT)
+    shape = bp.part
+    shape.label = ctx.uri
+
+    feats = Features(process=a.process, thickness=t)
+    feats.bends.append(
+        Bend(start=(0.0, -w / 2, 0.0), end=(0.0, w / 2, 0.0), radius=r, k_factor=k, label="B1")
+    )
+    feats.flanges.append(Flange(height=flat_h, length=w, bend="B1", label="horizontal"))
+    feats.flanges.append(Flange(height=flat_v, length=w, bend="B1", label="vertical"))
+
+    developed = flat_v + ba + flat_h
+    outline, bend_x = developed_l(flat_v, ba, flat_h, w)
+    flat_holes: list[tuple[tuple[float, float], float]] = []
+    n = 0
+    for leg, inset, ys in rows:
+        d = h.diameter if h is not None else 0.0
+        flat = flat_h if leg == "horizontal" else flat_v
+        for y in ys:
+            n += 1
+            if leg == "horizontal":
+                center, axis = (a.length - inset, y, 0.0), (0.0, 0.0, 1.0)
+                flat_holes.append(((developed - inset, y), d))
+            else:
+                center, axis = (0.0, y, a.height - inset), (1.0, 0.0, 0.0)
+                flat_holes.append(((inset, y), d))
+            feats.holes.append(
+                Hole(
+                    center=center,
+                    diameter=d,
+                    axis=axis,
+                    edge_distance=min(inset, w / 2 - abs(y)) - d / 2,
+                    bend_distance=flat - inset,
+                    label=f"H{n}",
+                )
+            )
+    fp = FlatPattern(
+        outline=outline,
+        holes=flat_holes,
+        bend_lines=[((bend_x, -w / 2), (bend_x, w / 2), 90.0, "B1")],
+        thickness=t,
+    )
+    fp.area = polygon_area(outline) - sum(math.pi * (d / 2) ** 2 for _, d in flat_holes)
+
+    hw = w / 2
+    c45 = math.cos(math.radians(45))
+    dims = [
+        Dim("length", a.length, (0, -hw, 0), (a.length, -hw, 0), view="front"),
+        Dim("height", a.height, (0, -hw, 0), (0, -hw, a.height), view="front"),
+        Dim("width", w, (a.length, -hw, 0), (a.length, hw, 0), view="top"),
+        Dim("thickness", t, (a.length, -hw, 0), (a.length, -hw, t), view="front"),
+        Dim(
+            "bend radius",
+            r,
+            (big_r, -hw, big_r),
+            (big_r - r * c45, -hw, big_r - r * c45),
+            view="front",
+            kind="radius",
+        ),
+    ]
+    if h is not None and rows:
+        _, inset, ys = rows[0]
+        x0 = a.length - inset
+        dims.append(
+            Dim("hole", h.diameter, (x0, ys[0], 0), (x0, ys[0], 0), view="top", kind="diameter")
+        )
+        dims.append(Dim("hole inset", inset, (a.length, ys[0], 0), (x0, ys[0], 0), view="top"))
+    return PartResult(
+        shape=shape,
+        features=feats,
+        dims=dims,
+        flat_pattern=fp,
+        props={"developed_length": developed, "bend_allowance": ba, "k_factor": k},
+    )

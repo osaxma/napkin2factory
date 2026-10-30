@@ -1,0 +1,59 @@
+requirements:
+  - id: REQ-001
+    title: Fits under the shelf
+    statement: The assembled enclosure with lid is at most 100 mm tall.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: "asm://enclosure#props.bbox.z", op: "<=", value: 100 mm}
+    allocation: [asm://enclosure, param://box-height, param://lid-thickness]
+    source: intake
+  - id: REQ-002
+    title: Light enough to hang on two wall anchors
+    statement: The complete assembly has a mass below 2 kg.
+    category: mass
+    priority: must
+    verify: {kind: geometry_prop, target: "asm://enclosure#props.mass", op: "<", value: 2 kg}
+    allocation: [asm://enclosure, param://sheet-thickness]
+    source: intake
+  - id: REQ-003
+    title: Unit cost
+    statement: The bill of materials totals less than 60 USD per enclosure at a quantity of 10.
+    category: cost
+    priority: must
+    verify: {kind: bom_rollup, target: "bom://rollups#total_cost", op: "<", value: 60 USD}
+    allocation: [part://base, part://lid, part://bracket]
+    source: intake
+  - id: REQ-004
+    title: No sharp edges
+    statement: All exposed sheet edges are deburred before powder coating.
+    category: safety
+    safety: true
+    priority: must
+    verify: {kind: manual, note: "Inspect every edge by hand after coating; sign off with n2f signoff REQ-004."}
+    allocation: [part://base, part://lid, part://bracket]
+    rationale: The owner will handle the box without gloves.
+    source: intake
+  - id: REQ-005
+    title: Lid bolts to the base
+    statement: The lid's four holes line up with the base lip's four holes within 0.5 mm.
+    category: interface
+    priority: must
+    verify: {kind: interface, target: iface://lid-base-mount}
+    allocation: [part://base, part://lid, iface://lid-base-mount]
+    source: design
+  - id: REQ-006
+    title: Parts do not collide
+    statement: No two parts of the assembly overlap in space.
+    category: geometry
+    priority: must
+    verify: {kind: interference, target: asm://enclosure}
+    allocation: [asm://enclosure]
+    source: design
+  - id: REQ-007
+    title: Two wall brackets
+    statement: The assembly uses exactly 2 wall brackets.
+    category: manufacturing
+    priority: should
+    verify: {kind: count, target: part://bracket, op: "==", value: 2}
+    allocation: [asm://enclosure]
+    source: design

@@ -87,3 +87,27 @@ and the pager, so `n2f init` works in a fresh sandbox. A configured identity win
 `n2f validate` checks only that the base URI exists and the selector is syntactically
 valid; `n2f check` resolves them against `build/`. Declared-field selectors
 (`req://REQ-001#verify.value`) are resolved at validate time.
+
+## S-013 — Interface bolt patterns are applied by the build, not by each generator (2026-10-30)
+D16 says both parties' generators consume the interface. Rather than teaching every kit
+generator about interfaces, `geometry/build.py:apply_interfaces` cuts every declared
+bolt-pattern interface into each party after its generator returns: holes along the frame
+normal at `hole_pattern.centers_from_spec`, reaching `spec.depth` (default 10 mm) on each
+side of the frame plane, and records a `HolePattern` feature tagged `iface://…` plus
+`Hole` entries. Agreement by construction, for kit and module parts alike; the M4
+`interface` check then compares the two parties' recorded patterns. Mating-face interfaces
+only record the face frame (`features.extra.mating_faces`). A generator that already
+emitted a pattern tagged with the interface is left alone.
+
+## S-014 — Per-party interface frames and `param://` in specs (2026-10-30)
+One frame cannot serve two parts with different local origins (the lid's holes are at
+z = 0 in the lid, z = 80 in the base). `Interface.frames: {part://x: Frame}` holds each
+party's copy; `frame_for(uri)` falls back to `frame`. Spec quantities may be `param://`
+references (`QuantityOrParam`); `I[...]` returns a resolved copy and records those
+parameters, so a spec that depends on a parameter invalidates both parties (D5).
+
+## S-015 — Assembly instance numbering is global per part URI (2026-10-30)
+`flatten()` numbers leaf occurrences `part://x#1…#n` across the whole top-level assembly,
+nested sub-assemblies included; group nodes are `asm://y#m`. This is what the viewer, the
+BOM and `instance_counts` use (D13, D18). An assembly without a geometry module gets an
+auto layout in a row along X, flagged in `props.notes`.

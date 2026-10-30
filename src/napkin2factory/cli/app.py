@@ -5,6 +5,7 @@ from __future__ import annotations
 import typer
 
 from napkin2factory import __version__
+from napkin2factory.cli import build as build_cmd
 from napkin2factory.cli import init as init_cmd
 from napkin2factory.cli import validate as validate_cmd
 
@@ -34,6 +35,7 @@ def version(json_out: bool = typer.Option(False, "--json")) -> None:
 app.command("init")(init_cmd.init)
 app.command("validate")(validate_cmd.validate)
 app.command("lint")(validate_cmd.lint)
+app.command("build")(build_cmd.build)
 
 
 def main() -> None:

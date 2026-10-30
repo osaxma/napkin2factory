@@ -1,0 +1,21 @@
+id: bracket
+rev: A
+name: Wall bracket
+kind: custom
+process: sheet-metal
+material: {name: mild steel, spec: "2 mm CR4 (DC01)"}
+finish: zinc plated
+tolerance_class: ISO2768-m
+geometry:
+  kit: bracket_l
+  args:
+    length: param://bracket-length
+    height: param://bracket-height
+    width: param://bracket-width
+    thickness: param://bracket-thickness
+    bend_radius: param://bracket-bend-radius
+    holes: {diameter: param://bracket-hole, spacing: 0 mm, inset: 15 mm, count: 1}
+interfaces: []
+satisfies: [req://REQ-002, req://REQ-003, req://REQ-004, req://REQ-007]
+cost: {unit: 4 USD, basis: estimate, note: "laser cut, one bend, zinc, quantity 20"}
+lead_time: 7 d

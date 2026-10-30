@@ -1,0 +1,11 @@
+id: m4x10-screw
+rev: A
+name: M4 x 10 pan-head screw, zinc
+kind: cots
+process: none
+geometry: none
+source: {vendor: McMaster-Carr, mpn: 90116A207, url: "https://www.mcmaster.com/90116A207/", verified: false}
+cost: {unit: 0.12 USD, basis: catalog, note: "pack price divided by count"}
+lead_time: 3 d
+mass: 1.2 g
+satisfies: [req://REQ-005]

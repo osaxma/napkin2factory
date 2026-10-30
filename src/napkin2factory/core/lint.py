@@ -39,8 +39,14 @@ def lint(product: Product) -> Problems:
         # L1: measurable statement with a unit, unless a binary check.
         kind = r.verify.kind if r.verify else None
         if kind not in _BINARY_KINDS:
-            numbers = _NUMBER_WITH_UNIT.findall(r.statement)
-            if not numbers:
+            parsed = []
+            for n in _NUMBER_WITH_UNIT.findall(r.statement):
+                try:
+                    parsed.append(parse_quantity(n.strip()))
+                except UnitError:
+                    continue
+            bare_number = re.search(r"(?<![\w.-])\d+(?:\.\d+)?(?![\w.-])", r.statement)
+            if not parsed and not (kind == "count" and bare_number):
                 problems.add(
                     rf,
                     subject,
@@ -49,19 +55,6 @@ def lint(product: Product) -> Problems:
                     "or use a binary verify kind (manual/interference/interface)",
                     rule="L1-measurable",
                 )
-            else:
-                for n in numbers:
-                    try:
-                        parse_quantity(n.strip())
-                    except UnitError:
-                        problems.add(
-                            rf,
-                            subject,
-                            f"{n.strip()!r} in the statement is not a recognised unit",
-                            "use SI or pint units (mm, kg, W, degC, USD, d)",
-                            severity="warn",
-                            rule="L1-measurable",
-                        )
         if any(w in r.statement.lower() for w in _WEAK_WORDS):
             problems.add(
                 rf,

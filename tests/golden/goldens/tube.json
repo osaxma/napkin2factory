@@ -1,0 +1,44 @@
+{
+  "basic": {
+    "area": 43643.005,
+    "bbox": [
+      25.0,
+      25.0,
+      300.0
+    ],
+    "cut_items": 1,
+    "cut_length_total": 300.0,
+    "faces": 4,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 43353.979
+  },
+  "square": {
+    "area": 108648.0,
+    "bbox": [
+      500.0,
+      30.0,
+      30.0
+    ],
+    "cut_items": 1,
+    "cut_length_total": 500.0,
+    "faces": 10,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 162000.0
+  }
+}
