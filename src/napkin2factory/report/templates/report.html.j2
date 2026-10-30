@@ -52,7 +52,7 @@ footer{order:99}
   <h1>{{ product.name }}</h1>
   <span class="badge {{ 'ok' if stage.stage == 'released' else 'warn' if stage.stage == 'verify' else 'skip' }}">{{ stage_label }}</span>
   <span class="muted">{{ revision_label }}</span>
-  <span class="muted">{{ summary.fail }} <span data-v="fail">{{ vv('fail') }}</span> · {{ summary['needs-human'] }} <span>{{ vv('needs-human') }}</span> · {{ summary.pass + summary.signed }} <span>{{ vv('pass') }}</span></span>
+  <span class="muted">{{ summary.fail }} <span data-v="fail">{{ vv('fail') }}</span>{% if summary['needs-human'] or not summary.example %} · {{ summary['needs-human'] }} <span>{{ vv('needs-human') }}</span>{% endif %}{% if summary.example %} · <span class="example" data-v="example">{{ summary.example }} {{ vv('example_one' if summary.example == 1 else 'example') }}</span>{% endif %} · {{ summary.pass + summary.signed }} <span>{{ vv('pass') }}</span></span>
   <div class="toggle" role="tablist" aria-label="view">
     <button id="btn-owner" type="button">Owner view</button>
     <button id="btn-engineer" type="button">Engineer view</button>
@@ -73,7 +73,7 @@ footer{order:99}
 <section class="card" id="sec-next">
   <h2>Where this product stands</h2>
   <div class="kv">
-    {% for g in stage.gates %}<div><span class="badge {{ 'ok' if g.ok else 'skip' }}">{{ g.name }}</span></div><div>{% if g.ok %}done{% else %}{{ (g.blockers[:3] | join('; ')) | replace('`', '') }}{% if g.blockers | length > 3 %} … ({{ g.blockers | length }} items){% endif %}{% endif %}</div>{% endfor %}
+    {% for g in stage.gates %}{% set reasons = g.blockers + g.caveats %}<div><span class="badge {{ 'ok' if g.ok else 'warn' if g.open_only_by_caveats else 'skip' }}">{{ g.name }}</span></div><div>{% if g.ok %}done{% else %}{% if g.detail.get('why') %}<span class="example">{{ g.detail.why }}</span> · {% endif %}{{ (reasons[:3] | join('; ')) | replace('`', '') }}{% if reasons | length > 3 %} … ({{ reasons | length }} items){% endif %}{% endif %}</div>{% endfor %}
   </div>
   <p class="next">Next: {{ stage.next_step | replace('`', '') }}</p>
 </section>

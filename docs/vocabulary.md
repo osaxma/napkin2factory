@@ -30,6 +30,7 @@ templates for the right-hand words.
 | skip | not checked | the artifact it needs was not built |
 | needs-human | needs your sign-off | a human must review and `n2f signoff` |
 | signed | signed off | a valid sign-off exists for a safety requirement (D25) |
+| example (summary counter, not a row status) | example sign-offs — not reviews | the sign-off is flagged `example: true`; the row stays `signed` and labelled, but it is counted apart, the Verify gate stays open, and `n2f release` refuses it without `--allow-example-signoffs` |
 
 ## Stages (computed by `n2f status`, never stored — D10)
 

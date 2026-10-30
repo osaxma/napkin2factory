@@ -358,6 +358,61 @@ boolean common reported a spurious 15 cm³ for the kiln peephole plug sitting co
 slightly larger hole (demo-design.sh, ECR-002); the fuse is robust there. The direct common
 remains the fallback when a fuse fails. `[verify]` with a stress corpus of coaxial fits.
 
+## S-047 — Example sign-offs never read as verification (2026-10-30)
+`checks.json` summaries count example sign-offs under their own key (`example`), the verify
+stage stays open with a caveat naming them, `n2f check`/`n2f status` and the report header say
+"N example sign-offs (not reviews)" instead of "signed off", and the ladder shows verify as not
+done. The release gate's `--allow-example-signoffs` path is unchanged (demos). Gate-3 B9.
+
+## S-048 — First-run notice and `n2f build --offline` (2026-10-30)
+The first `import build123d` on a machine takes one to two minutes with no output (OCP native
+library load); `n2f build` prints a notice to stderr before importing, and `n2f init`'s hint
+says so. `--offline` sets `N2F_OFFLINE=1` so the README can show one switch. Gate-4 B2/C1.
+
+## Review gate 3 (engineering) — outcome (2026-10-30)
+Verdict NOT READY on the kiln as built at M8: nine blockers. B1 door skin ~97 degC uncomputed;
+B2 guard model double-counted the film coefficient, used a flat-slab loss for walls as thick as
+the chamber, and the vent slots were vertical at mid-height; B3 24 m of 1.6 mm wire at 3 kW did
+not fit three grooves (pitch 1.2 d) and ran 2.4 W/cm²; B4 stored heat omitted 41 kg of fiber and
+double-counted a slab; B5 zero-clearance plug cannot swing; B6 contradictory mounting (notes vs
+DXF, hinges on a 1 mm lip, nuts inside hollow tube, no standoff or penetration holes, open
+controller tray); B7 stainless-sheathed thermocouple; B8 no over-temperature protection; B9 the
+tool counted example sign-offs as verification. All nine are addressed: B9 in the tool (S-047),
+B1–B8 by the kiln rework (mean-area two-node thermal model, 2.5 kW / 7 h, five 14 mm grooves,
+tray-and-guard plug door with a 6° taper and a bolted hinge post, modelled standoffs and
+penetrations, ceramic-sheathed probes, independent limit controller + contactor + door switch;
+DEC-012…DEC-017). Concerns logged: B-0011…B-0014; C1/C9 flagged to the owner in the decisions.
+The shop read-through (`examples/kiln/reports/shop-readthrough.md`) is kept as written, with a
+preface stating which findings the rework answered. `[verify]`: the mean-area conduction model
+and the 50 degC gap-air assumption; measure the guard, guard top, door guard and latch.
+
+## Review gate 4 (onboarding) — outcome (2026-10-30)
+Every README command ran in order; the report and diff pages load from disk with no errors; no
+account needed. Blockers: dead clone URL (the repository is private until launch) and the silent
+first-import stall (S-048). Concerns fixed: `N2F_OFFLINE`/`--offline` documented, `uv run` only
+inside the checkout, `n2f diff` shown, sign-offs explained, `uv sync --no-dev`, `xdg-open`/
+`n2f serve`, `docs/cli.md` regenerated from `--help`. Logged: B-0015, B-0016.
+
+## S-049 — Parents reload up-to-date sub-assemblies from disk (2026-10-30)
+When a change invalidates a parent assembly but not a sub-assembly, the parent's run used to
+fail ("sub-assembly was not built first"). `load_built_assembly` now rebuilds the in-memory
+sub-assembly from its `instances.json` (leaf placements in its own frame; nested groups
+flattened one level), reusing parts already loaded. Regression: `tests/e2e/test_nested_assembly.py`.
+Found by the kiln rework (changing a stand parameter with the door up to date).
+
+## S-050 — Evidence for parts without geometry (2026-10-30)
+A sign-off that cites a bought part with `geometry: none` (a thermocouple, a label, a
+standoff) could not bind: parts keyed on geometry only. Such parts now key on their record
+(everything but the revision label), so changing the source, cost or notes of a cited part
+voids the sign-off and a revision bump does not. Found when re-signing the kiln.
+
+## S-051 — A bolt shared by two interfaces is one hole (2026-10-30)
+Interfaces are part-to-part (B-0005), so a bolt that passes through three parts (kiln: shell
+→ standoff → guard → stand rail) is written as two interfaces whose patterns coincide on the
+middle part. `apply_interfaces` skips a centre already cut at the same spot with the same
+diameter, so the middle part's hole table lists each hole once; the pattern record keeps
+all centres. The three-party interface stays in the backlog (B-0005).
+
 ## Kiln engineering decisions (2026-10-30)
 See `examples/kiln/model/decisions.yaml` DEC-001…DEC-011. The notable one: the owner's
 60 degC touch limit cannot be met by a single skin at 1200 degC with any sensible wall

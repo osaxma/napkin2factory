@@ -4,12 +4,13 @@ name: Ventilated touch guard
 kind: custom
 process: sheet-metal
 material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}
-finish: powder coat, black
+finish: powder coat, black (RAL 9005)
 tolerance_class: ISO2768-m
 geometry:
   kit: enclosure
   args:
     # Same orientation as the inner shell: a tray open on +Z, rotated by the assembly to face front.
+    # Tray −X/+X walls are the kiln's sides (u points down), the tray's +Y wall is the kiln's top.
     length: param://guard-outer-width
     width: param://guard-outer-height
     height: param://guard-outer-depth
@@ -17,13 +18,18 @@ geometry:
     bend_radius: 1 mm
     flange: 15 mm
     cutouts:
-      # vent slots low on the left/right walls and high on the base (which becomes the back) — chimney flow
-      - {face: left, center: [0, -120], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-left-low}
-      - {face: right, center: [0, -120], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-right-low}
-      - {face: left, center: [0, 120], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-left-high}
-      - {face: right, center: [0, 120], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-right-high}
-interfaces: [iface://shell-frame-mount, iface://shell-door-hinge, iface://controller-shell]
+      # inlets: horizontal slots along the bottom of both side walls; outlets: two slots in the top wall
+      - {face: left, center: [param://guard-vent-low-u, 0], width: 20 mm, height: 300 mm, corner_radius: 5 mm, label: vent-inlet-left}
+      - {face: right, center: [param://guard-vent-low-u, 0], width: 20 mm, height: 300 mm, corner_radius: 5 mm, label: vent-inlet-right}
+      - {face: back, center: [0, -150], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-outlet-rear}
+      - {face: back, center: [0, 150], width: 300 mm, height: 20 mm, corner_radius: 5 mm, label: vent-outlet-front}
+      # rear openings for the element tails and thermocouples
+      - {face: base, center: [param://tail-neg-hole-x, param://tail-hole-z-shell], width: param://tail-hole-guard, height: param://tail-hole-guard, corner_radius: 15.9 mm, label: tail-left}
+      - {face: base, center: [param://tail-hole-x, param://tail-hole-z-shell], width: param://tail-hole-guard, height: param://tail-hole-guard, corner_radius: 15.9 mm, label: tail-right}
+      - {face: base, center: [param://thermocouple-neg-offset-x, param://thermocouple-z-shell], width: param://thermocouple-hole-shell, height: param://thermocouple-hole-shell, corner_radius: 6.9 mm, label: thermocouple-control}
+      - {face: base, center: [param://thermocouple-offset-x, param://thermocouple-z-shell], width: param://thermocouple-hole-shell, height: param://thermocouple-hole-shell, corner_radius: 6.9 mm, label: thermocouple-limit}
+interfaces: [iface://shell-frame-mount, iface://guard-standoff-left, iface://guard-standoff-right, iface://guard-standoff-top, iface://guard-standoff-bottom, iface://guard-hinge-post, iface://guard-latch-keeper, iface://controller-mount]
 satisfies: [req://REQ-003, req://REQ-002]
-cost: {unit: 160 USD, basis: estimate, note: "laser cut with vent slots, 8 bends, powder coat"}
+cost: {unit: 280 USD, basis: estimate, note: "multi-piece weldment with vent slots and 32 holes, powder coat, quantity 1"}
 lead_time: 15 d
-manufacturer_notes: Mounts on 25 mm standoffs over the inner shell (standoffs not modelled; see manufacturer notes page). Vent slots must stay open.
+manufacturer_notes: May be built as a wrap plus two end panels with closed corners; the one-piece flat pattern is a reference development. Critical dimension is the inside opening (shell plus 25 mm gap each side). Vent slots must stay open. All holes (stand mount, standoffs, hinge post, latch keeper, controller mount, rear openings) are in the DXF.

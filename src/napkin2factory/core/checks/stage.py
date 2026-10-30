@@ -2,8 +2,12 @@
 
 Intake complete when requirements and operator pass lint; Design complete when every
 custom part has geometry and the build succeeded; Verify complete when checks have no
-``fail`` and every ``needs-human`` has a valid sign-off; Released when a Revision tag
-exists for the current tree.  ``warn`` never blocks.
+``fail``, every ``needs-human`` has a valid sign-off and no sign-off is an example; Released
+when a Revision tag exists for the current tree.  ``warn`` never blocks.
+
+Example sign-offs (``example: true``) are *caveats*, not blockers: they keep the Verify gate
+open and the stage at ``verify``, but they do not stop a demonstration release
+(``n2f release --allow-example-signoffs``), which reads ``Gate.blockers`` only.
 """
 
 from __future__ import annotations
@@ -13,6 +17,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from napkin2factory.core.checks.results import (
+    example_signoff_why,
+    example_signoff_words,
+    is_example_signoff,
+)
 from napkin2factory.core.graph.manifest import Manifest
 from napkin2factory.core.loader import Product
 
@@ -21,12 +30,20 @@ STAGES = ("intake", "design", "verify", "released")
 
 @dataclass
 class Gate:
-    """One gate's state and what blocks it."""
+    """One gate's state, what blocks it, and what keeps it open without blocking a release."""
 
     name: str
     ok: bool
     blockers: list[str] = field(default_factory=list)
     detail: dict[str, Any] = field(default_factory=dict)
+    #: Reasons the gate is not done that a demonstration release may pass over
+    #: (today: example sign-offs).  Owner-friendly, each a complete next step.
+    caveats: list[str] = field(default_factory=list)
+
+    @property
+    def open_only_by_caveats(self) -> bool:
+        """Not done, yet nothing blocks: the product is *in* this stage."""
+        return not self.ok and not self.blockers and bool(self.caveats)
 
 
 @dataclass
@@ -44,6 +61,17 @@ class StageReport:
             "gates": [g.__dict__ for g in self.gates],
             "next_step": self.next_step,
         }
+
+
+def example_signoff_hint(requirement_ids: list[str]) -> str:
+    """The next step when example sign-offs stand in for reviews (owner wording)."""
+    n = len(requirement_ids)
+    real = "a real one" if n == 1 else "real ones"
+    return (
+        f"replace the {example_signoff_words(n)} with {real} — "
+        f'`n2f signoff {requirement_ids[0]} --by <name> --statement "…"` — '
+        "or release with --allow-example-signoffs for a demonstration"
+    )
 
 
 def _checks_stale(product: Product, build_dir: Path, manifest: Manifest) -> bool:
@@ -92,6 +120,7 @@ def compute_stage(product: Product, build_dir: Path | None = None) -> StageRepor
     gates.append(Gate("design", not design_blockers and not intake_blockers, design_blockers))
     # Verify
     verify_blockers: list[str] = []
+    example_ids: list[str] = []
     checks_path = build_dir / "checks" / "checks.json"
     if not checks_path.is_file() or "checks" not in manifest.entries:
         verify_blockers.append("checks have not run — run `n2f check`")
@@ -111,14 +140,25 @@ def compute_stage(product: Product, build_dir: Path | None = None) -> StageRepor
                     f"{r['id']}: needs a human sign-off ({why}) — `n2f signoff "
                     f'{r["id"].split("://")[-1]} --by <name> --statement "…"`'
                 )
+            elif is_example_signoff(r["status"], r.get("detail") or {}):
+                example_ids.append(r["id"].split("://")[-1])
         if data.get("status") == "placeholder":
             verify_blockers.append("checks are placeholders in this build")
+    verify_caveats = [example_signoff_hint(example_ids)] if example_ids else []
     gates.append(
         Gate(
             "verify",
-            not verify_blockers and not design_blockers and not intake_blockers,
+            not verify_blockers
+            and not verify_caveats
+            and not design_blockers
+            and not intake_blockers,
             verify_blockers,
-            {"counts": counts},
+            {
+                "counts": counts,
+                "example_signoffs": example_ids,
+                "why": example_signoff_why(len(example_ids)) if example_ids else None,
+            },
+            verify_caveats,
         )
     )
     # Released
@@ -141,21 +181,32 @@ def compute_stage(product: Product, build_dir: Path | None = None) -> StageRepor
                 )
     except Exception as exc:  # never crash status on a tracking problem
         released_blockers.append(f"change tracking unavailable: {exc}")
+    # a Revision made with --allow-example-signoffs is still a Revision: caveats do not undo it
+    verified_enough = gates[2].ok or gates[2].open_only_by_caveats
     gates.append(
         Gate(
-            "released", not released_blockers and gates[2].ok, released_blockers, {"revision": tag}
+            "released",
+            not released_blockers and verified_enough,
+            released_blockers,
+            {"revision": tag},
         )
     )
+    # The stage is the last gate passed; a gate held open only by caveats is passed through
+    # (the product is in that stage, not past it) so example sign-offs read as "Verify",
+    # never as "Design" and never as verified.
     stage = "intake"
     for g, name in zip(gates, STAGES, strict=True):
-        if g.ok:
+        if g.ok or g.open_only_by_caveats:
             stage = name
         else:
             break
-    first_blocked = next((g for g in gates if not g.ok), None)
-    next_step = (
-        "released: send the Revision to the manufacturer"
-        if first_blocked is None
-        else (first_blocked.blockers[0] if first_blocked.blockers else first_blocked.name)
-    )
+    first_open = next((g for g in gates if not g.ok), None)
+    if first_open is None:
+        next_step = "send the Revision to the manufacturer"
+    elif first_open.blockers:
+        next_step = first_open.blockers[0]
+    elif first_open.caveats:
+        next_step = first_open.caveats[0]
+    else:
+        next_step = first_open.name
     return StageReport(stage=stage, gates=gates, next_step=next_step)

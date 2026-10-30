@@ -1,0 +1,12 @@
+id: m20-gland
+rev: A
+name: M20 nylon cable gland, IP68
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic electrical wholesaler, mpn: M20-GLAND, url: "https://www.mcmaster.com/cable-glands/", verified: false}
+cost: {unit: 2 USD, basis: estimate}
+lead_time: 5 d
+mass: 15 g
+satisfies: [req://REQ-008]
+notes: Three in the controller box base (mains in, element out, thermocouple leads).

@@ -1,0 +1,12 @@
+id: refractory-mortar
+rev: A
+name: Air-set refractory mortar, 5 kg (consumable)
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic kiln supplier, mpn: IFB-MORTAR-5KG, url: "https://www.omega.com/en-us/", verified: false}
+cost: {unit: 25 USD, basis: estimate}
+lead_time: 7 d
+mass: 5 kg
+satisfies: [req://REQ-001]
+notes: Bed joints of the brick box; about 2 kg used, the rest is spare.

@@ -1,32 +1,32 @@
 # Requirements: atomic, testable, each with a verify method and an allocation.
 requirements:
   - id: REQ-001
-    title: Useful firing volume
-    statement: The chamber provides at least 8 liter of clear firing volume.
+    title: Firing volume
+    statement: The chamber's gross interior volume is at least 8 liter (the usable volume is smaller; ware is kept 20 mm from the elements).
     category: performance
     priority: must
     verify: {kind: param_bound, target: param://chamber-volume, op: ">=", value: 8 liter}
     allocation: [param://chamber-width, param://chamber-depth, param://chamber-height, part://liner-side]
-    rationale: A 200 mm cube holds a test tile rack or a 150 mm pot.
+    rationale: A 200 mm cube holds a test-tile rack or a 150 mm pot. The 8 liter is the gross chamber; the 20 mm keep-clear zone in front of the element grooves makes the usable volume smaller, and the operation manual says so.
     source: intake
   - id: REQ-002
     title: Footprint
-    statement: The complete kiln including the controller box is at most 1000 mm wide.
+    statement: The complete kiln including the door and the controller box is at most 1000 mm wide.
     category: geometry
     priority: must
     verify: {kind: geometry_prop, target: "asm://kiln#props.bbox.x", op: "<=", value: 1000 mm}
-    allocation: [asm://kiln, part://guard-shell, part://controller-box]
-    rationale: The owner's alcove is about 1 m wide once the controller sits beside the body (DEC-011).
+    allocation: [asm://kiln, asm://door, part://guard-shell, part://controller-box]
+    rationale: The owner described an alcove of about 800 mm; with the controller box beside the body and the door guard and hinges outside the guard the kiln needs about 1 m (DEC-011, flagged for the owner).
     source: intake
   - id: REQ-003
     title: Touchable surfaces stay cool
-    statement: Any surface a user can touch during operation stays below 60 degC at steady state with the chamber at 1200 degC.
+    statement: Every surface a user can touch during operation (body guard, door guard and latch) stays below 60 degC at steady state with the chamber at 1200 degC.
     category: safety
     safety: true
     priority: must
-    verify: {kind: calc, target: calc://thermal.guard_temperature, op: "<", value: 60 degC}
-    allocation: [part://guard-shell, param://fiber-thickness, param://guard-gap, part://liner-side]
-    rationale: Burn prevention. The inner shell runs hotter (see calc://thermal.skin_temperature); only the ventilated guard is touchable. See DEC-003.
+    verify: {kind: calc, target: calc://thermal.max_touch_temperature, op: "<", value: 60 degC}
+    allocation: [part://guard-shell, part://door-guard, part://door-tray, param://fiber-thickness, param://guard-gap]
+    rationale: Burn prevention. The inner shell and the door tray run hotter and sit behind two ventilated guards, one around the body and one in front of the door (DEC-003). calc://thermal.max_touch_temperature takes the hotter of the two guards and is supporting evidence only (DEC-015); the sign-off requires measuring the guard side wall, the guard top, the door guard and the latch with a contact thermometer once the kiln has held 1200 degC long enough to reach steady state.
     source: intake
   - id: REQ-004
     title: Mass
@@ -35,52 +35,54 @@ requirements:
     priority: should
     verify: {kind: geometry_prop, target: "asm://kiln#props.mass", op: "<", value: 120 kg}
     allocation: [asm://kiln, param://fiber-thickness, param://brick-thickness]
-    rationale: Delivered in parts; the body is lifted onto the stand by two people with bricks and door out (DEC-008).
+    rationale: Delivered in parts; the body is lifted onto the stand by two people with the bricks and the door out (DEC-008).
     source: intake
   - id: REQ-005
     title: Cost target
-    statement: The bill of materials totals less than 1500 USD at a quantity of 1.
+    statement: The bill of materials totals less than 2500 USD at a quantity of 1.
     category: cost
     priority: should
-    verify: {kind: bom_rollup, target: "bom://rollups#total_cost", op: "<", value: 1500 USD}
-    allocation: [part://outer-shell, part://guard-shell, part://stand, part://liner-side]
+    verify: {kind: bom_rollup, target: "bom://rollups#total_cost", op: "<", value: 2500 USD}
+    allocation: [param://target-unit-cost, part://outer-shell, part://guard-shell, part://door-guard, part://stand, part://limit-controller]
+    rationale: The intake said about 1500 USD; the safety parts added after review (limit controller, contactor, door switch, door guard) raise the estimate. the estimate is about 2200 USD; 2500 USD is pending the owner's confirmation (DEC-012).
     source: intake
   - id: REQ-006
     title: Element power within the circuit
-    statement: The heating element draws at most 3000 W from a 230 V supply so a dedicated 16 A circuit has margin.
+    statement: The heating element draws at most 3000 W from a 230 V supply so that a dedicated 16 A circuit keeps a margin.
     category: performance
     priority: must
     verify: {kind: param_bound, target: param://element-power, op: "<=", value: 3000 W}
-    allocation: [param://element-power, param://mains-voltage, part://heating-element]
-    rationale: 3000 W / 230 V = 13 A, below 16 A. See DEC-006.
+    allocation: [param://element-power, param://mains-voltage, param://circuit-rating, part://heating-element]
+    rationale: The element is rated 2500 W (DEC-004), which draws 10.9 A on 230 V, 68 % of the 16 A circuit. 3000 W (13 A) is the ceiling. See DEC-006.
     source: design
   - id: REQ-007
     title: Controller away from the hot zone
-    statement: The controller enclosure is mounted outside the touch guard with at least 40 mm of free air between them, and its inside stays below 50 degC.
+    statement: The controller enclosure hangs on 40 mm standoffs outside the touch guard with its lid fitted, and its inside stays below 50 degC.
     category: safety
     safety: true
     priority: must
-    verify: {kind: manual, note: "Measure the controller box inside temperature after one hour at 1200 degC; it must read below 50 degC."}
-    allocation: [part://controller-box, param://controller-standoff, iface://controller-shell]
-    rationale: Electronics derate above 50 degC; the SSR needs air.
+    verify: {kind: manual, note: "Check the box hangs on four 40 mm standoffs with the lid screwed on. After one hour with the chamber at 1200 degC, measure the air inside the box (probe through a gland, lid closed); it must read below 50 degC."}
+    allocation: [part://controller-box, part://controller-lid, part://m6-standoff-40, param://controller-standoff, iface://controller-mount]
+    rationale: Controllers and the solid-state relay derate above 50 degC and the relay needs air; the lid keeps fingers and dust off the mains terminals.
     source: design
   - id: REQ-008
     title: Dedicated circuit disclosed
-    statement: The installation manual states that a dedicated 16 A circuit installed by a licensed electrician is required, and the controller box carries a label saying so.
+    statement: The installation manual states that a dedicated 16 A circuit installed by a licensed electrician is required, and a rating label on the controller box says so.
     category: safety
     safety: true
     priority: must
-    verify: {kind: manual, note: "Read the installation manual and check the label text; sign off."}
-    allocation: [doc://installation, part://controller-box, param://circuit-rating]
+    verify: {kind: manual, note: "Read the installation manual's power section and the rating label riveted to the controller box front; both name the dedicated 16 A circuit and the licensed electrician."}
+    allocation: [doc://installation, part://controller-box, part://rating-label, param://circuit-rating]
     source: design
   - id: REQ-009
-    title: Door interlock and latch
-    statement: The door has a positive latch, and the operation manual requires the element to be switched off before the door is opened; an interlock switch is a documented installer option.
+    title: Door latch and door switch
+    statement: The door has a positive latch that holds it closed against a 50 N pull, and a door switch drops the contactor (cutting element power) whenever the door is not closed.
     category: safety
     safety: true
     priority: must
-    verify: {kind: manual, note: "Confirm the latch holds the door closed against a 50 N pull and that the operation manual states the interlock requirement."}
-    allocation: [part://latch, asm://door, doc://operation]
+    verify: {kind: manual, note: "Pull the closed, latched door outward with 50 N (a luggage scale); it stays shut. With the controller calling for heat, open the door: the contactor must drop out (audible click, element voltage zero at the terminals, measured by the electrician) and stay out until the door is closed."}
+    allocation: [part://latch, part://door-switch, part://contactor, asm://door, doc://operation]
+    rationale: Opening a live kiln exposes the element and the hot chamber; the switch backs up the operating rule (switch off before opening). See DEC-010 and DEC-014.
     source: design
   - id: REQ-010
     title: Parts do not collide
@@ -91,20 +93,22 @@ requirements:
     allocation: [asm://kiln]
     source: design
   - id: REQ-011
-    title: Shell bolts to the stand
+    title: Guard bolts to the stand
     statement: The guard's four mounting holes line up with the stand's holes within 0.5 mm.
     category: interface
     priority: must
     verify: {kind: interface, target: iface://shell-frame-mount}
-    allocation: [part://guard-shell, part://stand, iface://shell-frame-mount]
+    allocation: [part://guard-shell, part://stand, part://m6-rivnut, iface://shell-frame-mount]
+    rationale: The guard carries the inner shell on its standoffs and bolts into rivet nuts in the stand's hollow top rails (DEC-009).
     source: design
   - id: REQ-012
-    title: Hinge holes agree
-    statement: The door skin's hinge holes line up with the guard lip's within 0.5 mm.
+    title: Hinge post holes agree
+    statement: The hinge post's four bolt holes line up with the guard's left-wall holes within 0.5 mm.
     category: interface
     priority: must
-    verify: {kind: interface, target: iface://shell-door-hinge}
-    allocation: [part://guard-shell, part://door-skin, iface://shell-door-hinge]
+    verify: {kind: interface, target: iface://guard-hinge-post}
+    allocation: [part://guard-shell, part://hinge-post, part://hinge, iface://guard-hinge-post]
+    rationale: The hinge post carries the door's weight and sets the hinge pin position that the swing calc assumes (DEC-013).
     source: design
   - id: REQ-013
     title: Two side liners
@@ -120,7 +124,7 @@ requirements:
     category: usability
     priority: should
     verify: {kind: param_bound, target: param://door-swing, op: ">=", value: 100 degree}
-    allocation: [asm://door, param://door-swing]
+    allocation: [asm://door, param://door-swing, part://hinge]
     source: intake
   - id: REQ-015
     title: Element wire fits the spool
@@ -132,12 +136,12 @@ requirements:
     source: design
   - id: REQ-016
     title: Power margin over heat loss
-    statement: The rated element power exceeds the steady loss plus heat-up power by a margin of at least 20 percent (ratio 1.2).
+    statement: The rated element power exceeds the steady loss plus the heat-up power by a margin of at least 20 percent (ratio 1.2).
     category: performance
     priority: must
     verify: {kind: calc, target: calc://element.power_margin, op: ">=", value: 1.2}
     allocation: [param://element-power, param://heat-up-time, param://fiber-thickness]
-    rationale: Otherwise the kiln never reaches temperature or takes all day.
+    rationale: Otherwise the kiln never reaches temperature or takes all day. The loss and stored heat come from the mean-area model (DEC-004, DEC-015).
     source: design
   - id: REQ-017
     title: Lead time
@@ -145,5 +149,52 @@ requirements:
     category: manufacturing
     priority: should
     verify: {kind: bom_rollup, target: "bom://rollups#max_lead_time", op: "<=", value: 30 d}
-    allocation: [part://outer-shell, part://stand]
+    allocation: [part://outer-shell, part://guard-shell, part://stand]
     source: intake
+  - id: REQ-018
+    title: Independent over-temperature cut-out
+    statement: An independent limit controller on its own thermocouple opens a contactor in series with the solid-state relay when the chamber exceeds 1250 degC, and power stays off until the limit controller is reset by hand.
+    category: safety
+    safety: true
+    priority: must
+    verify: {kind: manual, note: "With the electrician: set the limit controller's trip point temporarily below the chamber temperature during a low firing (or warm its thermocouple with a heat gun); the contactor must drop out, the element voltage must fall to zero, and power must stay off after the temperature falls until the reset key is pressed. Restore the trip point afterwards and record it."}
+    allocation: [part://limit-controller, part://contactor, part://thermocouple, param://over-temperature-limit, doc://installation]
+    rationale: A solid-state relay usually fails closed (on); the limit device and contactor stop a runaway firing before the K23 lining's 1260 degC class is exceeded (DEC-014).
+    source: review gate 3
+  - id: REQ-019
+    title: Earth bonding
+    statement: The inner shell, the guard, the door guard, the stand and the controller box are each bonded to protective earth with a resistance below 0.1 ohm to the earth terminal.
+    category: safety
+    safety: true
+    priority: must
+    verify: {kind: manual, note: "The electrician measures with a low-resistance ohmmeter from the earth terminal in the controller box to bare metal at each earth stud (inner shell, guard, door guard, stand, controller box); each reading is below 0.1 ohm."}
+    allocation: [part://earth-stud, part://outer-shell, part://guard-shell, part://door-guard, part://stand, part://controller-box]
+    rationale: The element runs on mains inside a steel case; a broken element touching the shell must trip the circuit protection instead of making the case live. Powder coat insulates, so each part gets its own stud on bare metal.
+    source: review gate 3
+  - id: REQ-020
+    title: Door plug clears the opening
+    statement: During the door swing the latch-side rear corner of the door plug clears the door opening by at least 3 mm.
+    category: usability
+    priority: must
+    verify: {kind: calc, target: calc://swing.plug_clearance, op: ">=", value: 3 mm}
+    allocation: [part://door-fiber, part://door-brick, part://hinge-post, param://door-plug-taper, param://door-plug-clearance, param://swing-clearance-min]
+    rationale: The plug (fiber plus brick slab) is deep and swings about a pin outside the door guard; without the taper its rear corner would hit the fiber at the opening's latch side (DEC-013).
+    source: review gate 3
+  - id: REQ-021
+    title: Element surface load
+    statement: The element wire's surface load at rated power is at most 2.0 W/cm**2.
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://element.surface_load, op: "<=", value: 2.0 W/cm**2}
+    allocation: [part://heating-element, param://element-wire-diameter, param://element-power, param://element-surface-load-limit]
+    rationale: Above the limit for a grooved Kanthal A1 element at 1200 degC the wire runs too hot and its life drops sharply (DEC-005; limit from the Kanthal handbook, to be confirmed).
+    source: review gate 3
+  - id: REQ-022
+    title: Coil pitch
+    statement: The element coil, stretched along the grooves, has a pitch of at least 200 percent of the wire diameter (pitch factor 2).
+    category: manufacturing
+    priority: must
+    verify: {kind: calc, target: calc://element.pitch_factor, op: ">=", value: 2}
+    allocation: [part://heating-element, part://liner-side, part://liner-back, param://element-coil-diameter, param://element-grooves-per-wall, param://element-pitch-factor-min]
+    rationale: Turns closer than two wire diameters shade each other and overheat; the five grooves per wall give the coil enough length to stretch (DEC-005).
+    source: review gate 3

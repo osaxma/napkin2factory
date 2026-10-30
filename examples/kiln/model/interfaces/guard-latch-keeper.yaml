@@ -1,0 +1,9 @@
+id: guard-latch-keeper
+kind: bolt-pattern
+parties: [part://guard-shell, part://latch-keeper]
+description: Two M6 bolts hold the latch keeper bracket to the guard's right wall.
+frame: {origin: [0, 0, 0], normal: [1, 0, 0]}
+frames:
+  part://guard-shell: {origin: [param://guard-half-width, 0, param://latch-keeper-z-guard], normal: [1, 0, 0], x_axis: [0, 1, 0]}
+  part://latch-keeper: {origin: [3, 20, 0], normal: [1, 0, 0], x_axis: [0, 0, 1]}
+spec: {pattern: line, count: 2, diameter: param://mount-bolt-clearance, spacing: [30 mm], fastener: part://m6x16-bolt, depth: 10 mm}

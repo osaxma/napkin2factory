@@ -15,6 +15,8 @@ from napkin2factory.core.loader import load_product
 from tests.conftest import EXAMPLES, copy_product
 from tests.validate_outputs import validate_outputs
 
+pytestmark = pytest.mark.full  # make check-full (D27)
+
 os.environ.setdefault("N2F_OFFLINE", "1")
 TIMING = os.environ.get("N2F_TIMING") == "1"
 GOLDEN = Path(__file__).parent.parent / "golden" / "goldens" / "kiln.json"
@@ -38,8 +40,10 @@ def test_kiln_checks_green_with_example_signoffs(kiln: tuple[Path, float]) -> No
     data = json.loads((root / "build/checks/checks.json").read_text())
     assert data["summary"]["fail"] == 0, [r["id"] for r in data["results"] if r["status"] == "fail"]
     assert data["summary"]["needs-human"] == 0
+    # six safety requirements carry EXAMPLE sign-offs; they are counted apart from real ones (S-047)
+    assert data["summary"]["example"] == 6 and data["summary"]["signed"] == 0
     signed = [r for r in data["results"] if r["status"] == "signed"]
-    assert len(signed) == 4 and all("EXAMPLE" in r["message"] for r in signed)
+    assert len(signed) == 6 and all("EXAMPLE" in r["message"] for r in signed)
     inter = next(r for r in data["results"] if r["id"] == "interference://kiln")
     assert inter["detail"]["interferences"] == []
     counts = next(r for r in data["results"] if r["id"] == "count://kiln")

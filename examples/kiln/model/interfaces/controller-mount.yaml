@@ -1,0 +1,9 @@
+id: controller-mount
+kind: bolt-pattern
+parties: [part://controller-box, part://guard-shell]
+description: The controller box hangs on four 40 mm standoffs against the guard's right wall; holes in the box's left wall and the guard.
+frame: {origin: [0, 0, 0], normal: [1, 0, 0]}
+frames:
+  part://controller-box: {origin: [param://controller-neg-half-width, 0, param://controller-half-height], normal: [-1, 0, 0], x_axis: [0, 1, 0]}
+  part://guard-shell: {origin: [param://guard-half-width, param://controller-mount-y, param://guard-half-depth], normal: [1, 0, 0], x_axis: [0, 0, 1]}
+spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://controller-mount-spacing-y, param://controller-mount-spacing-z], fastener: part://m6x16-bolt, depth: 10 mm}

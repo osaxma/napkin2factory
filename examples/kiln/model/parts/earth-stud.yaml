@@ -1,0 +1,12 @@
+id: earth-stud
+rev: A
+name: M6 earth stud with serrated washers
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic electrical wholesaler, mpn: M6-EARTH-STUD, url: "https://www.mcmaster.com/earth-studs/", verified: false}
+cost: {unit: 2 USD, basis: estimate}
+lead_time: 5 d
+mass: 10 g
+satisfies: [req://REQ-019]
+notes: One each on the shell, guard, door guard, stand and controller box; fitted by the installer, bonded to protective earth.

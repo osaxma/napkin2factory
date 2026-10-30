@@ -1,10 +1,10 @@
 id: outer-shell
 rev: A
-name: Outer sheet-metal shell
+name: Inner sheet-metal shell
 kind: custom
 process: sheet-metal
-material: {name: mild steel, spec: "1.5 mm CR4 (DC01)"}
-finish: high-temperature powder coat, black
+material: {name: mild steel, spec: "1.2 mm CR4 (DC01)"}
+finish: high-temperature powder coat, black (silicone-polyester, 200 degC class)
 tolerance_class: ISO2768-m
 geometry:
   kit: enclosure
@@ -16,8 +16,14 @@ geometry:
     thickness: param://shell-thickness
     bend_radius: param://shell-bend-radius
     flange: param://shell-flange
-interfaces: []
+    cutouts:
+      # the tray's base is the kiln's back wall: element tails low, thermocouples at chamber mid-height
+      - {face: base, center: [param://tail-neg-hole-x, param://tail-hole-z-shell], width: param://tail-hole-shell, height: param://tail-hole-shell, corner_radius: 9.9 mm, label: tail-left}
+      - {face: base, center: [param://tail-hole-x, param://tail-hole-z-shell], width: param://tail-hole-shell, height: param://tail-hole-shell, corner_radius: 9.9 mm, label: tail-right}
+      - {face: base, center: [param://thermocouple-neg-offset-x, param://thermocouple-z-shell], width: param://thermocouple-hole-shell, height: param://thermocouple-hole-shell, corner_radius: 6.9 mm, label: thermocouple-control}
+      - {face: base, center: [param://thermocouple-offset-x, param://thermocouple-z-shell], width: param://thermocouple-hole-shell, height: param://thermocouple-hole-shell, corner_radius: 6.9 mm, label: thermocouple-limit}
+interfaces: [iface://guard-standoff-left, iface://guard-standoff-right, iface://guard-standoff-top, iface://guard-standoff-bottom]
 satisfies: [req://REQ-002, req://REQ-004, req://REQ-005]
-cost: {unit: 180 USD, basis: estimate, note: "laser cut, 8 bends, high-temp powder coat, quantity 1"}
+cost: {unit: 320 USD, basis: estimate, note: "multi-piece weldment (wrap + two end panels), deburred, high-temp powder coat, quantity 1"}
 lead_time: 15 d
-manufacturer_notes: Corners open (relief), not welded. High-temperature powder coat rated 200 degC minimum. Deburr all edges.
+manufacturer_notes: May be built as a wrap plus two end panels (or four panels on corner angles) joined by spot welds or rivets with closed corners; the one-piece flat pattern is a reference development only. Critical dimensions are the inside width and height (fiber fit). Sixteen Ø6.6 standoff holes (four per side wall) and the rear tail and thermocouple holes are in the DXF. High-temperature powder coat outside only; inside bare. Deburr all edges.

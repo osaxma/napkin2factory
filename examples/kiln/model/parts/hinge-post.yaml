@@ -1,0 +1,14 @@
+id: hinge-post
+rev: A
+name: Hinge post (steel angle)
+kind: custom
+process: machining
+material: {name: mild steel, spec: "40 x 30 x 3 unequal angle, S235, cut to length (30 mm leg outward)"}
+finish: powder coat, black
+tolerance_class: ISO2768-m
+geometry: {module: geometry/hinge_post.py}
+interfaces: [iface://guard-hinge-post]
+satisfies: [req://REQ-012]
+cost: {unit: 25 USD, basis: estimate, note: "cut, drill 4 holes, coat"}
+lead_time: 10 d
+manufacturer_notes: Bolts to the guard's left wall with four M6 bolts and nuts (holes in the DXF-free drawing). The two hinge barrels are welded to the outward leg before coating. Carries the door's weight; do not substitute thinner angle.

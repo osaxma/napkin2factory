@@ -109,5 +109,6 @@ def init(
     if snapshot:
         console.print(f"  first snapshot saved ({snapshot[:10]})")
     console.print(
-        "  next: open the folder with your AI client and start intake, or run `n2f validate`"
+        "  next: `n2f build` (the first run loads the CAD kernel; allow a couple of minutes), "
+        "then open the folder with your AI client and start intake"
     )

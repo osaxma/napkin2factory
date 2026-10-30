@@ -1,11 +1,12 @@
 # STATUS
 
-**Branch:** `v0.1-build` · **Current milestone:** M7 done; M8 nearly done (demos running) → gate 3, then M9
-**Resume note (2026-10-30, run stopped at the owner's usage limit):** the last full
-`make check` was green except two tests fixed right after (vocabulary: git refs moved into
-`vcs.changed_in_last_snapshot`; invalidation: unused parameter now expects validate+report+site,
-S-037). Those suites were re-run green individually; re-run the full `make check` first when
-resuming, then continue with M6 (release, diff, site) per "Next" below.
+**Branch:** `v0.1-build` · **Current milestone:** M9 closing (handoff)
+**Resume note (2026-10-30):** M0–M8 committed; the M9 tree (gate-3/4 fixes, kiln rework,
+handoff report) is being verified and committed as `M9:`. If you find it uncommitted: run
+`make check` (fast, excludes kiln/demos) and `make check-full` (kiln, both demos, timing), then
+commit. Kiln state after the gate-3 rework: 0 fail, 6 EXAMPLE sign-offs, 0 interferences,
+110.5 kg, 995 mm wide; `tests/golden/goldens/kiln.json` re-recorded; ECR-002 patch regenerated
+for the plug door. Review gates 1–4 all ran; outcomes and fixes are in DECISIONS.md.
 **Resume order:** `GRAND_PLAN.md` → this file → `DECISIONS.md` → `git log --oneline -30` → `make check`
 
 ## Environment (host facts a cold reader needs)
@@ -118,11 +119,22 @@ resuming, then continue with M6 (release, diff, site) per "Next" below.
   than the door sub-assembly). Remaining: `demo-design.sh` as a test, kiln golden,
   `make check-full`, gate 3 (engineering + shop read-through).
 
-## Next (M8 close, then M9)
-Review gate 2 (UX, fresh-context reviewer playing a non-technical owner; §8.3). Then M7:
-flesh out `templates/_common` skills/agents per the M7 brief, `docs/agent-layer.md`, lint
-test for a weak intake fixture, and the scripted intake simulation with a fresh-context
-subagent (§1.3 item 6); save the transcript under `tests/e2e/intake-transcripts/`.
+- **Review gate 3 (engineering)** — nine blockers on the kiln (DECISIONS "Review gate 3");
+  the tool fix S-047 (example sign-offs never read as verification) and the kiln rework
+  (DEC-012…DEC-017: plug door with tray and guard, bolted hinge post, modelled standoffs and
+  penetrations, mean-area two-node thermal model with both guards computed, 2.5 kW / 7 h
+  element in five grooves, independent over-temperature limit, earth bonding, ceramic-sheathed
+  probes). Shop read-through kept with a preface. Core fixes found on the way: S-049 (parents
+  reload cached sub-assemblies), S-050 (evidence for parts without geometry), S-051 (shared
+  bolts are one hole), each with a regression test.
+- **Review gate 4 (onboarding)** — README/docs/cli.md rewritten, `n2f build --offline`, the
+  first-run kernel notice (S-048), `n2f init` hint.
+- **M9** — README, docs, `n2f doctor`, `uv build` + `twine check`, PyPI names checked, gate
+  outcomes journaled, `HANDOFF-REPORT.md`, `make check` excludes kiln/demos (`-m "not full"`,
+  D27) and `make check-full` runs them.
+
+## Next
+Nothing in v0.1. v0.2 candidates are in `HANDOFF-REPORT.md` §6 and `BACKLOG.md`.
 
 ## Open risks
 - Plan's Linux DoD is exercised only in CI (S-001).

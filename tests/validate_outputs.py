@@ -21,7 +21,10 @@ def _png_nonblank(path: Path) -> bool:
     from PIL import Image
 
     img = np.asarray(Image.open(path).convert("L"), dtype=np.float64)
-    return float(img.var()) > 50.0
+    # Enough pixels differ from the background: a 1 mm sheet seen edge-on is a thin line, not
+    # a blank (the old variance test rejected the kiln's controller lid).
+    background = img[0, 0]
+    return int((np.abs(img - background) > 8).sum()) >= 200
 
 
 def validate_geometry(root: Path, product, problems: list[str]) -> None:  # type: ignore[no-untyped-def]

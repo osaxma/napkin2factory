@@ -2,18 +2,20 @@ requirement: req://REQ-003
 by: Example Reviewer (not a real review)
 role: human
 date: '2026-10-30'
-statement: Example sign-off shipped with the kiln example; a real reviewer must repeat
-  this check.
+statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
+  against the built kiln.
 evidence:
-- calc://thermal.guard_temperature
+- calc://thermal.max_touch_temperature
 - part://guard-shell
+- part://door-guard
+- part://door-tray
 - param://fiber-thickness
 - param://guard-gap
-- part://liner-side
 evidence_keys:
-  calc://thermal.guard_temperature: sha256:fcc8c6e0d50d3fbb9e22fd4f67641f18af8f4a449f424ba3eb10b09d32202bbb
-  part://guard-shell: sha256:524e8df6973ad3a94877f6b3aa3638802c2366d34b52e1e14fc3ef8c33541b7b
+  calc://thermal.max_touch_temperature: sha256:15e89c26bba4690f6e24b39d0062e162c5cc6ae8d1c93e99c154e6bf4c604dd0
+  part://guard-shell: sha256:f11ec696d047b4d95b309416c0f3fe8ca8e649743a7bb7d2a57d07c60f9dd46c
+  part://door-guard: sha256:092488736f8003ee855a2e4596e7fee98e9b17c25748845bfd921ea8a718e234
+  part://door-tray: sha256:788ae1c03300aed0f839b1127a48d7755e61af9d82670e4a998708fe7986442a
   param://fiber-thickness: sha256:ec757bce727d6f3a9b150928d649f79a42978791f444b922bdea6abcde94c88c
   param://guard-gap: sha256:42f346993894b0e80beb9f3d3d6dfd511d69179ec68ecf394eb3efc44afcd8ca
-  part://liner-side: sha256:0279bd5791b97dfc892cda735ff81a6217fe34f678ba4fdc2efc4f4d57028573
 example: true

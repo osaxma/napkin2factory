@@ -96,7 +96,10 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q -p no:cacheprovider"
-markers = ["timing: timing assertions (only under N2F_TIMING=1)"]
+markers = [
+  "timing: timing assertions (only under N2F_TIMING=1)",
+  "full: kiln and demo end-to-end tests, run by make check-full (D27)",
+]
 filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.coverage.run]

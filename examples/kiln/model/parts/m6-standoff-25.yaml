@@ -1,0 +1,12 @@
+id: m6-standoff-25
+rev: A
+name: M6 female-female hex standoff, 25 mm, steel
+kind: cots
+process: none
+geometry: none
+source: {vendor: McMaster-Carr, mpn: 93655A135, url: "https://www.mcmaster.com/93655A135/", verified: false}
+cost: {unit: 1.20 USD, basis: catalog}
+lead_time: 5 d
+mass: 12 g
+satisfies: [req://REQ-003]
+notes: Sixteen between the shell and the guard (four per wall; the bottom four sit on the stand bolts and carry the lining load into the rails), four between the door tray and the door guard.

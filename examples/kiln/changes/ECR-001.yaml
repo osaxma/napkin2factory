@@ -3,11 +3,11 @@ title: Increase chamber height by 50 mm
 status: draft
 kind: parametric
 requested_by: human
-reason: Need to fire taller pieces (vases up to 240 mm). The taller chamber stores more heat, so the heat-up time is extended to keep the element's 20 % power margin (REQ-016) without exceeding the 16 A circuit.
+reason: Need to fire taller pieces (vases up to 240 mm). The taller chamber loses and stores more heat, so the heat-up time goes from 7 h to 9 h to keep the element's 20 % power margin (REQ-016; 8 h would leave 1.22) without exceeding the 16 A circuit.
 created: 2026-10-30
 edits:
   - {set: param://chamber-height, to: 250 mm}
-  - {set: param://heat-up-time, to: 6 hour}
+  - {set: param://heat-up-time, to: 9 hour}
 tasks: []
 patch: null
 impact: null

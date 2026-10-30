@@ -1,0 +1,11 @@
+id: guard-hinge-post
+kind: bolt-pattern
+parties: [part://guard-shell, part://hinge-post]
+description: Four M6 bolts hold the hinge post to the guard's left wall, 140 mm apart up the wall.
+frame: {origin: [0, 0, 0], normal: [-1, 0, 0]}
+frames:
+  # guard tray coordinates: y is the kiln's height; the post's leg centre line is hinge-post-y behind the lip plane
+  part://guard-shell: {origin: [param://guard-neg-half-width, 0, param://hinge-post-z-guard], normal: [-1, 0, 0], x_axis: [0, 1, 0]}
+  # post coordinates: leg against the wall at x ∈ [−t, 0], y along the depth from 0, z along the post
+  part://hinge-post: {origin: [-3, 20, 0], normal: [-1, 0, 0], x_axis: [0, 0, 1]}
+spec: {pattern: line, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://hinge-post-bolt-spacing], fastener: part://m6x16-bolt, depth: 10 mm}

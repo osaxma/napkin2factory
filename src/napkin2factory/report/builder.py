@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 import jinja2
 
 from napkin2factory import __version__
+from napkin2factory.core.checks.results import SUMMARY_KEYS
 from napkin2factory.core.graph.hashing import sha256_text
 from napkin2factory.core.loader import Product
 from napkin2factory.core.units import format_quantity
@@ -52,6 +53,8 @@ VOCAB: dict[str, dict[str, str]] = {
         "skip": "not checked",
         "needs-human": "needs your sign-off",
         "signed": "signed off",
+        "example": "example sign-offs — not reviews",
+        "example_one": "example sign-off — not a review",
         "changes": "Change requests",
     },
     "engineer": {
@@ -61,6 +64,8 @@ VOCAB: dict[str, dict[str, str]] = {
         "skip": "skip",
         "needs-human": "needs-human",
         "signed": "signed",
+        "example": "example sign-offs — not reviews",
+        "example_one": "example sign-off — not a review",
         "changes": "Change requests (ECRs)",
     },
 }
@@ -159,10 +164,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "max_lead_time": 0,
         "cost_complete": True,
     }
-    summary = {
-        k: int(checks.get("summary", {}).get(k, 0))
-        for k in ("pass", "fail", "warn", "skip", "needs-human", "signed")
-    }
+    summary = {k: int(checks.get("summary", {}).get(k, 0)) for k in SUMMARY_KEYS}
     results = {r["id"]: r for r in checks.get("results", [])}
     stage = compute_stage(product, build_dir)
     persona = product.operator.persona

@@ -1,0 +1,12 @@
+id: contactor
+rev: A
+name: Contactor, 3-pole (two poles used), 25 A, 230 V coil
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 45 mm, width: 78 mm, height: 85 mm}}
+source: {vendor: Schneider Electric, mpn: LC1D25P7, url: "https://www.se.com/ww/en/product/LC1D25P7/", verified: false}
+cost: {unit: 45 USD, basis: estimate}
+lead_time: 7 d
+mass: 0.4 kg
+satisfies: [req://REQ-018, req://REQ-009]
+notes: In series with the solid-state relay; held in by the limit controller and the door switch.

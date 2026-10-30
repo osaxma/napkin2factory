@@ -1,0 +1,28 @@
+id: door-guard
+rev: A
+name: Door touch guard
+kind: custom
+process: sheet-metal
+material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}
+finish: powder coat, black
+tolerance_class: ISO2768-m
+geometry:
+  kit: enclosure
+  args:
+    # Wraps the door tray with a ventilated air gap in front of it; the hinges and latch mount on its walls.
+    length: param://door-guard-width
+    width: param://door-guard-height
+    height: param://door-guard-depth
+    thickness: param://door-guard-thickness
+    bend_radius: 1 mm
+    flange: 0 mm
+    cutouts:
+      # tray −Y wall is the kiln's top, +Y wall the bottom (the door assembly rotates the tray −90° about X):
+      # inlet along the bottom, outlet along the top, both over the air gap
+      - {face: back, center: [0, param://door-guard-vent-v], width: 300 mm, height: 14 mm, corner_radius: 5 mm, label: door-vent-inlet}
+      - {face: front, center: [0, param://door-guard-vent-v], width: 300 mm, height: 14 mm, corner_radius: 5 mm, label: door-vent-outlet}
+interfaces: [iface://door-guard-standoff]
+satisfies: [req://REQ-003, req://REQ-009]
+cost: {unit: 55 USD, basis: estimate, note: "laser cut with vent slots, 4 bends, powder coat"}
+lead_time: 15 d
+manufacturer_notes: Closed corners. Two weld-on hinge barrels on the left wall's rear edge and the latch body on the right wall are welded before coating (mask nothing; coat after).

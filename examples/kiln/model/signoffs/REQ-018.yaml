@@ -1,0 +1,19 @@
+requirement: req://REQ-018
+by: Example Reviewer (not a real review)
+role: human
+date: '2026-10-30'
+statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
+  against the built kiln.
+evidence:
+- part://limit-controller
+- part://contactor
+- part://thermocouple
+- param://over-temperature-limit
+- doc://installation
+evidence_keys:
+  part://limit-controller: sha256:f0f440d63d188e4632882ce10cec4fb719c081ec691ce210745e06fd4938e4e0
+  part://contactor: sha256:34aa515ff8296217ce966a773e19be2d299f89ee3d31db6b93d26adf93edce1d
+  part://thermocouple: sha256:b3c84518bcc5d8e4b4115f753ea5838dba06fbb50e88c74a22603693eae8196a
+  param://over-temperature-limit: sha256:f976fc59557a95aa7aba040123fd59953792b51f5db5f7869127d4445febce4c
+  doc://installation: sha256:c721c3c02e670f599c963e0d2b2ff572dd1a09dbe442670db6ff2287a630b819
+example: true

@@ -3,7 +3,7 @@ rev: A
 name: Welded stand
 kind: custom
 process: welding
-material: {name: mild steel, spec: "25 x 25 x 2 square tube, S235"}
+material: {name: mild steel, spec: "25 x 25 x 1.5 square tube, S235"}
 finish: powder coat, black
 tolerance_class: ISO2768-c
 geometry:
@@ -20,3 +20,4 @@ interfaces: [iface://shell-frame-mount]
 satisfies: [req://REQ-011]
 cost: {unit: 140 USD, basis: estimate, note: "cut, weld, powder coat"}
 lead_time: 15 d
+manufacturer_notes: Four Ø6.6 holes in the top rails take M6 rivet nuts (the rails are hollow); set the rivet nuts before coating. Cut list on the drawing.

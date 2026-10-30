@@ -1,12 +1,12 @@
 id: thermocouple
 rev: A
-name: Type K thermocouple probe
+name: Type K kiln thermocouple, 8 mm ceramic sheath
 kind: cots
 process: none
 geometry: none
-source: {vendor: Omega Engineering, mpn: KTSS-18G-12, url: "https://www.omega.com/en-us/temperature-measurement/temperature-probes/probes-with-lead-wires/p/KTSS-HH", verified: false}
-cost: {unit: 40 USD, basis: estimate}
+source: {vendor: generic kiln supplier, mpn: K-8MM-CERAMIC-1200, url: "https://www.omega.com/en-us/temperature-measurement/temperature-probes/", verified: false}
+cost: {unit: 60 USD, basis: estimate, note: "two off: control and limit [verify a 1200 degC class ceramic sheath; stainless sheaths fail above ~900 degC]"}
 lead_time: 7 d
-mass: 0.05 kg
-satisfies: [req://REQ-007]
-notes: Inserted through a Ø8 mm hole drilled in the back wall at chamber mid-height (installer); BOM-only in this Revision.
+mass: 0.08 kg
+satisfies: [req://REQ-018]
+notes: Two probes through the back wall at chamber mid-height, either side of centre (holes in the back liner, back board, shell and guard). Control probe to the PID controller, limit probe to the limit controller.

@@ -1,0 +1,12 @@
+id: door-switch
+rev: A
+name: Door safety switch (positive-opening limit switch)
+kind: cots
+process: none
+geometry: none
+source: {vendor: Omron, mpn: D4N-1120, url: "https://www.ia.omron.com/products/family/1657/", verified: false}
+cost: {unit: 35 USD, basis: estimate}
+lead_time: 7 d
+mass: 0.1 kg
+satisfies: [req://REQ-009]
+notes: Mounted by the installer on the guard's right wall so the door guard's wall presses it when closed; wired in the contactor's coil circuit.

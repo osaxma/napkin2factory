@@ -103,6 +103,22 @@ def test_example_signoff_label(tmp_path: Path) -> None:
     run_build(load_product(root), quiet=True, render=False)
     html = (root / "build/report/index.html").read_text()
     assert html.count("EXAMPLE SIGN-OFF, NOT A REVIEW") >= 2
+    tree = LexborHTMLParser(html)
+    header = tree.css_first("header.top").text()
+    # the header never presents an example sign-off as verification
+    assert "1 example sign-off — not a review" in header
+    assert "0 needs your sign-off" not in header and "signed off" not in header
+    assert tree.css_first("header.top span.example") is not None
+    # the ladder shows verify as not done, with that reason, and the next step to fix it
+    nxt = tree.css_first("#sec-next").text()
+    assert "1 example sign-off — not a review" in nxt
+    assert "replace the 1 example sign-off (not a review) with a real one" in nxt
+    assert "allow-example-signoffs" in nxt
+    gates = tree.css("#sec-next .kv .badge")
+    verify_badge = next(b for b in gates if b.text() == "verify")
+    assert "ok" not in (verify_badge.attributes.get("class") or "").split()
+    # both personas carry words for it
+    assert "example sign-off — not a review" in html.split("<header", 1)[1].split("</header>", 1)[0]
 
 
 def test_report_opens_from_file_url_without_console_errors(report: tuple[Path, str]) -> None:

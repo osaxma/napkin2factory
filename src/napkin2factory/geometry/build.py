@@ -227,9 +227,20 @@ def apply_interfaces(part: Part, result: PartResult, ctx: kit_mod.KitContext) ->
         if isinstance(iface.spec, BoltPatternSpec):
             if already:
                 continue
-            centers = centers_from_spec(iface.spec, frame)
+            all_centers = centers_from_spec(iface.spec, frame)
             diameter = _mm(iface.spec.diameter)
             depth = _mm(iface.spec.depth)
+            # A bolt shared by two interfaces (shell → standoff → guard → stand) is one hole:
+            # skip centres already cut at the same spot with the same diameter (S-051).
+            centers = [
+                c
+                for c in all_centers
+                if not any(
+                    abs(h.diameter - diameter) < 1e-6
+                    and math.dist(tuple(h.center), tuple(c)) < 0.05
+                    for h in result.features.holes
+                )
+            ]
             result.shape = cut_pattern(result.shape, centers, diameter, tuple(frame.normal), depth)
             if result.flat_pattern is not None:
                 unmapped = 0
@@ -247,7 +258,7 @@ def apply_interfaces(part: Part, result: PartResult, ctx: kit_mod.KitContext) ->
                     )
             result.features.patterns.append(
                 HolePattern(
-                    centers=[tuple(c) for c in centers],
+                    centers=[tuple(c) for c in all_centers],
                     diameter=diameter,
                     frame_origin=tuple(frame.origin),
                     frame_normal=tuple(frame.normal),
@@ -541,3 +552,62 @@ def load_props(build_dir: Path, uri: str) -> dict[str, Any]:
         raise FileNotFoundError(f"{uri} has not been built (missing {path})")
     data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     return data
+
+
+def load_built_assembly(
+    product: Product,
+    asm_id: str,
+    build_dir: Path | None = None,
+    parts: dict[str, BuiltPart] | None = None,
+) -> BuiltAssembly:
+    """Reconstruct a BuiltAssembly from ``build/assemblies/<id>/`` without rebuilding (S-049).
+
+    Used when a parent assembly must rebuild but this sub-assembly's run was skipped as up to
+    date.  The leaf instances in ``instances.json`` are in the sub-assembly's own frame, so
+    they are placed directly; nested groups inside it are flattened one level (the parent's
+    GLB still groups everything under this assembly's node).  Parts are loaded from disk
+    through ``parts`` (filled in place) so each part is imported once per build.
+
+    Raises:
+        GeometryError: when the assembly has not been built or its files are unreadable.
+    """
+    from build123d import Location
+    from OCP.gp import gp_Quaternion, gp_Trsf, gp_Vec
+
+    from napkin2factory.geometry.assembly import flatten, place
+
+    build_dir = build_dir or product.paths.build
+    out_dir = build_dir / "assemblies" / asm_id
+    props_path, inst_path = out_dir / "props.json", out_dir / "instances.json"
+    if not props_path.is_file() or not inst_path.is_file():
+        raise GeometryError(
+            f"asm://{asm_id} has not been built yet; run `n2f build --target geometry`"
+        )
+    try:
+        props: dict[str, Any] = json.loads(props_path.read_text(encoding="utf-8"))
+        instances = json.loads(inst_path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise GeometryError(
+            f"asm://{asm_id}: {out_dir} is unreadable ({exc}); run `n2f build --clean`"
+        ) from exc
+    cache: dict[str, BuiltPart] = parts if parts is not None else {}
+    result = AssemblyResult()
+    for inst in instances:
+        part_id = str(inst["uri"]).replace("part://", "")
+        if part_id not in cache:
+            cache[part_id] = load_built_part(product, part_id, build_dir)
+        x, y, z, w = (float(v) for v in inst["rotation"])
+        trsf = gp_Trsf()
+        trsf.SetRotation(gp_Quaternion(x, y, z, w))
+        trsf.SetTranslationPart(gp_Vec(*(float(v) for v in inst["translation"])))
+        result.add(place(inst["uri"], cache[part_id], Location(trsf), label=inst.get("label")))
+    asm = product.assemblies[asm_id]
+    leaves, _groups = flatten(result, asm.uri)
+    return BuiltAssembly(
+        assembly=asm,
+        result=result,
+        leaves=leaves,
+        props=props,
+        reads=list(props.get("reads", [])),
+        out_dir=out_dir,
+    )
