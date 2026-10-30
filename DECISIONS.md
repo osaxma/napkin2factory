@@ -148,3 +148,39 @@ invalidation suite asserts for the enclosure.
 `depends_on` entries are added as bare URIs so a geometry change to a listed part marks the
 page for rebuild even when the body reads only declared fields. StrictUndefined: a typo
 fails the build rather than rendering blank.
+
+## S-022 — Rule packs are YAML rules bound to named Python checks (2026-10-30)
+A rule pack lists rules `{id, title, severity, check, params, message}`; `check` names a
+function in `rulepacks/checks.py` that evaluates `features.json` and returns violation
+dicts the message template formats. No expression language: every rule is a tested,
+deterministic function; packs only carry thresholds and wording. Product-local packs may
+live in `model/rulepacks/*.yaml`. Thresholds in `sheet-metal-v0` (r ≥ 1 t, hole ≥ 1 t,
+hole-to-bend ≥ 2 t + r, flange ≥ 4 t) are common shop rules of thumb `[verify]` — confirm
+with the fabricator; they are cited as nominal in the pack header.
+
+## S-023 — BOM link checks default to offline in `make check` (2026-10-30)
+`validate_bom` runs the URL tier only when `N2F_OFFLINE` is unset/0; the Makefile exports
+`N2F_OFFLINE=1` so the gate never touches the network, and results are cached seven days in
+`build/bom/url-cache.json` for interactive runs. Unverified sources stay visible as
+`warn` rows (`bom://validation@<part>`), never hidden (D15).
+
+## S-024 — Evidence keys (D25) per scheme (2026-10-30)
+`part://`, `asm://`, `doc://`, `drawing://` → that rule's output hash from the manifest;
+`bom://` → the bom rule's output hash; `calc://m.f` → sha256 of (module source, recorded
+input values, formatted result); `param://`, `req://`, `dec://`, `iface://` → hash of the
+declared value/object. `n2f signoff` binds the sign-off to the keys of the requirement's
+verify target and allocation (or `--evidence`); `n2f check` compares and reverts to
+`needs-human` with the list of changed URIs in the message.
+
+## S-025 — `count` verify kind semantics (2026-10-30)
+`verify: {kind: count, target: part://x, op, value}` compares the total number of
+occurrences of the part across the top-level assemblies (geometry instance counts, or the
+BOM's rolled-up quantity for BOM-only parts). `count://<asm>` rows additionally assert
+geometry counts == YAML quantities per assembly (D18) and auto-layout or BOM-only parts
+produce `warn` rows.
+
+## S-026 — Safety verdict ladder (2026-10-30)
+computed `fail` → `fail`; `skip` → `skip`; safety requirement → `needs-human` (message
+notes when the computation already passes) until a valid sign-off → `signed`; non-safety
+`manual` → `needs-human` → `pass` with a valid sign-off; everything else `pass`. Stage
+`verify` requires no `fail` and no `needs-human`; `warn` is ignored everywhere (D10).

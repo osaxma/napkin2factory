@@ -17,8 +17,10 @@ lint:
 types:
 	$(PY) mypy src/napkin2factory/core
 
+export N2F_OFFLINE ?= 1
+
 unit:
-	$(PY) pytest tests/smoke tests/unit tests/e2e
+	$(PY) pytest tests/smoke tests/unit tests/e2e --cov=napkin2factory.core --cov-report=term-missing:skip-covered --cov-fail-under=80
 
 golden:
 	$(PY) pytest tests/golden
@@ -27,7 +29,7 @@ examples-fast:
 	@for ex in $(EXAMPLES_FAST); do \
 	  if [ -d $$ex ]; then \
 	    echo "== $$ex"; \
-	    (cd $$ex && $(PY) n2f validate && $(PY) n2f lint && $(PY) n2f build) || exit 1; \
+	    (cd $$ex && $(PY) n2f validate && $(PY) n2f lint && $(PY) n2f build && $(PY) n2f check) || exit 1; \
 	    $(PY) python tests/validate_outputs.py $$ex --stage geometry || exit 1; \
 	  fi; \
 	done

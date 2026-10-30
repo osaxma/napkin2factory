@@ -1,0 +1,76 @@
+# Curated catalog of common industrial supplies (v0). Entries are keyed by vendor and part
+# number as the vendor writes them. "url" is the vendor page; "verified" says whether a
+# human opened it. Prices are not stored here (they change); the product declares cost.
+catalog:
+  - vendor: McMaster-Carr
+    mpn: 90116A207
+    name: M4 x 10 mm pan-head Phillips machine screw, zinc-plated steel, pack of 100
+    url: https://www.mcmaster.com/90116A207/
+    category: fastener
+    verified: false
+  - vendor: McMaster-Carr
+    mpn: 91290A318
+    name: M6 x 16 mm socket-head cap screw, alloy steel, black oxide, pack of 50
+    url: https://www.mcmaster.com/91290A318/
+    category: fastener
+    verified: false
+  - vendor: McMaster-Carr
+    mpn: 90591A151
+    name: M6 hex nut, zinc-plated steel, pack of 100
+    url: https://www.mcmaster.com/90591A151/
+    category: fastener
+    verified: false
+  - vendor: McMaster-Carr
+    mpn: 93475A250
+    name: M6 flat washer, zinc-plated steel, pack of 100
+    url: https://www.mcmaster.com/93475A250/
+    category: fastener
+    verified: false
+  - vendor: Kanthal
+    mpn: A1-1.6mm
+    name: Kanthal A1 resistance heating wire, 1.6 mm diameter (sold by the kg/spool)
+    url: https://www.kanthal.com/en/products/material-datasheets/wire/resistance-heating-wire-and-resistance-wire/kanthal-a-1/
+    category: heating-element
+    verified: false
+  - vendor: Morgan Thermal Ceramics
+    mpn: K-23
+    name: K-23 insulating firebrick, 230 x 114 x 64 mm (9 x 4.5 x 2.5 in), 1260 C class
+    url: https://www.morganthermalceramics.com/en-gb/products/insulating-fire-brick/
+    category: refractory
+    verified: false
+  - vendor: Morgan Thermal Ceramics
+    mpn: Kaowool-Board-1260
+    name: Kaowool 1260 ceramic fiber board, 25 mm, 1000 x 500 mm
+    url: https://www.morganthermalceramics.com/en-gb/products/boards/
+    category: insulation
+    verified: false
+  - vendor: Omega Engineering
+    mpn: KTSS-18G-12
+    name: Type K thermocouple probe, stainless sheath, 1/8 in x 12 in
+    url: https://www.omega.com/en-us/temperature-measurement/temperature-probes/probes-with-lead-wires/p/KTSS-HH
+    category: sensor
+    verified: false
+  - vendor: Omron
+    mpn: E5CC-QX2ASM-800
+    name: E5CC digital temperature controller, 48 x 48 mm, 100-240 VAC, voltage pulse output for SSR
+    url: https://www.ia.omron.com/products/family/3049/
+    category: controller
+    verified: false
+  - vendor: Crydom
+    mpn: D2425
+    name: D24 series solid-state relay, 240 VAC, 25 A, 3-32 VDC control
+    url: https://www.sensata.com/products/relays/d24-series-panel-mount-ssr-d2425
+    category: relay
+    verified: false
+  - vendor: Southco
+    mpn: E6-10-401-10
+    name: Spring-loaded draw latch, stainless, 60 mm
+    url: https://www.southco.com/en_us/e6-10-401-10
+    category: latch
+    verified: false
+  - vendor: McMaster-Carr
+    mpn: 1635A21
+    name: Weld-on steel hinge, 50 mm, zinc-plated
+    url: https://www.mcmaster.com/1635A21/
+    category: hinge
+    verified: false
