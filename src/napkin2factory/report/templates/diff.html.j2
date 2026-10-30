@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ product.name }} — {{ ref_a }} → {{ ref_b }}</title>
+<style>
+:root{--bg:#f7f6f2;--fg:#1d1d1b;--muted:#6b6a66;--line:#d9d7d0;--card:#fff;--old:#c0392b;--new:#1e8449}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:.6rem 1.2rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+h1{font-size:1.15rem;margin:0}main{max-width:1200px;margin:0 auto;padding:1rem 1.2rem 4rem;display:flex;flex-direction:column;gap:1.2rem}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem}h2{font-size:1.05rem;margin:.2rem 0 .8rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border-bottom:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#f1f0eb}
+td.num{text-align:right;font-variant-numeric:tabular-nums}.mono{font-family:ui-monospace,Menlo,monospace;font-size:.85em}.muted{color:var(--muted)}
+.old{color:var(--old)}.new{color:var(--new)}.pill{display:inline-block;padding:.05rem .5rem;border-radius:999px;color:#fff;font-size:.78rem;font-weight:600}
+.pill.changed{background:#9a6b00}.pill.added{background:var(--new)}.pill.removed{background:var(--old)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.viewer{height:420px;background:#f4f4f2;border-radius:8px;overflow:hidden}
+figure{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}figcaption{padding:.4rem .6rem;font-size:.85rem;color:var(--muted);border-top:1px solid var(--line)}
+.legend span{display:inline-block;width:.9rem;height:.9rem;border-radius:2px;vertical-align:middle;margin-right:.3rem}
+.disclaimer{background:#fff4e5;border:1px solid #f0c27a;border-radius:8px;padding:.6rem .9rem;font-size:.9rem}
+</style>
+</head>
+<body>
+<header><h1>{{ product.name }}</h1><span class="mono">{{ ref_a }} → {{ ref_b }}</span>
+<span class="muted">{{ delta.parts | length }} part(s) differ · {{ delta.params | length }} parameter(s) · {{ delta.requirements | length }} requirement verdict(s)</span></header>
+<main>
+<div class="disclaimer"><strong>Disclaimer.</strong> This design was produced with an AI system and has not been reviewed by a licensed engineer.</div>
+
+<section id="summary"><h2>What this change means</h2>
+<p><strong>Cost per unit:</strong> {{ '%.2f' % (delta.totals.cost_a or 0) }} → {{ '%.2f' % (delta.totals.cost_b or 0) }} USD (<span class="{{ 'old' if delta.totals.cost_delta > 0 else 'new' }}">{{ '%+.2f' % delta.totals.cost_delta }} USD</span>) ·
+<strong>Mass:</strong> {{ '%.3f' % (delta.totals.mass_a or 0) }} → {{ '%.3f' % (delta.totals.mass_b or 0) }} kg ({{ '%+.3f' % delta.totals.mass_delta }} kg) ·
+<strong>Parts:</strong> {{ delta.totals.parts_a }} → {{ delta.totals.parts_b }}</p>
+{% if delta.parts %}<ul>{% for p in delta.parts %}<li><span class="pill {{ p.state }}">{{ p.state }}</span> <span class="mono">{{ p.uri }}</span> {{ p.name }} <span class="muted">rev {{ p.rev }}{% if p.state == 'changed' %}{% if p.geometry %} · geometry changed{% endif %}{% if p.declared %} · declared fields changed{% endif %}{% endif %}</span></li>{% endfor %}</ul>
+<p class="muted">Tell the manufacturer: re-quote and re-cut every <em>changed</em> or <em>added</em> part above; <em>removed</em> parts drop from the order. Unchanged parts keep their revision.</p>
+{% else %}<p>No part changed shape or declaration.</p>{% endif %}
+</section>
+
+<section id="3d"><h2>3D, side by side</h2>
+<div class="pair">
+  <div><div class="muted mono">{{ ref_a }}</div>{% if glb_a %}<div id="viewer-a" class="viewer" data-n2f-glb="glb-a"></div><script type="text/plain" id="glb-a">{{ glb_a }}</script>{% else %}<p class="muted">no 3D</p>{% endif %}</div>
+  <div><div class="muted mono">{{ ref_b }}</div>{% if glb_b %}<div id="viewer-b" class="viewer" data-n2f-glb="glb-b"></div><script type="text/plain" id="glb-b">{{ glb_b }}</script>{% else %}<p class="muted">no 3D</p>{% endif %}</div>
+</div>
+<p class="legend muted"><span style="background:#e0a800"></span>changed <span style="background:#1e8449"></span>added <span style="background:#c0392b"></span>removed (in {{ ref_a }})</p>
+</section>
+
+<section id="drawings"><h2>Drawing overlays</h2>
+<p class="legend muted"><span style="background:var(--old)"></span>{{ ref_a }} <span style="background:var(--new)"></span>{{ ref_b }} · both at one scale; title blocks excluded</p>
+{% if overlays %}{% for o in overlays %}<figure id="overlay-{{ o.id }}">{{ o.svg | safe }}<figcaption><span class="mono">{{ o.uri }}</span> · {{ o.state }}</figcaption></figure>{% endfor %}{% else %}<p class="muted">No drawing changed.</p>{% endif %}
+</section>
+
+<section id="bom"><h2>Bill of materials delta</h2>
+{% if delta.bom %}<table><thead><tr><th>part</th><th>name</th><th class="num">qty {{ ref_a }}</th><th class="num">qty {{ ref_b }}</th><th class="num">unit {{ ref_a }}</th><th class="num">unit {{ ref_b }}</th><th class="num">cost impact</th><th class="num">mass impact</th></tr></thead><tbody>
+{% for r in delta.bom %}<tr><td class="mono">{{ r.uri }}</td><td>{{ r.name }}</td><td class="num">{{ r.qty_a }}</td><td class="num">{{ r.qty_b }}</td><td class="num">{{ '%.2f' % r.unit_a if r.unit_a is not none else '—' }}</td><td class="num">{{ '%.2f' % r.unit_b if r.unit_b is not none else '—' }}</td><td class="num {{ 'old' if r.ext_delta > 0 else 'new' if r.ext_delta < 0 else '' }}">{{ '%+.2f' % r.ext_delta }} USD</td><td class="num">{{ '%+.4f' % r.mass_delta }} kg</td></tr>{% endfor %}
+</tbody></table>{% else %}<p class="muted">No BOM line changed.</p>{% endif %}
+</section>
+
+<section id="params"><h2>Parameters</h2>
+{% if delta.params %}<table><thead><tr><th>parameter</th><th>{{ ref_a }}</th><th>{{ ref_b }}</th></tr></thead><tbody>{% for p in delta.params %}<tr><td class="mono">param://{{ p.slug }}</td><td class="old">{{ p.a }}</td><td class="new">{{ p.b }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">No parameter changed.</p>{% endif %}
+</section>
+
+<section id="reqs"><h2>Requirement verdicts</h2>
+{% if delta.requirements %}<table><thead><tr><th>id</th><th>title</th><th>{{ ref_a }}</th><th>{{ ref_b }}</th></tr></thead><tbody>{% for r in delta.requirements %}<tr><td class="mono">{{ r.id }}</td><td>{{ r.title }}</td><td><span class="old">{{ r.a }}</span><br><span class="muted">{{ r.msg_a }}</span></td><td><span class="new">{{ r.b }}</span><br><span class="muted">{{ r.msg_b }}</span></td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">Every requirement verdict is unchanged.</p>{% endif %}
+</section>
+<footer class="muted" style="font-size:.8rem">generated by napkin2factory {{ version }}</footer>
+</main>
+<script>
+(function(){
+  var changed={{ changed | safe }}, added={{ added | safe }}, removed={{ removed | safe }};
+  document.addEventListener('n2f:loaded', function(ev){
+    var el=ev.target, v=window.n2fViewers[el.id];
+    if(!v) return;
+    v.highlight(changed, 0xe0a800);
+    if(el.id==='viewer-b') v.highlight(added, 0x1e8449);
+    if(el.id==='viewer-a') v.highlight(removed, 0xc0392b);
+  }, true);
+})();
+</script>
+{{ viewer_script | safe }}
+</body></html>

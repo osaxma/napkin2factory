@@ -46,8 +46,8 @@ goldens:
 	@echo "goldens regenerated: $(REASON)" >> tests/golden/REGENERATION_LOG.md
 
 todo-grep:
-	@! grep -rnE "TODO|FIXME" src/ --include=*.py --include=*.js --include=*.yaml --include=*.md --include=*.html \
-	  | grep -vE "B-[0-9]{4}" || (echo "TODO/FIXME without a BACKLOG id" && exit 1)
+	@! grep -rnE "TODO|FIXME" src/ --include=*.py --include=*.js --include=*.yaml --include=*.md --include=*.html --include=*.j2 \
+	  --exclude-dir=vendor | grep -vE "B-[0-9]{4}" || (echo "TODO/FIXME without a BACKLOG id" && exit 1)
 
 clean:
 	rm -rf build dist examples/*/build .pytest_cache .mypy_cache .ruff_cache

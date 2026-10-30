@@ -280,3 +280,34 @@ The report prints every parameter's value in its Parameters section and therefor
 `param://*` reads; changing a parameter nobody else reads reruns `validate`, `report` and
 `site` and nothing else (no geometry, drawing, BOM, doc or check rule). The invalidation
 suite asserts exactly that set. Showing a stale value in the report would be the real bug.
+
+## S-038 — Release bundle and frozen site data (2026-10-30)
+`n2f release` builds `build/release/<product>-vX.Y.Z.zip` with STEP per part (rev in the
+file name), drawing SVGs plus `drawings.pdf` (Typst embeds the SVGs, one A3 page each),
+flat-pattern DXFs, BOM files, manual PDFs/HTML, the report, `checks.json`, the changelog and a
+README with the disclaimer. `build/site/vX.Y.Z/` holds the report, the ZIP and `data/`
+(drawings, props, instances, GLBs, rollups, checks, a `model.json` snapshot of declared
+values) so `n2f diff` never has to rebuild a released Revision. Order of operations:
+build → gates → write `released_in` and the changelog header → rebuild (report shows the
+Revision) → bundle → snapshot → tag → site index. `--dry-run` stops before the model edits.
+
+## S-039 — Diff overlays rescale to the newer drawing (2026-10-30)
+Both drawings are A3 sheets at their own scale (`data-scale`); the overlay strips the title
+blocks (D14), draws the new drawing in green and the old in red inside a `scale(new/old)`
+group so both sit at one shared scale. Changed parts are those whose tessellation hash or
+declared fields differ; added/removed come from the part sets; the two 3D viewers
+highlight changed parts in amber, added in green (new side) and removed in red (old side).
+`working` as the second ref compares a released Revision with the current model.
+
+## S-040 — Sign-off evidence for parts is geometry, not the manifest hash (2026-10-30)
+`n2f ecr close` bumps part revisions, and `rev` is in `props.json`, so a sign-off keyed on
+the part rule's output hash was voided by the bump itself — right after the re-sign the
+ECO loop requires. Evidence keys for `part://x` are now sha256(tessellation hash + features);
+for `asm://x` sha256(instances + instance counts). A label change never invalidates a
+sign-off; any change of shape, placement or feature still does (D25).
+
+## S-041 — `n2f check` never changes render state (2026-10-30)
+Renders are outputs of the part rules and `render` is in their key (S-029), so a check that
+built with `--no-render` would rebuild parts and wipe their renders. `n2f check`,
+`n2f signoff` and `n2f ecr close` build with renders on; `--no-render` is only for
+`n2f build` and `n2f release`.

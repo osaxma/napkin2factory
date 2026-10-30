@@ -1,0 +1,71 @@
+# Product model
+
+A product repository (what `n2f init` writes; `examples/*` follow it exactly):
+
+```
+<product>/                  # its own tracked project (D23)
+  n2f.yaml                  # schema: 1, system: ">=0.1,<0.2", product: {id, name}, units: metric
+  operator.yaml             # persona, per-domain expertise, verbosity, delegation, language
+  CLAUDE.md  AGENTS.md      # identical: what this repo is, vocabulary, rules for agents
+  .claude/skills/n2f-pm, n2f-design   .claude/agents/n2f-verifier, n2f-impact-analyst
+  model/
+    requirements.yaml  parameters.yaml  decisions.yaml  intake.md
+    parts/<id>.yaml  assemblies/<id>.yaml  interfaces/<id>.yaml
+    geometry/<id_with_underscores>.py   calcs/*.py   docs/*.md   signoffs/REQ-xxx.yaml
+  changes/ECR-xxx.yaml [ECR-xxx.patch]   reports/review-*.md   CHANGELOG.md   build/ (ignored)
+```
+
+## Files and their schemas (`src/napkin2factory/core/model/`)
+
+**requirements.yaml** — `requirements: [{id: REQ-001, title, statement, category, priority,
+safety, verify: {kind, target, op, value}, allocation: [uris] | unallocated, rationale, source}]`.
+`verify.kind` ∈ `param_bound | geometry_prop | bom_rollup | calc | interference | count |
+interface | manual`; the target scheme must match the kind (`param://`, `part://x#props.…`,
+`bom://rollups#…`, `calc://m.f`, `asm://`, `part://` (count), `iface://`). `n2f lint` adds:
+a measurable value with a unit in the statement (unless the kind is binary), a verify block,
+an allocation, and `safety: true` requirements need verify.
+
+**parameters.yaml** — `parameters: {slug: {value, unit, description} | {expr, unit}}`.
+Expressions are arithmetic over other parameter slugs (write `a - b` with spaces, since
+slugs contain hyphens) plus `min/max/abs/sqrt/ceil/floor/round`.
+
+**parts/<id>.yaml** — `id, rev, name, kind: custom|cots, process, material: {name, spec,
+density?}, finish, tolerance_class: ISO2768-f|m|c|v (custom only), geometry: {kit, args} |
+{module} | none, interfaces, satisfies, cost: {unit, basis, note}, lead_time, mass?,
+source: {vendor, mpn, url, verified} (COTS), manufacturer_notes`. Kit args may reference
+`param://` and `iface://`; quantities are strings like `15 mm`.
+
+**assemblies/<id>.yaml** — `id, rev, name, geometry: {module} | none, children: [{part|asm,
+qty}], exploded: {axis, spacing}, satisfies`. The YAML is the BOM structure; the module
+places instances; the checker verifies instance counts equal quantities (D18).
+
+**interfaces/<id>.yaml** — `id, kind: bolt-pattern|mating-face, parties: [two uris],
+frame: {origin, normal, x_axis?}, frames: {party uri: frame} (per-party copies),
+spec: {pattern, count, diameter, spacing, pitch_circle, fastener, depth} |
+{width, depth, flatness_note}`. Spec quantities may be `param://` references.
+
+**decisions.yaml** — `decisions: [{id: DEC-001, date, title, context, decision,
+rationale, links: [uris], made_by, disclosed, verify, sources}]`. Lint requires links.
+
+**changes/ECR-xxx.yaml** — see `docs/ecr-loop.md`.
+
+**signoffs/REQ-xxx.yaml** — `requirement, by, role, date, statement, evidence: [uris],
+evidence_keys: {uri: sha}, example`. Written by `n2f signoff`; keys are compared at
+every check (D25).
+
+**docs/*.md** — front matter `{id, title, audience, depends_on, order, safety}` and a
+Jinja2 Markdown body: `{{ P["x"] }}`, `{{ part("id").name }}`, `{{ req("REQ-001").statement }}`,
+`{{ bom.total_cost }}`, `{{ product.name }}`. Every read is recorded; a stale page blocks release.
+
+## Quantities and units
+
+pint everywhere (D21/D32): `60 degC`, `85 USD`, `10 d`, `1.5 mm`. `USD` is its own
+dimension so costs cannot be added to lengths. Geometry code converts at its boundary with
+`mm()`.
+
+## Validation layers
+
+`n2f validate` loads every file against its schema and checks every URI resolves, parts
+and interfaces agree, assembly graphs are acyclic, expressions parse and have no cycles,
+geometry modules and kit names exist, calc functions exist. `n2f lint` is stricter and
+is the Intake gate. `n2f check` evaluates the built product.

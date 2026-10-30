@@ -34,7 +34,7 @@ STATUS_STYLE = {
 def _ensure_checks(product, offline: bool = False):  # type: ignore[no-untyped-def]
     from napkin2factory.core.graph.runner import run_build
 
-    run_build(product, target="checks", quiet=True, render=False)
+    run_build(product, target="checks", quiet=True)  # renders are part outputs; keep them
     path = product.paths.build / "checks" / "checks.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
