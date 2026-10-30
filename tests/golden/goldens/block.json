@@ -1,0 +1,23 @@
+{
+  "basic": {
+    "area": 70000.0,
+    "bbox": [
+      200.0,
+      100.0,
+      50.0
+    ],
+    "cut_items": 1,
+    "cut_length_total": 200.0,
+    "faces": 6,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 1000000.0
+  }
+}

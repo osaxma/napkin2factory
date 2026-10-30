@@ -1,0 +1,19 @@
+decisions:
+  - id: DEC-001
+    date: 2026-10-30
+    title: 1.5 mm mild steel tray with an outward lip
+    context: The owner wants a cheap box for a small controller board, made by any sheet-metal shop.
+    decision: Open-top tray from 1.5 mm CR4, four walls bent up, 12 mm outward lip at the top for the lid screws; corners open with reliefs (not welded).
+    rationale: Lip screws avoid tapping into 1.5 mm sheet edges; open corners keep it a one-bend-sequence part.
+    links: [req://REQ-003, param://sheet-thickness, param://lip-width, part://base]
+    made_by: agent
+    disclosed: true
+  - id: DEC-002
+    date: 2026-10-30
+    title: Two L-brackets on the back wall
+    context: The box hangs on a wall; the owner asked for "something to screw it to the wall".
+    decision: Two 2 mm L-brackets bolted through the back wall, 100 mm apart, with M6 clearance holes for wall anchors.
+    rationale: Two anchors share the load and keep the box level; M6 is the smallest anchor most shops stock.
+    links: [req://REQ-002, part://bracket, param://bracket-spacing, param://bracket-hole]
+    made_by: agent
+    disclosed: true

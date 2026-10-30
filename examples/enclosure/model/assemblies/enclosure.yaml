@@ -1,0 +1,11 @@
+id: enclosure
+rev: A
+name: Enclosure with lid and wall brackets
+geometry: {module: geometry/enclosure.py}
+children:
+  - {part: part://base, qty: 1}
+  - {part: part://lid, qty: 1}
+  - {part: part://bracket, qty: 2}
+  - {part: part://m4x10-screw, qty: 4}
+exploded: {axis: z, spacing: 60 mm}
+satisfies: [req://REQ-001, req://REQ-002, req://REQ-006, req://REQ-007]

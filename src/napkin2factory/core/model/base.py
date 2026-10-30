@@ -52,6 +52,29 @@ Quantity = Annotated[
 ]
 
 
+def _to_quantity_or_param(v: Any) -> Any:
+    if isinstance(v, str) and v.strip().startswith("param://"):
+        return _to_uri(v)
+    if isinstance(v, Uri):
+        if v.scheme != "param":
+            raise ValueError(f"{v}: only param:// references are allowed here")
+        return v
+    return _to_quantity(v)
+
+
+def _ser_quantity_or_param(v: Any) -> str:
+    return str(v) if isinstance(v, Uri) else format_quantity(v)
+
+
+#: A quantity, or a ``param://`` reference resolved (and recorded) when read through ``I``.
+QuantityOrParam = Annotated[
+    Any,
+    BeforeValidator(_to_quantity_or_param),
+    PlainSerializer(_ser_quantity_or_param, return_type=str),
+    WithJsonSchema({"type": "string", "examples": ["6.6 mm", "param://hole-diameter"]}),
+]
+
+
 def _to_uri(v: Any) -> Any:
     if isinstance(v, Uri):
         return v

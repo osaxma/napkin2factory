@@ -1,0 +1,23 @@
+# Named values with units. Geometry and docs reference these by name, never raw numbers.
+parameters:
+  box-length:        {value: 200, unit: mm, description: Outer length (X), owner: intake}
+  box-width:         {value: 150, unit: mm, description: Outer width (Y), owner: intake}
+  box-height:        {value: 80,  unit: mm, description: Outer height (Z) including the base}
+  sheet-thickness:   {value: 1.5, unit: mm, description: Base and wall sheet}
+  bend-radius:       {value: 1.5, unit: mm, description: Inside bend radius (equals thickness)}
+  lip-width:         {value: 12,  unit: mm, description: Outward lip at the top of each wall; the lid bolts to it}
+  lid-thickness:     {value: 1.5, unit: mm, description: Lid sheet}
+  lid-overhang:      {value: 0,   unit: mm, description: Lid extends beyond the lip by this on each side}
+  screw-clearance:   {value: 4.5, unit: mm, description: Clearance hole for M4 screws}
+  bracket-length:    {value: 60,  unit: mm, description: Wall bracket horizontal leg}
+  bracket-height:    {value: 50,  unit: mm, description: Wall bracket vertical leg}
+  bracket-width:     {value: 30,  unit: mm, description: Wall bracket width}
+  bracket-thickness: {value: 2,   unit: mm, description: Wall bracket sheet}
+  bracket-bend-radius: {value: 2, unit: mm, description: Wall bracket inside bend radius}
+  bracket-hole:      {value: 6.6, unit: mm, description: Clearance for M6 wall anchors}
+  bracket-spacing:   {value: 100, unit: mm, description: Distance between the two brackets on the back wall}
+  cable-cutout-width: {value: 40, unit: mm, description: Cable entry on the back wall}
+  cable-cutout-height: {value: 20, unit: mm, description: Cable entry on the back wall}
+  lid-length:        {expr: "box-length + 2 * lip-width + 2 * lid-overhang", unit: mm, description: Lid outer length}
+  lid-width:         {expr: "box-width + 2 * lip-width + 2 * lid-overhang", unit: mm, description: Lid outer width}
+  unused-note-count: {value: 3, unit: "", description: A parameter nothing reads (used by the invalidation tests)}

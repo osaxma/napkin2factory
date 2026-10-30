@@ -1,0 +1,26 @@
+{
+  "basic": {
+    "area": 26300.531,
+    "bbox": [
+      120.0,
+      100.0,
+      5.0
+    ],
+    "faces": 10,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 4,
+      "members": 0,
+      "patterns": 1,
+      "reliefs": 0
+    },
+    "flat_area": 11798.938,
+    "flat_size": [
+      120.0,
+      100.0
+    ],
+    "volume": 58994.69
+  }
+}

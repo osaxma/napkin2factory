@@ -120,8 +120,20 @@ def test_interface_kinds():
     Interface.model_validate(ok)
     with pytest.raises(ValidationError, match="exactly two parties"):
         Interface.model_validate({**ok, "parties": ["part://a"]})
-    with pytest.raises(ValidationError, match="mating-face"):
+    with pytest.raises(ValidationError, match="width"):
         Interface.model_validate({**ok, "kind": "mating-face"})
+    ok_param = {**ok, "spec": {**ok["spec"], "diameter": "param://hole-diameter"}}
+    assert str(Interface.model_validate(ok_param).spec.diameter) == "param://hole-diameter"
+    assert (
+        str(
+            Interface.model_validate({**ok, "frames": {"part://a": {"origin": [0, 0, 5]}}})
+            .frame_for("part://a")
+            .origin[2]
+        )
+        == "5.0"
+    )
+    with pytest.raises(ValidationError, match="not one of the parties"):
+        Interface.model_validate({**ok, "frames": {"part://zz": {}}})
 
 
 def test_ecr_state_machine_and_patch_rule():

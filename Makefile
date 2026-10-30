@@ -6,9 +6,9 @@ UV ?= uv
 PY := $(UV) run
 EXAMPLES_FAST := examples/bracket examples/enclosure
 
-.PHONY: check check-full lint types unit templates goldens todo-grep examples-fast clean
+.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast clean
 
-check: lint types unit examples-fast
+check: lint types unit golden examples-fast
 
 lint:
 	$(PY) ruff check src tests
@@ -20,11 +20,15 @@ types:
 unit:
 	$(PY) pytest tests/smoke tests/unit tests/e2e
 
+golden:
+	$(PY) pytest tests/golden
+
 examples-fast:
 	@for ex in $(EXAMPLES_FAST); do \
 	  if [ -d $$ex ]; then \
 	    echo "== $$ex"; \
-	    (cd $$ex && $(PY) n2f validate && $(PY) n2f lint) || exit 1; \
+	    (cd $$ex && $(PY) n2f validate && $(PY) n2f lint && $(PY) n2f build --target geometry) || exit 1; \
+	    $(PY) python tests/validate_outputs.py $$ex --stage geometry || exit 1; \
 	  fi; \
 	done
 

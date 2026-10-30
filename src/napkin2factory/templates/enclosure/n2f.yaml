@@ -1,0 +1,8 @@
+schema: 1
+system: ">=0.1,<0.2"
+product:
+  id: enclosure
+  name: Sheet-metal electronics enclosure
+  description: An open-top tray with a bolted lid and two wall brackets. Four parts, one interface, one safety requirement.
+units: metric
+manufacturer_profile: null

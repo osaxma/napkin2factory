@@ -1,0 +1,24 @@
+id: base
+rev: A
+name: Tray base
+kind: custom
+process: sheet-metal
+material: {name: mild steel, spec: "1.5 mm CR4 (DC01)"}
+finish: powder coat, grey
+tolerance_class: ISO2768-m
+geometry:
+  kit: enclosure
+  args:
+    length: param://box-length
+    width: param://box-width
+    height: param://box-height
+    thickness: param://sheet-thickness
+    bend_radius: param://bend-radius
+    flange: param://lip-width
+    cutouts:
+      - {face: back, center: [0, 0], width: param://cable-cutout-width, height: param://cable-cutout-height, corner_radius: 3 mm, label: cable-entry}
+interfaces: [iface://lid-base-mount]
+satisfies: [req://REQ-001, req://REQ-003, req://REQ-004]
+cost: {unit: 28 USD, basis: estimate, note: "laser cut, 8 bends, powder coat, quantity 10"}
+lead_time: 10 d
+manufacturer_notes: Corners are open (relief), not welded. Deburr all edges before coating.
