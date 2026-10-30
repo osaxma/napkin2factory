@@ -46,11 +46,12 @@ class Approval(Model):
 
 
 class Applied(Model):
-    """Which snapshot and build the ECR was applied in."""
+    """Which snapshot the ECR was applied in, and the output hashes before it (for rev bumps)."""
 
     snapshot: str
     build_id: str | None = None
     at: dt.datetime | None = None
+    before: dict[str, str] = Field(default_factory=dict)
 
 
 class Ecr(Model):

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en" data-persona="{{ persona }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ product.name }} — napkin2factory report</title>
+<style>
+:root{--bg:#f7f6f2;--fg:#1d1d1b;--muted:#6b6a66;--line:#d9d7d0;--card:#fff;--ok:#1e7f4f;--fail:#b3261e;--warn:#9a6b00;--human:#7a3e9d;--signed:#0b6e8f;--skip:#8a8a8a;--accent:#1f5fbf}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header.top{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:.6rem 1.2rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+header.top h1{font-size:1.15rem;margin:0}
+.badge{display:inline-block;padding:.1rem .55rem;border-radius:999px;font-size:.78rem;font-weight:600;color:#fff;background:var(--skip)}
+.badge.pass,.badge.ok{background:var(--ok)}.badge.fail{background:var(--fail)}.badge.warn{background:var(--warn)}.badge.needs-human{background:var(--human)}.badge.signed{background:var(--signed)}.badge.skip{background:var(--skip)}
+.toggle{margin-left:auto;display:flex;gap:.25rem;border:1px solid var(--line);border-radius:999px;padding:2px}
+.toggle button{border:0;background:transparent;padding:.25rem .8rem;border-radius:999px;cursor:pointer;font:inherit}
+.toggle button.active{background:var(--accent);color:#fff}
+main{max-width:1200px;margin:0 auto;padding:1rem 1.2rem 4rem;display:flex;flex-direction:column;gap:1.2rem}
+section.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem}
+section.card h2{margin:.2rem 0 .8rem;font-size:1.05rem}
+.disclaimer{background:#fff4e5;border:1px solid #f0c27a;border-radius:8px;padding:.6rem .9rem;font-size:.9rem}
+.safety{border-color:#e4a3a0;background:#fff7f6}
+table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border-bottom:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#f1f0eb;font-weight:600}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem}
+figure{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}figure svg{width:100%;height:auto;display:block}figcaption{padding:.4rem .6rem;font-size:.85rem;color:var(--muted);border-top:1px solid var(--line)}
+#viewer{width:100%;height:520px;border-radius:8px;overflow:hidden;background:#f4f4f2;position:relative}
+#viewer canvas{display:block}
+.viewer-bar{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin:.6rem 0;font-size:.9rem}
+.viewer-bar input[type=range]{width:160px}
+#part-card{border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;font-size:.9rem;min-height:3rem;background:#fafaf7}
+.muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em}
+.matrix td.cell{text-align:center;font-weight:600}
+.example{display:inline-block;background:#ffe9a8;color:#5a4300;border:1px solid #e6c34a;border-radius:4px;padding:0 .4rem;font-size:.75rem;font-weight:700;letter-spacing:.04em}
+.engineer-only,.owner-only{display:none}
+html[data-persona=engineer] .engineer-only{display:initial}html[data-persona=owner] .owner-only{display:initial}
+html[data-persona=engineer] .engineer-only.block,html[data-persona=owner] .owner-only.block{display:block}
+{% for sec, (o, e) in section_order.items() %}html[data-persona=owner] #sec-{{ sec }}{order:{{ o }}}html[data-persona=engineer] #sec-{{ sec }}{order:{{ e }}}
+{% endfor %}
+.doc{font-size:.95rem}.doc h1{font-size:1.1rem}.doc h2{font-size:1rem}.doc h3{font-size:.95rem}
+details summary{cursor:pointer;font-weight:600}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:.2rem 1rem;font-size:.9rem}
+.next{font-size:1rem;padding:.5rem .8rem;background:#eef4ff;border:1px solid #c9d8f5;border-radius:8px}
+footer{order:99}
+</style>
+</head>
+<body>
+{% macro vv(key) -%}<span class="owner-only">{{ vocab.owner.get(key, key) }}</span><span class="engineer-only">{{ vocab.engineer.get(key, key) }}</span>{%- endmacro %}
+<header class="top">
+  <h1>{{ product.name }}</h1>
+  <span class="badge {{ 'ok' if stage.stage == 'released' else 'warn' if stage.stage == 'verify' else 'skip' }}">{{ stage_label }}</span>
+  <span class="muted">{{ revision_label }}</span>
+  <span class="muted">{{ summary.fail }} <span data-v="fail">{{ vv('fail') }}</span> · {{ summary['needs-human'] }} <span>{{ vv('needs-human') }}</span> · {{ summary.pass + summary.signed }} <span>{{ vv('pass') }}</span></span>
+  <div class="toggle" role="tablist" aria-label="view">
+    <button id="btn-owner" type="button">Owner view</button>
+    <button id="btn-engineer" type="button">Engineer view</button>
+  </div>
+</header>
+<main>
+<div class="disclaimer" id="disclaimer"><strong>Disclaimer.</strong> This design was produced with an AI system and has not been reviewed by a licensed engineer. Calculations and checks are computed, not certified. Have a qualified person review it before building, powering, or using it.</div>
+
+<section class="card safety" id="sec-safety">
+  <h2>Safety</h2>
+  {% if safety_docs %}{% for d in safety_docs %}<div class="doc" id="doc-{{ d.id }}">{{ d.html | safe }}</div>{% endfor %}
+  {% else %}<p class="muted">No safety page in this product yet. Every product should carry one (`model/docs/safety.md`).</p>{% endif %}
+  {% if safety_reqs %}<table><thead><tr><th>id</th><th>safety requirement</th><th>status</th><th>finding</th></tr></thead><tbody>
+  {% for r in safety_reqs %}<tr><td class="mono">{{ r.id }}</td><td>{{ r.title }}</td><td><span class="badge {{ r.status }}">{{ vv(r.status) }}</span></td><td>{{ r.message }}{% if r.signoff_example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table>{% endif %}
+</section>
+
+<section class="card" id="sec-next">
+  <h2>Where this product stands</h2>
+  <div class="kv">
+    {% for g in stage.gates %}<div><span class="badge {{ 'ok' if g.ok else 'skip' }}">{{ g.name }}</span></div><div>{% if g.ok %}done{% else %}{{ g.blockers[:3] | join('; ') }}{% if g.blockers | length > 3 %} … ({{ g.blockers | length }} items){% endif %}{% endif %}</div>{% endfor %}
+  </div>
+  <p class="next">Next: {{ stage.next_step }}</p>
+</section>
+
+<section class="card" id="sec-3d">
+  <h2>3D model</h2>
+  {% if glb_b64 %}
+  <div id="viewer" data-n2f-glb="glb-data" data-explode-axis="{{ exploded.axis }}" data-explode-spacing="{{ exploded.spacing }}"></div>
+  <script type="text/plain" id="glb-data">{{ glb_b64 }}</script>
+  <div class="viewer-bar">
+    <label>Explode <input id="explode" type="range" min="0" max="1" step="0.01" value="0"></label>
+    <label><input id="section" type="checkbox"> Section at mid-height</label>
+    <button id="fit" type="button">Fit</button>
+    <span class="muted">click a part to see its details · drag to orbit · scroll to zoom</span>
+  </div>
+  <div id="part-card" class="muted">Click a part.</div>
+  {% else %}<p class="muted">No assembly geometry to show.</p>{% endif %}
+  <div class="grid" style="margin-top:1rem">{% for r in renders %}<figure><img src="data:image/png;base64,{{ r.b64 }}" alt="{{ r.label }}" style="width:100%"><figcaption>{{ r.label }}</figcaption></figure>{% endfor %}</div>
+</section>
+
+<section class="card" id="sec-cost">
+  <h2><span class="owner-only">What it costs and what to tell the manufacturer</span><span class="engineer-only">Bill of materials</span></h2>
+  <p><strong>{{ rollups.total_cost | round(2) }} USD</strong> per unit from declared costs{% if not rollups.cost_complete %} <span class="badge warn">incomplete: some parts have no cost</span>{% endif %} · {{ rollups.total_mass | round(3) }} kg · {{ rollups.part_count }} parts ({{ rollups.custom_count }} custom) · longest lead time {{ rollups.max_lead_time }} d</p>
+  <table id="bom"><thead><tr><th>part</th><th>name</th><th class="num">qty</th><th>kind</th><th class="num">unit cost</th><th class="num">ext.</th><th>sourcing</th><th>what to tell the manufacturer</th></tr></thead><tbody>
+  {% for ln in bom_lines %}<tr data-uri="{{ ln.uri }}"><td class="mono">{{ ('&nbsp;&nbsp;' * ln.level) | safe }}{{ ln.uri }}</td><td>{{ ln.name }}</td><td class="num">{{ ln.total_qty }}</td><td>{{ ln.kind }}</td><td class="num">{{ '%.2f' % ln.unit_cost if ln.unit_cost is not none else '—' }}</td><td class="num">{{ '%.2f' % ln.ext_cost if ln.ext_cost is not none else '—' }}</td><td>{% if ln.kind == 'cots' %}<span class="badge {{ 'ok' if ln.sourcing_status == 'verified' else 'warn' if ln.sourcing_status in ('unverified','catalog','no-url','link-failed') else 'fail' if ln.sourcing_status == 'missing' else 'skip' }}">{{ ln.sourcing_status }}</span>{% else %}custom{% endif %}</td><td>{{ ln.manufacturer }}</td></tr>{% endfor %}
+  </tbody></table>
+  <p class="muted" style="font-size:.85rem">Costs are declared estimates unless the basis says quote. Files: <span class="mono">build/bom/bom.xlsx</span>, <span class="mono">build/bom/bom.csv</span>.</p>
+</section>
+
+<section class="card" id="sec-drawings">
+  <h2>Drawings</h2>
+  <div class="grid">{% for d in drawings %}<figure id="drawing-{{ d.id }}">{{ d.svg | safe }}<figcaption>{{ d.uri }} · rev {{ d.rev }}{% if d.has_flat %} · flat pattern DXF: <span class="mono">build/drawings/{{ d.id }}-flat.dxf</span>{% endif %}</figcaption></figure>{% endfor %}</div>
+</section>
+
+<section class="card" id="sec-checks">
+  <h2><span class="owner-only">Checks</span><span class="engineer-only">Check matrix</span></h2>
+  <table><thead><tr><th>id</th><th>requirement</th><th>category</th><th>verify</th><th>status</th><th>finding</th></tr></thead><tbody>
+  {% for r in req_rows %}<tr id="req-{{ r.id }}"><td class="mono">{{ r.id }}{% if r.safety %} ⚠{% endif %}</td><td>{{ r.title }}</td><td>{{ r.category }}</td><td class="mono">{{ r.kind }}</td><td><span class="badge {{ r.status }}">{{ vv(r.status) }}</span></td><td>{{ r.message }}{% if r.signoff_example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table>
+  {% if rule_matrix.rules %}<details class="engineer-only block" open><summary>Rules × parts</summary>
+  <table class="matrix"><thead><tr><th>rule</th>{% for p in rule_matrix.parts %}<th class="mono">{{ p }}</th>{% endfor %}</tr></thead><tbody>
+  {% for rid, title in rule_matrix.rules.items() %}<tr><td title="{{ rid }}">{{ title }}</td>{% for p in rule_matrix.parts %}{% set st = rule_matrix.cells.get(p, {}).get(rid) %}<td class="cell">{% if st %}<span class="badge {{ st }}">{{ st }}</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+  </tbody></table></details>{% endif %}
+  {% if other_rows %}<details class="owner-only block"><summary>Everything that is not simply OK ({{ other_rows | length }})</summary><table><thead><tr><th>check</th><th>subject</th><th>status</th><th>detail</th></tr></thead><tbody>{% for r in other_rows %}<tr><td class="mono">{{ r.id }}</td><td class="mono">{{ r.subject }}</td><td><span class="badge {{ r.status }}">{{ vv(r.status) }}</span></td><td>{{ r.message }}</td></tr>{% endfor %}</tbody></table></details>
+  <details class="engineer-only block"><summary>Non-passing rows ({{ other_rows | length }})</summary><table><thead><tr><th>check</th><th>subject</th><th>status</th><th>detail</th></tr></thead><tbody>{% for r in other_rows %}<tr><td class="mono">{{ r.id }}</td><td class="mono">{{ r.subject }}</td><td><span class="badge {{ r.status }}">{{ r.status }}</span></td><td>{{ r.message }}</td></tr>{% endfor %}</tbody></table></details>{% endif %}
+</section>
+
+<section class="card" id="sec-reqs">
+  <h2>Requirements trace</h2>
+  <table><thead><tr><th>id</th><th>statement</th><th>allocated to</th><th>satisfied by</th></tr></thead><tbody>
+  {% for r in trace %}<tr><td class="mono">{{ r.id }}</td><td>{{ r.statement }}</td><td class="mono">{{ r.allocation | join(', ') }}</td><td class="mono">{{ r.satisfied_by | join(', ') }}</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+
+<section class="card" id="sec-params">
+  <h2>Parameters</h2>
+  <table><thead><tr><th>name</th><th class="num">value</th><th>description</th></tr></thead><tbody>
+  {% for p in params %}<tr><td class="mono">param://{{ p.slug }}</td><td class="num">{{ p.value }}</td><td>{{ p.description }}{% if p.expr %} <span class="mono muted">= {{ p.expr }}</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+
+<section class="card" id="sec-decisions">
+  <h2>Decisions</h2>
+  {% for d in decisions %}<details><summary><span class="mono">{{ d.id }}</span> {{ d.title }} <span class="muted">({{ d.date }}, {{ d.made_by }}{% if d.verify %}, <span class="badge warn">verify</span>{% endif %})</span></summary><p>{{ d.decision }}</p>{% if d.rationale %}<p class="muted">{{ d.rationale }}</p>{% endif %}{% if d.sources %}<ul>{% for s in d.sources %}<li class="muted">{{ s }}</li>{% endfor %}</ul>{% endif %}<p class="mono muted">{{ d.links | join(' · ') }}</p></details>{% endfor %}
+  {% if not decisions %}<p class="muted">No decisions logged yet.</p>{% endif %}
+</section>
+
+<section class="card" id="sec-changes">
+  <h2>{{ vv('changes') }}</h2>
+  {% if ecrs %}<table><thead><tr><th>id</th><th>title</th><th>kind</th><th>status</th><th>released in</th></tr></thead><tbody>{% for e in ecrs %}<tr><td class="mono">{{ e.id }}</td><td>{{ e.title }}</td><td>{{ e.kind }}</td><td><span class="badge {{ 'ok' if e.status == 'closed' else 'skip' }}">{{ e.status }}</span></td><td>{{ e.released_in or '—' }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">No {{ vv('changes') }} yet.</p>{% endif %}
+</section>
+
+<section class="card" id="sec-docs">
+  <h2>Manuals</h2>
+  {% for d in docs %}<details id="doc-{{ d.id }}"{% if loop.first %} open{% endif %}><summary>{{ d.title }} <span class="muted">({{ d.audience | join(', ') }})</span> <span class="mono muted">build/docs/{{ d.id }}/page.pdf</span></summary><div class="doc">{{ d.html | safe }}</div></details>{% endfor %}
+</section>
+
+<section class="card" id="sec-signoffs">
+  <h2>Sign-offs</h2>
+  {% if signoffs %}<table><thead><tr><th>requirement</th><th>by</th><th>date</th><th>statement</th><th>valid</th></tr></thead><tbody>{% for s in signoffs %}<tr><td class="mono">{{ s.requirement }}</td><td>{{ s.by }}{% if s.example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td><td>{{ s.date }}</td><td>{{ s.statement }}</td><td><span class="badge {{ 'ok' if s.valid else 'warn' }}">{{ 'valid' if s.valid else s.why }}</span></td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">None yet.</p>{% endif %}
+</section>
+
+<footer class="muted" style="font-size:.8rem">generated by napkin2factory {{ version }} · {{ generated }} · report {{ build_id }}</footer>
+</main>
+<script>
+(function(){
+  var root=document.documentElement;
+  function setPersona(p){root.setAttribute('data-persona',p);document.getElementById('btn-owner').classList.toggle('active',p==='owner');document.getElementById('btn-engineer').classList.toggle('active',p==='engineer');try{localStorage.setItem('n2f-persona',p);}catch(e){}}
+  document.getElementById('btn-owner').onclick=function(){setPersona('owner')};
+  document.getElementById('btn-engineer').onclick=function(){setPersona('engineer')};
+  var saved=null;try{saved=localStorage.getItem('n2f-persona');}catch(e){}
+  setPersona(saved||root.getAttribute('data-persona')||'owner');
+  var bom={{ bom_json | safe }};
+  window.n2fPartCard=function(uri){var card=document.getElementById('part-card');if(!card)return;if(!uri){card.textContent='Click a part.';card.className='muted';return;}var row=bom[uri]||{};card.className='';card.innerHTML='<strong>'+(row.name||uri)+'</strong> <span class="mono muted">'+uri+'</span><br>'+(row.kind||'')+(row.total_qty?' · qty '+row.total_qty:'')+(row.unit_cost!=null?' · '+row.unit_cost.toFixed(2)+' USD each':'')+(row.manufacturer?'<br><span class="muted">'+row.manufacturer+'</span>':'');document.querySelectorAll('#bom tr').forEach(function(tr){tr.style.background=tr.getAttribute('data-uri')===uri?'#fff6d6':''});};
+  document.addEventListener('n2f:select',function(ev){window.n2fPartCard(ev.detail.uri)},true);
+  var viewerEl=document.getElementById('viewer');
+  if(viewerEl){viewerEl.addEventListener('n2f:select',function(ev){window.n2fPartCard(ev.detail.uri)});
+    var ex=document.getElementById('explode');if(ex)ex.oninput=function(){if(window.n2fViewer)window.n2fViewer.explode(parseFloat(ex.value))};
+    var sec=document.getElementById('section');if(sec)sec.onchange=function(){if(window.n2fViewer)window.n2fViewer.section(sec.checked)};
+    var fit=document.getElementById('fit');if(fit)fit.onclick=function(){if(window.n2fViewer)window.n2fViewer.fit()};
+  }
+})();
+</script>
+{{ viewer_script | safe }}
+</body>
+</html>

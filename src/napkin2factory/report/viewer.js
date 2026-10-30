@@ -17,6 +17,7 @@ function n2fCreateViewer(container, options) {
   scene.background = new Color(opts.background);
   const camera = new PerspectiveCamera(40, width / height, 0.1, 100000);
   const renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.localClippingEnabled = true;
   renderer.setSize(width, height);
   renderer.setPixelRatio(window.devicePixelRatio || 1);
   container.appendChild(renderer.domElement);
@@ -123,6 +124,13 @@ function n2fCreateViewer(container, options) {
       });
     },
     fit,
+    // Section: clip everything above the model's mid-height (a global clipping plane).
+    section(on) {
+      if (!on) { renderer.clippingPlanes = []; return; }
+      const box = new Box3().setFromObject(root || scene);
+      const midZ = (box.min.z + box.max.z) / 2;
+      renderer.clippingPlanes = [new Plane(new Vector3(0, 0, -1), midZ)];
+    },
     snapshot() { renderer.render(scene, camera); return renderer.domElement.toDataURL('image/png'); },
   };
 

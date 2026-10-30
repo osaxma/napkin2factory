@@ -81,14 +81,18 @@ def test_second_build_is_a_noop(enclosure_built: Path) -> None:
     assert s["ran"] == [] and s["skipped"] == FULL
 
 
-def test_unused_parameter_rebuilds_only_validate(enclosure_built: Path) -> None:
+def test_unused_parameter_rebuilds_only_validate_and_the_report(enclosure_built: Path) -> None:
+    """No artifact reads the parameter, so no geometry/drawing/BOM/doc/check rule reruns.
+
+    The report lists every parameter's value, so it (and the site that copies it) does.
+    """
     _set_param(enclosure_built, "unused-note-count", "4")
     impact = compute_impact(
         load_product(enclosure_built), [parse_set("param://unused-note-count=4")]
     )
-    assert impact.rules == ["validate"]
+    assert impact.rules == ["validate", "report", "site"]
     s = _build(enclosure_built)
-    assert s["ran"] == ["validate"], s
+    assert s["ran"] == ["validate", "report", "site"], s
 
 
 def test_lid_thickness_exact_set(enclosure_built: Path) -> None:

@@ -1,6 +1,11 @@
 # STATUS
 
-**Branch:** `v0.1-build` · **Current milestone:** gate 1 fixed → M5 in progress (drawings + docs/BOM agents running; report next)
+**Branch:** `v0.1-build` · **Current milestone:** M5 done (+ M6 ECR lifecycle) → M6 release/diff/site
+**Resume note (2026-10-30, run stopped at the owner's usage limit):** the last full
+`make check` was green except two tests fixed right after (vocabulary: git refs moved into
+`vcs.changed_in_last_snapshot`; invalidation: unused parameter now expects validate+report+site,
+S-037). Those suites were re-run green individually; re-run the full `make check` first when
+resuming, then continue with M6 (release, diff, site) per "Next" below.
 **Resume order:** `GRAND_PLAN.md` → this file → `DECISIONS.md` → `git log --oneline -30` → `make check`
 
 ## Environment (host facts a cold reader needs)
@@ -63,12 +68,31 @@
 - **Review gate 1** — six blockers fixed (S-027…S-031) with regression tests; cheap concerns
   fixed; rest in BACKLOG B-0004…B-0006.
 
-## Next (M5)
-Fold in review gate 1 findings (blockers fixed, rest to BACKLOG). Then M5: drawings (D11:
-three views + iso, hidden lines, dims, hole table, title block in `<g id="titleblock">`,
-flat-pattern view + DXF), BOM CSV/XLSX, docs HTML (markdown-it-py) + PDF (Typst emitter),
-the real self-contained report (D13/D17) with viewer, galleries, matrix, persona toggle,
-`n2f serve`, Playwright smoke, `validate_outputs.py` extended.
+- **M5 (in progress)** — report (`report/builder.py`, template, viewer explode/section/
+  select, `n2f serve`, Playwright smoke) done and judged: owner view leads with Safety →
+  status → 3D → cost/manufacturer; engineer view with the check matrix; viewer frames the
+  enclosure, explode lifts the lid, clicking a part highlights its BOM row; no console errors
+  from `file://`; 1.8 MB. Drawings engine (subagent) judged on `examples/enclosure` base:
+  third-angle views, dashed hidden lines, legible dims outside the views, flat pattern with
+  bend labels, hole table, title block — reads as a drawing a shop could quote from. Two
+  defects it found are fixed: lid-mount holes moved onto the lips (model), and interface
+  holes now carried into flat patterns via `PartResult.flat_map` (S-034). Docs: HTML via
+  markdown-it-py, PDF via the in-house Typst emitter (`docs/typst.py`, 7 goldens; bundled
+  Libertinus Serif), safety banner; judged the assembly page PNG: title, templated values,
+  disclaimer. BOM: `bom.csv` + `bom.xlsx` (BOM/Rollups/Parts/Manufacturer sheets).
+  `tests/validate_outputs_full.py` covers drawings, DXF, BOM files, docs, report.
+  `make check` ≈ 6 min. **M6 part 1 (ECR lifecycle)** also landed: `ecr/lifecycle.py` +
+  `n2f ecr new|impact|approve|apply|close|reject|list|show`, line-targeted parameter edits
+  (one-line diffs), revision bumps at close, CHANGELOG append; `tests/e2e/test_ecr.py`.
+
+## Next (M6, remaining)
+`n2f release vX.Y.Z [--dry-run]` (repo-root + clean-tree + gates via D31 wording; tag; ZIP
+with STEP, drawings PDF bundle via Typst, DXFs, BOM.xlsx, manuals PDF, report;
+`build/site/vX.Y.Z/` frozen + `build/site/index.html`; `released_in` on closed ECRs),
+`n2f diff A B` (worktrees, SVG overlay old red/new green at one scale with title blocks
+excluded, BOM delta with cost/mass, parameter/requirement deltas, changed/added/removed
+parts, side-by-side 3D with highlighting → `build/site/diff/vA..vB/`), release-refusal
+tests (check fails, missing safety sign-off, evidence keys changed), then review gate 2 (UX).
 
 ## Open risks
 - Plan's Linux DoD is exercised only in CI (S-001).

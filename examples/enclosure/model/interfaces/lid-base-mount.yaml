@@ -1,10 +1,10 @@
 id: lid-base-mount
 kind: bolt-pattern
 parties: [part://base, part://lid]
-description: Four M4 clearance holes through the base lip and the lid, one near each corner.
+description: Four M4 clearance holes through the front and back lips and the lid, clear of the open corners.
 frame: {origin: [0, 0, 0], normal: [0, 0, 1]}
 frames:
   # Each party's copy of the frame in its own coordinates (the lid sits on the lip, z = box height).
   part://base: {origin: [0, 0, 80], normal: [0, 0, 1]}
   part://lid: {origin: [0, 0, 0], normal: [0, 0, 1]}
-spec: {pattern: rect, count: 4, diameter: param://screw-clearance, spacing: [212 mm, 162 mm], fastener: part://m4x10-screw}
+spec: {pattern: rect, count: 4, diameter: param://screw-clearance, spacing: [160 mm, 162 mm], fastener: part://m4x10-screw}

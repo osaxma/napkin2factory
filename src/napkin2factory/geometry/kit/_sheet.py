@@ -227,8 +227,12 @@ def rounded_rect(
     if radius <= 0:
         return [(cx - hw, cy - hh), (cx + hw, cy - hh), (cx + hw, cy + hh), (cx - hw, cy + hh)]
     pts: list[Vec2] = []
-    corners = ((hw - radius, -hh + radius, -90.0), (hw - radius, hh - radius, 0.0))
-    corners += ((-hw + radius, hh - radius, 90.0), (-hw + radius, -hh + radius, 180.0))
+    corners = (
+        (hw - radius, -hh + radius, -90.0),
+        (hw - radius, hh - radius, 0.0),
+        (-hw + radius, hh - radius, 90.0),
+        (-hw + radius, -hh + radius, 180.0),
+    )
     for ox, oy, start in corners:
         for i in range(segments + 1):
             a = math.radians(start + 90.0 * i / segments)

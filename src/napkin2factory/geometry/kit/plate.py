@@ -122,4 +122,5 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         dims=dims,
         flat_pattern=flat,
         props={"developed_area": flat.area},
+        flat_map=lambda p: (p[0], p[1]) if -hw <= p[0] <= hw and -hd <= p[1] <= hd else None,
     )

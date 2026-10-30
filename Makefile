@@ -8,7 +8,7 @@ EXAMPLES_FAST := examples/bracket examples/enclosure
 
 .PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast clean
 
-check: lint types unit golden examples-fast
+check: lint types unit golden examples-fast todo-grep
 
 lint:
 	$(PY) ruff check src tests
@@ -30,7 +30,7 @@ examples-fast:
 	  if [ -d $$ex ]; then \
 	    echo "== $$ex"; \
 	    (cd $$ex && $(PY) n2f validate && $(PY) n2f lint && $(PY) n2f build && $(PY) n2f check) || exit 1; \
-	    $(PY) python tests/validate_outputs.py $$ex --stage geometry || exit 1; \
+	    $(PY) python tests/validate_outputs.py $$ex || exit 1; \
 	  fi; \
 	done
 

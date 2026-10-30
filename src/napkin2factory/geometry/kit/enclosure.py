@@ -38,6 +38,7 @@ from napkin2factory.geometry.features import (
     PartResult,
     Relief,
     Vec2,
+    Vec3,
     polygon_area,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
@@ -81,6 +82,8 @@ class Args(KitArgs):
 
 
 ARGS = Args
+
+_EPS = 1e-3  # mm of slack when deciding which region a 3D point lies on
 
 
 @dataclass(frozen=True)
@@ -298,6 +301,30 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
     fp = FlatPattern(outline=outline, cutouts=flat_cuts, bend_lines=bend_lines, thickness=t)
     fp.area = polygon_area(outline) - cut_area
 
+    def flat_map(p: Vec3) -> Vec2 | None:
+        """Map a point on the base, a wall or a lip to the flat; ``None`` on bends.
+
+        Base points keep their (x, y).  A wall point at height ``z`` lands
+        ``ba + (z − (t + r))`` outward from its base edge; a lip point at distance ``d``
+        beyond the wall's outer face lands ``2·ba + wall_flat + (d − r)`` outward.  The
+        along-wall coordinate is unchanged (flat X/Y equal the part's X/Y along the wall).
+        """
+        x, y, zz = p
+        if -_EPS <= zz <= t + _EPS and abs(x) <= base_l / 2 + _EPS:
+            if abs(y) <= base_w / 2 + _EPS:
+                return (x, y)
+        pv = Vector(x, y, 0)
+        for w in walls:
+            d, along = pv.dot(w.n) - w.half, pv.dot(w.u)  # d < 0 inside the outer face
+            if abs(along) > w.span + _EPS:
+                continue
+            if -t - _EPS <= d <= _EPS and big_r - _EPS <= zz <= z_top + _EPS:
+                return flat_pt(w, ba + zz - big_r, along)
+            on_lip_z = a.height - t - _EPS <= zz <= a.height + _EPS
+            if lip and on_lip_z and r - _EPS <= d <= f + _EPS:
+                return flat_pt(w, 2 * ba + wall_flat + d - r, along)
+        return None
+
     hl, hw = a.length / 2, a.width / 2
     c45 = math.cos(math.radians(45))
     dims = [
@@ -316,7 +343,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
     ]
     if lip:
         dims.append(Dim("flange", f, (0, -hw, a.height), (0, -hw - f, a.height), view="right"))
-    return PartResult(
+    result = PartResult(
         shape=shape,
         features=feats,
         dims=dims,
@@ -330,6 +357,8 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
             "k_factor": k,
         },
     )
+    result.flat_map = flat_map
+    return result
 
 
 def _signed_area(points: list[Vec2]) -> float:

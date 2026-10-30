@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import math
 import shutil
 import sys
 import time
@@ -230,6 +231,20 @@ def apply_interfaces(part: Part, result: PartResult, ctx: kit_mod.KitContext) ->
             diameter = _mm(iface.spec.diameter)
             depth = _mm(iface.spec.depth)
             result.shape = cut_pattern(result.shape, centers, diameter, tuple(frame.normal), depth)
+            if result.flat_pattern is not None:
+                unmapped = 0
+                for c in centers:
+                    xy = result.flat_map(tuple(c)) if result.flat_map is not None else None
+                    if xy is None:
+                        unmapped += 1
+                        continue
+                    result.flat_pattern.holes.append(((float(xy[0]), float(xy[1])), diameter))
+                    result.flat_pattern.area -= math.pi * (diameter / 2) ** 2
+                if unmapped:
+                    result.notes.append(
+                        f"{unmapped} hole(s) from {iface.uri} are not in the flat pattern "
+                        "(the generator cannot map them); add them by hand before cutting"
+                    )
             result.features.patterns.append(
                 HolePattern(
                     centers=[tuple(c) for c in centers],

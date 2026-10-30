@@ -7,8 +7,10 @@ import typer
 from napkin2factory import __version__
 from napkin2factory.cli import build as build_cmd
 from napkin2factory.cli import check as check_cmd
+from napkin2factory.cli import ecr as ecr_cmd
 from napkin2factory.cli import graph as graph_cmd
 from napkin2factory.cli import init as init_cmd
+from napkin2factory.cli import serve as serve_cmd
 from napkin2factory.cli import validate as validate_cmd
 
 app = typer.Typer(
@@ -42,6 +44,8 @@ app.command("graph")(graph_cmd.graph)
 app.command("check")(check_cmd.check)
 app.command("status")(check_cmd.status)
 app.command("signoff")(check_cmd.signoff)
+app.command("serve")(serve_cmd.serve)
+app.add_typer(ecr_cmd.ecr_app, name="ecr")
 app.command("impact")(graph_cmd.impact)
 
 

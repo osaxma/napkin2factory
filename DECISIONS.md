@@ -231,3 +231,52 @@ constants; module-based parts and assemblies also hash the product's whole
 `model/geometry` tree, and the loader purges cached product-local modules before each
 import so helper edits are seen in-process. Part tessellations are persisted as `mesh.npz`
 and reused when a part is reloaded, so `--jobs N` produces byte-identical assembly GLBs.
+
+## S-032 — Report layout and persona toggle (D13, D17) (2026-10-30)
+One Jinja2 template (`report/templates/report.html.j2`), one page. Sections are flex items
+whose CSS `order` differs per persona (`html[data-persona=owner|engineer]`), so the owner
+view leads with Safety → status → 3D → cost/manufacturer → drawings, and the engineer view
+with Safety → status → check matrix → requirements → parameters. Safety has order 0 in both
+and is never inside a persona-only block. Vocabulary is rendered twice (`vv()` macro emits
+an owner span and an engineer span) and switched by CSS, so the toggle needs no re-render;
+the chosen persona persists in `localStorage`. The viewer is one inline module script
+(S-003); the top assembly's GLB (or every part's GLB when there is no assembly), the iso
+and section renders, and every drawing SVG are embedded. `report.json` records the byte
+size against the 20 MB budget; `tests/validate_outputs_full.py` asserts it. Manual pages
+are embedded as HTML fragments with their own `<h1>` dropped (the report titles them).
+The footer timestamp is excluded from the output hash.
+
+## S-033 — `n2f serve` is a plain `http.server` (2026-10-30)
+Convenience only (D13): it serves `build/report` (or `build/site` with `--site`) on
+127.0.0.1. The page works from `file://`; the server exists for people who prefer a URL.
+
+## S-034 — Interface holes reach the flat pattern through `PartResult.flat_map` (2026-10-30)
+The build cuts interface bolt patterns into the solid after the generator returns (S-013),
+so the generator's flat pattern did not contain them and the DXF would have been wrong.
+Generators that know their unfold now set `result.flat_map`, a function from a 3D point on
+the part to its 2D flat position (None when not mappable, e.g. in a bend zone); the build
+appends each interface hole to `flat_pattern.holes` and adjusts the area, and records a
+note on the part when holes could not be mapped (the checks surface it as a warn). plate
+and panel map identity XY; bracket_l and enclosure map legs, base, walls and lips. Every
+part with a flat pattern gets a DXF (cut-sheet included), not only `process: sheet-metal`.
+
+## S-035 — Parameter edits are line-targeted; other YAML edits round-trip (2026-10-30)
+ruamel cannot preserve the column alignment used in `parameters.yaml` (`slug:   {value: …}`),
+so `n2f ecr apply` changes a parameter's `value:` on its own line with a regex and touches
+nothing else: a one-value change is a one-line diff. Block-style files (requirements,
+parts, assemblies, interfaces, decisions) go through the ruamel round-trip, which keeps
+comments and order. If a parameter is written in block style the edit falls back to ruamel.
+
+## S-036 — Revision bump rule (D7/M6) (2026-10-30)
+`n2f ecr apply` stores the part/assembly output hashes of the last build in
+`applied.before`; `n2f ecr close` rebuilds the checks, requires zero `fail`, and bumps the
+rev of every part whose output hash changed or whose YAML changed in the applied snapshot,
+then of every assembly that contains a bumped child or whose own output changed. The
+checks rebuild once more so the new revs reach title blocks and the report, and the
+closing snapshot records everything. `CHANGELOG.md` gets one section per closed request.
+
+## S-037 — "Unused parameter → nothing rebuilds" holds for artifacts, not for the report (2026-10-30)
+The report prints every parameter's value in its Parameters section and therefore records
+`param://*` reads; changing a parameter nobody else reads reruns `validate`, `report` and
+`site` and nothing else (no geometry, drawing, BOM, doc or check rule). The invalidation
+suite asserts exactly that set. Showing a stale value in the report would be the real bug.

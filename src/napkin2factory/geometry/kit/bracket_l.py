@@ -37,6 +37,8 @@ from napkin2factory.geometry.features import (
     FlatPattern,
     Hole,
     PartResult,
+    Vec2,
+    Vec3,
     polygon_area,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
@@ -67,6 +69,8 @@ class Args(KitArgs):
 
 ARGS = Args
 
+_EPS = 1e-3  # mm of slack when deciding which region a 3D point lies on
+
 
 def _row(count: int, spacing: float) -> list[float]:
     """Y positions of ``count`` holes ``spacing`` apart, centred on 0."""
@@ -80,10 +84,10 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
     require_positive(length=a.length, height=a.height, width=w, thickness=t, bend_radius=r)
     big_r = r + t  # outside bend radius; the bend tangent lines sit at x = big_r, z = big_r
     flat_h, flat_v = a.length - big_r, a.height - big_r
-    for name, leg, flat in (("length", a.length, flat_h), ("height", a.height, flat_v)):
+    for name, leg_len, flat in (("length", a.length, flat_h), ("height", a.height, flat_v)):
         if flat < t:
             raise ValueError(
-                f"{name} {leg:g} mm is too short: a leg needs at least bend_radius + "
+                f"{name} {leg_len:g} mm is too short: a leg needs at least bend_radius + "
                 f"2 × thickness = {big_r + t:g} mm to leave a flat after the bend"
             )
     k = k_factor(r, t)
@@ -142,6 +146,8 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
                 with Locations(*locs):
                     Cylinder(h.diameter / 2, 3 * t, mode=Mode.SUBTRACT)
     shape = bp.part
+    if shape is None:
+        raise ValueError("bracket_l produced no solid")
     shape.label = ctx.uri
 
     feats = Features(process=a.process, thickness=t)
@@ -153,6 +159,22 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
 
     developed = flat_v + ba + flat_h
     outline, bend_x = developed_l(flat_v, ba, flat_h, w)
+
+    def flat_map(p: Vec3) -> Vec2 | None:
+        """Map a point on a leg (part frame) to the flat; ``None`` in the bend zone.
+
+        The flat strip runs along +X from the vertical leg's free end (``x = 0``) to the
+        horizontal leg's free end (``x = developed``); flat Y is the part's Y.
+        """
+        x, y, z = p
+        if abs(y) > w / 2 + _EPS:
+            return None
+        if -_EPS <= z <= t + _EPS and big_r - _EPS <= x <= a.length + _EPS:
+            return (developed - (a.length - x), y)
+        if -_EPS <= x <= t + _EPS and big_r - _EPS <= z <= a.height + _EPS:
+            return (a.height - z, y)
+        return None
+
     flat_holes: list[tuple[tuple[float, float], float]] = []
     n = 0
     for leg, inset, ys in rows:
@@ -162,10 +184,12 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
             n += 1
             if leg == "horizontal":
                 center, axis = (a.length - inset, y, 0.0), (0.0, 0.0, 1.0)
-                flat_holes.append(((developed - inset, y), d))
             else:
                 center, axis = (0.0, y, a.height - inset), (1.0, 0.0, 0.0)
-                flat_holes.append(((inset, y), d))
+            mapped = flat_map(center)
+            if mapped is None:  # cannot happen: holes were validated to lie on the flats
+                raise ValueError(f"hole H{n} at {center} is not on a leg flat")
+            flat_holes.append((mapped, d))
             feats.holes.append(
                 Hole(
                     center=center,
@@ -207,10 +231,12 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
             Dim("hole", h.diameter, (x0, ys[0], 0), (x0, ys[0], 0), view="top", kind="diameter")
         )
         dims.append(Dim("hole inset", inset, (a.length, ys[0], 0), (x0, ys[0], 0), view="top"))
-    return PartResult(
+    result = PartResult(
         shape=shape,
         features=feats,
         dims=dims,
         flat_pattern=fp,
         props={"developed_length": developed, "bend_allowance": ba, "k_factor": k},
     )
+    result.flat_map = flat_map
+    return result
