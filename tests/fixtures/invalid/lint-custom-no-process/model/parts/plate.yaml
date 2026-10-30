@@ -1,0 +1,14 @@
+id: plate
+name: Plate
+kind: custom
+process: none
+material:
+  name: steel
+tolerance_class: ISO2768-m
+geometry:
+  kit: plate
+  args:
+    width: param://width
+    thickness: param://thick
+cost:
+  unit: 5 USD

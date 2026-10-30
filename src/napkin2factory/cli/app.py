@@ -1,10 +1,12 @@
-"""Typer application root for the ``n2f`` command."""
+"""Typer application root for the ``n2f`` command (GRAND_PLAN §5)."""
 
 from __future__ import annotations
 
 import typer
 
 from napkin2factory import __version__
+from napkin2factory.cli import init as init_cmd
+from napkin2factory.cli import validate as validate_cmd
 
 app = typer.Typer(
     name="n2f",
@@ -21,9 +23,17 @@ def _root() -> None:
 
 
 @app.command()
-def version() -> None:
+def version(json_out: bool = typer.Option(False, "--json")) -> None:
     """Print the installed napkin2factory version."""
-    typer.echo(f"napkin2factory {__version__}")
+    if json_out:
+        typer.echo(f'{{"version": "{__version__}"}}')
+    else:
+        typer.echo(f"napkin2factory {__version__}")
+
+
+app.command("init")(init_cmd.init)
+app.command("validate")(validate_cmd.validate)
+app.command("lint")(validate_cmd.lint)
 
 
 def main() -> None:

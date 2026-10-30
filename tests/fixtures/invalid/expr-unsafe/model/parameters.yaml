@@ -1,0 +1,10 @@
+parameters:
+  width:
+    value: 80
+    unit: mm
+  thick:
+    value: 3
+    unit: mm
+  a:
+    expr: __import__('os').getcwd()
+    unit: mm

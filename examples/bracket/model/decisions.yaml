@@ -1,0 +1,13 @@
+decisions:
+  - id: DEC-001
+    date: 2026-10-30
+    title: 4 mm CR4 mild steel, powder coated
+    context: A 10 kg shelf load on a 120 mm leg is a light duty; the owner wants something a local sheet-metal shop can make.
+    decision: Use 4 mm cold-rolled mild steel (CR4 / DC01), bent with an inside radius equal to the thickness, powder coated black.
+    rationale: 4 mm steel at this span has a large margin against a 10 kg load; the bend radius equal to thickness is the usual minimum for mild steel without cracking.
+    links: [req://REQ-002, param://bracket-thickness, param://bend-radius, part://l-bracket]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources:
+      - "Minimum inside bend radius ≈ 1 × t for mild steel up to 6 mm is a common shop rule of thumb; confirm with the fabricator."

@@ -1,0 +1,7 @@
+schema: 1
+system: ">=0.1,<0.2"
+product:
+  id: new-product
+  name: New product
+units: metric
+manufacturer_profile: null

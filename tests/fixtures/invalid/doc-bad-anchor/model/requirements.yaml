@@ -1,0 +1,12 @@
+requirements:
+- id: REQ-001
+  title: Size
+  statement: Width is at most 100 mm.
+  category: geometry
+  verify:
+    kind: geometry_prop
+    target: part://plate#props.bbox.x
+    op: <=
+    value: 100 mm
+  allocation:
+  - part://plate

@@ -1,0 +1,7 @@
+decisions:
+- id: DEC-001
+  date: '2026-01-01'
+  title: t
+  decision: d
+  links:
+  - doc://install#wiring

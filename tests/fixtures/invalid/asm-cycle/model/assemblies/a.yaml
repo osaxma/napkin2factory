@@ -1,0 +1,4 @@
+id: a
+name: A
+children:
+- asm: asm://b

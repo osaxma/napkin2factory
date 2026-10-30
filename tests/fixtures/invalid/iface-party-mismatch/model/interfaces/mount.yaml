@@ -1,0 +1,11 @@
+id: mount
+kind: bolt-pattern
+parties:
+- part://plate
+- part://other
+spec:
+  count: 4
+  diameter: 6.6 mm
+  spacing:
+  - 50 mm
+  - 50 mm

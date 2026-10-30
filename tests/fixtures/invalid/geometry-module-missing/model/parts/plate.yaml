@@ -1,0 +1,11 @@
+id: plate
+name: Plate
+kind: custom
+process: cut-sheet
+material:
+  name: steel
+tolerance_class: ISO2768-m
+geometry:
+  module: geometry/plate.py
+cost:
+  unit: 5 USD

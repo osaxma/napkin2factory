@@ -1,0 +1,13 @@
+id: plate
+name: Plate
+kind: custom
+process: cut-sheet
+material:
+  name: steel
+geometry:
+  kit: plate
+  args:
+    width: param://width
+    thickness: param://thick
+cost:
+  unit: 5 USD

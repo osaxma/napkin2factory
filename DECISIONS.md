@@ -51,3 +51,39 @@ selectolax 1.0 removed the Modest backend; all HTML parsing in tests uses
 ## S-006 — `rich` and `packaging` added as runtime dependencies (2026-10-30)
 `rich` for tables and persona-vocabulary output in the CLI (typer already depends on it);
 `packaging` to evaluate the product repo's `system: ">=0.1,<0.2"` pin.
+
+## S-007 — Expression grammar: hyphenated names, spaced minus (2026-10-30)
+Parameter slugs contain hyphens, so `a-b` is ambiguous. In `expr:` strings a hyphenated
+token is always a parameter name and subtraction must be written with spaces (`a - b`).
+`core/expr.py` rewrites slugs to identifiers and evaluates a whitelisted AST (arithmetic,
+`min/max/abs/sqrt/ceil/floor/round`) over pint quantities. `check_syntax` runs before
+name resolution so `__import__('os')` is reported as disallowed, not as an unknown name.
+
+## S-008 — Lint L1 "measurable" exempts binary verify kinds (2026-10-30)
+"All exposed sheet edges deburred" has no number and is a legitimate `manual` requirement.
+L1 requires a number-with-unit in the statement unless `verify.kind` is `manual`,
+`interference`, or `interface`. Vague words ("adequate", "appropriate") warn.
+
+## S-009 — Schema failures do not cascade (2026-10-30)
+When a file fails schema validation the loader records its id in `product.broken`, so
+references to it are not reported as "does not exist" on top of the real error. One
+flaw, one finding.
+
+## S-010 — Product-repo common files live in `templates/_common` (2026-10-30)
+`CLAUDE.md`, `AGENTS.md`, the two skills, the two agents, the two workflows and
+`.gitignore` are maintained once in `templates/_common/`. `make templates` copies them
+into every example and then copies `examples/bracket` and `examples/enclosure` into
+`templates/`; `tests/unit/test_templates.py` asserts the trees are identical (D19).
+`n2f init` overlays `_common` on the chosen template.
+
+## S-011 — Unattended git identity (2026-10-30)
+`core/vcs.py` sets `GIT_AUTHOR_NAME/EMAIL` and `GIT_COMMITTER_*` to `napkin2factory
+<n2f@localhost>` when the environment has none, disables hooks (`core.hooksPath=/dev/null`)
+and the pager, so `n2f init` works in a fresh sandbox. A configured identity wins.
+`[revisit]` Whether the owner's own name should be prompted for during intake.
+
+## S-012 — Validate semantics for computed selectors (2026-10-30)
+`#props.*` on parts/assemblies and `bom://rollups#*` are computed by the build, so
+`n2f validate` checks only that the base URI exists and the selector is syntactically
+valid; `n2f check` resolves them against `build/`. Declared-field selectors
+(`req://REQ-001#verify.value`) are resolved at validate time.

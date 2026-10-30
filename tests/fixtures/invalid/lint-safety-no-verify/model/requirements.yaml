@@ -1,0 +1,8 @@
+requirements:
+- id: REQ-001
+  title: Size
+  statement: Edges are deburred.
+  category: safety
+  allocation:
+  - part://plate
+  safety: true

@@ -1,0 +1,4 @@
+id: top
+name: Top
+children:
+- part: part://ghost

@@ -1,0 +1,7 @@
+requirements:
+- id: REQ-001
+  title: Size
+  statement: Width is at most 100 mm.
+  category: geometry
+  allocation:
+  - part://plate
