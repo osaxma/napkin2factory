@@ -139,7 +139,10 @@ def make_asm_run(asm_id: str) -> Any:
         outputs = sorted(p for p in built.out_dir.rglob("*") if p.is_file())
         props = dict(built.props)
         props.pop("reads", None)
-        return _result(built.reads, outputs, sha256_json(props), built)
+        placements = sha256_file(built.out_dir / "instances.json")
+        return _result(
+            built.reads, outputs, sha256_json({"props": props, "placements": placements}), built
+        )
 
     return run
 

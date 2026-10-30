@@ -32,6 +32,13 @@ def test_bracket_builds_and_validates(tmp_path: Path) -> None:
     parts, asms = build_geometry(product)
     assert set(parts) == {"l-bracket"} and set(asms) == {"bracket"}
     assert parts["l-bracket"].reads == [
+        "part://l-bracket#geometry",
+        "part://l-bracket#material",
+        "part://l-bracket#mass",
+        "part://l-bracket#process",
+        "part://l-bracket#kind",
+        "part://l-bracket#interfaces",
+        "part://l-bracket#rev",
         "param://bracket-length",
         "param://bracket-height",
         "param://bracket-width",

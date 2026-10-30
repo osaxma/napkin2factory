@@ -122,6 +122,7 @@ def build_lines(
             ):
                 log.add(f"{part.uri}#{sel}")
             mass, mass_src = _props_mass(build_dir, part)
+            log.add(f"{part.uri}#geometry")
             if part.mass is None and part.has_geometry:
                 log.add(f"{part.uri}#props.mass")
             lines.append(
@@ -153,6 +154,7 @@ def build_lines(
         elif child.asm is not None:
             sub = product.assemblies[child.asm.id]
             log.add(f"{sub.uri}#name")
+            log.add(f"{sub.uri}#rev")
             line = BomLine(
                 level=level,
                 uri=sub.uri,
@@ -190,6 +192,8 @@ def compute_rollups(
 ) -> dict[str, Any]:
     """The ``rollups.json`` payload: lines per top assembly plus totals."""
     log = log if log is not None else ReadLog()
+    log.add("set://parts")
+    log.add("set://asms")
     tops = top_assemblies(product)
     per_part: dict[str, dict[str, Any]] = {}
     structure: dict[str, list[dict[str, Any]]] = {}

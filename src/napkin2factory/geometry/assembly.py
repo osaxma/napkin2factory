@@ -141,7 +141,9 @@ def flatten(result: AssemblyResult, top_uri: str) -> tuple[list[FlatInstance], l
     (``part://brick#1`` … ``part://brick#26``), which is what the viewer and the BOM use.
     """
     counters: Counter[str] = Counter()
-    leaves: list[FlatInstance] = []
+    pending: list[
+        tuple[str, Any, str | None, Any, str | None]
+    ] = []  # uri, world, parent, built, label
     groups: list[GlbGroup] = []
 
     def walk(res: AssemblyResult, parent_loc: Any, parent_node: str | None) -> None:
@@ -154,12 +156,28 @@ def flatten(result: AssemblyResult, top_uri: str) -> tuple[list[FlatInstance], l
                 groups.append(GlbGroup(name=node, translation=t, rotation=q, parent=parent_node))
                 walk(p.built.result, world, node)
             else:
-                counters[p.uri] += 1
-                leaves.append(
-                    FlatInstance(f"{p.uri}#{counters[p.uri]}", p.uri, world, parent_node, p.built)
-                )
+                pending.append((p.uri, world, parent_node, p.built, p.label))
 
     walk(result, None, None)
+
+    # Stable numbering (gate-1 B5): by label when given, else by rounded world transform,
+    # so reordering the placement code does not renumber physical occurrences.
+    def sort_key(item: tuple[str, Any, str | None, Any, str | None]) -> tuple[Any, ...]:
+        uri, world, parent, _built, label = item
+        t, q = location_to_trs(world)
+        return (
+            uri,
+            label or "~",
+            tuple(round(v, 3) for v in t),
+            tuple(round(v, 4) for v in q),
+            parent or "",
+        )
+
+    leaves: list[FlatInstance] = []
+    leaf_counter: Counter[str] = Counter()
+    for uri, world, parent, built, _label in sorted(pending, key=sort_key):
+        leaf_counter[uri] += 1
+        leaves.append(FlatInstance(f"{uri}#{leaf_counter[uri]}", uri, world, parent, built))
     return leaves, groups
 
 

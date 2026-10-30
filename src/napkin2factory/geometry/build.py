@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import sys
 import time
 from dataclasses import dataclass, field
@@ -116,6 +117,15 @@ def resolve_args(args: Any, P: ParamAccessor, I: InterfaceAccessor) -> Any:  # n
 
 
 def _load_module(path: Path, name: str) -> Any:
+    """Import a product geometry module fresh; sibling helpers in its folder reload too."""
+    folder = str(path.parent.resolve())
+    if folder not in sys.path:
+        sys.path.insert(0, folder)
+    # Drop cached product-local modules so a helper edit is seen in the same process (gate-1 B6).
+    for mod_name, mod in list(sys.modules.items()):
+        mod_file = getattr(mod, "__file__", None)
+        if mod_file and str(Path(mod_file).resolve()).startswith(folder):
+            del sys.modules[mod_name]
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
         raise GeometryError(f"cannot import geometry module {path}")
@@ -145,6 +155,10 @@ def build_part(
     if not part.has_geometry:
         raise GeometryError(f"part://{part_id} has no geometry (it is BOM-only)")
     P, I, log = make_accessors(product)
+    # Declared fields the geometry depends on are recorded as selector reads (gate-1 B3), so
+    # an edit to an unrelated field (cost, notes) does not rebuild the part.
+    for field_name in ("geometry", "material", "mass", "process", "kind", "interfaces", "rev"):
+        log.add(f"{part.uri}#{field_name}")
     ctx = kit_mod.KitContext(
         part_id=part_id, material_name=part.material.name if part.material else ""
     )
@@ -183,6 +197,8 @@ def build_part(
             f"part://{part_id}: applying interfaces failed: {type(exc).__name__}: {exc}"
         ) from exc
     out_dir = (build_dir or product.paths.build) / "parts" / part_id
+    if out_dir.exists():
+        shutil.rmtree(out_dir)  # never leave stale renders/flat patterns behind (gate-1 B4)
     props = export_part(part.uri, result, out_dir, part.material, part.mass, render=render)
     props["rev"] = part.rev
     props["reads"] = log.keys
@@ -309,6 +325,8 @@ def build_assembly(
     asm = product.assemblies[asm_id]
     asms = asms or {}
     P, I, log = make_accessors(product)
+    for field_name in ("children", "geometry", "rev", "exploded"):
+        log.add(f"{asm.uri}#{field_name}")
     children_parts = {
         c.part.id: parts[c.part.id]
         for c in asm.children
@@ -351,6 +369,8 @@ def build_assembly(
             raise GeometryError(f"asm://{asm_id}: placed {p.uri} which is not a declared child")
     leaves, groups = flatten(result, asm.uri)
     out_dir = (build_dir or product.paths.build) / "assemblies" / asm_id
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     export_assembly_glb(asm.uri, leaves, groups, out_dir / "model.glb")
     props = assembly_props(leaves)
@@ -467,17 +487,33 @@ def load_built_part(product: Product, part_id: str, build_dir: Path | None = Non
         raise GeometryError(
             f"part://{part_id} has not been built yet; run `n2f build --target geometry`"
         )
-    props: dict[str, Any] = json.loads(props_path.read_text(encoding="utf-8"))
+    try:
+        props: dict[str, Any] = json.loads(props_path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise GeometryError(
+            f"part://{part_id}: {props_path} is unreadable ({exc}); run `n2f build --clean`"
+        ) from exc
     shape = import_step(str(out_dir / "model.step"))
+    volume = float(shape.volume) if shape is not None and shape.solids() else 0.0
+    if volume <= 0 or abs(volume - float(props.get("volume", 0))) > 0.005 * max(volume, 1.0):
+        raise GeometryError(
+            f"part://{part_id}: build/parts/{part_id}/model.step does not match props.json "
+            f"(volume {volume:.1f} vs {props.get('volume')}); run `n2f build --clean`"
+        )
     shape.label = f"part://{part_id}"
     result = PartResult(shape=shape)
-    return BuiltPart(
+    built = BuiltPart(
         part=product.parts[part_id],
         result=result,
         props=props,
         reads=list(props.get("reads", [])),
         out_dir=out_dir,
     )
+    mesh = out_dir / "mesh.npz"
+    if mesh.is_file():
+        data = np.load(mesh)
+        built._tess = (data["vertices"], data["triangles"])  # identical bytes for --jobs N
+    return built
 
 
 def load_props(build_dir: Path, uri: str) -> dict[str, Any]:

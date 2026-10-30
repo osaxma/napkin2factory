@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.1-build` · **Current milestone:** M4 done (review gate 1 running) → M5
+**Branch:** `v0.1-build` · **Current milestone:** gate 1 fixed → M5 in progress (drawings + docs/BOM agents running; report next)
 **Resume order:** `GRAND_PLAN.md` → this file → `DECISIONS.md` → `git log --oneline -30` → `make check`
 
 ## Environment (host facts a cold reader needs)
@@ -59,6 +59,9 @@
   contact, interface mismatch, tight bend radius fails, sign-off ladder incl. evidence
   change, refuse signing a failing requirement, exit code 2, stage progression incl. warn
   never moving the stage, doc staleness, calc requirement with recorded reads.
+
+- **Review gate 1** — six blockers fixed (S-027…S-031) with regression tests; cheap concerns
+  fixed; rest in BACKLOG B-0004…B-0006.
 
 ## Next (M5)
 Fold in review gate 1 findings (blockers fixed, rest to BACKLOG). Then M5: drawings (D11:

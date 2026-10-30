@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -70,42 +71,51 @@ class RunContext:
     snapshot_date: str = "unsnapshotted"
 
 
-def code_hash_for_part(product: Product, part_id: str) -> str:
-    """Hash of the generator source that builds a part plus the geometry package version."""
-    from napkin2factory.geometry import kit as kit_mod
+SYSTEM_ROOT = Path(__file__).resolve().parents[2]  # src/napkin2factory
 
-    part = product.parts[part_id]
-    g = part.geometry
-    if isinstance(g, KitGeometry):
-        mod = kit_mod.get_module(g.kit)
-        src = Path(mod.__file__).read_bytes() if mod.__file__ else b""
-        shared = b"".join(
-            (Path(kit_mod.__file__).parent / n).read_bytes()
-            for n in ("_common.py", "_sheet.py", "hole_pattern.py")
-            if (Path(kit_mod.__file__).parent / n).is_file()
-        )
-        return sha256_text(
-            f"{__version__}:"
-            + sha256_text(src.decode("utf-8", "replace") + shared.decode("utf-8", "replace"))
-        )
+
+@lru_cache(maxsize=32)
+def package_hash(*subdirs: str) -> str:
+    """Hash of the system package trees a rule's code lives in (gate-1 B6)."""
+    parts = {
+        d: sha256_tree(SYSTEM_ROOT / d, (".py", ".js", ".html", ".css", ".yaml", ".j2"))
+        for d in subdirs
+    }
+    parts["version"] = __version__
+    return sha256_text("\n".join(f"{k}={v}" for k, v in sorted(parts.items())))
+
+
+def code_hash_for_part(product: Product, part_id: str) -> str:
+    """Hash of everything that can change a part's geometry output.
+
+    That is the whole geometry package (kit, exporters, materials, tessellation settings)
+    and, for module parts, the product's entire ``model/geometry`` tree (helpers imported
+    by the module included).
+    """
+    g = product.parts[part_id].geometry
+    system = package_hash("geometry")
     if isinstance(g, ModuleGeometry):
-        return sha256_text(f"{__version__}:" + sha256_file(product.paths.model / g.module))
-    return sha256_text(f"{__version__}:none")
+        return sha256_text(system + sha256_tree(product.paths.geometry))
+    if isinstance(g, KitGeometry):
+        return sha256_text(system + f":kit:{g.kit}")
+    return sha256_text(system + ":none")
 
 
 def code_hash_for_asm(product: Product, asm_id: str) -> str:
-    """Hash of an assembly module's source (or the auto-layout marker)."""
+    """Hash of the geometry package plus the product's ``model/geometry`` tree."""
     g = product.assemblies[asm_id].geometry
+    system = package_hash("geometry")
     if isinstance(g, ModuleGeometry):
-        return sha256_text(f"{__version__}:" + sha256_file(product.paths.model / g.module))
-    return sha256_text(f"{__version__}:auto-layout")
+        return sha256_text(system + sha256_tree(product.paths.geometry))
+    return sha256_text(system + ":auto-layout")
 
 
-def build_rules(product: Product) -> list[Rule]:
-    """The ordered rule list for ``product``."""
+def build_rules(product: Product, render: bool = True) -> list[Rule]:
+    """The ordered rule list for ``product`` (``render`` is a declared input of part/asm rules)."""
     from napkin2factory.core.graph import runs
 
     paths = product.paths
+    render_flag = "render" if render else "no-render"
     rules: list[Rule] = [
         Rule(
             id="validate",
@@ -129,16 +139,8 @@ def build_rules(product: Product) -> list[Rule]:
                 kind="part",
                 produces=f"part://{pid}",
                 inputs={
-                    "yaml": sha256_file(paths.parts / f"{pid}.yaml"),
                     "code": code_hash_for_part(product, pid),
-                    "interfaces": sha256_text(
-                        ",".join(
-                            sorted(
-                                sha256_file(paths.interfaces / f"{i.id}.yaml")
-                                for i in product.parts[pid].interfaces
-                            )
-                        )
-                    ),
+                    "render": render_flag,
                 },
                 run=runs.make_part_run(pid),
                 description=f"3D, props, features, renders for part://{pid}",
@@ -160,10 +162,7 @@ def build_rules(product: Product) -> list[Rule]:
                 id=f"asm:{aid}",
                 kind="asm",
                 produces=f"asm://{aid}",
-                inputs={
-                    "yaml": sha256_file(paths.assemblies / f"{aid}.yaml"),
-                    "code": code_hash_for_asm(product, aid),
-                },
+                inputs={"code": code_hash_for_asm(product, aid), "render": render_flag},
                 run=runs.make_asm_run(aid),
                 description=f"placements, GLB, props for asm://{aid}",
                 depends_on=["validate", *deps],
@@ -175,7 +174,7 @@ def build_rules(product: Product) -> list[Rule]:
                 id=f"drawing:{pid}",
                 kind="drawing",
                 produces=f"drawing://{pid}",
-                inputs={"drawings_version": runs.DRAWINGS_VERSION},
+                inputs={"code": package_hash("drawings")},
                 run=runs.make_drawing_run(pid),
                 description=f"SVG views (+ DXF flat pattern) for part://{pid}",
                 depends_on=[f"part:{pid}"],
@@ -186,7 +185,7 @@ def build_rules(product: Product) -> list[Rule]:
             id="bom",
             kind="bom",
             produces="bom://rollups",
-            inputs={"bom_version": runs.BOM_VERSION, "catalog": runs.catalog_hash()},
+            inputs={"code": package_hash("bom", "catalog")},
             run=runs.run_bom,
             description="rollups, validation, CSV, XLSX",
             depends_on=["validate", *[f"part:{p}" for p in part_ids]],
@@ -200,7 +199,7 @@ def build_rules(product: Product) -> list[Rule]:
                 produces=f"doc://{did}",
                 inputs={
                     "source": sha256_file(product.docs[did].path),
-                    "docs_version": runs.DOCS_VERSION,
+                    "code": package_hash("docs"),
                 },
                 run=runs.make_doc_run(did),
                 description=f"manual page doc://{did} (Markdown, HTML, PDF, reads.json)",
@@ -213,8 +212,7 @@ def build_rules(product: Product) -> list[Rule]:
             kind="checks",
             produces="rule:checks",
             inputs={
-                "checks_version": runs.CHECKS_VERSION,
-                "rulepacks": runs.rulepacks_hash(),
+                "code": package_hash("core/checks", "rulepacks", "bom", "catalog"),
                 "calcs": sha256_tree(paths.calcs),
                 "signoffs": sha256_tree(paths.signoffs),
             },
@@ -232,7 +230,7 @@ def build_rules(product: Product) -> list[Rule]:
             id="report",
             kind="report",
             produces="rule:report",
-            inputs={"report_version": runs.REPORT_VERSION, "viewer": runs.viewer_hash()},
+            inputs={"code": package_hash("report", "docs")},
             run=runs.run_report,
             description="self-contained HTML report",
             depends_on=["checks"],
@@ -243,7 +241,7 @@ def build_rules(product: Product) -> list[Rule]:
             id="site",
             kind="site",
             produces="rule:site",
-            inputs={"site_version": runs.SITE_VERSION},
+            inputs={"code": package_hash("report")},
             run=runs.run_site,
             description="site layout (latest, frozen versions, diffs)",
             depends_on=["report"],
