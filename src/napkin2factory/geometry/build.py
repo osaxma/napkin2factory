@@ -456,6 +456,30 @@ def build_geometry(
     return parts, asms
 
 
+def load_built_part(product: Product, part_id: str, build_dir: Path | None = None) -> BuiltPart:
+    """Reconstruct a BuiltPart from ``build/parts/<id>/`` (STEP + props) without rebuilding."""
+    from build123d import import_step
+
+    build_dir = build_dir or product.paths.build
+    out_dir = build_dir / "parts" / part_id
+    props_path = out_dir / "props.json"
+    if not props_path.is_file() or not (out_dir / "model.step").is_file():
+        raise GeometryError(
+            f"part://{part_id} has not been built yet; run `n2f build --target geometry`"
+        )
+    props: dict[str, Any] = json.loads(props_path.read_text(encoding="utf-8"))
+    shape = import_step(str(out_dir / "model.step"))
+    shape.label = f"part://{part_id}"
+    result = PartResult(shape=shape)
+    return BuiltPart(
+        part=product.parts[part_id],
+        result=result,
+        props=props,
+        reads=list(props.get("reads", [])),
+        out_dir=out_dir,
+    )
+
+
 def load_props(build_dir: Path, uri: str) -> dict[str, Any]:
     """Read ``props.json`` for a part or assembly URI from a build directory."""
     scheme, ident = uri.split("://", 1)

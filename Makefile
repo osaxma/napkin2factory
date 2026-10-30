@@ -27,7 +27,7 @@ examples-fast:
 	@for ex in $(EXAMPLES_FAST); do \
 	  if [ -d $$ex ]; then \
 	    echo "== $$ex"; \
-	    (cd $$ex && $(PY) n2f validate && $(PY) n2f lint && $(PY) n2f build --target geometry) || exit 1; \
+	    (cd $$ex && $(PY) n2f validate && $(PY) n2f lint && $(PY) n2f build) || exit 1; \
 	    $(PY) python tests/validate_outputs.py $$ex --stage geometry || exit 1; \
 	  fi; \
 	done
