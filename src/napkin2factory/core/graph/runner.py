@@ -50,14 +50,27 @@ class BuildSummary:
         }
 
 
+def read_values(
+    reads: list[str], product: Product, manifest: Manifest, build_dir: Path
+) -> dict[str, str]:
+    """Current value of every read key."""
+    return {key: value_of(product, manifest, build_dir, key) for key in reads}
+
+
 def compute_key(
-    rule: Rule, reads: list[str], product: Product, manifest: Manifest, build_dir: Path
+    rule: Rule,
+    reads: list[str],
+    product: Product,
+    manifest: Manifest,
+    build_dir: Path,
+    values: dict[str, str] | None = None,
 ) -> str:
     """Post-run key: declared inputs, rule version, and every recorded read's value."""
     parts = {f"input:{k}": v for k, v in rule.inputs.items()}
     parts["rule_version"] = str(rule.version)
+    vals = values if values is not None else read_values(reads, product, manifest, build_dir)
     for key in reads:
-        parts[f"read:{key}"] = value_of(product, manifest, build_dir, key)
+        parts[f"read:{key}"] = vals[key]
     return combine(parts)
 
 
@@ -70,17 +83,17 @@ def needs_run(
         return True, "never built"
     if entry.rule_version != rule.version:
         return True, "rule changed"
-    for rel in entry.outputs:
-        if not (build_dir / rel).is_file():
+    for rel, digest in entry.outputs.items():
+        path = build_dir / rel
+        if not path.is_file():
             return True, f"output missing: {rel}"
-    key = compute_key(rule, entry.reads, product, manifest, build_dir)
+        if sha256_file(path) != digest:  # existing-but-wrong outputs are never trusted (B2)
+            return True, f"output changed on disk: {rel}"
+    values = read_values(entry.reads, product, manifest, build_dir)
+    key = compute_key(rule, entry.reads, product, manifest, build_dir, values)
     if key != entry.key:
         changed = [k for k, v in rule.inputs.items() if entry.inputs.get(k) != v]
-        reads_changed = [
-            k
-            for k in entry.reads
-            if value_of(product, manifest, build_dir, k) != entry_value(entry, k)
-        ]
+        reads_changed = [k for k in entry.reads if values[k] != entry.values.get(k)]
         why = (
             ", ".join([*(f"input {c}" for c in changed), *reads_changed])
             or "a recorded value changed"
@@ -89,9 +102,24 @@ def needs_run(
     return False, "up to date"
 
 
-def entry_value(entry: Entry, key: str) -> str | None:
-    """Recorded value for a read, when the manifest stored it (M3 stores keys only)."""
-    return None
+def prune(manifest: Manifest, rules: list[Rule], build_dir: Path) -> list[str]:
+    """Drop manifest entries (and their outputs) for rules that no longer exist (gate-1 B1)."""
+    import shutil
+
+    live = {r.id for r in rules}
+    removed: list[str] = []
+    dirs = {"part": "parts", "asm": "assemblies", "doc": "docs"}
+    for rid in list(manifest.entries):
+        if rid in live:
+            continue
+        entry = manifest.entries.pop(rid)
+        removed.append(rid)
+        kind, _, ident = rid.partition(":")
+        for rel in entry.outputs:
+            (build_dir / rel).unlink(missing_ok=True)
+        if kind in dirs:
+            shutil.rmtree(build_dir / dirs[kind] / ident, ignore_errors=True)
+    return removed
 
 
 def run_build(
@@ -112,8 +140,15 @@ def run_build(
     build_dir.mkdir(parents=True, exist_ok=True)
     manifest = Manifest() if clean else Manifest.load(build_dir)
     if clean:
+        import shutil
+
+        for sub in ("parts", "assemblies", "drawings", "bom", "docs", "checks", "report"):
+            shutil.rmtree(build_dir / sub, ignore_errors=True)
         manifest.save(build_dir)
-    rules = rules_for_target(build_rules(product), target, only_part)
+    all_rules = build_rules(product, render=render)
+    if prune(manifest, all_rules, build_dir):
+        manifest.save(build_dir)
+    rules = rules_for_target(all_rules, target, only_part)
     ctx = RunContext(product=product, build_dir=build_dir, render=render)
     try:
         from napkin2factory.core.vcs import Vcs
@@ -134,9 +169,11 @@ def run_build(
         "N2F_TEST_EXIT_AFTER"
     )  # interruption tests: "<rule-id>" or "<rule-id>:before"
 
-    pending_parts = [
-        r for r in rules if r.kind == "part" and needs_run(r, product, manifest, build_dir)[0]
-    ]
+    pending_parts = (
+        [r for r in rules if r.kind == "part" and needs_run(r, product, manifest, build_dir)[0]]
+        if jobs > 1
+        else []
+    )
     if jobs > 1 and len(pending_parts) > 1:
         _run_parts_parallel(pending_parts, product, manifest, build_dir, render, jobs, summary, say)
         rules = [r for r in rules if r.id not in summary.ran]
@@ -159,7 +196,8 @@ def run_build(
         if result.payload is not None:
             ctx.payloads[rule.id] = result.payload
         outputs = {str(p.relative_to(build_dir)): sha256_file(p) for p in result.outputs}
-        key = compute_key(rule, result.reads, product, manifest, build_dir)
+        values = read_values(result.reads, product, manifest, build_dir)
+        key = compute_key(rule, result.reads, product, manifest, build_dir, values)
         if kill == f"{rule.id}:before":
             os._exit(3)
         manifest.entries[rule.id] = Entry(
@@ -170,6 +208,7 @@ def run_build(
             duration=round(dt, 3),
             rule_version=rule.version,
             inputs=dict(rule.inputs),
+            values=values,
         )
         manifest.save(build_dir)
         if kill == rule.id:
@@ -213,45 +252,56 @@ def _run_parts_parallel(
     summary: BuildSummary,
     say: Any,
 ) -> None:
+    """Build parts in a spawn pool; record each result as it arrives (a failure keeps the rest)."""
     import multiprocessing as mp
 
     ctx = mp.get_context("spawn")
     by_id = {r.id: r for r in rules}
-    with ctx.Pool(processes=max(1, jobs)) as pool:
-        results = pool.starmap(
-            _worker,
-            [(str(product.root), r.id.split(":", 1)[1], str(build_dir), render) for r in rules],
-        )
-    for res in results:
-        rule = by_id[f"part:{res['part_id']}"]
-        outputs = {
-            str(Path(p).relative_to(build_dir)): sha256_file(Path(p)) for p in res["outputs"]
-        }
-        key = compute_key(rule, res["reads"], product, manifest, build_dir)
-        manifest.entries[rule.id] = Entry(
-            key=key,
-            reads=res["reads"],
-            outputs=outputs,
-            output_hash=res["output_hash"],
-            duration=round(res["duration"], 3),
-            rule_version=rule.version,
-            inputs=dict(rule.inputs),
-        )
-        manifest.save(build_dir)
-        summary.ran.append(rule.id)
-        summary.durations[rule.id] = round(res["duration"], 3)
-        say(f"  [dim]built[/dim] {rule.id} [dim](parallel, {res['duration']:.1f}s)[/dim]")
+    args = [(str(product.root), r.id.split(":", 1)[1], str(build_dir), render) for r in rules]
+    failure: BaseException | None = None
+    with ctx.Pool(processes=max(1, jobs), maxtasksperchild=1) as pool:
+        try:
+            for res in pool.imap_unordered(_worker_star, args):
+                rule = by_id[f"part:{res['part_id']}"]
+                outputs = {
+                    str(Path(p).relative_to(build_dir)): sha256_file(Path(p))
+                    for p in res["outputs"]
+                }
+                values = read_values(res["reads"], product, manifest, build_dir)
+                key = compute_key(rule, res["reads"], product, manifest, build_dir, values)
+                manifest.entries[rule.id] = Entry(
+                    key=key,
+                    reads=res["reads"],
+                    outputs=outputs,
+                    output_hash=res["output_hash"],
+                    duration=round(res["duration"], 3),
+                    rule_version=rule.version,
+                    inputs=dict(rule.inputs),
+                    values=values,
+                )
+                manifest.save(build_dir)
+                summary.ran.append(rule.id)
+                summary.durations[rule.id] = round(res["duration"], 3)
+                say(f"  [dim]built[/dim] {rule.id} [dim](parallel, {res['duration']:.1f}s)[/dim]")
+        except N2FError as exc:
+            failure = exc
+    if failure is not None:
+        raise failure
+
+
+def _worker_star(args: tuple[str, str, str, bool]) -> dict[str, Any]:
+    return _worker(*args)
 
 
 def explain_build(
-    product: Product, target: str = "all", build_dir: Path | None = None
+    product: Product, target: str = "all", build_dir: Path | None = None, render: bool = True
 ) -> list[tuple[str, bool, str]]:
     """Dry run: which rules would run and why (upstream reruns are assumed to change output)."""
     build_dir = build_dir or product.paths.build
     manifest = Manifest.load(build_dir)
     out: list[tuple[str, bool, str]] = []
     changed_outputs: set[str] = set()
-    for rule in rules_for_target(build_rules(product), target):
+    for rule in rules_for_target(build_rules(product, render=render), target):
         run, why = needs_run(rule, product, manifest, build_dir)
         if not run:
             entry = manifest.entries.get(rule.id)

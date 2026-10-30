@@ -29,6 +29,7 @@ def build(
     ),
     jobs: int = typer.Option(1, "--jobs", "-j", help="Parallel workers for independent parts."),
     no_render: bool = typer.Option(False, "--no-render", help="Skip PNG renders (faster)."),
+    explain: bool = typer.Option(False, "--explain", help="Dry run: what would rebuild, and why."),
     json_out: bool = JsonOption,
 ) -> None:
     """Generate 3D, drawings, BOM, manuals, checks and the report from the model."""
@@ -36,6 +37,17 @@ def build(
     if target not in TARGETS:
         raise typer.BadParameter(f"--target must be one of {', '.join(TARGETS)}")
     product = load_product(root)
+    if explain:
+        from napkin2factory.core.graph.runner import explain_build
+
+        plan = explain_build(product, target, render=not no_render)
+        if json_out:
+            emit_json({"plan": [{"rule": r, "run": run, "why": why} for r, run, why in plan]})
+        else:
+            for rid, run, why in plan:
+                mark = "[yellow]rebuild[/yellow]" if run else "[dim]keep   [/dim]"
+                console.print(f"  {mark} {rid} [dim]({why})[/dim]")
+        return
     if target == "geometry":
         from napkin2factory.geometry.build import build_geometry
 

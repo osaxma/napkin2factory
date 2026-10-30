@@ -48,8 +48,12 @@ class _Proxy:
         return _Value(value)
 
     def __str__(self) -> str:
-        self._log.add(self._uri if not self._path else f"{self._uri}#{'.'.join(self._path)}")
-        return str(self._obj)
+        if isinstance(self._obj, dict) or not hasattr(self._obj, "name"):
+            self._log.add(f"{self._uri}#{'.'.join(self._path)}" if self._path else self._uri)
+            return str(self._obj)
+        path = (*self._path, "name")
+        self._log.add(f"{self._uri}#{'.'.join(path)}")
+        return str(self._obj.name)
 
 
 class _Value:
@@ -82,7 +86,10 @@ class _FormattedParams(ParamAccessor):
     """``P["x"]`` in a doc renders as ``"50 mm"``."""
 
     def __getitem__(self, slug: str) -> Any:
-        return _Value(super().__getitem__(slug))
+        try:
+            return _Value(super().__getitem__(slug))
+        except KeyError as exc:  # keep the accessor's hint instead of Jinja's generic message
+            raise DocRenderError(str(exc.args[0])) from exc
 
 
 class _Bom:
@@ -175,10 +182,18 @@ def render_doc(product: Product, doc: Doc, rollups: dict[str, Any] | None = None
             iface=iface,
             dec=dec,
             bom=_Bom(rollups, log),
-            product=product.manifest.product,
+            product=_Proxy(product.manifest.product, "manifest://product", log),
         )
     except (jinja2.TemplateError, DocRenderError, KeyError, AttributeError) as exc:
-        raise DocRenderError(f"doc://{doc.meta.id} ({doc.path.name}): {exc}") from exc
+        line = getattr(exc, "lineno", None)
+        if line is None:
+            tb = exc.__traceback__
+            while tb is not None:
+                if tb.tb_frame.f_code.co_filename == "<template>":
+                    line = tb.tb_lineno
+                tb = tb.tb_next
+        where = f" line {line}" if line else ""
+        raise DocRenderError(f"doc://{doc.meta.id} ({doc.path.name}{where}): {exc}") from exc
     for dep in doc.meta.depends_on:
         log.add(str(dep))
     return Rendered(markdown=text, reads=log.keys, warnings=warnings)

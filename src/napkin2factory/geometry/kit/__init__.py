@@ -20,6 +20,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from napkin2factory.core.errors import N2FError
 from napkin2factory.core.units import mm
 from napkin2factory.geometry.features import PartResult
 
@@ -59,7 +60,7 @@ class KitContext:
 Generator = Callable[[Any, KitContext], PartResult]
 
 
-class KitError(ValueError):
+class KitError(N2FError, ValueError):
     """A generator was called with bad arguments or cannot build the requested shape."""
 
 

@@ -129,8 +129,10 @@ def _edit_keys(product: Product, edits: list[Edit]) -> tuple[list[str], dict[str
             if u.scheme == "part" and u.selector[:1] == ("cost",):
                 keys.append(f"part://{u.id}#cost")
             overrides[str(u)] = e.to
-            # a selector edit touches the whole object for rules that read it without a selector
-            keys.append(str(u.base))
+            # rules record the fields they read (part://x#material, asm://y#children, …), so a
+            # selector edit touches exactly the rules that read that field (gate-1 B3)
+            if u.selector:
+                keys.append(f"{u.base}#{u.selector[0]}")
     seen: dict[str, None] = {}
     for k in keys:
         seen.setdefault(k, None)

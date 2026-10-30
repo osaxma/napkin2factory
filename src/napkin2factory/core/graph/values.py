@@ -19,10 +19,36 @@ from napkin2factory.core.uris import Uri, UriError
 
 RULE_FOR_SCHEME = {"part": "part:", "asm": "asm:", "doc": "doc:", "drawing": "drawing:"}
 
+#: Membership keys (gate-1 B1): the *set* of ids of a kind, so adding or removing an
+#: object changes every rule that enumerates it.
+MEMBERSHIP: dict[str, str] = {
+    "set://parts": "parts",
+    "set://asms": "assemblies",
+    "set://reqs": "requirements",
+    "set://params": "parameters",
+    "set://docs": "docs",
+    "set://decs": "decisions",
+    "set://ecrs": "ecrs",
+    "set://signoffs": "signoffs",
+    "set://ifaces": "interfaces",
+}
+
+
+def membership_value(product: Product, key: str) -> str:
+    """Hash of the sorted ids (parts also carry whether they have geometry)."""
+    attr = MEMBERSHIP[key]
+    coll = getattr(product, attr)
+    if key == "set://parts":
+        return sha256_json(sorted((p.id, p.has_geometry, p.kind) for p in coll.values()))
+    return sha256_json(sorted(coll))
+
 
 def _fmt(v: Any) -> str:
     if is_quantity(v):
-        return format_quantity(v)
+        # shortest round-trip repr: 200.0004 mm must not key the same as 200 mm (gate-1 C3)
+        text = format_quantity(v)
+        unit = text.split(" ", 1)[1] if " " in text else ""
+        return f"{float(v.magnitude)!r} {unit}".strip()
     if hasattr(v, "model_dump"):
         return sha256_json(v.model_dump(mode="json"))
     if isinstance(v, (dict, list)):
@@ -33,7 +59,10 @@ def _fmt(v: Any) -> str:
 def _json_field(path: Path, selector: tuple[str, ...]) -> str:
     if not path.is_file():
         return "unbuilt"
-    data: Any = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data: Any = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        return "corrupt"  # a half-written file forces a rerun instead of a traceback
     for key in selector:
         if isinstance(data, dict) and key in data:
             data = data[key]
@@ -56,6 +85,16 @@ def value_of(
     if key.startswith("rule:"):
         entry = manifest.entries.get(key[len("rule:") :])
         return entry.output_hash if entry else "unbuilt"
+    if key in MEMBERSHIP:
+        return membership_value(product, key)
+    if key.startswith("signoff:"):
+        return sha256_file(product.paths.signoffs / f"{key[len('signoff:') :]}.yaml")
+    if key.startswith("manifest://product"):
+        sel = key.split("#", 1)[1] if "#" in key else ""
+        obj: Any = product.manifest.product
+        for part in sel.split(".") if sel else []:
+            obj = getattr(obj, part, None)
+        return _fmt(obj)
     try:
         uri = Uri.parse(key)
     except UriError:

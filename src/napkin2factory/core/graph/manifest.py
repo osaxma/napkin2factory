@@ -26,6 +26,7 @@ class Entry:
     version: str = __version__
     rule_version: int = 1
     inputs: dict[str, str] = field(default_factory=dict)  # declared input hashes at run time
+    values: dict[str, str] = field(default_factory=dict)  # value of every read at run time
 
 
 @dataclass
@@ -39,11 +40,16 @@ class Manifest:
     def load(cls, build_dir: Path) -> Manifest:
         """Read the manifest or return an empty one (a corrupt file counts as empty)."""
         path = build_dir / MANIFEST_REL
+        for stale in path.parent.glob(".manifest-*.tmp") if path.parent.is_dir() else []:
+            stale.unlink(missing_ok=True)
         if not path.is_file():
             return cls()
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
+            import sys
+
+            print(f"warning: {path} is unreadable; everything will be rebuilt", file=sys.stderr)
             return cls()
         entries = {}
         for rid, e in data.get("entries", {}).items():

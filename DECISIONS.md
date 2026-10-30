@@ -184,3 +184,50 @@ computed `fail` → `fail`; `skip` → `skip`; safety requirement → `needs-hum
 notes when the computation already passes) until a valid sign-off → `signed`; non-safety
 `manual` → `needs-human` → `pass` with a valid sign-off; everything else `pass`. Stage
 `verify` requires no `fail` and no `needs-human`; `warn` is ignored everywhere (D10).
+
+## Review gate 1 (architecture) — outcome (2026-10-30)
+A fresh-context reviewer found six blockers in the M3 graph; all six are fixed and each has
+a regression test in `tests/e2e/test_invalidation.py`. Concerns C1–C8 were fixed where
+cheap (kit-name validation, corrupt-JSON handling, doc error line numbers, per-read values
+in the manifest for the "why" column, key precision, product proxy in docs, ruamel width,
+`n2f build --explain`, parallel results recorded as they arrive, validate-first ordering);
+the rest are in `BACKLOG.md` (B-0004…B-0006).
+
+## S-027 — Membership keys `set://…` (gate-1 B1)
+Rules that enumerate a collection (BOM, checks, report) read `set://parts`, `set://asms`,
+`set://reqs`, `set://docs`, `set://decs`, `set://ecrs`, `set://signoffs`, `set://ifaces`,
+`set://params`, whose value is the hash of the sorted id list (parts: id + has_geometry +
+kind). Adding or removing an object therefore reruns exactly the rules that enumerate it.
+Rules whose object disappeared are pruned from the manifest with their output directories
+at the start of every build; a consumer that read the pruned URI sees "unbuilt" ≠ the old
+hash and reruns.
+
+## S-028 — Parts and assemblies record the fields they read (gate-1 B3)
+`build_part` records `part://x#geometry|material|mass|process|kind|interfaces|rev`;
+`build_assembly` records `asm://y#children|geometry|rev|exploded`; the part/asm YAML file
+hash is no longer a declared input. A cost or notes edit no longer rebuilds geometry, and
+`n2f impact` (which no longer adds the bare base URI for selector edits) agrees with the
+build by construction. Impact remains a superset: a rerun with identical output stops the
+cascade (S-016), which impact cannot predict.
+
+## S-029 — Outputs are verified, never trusted (gate-1 B2/B4)
+`needs_run` compares every recorded output's sha256 with the file on disk; a tampered or
+half-written output reruns the rule. Part and assembly rules clear their output directory
+before exporting, so stale renders or flat patterns cannot survive a change. `render` is a
+declared input of part/asm rules (`--no-render` then a default build rebuilds). `load_built_part`
+refuses a STEP whose volume disagrees with `props.json` and points at `n2f build --clean`.
+`--clean` also removes the artifact directories.
+
+## S-030 — Stable instance numbering and placements in the assembly hash (gate-1 B5)
+Leaf instances are numbered per URI by (label, rounded world translation, rotation, parent),
+so reordering placement code does not renumber occurrences; a label, when given, is the
+occurrence's identity. The assembly output hash includes `instances.json`, so moving a part
+reruns checks, report and (M6) diff even when bbox/mass are unchanged.
+
+## S-031 — Package-tree code hashes (gate-1 B6)
+Rules hash the system package trees their code lives in (`geometry`, `drawings`, `bom` +
+`catalog`, `docs`, `core/checks` + `rulepacks`, `report`) rather than hand-bumped version
+constants; module-based parts and assemblies also hash the product's whole
+`model/geometry` tree, and the loader purges cached product-local modules before each
+import so helper edits are seen in-process. Part tessellations are persisted as `mesh.npz`
+and reused when a part is reloaded, so `--jobs N` produces byte-identical assembly GLBs.

@@ -43,6 +43,14 @@ def checks_reads(product: Product) -> list[str]:
     for d in product.docs:
         reads.append(f"doc://{d}")
     reads.append("bom://rollups")
+    reads += [
+        "set://reqs",
+        "set://parts",
+        "set://asms",
+        "set://docs",
+        "set://signoffs",
+        "set://ifaces",
+    ]
     seen: dict[str, None] = {}
     for k in reads:
         seen.setdefault(k, None)

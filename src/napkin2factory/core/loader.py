@@ -28,6 +28,7 @@ from napkin2factory.core.model import (
     DocMeta,
     Ecr,
     Interface,
+    KitGeometry,
     Manifest,
     ModuleGeometry,
     Operator,
@@ -675,9 +676,19 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
                     "add the fastener as a COTS part",
                     rule="interface",
                 )
-    # Geometry modules exist; kit names are checked by the geometry layer.
+    # Geometry modules exist; kit names are known.
+    from napkin2factory.geometry.kit import GENERATORS
+
     for part in product.parts.values():
         g = part.geometry
+        if isinstance(g, KitGeometry) and g.kit not in GENERATORS:
+            problems.add(
+                product.files[part.uri],
+                part.uri,
+                f"unknown kit generator {g.kit!r}",
+                f"use one of: {', '.join(GENERATORS)}",
+                rule="geometry",
+            )
         if isinstance(g, ModuleGeometry):
             mod = paths.model / g.module
             if not mod.is_file():

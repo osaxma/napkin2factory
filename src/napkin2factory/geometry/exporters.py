@@ -147,6 +147,7 @@ def export_part(
     props["uri"] = uri
     export_step(result.shape, out_dir / "model.step")
     export_part_glb(uri, v, t, out_dir / "model.glb")
+    np.savez_compressed(out_dir / "mesh.npz", vertices=v, triangles=t)
     write_json(out_dir / "props.json", props)
     feats = to_json(result.features)
     feats["dims"] = to_json(result.dims)

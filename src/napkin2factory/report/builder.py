@@ -21,6 +21,17 @@ def report_reads(ctx: RunContext) -> list[str]:
     reads += [f"req://{r}#title" for r in product.requirements]
     reads += [f"dec://{d}#title" for d in product.decisions]
     reads += [f"ecr://{e}#status" for e in product.ecrs]
+    reads += [
+        "set://parts",
+        "set://asms",
+        "set://docs",
+        "set://reqs",
+        "set://decs",
+        "set://ecrs",
+        "set://signoffs",
+        "set://params",
+        "set://ifaces",
+    ]
     return reads
 
 

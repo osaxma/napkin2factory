@@ -26,7 +26,7 @@ def write_yaml(path: Path, data: Any) -> None:
 def _ruamel() -> YAML:
     y = YAML()
     y.preserve_quotes = True
-    y.width = 100
+    y.width = 4096  # never re-wrap flow mappings: a one-value edit must be a one-line diff
     y.indent(mapping=2, sequence=4, offset=2)
     return y
 

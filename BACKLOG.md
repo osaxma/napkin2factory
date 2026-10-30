@@ -14,3 +14,6 @@ Electrical stage (KiCad), FEA/sim gates, MCP server, hosted anything, orchestrat
 multi-agent runtime, upgrade migrations, manufacturer quote APIs, electronics distributor
 APIs, GD&T-grade drawings, tolerance stack-up analysis, manufacturer capability profiles
 beyond the schema, Class-A surfacing, Tauri wrapper, npm shim, share mode (`n2f publish`).
+| B-0004 | Lock file for concurrent `n2f build` in one product folder | Gate-1 C5: two builds at once would race on the manifest (last writer wins). Rare for a solo tool; revisit with share mode |
+| B-0005 | Interface check for assembly-level parties (`asm://` as a party) | Gate-1 note; v0.1 interfaces are part-to-part only (both examples and the kiln) |
+| B-0006 | `validate.json` embeds absolute paths | Gate-1 note; harmless (build/ is local), tidy when the report links to it |
