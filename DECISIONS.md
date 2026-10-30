@@ -111,3 +111,40 @@ parameters, so a spec that depends on a parameter invalidates both parties (D5).
 nested sub-assemblies included; group nodes are `asm://y#m`. This is what the viewer, the
 BOM and `instance_counts` use (D13, D18). An assembly without a geometry module gets an
 auto layout in a row along X, flagged in `props.notes`.
+
+## S-016 — Downstream rules depend on upstream *output hashes*, not keys (2026-10-30)
+A recorded read of `part://x` resolves to the output hash of `part:x` (props minus reads,
+features, flat pattern), not to its post-run key. So a parameter edit that reruns a part but
+yields identical geometry does not cascade; and an unused parameter reruns only `validate`
+(whose declared input is the model tree hash). `rule:<id>` keys cover rules that produce no
+URI (checks → report → site). This is why `make check`'s invalidation tests assert that
+touching an assembly module reruns only `asm:enclosure` when its props are unchanged.
+
+## S-017 — `validate` always reruns when any model file changes, never otherwise (2026-10-30)
+Its declared inputs are the hashes of `model/`, `n2f.yaml`, `operator.yaml` and `changes/`.
+Deleting a build output or interrupting a build does not rerun it. The §6.4 wording
+"unused parameter → runs only validate" holds exactly.
+
+## S-018 — Interruption safety by atomic manifest writes after each rule (2026-10-30)
+Outputs are written to their final paths; the manifest entry is written last, atomically
+(temp file + `os.replace`). A kill between the two leaves outputs without an entry → the
+rule reruns; a kill after leaves a consistent entry. `N2F_TEST_EXIT_AFTER=<rule>[:before]`
+makes the runner `os._exit(3)` deterministically at either point for the tests.
+
+## S-019 — `--jobs N` builds parts in a spawn pool; assemblies reload from STEP (2026-10-30)
+Workers return props/reads/output hashes only (OCCT shapes do not pickle); the parent
+records manifest entries and later assembly rules reconstruct `BuiltPart` from
+`build/parts/<id>/model.step` + `props.json` (`load_built_part`). Default stays 1 (D2 risk).
+
+## S-020 — Impact before the first build is the conservative static read set (2026-10-30)
+Without a manifest, `compute_impact` uses a static over-approximation (every `param://` a
+part's YAML mentions, every parameter for assemblies/docs) and says so (`firm: false`).
+After one build the recorded reads make it exact and equal to the rebuild set, which the
+invalidation suite asserts for the enclosure.
+
+## S-021 — Manual pages record `depends_on` plus every templated read (2026-10-30)
+`docs/engine.py` renders Jinja2 over the Markdown body with proxies that record
+`part://x#name`, `req://R#statement`, `param://x`, `bom://rollups#total_cost`;
+`depends_on` entries are added as bare URIs so a geometry change to a listed part marks the
+page for rebuild even when the body reads only declared fields. StrictUndefined: a typo
+fails the build rather than rendering blank.

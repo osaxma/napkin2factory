@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.1-build` · **Current milestone:** M2 done → starting M3
+**Branch:** `v0.1-build` · **Current milestone:** M3 done → review gate 1, then M4
 **Resume order:** `GRAND_PLAN.md` → this file → `DECISIONS.md` → `git log --oneline -30` → `make check`
 
 ## Environment (host facts a cold reader needs)
@@ -40,13 +40,24 @@
   tray with uniform walls. Both match the YAML. Flat area × t vs volume: 0.996 (bends).
   `make check` ≈ 1.5 min.
 
-## Next (M3)
-`core/graph/` (rules, keys, manifest, needs-run, impact), `n2f build` through the DAG for
-all targets (placeholders for docs/checks/report until M4/M5), `n2f graph`, `n2f impact
---set`, `--jobs N` spawn pool. Invalidation suite on enclosure (§6.4): `lid-thickness` →
-part:lid, asm:enclosure, drawing:lid, bom, doc:assembly, checks, report, site; unused param
-→ validate only; generator source change; interface spec change → both parties.
-Then review gate 1 (fresh-context reviewer, §8.3 architecture checklist).
+- **M3** — `core/graph/` (hashing, manifest with atomic writes, rules list, values,
+  runs, runner with needs-run/`--jobs`/interruption hook, impact, export), `bom/rollups.py`
+  (quantity/cost/mass/lead rollups with recorded selector reads), `docs/engine.py` (Jinja2
+  with recording proxies, S-021), placeholder drawing/checks/report/site runs that record
+  their true read sets, `n2f build` through the DAG (all targets), `n2f graph`, `n2f impact`.
+  Invalidation suite `tests/e2e/test_invalidation.py` (exact sets, no-op, interruption both
+  sides of the manifest write, impact == rebuild, hypothetical param_bound and cost
+  verdicts, `--jobs 2` ≡ `--jobs 1`, clean, missing output). `make check` runs the full
+  `n2f build` for both examples (~2.5 min).
+
+## Next (M4)
+Review gate 1 first (fresh-context reviewer on `core/graph`, `core/model`, accessors; §8.3).
+Then M4: `core/checks/` evaluators for every verify kind (param_bound, geometry_prop,
+bom_rollup, calc, interference with D29 allowed-contact, count, interface, manual), rule-pack
+runner (`rulepacks/sheet-metal-v0.yaml`, `general-v0.yaml`) over features.json, BOM
+validation tiers (D15) → `validation.json`, sign-offs (D9/D25) + `n2f signoff`, doc
+staleness, check matrix, `n2f check`, stage computation + `n2f status`. Coverage ≥ 80 % on
+core added to `make check`.
 
 ## Open risks
 - Plan's Linux DoD is exercised only in CI (S-001).
