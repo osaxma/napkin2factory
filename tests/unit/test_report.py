@@ -144,3 +144,27 @@ def test_report_opens_from_file_url_without_console_errors(report: tuple[Path, s
     assert counts == {"part://base": 1, "part://bracket": 2, "part://lid": 1}
     assert persona == "engineer"
     assert "part://lid" in card and "Lid" in card
+
+
+def test_revision_label_is_honest(tmp_path: Path) -> None:
+    """An edited model is never labelled with the Revision it no longer matches (gate-2 B4)."""
+    from napkin2factory.core.vcs import Vcs
+    from napkin2factory.report.builder import gather
+
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=True)
+    run_build(load_product(root), quiet=True, render=False)
+    v = Vcs(root)
+    v.snapshot("built")
+    v.tag("v1.0.0", "r")
+    assert (
+        gather(load_product(root), root / "build", "2026-10-30")["revision_label"]
+        == "Revision v1.0.0"
+    )
+    params = root / "model/parameters.yaml"
+    params.write_text(
+        params.read_text().replace(
+            "bracket-width:     {value: 60,", "bracket-width:     {value: 70,"
+        )
+    )
+    label = gather(load_product(root), root / "build", "2026-10-30")["revision_label"]
+    assert label == "draft — changed since Revision v1.0.0"

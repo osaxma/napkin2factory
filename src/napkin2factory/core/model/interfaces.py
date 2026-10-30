@@ -4,17 +4,50 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_serializer, field_validator, model_validator
 
 from napkin2factory.core.model.base import ChildUri, Model, PartUri, QuantityOrParam, Slug
 
 
-class Frame(Model):
-    """Origin and normal of the interface plane, in the first party's coordinates."""
+def _coord(v: Any) -> Any:
+    """A frame coordinate: millimetres as a number, a quantity string, or a ``param://``."""
+    if isinstance(v, bool):
+        raise ValueError("a coordinate cannot be a boolean")
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        from napkin2factory.core.model.base import _to_quantity_or_param
 
-    origin: list[float] = Field(default_factory=lambda: [0.0, 0.0, 0.0])
+        return _to_quantity_or_param(v)
+    return v
+
+
+class Frame(Model):
+    """Origin and normal of the interface plane, in the party's coordinates (mm).
+
+    Coordinates may be numbers (mm), quantity strings or ``param://`` references; the
+    latter are resolved when the interface is read through ``I`` (S-014).
+    """
+
+    origin: list[Any] = Field(default_factory=lambda: [0.0, 0.0, 0.0])
     normal: list[float] = Field(default_factory=lambda: [0.0, 0.0, 1.0])
     x_axis: list[float] | None = None
+
+    @field_validator("origin", mode="before")
+    @classmethod
+    def _origin(cls, v: Any) -> Any:
+        return [_coord(x) for x in v] if isinstance(v, list) else v
+
+    @field_serializer("origin")
+    def _ser_origin(self, v: list[Any]) -> list[Any]:
+        from napkin2factory.core.units import format_quantity, is_quantity
+
+        return [
+            format_quantity(x)
+            if is_quantity(x)
+            else (str(x) if not isinstance(x, (int, float)) else x)
+            for x in v
+        ]
 
     @model_validator(mode="after")
     def _three(self) -> Frame:

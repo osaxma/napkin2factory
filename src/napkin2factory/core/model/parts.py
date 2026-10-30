@@ -93,7 +93,7 @@ class Part(Model):
     id: Slug
     rev: str = "A"
     name: str
-    kind: Literal["custom", "cots"] = "custom"
+    kind: Literal["custom", "cots", "reference"] = "custom"  # reference = owner-supplied/existing
     process: Process = "none"
     material: Material | None = None
     finish: str | None = None
@@ -114,8 +114,8 @@ class Part(Model):
 
     @model_validator(mode="after")
     def _kind_rules(self) -> Part:
-        if self.kind == "cots" and self.tolerance_class is not None:
-            raise ValueError("COTS parts do not declare tolerance_class (it is the vendor's)")
+        if self.kind in ("cots", "reference") and self.tolerance_class is not None:
+            raise ValueError("only custom parts declare tolerance_class")
         if self.kind == "cots" and isinstance(self.geometry, ModuleGeometry):
             raise ValueError("COTS geometry is a kit primitive (block/tube) or 'none'")
         return self

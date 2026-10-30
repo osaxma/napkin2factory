@@ -44,15 +44,17 @@ def _part_data(
 
     part_dir = ctx.build_dir / "parts" / part_id
     built = ctx.built_parts.get(part_id)
-    if built is not None:
-        feats: dict[str, Any] = to_json(built.result.features)
-        feats["dims"] = to_json(built.result.dims)
-        fp = built.result.flat_pattern
-        flat = to_json(fp) if fp is not None else None
-    else:
+    if built is None:
         built = load_built_part(ctx.product, part_id, ctx.build_dir)
-        feats = _read_json(part_dir / "features.json") or {}
-        flat = _read_json(part_dir / "flat_pattern.json")
+    # Features and the flat pattern always come from the files the part rule wrote: a part
+    # reloaded from disk by the assembly rule carries neither in memory (S-043).
+    feats: dict[str, Any] = _read_json(part_dir / "features.json") or {}
+    if not feats and built.result.features is not None:
+        feats = to_json(built.result.features)
+        feats["dims"] = to_json(built.result.dims)
+    flat = _read_json(part_dir / "flat_pattern.json")
+    if flat is None and built.result.flat_pattern is not None:
+        flat = to_json(built.result.flat_pattern)
     return built.shape, dict(built.props), feats, flat
 
 

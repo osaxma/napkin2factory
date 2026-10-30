@@ -1,2 +1,2 @@
 validate
-COTS parts do not declare tolerance_class
+only custom parts declare tolerance_class

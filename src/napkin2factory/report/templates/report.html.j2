@@ -33,6 +33,8 @@ figure{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;b
 .matrix td.cell{text-align:center;font-weight:600}
 .example{display:inline-block;background:#ffe9a8;color:#5a4300;border:1px solid #e6c34a;border-radius:4px;padding:0 .4rem;font-size:.75rem;font-weight:700;letter-spacing:.04em}
 .engineer-only,.owner-only{display:none}
+html[data-persona=engineer] th.engineer-only,html[data-persona=engineer] td.engineer-only{display:table-cell}
+figure.zoom{grid-column:1 / -1}figure.zoom svg{cursor:zoom-out}figure svg{cursor:zoom-in}
 html[data-persona=engineer] .engineer-only{display:initial}html[data-persona=owner] .owner-only{display:initial}
 html[data-persona=engineer] .engineer-only.block,html[data-persona=owner] .owner-only.block{display:block}
 {% for sec, (o, e) in section_order.items() %}html[data-persona=owner] #sec-{{ sec }}{order:{{ o }}}html[data-persona=engineer] #sec-{{ sec }}{order:{{ e }}}
@@ -71,9 +73,9 @@ footer{order:99}
 <section class="card" id="sec-next">
   <h2>Where this product stands</h2>
   <div class="kv">
-    {% for g in stage.gates %}<div><span class="badge {{ 'ok' if g.ok else 'skip' }}">{{ g.name }}</span></div><div>{% if g.ok %}done{% else %}{{ g.blockers[:3] | join('; ') }}{% if g.blockers | length > 3 %} … ({{ g.blockers | length }} items){% endif %}{% endif %}</div>{% endfor %}
+    {% for g in stage.gates %}<div><span class="badge {{ 'ok' if g.ok else 'skip' }}">{{ g.name }}</span></div><div>{% if g.ok %}done{% else %}{{ (g.blockers[:3] | join('; ')) | replace('`', '') }}{% if g.blockers | length > 3 %} … ({{ g.blockers | length }} items){% endif %}{% endif %}</div>{% endfor %}
   </div>
-  <p class="next">Next: {{ stage.next_step }}</p>
+  <p class="next">Next: {{ stage.next_step | replace('`', '') }}</p>
 </section>
 
 <section class="card" id="sec-3d">
@@ -89,27 +91,28 @@ footer{order:99}
   </div>
   <div id="part-card" class="muted">Click a part.</div>
   {% else %}<p class="muted">No assembly geometry to show.</p>{% endif %}
-  <div class="grid" style="margin-top:1rem">{% for r in renders %}<figure><img src="data:image/png;base64,{{ r.b64 }}" alt="{{ r.label }}" style="width:100%"><figcaption>{{ r.label }}</figcaption></figure>{% endfor %}</div>
+  <div class="grid" style="margin-top:1rem">{% for r in renders %}<figure><img src="data:image/png;base64,{{ r.b64 }}" alt="{{ r.label }}" style="width:100%"><figcaption>{{ r.label | replace('asm://', '') | replace(' · iso', ' — from the corner') | replace(' · section', ' — cut through the middle') }}</figcaption></figure>{% endfor %}</div>
 </section>
 
 <section class="card" id="sec-cost">
   <h2><span class="owner-only">What it costs and what to tell the manufacturer</span><span class="engineer-only">Bill of materials</span></h2>
   <p><strong>{{ rollups.total_cost | round(2) }} USD</strong> per unit from declared costs{% if not rollups.cost_complete %} <span class="badge warn">incomplete: some parts have no cost</span>{% endif %} · {{ rollups.total_mass | round(3) }} kg · {{ rollups.part_count }} parts ({{ rollups.custom_count }} custom) · longest lead time {{ rollups.max_lead_time }} d</p>
-  <table id="bom"><thead><tr><th>part</th><th>name</th><th class="num">qty</th><th>kind</th><th class="num">unit cost</th><th class="num">ext.</th><th>sourcing</th><th>what to tell the manufacturer</th></tr></thead><tbody>
+  <table id="bom"><thead><tr><th>part</th><th>name</th><th class="num">qty</th><th><span class="owner-only">made or bought</span><span class="engineer-only">kind</span></th><th class="num">unit cost</th><th class="num"><span class="owner-only">total</span><span class="engineer-only">ext.</span></th><th><span class="owner-only">where it comes from</span><span class="engineer-only">sourcing</span></th><th>what to tell the manufacturer</th></tr></thead><tbody>
   {% for ln in bom_lines %}<tr data-uri="{{ ln.uri }}"><td class="mono">{{ ('&nbsp;&nbsp;' * ln.level) | safe }}{{ ln.uri }}</td><td>{{ ln.name }}</td><td class="num">{{ ln.total_qty }}</td><td>{{ ln.kind }}</td><td class="num">{{ '%.2f' % ln.unit_cost if ln.unit_cost is not none else '—' }}</td><td class="num">{{ '%.2f' % ln.ext_cost if ln.ext_cost is not none else '—' }}</td><td>{% if ln.kind == 'cots' %}<span class="badge {{ 'ok' if ln.sourcing_status == 'verified' else 'warn' if ln.sourcing_status in ('unverified','catalog','no-url','link-failed') else 'fail' if ln.sourcing_status == 'missing' else 'skip' }}">{{ ln.sourcing_status }}</span>{% else %}custom{% endif %}</td><td>{{ ln.manufacturer }}</td></tr>{% endfor %}
   </tbody></table>
-  <p class="muted" style="font-size:.85rem">Costs are declared estimates unless the basis says quote. Files: <span class="mono">build/bom/bom.xlsx</span>, <span class="mono">build/bom/bom.csv</span>.</p>
+  <p class="muted" style="font-size:.85rem"><span class="owner-only">Prices are estimates until a shop quotes them.</span><span class="engineer-only">Costs are declared estimates unless the basis says quote.</span> Spreadsheet: <span class="mono">build/bom/bom.xlsx</span>, <span class="mono">build/bom/bom.csv</span>.</p>
 </section>
 
 <section class="card" id="sec-drawings">
   <h2>Drawings</h2>
-  <div class="grid">{% for d in drawings %}<figure id="drawing-{{ d.id }}">{{ d.svg | safe }}<figcaption>{{ d.uri }} · rev {{ d.rev }}{% if d.has_flat %} · flat pattern DXF: <span class="mono">build/drawings/{{ d.id }}-flat.dxf</span>{% endif %}</figcaption></figure>{% endfor %}</div>
+  <p class="muted" style="font-size:.85rem">Click a drawing to enlarge it; the full-size files are in <span class="mono">build/drawings/</span>.</p>
+  <div class="grid">{% for d in drawings %}<figure id="drawing-{{ d.id }}" onclick="this.classList.toggle('zoom')">{{ d.svg | safe }}<figcaption>{{ d.uri }} · rev {{ d.rev }}{% if d.has_flat %} · flat pattern DXF: <span class="mono">build/drawings/{{ d.id }}-flat.dxf</span>{% endif %}</figcaption></figure>{% endfor %}</div>
 </section>
 
 <section class="card" id="sec-checks">
   <h2><span class="owner-only">Checks</span><span class="engineer-only">Check matrix</span></h2>
-  <table><thead><tr><th>id</th><th>requirement</th><th>category</th><th>verify</th><th>status</th><th>finding</th></tr></thead><tbody>
-  {% for r in req_rows %}<tr id="req-{{ r.id }}"><td class="mono">{{ r.id }}{% if r.safety %} ⚠{% endif %}</td><td>{{ r.title }}</td><td>{{ r.category }}</td><td class="mono">{{ r.kind }}</td><td><span class="badge {{ r.status }}">{{ vv(r.status) }}</span></td><td>{{ r.message }}{% if r.signoff_example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td></tr>{% endfor %}
+  <table><thead><tr><th>id</th><th>requirement</th><th>category</th><th class="engineer-only">verify</th><th>status</th><th>finding</th></tr></thead><tbody>
+  {% for r in req_rows %}<tr id="req-{{ r.id }}"><td class="mono">{{ r.id }}{% if r.safety %} ⚠{% endif %}</td><td>{{ r.title }}</td><td>{{ r.category }}</td><td class="mono engineer-only">{{ r.kind }}</td><td><span class="badge {{ r.status }}">{{ vv(r.status) }}</span></td><td>{{ r.message }}{% if r.signoff_example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td></tr>{% endfor %}
   </tbody></table>
   {% if rule_matrix.rules %}<details class="engineer-only block" open><summary>Rules × parts</summary>
   <table class="matrix"><thead><tr><th>rule</th>{% for p in rule_matrix.parts %}<th class="mono">{{ p }}</th>{% endfor %}</tr></thead><tbody>

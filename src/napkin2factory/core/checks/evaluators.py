@@ -225,6 +225,8 @@ def evaluate_requirement(ctx: EvalContext, req: Requirement) -> CheckResult:
         res.status = "skip"
     elif req.safety:
         res.status = "signed" if valid else "needs-human"
+        if valid and so is not None and so.example:
+            res.message = "EXAMPLE SIGN-OFF, NOT A REVIEW — " + res.message
         if not valid and computed == "pass":
             res.message += (
                 " — passes by computation; safety requirements also need a human sign-off"

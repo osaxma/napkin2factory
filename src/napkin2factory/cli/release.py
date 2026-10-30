@@ -27,6 +27,11 @@ def release(
         help="Build the package and site preview without tagging or editing the model.",
     ),
     no_render: bool = typer.Option(False, "--no-render"),
+    allow_example_signoffs: bool = typer.Option(
+        False,
+        "--allow-example-signoffs",
+        help="Demonstrations only: release although safety sign-offs are EXAMPLES, not reviews.",
+    ),
     dir: Path | None = DirOption,
     json_out: bool = JsonOption,
 ) -> None:
@@ -34,7 +39,18 @@ def release(
     from napkin2factory.ecr.release import release as do_release
 
     product = load_product(product_root(dir))
-    result = do_release(product, version, dry_run=dry_run, render=not no_render)
+    result = do_release(
+        product,
+        version,
+        dry_run=dry_run,
+        render=not no_render,
+        allow_example_signoffs=allow_example_signoffs,
+    )
+    if allow_example_signoffs and not json_out:
+        console.print(
+            "[yellow]EXAMPLE SIGN-OFFS: this Revision is a demonstration, "
+            "not a reviewed design[/yellow]"
+        )
     if json_out:
         emit_json(result)
         return

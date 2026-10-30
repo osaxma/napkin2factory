@@ -353,7 +353,7 @@ def _hypothetical_verdict(
     if v is None:
         return "re-check", "no verify method"
     if v.kind == "manual":
-        return "re-check", "needs a human sign-off again"
+        return "re-check", "a person must sign this off (again, if it was signed)"
     if v.kind == "param_bound" and v.target is not None and v.op and v.value is not None:
         slug = v.target.id
         value = hyp.get(slug, product.parameter_value(slug) if slug in product.parameters else None)
@@ -505,18 +505,20 @@ def summarize(report: ImpactReport, product: Product) -> str:
     lines.append("")
     if report.requirements:
         lines.append("## Requirements")
+        lines.append(
+            "_✓ would pass · ✗ would fail · ? needs a person to re-check · "
+            "~ known only after the rebuild_"
+        )
         for r in report.requirements:
             badge = {
                 "would-pass": "✓ would pass",
                 "would-fail": "✗ WOULD FAIL",
                 "re-check": "? re-check",
-                "estimate": "~ estimate until rebuilt",
+                "estimate": "~ after rebuild",
             }[r.verdict]
             safety = " **(safety)**" if r.safety else ""
             lines.append(
-                f"- {r.id} {r.title}{safety}: {badge}"
-                + (f" — {r.detail}" if r.detail else "")
-                + f" ({r.why})"
+                f"- {r.id} {r.title}{safety}: {badge}" + (f" — {r.detail}" if r.detail else "")
             )
         lines.append("")
     if report.signoffs_invalidated:

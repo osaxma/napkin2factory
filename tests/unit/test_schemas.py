@@ -84,7 +84,7 @@ def test_part_rules():
     base = {"id": "shell", "name": "Shell", "process": "sheet-metal"}
     assert Part.model_validate({**base, "geometry": {"kit": "enclosure", "args": {}}}).has_geometry
     assert not Part.model_validate({**base, "geometry": "none"}).has_geometry
-    with pytest.raises(ValidationError, match="COTS parts do not declare tolerance_class"):
+    with pytest.raises(ValidationError, match="only custom parts declare tolerance_class"):
         Part.model_validate({**base, "kind": "cots", "tolerance_class": "ISO2768-m"})
     with pytest.raises(ValidationError, match="kit generator name"):
         Part.model_validate({**base, "geometry": {"kit": "Bracket-L"}})

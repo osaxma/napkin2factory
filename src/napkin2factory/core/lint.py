@@ -142,6 +142,8 @@ def lint(product: Product) -> Problems:
     # L7: COTS parts have a source; L8: custom parts have tolerance_class, process, material.
     for p in product.parts.values():
         f = product.files[p.uri]
+        if p.kind == "reference":
+            continue  # owner-supplied or existing: nothing to buy or make
         if p.kind == "cots":
             if p.source is None:
                 problems.add(

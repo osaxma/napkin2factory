@@ -23,7 +23,7 @@ def graph(
     format: str = typer.Option("dot", "--format", "-f", help="dot | json"),
     around: str | None = typer.Option(None, "--around", help="Only the neighbourhood of this URI."),
 ) -> None:
-    """Print the build graph (what depends on what) as DOT or JSON."""
+    """Show what depends on what (for engineers; Graphviz or JSON format)."""
     from napkin2factory.core.graph.export import graph_data, to_dot, to_json
 
     product = load_product(product_root(dir))

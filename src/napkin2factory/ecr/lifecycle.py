@@ -381,7 +381,12 @@ def close(product: Product, ecr_id: str) -> dict[str, Any]:
     _transition(fresh, fresh.ecrs[ecr.id], "closed")
     vcs.snapshot(f"Close {ecr.id}: {ecr.title}")
     stage = compute_stage(load_product(product.root))
-    return {"bumped": {k: list(v) for k, v in bumped.items()}, "stage": stage.stage}
+    next_step = "`n2f release vX.Y.Z`" if stage.stage == "verify" else stage.next_step
+    return {
+        "bumped": {k: list(v) for k, v in bumped.items()},
+        "stage": stage.stage,
+        "next_step": next_step,
+    }
 
 
 def _append_changelog(product: Product, ecr: Ecr, bumped: dict[str, tuple[str, str]]) -> None:

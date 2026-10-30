@@ -7,11 +7,13 @@ import typer
 from napkin2factory import __version__
 from napkin2factory.cli import build as build_cmd
 from napkin2factory.cli import check as check_cmd
+from napkin2factory.cli import doctor as doctor_cmd
 from napkin2factory.cli import ecr as ecr_cmd
 from napkin2factory.cli import graph as graph_cmd
 from napkin2factory.cli import init as init_cmd
 from napkin2factory.cli import release as release_cmd
 from napkin2factory.cli import serve as serve_cmd
+from napkin2factory.cli import snapshot as snapshot_cmd
 from napkin2factory.cli import validate as validate_cmd
 
 app = typer.Typer(
@@ -46,6 +48,9 @@ app.command("check")(check_cmd.check)
 app.command("status")(check_cmd.status)
 app.command("signoff")(check_cmd.signoff)
 app.command("serve")(serve_cmd.serve)
+app.command("snapshot")(snapshot_cmd.snapshot)
+app.command("discard")(snapshot_cmd.discard)
+app.command("doctor")(doctor_cmd.doctor)
 app.add_typer(ecr_cmd.ecr_app, name="ecr")
 app.command("release")(release_cmd.release)
 app.command("diff")(release_cmd.diff)

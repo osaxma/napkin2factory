@@ -29,7 +29,7 @@ an allocation, and `safety: true` requirements need verify.
 Expressions are arithmetic over other parameter slugs (write `a - b` with spaces, since
 slugs contain hyphens) plus `min/max/abs/sqrt/ceil/floor/round`.
 
-**parts/<id>.yaml** — `id, rev, name, kind: custom|cots, process, material: {name, spec,
+**parts/<id>.yaml** — `id, rev, name, kind: custom|cots|reference (owner-supplied or existing, not quoted), process, material: {name, spec,
 density?}, finish, tolerance_class: ISO2768-f|m|c|v (custom only), geometry: {kit, args} |
 {module} | none, interfaces, satisfies, cost: {unit, basis, note}, lead_time, mass?,
 source: {vendor, mpn, url, verified} (COTS), manufacturer_notes`. Kit args may reference

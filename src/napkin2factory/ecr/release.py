@@ -190,8 +190,23 @@ def gate_blockers(product: Product) -> list[str]:
     return out
 
 
+def example_signoffs(product: Product) -> list[str]:
+    """Safety requirements whose sign-off is flagged ``example: true``."""
+    return sorted(
+        so.requirement.id
+        for so in product.signoffs.values()
+        if so.example
+        and so.requirement.id in product.requirements
+        and product.requirements[so.requirement.id].safety
+    )
+
+
 def release(
-    product: Product, version: str, dry_run: bool = False, render: bool = True
+    product: Product,
+    version: str,
+    dry_run: bool = False,
+    render: bool = True,
+    allow_example_signoffs: bool = False,
 ) -> dict[str, Any]:
     """Run the release; returns paths and the Revision name."""
     from napkin2factory.core.graph.runner import run_build
@@ -204,6 +219,13 @@ def release(
     if not dry_run:
         vcs.require_clean()
     run_build(product, quiet=True, render=render)
+    examples = example_signoffs(product)
+    if examples and not allow_example_signoffs:
+        raise GateBlocked(
+            f"cannot release {version}: {', '.join(examples)} rely on EXAMPLE sign-offs, which "
+            "are not reviews. A real person must `n2f signoff <REQ> --by <name> --statement …`, "
+            "or pass --allow-example-signoffs for a demonstration release (the report labels them)."
+        )
     blockers = gate_blockers(load_product(product.root))
     if blockers:
         shown = "\n  • ".join(blockers[:8])
@@ -258,16 +280,14 @@ def release(
 def _changelog_release(product: Product, version: str, closed: list[str], today: str) -> None:
     path = product.paths.changelog
     text = path.read_text(encoding="utf-8") if path.is_file() else "# Changelog\n"
-    header = f"\n# Revision {version} ({today})\n"
+    header = f"\n## Revision {version} ({today})\n"
     body = "".join(f"- includes {eid}\n" for eid in closed) or "- first release\n"
-    # newest first: insert after the title line
+    # newest first: insert after the title and its intro paragraph, before earlier entries
     lines = text.splitlines(keepends=True)
-    title_end = 1 if lines and lines[0].startswith("# ") else 0
-    while (
-        title_end < len(lines) and lines[title_end].strip() and not lines[title_end].startswith("#")
-    ):
-        title_end += 1
-    new = "".join(lines[:title_end]) + header + body + "".join(lines[title_end:])
+    i = 1 if lines and lines[0].startswith("# ") else 0
+    while i < len(lines) and not lines[i].startswith("#"):
+        i += 1
+    new = "".join(lines[:i]).rstrip("\n") + "\n" + header + body + "".join(lines[i:])
     path.write_text(new, encoding="utf-8")
 
 

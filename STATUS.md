@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.1-build` · **Current milestone:** M6 done → review gate 2 (UX), then M7
+**Branch:** `v0.1-build` · **Current milestone:** M7 done; M8 nearly done (demos running) → gate 3, then M9
 **Resume note (2026-10-30, run stopped at the owner's usage limit):** the last full
 `make check` was green except two tests fixed right after (vocabulary: git refs moved into
 `vcs.changed_in_last_snapshot`; invalidation: unused parameter now expects validate+report+site,
@@ -96,7 +96,29 @@ resuming, then continue with M6 (release, diff, site) per "Next" below.
   ECR → release → diff, diff page loads from file:// with two viewers. Docs pages written:
   concepts, vocabulary, product-model, kit, checks, ecr-loop, cli.
 
-## Next (M7)
+- **Review gate 2** — five blockers fixed (S-042 and snapshot/discard/init/status changes),
+  most concerns fixed; rest in BACKLOG B-0007…B-0009.
+- **M7** — skills/agents/CLAUDE.md expanded (schema cheat sheet, verify target forms, assembly
+  API, rotation convention), `docs/agent-layer.md`, weak-intake lint fixture, scripted intake
+  simulation passed (fresh-context subagent → validate + lint clean, silhouette built);
+  transcript in `tests/e2e/intake-transcripts/monitor-bracket.md`. Its feedback produced
+  `kind: reference` (S-044) and the skill additions.
+- **M8 (in progress)** — `examples/kiln`: 21 parts, 2 assemblies, 3 interfaces, 17
+  requirements, 11 decisions, 6 manuals, 2 calcs with hand-checked tests, 4 example
+  sign-offs, ECR-001 (parametric) and ECR-002 (design, with `changes/ECR-002.patch`),
+  `demo.sh`, `demo-design.sh`. Check matrix: 0 fail, 4 signed (EXAMPLE), 133 pass, 20 warn;
+  no interferences; mass 108 kg; 907 mm wide. **Render judgment:** iso reads as a kiln (boxed
+  body on a four-leg stand, hinged door with latch, controller box beside); section through
+  the centroid shows the fiber and brick layers around the chamber. Shell and side-liner
+  drawings legible (1:15 shell flat pattern 1770 mm blank; liner grooves dimensioned).
+  `tests/validate_outputs.py` passes on the kiln. `demo.sh` passes end to end (v1.0.0 →
+  ECR-001 → v1.1.0 → diff). **Diff page judged:** nine parts changed with revs A → B, mass
+  +6.9 kg, cost unchanged; shell overlay shows the taller green box over the red original at
+  one scale; side-by-side 3D highlights changed parts (fixed to show the top assembly rather
+  than the door sub-assembly). Remaining: `demo-design.sh` as a test, kiln golden,
+  `make check-full`, gate 3 (engineering + shop read-through).
+
+## Next (M8 close, then M9)
 Review gate 2 (UX, fresh-context reviewer playing a non-technical owner; §8.3). Then M7:
 flesh out `templates/_common` skills/agents per the M7 brief, `docs/agent-layer.md`, lint
 test for a weak intake fixture, and the scripted intake simulation with a fresh-context

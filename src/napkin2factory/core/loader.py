@@ -188,6 +188,7 @@ class Product:
     calcs: dict[str, list[str]] = field(default_factory=dict)  # module → functions
     files: dict[str, Path] = field(default_factory=dict)  # uri string → source file
     broken: set[str] = field(default_factory=set)  # base URIs whose file failed schema validation
+    broken_schemes: set[str] = field(default_factory=set)  # whole files that did not parse
 
     @property
     def root(self) -> Path:
@@ -222,7 +223,7 @@ class Product:
             "ecr": self.ecrs,
             "doc": self.docs,
         }
-        if str(uri.base) in self.broken:
+        if str(uri.base) in self.broken or uri.scheme in self.broken_schemes:
             return None  # the file exists but did not load; its own error is already reported
         if uri.scheme == "calc":
             mod, fn = uri.id.split(".", 1)
@@ -445,7 +446,10 @@ def _load(root: Path) -> tuple[Product, Problems]:
 
     # requirements
     if paths.requirements.is_file():
+        before = len(problems.errors)
         raw = _safe_read(problems, paths.requirements)
+        if len(problems.errors) > before:
+            product.broken_schemes.add("req")
         rf = _load_one(problems, paths.requirements, "requirements.yaml", RequirementsFile, raw)
         if rf is None:
             for item in raw.get("requirements", []) or []:
@@ -460,7 +464,10 @@ def _load(root: Path) -> tuple[Product, Problems]:
                 product.requirements[r.id] = r
     # parameters
     if paths.parameters.is_file():
+        before = len(problems.errors)
         raw = _safe_read(problems, paths.parameters)
+        if len(problems.errors) > before:
+            product.broken_schemes.add("param")
         pf = _load_one(problems, paths.parameters, "parameters.yaml", ParametersFile, raw)
         if pf is not None:
             product.parameters = dict(pf.parameters)
@@ -469,7 +476,10 @@ def _load(root: Path) -> tuple[Product, Problems]:
                 product.broken.add(f"param://{k}")
     # decisions
     if paths.decisions.is_file():
+        before = len(problems.errors)
         raw = _safe_read(problems, paths.decisions)
+        if len(problems.errors) > before:
+            product.broken_schemes.add("dec")
         df = _load_one(problems, paths.decisions, "decisions.yaml", DecisionsFile, raw)
         if df is None:
             for item in raw.get("decisions", []) or []:

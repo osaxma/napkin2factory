@@ -217,9 +217,10 @@ def run_build(
         summary.durations[rule.id] = round(dt, 3)
         say(f"  [dim]built[/dim] {rule.id} [dim]({why}, {dt:.1f}s)[/dim]")
     if not quiet:
+        where = f"build/ in {build_dir.parent.name}"
         console.print(
-            f"[green]✓[/green] build {summary.build_id}: {len(summary.ran)} rebuilt, "
-            f"{len(summary.skipped)} up to date → {build_dir}"
+            f"[green]✓[/green] built: {len(summary.ran)} rebuilt, {len(summary.skipped)} already "
+            f"up to date → {where}"
         )
     return summary.to_dict()
 

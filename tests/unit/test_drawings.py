@@ -334,3 +334,23 @@ def test_compose_machined_part_without_holes_or_dims() -> None:
     assert {"80.0", "40.0", "40.0"} <= set(_texts(_group(svg, "dims")))  # type: ignore[arg-type]
     assert sheet.meta["scale"] == "2:1" or sheet.meta["scale_factor"] >= 1.0
     assert '<g id="titleblock">' not in sheet.hash_text
+
+
+def test_drawing_keeps_flat_view_when_part_was_reloaded(tmp_path: Path) -> None:
+    """S-043: an assembly rerun reloads parts from disk; the drawing must still see the flat."""
+    from napkin2factory.core.graph.runner import run_build
+    from napkin2factory.core.loader import load_product
+    from tests.conftest import EXAMPLES, copy_product
+
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=False)
+    run_build(load_product(root), target="drawings", quiet=True, render=False)
+    module = root / "model/geometry/enclosure.py"
+    module.write_text(module.read_text() + "\n# touched\n")  # asm reruns, parts do not
+    (root / "build/drawings/base.svg").unlink()  # drawing reruns with reloaded parts
+    s = run_build(load_product(root), target="drawings", quiet=True, render=False)
+    assert (
+        "asm:enclosure" in s["ran"] and "drawing:base" in s["ran"] and "part:base" not in s["ran"]
+    )
+    meta = json.loads((root / "build/drawings/base.json").read_text())
+    assert meta["has_flat"] is True and meta["dxf"] == "base-flat.dxf"
+    assert _group(_svg(root, "base"), "view-flat") is not None
