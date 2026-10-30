@@ -59,14 +59,13 @@ def validate_full(root: Path, product, problems: list[str]) -> None:  # type: ig
         if "BOM" not in wb.sheetnames:
             problems.append("bom.xlsx has no BOM sheet")
         else:
-            cells = [
-                str(c.value) for row in wb["BOM"].iter_rows() for c in row if c.value is not None
+            numbers = [
+                float(c.value)
+                for row in wb["BOM"].iter_rows()
+                for c in row
+                if isinstance(c.value, (int, float)) and not isinstance(c.value, bool)
             ]
-            if (
-                rollups
-                and f"{rollups['total_cost']:.2f}" not in " ".join(cells)
-                and str(rollups["total_cost"]) not in cells
-            ):
+            if rollups and not any(abs(n - float(rollups["total_cost"])) < 0.005 for n in numbers):
                 problems.append("bom.xlsx totals do not include rollups total_cost")
     if (build / "bom" / "bom.csv").is_file():
         with (build / "bom" / "bom.csv").open(newline="", encoding="utf-8") as fh:
@@ -89,8 +88,10 @@ def validate_full(root: Path, product, problems: list[str]) -> None:  # type: ig
                     else ""
                 )
             )
-        elif pdf.read_bytes()[:5] != b"%PDF-" or pdf.read_bytes().count(b"/Type /Page") < 1:
-            problems.append(f"{doc.uri}: page.pdf is not a PDF with pages")
+        else:
+            data = pdf.read_bytes()
+            if data[:5] != b"%PDF-" or b"%%EOF" not in data[-64:] or len(data) < 500:
+                problems.append(f"{doc.uri}: page.pdf is not a complete PDF")
         if (d / "page.html").is_file():
             tree = LexborHTMLParser((d / "page.html").read_text(encoding="utf-8"))
             if tree.css_first("h1") is None and tree.css_first("h2") is None:

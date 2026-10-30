@@ -1,5 +1,9 @@
 """Evidence keys (D25): the artifact key behind a URI at a point in time.
 
+Parts key on their geometry (tessellation hash + features) and assemblies on their
+placements, so a revision-label bump at ``n2f ecr close`` does not void a sign-off made on
+the same geometry (S-040).
+
 A sign-off records the keys of everything it cites.  When any of them changes the
 requirement reverts to ``needs-human``.  Keys come from the build manifest (parts,
 assemblies, docs, drawings, BOM), from the calc runner (module source + inputs + result),
@@ -33,7 +37,36 @@ def evidence_key(
         if rec is not None:
             return str(rec.get("key", "missing"))
         return sha256_file(product.paths.calcs / f"{u.id.split('.')[0]}.py")
-    if u.scheme in ("part", "asm", "doc", "drawing"):
+    if u.scheme == "part":
+        # geometry identity, not the manifest hash: a revision bump must not void a sign-off
+        part_dir = build_dir / "parts" / u.id
+        props_path = part_dir / "props.json"
+        if not props_path.is_file():
+            return "missing"
+        import json
+
+        props = json.loads(props_path.read_text(encoding="utf-8"))
+        return sha256_json(
+            {"tess": props.get("tess_hash"), "features": sha256_file(part_dir / "features.json")}
+        )
+    if u.scheme == "asm":
+        asm_dir = build_dir / "assemblies" / u.id
+        if not (asm_dir / "instances.json").is_file():
+            return "missing"
+        import json
+
+        props = (
+            json.loads((asm_dir / "props.json").read_text(encoding="utf-8"))
+            if (asm_dir / "props.json").is_file()
+            else {}
+        )
+        return sha256_json(
+            {
+                "instances": sha256_file(asm_dir / "instances.json"),
+                "counts": props.get("instance_counts"),
+            }
+        )
+    if u.scheme in ("doc", "drawing"):
         entry = manifest.entries.get(f"{u.scheme}:{u.id}")
         return entry.output_hash if entry else "missing"
     if u.scheme == "bom":

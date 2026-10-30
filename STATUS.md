@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.1-build` · **Current milestone:** M5 done (+ M6 ECR lifecycle) → M6 release/diff/site
+**Branch:** `v0.1-build` · **Current milestone:** M6 done → review gate 2 (UX), then M7
 **Resume note (2026-10-30, run stopped at the owner's usage limit):** the last full
 `make check` was green except two tests fixed right after (vocabulary: git refs moved into
 `vcs.changed_in_last_snapshot`; invalidation: unused parameter now expects validate+report+site,
@@ -85,14 +85,22 @@ resuming, then continue with M6 (release, diff, site) per "Next" below.
   `n2f ecr new|impact|approve|apply|close|reject|list|show`, line-targeted parameter edits
   (one-line diffs), revision bumps at close, CHANGELOG append; `tests/e2e/test_ecr.py`.
 
-## Next (M6, remaining)
-`n2f release vX.Y.Z [--dry-run]` (repo-root + clean-tree + gates via D31 wording; tag; ZIP
-with STEP, drawings PDF bundle via Typst, DXFs, BOM.xlsx, manuals PDF, report;
-`build/site/vX.Y.Z/` frozen + `build/site/index.html`; `released_in` on closed ECRs),
-`n2f diff A B` (worktrees, SVG overlay old red/new green at one scale with title blocks
-excluded, BOM delta with cost/mass, parameter/requirement deltas, changed/added/removed
-parts, side-by-side 3D with highlighting → `build/site/diff/vA..vB/`), release-refusal
-tests (check fails, missing safety sign-off, evidence keys changed), then review gate 2 (UX).
+- **M6** — `ecr/release.py` (gates via stage, Revision tag, ZIP with STEP/drawings
+  SVG+PDF/DXF/BOM/manuals/report, frozen `build/site/vX.Y.Z/` with diff data, S-038),
+  `ecr/diff.py` + `report/templates/diff.html.j2` (overlays red/green at one scale, BOM
+  delta with cost/mass, parameter and verdict deltas, side-by-side 3D with highlighting,
+  S-039), `n2f release|diff`, site index/versions page. Evidence keys for parts are now
+  geometry-based (S-040); `n2f check` keeps renders (S-041). Tests
+  `tests/e2e/test_release_diff.py`: refusals (unsigned safety, unsaved changes, evidence
+  changed, failing check, not a project root, duplicate Revision), package contents, site,
+  ECR → release → diff, diff page loads from file:// with two viewers. Docs pages written:
+  concepts, vocabulary, product-model, kit, checks, ecr-loop, cli.
+
+## Next (M7)
+Review gate 2 (UX, fresh-context reviewer playing a non-technical owner; §8.3). Then M7:
+flesh out `templates/_common` skills/agents per the M7 brief, `docs/agent-layer.md`, lint
+test for a weak intake fixture, and the scripted intake simulation with a fresh-context
+subagent (§1.3 item 6); save the transcript under `tests/e2e/intake-transcripts/`.
 
 ## Open risks
 - Plan's Linux DoD is exercised only in CI (S-001).

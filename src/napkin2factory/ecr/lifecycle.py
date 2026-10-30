@@ -360,7 +360,7 @@ def close(product: Product, ecr_id: str) -> dict[str, Any]:
         raise EcrError(f"{ecr.id} is {ecr.status}; only applied change requests are closed")
     vcs = Vcs(product.root)
     vcs.require_repo_root()
-    run_build(product, target="checks", quiet=True, render=False)
+    run_build(product, target="checks", quiet=True)
     import json
 
     checks = json.loads(
@@ -375,7 +375,7 @@ def close(product: Product, ecr_id: str) -> dict[str, Any]:
     before = (ecr.applied.model_dump() if ecr.applied else {}).get("before") or {}
     bumped = bump_revisions(product, dict(before))
     if bumped:
-        run_build(load_product(product.root), target="checks", quiet=True, render=False)
+        run_build(load_product(product.root), target="checks", quiet=True)
     _append_changelog(product, ecr, bumped)
     fresh = load_product(product.root)
     _transition(fresh, fresh.ecrs[ecr.id], "closed")

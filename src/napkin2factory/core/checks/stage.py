@@ -91,8 +91,9 @@ def compute_stage(product: Product, build_dir: Path | None = None) -> StageRepor
             if r["status"] == "fail":
                 verify_blockers.append(f"{r['id']}: {r['persona_message'] or r['message']}")
             elif r["status"] == "needs-human":
+                why = r.get("message") or "needs a human sign-off"
                 verify_blockers.append(
-                    f"{r['id']}: needs a human sign-off — `n2f signoff "
+                    f"{r['id']}: needs a human sign-off ({why}) — `n2f signoff "
                     f'{r["id"].split("://")[-1]} --by <name> --statement "…"`'
                 )
         if data.get("status") == "placeholder":
