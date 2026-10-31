@@ -214,8 +214,9 @@ margin, not discovering a shortfall.
 
 - **Branch** `v0.2-build`, cut from `53bd7bc`: `bcd1451` M0 · `aa8c6f6` M1 · `5304dbc`, `c529bad`
   M2 · `2b5ed1b` M3 · `b6a3589` M4 · `82df19c` M5 · `7478a11` brand (design assets only, another session's work; not wired into the product) · `9a84cc8` M6 · `1ebca03` M7 xdist · `eab10b1` M7 gate B fixes · the close-out commit that carries this report.
-- **Contract and journals:** `NAPKIN_STAGE.md`, `STATUS.md`, `DECISIONS.md` (S-055…S-070,
-  "Review gate A — outcome"), `BACKLOG.md` (B-0019…B-0031).
+- **Rules and journals:** `AGENTS.md` (= `CLAUDE.md`), `STATUS.md` (state and pointers), `DECISIONS.md`
+  (index at the top; S-055…S-073 and the gate A/B outcomes), `BACKLOG.md` (all open work, B-0019 onward;
+  plan leftovers B-0035+); contracts `NAPKIN_STAGE.md` and `GRAND_PLAN.md`.
 - **Docs:** `docs/napkin.md`, `docs/calckit.md`, `docs/render-checklist.md`, README (napkin act first).
 - **Code:** `src/napkin2factory/concepts/` (build, massing, screening, screenshot, board, promote),
   `calckit/` and `calckit/data/`, `rulepacks/concept-v0.yaml`, `rulepacks/form-v0.yaml`,

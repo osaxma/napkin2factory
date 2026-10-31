@@ -7,13 +7,13 @@ UV ?= uv
 PY := $(UV) run
 EXAMPLES_FAST := examples/bracket examples/enclosure
 
-.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos clean
+.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos verify-list agents-doc clean
 
 check: lint types unit golden examples-fast todo-grep
 
 lint:
-	$(PY) ruff check src tests
-	$(PY) ruff format --check src tests
+	$(PY) ruff check src tests scripts
+	$(PY) ruff format --check src tests scripts
 
 types:
 	$(PY) mypy src/napkin2factory/core src/napkin2factory/calckit
@@ -73,6 +73,12 @@ goldens:
 todo-grep:
 	@! grep -rnE "TODO|FIXME" src/ --include=*.py --include=*.js --include=*.yaml --include=*.md --include=*.html --include=*.j2 \
 	  --exclude-dir=vendor | grep -vE "B-[0-9]{4}" || (echo "TODO/FIXME without a BACKLOG id" && exit 1)
+
+verify-list:  # every engineering number still to be confirmed, as Markdown
+	@$(PY) python scripts/verify_list.py
+
+agents-doc:  # AGENTS.md is the canonical copy; CLAUDE.md mirrors it byte for byte
+	cp AGENTS.md CLAUDE.md
 
 clean:
 	rm -rf build dist examples/*/build .pytest_cache .mypy_cache .ruff_cache
