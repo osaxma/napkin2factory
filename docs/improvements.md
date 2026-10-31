@@ -38,6 +38,9 @@ question sets (architecture/honesty; UX in the owner persona) as they stand in `
 
 ## 2. Run the demos in parallel in `make check-full` (B-0054)
 
+**Done (S-079):** `-n 3` (not `--dist loadfile`: the three demos are one file); 8 min 19 s
+wall against ≈ 12 min. The text below is the original proposal.
+
 **What happened.** `make check-full` is `check` + `kiln` + `demos` in series (see `Makefile`).
 Measured on a clean clone of eab10b1: 28 min 01 s total, of which `check` is about 7.5 min
 (tests are already parallel, S-070), the kiln build with renders plus the kiln napkin build about

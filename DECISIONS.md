@@ -85,7 +85,7 @@ should confirm before relying on them.
 | S-068 | The napkin protocol in the PM skill; interpretation cards (N9) | in force |
 | Gate A | Review gate A (honesty + architecture) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-069 | Kiln retrofit: the napkin story recorded after the fact (M6) | in force |
-| S-070 | `make check` runs the tests in parallel (pytest-xdist) | in force |
+| S-070 | `make check` runs the tests in parallel (pytest-xdist) | in force; the demos in `check-full` run in parallel too (S-079) |
 | Gate B | Review gate B (UX, owner persona) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-071 | v0.2 close-out: what is measured, what is the owner's | in force; the release happened (S-072) |
 | S-072 | CI never repeats a commit's tests; 0.2.0 released | in force |
@@ -95,6 +95,7 @@ should confirm before relying on them.
 | S-076 | `AGENTS.md` is the only instructions file, here and in product folders | in force |
 | S-077 | Generic for any model and client; product roles move to `roles/` | in force |
 | S-078 | Gate reports kept in `docs/reviews/`; visual exits judged by the maintainer | in force |
+| S-079 | The three demos in `make check-full` run side by side | in force |
 
 ---
 
@@ -939,3 +940,12 @@ standing reviewer rules and the four question sets (GRAND_PLAN §8.3, NAPKIN_STA
 exit judged by eye goes to the maintainer as pictures with a one-line question, the answer
 recorded as "judged by the maintainer: …" (S-066, S-067, S-069 were the agent's judgment alone).
 Both are `AGENTS.md` working-style rules; the next plan's milestone exits should name the second.
+
+## S-079 — The demos in `make check-full` run side by side (2026-11-01)
+Amends S-070; B-0054. `demo.sh`, `demo-design.sh` and `demo-napkin.sh` each work in their own temp
+copy with nothing shared and no timing assertion, so `make demos` runs them on three workers
+(`-n 3`; they are one file, so `--dist loadfile` would have kept them on one). Measured on the
+macOS host: 8 min 19 s wall, against ≈ 12 min serial (docs/improvements.md §2, eab10b1). Each
+demo slows under the shared load (demo-design 496 s), so the longest sets the pace. Overlapping
+the kiln step with the demos was not tried: both are CPU-heavy and it is unmeasured. The timing
+tests stay serial (D30).

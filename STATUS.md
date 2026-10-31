@@ -18,8 +18,9 @@ the README's guide link resolve, B-0058) and tagging `v0.3.0` on a green commit 
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via
   `uv`; OCP novtk wheel, renders through the built-in rasterizer; Playwright Chromium installed.
 - `export PATH=$HOME/.local/bin:$PATH` before `uv`. No GNU `timeout`; `sed -i ''`.
-- `make check` ≈ 8 min (tests in parallel, S-070); `make check-full` ≈ 28 min; the first
-  `import build123d` on a machine takes one to two minutes (S-057).
+- `make check` ≈ 8 min (tests in parallel, S-070); `make check-full` was ≈ 28 min before the
+  demos ran side by side (S-079: demos ≈ 12 min → 8 min 19 s; the new total is not measured);
+  the first `import build123d` on a machine takes one to two minutes (S-057).
 - Never run `n2f build` inside `examples/`; copy a product to a temp folder first
   (`tests.conftest.copy_product`). Templates are synced with `make templates`, never hand-edited.
 

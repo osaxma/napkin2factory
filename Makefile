@@ -59,8 +59,10 @@ kiln:
 	$(PY) python tests/validate_outputs.py $(KILN_NAPKIN) --stage concepts
 	N2F_TIMING=1 $(PY) pytest tests/e2e/test_kiln.py -q
 
+# The three demos share nothing (own temp copy each), so they run side by side; they are one
+# file, so the default distribution, not --dist loadfile, spreads them (S-079).
 demos:  # demo.sh, demo-design.sh and demo-napkin.sh, each in a temp copy (D23)
-	N2F_TIMING=1 $(PY) pytest tests/e2e/test_demos.py -q
+	N2F_TIMING=1 $(PY) pytest tests/e2e/test_demos.py -q -n 3
 
 templates:
 	$(PY) python -m napkin2factory.templates.sync
