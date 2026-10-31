@@ -1,0 +1,6 @@
+schema: 1
+system: '>=0.2,<0.3'
+product:
+  id: fx
+  name: Fixture
+units: metric

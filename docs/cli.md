@@ -1,7 +1,7 @@
 # CLI
 
-Run `uv run n2f …` from inside the system checkout, or `n2f …` from anywhere after
-`uv tool install .`. `n2f <command> --help` is the authority; this page is a map of it.
+`n2f …` after `uv tool install napkin2factory` (or `pip install napkin2factory`); inside a
+source checkout, `uv run n2f …`. `n2f <command> --help` is the authority; this page is a map of it.
 
 Every command that works on a product takes `--dir/-C <folder>` (default: the current
 folder or the nearest product folder above it) and `--json` for machine-readable output
@@ -12,7 +12,7 @@ folder or the nearest product folder above it) and `--json` for machine-readable
 | `n2f init [dir] [--template blank\|bracket\|enclosure] [--name TEXT]` | new product folder with change tracking and a first snapshot; `n2f init .` in an existing product folder only sets up tracking (and adds missing agent files). `--no-tracking` is for tests |
 | `n2f validate` | the model loads and every reference resolves |
 | `n2f lint` | requirement quality and model hygiene, stricter than validate (the Intake gate) |
-| `n2f build [--target geometry\|drawings\|bom\|docs\|checks\|report\|site\|all] [--part ID] [--clean] [--jobs N] [--no-render] [--explain] [--offline]` | rebuild exactly what changed. `--explain` is a dry run (what would rebuild, and why); `--offline` skips the vendor-link check of the BOM, same as `N2F_OFFLINE=1`. The first build on a machine loads the CAD kernel, which can take a couple of minutes; a note on stderr says so |
+| `n2f build [--target geometry\|drawings\|bom\|docs\|checks\|report\|site\|all] [--part ID] [--clean] [--jobs N] [--no-render] [--explain] [--offline]` | rebuild exactly what changed. `--explain` is a dry run (what would rebuild, and why); `--offline` skips the vendor-link check of the BOM, same as `N2F_OFFLINE=1`. The first build on a machine loads the CAD kernel (one to two minutes; `n2f init` starts loading it in the background); a note on stderr says so if the build has to wait |
 | `n2f check [--format table\|json\|md] [--all]` | the check matrix; `--all` shows passing rule-pack rows too; exit 2 on `fail` |
 | `n2f status` | stage (intake → design → verify → released), gates, what blocks the next gate and the command that unblocks it |
 | `n2f graph [--format dot\|json] [--around URI]` | the build graph (for engineers) |

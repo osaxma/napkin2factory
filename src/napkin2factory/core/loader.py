@@ -743,12 +743,16 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
     # Assembly graph is acyclic.
     for asm in product.assemblies.values():
         _check_asm_cycle(product, asm, (), problems)
-    # Parameter expressions.
+    # Parameter expressions. Static faults (unsafe syntax, unknown names, bad units) mark
+    # the parameter as bad; evaluation then runs whenever parameters.yaml parsed, whatever
+    # errors other files have (S-012 keeps hiding only what depends on a broken target).
+    bad: set[str] = set()
     for slug, p in product.parameters.items():
         if p.expr:
             try:
                 check_syntax(p.expr)
             except ExprError as exc:
+                bad.add(slug)
                 problems.add(
                     paths.parameters,
                     f"param://{slug}",
@@ -759,6 +763,7 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
                 continue
             for name in referenced_names(p.expr):
                 if name not in product.parameters:
+                    bad.add(slug)
                     problems.add(
                         paths.parameters,
                         f"param://{slug}",
@@ -770,6 +775,7 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
             try:
                 parse_quantity(1, p.unit)
             except UnitError as exc:
+                bad.add(slug)
                 problems.add(
                     paths.parameters,
                     f"param://{slug}",
@@ -777,8 +783,10 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
                     "use a pint unit like mm, kg, degC, USD, d",
                     rule="units",
                 )
-    if not problems.errors:
+    if "param" not in product.broken_schemes:
         for slug in product.parameters:
+            if _reaches_bad_parameter(product, slug, bad):
+                continue
             try:
                 product.parameter_value(slug)
             except (ExprError, UnitError) as exc:
@@ -802,6 +810,28 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
                 rule="signoff",
             )
     # Product id vs directory is informational only.
+
+
+def _reaches_bad_parameter(product: Product, slug: str, bad: set[str]) -> bool:
+    """True when ``slug`` is, or transitively reads, a parameter already reported as bad.
+
+    Evaluating such a parameter would only repeat the first error in other words, so it is
+    skipped (cascade suppression). Cycles among good parameters are left for evaluation to
+    report.
+    """
+    seen: set[str] = set()
+    todo = [slug]
+    while todo:
+        cur = todo.pop()
+        if cur in seen:
+            continue
+        seen.add(cur)
+        if cur in bad or cur not in product.parameters:
+            return True
+        expr = product.parameters[cur].expr
+        if expr:
+            todo.extend(referenced_names(expr))
+    return False
 
 
 def _check_asm_cycle(

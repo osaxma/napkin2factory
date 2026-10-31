@@ -20,7 +20,7 @@ from napkin2factory.core.graph.rules import Rule, build_rules
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import Edit
 from napkin2factory.core.units import UnitError, compare, format_quantity, parse_quantity
-from napkin2factory.core.uris import Uri
+from napkin2factory.core.uris import Uri, display_uri
 
 
 @dataclass
@@ -453,11 +453,15 @@ def _cost_delta(product: Product, edits: list[Edit], build_dir: Path) -> tuple[f
 
 
 def summarize(report: ImpactReport, product: Product) -> str:
-    """Markdown summary in persona vocabulary (owner by default)."""
+    """Markdown summary in persona vocabulary (owner by default).
+
+    The owner reads edited URIs without their ``scheme://`` prefix (``display_uri``); the
+    stored impact (``to_dict``) keeps them whole.
+    """
     persona = product.operator.persona
     lines = [f"# Impact of {len(report.edits)} change(s)", ""]
     for e in report.edits:
-        lines.append(f"- set `{e['set']}` to **{e['to']}**")
+        lines.append(f"- set `{display_uri(e['set'], persona)}` to **{e['to']}**")
     lines.append("")
     if not report.firm:
         lines.append(

@@ -1,4 +1,4 @@
-# Concepts
+# How napkin2factory works
 
 ## One canonical model, everything else compiled
 

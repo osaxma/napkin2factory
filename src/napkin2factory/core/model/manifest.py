@@ -29,7 +29,7 @@ class Manifest(Model):
     """``n2f.yaml``."""
 
     schema_version: int = Field(default=1, alias="schema")
-    system: str = ">=0.1,<0.2"
+    system: str = ">=0.2,<0.3"
     product: ProductInfo
     units: Literal["metric"] = "metric"
     manufacturer_profile: str | None = None
@@ -42,8 +42,19 @@ class Manifest(Model):
         try:
             SpecifierSet(v)
         except InvalidSpecifier as exc:
-            raise ValueError(f"system pin {v!r} is not a version range like '>=0.1,<0.2'") from exc
+            raise ValueError(f"system pin {v!r} is not a version range like '>=0.2,<0.3'") from exc
         return v
+
+    def pin_includes(self, version: str) -> bool:
+        """True when ``version`` of napkin2factory satisfies this product's ``system`` pin.
+
+        Pre-releases are admitted (``prereleases=True``) but compare below their final
+        release under PEP 440, so ``0.2.0.dev0`` is outside ``>=0.2,<0.3`` and inside
+        ``>=0.1,<0.3``. The pin only ever warns (D20); it never refuses to run.
+        """
+        from packaging.specifiers import SpecifierSet
+
+        return SpecifierSet(self.system).contains(version, prereleases=True)
 
 
 class Operator(Model):

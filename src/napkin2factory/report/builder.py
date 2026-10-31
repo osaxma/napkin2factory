@@ -5,7 +5,9 @@ script, GLBs and renders embedded as base64, drawings inlined as SVG, manuals as
 fragments.  One layout for everyone: a sticky section index, sections grouped by purpose
 (overview, safety, product, verification, design record, manuals), and every model URI
 rendered as a hyperlink to the row that describes it.  The operator persona only picks
-the words used for check statuses; safety content is always visible.
+the words used for check statuses and whether visible URIs keep their ``scheme://`` prefix
+(the owner reads ``outer-shell``, the engineer ``part://outer-shell``; attributes and
+anchors always carry the full URI); safety content is always visible.
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from napkin2factory.core.checks.results import SUMMARY_KEYS
 from napkin2factory.core.graph.hashing import sha256_text
 from napkin2factory.core.loader import Product
 from napkin2factory.core.units import format_quantity
+from napkin2factory.core.uris import display_uri
 
 if TYPE_CHECKING:
     from napkin2factory.core.graph.rules import RunContext, RunResult
@@ -95,13 +98,18 @@ def anchor_for(uri: str, anchors: dict[str, str]) -> str | None:
     }.get(scheme)
 
 
-def ref_html(uri: Any, anchors: dict[str, str]) -> Markup:
-    """Render a URI as a hyperlink to its row when the page has one, else as plain text."""
+def ref_html(uri: Any, anchors: dict[str, str], persona: str = "engineer") -> Markup:
+    """Render a URI as a hyperlink to its row when the page has one, else as plain text.
+
+    The link target always uses the full URI; the visible text follows the persona's
+    display rule (:func:`~napkin2factory.core.uris.display_uri`).
+    """
     text = str(uri)
     anchor = anchor_for(text, anchors)
+    shown = display_uri(text, persona)
     if anchor is None:
-        return Markup('<span class="mono">{}</span>').format(text)
-    return Markup('<a class="ref mono" href="#{}">{}</a>').format(anchor, text)
+        return Markup('<span class="mono">{}</span>').format(shown)
+    return Markup('<a class="ref mono" href="#{}">{}</a>').format(anchor, shown)
 
 
 def report_reads(ctx: RunContext) -> list[str]:
@@ -496,7 +504,9 @@ def render_report(product: Product, build_dir: Path, snapshot_date: str, build_i
     )
     data = gather(product, build_dir, snapshot_date)
     anchors = data["anchors"]
-    env.filters["ref"] = lambda uri: ref_html(uri, anchors)
+    persona = data["persona"]
+    env.filters["ref"] = lambda uri: ref_html(uri, anchors, persona)
+    env.filters["disp"] = lambda uri: display_uri(str(uri), persona)
     data["viewer_script"] = inline_module_script(bundle_viewer()) if data["glb_b64"] else ""
     data["build_id"] = build_id
     return env.get_template("report.html.j2").render(**data)

@@ -179,3 +179,33 @@ def test_manifest_operator_signoff_decision():
         }
     )
     assert str(d.links[0]) == "req://REQ-001"
+
+
+def _pinned(system: str | None = None) -> Manifest:
+    data: dict[str, object] = {"schema": 1, "product": {"id": "kiln", "name": "Kiln"}}
+    if system is not None:
+        data["system"] = system
+    return Manifest.model_validate(data)
+
+
+def test_manifest_default_pin_is_the_current_minor():
+    assert _pinned().system == ">=0.2,<0.3"
+
+
+@pytest.mark.parametrize(
+    ("system", "version", "inside"),
+    [
+        (">=0.2,<0.3", "0.2.0", True),
+        (">=0.2,<0.3", "0.2.7", True),
+        (">=0.2,<0.3", "0.1.9", False),  # below
+        (">=0.2,<0.3", "0.3.0", False),  # above
+        # PEP 440 (as `packaging` implements it): a pre-release sorts before its final
+        # release, so 0.2.0.dev0 is below 0.2 and outside >=0.2, but inside >=0.1,<0.3;
+        # and <0.3 also excludes 0.3.0.dev0.
+        (">=0.2,<0.3", "0.2.0.dev0", False),
+        (">=0.1,<0.3", "0.2.0.dev0", True),
+        (">=0.2,<0.3", "0.3.0.dev0", False),
+    ],
+)
+def test_manifest_pin_includes(system: str, version: str, inside: bool):
+    assert _pinned(system).pin_includes(version) is inside

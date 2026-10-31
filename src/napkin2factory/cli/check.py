@@ -17,10 +17,12 @@ from napkin2factory.cli.common import (
     emit_json,
     handle_errors,
     product_root,
+    warn_if_pin_excludes,
 )
 from napkin2factory.core.checks.results import example_signoff_words
 from napkin2factory.core.errors import CheckFailed, N2FError
 from napkin2factory.core.loader import load_product
+from napkin2factory.core.uris import display_uri
 
 STATUS_STYLE = {
     "pass": "green",
@@ -61,7 +63,9 @@ def check(
     json_out: bool = JsonOption,
 ) -> None:
     """Check every requirement and rule, and show what needs attention."""
-    product = load_product(product_root(dir))
+    root = product_root(dir)
+    warn_if_pin_excludes(root, json_out or format == "json")
+    product = load_product(root)
     data = _ensure_checks(product)
     if json_out or format == "json":
         emit_json(data)
@@ -74,7 +78,7 @@ def check(
 
 
 def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ignore[type-arg]
-    """Rich table of the check matrix."""
+    """Rich table of the check matrix; the owner reads URIs without their ``scheme://``."""
     t = Table(title="Requirements", show_lines=False)
     t.add_column("id")
     t.add_column("title")
@@ -112,8 +116,8 @@ def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ign
         t2.add_column("detail")
         for r in others:
             t2.add_row(
-                escape(r["id"]),
-                escape(r["subject"]),
+                escape(display_uri(r["id"], persona)),
+                escape(display_uri(r["subject"], persona)),
                 f"[{STATUS_STYLE[r['status']]}]{_word(r['status'], persona)}[/]",
                 escape(r["message"]),
             )
@@ -151,7 +155,9 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
     """Where the product is (intake → design → verify → released) and what blocks the next gate."""
     from napkin2factory.core.checks.stage import compute_stage
 
-    product = load_product(product_root(dir))
+    root = product_root(dir)
+    warn_if_pin_excludes(root, json_out)
+    product = load_product(root)
     rep = compute_stage(product)
     if json_out:
         emit_json(rep.to_dict())

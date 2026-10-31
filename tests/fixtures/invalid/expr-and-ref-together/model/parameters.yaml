@@ -1,0 +1,16 @@
+parameters:
+  width:
+    value: 80
+    unit: mm
+  thick:
+    value: 3
+    unit: mm
+  sum:
+    expr: width + depth
+    unit: mm
+  loop-a:
+    expr: loop-b + thick
+    unit: mm
+  loop-b:
+    expr: loop-a + thick
+    unit: mm

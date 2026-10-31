@@ -350,8 +350,38 @@ def _declared_changed(product: Product, uri: str) -> bool:
     return rel in Vcs(product.root).changed_in_last_snapshot()
 
 
+def _close_gate(ecr_id: str, results: list[dict[str, Any]]) -> None:
+    """Refuse to close while a check fails or a requirement waits for a human sign-off.
+
+    Example sign-offs (``signed`` rows flagged ``example``) do not block: the release gate
+    weighs those.  Failing checks are listed first; the sign-off wording matches the stage
+    blockers (``core/checks/stage.py``) so ``n2f status`` and ``n2f ecr close`` agree.
+    """
+    fails = [r["id"] for r in results if r["status"] == "fail"]
+    human = [r for r in results if r["status"] == "needs-human"]
+    if not fails and not human:
+        return
+    reasons: list[str] = []
+    if fails:
+        reasons.append(f"{len(fails)} check(s) fail ({', '.join(fails[:5])})")
+    for r in human:
+        rid = r["id"].split("://")[-1]
+        why = r.get("message") or "needs a human sign-off"
+        reasons.append(
+            f"{rid} needs a human sign-off ({why}) — "
+            f'`n2f signoff {rid} --by <name> --statement "…"`'
+        )
+    if not human:
+        tail = "fix them, rebuild, and close again"
+    elif not fails:
+        tail = f"sign {'it' if len(human) == 1 else 'them'} off, then close again"
+    else:
+        tail = "fix the failing checks, rebuild, sign off what needs it, and close again"
+    raise GateBlocked(f"{ecr_id} cannot close: {'; '.join(reasons)}; {tail}")
+
+
 def close(product: Product, ecr_id: str) -> dict[str, Any]:
-    """Close an applied change request: checks must be green; revisions bump; changelog grows."""
+    """Close an applied change request: checks green, sign-offs current; revisions bump."""
     from napkin2factory.core.checks.stage import compute_stage
     from napkin2factory.core.graph.runner import run_build
 
@@ -366,12 +396,7 @@ def close(product: Product, ecr_id: str) -> dict[str, Any]:
     checks = json.loads(
         (product.paths.build / "checks" / "checks.json").read_text(encoding="utf-8")
     )
-    fails = [r["id"] for r in checks["results"] if r["status"] == "fail"]
-    if fails:
-        raise GateBlocked(
-            f"{ecr.id} cannot close: {len(fails)} check(s) fail ({', '.join(fails[:5])}); "
-            "fix them, rebuild, and close again"
-        )
+    _close_gate(ecr.id, checks["results"])
     before = (ecr.applied.model_dump() if ecr.applied else {}).get("before") or {}
     bumped = bump_revisions(product, dict(before))
     if bumped:

@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv tool install "napkin2factory>=0.1,<0.2"
+      - run: uv tool install "napkin2factory>=0.2,<0.3"
       - run: n2f validate && n2f lint
       - run: n2f build
       - run: n2f check

@@ -1,6 +1,6 @@
 [project]
 name = "napkin2factory"
-version = "0.1.0"
+version = "0.2.0"
 description = "From napkin to factory: a text-only product model compiled into a manufacturable technical data package, with an engineering-change loop that rebuilds exactly what changed."
 readme = "README.md"
 license = "MIT"

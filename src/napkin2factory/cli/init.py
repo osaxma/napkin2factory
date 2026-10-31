@@ -9,6 +9,7 @@ from pathlib import Path
 import typer
 
 from napkin2factory.cli.common import JsonOption, console, emit_json, handle_errors
+from napkin2factory.cli.kernel import kernel_loaded, warm_kernel_in_background
 from napkin2factory.core.errors import N2FError
 from napkin2factory.core.vcs import Vcs
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip
@@ -19,6 +20,27 @@ def slugify(name: str) -> str:
     """``My Kiln!`` → ``my-kiln``."""
     s = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     return s or "product"
+
+
+NEXT_WARMING = (
+    "  next: `n2f build` — the CAD kernel is warming up in the background (one to two "
+    "minutes the first time on a machine), then open the folder with your AI client and "
+    "start intake"
+)
+NEXT_COLD = (
+    "  next: `n2f build` (the first run loads the CAD kernel; allow a couple of minutes), "
+    "then open the folder with your AI client and start intake"
+)
+
+
+def start_kernel_warmup() -> bool:
+    """Warm the CAD kernel in a detached process unless it is already loaded here (B-0016).
+
+    Returns True when a background warm-up was started.
+    """
+    if kernel_loaded():
+        return False
+    return warm_kernel_in_background() is not None
 
 
 def write_skeleton(dest: Path, template: str, product_id: str, name: str) -> list[Path]:
@@ -73,14 +95,27 @@ def init(
         was_tracked = vcs.is_tracked() and vcs.is_repo_root()
         vcs.init()
         sha = vcs.snapshot("Start change tracking" if not was_tracked else "Add agent files")
+        warming = start_kernel_warmup()
         if json_out:
-            emit_json({"dir": str(dest), "tracking": True, "snapshot": sha, "added": added})
+            emit_json(
+                {
+                    "dir": str(dest),
+                    "tracking": True,
+                    "snapshot": sha,
+                    "added": added,
+                    "kernel_warmup": warming,
+                }
+            )
         elif was_tracked and not added:
             console.print("this product folder already has change tracking; nothing to do")
         else:
             console.print(
                 f"[green]✓[/green] change tracking set up for {dest}"
                 + (f"; added {len(added)} agent file(s)" if added else "")
+            )
+        if warming and not json_out:
+            console.print(
+                "  the CAD kernel is warming up in the background for your next `n2f build`"
             )
         return
     product_id = slugify(dest.name)
@@ -91,6 +126,7 @@ def init(
         vcs = Vcs(dest)
         vcs.init()
         snapshot = vcs.snapshot(f"Start of {display}")
+    warming = start_kernel_warmup()
     if json_out:
         emit_json(
             {
@@ -99,6 +135,7 @@ def init(
                 "template": template,
                 "files": len(files),
                 "snapshot": snapshot,
+                "kernel_warmup": warming,
             }
         )
         return
@@ -108,7 +145,4 @@ def init(
     )
     if snapshot:
         console.print(f"  first snapshot saved ({snapshot[:10]})")
-    console.print(
-        "  next: `n2f build` (the first run loads the CAD kernel; allow a couple of minutes), "
-        "then open the folder with your AI client and start intake"
-    )
+    console.print(NEXT_WARMING if warming else NEXT_COLD, soft_wrap=True)
