@@ -13,3 +13,6 @@ coverage.xml
 htmlcov/
 examples/*/build/
 .DS_Store
+
+# owner-only checklist (account chores), never committed
+OWNER-TODO.md
