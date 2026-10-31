@@ -18,7 +18,7 @@ from markupsafe import escape
 from napkin2factory.concepts import board as board_mod
 from napkin2factory.concepts.board import BOARD_PATH, write_board
 from napkin2factory.core import concepts as cm
-from tests.conftest import EXAMPLES, copy_product
+from tests.conftest import EXAMPLES, copy_product, real_page_errors
 from tests.unit.test_promote import overlay_cards
 
 CHROMIUM_ARGS = ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"]
@@ -198,7 +198,7 @@ def test_board_opens_from_file_url_with_every_viewer(built: Path, page: str) -> 
         ids = tab.evaluate("window.n2fViewerReady.then(v => Object.keys(v).sort())")
         nodes = tab.evaluate("window.n2fViewers['viewer-C-003'].nodes()")
         browser.close()
-    assert errors == [], errors
+    assert real_page_errors(errors) == [], errors
     assert ids == [f"viewer-C-00{i}" for i in range(1, 5)]
     assert sorted(nodes) == [
         "concept://C-003/body",

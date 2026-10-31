@@ -16,6 +16,7 @@ from napkin2factory.report.inline import (
     bundle_viewer,
     inline_module_script,
 )
+from tests.conftest import real_page_errors
 
 #: sha256 of the vendored three.js r170 files, recorded in DECISIONS.md (D13).
 VENDOR_SHA256 = {
@@ -113,6 +114,6 @@ def test_skeleton_page_loads_from_file_url(tmp_path: Path) -> None:
         nodes = page.evaluate("window.n2fViewerReady.then(() => window.n2fViewer.nodes())")
         count = page.evaluate("window.n2fViewer.instanceCount('part://cube')")
         browser.close()
-    assert errors == [], errors
+    assert real_page_errors(errors) == [], errors
     assert nodes == ["part://cube"]
     assert count == 2

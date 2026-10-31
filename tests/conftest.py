@@ -19,6 +19,24 @@ EXAMPLES = ROOT / "examples"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
+def is_swiftshader_flake(message: str) -> bool:
+    """True for SwiftShader's shader-validation hiccup (B-0024), which is not a page defect.
+
+    Under load the software GL sometimes reports ``THREE.WebGLProgram: Shader Error …
+    VALIDATE_STATUS false`` with an empty info log; the same page loads cleanly the next time.
+    """
+    return (
+        "THREE.WebGLProgram: Shader Error" in message
+        and "VALIDATE_STATUS false" in message
+        and message.rstrip().endswith("Program Info Log:")
+    )
+
+
+def real_page_errors(errors: list[str]) -> list[str]:
+    """The page errors that are not the SwiftShader flake (B-0024)."""
+    return [e for e in errors if not is_swiftshader_flake(e)]
+
+
 def copy_product(src: Path, dst: Path, git: bool = True) -> Path:
     """Copy a product directory (without build/) and optionally start change tracking (D23)."""
     shutil.copytree(src, dst, ignore=shutil.ignore_patterns("build", "__pycache__", ".git"))
