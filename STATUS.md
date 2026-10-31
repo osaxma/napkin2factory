@@ -8,7 +8,8 @@
 ## Where we are
 v0.2 (the napkin stage) is complete and published: M0–M7 done, review gates A and B closed with
 their blockers fixed, `make check-full` green from a clean clone. Uncommitted or pending on this
-branch: journal consolidation (this layout), brand integration (`brand/`, in progress separately).
+branch: journal consolidation (S-073), README for people and the agent guide (S-074), the icon on
+generated pages (S-075), `AGENTS.md` only (S-076), generic roles in `roles/` (S-077).
 
 ## Environment (host facts a cold reader needs)
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via

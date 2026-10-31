@@ -89,6 +89,11 @@ should confirm before relying on them.
 | Gate B | Review gate B (UX, owner persona) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-071 | v0.2 close-out: what is measured, what is the owner's | in force; the release happened (S-072) |
 | S-072 | CI never repeats a commit's tests; 0.2.0 released | in force |
+| S-073 | Journal consolidation and model-agnostic agent rules | amended by S-076 (no `CLAUDE.md` copy) |
+| S-074 | README for people, agent guide for agents; using vs developing kept apart | in force |
+| S-075 | The icon on generated pages; wordmark waits on the font licence | in force |
+| S-076 | `AGENTS.md` is the only instructions file, here and in product folders | in force |
+| S-077 | Generic for any model and client; product roles move to `roles/` | in force |
 
 ---
 
@@ -886,3 +891,40 @@ leftovers (GRAND_PLAN §1.2, NAPKIN_STAGE ⤵ items), risks, with closed rows in
 `make verify-list` prints every unconfirmed number (`verify: true` rows, `[verify]` lines) so the
 handoff list is generated, not assembled by hand. The plans' "how to run" sections name no model.
 
+## S-074 — README for people, agent guide for agents (2026-11-01)
+Owner's ask: people read the README to start quickly and work through their agent, so it holds
+what the tool is, a prompt to paste, the other ways in, and nothing of the CLI or Python setup.
+`docs/agent-guide.md` is the agent's start: setup with the owner's consent, the product folder,
+handover to that folder's `AGENTS.md` and skills, the kiln showcase, the command reference (the
+old README walkthrough, rewritten for agents). A hidden comment atop the README routes agents.
+"Using" (an agent making a product for its owner) and "developing" (contributors) are kept
+apart: root `AGENTS.md` opens by sending users to the guide, product `AGENTS.md` links the guide
+for setup. Every rule in `AGENTS.md` now carries its reason; a rule whose reason is gone is
+proposed for deletion. `test_agent_docs.py` holds the README to no commands.
+
+## S-075 — The icon on generated pages (2026-11-01)
+B-0050, first part. The report, the board and the diff page carry the small icon as a favicon
+and a 20 px footer mark, embedded as a data URI (self-contained, D13, N10; no id clashes). The
+README shows the 256 px PNG from `brand/png/`. Only the icon is used: it is drawn, not typeset.
+The wordmark and lockup stay out of public places until the font licence is cleared (owner
+to-do). `brand/build.py` writes `report/brand/n2f-icon-32.svg`; `test_brand.py` holds them equal.
+The "no `<link>`" page checks now reject only links that leave the page. The CLI keeps plain text.
+
+## S-076 — `AGENTS.md` only, no `CLAUDE.md` copy (2026-11-01)
+Amends S-073. Owner's call: keep everything generic. The client that once needed a file named
+`CLAUDE.md` now reads `AGENTS.md`, so the copy had no remaining reason. Removed: the root copy,
+the one in `templates/_common/` (so `n2f init` no longer writes it) and its synced copies, `make
+agents-doc`, and the equality tests; tests now assert the copy is absent. `n2f init .` on an older
+product folder leaves an existing `CLAUDE.md` alone (it is the owner's file). The agent guide tells
+an agent to read `AGENTS.md` itself if its client does not load it. The product role skills still
+sit under `.claude/`; a neutral home is B-0057.
+
+## S-077 — Generic for any model and client; roles in `roles/` (2026-11-01)
+Owner's rule: everything is generic on both sides. Contributors may use any model (open source),
+and owners use whatever agent they have, so the guide tells an agent all it needs to adapt
+(new "Adapting to your client" table: no shell, no auto-loaded `AGENTS.md`, no subagents, no
+image viewing, no browser, no network). The product roles leave `.claude/` for `roles/pm.md`,
+`design.md`, `verifier.md`, `impact-analyst.md`: plain Markdown, the client-specific frontmatter
+(a tools list) dropped, the product `AGENTS.md` naming the file to read per role. Closes B-0057.
+`n2f init .` on an older folder adds `roles/` and leaves its `.claude/` alone. The rule is a
+non-negotiable in `AGENTS.md`; `test_agent_docs.py` fails on per-client files.

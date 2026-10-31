@@ -1,6 +1,6 @@
 """``make templates``: keep examples and templates identical (decision D19).
 
-1. Copy ``templates/_common`` into every example (CLAUDE.md, AGENTS.md, skills, workflows).
+1. Copy ``templates/_common`` into every example (AGENTS.md, skills, workflows).
 2. Copy ``examples/bracket`` and ``examples/enclosure`` into ``templates/``.
 ``tests/unit/test_templates.py`` asserts the result is in sync.
 """

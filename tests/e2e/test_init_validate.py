@@ -22,11 +22,13 @@ def test_init_then_validate_and_lint(tmp_path: Path, template: str):
     payload = json.loads(r.stdout)
     assert payload["product"] == "my-thing" and payload["snapshot"]
     assert (dest / ".git").is_dir(), "init starts change tracking (D23)"
-    assert (dest / "CLAUDE.md").read_text() == (dest / "AGENTS.md").read_text()
+    assert (dest / "AGENTS.md").is_file() and not (dest / "CLAUDE.md").exists()  # S-076
+    assert not (dest / ".claude").exists(), "roles live in roles/, for any client (S-077)"
     for rel in (
-        ".claude/skills/n2f-pm/SKILL.md",
-        ".claude/skills/n2f-design/SKILL.md",
-        ".claude/agents/n2f-verifier.md",
+        "roles/pm.md",
+        "roles/design.md",
+        "roles/verifier.md",
+        "roles/impact-analyst.md",
         ".github/workflows/build.yml",
     ):
         assert (dest / rel).is_file(), rel

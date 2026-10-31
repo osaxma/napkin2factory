@@ -7,7 +7,7 @@ UV ?= uv
 PY := $(UV) run
 EXAMPLES_FAST := examples/bracket examples/enclosure
 
-.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos verify-list agents-doc clean
+.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos verify-list clean
 
 check: lint types unit golden examples-fast todo-grep
 
@@ -76,9 +76,6 @@ todo-grep:
 
 verify-list:  # every engineering number still to be confirmed, as Markdown
 	@$(PY) python scripts/verify_list.py
-
-agents-doc:  # AGENTS.md is the canonical copy; CLAUDE.md mirrors it byte for byte
-	cp AGENTS.md CLAUDE.md
 
 clean:
 	rm -rf build dist examples/*/build .pytest_cache .mypy_cache .ruff_cache

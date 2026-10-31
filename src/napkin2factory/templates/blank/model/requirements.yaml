@@ -1,3 +1,3 @@
 # Requirements: atomic, testable, each with a verify method and an allocation.
-# Run `n2f lint` after editing. See the n2f-pm skill for the intake protocol.
+# Run `n2f lint` after editing. See roles/pm.md for the intake protocol.
 requirements: []

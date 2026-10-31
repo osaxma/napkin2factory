@@ -200,7 +200,9 @@ def compute_stage(
     ]
     intake_blockers = [p.format(product.root) for p in req_errors]
     if not product.requirements:
-        intake_blockers.append("no requirements yet — run intake with the n2f-pm skill")
+        intake_blockers.append(
+            "no requirements yet — run intake (the project manager role, roles/pm.md)"
+        )
     gates.append(Gate("intake", not intake_blockers, intake_blockers))
     # Design
     design_blockers: list[str] = []

@@ -50,14 +50,14 @@ entry that closed them. Ids are never reused.
 | B-0047 | Second DoD 7 simulation playing an engineer persona driving the CLI directly | NAPKIN_STAGE §5 M5 ⤵, not done |
 | B-0048 | The two remaining kit aesthetic parameters (six of the capped eight shipped) | NAPKIN_STAGE §7 [revisit]; S-066 |
 | B-0049 | Image → interpretation card with a real sketch or photo (today: worded stand-ins in tests; owner-manual) | NAPKIN_STAGE N9; S-068 |
-| B-0050 | Brand integration: `brand/` marks and wordmark into the report, docs and CLI; font licence first | Deferred until after v0.2 (2026-10-31); in progress separately |
+| B-0050 | Brand integration, rest: the wordmark and lockup (README header, report) once the font licence is cleared | The icon is in (S-075); the fonts are an owner to-do; the CLI stays plain text |
 | B-0051 | Risk: headless-GL (SwiftShader) flakes under parallel test load beyond the one message now tolerated | S-070 risk watched; B-0024 closed |
 | B-0052 | Risk: Linux is covered only by CI; the reference platform is the macOS host | S-001; former STATUS open risk |
 | B-0053 | Keep review-gate reports in the repo (`docs/reviews/`) with a reusable gate template; v0.2's two reports were scratch files | docs/improvements.md §1; ~1 h |
 | B-0054 | Run the three demos in parallel in `make check-full` (≈ 28 min → 12–15 min) | docs/improvements.md §2; ~1 h; amends S-070 |
 | B-0055 | Build each example product once per test worker and copy it per test; first check the manifest is relocatable (B-0006) | docs/improvements.md §3; ~½ day of change |
 | B-0056 | Visual milestones: post the board screenshot and a render to the maintainer before calling the milestone done | docs/improvements.md §4; working-style rule for AGENTS.md |
-| B-0057 | Client-neutral home for the product role skills; `.claude/skills/` points at it | docs/improvements.md §5; touches templates, sync, init, two tests |
+| B-0058 | The README prompts and product `AGENTS.md` link the agent guide on `main`; the link resolves only once `main` carries `docs/agent-guide.md` | S-074; closes when the maintainer fast-forwards `main` |
 
 ## Closed
 
@@ -71,3 +71,4 @@ entry that closed them. Ids are never reused.
 | B-0018 | `n2f validate` hides expression errors while reference errors are present | Closed 2026-10-31 (S-058): expressions are evaluated whenever `parameters.yaml` parsed; fixture `invalid/expr-and-ref-together` |
 | B-0024 | `tests/e2e/test_release_diff.py::test_diff_page_loads_and_highlights` failed once in `make check` with a SwiftShader `THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false` on `part://base`, then passed three reruns in a row | Closed 2026-10-31: recurred on CI (macOS, docs-only commit bcbb604); `tests/conftest.py::is_swiftshader_flake` recognises the exact message (empty info log), the diff-page test reloads once and the other four Playwright tests ignore it; any other console error still fails |
 | B-0030 | The promote note says "only 0 form requirements applies" (grammar/plural) | Closed 2026-10-31 (gate B, B4): the note appears only when exactly one form requirement applies, in words |
+| B-0057 | Client-neutral home for the product role skills | Closed 2026-11-01 (S-077): roles moved to `roles/` with no `.claude/` copy |
