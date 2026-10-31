@@ -1,9 +1,10 @@
-"""The napkin2factory icon for generated pages: a favicon and a small footer mark.
+"""The napkin2factory icon and wordmark for generated pages: a favicon and the footer line.
 
-The SVG under ``report/brand/`` is written by ``brand/build.py`` (the small-size variant, made
-for 24–47 px) and must stay byte-identical to ``brand/svg/n2f-icon-32.svg``. It is embedded as a
-data URI, so the pages stay self-contained (D13) and its element ids cannot collide with the
-page's. Only the icon is used: it is drawn, not typeset, so no font licence applies to it.
+The SVGs under ``report/brand/`` are written by ``brand/build.py`` (the icon's small-size
+variant, made for 24–47 px, and the wordmark for light backgrounds) and must stay
+byte-identical to their ``brand/svg/`` originals. They are embedded as data URIs, so the pages
+stay self-contained (D13) and their element ids cannot collide with the page's. The wordmark's
+letters are outlines: no font file is shipped or loaded (S-081).
 """
 
 from __future__ import annotations
@@ -15,12 +16,23 @@ from pathlib import Path
 from markupsafe import Markup
 
 ICON = Path(__file__).parent / "brand" / "n2f-icon-32.svg"
+WORDMARK = Path(__file__).parent / "brand" / "n2f-wordmark-on-light.svg"
+
+
+def _data_uri(path: Path) -> str:
+    return "data:image/svg+xml;base64," + base64.b64encode(path.read_bytes()).decode("ascii")
 
 
 @cache
 def icon_data_uri() -> str:
     """The icon as a ``data:image/svg+xml;base64,…`` URI."""
-    return "data:image/svg+xml;base64," + base64.b64encode(ICON.read_bytes()).decode("ascii")
+    return _data_uri(ICON)
+
+
+@cache
+def wordmark_data_uri() -> str:
+    """The wordmark (for light backgrounds) as a ``data:image/svg+xml;base64,…`` URI."""
+    return _data_uri(WORDMARK)
 
 
 def favicon_link() -> Markup:
@@ -33,4 +45,12 @@ def footer_mark() -> Markup:
     return Markup(
         f'<img class="n2f-mark" src="{icon_data_uri()}" width="20" height="20" alt="" '
         'style="vertical-align:-5px;margin-right:.35rem;border-radius:4px">'
+    )
+
+
+def footer_wordmark() -> Markup:
+    """The written name at text height for the footer line; its alt text is the name."""
+    return Markup(
+        f'<img class="n2f-wordmark" src="{wordmark_data_uri()}" height="15" alt="napkin2factory" '
+        'style="height:15px;width:auto;vertical-align:-3px">'
     )

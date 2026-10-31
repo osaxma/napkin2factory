@@ -359,7 +359,7 @@ def render_board(data: dict[str, Any], dropped: set[str] | None = None) -> str:
     import jinja2
 
     from napkin2factory import __version__
-    from napkin2factory.report.brand import favicon_link, footer_mark
+    from napkin2factory.report.brand import favicon_link, footer_mark, footer_wordmark
     from napkin2factory.report.inline import bundle_viewer, inline_module_script
 
     dropped = dropped or set()
@@ -371,6 +371,7 @@ def render_board(data: dict[str, Any], dropped: set[str] | None = None) -> str:
     )
     env.globals["n2f_favicon"] = favicon_link()
     env.globals["n2f_mark"] = footer_mark()
+    env.globals["n2f_wordmark"] = footer_wordmark()
     any_glb = any(c["glb_b64"] for c in cards)
     dropped_words = [DROP_WORDS[d] for d in DROP_ORDER if d in dropped]
     return env.get_template("board.html.j2").render(
