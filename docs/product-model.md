@@ -13,6 +13,8 @@ A product repository (what `n2f init` writes; `examples/*` follow it exactly):
     parts/<id>.yaml  assemblies/<id>.yaml  interfaces/<id>.yaml
     geometry/<id_with_underscores>.py   calcs/*.py   docs/*.md   signoffs/REQ-xxx.yaml
   changes/ECR-xxx.yaml [ECR-xxx.patch]   reports/review-*.md   CHANGELOG.md   build/ (ignored)
+  style.yaml                # the product's look (seeded by `n2f init` for new products)
+  concepts/C-xxx.yaml  concepts/refs/   # concept cards, outside the build (when present)
 ```
 
 ## Files and their schemas (`src/napkin2factory/core/model/`)
@@ -56,6 +58,40 @@ every check (D25).
 **docs/*.md** — front matter `{id, title, audience, depends_on, order, safety}` and a
 Jinja2 Markdown body: `{{ P["x"] }}`, `{{ part("id").name }}`, `{{ req("REQ-001").statement }}`,
 `{{ bom.total_cost }}`, `{{ product.name }}`. Every read is recorded; a stale page blocks release.
+
+## Concepts (`concepts/`) and `style.yaml`
+
+**concepts/C-xxx.yaml** — a concept card: one cheap, disposable direction for the product,
+written before (or beside) the design. `id: C-001, title, status, based_on?, refs: [paths
+under concepts/], layout: {word: word}, envelope: {name: quantity | [quantities]}, site:
+{key: quantity | word}, style: {…}, massing: [{kit, as, args, at?}], notes, screening,
+decision` (schema: `core/model/concepts.py`; the full example is in `NAPKIN_STAGE.md` §3).
+`n2f concept new` writes a commented card with every section; `--from C-00x` copies the
+content of an earlier card and records `based_on`.
+
+Cards are **outside the build** (N1): no build rule reads them, `n2f validate` ignores them,
+and deleting `concepts/` changes nothing `n2f build` writes. Images that informed a card go
+in `concepts/refs/` and are provenance only, never geometry. Status words:
+
+| status | meaning |
+|---|---|
+| exploring | a direction still on the table (every new card starts here) |
+| rejected | set aside, with `decision: {reason, at}`; kept as a record of what was tried |
+| promoted | the chosen direction; at most one card per product |
+
+`screening` is written by `n2f concept build` and `decision` by reject/promote; neither is
+written by hand. `n2f concept lint` is the only validator and is deliberately light: the
+schema plus C1 id matches the file name, C2 every `refs` file exists under `concepts/`,
+C3 every `massing[].kit` is a kit generator, C4 `based_on` names an existing card, C5 `site`
+keys come from the known list (`alcove_width, alcove_depth, alcove_height, floor_load,
+circuit, region, lift_class, door_clearance, ambient_max, outdoor`; an unknown key only
+warns), C6 at most one card is promoted. While `concepts/` holds a card, `n2f status` shows
+an optional **Napkin** stage before Intake, complete once a card is promoted (N11).
+
+**style.yaml** — `preset: industrial | appliance | lab, palette: {part role: colour},
+finish: {part role: finish}, radius_scale: 1.0, reveal: 2 mm, fastener_visibility:
+visible | hidden-front | hidden` (schema: `core/model/style.py`). `n2f init` seeds it with
+these defaults for a new product; `n2f concept promote` fills it from the chosen concept.
 
 ## Quantities and units
 

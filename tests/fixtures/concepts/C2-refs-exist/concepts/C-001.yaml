@@ -1,0 +1,3 @@
+id: C-001
+title: Refers to an image that is not there
+refs: [refs/missing.jpg]

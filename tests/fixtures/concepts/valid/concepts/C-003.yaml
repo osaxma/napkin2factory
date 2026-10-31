@@ -1,0 +1,23 @@
+# concepts/C-003.yaml
+id: C-003                     # C-\d{3}
+title: Squared shell, flush door
+status: exploring             # exploring | rejected | promoted
+based_on: C-001               # optional lineage
+refs: [refs/sketch-01.jpg]    # optional; informs provenance, never geometry (N9)
+layout: {load: front, door: hinged-left, controls: side-right, stand: four-leg}
+envelope:                     # free-form named quantities; these seed parameters at promote
+  chamber: [200 mm, 200 mm, 200 mm]
+  insulation: 170 mm
+site:                         # constraints screening checks against; become requirements at promote
+  alcove_width: 800 mm
+  circuit: 240V-13A
+  region: SA                  # circuit-class table key [verify]
+style: {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}
+massing:                      # kit calls at fidelity: massing (N3); placements like assembly code but declarative
+  - {kit: enclosure, as: body, args: {length: 540 mm, width: 540 mm, height: 620 mm}}
+  - {kit: block, as: door, args: {...}, at: {...}}
+  - {kit: frame, as: stand, args: {...}, at: {...}}
+notes: >
+  Flush door means the hinge post sits proud on the left; see refs/sketch-01.jpg.
+screening: null               # written by `n2f concept build`: {computed: {...}, estimates: {...}, rules: [...], verdict: green|red}
+decision: null                # set by promote/reject: {dec: DEC-0xx, at: ...}

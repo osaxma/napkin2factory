@@ -152,7 +152,7 @@ def render_md(data: dict) -> str:  # type: ignore[type-arg]
 
 @handle_errors
 def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
-    """Where the product is (intake → design → verify → released) and what blocks the next gate."""
+    """Where the product is (napkin → intake → … → released) and what blocks the next gate."""
     from napkin2factory.core.checks.stage import compute_stage
 
     root = product_root(dir)
@@ -163,7 +163,13 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
         emit_json(rep.to_dict())
         return
     persona = product.operator.persona
-    names = {"intake": "Intake", "design": "Design", "verify": "Verify", "released": "Released"}
+    names = {
+        "napkin": "Napkin",
+        "intake": "Intake",
+        "design": "Design",
+        "verify": "Verify",
+        "released": "Released",
+    }
     console.print(
         f"[bold]{escape(product.manifest.product.name)}[/bold] — stage: "
         f"[bold]{names[rep.stage]}[/bold]"

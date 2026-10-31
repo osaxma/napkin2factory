@@ -14,7 +14,7 @@ folder or the nearest product folder above it) and `--json` for machine-readable
 | `n2f lint` | requirement quality and model hygiene, stricter than validate (the Intake gate) |
 | `n2f build [--target geometry\|drawings\|bom\|docs\|checks\|report\|site\|all] [--part ID] [--clean] [--jobs N] [--no-render] [--explain] [--offline]` | rebuild exactly what changed. `--explain` is a dry run (what would rebuild, and why); `--offline` skips the vendor-link check of the BOM, same as `N2F_OFFLINE=1`. The first build on a machine loads the CAD kernel (one to two minutes; `n2f init` starts loading it in the background); a note on stderr says so if the build has to wait |
 | `n2f check [--format table\|json\|md] [--all]` | the check matrix; `--all` shows passing rule-pack rows too; exit 2 on `fail` |
-| `n2f status` | stage (intake → design → verify → released), gates, what blocks the next gate and the command that unblocks it |
+| `n2f status` | stage (intake → design → verify → released, with an optional napkin stage first while `concepts/` holds cards), gates, what blocks the next gate and the command that unblocks it |
 | `n2f graph [--format dot\|json] [--around URI]` | the build graph (for engineers) |
 | `n2f impact (--ecr ECR-001 \| --set uri=value …)` | what a change would touch, before anything changes |
 | `n2f ecr new --title TEXT [--kind parametric\|design] [--reason TEXT] [--set uri=value …] [--task TEXT …] [--patch FILE] [--by NAME]` | file a change request (draft) |
@@ -23,6 +23,10 @@ folder or the nearest product folder above it) and `--json` for machine-readable
 | `n2f ecr apply ECR-xxx` | apply it to the model and save a snapshot |
 | `n2f ecr close ECR-xxx` | close an applied change request: checks must be green; revisions bump; changelog grows |
 | `n2f ecr reject ECR-xxx --reason TEXT` · `n2f ecr list` · `n2f ecr show ECR-xxx` | the rest of the change loop |
+| `n2f concept new TITLE [--from C-xxx]` | start a concept card (`concepts/C-xxx.yaml`, status exploring) with every section commented; `--from` copies an earlier card's content and records `based_on` |
+| `n2f concept list` · `n2f concept show C-xxx` | the cards (id, status, title, based on, verdict) · one card and where its screening stands |
+| `n2f concept reject C-xxx --reason TEXT` | set a direction aside (status rejected, `decision: {reason, at}`); the card is kept. Refuses on the promoted card (exit 3) |
+| `n2f concept lint` | check the cards (schema plus rules C1–C6); exit 1 on errors, warnings never fail. Concepts are outside the build: `validate` ignores them |
 | `n2f signoff REQ-xxx --by NAME --statement TEXT [--evidence URI …] [--example]` | a human sign-off bound to evidence; stays valid until the evidence changes; refreshes the checks and saves a snapshot. `--example` marks it as a shipped example, never a real review |
 | `n2f snapshot [-m MESSAGE]` | save the current state of the model (the owner-level "save") |
 | `n2f discard [--yes]` | throw away every change since the last snapshot (cannot be undone) |

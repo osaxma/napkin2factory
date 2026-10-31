@@ -7,6 +7,7 @@ import typer
 from napkin2factory import __version__
 from napkin2factory.cli import build as build_cmd
 from napkin2factory.cli import check as check_cmd
+from napkin2factory.cli import concept as concept_cmd
 from napkin2factory.cli import doctor as doctor_cmd
 from napkin2factory.cli import ecr as ecr_cmd
 from napkin2factory.cli import graph as graph_cmd
@@ -52,6 +53,7 @@ app.command("snapshot")(snapshot_cmd.snapshot)
 app.command("discard")(snapshot_cmd.discard)
 app.command("doctor")(doctor_cmd.doctor)
 app.add_typer(ecr_cmd.ecr_app, name="ecr")
+app.add_typer(concept_cmd.concept_app, name="concept")
 app.command("release")(release_cmd.release)
 app.command("diff")(release_cmd.diff)
 app.command("impact")(graph_cmd.impact)
