@@ -85,7 +85,7 @@ should confirm before relying on them.
 | S-068 | The napkin protocol in the PM skill; interpretation cards (N9) | in force |
 | Gate A | Review gate A (honesty + architecture) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-069 | Kiln retrofit: the napkin story recorded after the fact (M6) | in force |
-| S-070 | `make check` runs the tests in parallel (pytest-xdist) | in force; the demos in `check-full` run in parallel too (S-079) |
+| S-070 | `make check` runs the tests in parallel (pytest-xdist) | in force; the demos run in parallel too (S-079); long test files split (S-080) |
 | Gate B | Review gate B (UX, owner persona) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-071 | v0.2 close-out: what is measured, what is the owner's | in force; the release happened (S-072) |
 | S-072 | CI never repeats a commit's tests; 0.2.0 released | in force |
@@ -96,6 +96,7 @@ should confirm before relying on them.
 | S-077 | Generic for any model and client; product roles move to `roles/` | in force |
 | S-078 | Gate reports kept in `docs/reviews/`; visual exits judged by the maintainer | in force |
 | S-079 | The three demos in `make check-full` run side by side | in force |
+| S-080 | No build-once fixture: the long test files are split instead | in force |
 
 ---
 
@@ -949,3 +950,13 @@ macOS host: 8 min 19 s wall, against ≈ 12 min serial (docs/improvements.md §2
 demo slows under the shared load (demo-design 496 s), so the longest sets the pace. Overlapping
 the kiln step with the demos was not tried: both are CPU-heavy and it is unmeasured. The timing
 tests stay serial (D30).
+
+## S-080 — No build-once fixture; the long test files are split instead (2026-11-01)
+B-0055, step 1 (measure) decided it. Timing every `run_build` in the test step (16 workers, no
+coverage): 154 builds, 689 s summed, 262 s of it cold builds, many of them the thing under test
+(invalidation, broken fixtures); a shared built product would save ≈ 140 s of CPU, ≈ 30 s of wall.
+The wall was set by one file, `test_ecr.py` (≈ 290 s on one worker under `--dist loadfile`). Moved
+whole tests, unchanged, to `test_ecr_close.py`, `test_signoffs.py` and `test_release_tracking.py`.
+Measured: test step 328 → 261 s after the first split (no coverage); `make check` with all three
+6 min 52 s, its test step 4 min 49 s (was ≈ 8 min and 5 min 33 s). Next long poles: the 87 s
+shared release in `test_release_diff.py`, `test_concept_promote.py`. B-0006 stays open.

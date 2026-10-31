@@ -127,22 +127,6 @@ def test_release_refused_when_a_check_fails(released: Path) -> None:
     Vcs(root).snapshot("revert")
 
 
-def test_release_requires_project_root(tmp_path: Path) -> None:
-    root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=False)
-    r = _run("release", "v1.0.0", cwd=root, ok=False)
-    assert r.returncode == 4 and "n2f init ." in r.stderr
-    r = _run("diff", "v1.0.0", "working", cwd=root, ok=False)
-    assert r.returncode == 4 and "n2f init ." in r.stderr
-    # and the advice works: init on the existing folder sets up tracking (gate-2 B2)
-    r = _run("init", ".", cwd=root)
-    assert "change tracking set up" in r.stdout
-    r = _run("init", ".", cwd=root)
-    assert "already has change tracking" in r.stdout
-    # the bracket has no safety requirements, so with tracking set up it releases
-    r = _run("release", "v1.0.0", "--no-render", cwd=root)
-    assert "Revision" in r.stdout and "released" in r.stdout
-
-
 def test_ecr_then_release_then_diff(released: Path) -> None:
     root = released
     _run(
