@@ -14,7 +14,7 @@ from napkin2factory.core.loader import Product
 from napkin2factory.core.units import UnitError, parse_quantity
 
 #: Kinds whose statement need not carry a number (binary checks).
-_BINARY_KINDS = frozenset({"manual", "interference", "interface"})
+_BINARY_KINDS = frozenset({"manual", "interference", "interface", "rule"})
 _NUMBER_WITH_UNIT = re.compile(
     r"(?<![\w-])[-+]?\d+(?:\.\d+)?\s*(?:[A-Za-z°µ]+(?:/[A-Za-z]+)?|%)(?![\w-])"
 )
@@ -52,7 +52,7 @@ def lint(product: Product) -> Problems:
                     subject,
                     "statement has no measurable value with a unit",
                     "write the limit into the statement, e.g. 'stays below 60 degC', "
-                    "or use a binary verify kind (manual/interference/interface)",
+                    "or use a binary verify kind (manual/interference/interface/rule)",
                     rule="L1-measurable",
                 )
         if any(w in r.statement.lower() for w in _WEAK_WORDS):

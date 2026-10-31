@@ -300,6 +300,26 @@ def test_blank_vs_stock_sheet(kiln: Screening) -> None:
     assert _rule(blocks, "blank-vs-stock-sheet").status == "skip"
 
 
+def test_sheet_blank_resolves_fit_to() -> None:
+    """A door sized by ``fit_to`` screens with its real blank, not 0 mm (M4 fix of M3)."""
+    door: dict[str, Any] = {
+        "kit": "panel",
+        "as": "door",
+        "material": "mild steel",
+        "args": {"fit_to": {"width": "400 mm", "height": "300 mm"}, "thickness": "1.5 mm"},
+    }
+    lid = copy.deepcopy(door) | {"kit": "plate", "as": "lid"}
+    plain = _screen(_card(SMALL, massing=[door, lid]))
+    message = _rule(plain, "blank-vs-stock-sheet").message
+    assert "door 396 × 296 mm" in message and "lid 396 × 296 mm" in message  # 2 mm default
+    styled = _screen(_card(SMALL, massing=[door], style={"reveal": "5 mm"}))
+    assert "door 390 × 290 mm" in _rule(styled, "blank-vs-stock-sheet").message
+    own = copy.deepcopy(door)
+    own["args"]["reveal"] = "3 mm"
+    mine = _screen(_card(SMALL, massing=[own], style={"reveal": "5 mm"}))
+    assert "door 394 × 294 mm" in _rule(mine, "blank-vs-stock-sheet").message
+
+
 def test_walls_fit_envelope(kiln: Screening) -> None:
     assert _rule(kiln, "walls-fit-envelope").status == "pass"
     assert "2 × 195 mm of insulation" in _rule(kiln, "walls-fit-envelope").message

@@ -22,8 +22,9 @@ A product repository (what `n2f init` writes; `examples/*` follow it exactly):
 **requirements.yaml** — `requirements: [{id: REQ-001, title, statement, category, priority,
 safety, verify: {kind, target, op, value}, allocation: [uris] | unallocated, rationale, source}]`.
 `verify.kind` ∈ `param_bound | geometry_prop | bom_rollup | calc | interference | count |
-interface | manual`; the target scheme must match the kind (`param://`, `part://x#props.…`,
-`bom://rollups#…`, `calc://m.f`, `asm://`, `part://` (count), `iface://`). `n2f lint` adds:
+interface | manual | rule`; the target scheme must match the kind (`param://`,
+`part://x#props.…`, `bom://rollups#…`, `calc://m.f`, `asm://`, `part://` (count), `iface://`,
+`rule://<pack>/<rule>`; `rule` takes no `op`/`value` — see [checks.md](checks.md)). `n2f lint` adds:
 a measurable value with a unit in the statement (unless the kind is binary), a verify block,
 an allocation, and `safety: true` requirements need verify.
 

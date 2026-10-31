@@ -10,6 +10,11 @@ imports ``core.graph``.
 * :mod:`~napkin2factory.concepts.screening` — labelled numbers (``computed`` from the
   massing, ``estimate`` from the calc kit), the ``concept-v0`` rule pack, a verdict.
 * :mod:`~napkin2factory.concepts.build` — the orchestration behind ``n2f concept build``.
+* :mod:`~napkin2factory.concepts.board` — ``n2f concept board``: the self-contained,
+  read-only comparison page (N10).
+* :mod:`~napkin2factory.concepts.promote` — ``n2f concept promote``: the chosen card
+  becomes parameters, requirements, style and a decision (N8). It is the one napkin verb
+  that writes into ``model/`` — by command, never from a build rule.
 """
 
 from __future__ import annotations

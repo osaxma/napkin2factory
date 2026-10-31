@@ -1,0 +1,22 @@
+# Concept card C-003: one possible direction for the product.
+# Concepts sit outside the build: nothing here changes `n2f build`; edit freely.
+# Read it back with `n2f concept show C-003`; check it with `n2f concept lint`.
+id: C-003
+title: Appliance-style compact kiln
+# status: exploring | rejected | promoted (reject and promote set it for you)
+status: exploring
+based_on: C-002  # the card this one started from
+refs: [refs/sketch-01.png]
+layout: {load: front, door: hinged-right, controls: side-right}
+envelope: {chamber: [150 mm, 150 mm, 150 mm], insulation: 100 mm, power: 1.5 kW}
+site: {alcove_width: 800 mm, circuit: 230V-16A, region: EU}
+style: {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}
+massing:
+  - {kit: enclosure, as: body, material: mild steel, args: {length: 400 mm, width: 400 mm, height: 400 mm, thickness: 1.5 mm}}
+  - {kit: block, as: door, material: mild steel, process_class: sheet-metal, args: {length: 300 mm, width: 3 mm, height: 300 mm}, at: {y: -201.5 mm, z: 50 mm}}
+  - {kit: block, as: controls, material: abs, process_class: cots-controls, args: {length: 60 mm, width: 120 mm, height: 160 mm}, at: {x: 230 mm, z: 120 mm}}
+# notes: anything worth remembering about this direction
+notes: C-002 with the controls on the right side and the appliance look from the sketch.
+# written for you: screening by `n2f concept build`, decision by reject or promote
+screening: null
+decision: null

@@ -186,7 +186,8 @@ def test_update_status_keeps_comments_and_order(tmp_path: Path) -> None:
     path.write_text(path.read_text().replace("{...}", "{width: 10 mm}"))
     before = path.read_text().splitlines()
     card = cm.update_card_status(root, "C-003", "rejected", {"reason": "too big", "at": "x"})
-    assert card.status == "rejected" and card.decision == {"reason": "too big", "at": "x"}
+    assert card.status == "rejected" and card.decision is not None
+    assert card.decision.model_dump(mode="json") == {"reason": "too big", "at": "x"}
     after = path.read_text().splitlines()
     changed = [(a, b) for a, b in zip(before, after, strict=True) if a != b]
     assert len(changed) == 2, changed

@@ -402,7 +402,7 @@ def _hypothetical_verdict(
         return (
             "would-pass" if ok else "would-fail"
         ), f"{total:.2f} USD {v.op} {format_quantity(limit)} (declared costs)"
-    if v.kind in ("geometry_prop", "interference", "interface", "count"):
+    if v.kind in ("geometry_prop", "interference", "interface", "count", "rule"):
         return "estimate", "depends on geometry; known after the rebuild"
     if v.kind == "calc":
         return "estimate", "the calculation re-runs with the new values at `n2f check`"

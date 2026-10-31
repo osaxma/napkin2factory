@@ -1,0 +1,32 @@
+# style.yaml: how the product looks (preset, colours and finishes by part role, shape cues).
+# Filled from the chosen concept by `n2f concept promote`; you may also edit it by hand.
+# Seeded from concept C-003.
+preset: appliance
+palette:
+  body: '#efede8'
+  door: '#e6e3dc'
+  stand: '#3a3e42'
+  controls: '#3a3e42'
+  trim: '#b9bdc1'
+  lining: '#d8d1c4'
+  fastener: '#b9bdc1'
+  default: '#d9d7d2'
+finish:
+  body: painted
+  door: painted
+  stand: powder-coat
+  controls: plastic
+  trim: brushed-steel
+  lining: ceramic
+  fastener: brushed-steel
+  default: painted
+accent: null
+background: '#dcdee0'
+radius_scale: 1.5
+reveal: 2 mm
+fastener_visibility: hidden-front
+corner_radius: 8 mm
+chamfer: 0 mm
+overhang: 0 mm
+vent_pattern: slots
+layout: {load: front, door: hinged-right, controls: side-right}

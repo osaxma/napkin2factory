@@ -127,6 +127,7 @@ def test_concept_build_leaves_the_build_untouched(product: Path) -> None:
     manifest = root / "build" / ".n2f" / "manifest.json"
     before = json.loads(manifest.read_text())["entries"]
     _run("concept", "build", "--all", cwd=root)
+    _run("concept", "board", cwd=root)  # M4: the board is not a build output either
     assert json.loads(manifest.read_text())["entries"] == before
     r = _run("build", "--no-render", cwd=root)
     assert "0 rebuilt" in r.stdout
@@ -137,6 +138,7 @@ def test_concept_build_leaves_the_build_untouched(product: Path) -> None:
     _run("build", "--target", "geometry", "--no-render", cwd=root)
     assert (root / "build" / "geometry.json").read_text() == geometry
     assert (root / "build" / "concepts" / "C-001" / "massing.glb").is_file()
+    assert (root / "build" / "concepts" / "board.html").is_file()
 
 
 @pytest.mark.skipif(not TIMING, reason="timing assertions run only under N2F_TIMING=1 (D30)")

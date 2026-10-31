@@ -19,6 +19,11 @@ STYLE_FILE = "style.yaml"
 STYLE_GEOMETRY_KEY = "style:geometry"
 #: The build-graph read key for the look (palette and finishes) the report viewer paints.
 STYLE_LOOK_KEY = "style:look"
+#: The build-graph read key for the form cues the ``form-v0`` rule pack checks against.
+STYLE_FORM_KEY = "style:form"
+
+#: The style fields the ``form-v0`` rule pack reads (thresholds live in style, N8).
+FORM_FIELDS: tuple[str, ...] = ("corner_radius", "fastener_visibility", "layout")
 
 #: The style fields that change geometry (palette and finish only change pictures).
 GEOMETRY_FIELDS: tuple[str, ...] = (
@@ -68,6 +73,12 @@ def geometry_fingerprint(style: StyleFile) -> dict[str, Any]:
     return {k: data[k] for k in GEOMETRY_FIELDS}
 
 
+def form_fingerprint(root: Path) -> dict[str, Any]:
+    """The form cues of the product's resolved style (a build-graph read of the checks)."""
+    data = load_style(root).model_dump(mode="json")
+    return {k: data[k] for k in FORM_FIELDS}
+
+
 def look_fingerprint(root: Path) -> dict[str, Any] | None:
     """Palette and finishes of the product's ``style.yaml``; ``None`` without the file."""
     if not style_path(root).is_file():
@@ -110,10 +121,13 @@ def merge_card_style(product: StyleFile, card_style: dict[str, Any]) -> tuple[St
 
 
 __all__ = [
+    "FORM_FIELDS",
     "GEOMETRY_FIELDS",
     "STYLE_FILE",
+    "STYLE_FORM_KEY",
     "STYLE_GEOMETRY_KEY",
     "STYLE_LOOK_KEY",
+    "form_fingerprint",
     "geometry_fingerprint",
     "load_style",
     "look_fingerprint",

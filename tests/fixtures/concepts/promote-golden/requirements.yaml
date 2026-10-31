@@ -1,0 +1,76 @@
+# Requirements: atomic, testable, each with a verify method and an allocation.
+requirements:
+  - id: REQ-001
+    title: Fits the envelope
+    statement: The bracket's longest dimension is at most 150 mm so it fits behind the shelf lip.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: "part://l-bracket#props.bbox.x", op: "<=", value: 150 mm}
+    allocation: [part://l-bracket, param://bracket-length]
+    rationale: The shelf lip leaves 150 mm of clearance.
+    source: intake
+  - id: REQ-002
+    title: Light enough to ship as a letter
+    statement: Each bracket has a mass below 0.5 kg.
+    category: mass
+    priority: should
+    verify: {kind: geometry_prop, target: "part://l-bracket#props.mass", op: "<", value: 0.5 kg}
+    allocation: [part://l-bracket, param://bracket-thickness]
+    source: intake
+  - id: REQ-003
+    title: Unit cost
+    statement: The bill of materials totals less than 30 USD per bracket at a quantity of 10.
+    category: cost
+    priority: must
+    verify: {kind: bom_rollup, target: "bom://rollups#total_cost", op: "<", value: 30 USD}
+    allocation: [part://l-bracket]
+    source: intake
+  - id: REQ-004
+    title: Fits the alcove with the door open
+    statement: The closed width plus the door swing of 300 mm stays within the 800 mm alcove.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: 'asm://bracket#props.bbox.x', op: <=, value: 500 mm}
+    allocation: ['asm://bracket']
+    rationale: 'Door-swing term 300 mm (computed by screening: hinged-right: the 300 mm door leaf swung
+      open beside the hinge); 800 mm − 300 mm = 500 mm for the closed width.'
+    source: concept C-003 site constraint
+  - id: REQ-005
+    title: Runs on the site circuit
+    statement: The element power stays within 80 % of the 230V-16A site circuit (2944 W).
+    category: performance
+    priority: must
+    verify: {kind: param_bound, target: 'param://element-power', op: <=, value: 2944 W}
+    allocation: ['param://element-power', 'asm://bracket']
+    rationale: 'A continuous load uses at most 80 % of a circuit''s rating (NEC 210.20 continuous-load convention)
+      [verify]: 0.8 × 230 V × 16 A.'
+    source: concept C-003 site constraint
+  - id: REQ-006
+    title: Rounded exposed corners
+    statement: Exposed bends and corners of the body, door, stand, controls and trim have a radius of at
+      least 8 mm.
+    category: geometry
+    priority: must
+    verify: {kind: rule, target: 'rule://form-v0/form-corner-radius'}
+    allocation: ['asm://bracket']
+    rationale: Chosen with C-003 (style corner_radius 8 mm); the threshold lives in style.yaml.
+    source: concept C-003 style
+  - id: REQ-007
+    title: No visible fasteners on the front
+    statement: No fastener holes show on the front face of the body or the door.
+    category: usability
+    priority: must
+    verify: {kind: rule, target: 'rule://form-v0/form-fasteners-hidden-front'}
+    allocation: ['asm://bracket']
+    rationale: Chosen with C-003 (style fastener_visibility hidden-front).
+    source: concept C-003 style
+  - id: REQ-008
+    title: Controls where they were sketched
+    statement: The controls sit side right on the product, as on C-003.
+    category: usability
+    priority: should
+    verify: {kind: rule, target: 'rule://form-v0/form-controls-placement'}
+    allocation: ['asm://bracket']
+    rationale: Layout chosen with C-003 (layout.controls side-right); a misplaced control is a warning,
+      never a failure.
+    source: concept C-003 style

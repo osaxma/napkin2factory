@@ -1,4 +1,11 @@
-"""Load rule packs and evaluate them against every part's ``features.json``."""
+"""Load rule packs and evaluate them against every part's ``features.json``.
+
+Checks are looked up in :data:`~napkin2factory.rulepacks.checks.CHECKS` and the form pack's
+:data:`~napkin2factory.rulepacks.form_checks.FORM_CHECKS`.  A check that raises
+``RuleNotApplicable`` writes no row for that part; ``RuleSkip`` writes a ``skip`` row.
+``features`` carries two private keys for the checks: ``_has_flat_pattern`` and
+``_build_dir`` (where assembly placements are read).
+"""
 
 from __future__ import annotations
 
@@ -12,7 +19,11 @@ import yaml
 from napkin2factory.core.checks.results import CheckResult
 from napkin2factory.core.loader import Product
 from napkin2factory.rulepacks import RULEPACKS_DIR
-from napkin2factory.rulepacks.checks import CHECKS
+from napkin2factory.rulepacks.checks import CHECKS, RuleNotApplicable, RuleSkip
+from napkin2factory.rulepacks.form_checks import FORM_CHECKS
+
+#: Every named check a pack may use.
+ALL_CHECKS = {**CHECKS, **FORM_CHECKS}
 
 
 @dataclass
@@ -67,12 +78,13 @@ def run_rulepacks(
             json.loads(feats_path.read_text(encoding="utf-8")) if feats_path.is_file() else {}
         )
         feats["_has_flat_pattern"] = (build_dir / "parts" / part.id / "flat_pattern.json").is_file()
+        feats["_build_dir"] = str(build_dir)
         for pack in packs:
             if not pack_applies(pack, part):
                 continue
             for rule in pack.rules:
                 rid = f"rule://{pack.id}/{rule['id']}"
-                fn = CHECKS.get(str(rule.get("check")))
+                fn = ALL_CHECKS.get(str(rule.get("check")))
                 if fn is None:
                     results.append(
                         CheckResult(
@@ -97,7 +109,23 @@ def run_rulepacks(
                         )
                     )
                     continue
-                violations = fn(part, feats, dict(rule.get("params") or {}), product)
+                try:
+                    violations = fn(part, feats, dict(rule.get("params") or {}), product)
+                except RuleNotApplicable:
+                    continue
+                except RuleSkip as why:
+                    results.append(
+                        CheckResult(
+                            id=f"{rid}@{part.id}",
+                            subject=part.uri,
+                            status="skip",
+                            kind="rule",
+                            title=str(rule.get("title", rule["id"])),
+                            message=str(why),
+                            detail={"pack": pack.id, "rule": rule["id"]},
+                        )
+                    )
+                    continue
                 severity = str(rule.get("severity", "fail"))
                 if violations:
                     msg = "; ".join(

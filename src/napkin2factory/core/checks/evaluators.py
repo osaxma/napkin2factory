@@ -4,6 +4,11 @@
 verdict is ``pass``/``fail``; ``manual`` is ``needs-human``; a safety requirement whose
 computation passes is still ``needs-human`` until a valid sign-off makes it ``signed``;
 a non-safety ``needs-human`` with a valid sign-off becomes ``pass``.
+
+``rule`` (form requirements, v0.2) reads the rule-pack rows of the same check run
+(:attr:`EvalContext.rule_results`, filled by the engine before requirements are
+evaluated): any ``fail`` row for the targeted rule fails the requirement; ``warn`` rows
+never fail it (the row reads ``warn``); no applicable part is ``skip``.
 """
 
 from __future__ import annotations
@@ -32,6 +37,8 @@ class EvalContext:
         self.interference: dict[str, Any] = {}
         self.interfaces: dict[str, Any] = {}
         self.rollups: dict[str, Any] | None = None
+        #: Rule-pack rows of this check run (``rule://<pack>/<rule>@<part>``), for ``rule``.
+        self.rule_results: list[CheckResult] = []
         self._props: dict[str, dict[str, Any]] = {}
 
     def props(self, uri: str) -> dict[str, Any] | None:
@@ -73,6 +80,53 @@ def prop_quantity(props: dict[str, Any], selector: tuple[str, ...]) -> Any:
     if isinstance(cur, bool) or not isinstance(cur, (int, float)):
         raise KeyError(f"{'.'.join(selector)} is not a number")
     return parse_quantity(cur, unit or None)
+
+
+#: The ``skip`` message of a ``rule`` requirement whose rule applies to no part yet.
+NO_APPLICABLE_PART = "no part this rule applies to yet"
+
+
+def rule_verdict(ctx: EvalContext, rule_uri: str) -> tuple[str, str, list[str]]:
+    """``rule`` verify: (status, message, subjects of the rows read) for one rule URI.
+
+    ``fail`` when any part has a ``fail`` row, ``warn`` when the worst row is a warning,
+    ``pass`` when at least one part passed, else ``skip`` (the rule applies to no part yet,
+    or every applicable part was skipped — the skip reasons are quoted). A rule that no
+    loaded pack defines is a ``fail`` with a hint.
+    """
+    rows = [r for r in ctx.rule_results if r.id.partition("@")[0] == rule_uri]
+    if not rows:
+        from napkin2factory.rulepacks.runner import load_packs
+
+        pack_id, _, rule_id = rule_uri.removeprefix("rule://").partition("/")
+        packs = load_packs([ctx.product.paths.model / "rulepacks"])
+        known = {f"rule://{p.id}/{r['id']}" for p in packs for r in p.rules}
+        if rule_uri not in known:
+            return (
+                "fail",
+                f"no rule {rule_id!r} in a pack {pack_id!r}: check the target "
+                "(`docs/checks.md` lists the packs and rules)",
+                [],
+            )
+        return "skip", NO_APPLICABLE_PART, []
+    subjects = sorted({r.subject for r in rows})
+    by_status: dict[str, list[CheckResult]] = {}
+    for r in rows:
+        by_status.setdefault(r.status, []).append(r)
+
+    def listing(items: list[CheckResult]) -> str:
+        return "; ".join(f"{r.subject.removeprefix('part://')}: {r.message}" for r in items)
+
+    if by_status.get("fail"):
+        return "fail", listing(by_status["fail"]), subjects
+    if by_status.get("warn"):
+        return "warn", "worth a look — " + listing(by_status["warn"]), subjects
+    passed = by_status.get("pass", [])
+    if passed:
+        names = ", ".join(r.subject.removeprefix("part://") for r in passed)
+        return "pass", f"{len(passed)} part(s) meet it ({names})", subjects
+    reasons = listing(by_status.get("skip", []))
+    return "skip", NO_APPLICABLE_PART + (f" ({reasons})" if reasons else ""), subjects
 
 
 def _compare(value: Any, op: str, limit: Any) -> tuple[bool, str]:
@@ -206,6 +260,11 @@ def evaluate_requirement(ctx: EvalContext, req: Requirement) -> CheckResult:
                     evidence[f"asm://{aid}"] = evidence_key(
                         ctx.product, ctx.build_dir, f"asm://{aid}"
                     )
+        elif v.kind == "rule":
+            assert v.target is not None
+            computed, res.message, subjects = rule_verdict(ctx, str(v.target.base))
+            for subject in subjects:
+                evidence[subject] = evidence_key(ctx.product, ctx.build_dir, subject)
     except (CalcError, UnitError, KeyError, AssertionError) as exc:
         res.status, res.message = "fail", f"could not evaluate: {exc}"
         res.evidence_keys = evidence
@@ -223,6 +282,8 @@ def evaluate_requirement(ctx: EvalContext, req: Requirement) -> CheckResult:
         res.status = "fail"
     elif computed == "skip":
         res.status = "skip"
+    elif computed == "warn" and not req.safety:
+        res.status = "warn"  # a warning never fails a requirement (D10)
     elif req.safety:
         res.status = "signed" if valid else "needs-human"
         if valid and so is not None and so.example:

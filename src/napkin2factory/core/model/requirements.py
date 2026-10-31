@@ -27,6 +27,7 @@ VerifyKind = Literal[
     "count",
     "interface",
     "manual",
+    "rule",
 ]
 Op = Literal["<", "<=", "==", "!=", ">=", ">"]
 
@@ -40,6 +41,7 @@ VERIFY_TARGET_SCHEMES: dict[str, tuple[str, ...]] = {
     "count": ("asm", "part"),
     "interface": ("iface",),
     "manual": (),
+    "rule": ("rule",),
 }
 #: Kinds whose verdict comes from comparing a value with ``op``/``value``.
 COMPARING_KINDS: frozenset[str] = frozenset(
@@ -48,7 +50,11 @@ COMPARING_KINDS: frozenset[str] = frozenset(
 
 
 class Verify(Model):
-    """How a requirement is checked (§4.2 ``verify`` semantics)."""
+    """How a requirement is checked (§4.2 ``verify`` semantics).
+
+    ``rule`` (v0.2, form requirements) passes when no part has a ``fail`` row for the
+    rule-pack rule it targets (``rule://form-v0/form-corner-radius``) in the same check run.
+    """
 
     kind: VerifyKind
     target: UriField | None = None
@@ -74,6 +80,8 @@ class Verify(Model):
             not self.target.selector or self.target.selector[0] != "props"
         ):
             raise ValueError("geometry_prop targets select a property: part://x#props.mass")
+        if self.kind == "rule" and (self.op is not None or self.value is not None):
+            raise ValueError("verify.kind rule takes a target only (rule://<pack>/<rule-id>)")
         if self.kind == "bom_rollup" and not self.target.selector:
             raise ValueError("bom_rollup targets select a rollup: bom://rollups#total_cost")
         return self

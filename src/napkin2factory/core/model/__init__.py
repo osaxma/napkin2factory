@@ -5,6 +5,7 @@ from napkin2factory.core.model.base import Model, Quantity, UriField
 from napkin2factory.core.model.concepts import (
     CONCEPT_STATUSES,
     ConceptCard,
+    ConceptDecision,
     LabelledValue,
     MassingCall,
     RuleRow,
@@ -46,6 +47,7 @@ __all__ = [
     "BoltPatternSpec",
     "Child",
     "ConceptCard",
+    "ConceptDecision",
     "LabelledValue",
     "Cost",
     "Decision",

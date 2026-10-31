@@ -32,6 +32,7 @@ SITE_KEYS: frozenset[str] = frozenset(
         "circuit",
         "region",
         "lift_class",
+        "mass_limit",
         "door_clearance",
         "ambient_max",
         "outdoor",

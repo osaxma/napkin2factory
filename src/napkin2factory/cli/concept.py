@@ -1,9 +1,11 @@
-"""``n2f concept new|list|show|build|reject|lint``: the napkin stage's cards (NAPKIN_STAGE §4).
+"""``n2f concept new|list|show|build|board|promote|reject|lint`` (NAPKIN_STAGE §4).
 
-Concepts sit outside the build graph (N1): these verbs need a product folder but never load
-the product model, so a half-written model never blocks exploring ideas.  ``build`` runs the
-massing and screening in-process (no build graph); ``board`` and ``promote`` arrive in later
-milestones.
+Concepts sit outside the build graph (N1): these verbs need a product folder, and all but
+``promote`` never load the product model, so a half-written model never blocks exploring
+ideas.  ``build`` runs the massing and screening in-process (no build graph); ``board``
+writes the read-only comparison page ``build/concepts/board.html``; ``promote`` turns the
+chosen card into model content (parameters, requirements, style, a decision) and takes a
+snapshot.
 """
 
 from __future__ import annotations
@@ -175,10 +177,13 @@ def show(
         for line in screening_block(card.screening):
             console.print(line, markup=False, highlight=False, soft_wrap=True)
     if card.status == "rejected":
-        reason = (card.decision or {}).get("reason")
+        reason = card.decision.reason if card.decision is not None else None
         console.print(f"{card.id} is rejected" + (f": {escape(str(reason))}" if reason else ""))
     elif card.status == "promoted":
-        console.print(f"{card.id} is the chosen direction (promoted)")
+        dec = card.decision.dec if card.decision is not None else None
+        console.print(
+            f"{card.id} is the chosen direction (promoted" + (f", {dec})" if dec else ")")
+        )
     console.print(escape(screening_line(card)))
 
 
@@ -229,6 +234,61 @@ def build(
                 err_console.print(f"[red]✗[/red] {escape(e['error'])}", soft_wrap=True)
     if errors:
         raise typer.Exit(code=1)
+
+
+@concept_app.command("board")
+@handle_errors
+def board(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
+    """Write the concept board: every direction side by side (build/concepts/board.html)."""
+    from napkin2factory.concepts.board import write_board
+
+    root = product_root(dir)
+    result = write_board(root)
+    if json_out:
+        emit_json(result.to_dict(root))
+        return
+    console.print(f"[green]✓[/green] {escape(result.line())}", soft_wrap=True)
+    for note in result.dropped_notes:
+        console.print(f"  [yellow]![/yellow] {escape(note)}", soft_wrap=True)
+    console.print(
+        "  open it in a browser to compare; choose in conversation or with "
+        "`n2f concept promote C-00x`",
+        soft_wrap=True,
+    )
+
+
+@concept_app.command("promote")
+@handle_errors
+def promote(
+    concept_id: str = typer.Argument(..., help="Concept id, e.g. C-003."),
+    override: bool = typer.Option(
+        False,
+        "--override",
+        help="Promote a direction screening marked red, or overwrite parameters that differ "
+        "(needs --reason).",
+    ),
+    reason: str | None = typer.Option(
+        None, "--reason", help="Why (recorded in the decision); required with --override."
+    ),
+    by: str | None = typer.Option(
+        None, "--by", help="Who chose this direction (recorded as a human decision)."
+    ),
+    dir: Path | None = DirOption,
+    json_out: bool = JsonOption,
+) -> None:
+    """Make a concept the design direction: parameters, requirements, style and a decision."""
+    from napkin2factory.concepts.promote import promote as do_promote
+
+    root = product_root(dir)
+    result = do_promote(root, concept_id, override=override, reason=reason, by=by)
+    if json_out:
+        emit_json(result.to_dict())
+        return
+    console.print(f"[green]✓[/green] {escape(result.summary())}", soft_wrap=True)
+    for r in result.requirements:
+        console.print(f"  + {r.id} {escape(r.title)}", soft_wrap=True, highlight=False)
+    for note in result.notes:
+        console.print(f"  [dim]note: {escape(note)}[/dim]", soft_wrap=True)
 
 
 @concept_app.command("reject")

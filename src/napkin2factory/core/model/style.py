@@ -167,6 +167,9 @@ class StyleFile(Model):
     chamfer: Quantity = "0 mm"
     overhang: Quantity = "0 mm"
     vent_pattern: VentPattern = "slots"
+    #: Where things go, in words (``{controls: side-right, door: hinged-left}``), as chosen
+    #: with the promoted concept; the ``form-v0`` controls-placement rule reads it (N8).
+    layout: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("palette")
     @classmethod

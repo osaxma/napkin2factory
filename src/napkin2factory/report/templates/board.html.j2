@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ product }} — concept board</title>
+<style>
+:root{--bg:#f7f6f2;--fg:#1d1d1b;--muted:#6b6a66;--line:#d9d7d0;--card:#fff;--ok:#1e7f4f;--fail:#b3261e;--warn:#9a6b00;--skip:#8a8a8a;--accent:#1f5fbf;--computed:#0b6e8f;--estimate:#8a5a00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header.top{background:#fff;border-bottom:1px solid var(--line);padding:.8rem 1.2rem}
+header.top h1{font-size:1.2rem;margin:0}
+header.top .lead{margin:.3rem 0 0;color:var(--fg)}
+header.top .legend{margin:.4rem 0 0;font-size:.85rem;color:var(--muted)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;background:#f1f0eb;border-radius:4px;padding:0 .3rem}
+.notes{max-width:1600px;margin:.8rem auto 0;padding:0 1.2rem}
+.note{background:#fff4e5;border:1px solid #f0c27a;border-radius:8px;padding:.5rem .8rem;font-size:.9rem;margin:.3rem 0}
+main.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:1rem;max-width:1600px;margin:0 auto;padding:1rem 1.2rem 3rem;align-items:start}
+article.concept{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+article.concept.red{border-color:#e4a3a0}
+.chead{padding:.6rem .9rem;border-bottom:1px solid var(--line);background:#fafaf7}
+article.concept.red .chead{background:#fbe9e7;border-top:4px solid var(--fail)}
+article.concept.green .chead{border-top:4px solid var(--ok)}
+.chead .row{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap}
+.chead h2{font-size:1.02rem;margin:0;flex:1 1 auto}
+.cid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem;color:var(--muted)}
+.badge{display:inline-block;padding:.08rem .5rem;border-radius:999px;font-size:.75rem;font-weight:600;color:#fff;background:var(--skip);white-space:nowrap}
+.badge.exploring{background:var(--accent)}.badge.promoted{background:var(--ok)}.badge.rejected{background:var(--skip)}
+.badge.unbuilt{background:#fff;color:var(--muted);border:1px solid var(--line)}
+.verdict{font-size:.85rem;margin:.25rem 0 0}.verdict.red{color:var(--fail);font-weight:600}.verdict.green{color:var(--ok)}
+.sub{font-size:.82rem;color:var(--muted);margin:.15rem 0 0}
+.decision{font-size:.85rem;margin:.25rem 0 0;font-weight:600}
+.body{padding:.7rem .9rem;display:flex;flex-direction:column;gap:.6rem}
+.hero{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block;background:#eee}
+.placeholder{aspect-ratio:4/3;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;text-align:center;padding:1rem}
+.viewer{width:100%;height:260px;border-radius:8px;overflow:hidden;background:#f4f4f2;position:relative;border:1px solid var(--line)}
+.viewer canvas{display:block}.viewer.n2f-active{outline:2px solid var(--accent)}
+.viewer-cap,.front-cap{font-size:.78rem;color:var(--muted);margin:.15rem 0 0}
+.front{width:46%;border-radius:6px;border:1px solid var(--line);display:block}
+h3{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:.2rem 0 .3rem}
+dl.vals{display:grid;grid-template-columns:max-content 1fr;gap:.15rem .8rem;margin:0;font-size:.9rem}
+dl.vals dt{color:var(--muted)}dl.vals dd{margin:0;font-variant-numeric:tabular-nums}
+.lbl{display:inline-block;margin-left:.35rem;padding:0 .35rem;border-radius:4px;font-size:.7rem;font-weight:700;letter-spacing:.03em;vertical-align:1px;color:#fff;cursor:help}
+.lbl.computed{background:var(--computed)}.lbl.estimate{background:var(--estimate)}
+.key{display:inline-block;padding:0 .35rem;border-radius:4px;font-size:.72rem;font-weight:700;color:#fff}
+.key.computed{background:var(--computed)}.key.estimate{background:var(--estimate)}
+details summary{cursor:pointer;font-size:.85rem;color:var(--muted)}
+.limits{border-radius:8px;padding:.5rem .7rem;font-size:.9rem}
+.limits ul{margin:.25rem 0 0;padding-left:1.1rem}
+.limits.bad{background:#fbe9e7;border:1px solid #e4a3a0}.limits.bad strong{color:var(--fail)}
+.limits.look{background:#fff6e0;border:1px solid #f0d28a}.limits.look strong{color:var(--warn)}
+.limits.clear{background:#eef7f1;border:1px solid #b9dcc6;color:var(--ok)}
+.refs{display:flex;gap:.4rem;flex-wrap:wrap}
+.refs figure{margin:0;width:96px}.refs img{width:96px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+.refs figcaption{font-size:.7rem;color:var(--muted);word-break:break-all}
+.cardnotes{font-size:.9rem;white-space:pre-wrap}
+.small{font-size:.8rem;color:var(--muted)}
+.small ul{margin:.2rem 0 0;padding-left:1.1rem}
+footer{max-width:1600px;margin:0 auto;padding:0 1.2rem 2rem;font-size:.78rem;color:var(--muted)}
+</style>
+</head>
+<body>
+{% macro lv(v) -%}<div class="lv-row" data-key="{{ v.key }}" style="display:contents"><dt>{{ v.name }}</dt><dd>{{ v.value }}<span class="lbl {{ v.label }}" title="{{ v.label }} — {{ v.source }}">{{ v.label }}</span></dd></div>{%- endmacro %}
+<header class="top">
+  <h1>{{ product }} — concept board</h1>
+  <p class="lead">{{ headline }} <code>{{ choose }}</code>.</p>
+  <p class="legend">Every number says where it comes from: <span class="key computed">computed</span> measured from the rough shapes, <span class="key estimate">estimate</span> from the calc kit (rough, before any design). A direction with problems stays on the board with its reasons — red is information.</p>
+</header>
+{% if dropped or notes %}<div class="notes">
+  {% if dropped %}<p class="note" id="dropped">To keep this page under {{ max_mb }} MB, these were left out: {{ dropped | join(', ') }}. The files are still under build/concepts/.</p>{% endif %}
+  {% for n in notes %}<p class="note">{{ n }}</p>{% endfor %}
+</div>{% endif %}
+<main class="board">
+{% for c in cards %}
+<article class="concept {{ c.verdict or 'unbuilt' }} {{ c.status }}" id="card-{{ c.id }}" data-id="{{ c.id }}" data-verdict="{{ c.verdict or '' }}">
+  <div class="chead">
+    <div class="row"><span class="cid">{{ c.id }}</span><h2>{{ c.title }}</h2><span class="badge {{ 'unbuilt' if not c.built and c.status == 'exploring' else c.status }}">{{ c.status_word }}</span></div>
+    {% if c.verdict == 'red' %}<p class="verdict red">this direction has problems</p>{% elif c.verdict == 'green' %}<p class="verdict green">holds up in screening</p>{% endif %}
+    {% if c.based_on %}<p class="sub">based on {{ c.based_on }}</p>{% endif %}
+    {% if c.decision %}<p class="decision">{{ c.decision }}</p>{% endif %}
+  </div>
+  <div class="body">
+    {% if c.hero_src %}<img class="hero" src="{{ c.hero_src }}" alt="{{ c.id }} styled picture (iso)">{% elif not c.built %}<div class="placeholder">not built yet — <code>{{ c.build_hint }}</code></div>{% endif %}
+    {% if c.glb_b64 %}<div class="viewer" id="viewer-{{ c.id }}" data-n2f-glb="glb-{{ c.id }}" data-n2f-options="{{ c.options_json }}"></div><p class="viewer-cap">drag to turn, click then scroll to zoom</p>
+    <script type="text/plain" id="glb-{{ c.id }}">{{ c.glb_b64 }}</script>{% endif %}
+    {% if c.front_src %}<img class="front" src="{{ c.front_src }}" alt="{{ c.id }} styled picture (front)"><p class="front-cap">from the front</p>{% endif %}
+    {% if c.dims %}<div><h3>Size and weight</h3><dl class="vals">{% for v in c.dims %}{{ lv(v) }}{% endfor %}</dl></div>{% endif %}
+    {% if c.strip %}<div><h3>Estimates</h3><dl class="vals">{% for v in c.strip %}{{ lv(v) }}{% endfor %}</dl></div>{% endif %}
+    {% if c.more %}<details><summary>more numbers ({{ c.more | length }})</summary><dl class="vals">{% for v in c.more %}{{ lv(v) }}{% endfor %}</dl></details>{% endif %}
+    {% if c.built %}
+    {% if c.problems %}<div class="limits bad"><strong>this direction has problems:</strong><ul>{% for m in c.problems %}<li>{{ m }}</li>{% endfor %}</ul></div>{% endif %}
+    {% if c.worth_a_look %}<div class="limits look"><strong>worth a look:</strong><ul>{% for m in c.worth_a_look %}<li>{{ m }}</li>{% endfor %}</ul></div>{% endif %}
+    {% if not c.problems and not c.worth_a_look %}<div class="limits clear">screening found no limitations</div>{% endif %}
+    {% endif %}
+    {% if c.ref_items %}<div><h3>References</h3><div class="refs">{% for r in c.ref_items %}<figure>{% if r.src %}<img src="{{ r.src }}" alt="{{ r.name }}">{% endif %}<figcaption>{{ r.name }}{% if r.missing %} (missing){% elif not r.src %} (not shown){% endif %}</figcaption></figure>{% endfor %}</div></div>{% endif %}
+    {% if c.notes %}<div><h3>Notes</h3><p class="cardnotes">{{ c.notes }}</p></div>{% endif %}
+    {% if c.screening_notes %}<details class="small"><summary>screening notes ({{ c.screening_notes | length }})</summary><ul>{% for n in c.screening_notes %}<li>{{ n }}</li>{% endfor %}</ul></details>{% endif %}
+  </div>
+</article>
+{% endfor %}
+</main>
+<footer>generated by napkin2factory {{ version }} · {{ generated }} · read-only: choose in conversation or with <code>{{ choose }}</code></footer>
+{{ viewer_script | safe }}
+</body>
+</html>
