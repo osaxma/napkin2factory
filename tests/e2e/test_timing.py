@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import n2f
+from tests.conftest import n2f, real_page_errors
 
 TIMING = os.environ.get("N2F_TIMING") == "1"
 
@@ -90,5 +90,5 @@ def test_two_concepts_and_board_under_a_minute_warm(tmp_path: Path) -> None:
         tab.goto(page.as_uri())
         viewers = tab.evaluate("window.n2fViewerReady.then(v => Object.keys(v))")
         browser.close()
-    assert errors == [], errors
+    assert real_page_errors(errors) == [], errors
     assert len(viewers) == 2

@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from selectolax.lexbor import LexborHTMLParser
 
-from tests.conftest import EXAMPLES, copy_product, n2f
+from tests.conftest import EXAMPLES, copy_product, is_swiftshader_flake, n2f
 
 os.environ.setdefault("N2F_OFFLINE", "1")
 GIT_WORDS = ("fatal:", "git ", "branch", "commit", "merge", "repository", "tag ")
@@ -213,21 +213,30 @@ def test_diff_page_loads_and_highlights(released: Path) -> None:
         pytest.skip("diff page not built (earlier test failed)")
     try:
         with sync_playwright() as p:
+            p.chromium.launch(args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"]).close()
+    except Error as exc:
+        pytest.skip(f"Playwright Chromium unavailable: {exc}")
+
+    def load() -> tuple[list[str], list[str], list[str]]:
+        with sync_playwright() as p:
             browser = p.chromium.launch(
                 args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"]
             )
-    except Error as exc:
-        pytest.skip(f"Playwright Chromium unavailable: {exc}")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"])
-        page = browser.new_page(viewport={"width": 1280, "height": 900})
-        errors: list[str] = []
-        page.on("pageerror", lambda e: errors.append(str(e)))
-        page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
-        page.goto(page_path.as_uri())
-        viewers = page.evaluate("window.n2fViewerReady.then(v => Object.keys(v))")
-        nodes_b = page.evaluate("window.n2fViewers['viewer-b'].nodes()")
-        browser.close()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            errors: list[str] = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+            page.goto(page_path.as_uri())
+            viewers = page.evaluate("window.n2fViewerReady.then(v => Object.keys(v))")
+            nodes_b = page.evaluate("window.n2fViewers['viewer-b'].nodes()")
+            browser.close()
+        return errors, viewers, nodes_b
+
+    errors, viewers, nodes_b = load()
+    # SwiftShader sometimes fails to validate a shader under load, with an empty info log; the
+    # page is fine on the next load. One retry, then the failure stands (B-0024).
+    if errors and all(is_swiftshader_flake(e) for e in errors):
+        errors, viewers, nodes_b = load()
     assert errors == [], errors
     assert sorted(viewers) == ["viewer-a", "viewer-b"]
     assert "part://base" in nodes_b

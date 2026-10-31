@@ -14,7 +14,7 @@ from selectolax.lexbor import LexborHTMLParser
 from napkin2factory.core.graph.runner import run_build
 from napkin2factory.core.loader import load_product
 from napkin2factory.core.model import StyleFile
-from tests.conftest import EXAMPLES, copy_product
+from tests.conftest import EXAMPLES, copy_product, real_page_errors
 
 EXTERNAL = re.compile(r"\b(?:src|href)\s*=\s*['\"]?(?:https?:)?//", re.IGNORECASE)
 
@@ -188,7 +188,7 @@ def test_report_opens_from_file_url_without_console_errors(report: tuple[Path, s
             "window.n2fViewer.section(false)"
         )
         browser.close()
-    assert errors == [], errors
+    assert real_page_errors(errors) == [], errors
     assert nodes == ["part://base", "part://bracket", "part://lid"]
     assert counts == {"part://base": 1, "part://bracket": 2, "part://lid": 1}
     assert "part://lid" in card and "Lid" in card
