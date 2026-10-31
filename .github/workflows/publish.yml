@@ -1,0 +1,57 @@
+name: publish
+# Publishes napkin2factory and the `n2f` alias to PyPI when a v* tag is pushed.
+# Uses PyPI trusted publishing (no token). PyPI allows one project per
+# (repository, workflow, environment), so napkin2factory publishes from the `pypi`
+# environment and the alias from `pypi-alias`, after the package it pins exists.
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Tag, package and alias versions agree
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          main=$(grep -m1 '^version' pyproject.toml | cut -d'"' -f2)
+          alias=$(grep -m1 '^version' packaging/n2f/pyproject.toml | cut -d'"' -f2)
+          pin=$(grep -m1 'napkin2factory==' packaging/n2f/pyproject.toml | sed 's/.*==\([^"]*\)".*/\1/')
+          echo "tag=$tag main=$main alias=$alias pin=$pin"
+          test "$tag" = "$main" && test "$tag" = "$alias" && test "$tag" = "$pin"
+      - run: uv build --out-dir dist/main
+      - run: uv build packaging/n2f --out-dir dist/alias
+      - run: uvx twine check dist/main/* dist/alias/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+  pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/main/
+  pypi-alias:
+    needs: pypi
+    runs-on: ubuntu-latest
+    environment: pypi-alias
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/alias/

@@ -5,7 +5,8 @@ repos (what `n2f init` writes; see `examples/`) have their own `CLAUDE.md`.
 
 ## Read first
 `GRAND_PLAN.md` (the contract) → `STATUS.md` (where we are) → `DECISIONS.md` →
-`git log --oneline -30` → `make check`.
+`git log --oneline -30` → `make check`. For v0.2 work, `NAPKIN_STAGE.md` is the contract
+and GRAND_PLAN §0/§8/§9 still apply.
 
 ## Non-negotiables
 - `make check` is green before every commit. Never commit `build/` or `examples/*/build/`.

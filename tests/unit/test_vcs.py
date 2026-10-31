@@ -106,3 +106,51 @@ def test_worktree_roundtrip(tmp_path: Path):
     with pytest.raises(VcsError) as ei:
         v.worktree_add("v2.0.0", tmp_path / "wt2")
     _assert_persona(str(ei.value))
+
+
+def _no_git_identity(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A machine where nobody ever configured git (S-011)."""
+    for key in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(tmp_path / "empty-gitconfig"))
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+
+def _author(v: Vcs) -> str:
+    return v._git("log", "-1", "--format=%an <%ae>").stdout.strip()
+
+
+def test_unconfigured_identity_uses_product_name(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    _no_git_identity(monkeypatch, tmp_path)
+    root = tmp_path / "p"
+    root.mkdir()
+    (root / "n2f.yaml").write_text("product:\n  id: lamp\n  name: Desk lamp\n")
+    v = Vcs(root)
+    v.init()
+    v.snapshot("first")
+    assert _author(v) == "Desk lamp <n2f@localhost>"
+
+
+def test_unconfigured_identity_without_manifest_uses_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    _no_git_identity(monkeypatch, tmp_path)
+    v = Vcs(tmp_path / "shelf")
+    (tmp_path / "shelf").mkdir()
+    v.init()
+    (tmp_path / "shelf" / "a.txt").write_text("1")
+    v.snapshot("first")
+    assert _author(v) == "shelf <n2f@localhost>"
+
+
+def test_configured_identity_wins(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    _no_git_identity(monkeypatch, tmp_path)
+    (tmp_path / "empty-gitconfig").write_text("[user]\n\tname = Ada\n\temail = ada@example.com\n")
+    root = tmp_path / "p"
+    root.mkdir()
+    (root / "n2f.yaml").write_text("product:\n  id: lamp\n  name: Desk lamp\n")
+    v = Vcs(root)
+    v.init()
+    v.snapshot("first")
+    assert _author(v) == "Ada <ada@example.com>"

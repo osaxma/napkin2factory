@@ -134,7 +134,9 @@ for the plug door. Review gates 1–4 all ran; outcomes and fixes are in DECISIO
   D27) and `make check-full` runs them.
 
 ## Next
-Nothing in v0.1. v0.2 candidates are in `HANDOFF-REPORT.md` §6 and `BACKLOG.md`.
+Nothing in v0.1. v0.2 is the napkin stage: `NAPKIN_STAGE.md` is its contract (branch
+`v0.2-build`); MCP server and share mode move to v0.3, electrical, manufacturer profiles
+and stack-up to v0.4.
 
 ## Open risks
-- Plan's Linux DoD is exercised only in CI (S-001).
+- Linux is untested until CI first runs on a pushed branch; the reference platform is the macOS host (S-001, amended).

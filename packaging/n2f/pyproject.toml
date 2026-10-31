@@ -1,0 +1,21 @@
+# Placeholder that reserves the `n2f` name on PyPI and installs napkin2factory.
+# Its version must match the main package; .github/workflows/publish.yml checks this.
+[project]
+name = "n2f"
+version = "0.1.0"
+description = "Alias for napkin2factory: `pip install n2f` installs napkin2factory and its `n2f` command."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.13,<3.15"
+authors = [{ name = "osama" }]
+dependencies = ["napkin2factory==0.1.0"]
+
+[project.urls]
+Homepage = "https://pypi.org/project/napkin2factory/"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+bypass-selection = true

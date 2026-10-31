@@ -7,9 +7,11 @@ human should confirm before relying on them.
 ## S-001 — Host platform differs from the plan (2026-10-30)
 The build runs on an Intel macOS host (Darwin 25.6, x86_64, 16 cores, 32 GB), not the
 sandboxed Linux the plan assumed. Nothing in the plan is Linux-specific; CI (`ci.yml`)
-runs both `ubuntu-latest` and `macos-latest` so the Linux definition of done is exercised
-there. `[revisit]` The owner should run `make check-full` once on Linux before relying on
-the DoD timing numbers.
+runs both `ubuntu-latest` and `macos-latest`.
+**Amended 2026-10-31 (owner):** there is no Linux machine. This macOS host (a separate user
+acting as the agents' sandbox) is the reference platform, and the definition of done is
+verified here. Linux coverage comes only from the CI matrix, which first runs when the
+branch is pushed; until then Linux is untested, not failing. No manual Linux run is planned.
 
 ## S-002 — OCP wheel and render path pairing (D2 / D12) (2026-10-30)
 `uv sync` with `build123d>=0.12,<0.13` on Python 3.13.18 resolves, through build123d's
@@ -80,7 +82,12 @@ into every example and then copies `examples/bracket` and `examples/enclosure` i
 `core/vcs.py` sets `GIT_AUTHOR_NAME/EMAIL` and `GIT_COMMITTER_*` to `napkin2factory
 <n2f@localhost>` when the environment has none, disables hooks (`core.hooksPath=/dev/null`)
 and the pager, so `n2f init` works in a fresh sandbox. A configured identity wins.
-`[revisit]` Whether the owner's own name should be prompted for during intake.
+**Amended 2026-10-31 (owner):** owners may not know git exists, so intake never asks for a
+git identity. Where git has no `user.name`/`user.email`, snapshots are authored as the
+product name from `n2f.yaml` (the folder name if there is none) `<n2f@localhost>`. The
+v0.1 code set the variables whenever the environment lacked them, which overrode a
+configured identity despite the sentence above; `Vcs._fallback_identity` now checks
+`git config` first and fills only what is missing (`tests/unit/test_vcs.py`).
 
 ## S-012 — Validate semantics for computed selectors (2026-10-30)
 `#props.*` on parts/assemblies and `bom://rollups#*` are computed by the build, so
@@ -435,6 +442,18 @@ visible; damping keeps queueing frames until the motion settles. `preserveDrawin
 is gone (`snapshot()` renders before reading back), the pixel ratio is capped at 2, and
 `render()` joins the API for callers that mutate the scene directly. The wheel scrolls the
 page until the viewer is clicked, so scrolling past the model no longer zooms it.
+
+## S-054 — PyPI publishing through trusted publishers (2026-10-31)
+Pushing a `v*` tag runs `.github/workflows/publish.yml`: it checks that the tag, both
+package versions and the alias pin agree, builds both, then publishes `napkin2factory`
+from the `pypi` GitHub environment and `n2f` from `pypi-alias`. `n2f` is an empty alias
+package (`packaging/n2f/`) that depends on `napkin2factory==<same version>`; bump all three
+together. PyPI holds both as pending trusted publishers (owner `osaxma`, repo
+`napkin2factory`, workflow `publish.yml`); it refuses two projects on one (repo, workflow,
+environment), hence two environments. A pending publisher does not reserve a name, so the
+names stay unclaimed until the first tag is pushed. Both GitHub environments must exist
+in the repository settings before that tag (GitHub creates a missing one on first use,
+without protection rules).
 
 ## Kiln engineering decisions (2026-10-30)
 See `examples/kiln/model/decisions.yaml` DEC-001…DEC-011. The notable one: the owner's
