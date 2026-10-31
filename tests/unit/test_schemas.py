@@ -189,7 +189,10 @@ def _pinned(system: str | None = None) -> Manifest:
 
 
 def test_manifest_default_pin_is_the_current_minor():
-    assert _pinned().system == ">=0.2,<0.3"
+    from napkin2factory import __version__
+
+    major, minor = (int(x) for x in __version__.split(".")[:2])
+    assert _pinned().system == f">={major}.{minor},<{major}.{minor + 1}"
 
 
 @pytest.mark.parametrize(
