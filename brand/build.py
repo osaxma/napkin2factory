@@ -378,14 +378,100 @@ def animated_icon() -> str:
     return svg_doc(body, 100, 100, "napkin2factory", ANIMATION_CSS)
 
 
-def lockup(text_fill: str, prefix: str) -> str:
-    """Icon plus wordmark, horizontal."""
-    inner = icon_body(MASTER, prefix)
+# --- wordmark --------------------------------------------------------------------------
+# "napkin" and "2" in a pen hand, "factory" in a typewriter face: the name goes from sketch
+# to machine. Glyphs are converted to outlines, so the SVGs need no fonts installed.
+HAND_FONT = Path("/System/Library/Fonts/Supplemental/Bradley Hand Bold.ttf")
+TYPE_FONT = Path("/System/Library/Fonts/Supplemental/AmericanTypewriter.ttc")
+TYPE_STYLE = "Regular"
+HAND_SCALE = 1.12  # the hand runs slightly larger so the two faces look the same size
+THEMES = {
+    "light": {"pen": PEN, "two": PART_SIDE_A, "type": TEXT_ON_LIGHT},
+    "dark": {"pen": "#7D9BF0", "two": PART_SIDE_A, "type": TEXT_ON_DARK},
+}
+
+
+@dataclass
+class Wordmark:
+    """Outlined wordmark: SVG groups at font size 100, baseline y = 0."""
+
+    body: str
+    xmin: float
+    ymin: float
+    xmax: float
+    ymax: float
+
+
+def _fonts() -> tuple[object, object] | None:
+    """Load the hand and typewriter fonts, or None when fontTools or the fonts are missing."""
+    try:
+        from fontTools.ttLib import TTCollection, TTFont
+    except ImportError:
+        return None
+    if not (HAND_FONT.exists() and TYPE_FONT.exists()):
+        return None
+    hand = TTFont(str(HAND_FONT))
+    face = next(f for f in TTCollection(str(TYPE_FONT)).fonts
+                if f["name"].getDebugName(2) == TYPE_STYLE and f["name"].getDebugName(1) == "American Typewriter")
+    return hand, face
+
+
+def wordmark(short: bool, theme: str, fonts: tuple[object, object], prefix: str = "") -> Wordmark:
+    """Outline "napkin2factory" (or "n2f") in the two faces, as three named groups."""
+    from fontTools.pens.boundsPen import BoundsPen
+    from fontTools.pens.svgPathPen import SVGPathPen
+    from fontTools.pens.transformPen import TransformPen
+
+    hand, face = fonts
+    colours = THEMES[theme]
+    runs = [
+        ("napkin", "n" if short else "napkin", hand, 100 * HAND_SCALE, colours["pen"]),
+        ("2", "2", hand, 100 * HAND_SCALE, colours["two"]),
+        ("factory", "f" if short else "factory", face, 100.0, colours["type"]),
+    ]
+    x, groups = 0.0, []
+    box = [math.inf, math.inf, -math.inf, -math.inf]
+    for key, text, font, size, colour in runs:
+        gs, cmap = font.getGlyphSet(), font.getBestCmap()  # type: ignore[attr-defined]
+        k = size / font["head"].unitsPerEm  # type: ignore[index]
+        paths = []
+        for ch in text:
+            name = cmap[ord(ch)]
+            pen = SVGPathPen(gs)
+            gs[name].draw(TransformPen(pen, (k, 0, 0, -k, x, 0)))
+            bp = BoundsPen(gs)
+            gs[name].draw(TransformPen(bp, (k, 0, 0, -k, x, 0)))
+            if bp.bounds:
+                box = [min(box[0], bp.bounds[0]), min(box[1], bp.bounds[1]),
+                       max(box[2], bp.bounds[2]), max(box[3], bp.bounds[3])]
+            paths.append(f'<path d="{pen.getCommands()}"/>')
+            x += font["hmtx"][name][0] * k  # type: ignore[index]
+        groups.append(f'<g id="{prefix}wordmark-{key}" fill="{colour}">{"".join(paths)}</g>')
+    return Wordmark("".join(groups), *box)
+
+
+def wordmark_doc(wm: Wordmark, title: str) -> str:
+    """Standalone SVG for a wordmark with a small margin."""
+    pad = (wm.ymax - wm.ymin) * 0.08
+    x0, y0 = wm.xmin - pad, wm.ymin - pad
+    w, h = wm.xmax - wm.xmin + 2 * pad, wm.ymax - wm.ymin + 2 * pad
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x0:.1f} {y0:.1f} {w:.1f} {h:.1f}" '
+        f'width="{w * 2:.0f}" height="{h * 2:.0f}" role="img" aria-label="{title}">\n'
+        f'<title>{title}</title>\n{wm.body}\n</svg>\n'
+    )
+
+
+def lockup(theme: str, fonts: tuple[object, object]) -> str:
+    """Icon plus wordmark, horizontal; the wordmark is set at 46 % of the icon height."""
+    prefix = theme[0] + "-"
+    wm = wordmark(False, theme, fonts, prefix)
+    k, gx, base = 0.46, 132.0, 76.0
+    width = gx + wm.xmax * k + 14
     return svg_doc(
-        f'<svg x="10" y="10" width="100" height="100" viewBox="0 0 100 100">{inner}</svg>'
-        f'<text id="{prefix}wordmark" x="132" y="76" font-family="Inter, \'Helvetica Neue\', Helvetica, Arial, '
-        f'sans-serif" font-size="46" font-weight="600" letter-spacing="-.5" fill="{text_fill}">napkin2factory</text>',
-        520, 120, "napkin2factory",
+        f'<svg x="10" y="10" width="100" height="100" viewBox="0 0 100 100">{icon_body(MASTER, prefix)}</svg>'
+        f'<g id="{prefix}wordmark" transform="translate({gx} {base}) scale({k})">{wm.body}</g>',
+        round(width), 120, "napkin2factory",
     )
 
 
@@ -400,9 +486,16 @@ def build(out: Path, png: bool) -> None:
         "n2f-icon-16.svg": svg_doc(icon_body(SMALL_16), 100, 100, "napkin2factory"),
         "n2f-mark.svg": svg_doc(icon_body(MASTER).split("\n", 1)[1], 100, 100, "napkin2factory"),
         "n2f-icon-animated.svg": animated_icon(),
-        "n2f-lockup-on-dark.svg": lockup(TEXT_ON_DARK, "d-"),
-        "n2f-lockup-on-light.svg": lockup(TEXT_ON_LIGHT, "l-"),
     }
+    fonts = _fonts()
+    if fonts:
+        for theme in THEMES:
+            files[f"n2f-lockup-on-{theme}.svg"] = lockup(theme, fonts)
+            files[f"n2f-wordmark-on-{theme}.svg"] = wordmark_doc(wordmark(False, theme, fonts), "napkin2factory")
+            files[f"n2f-short-on-{theme}.svg"] = wordmark_doc(wordmark(True, theme, fonts), "n2f")
+    else:
+        print("fontTools or the wordmark fonts are missing: kept the existing wordmark and lockup SVGs "
+              "(run with `uv run python brand/build.py` on macOS)")
     for name, text in files.items():
         (svg_dir / name).write_text(text)
     print(f"wrote {len(files)} SVGs to {svg_dir}")
@@ -423,8 +516,10 @@ def build(out: Path, png: bool) -> None:
     render("n2f-icon-32.svg", "n2f-icon-32.png", 32)
     render("n2f-icon-16.svg", "n2f-icon-16.png", 16)
     render("n2f-mark.svg", "n2f-mark-1024.png", 1024)
-    render("n2f-lockup-on-dark.svg", "n2f-lockup-on-dark.png", 1560)
-    render("n2f-lockup-on-light.svg", "n2f-lockup-on-light.png", 1560)
+    for theme in THEMES:
+        for stem, width in (("lockup", 1560), ("wordmark", 1600), ("short", 600)):
+            if (svg_dir / f"n2f-{stem}-on-{theme}.svg").exists():
+                render(f"n2f-{stem}-on-{theme}.svg", f"n2f-{stem}-on-{theme}.png", width)
     magick = shutil.which("magick")
     if magick:
         subprocess.run([magick, *(str(png_dir / f"n2f-icon-{n}.png") for n in (16, 32, 48)),
