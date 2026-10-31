@@ -767,3 +767,13 @@ invisible in the styled renders → B-0032; screening notes still name fields in
 **Judged (orchestrator, fixed board):** four pictures, owner-worded sources under every estimate,
 the wide-band sentence on the kiln cards only, set-aside lines with the date. No golden changed.
 `make check`: 642 passed; `make check-full` green.
+
+## S-071 — v0.2 close-out: what is measured, what is the owner's (2026-10-31)
+DoD 1 measured from a clean clone of eab10b1 on the reference host: `make check-full` exit 0 in
+28 min 01 s (642 + 132 tests, coverage 90.2 %, four artifact sets complete). The release itself
+is not an agent action (S-054): the owner merges `v0.2-build` into `main` and pushes `v0.2.0`
+after CI is green there; both package versions and the alias pin already read 0.2.0. Two brand
+commits (82df19c's `brand/` files, 7478a11) sit on the branch and are design assets only, not
+wired into the product — the owner decides whether they go to `main` with v0.2 or are integrated
+later as they asked. Left open on purpose: the engineer-persona simulation (⤵ in NAPKIN_STAGE §5
+M5) and BACKLOG B-0019–B-0034.

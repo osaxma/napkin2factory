@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M7 close-out (clean-clone check-full, handoff report, release)
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** v0.2 complete on `v0.2-build` (M0–M7, gates A and B closed); the release (merge to `main`, `v0.2.0` tag) is the owner's call
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
 **Resume note (2026-10-31):** M0–M4 committed. review gate A (fresh-context, read-only) and M5 (skill texts) run in parallel from briefs in the
 orchestrator's scratchpad; then M6 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
@@ -93,8 +93,14 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
   the `--json` stage meaning → B-0033, field names in notes → B-0034. **Judged:** the fixed board shows
   four pictures and owner-worded sources. `make check`: 642 passed, coverage 90.2 %; `make check-full`
   green. Full outcome in DECISIONS "Review gate B — outcome".
+- **M7 (done 2026-10-31)** — close-out. Parallel `make check` (S-070); review gate B fixes; `HANDOFF-REPORT-v0.2.md`
+  (DoD 9: DoD table with measured evidence, dropped/simplified, every `[verify]`, the 30-second napkin demo
+  script, rough edges from gate B, v0.3 steps, release notes, the three minute-five retellings). DoD 1 measured
+  from a clean clone of eab10b1: `uv sync`, `n2f doctor` green, `make check-full` exit 0 in 28 min — 642 passed,
+  coverage 90.2 %, goldens 132, all four artifact sets complete. Not done: the engineer-persona second simulation
+  (⤵ stretch, NAPKIN_STAGE §5 M5), B-0032–B-0034 and the rest of the backlog.
 ## Next
-M7 close-out: clean-clone `make check-full`, `HANDOFF-REPORT-v0.2.md` final, then the owner's release call (merge to `main`, `v0.2.0` tag after CI green, S-054).
+Owner: merge `v0.2-build` into `main` (note: the two brand commits ride along), push the `v0.2.0` tag once CI is green on `main` (S-054); then `HANDOFF-REPORT-v0.2.md` §6 for v0.3.
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).
