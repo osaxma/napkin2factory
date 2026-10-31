@@ -17,10 +17,10 @@ model or client: any coding agent, or a person, works from these files.
 5. `git log --oneline -30`, then `make check`.
 
 ## Non-negotiables
-- Run what the change can break before committing: docs only → nothing; tests, scripts or the
-  Makefile → `make lint` and the touched tests; anything under `src/`, `examples/` or the
-  templates → `make check`. CI runs the full check on every push. Never commit `build/` or
-  `examples/*/build/`.
+- Never run checks a change cannot break. Docs, journals, brand assets, workflow files → nothing
+  to run; tests, scripts or the Makefile → `make lint` and the touched tests; anything under
+  `src/`, `examples/` or the templates → `make check`. CI runs the full check on every push and
+  skips commits it has already tested. Never commit `build/` or `examples/*/build/`.
 - Work on the release branch named in `STATUS.md` (`v0.2-build` today; v0.1 is closed on `main`).
   Commit messages `M<n>: <what>` while a milestone is open; plain imperative otherwise.
   Stage explicit paths, never `git add -A` (unrelated work may sit in the tree).
@@ -53,9 +53,11 @@ model or client: any coding agent, or a person, works from these files.
   maintainer's call.
 
 ## Talking to a person
-Name things by their titles, not by bare ids: "the calc kit decision", "the wide cost bands
-item", "review gate B" — an id such as `S-064` or `B-0022` may follow in parentheses. The reader
-may be on a phone with no repo at hand. The same goes for milestones: say what they delivered.
+- An id never travels alone: pair it with its short title every time — "S-064, the calc kit",
+  "B-0022, wide cost bands", "review gate B, the owner-persona UX review". The reader may be on a
+  phone with no repo at hand. Milestones likewise: say what they delivered.
+- A question gets its answer first, from what you already know. Run commands afterwards, and
+  only if the answer needs them.
 
 ## The three journals (what goes where)
 - `STATUS.md` — state only: branch, version, current milestone, environment facts, one line per
