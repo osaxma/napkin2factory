@@ -1,6 +1,6 @@
 # napkin2factory v0.2 — handoff report
 
-> **Next agent:** v0.2 is complete on `v0.2-build`; review gates A and B are closed. What remains is the owner's release call (see §7) and v0.3 (see §6).
+> **Next agent:** v0.2 is released — `v0.2.0` tagged on 42f0672 (2026-11-01), `main` fast-forwarded to it, both packages published by `publish.yml`. Continue with v0.3 (see §6).
 
 ## 1. What works, per definition-of-done item
 
@@ -134,8 +134,9 @@ Owner-side, not agent work: DEC-011, DEC-012, DEC-004, B-0013 and DEC-018's 1750
 
 ## 7. Release
 
-Per S-054 and S-056: fix gate B's blockers; `make check-full` green; bring `v0.2-build` into
-`main`; push the `v0.2.0` tag only after CI is green on `main`. `publish.yml` checks that the tag,
+Done 2026-11-01 (S-072): gate B's blockers fixed; `make check-full` green from a clean clone; `main`
+fast-forwarded to `v0.2-build`; `v0.2.0` tagged on the commit that was green on the branch (CI no longer
+repeats a tested commit, see S-072). `publish.yml` checks that the tag,
 both package versions and the alias pin agree, then publishes `napkin2factory` (environment
 `pypi`) and `n2f` (`pypi-alias`), both used for 0.1.0. The versions are already 0.2.0:
 

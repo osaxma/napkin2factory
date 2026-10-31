@@ -777,3 +777,12 @@ commits (82df19c's `brand/` files, 7478a11) sit on the branch and are design ass
 wired into the product — the owner decides whether they go to `main` with v0.2 or are integrated
 later as they asked. Left open on purpose: the engineer-persona simulation (⤵ in NAPKIN_STAGE §5
 M5) and BACKLOG B-0019–B-0034.
+
+## S-072 — CI never repeats a commit's tests; 0.2.0 released (2026-11-01)
+Owner's rule: if a commit's tests were run, they are not run again. `ci.yml` gains a `gate` job
+that asks the GitHub API for an earlier successful `ci` run of the same commit and skips the
+check matrix when one exists (a fast-forward of a green branch tip onto `main`, or a PR head
+pushed again, costs one tiny runner instead of two full runs). The nightly `check-full` is
+unchanged. This also amends the S-054 practice: a tag may go on a commit that is green on its
+branch; "green on `main`" was a second run of the same SHA. v0.2.0 was tagged on 42f0672 after
+the branch run passed; `publish.yml` succeeded for both `napkin2factory` and the `n2f` alias.

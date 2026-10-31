@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** v0.2 complete on `v0.2-build` (M0–M7, gates A and B closed); the release (merge to `main`, `v0.2.0` tag) is the owner's call
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** v0.2 released (`v0.2.0` on 42f0672, 2026-11-01; `main` at the same commit). Next: v0.3 per `HANDOFF-REPORT-v0.2.md` §6
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
 **Resume note (2026-10-31):** M0–M4 committed. review gate A (fresh-context, read-only) and M5 (skill texts) run in parallel from briefs in the
 orchestrator's scratchpad; then M6 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
@@ -100,7 +100,7 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
   coverage 90.2 %, goldens 132, all four artifact sets complete. Not done: the engineer-persona second simulation
   (⤵ stretch, NAPKIN_STAGE §5 M5), B-0032–B-0034 and the rest of the backlog.
 ## Next
-Owner: merge `v0.2-build` into `main` (note: the two brand commits ride along), push the `v0.2.0` tag once CI is green on `main` (S-054); then `HANDOFF-REPORT-v0.2.md` §6 for v0.3.
+v0.3 per `HANDOFF-REPORT-v0.2.md` §6; brand integration (`brand/`) now that v0.2 is out, at the owner's pace.
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).
