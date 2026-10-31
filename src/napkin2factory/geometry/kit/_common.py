@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from pydantic import BeforeValidator
 from typing_extensions import Annotated
@@ -15,6 +16,8 @@ if TYPE_CHECKING:
     from napkin2factory.geometry.kit import KitContext
 
 MASSING_NOTE = "massing silhouette: features omitted"
+
+A = TypeVar("A")
 
 
 def _length_mm(v: Any) -> float:
@@ -101,3 +104,37 @@ def massing_result(
         props={"fidelity": "massing", **(props or {})},
         notes=[MASSING_NOTE],
     )
+
+
+def style_length(ctx: KitContext, name: str) -> float:
+    """A length cue (``corner_radius``, ``reveal``…) of the opted-in style in mm, else 0."""
+    style = ctx.styled
+    return float(_mm(getattr(style, name))) if style is not None else 0.0
+
+
+def apply_style_defaults(
+    a: A, defaults: dict[str, float], check: Callable[[A], object]
+) -> tuple[A, list[str]]:
+    """Fill style defaults into arguments the part left unset, one at a time (N7).
+
+    Args:
+        a: validated generator arguments.
+        defaults: argument name → style value (mm); zero or negative values are no-ops.
+        check: the generator's validation; a default it refuses is skipped and noted.
+
+    Returns:
+        The (possibly) updated arguments and one note per skipped default.
+    """
+    notes: list[str] = []
+    fields_set: set[str] = getattr(a, "model_fields_set", set())
+    for name, value in defaults.items():
+        if name in fields_set or not value > 0:
+            continue
+        trial = a.model_copy(update={name: value})  # type: ignore[attr-defined]
+        try:
+            check(trial)
+        except ValueError as exc:
+            notes.append(f"style {name} {value:g} mm not applied: {exc}")
+            continue
+        a = trial
+    return a, notes

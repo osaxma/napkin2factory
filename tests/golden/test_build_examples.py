@@ -39,6 +39,7 @@ def test_bracket_builds_and_validates(tmp_path: Path) -> None:
         "part://l-bracket#kind",
         "part://l-bracket#interfaces",
         "part://l-bracket#rev",
+        "part://l-bracket#role",  # M3: a role change rebuilds the part (N7)
         "param://bracket-length",
         "param://bracket-height",
         "param://bracket-width",

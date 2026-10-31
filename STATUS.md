@@ -1,10 +1,9 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M3 (styled imagery, style.yaml, kit aesthetics), in progress
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M4 (board, promotion, form requirements), in progress
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
-**Resume note (2026-10-31):** M0–M2 committed. M3 (styled viewer screenshots via Playwright,
-`style.yaml` presets, six opt-in kit aesthetic parameters) is running as one subagent from a brief in the
-orchestrator's scratchpad; then M4 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
+**Resume note (2026-10-31):** M0–M3 committed. M4 (board, promotion, the `rule` verify kind, form pack) is running as one subagent from a brief in the
+orchestrator's scratchpad; then gate A, M5 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
 retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run `make check`, then commit.
 **Resume order:** `NAPKIN_STAGE.md` → this file → `DECISIONS.md` (S-055 onward) → `git log --oneline -30` → `make check`
 
@@ -40,10 +39,17 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
   estimate, runs `concept-v0` and screens the DEC-011 kiln red on an 800 mm alcove with the door swing
   counted — and on a one-piece blank larger than any stock sheet (S-065). Warm `concept build --all` on
   the two-card fixture: 1.2 s. `make check`: 482 passed, coverage 90 %.
+- **M3 (done 2026-10-31)** — `style.yaml` with three data presets and role-keyed palette and finish;
+  six kit aesthetic parameters, opt-in by part role, with the default-is-unchanged guarantee held by the
+  goldens; styled concept screenshots through the inline viewer with a studio rig and a logged z-buffer
+  fallback; the report viewer paints the palette by role (S-066). Warm `concept build --all`: 6.2 s for
+  two cards including screenshots. **Judged:** industrial and appliance screenshots read as products.
+  `make check`: 510 passed, coverage 90.3 %.
 
 ## Next
-M3: `style.yaml` presets and roles, six opt-in kit aesthetic parameters, the Playwright screenshot rig
-with the z-buffer fallback logged, the "product image" checklist and a judged exit. Then M4.
+M4: the board (self-contained, labelled numbers, red cards with reasons), promotion (collision-safe
+seeding, site constraints → requirements, form requirements via a `rule` verify kind, the DEC with
+rejected siblings), then review gate A.
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).

@@ -613,3 +613,24 @@ screening's heat-up at 2.5 kW is ≈ 4.4 h (the kiln's own calc 4.8 h) — DEC-0
 planned margin, not the calc, and the board must not suggest otherwise; the cost band is wide
 (1423–4778 USD for the kiln-like card) because the cost tables span 8–68 USD/kg (B-0022).
 Massing frames are solid boxes, so stand mass and welding cost are overstated (B-0021).
+
+## S-066 — Styled viewer screenshots, style.yaml presets and six kit aesthetic parameters (N6, N7) (2026-10-31)
+`style.yaml` (`core/model/style.py`) keys palette and finish by a closed role set (body, door,
+stand, controls, trim, lining, fastener, default); presets are data (industrial: neutral cues,
+the default when the file is absent; appliance: radius_scale 1.5, hidden-front fasteners; lab);
+`resolved()` fills what the file leaves out. `Part.role`/`MassingCall.role`; `role_for` falls
+back to `as`/id when it is a role word. **Opt-in rule:** style geometry defaults reach only
+parts with an explicit body/door/stand/controls/trim role, fill only unset args, are skipped
+with a note when they do not fit, never apply at massing fidelity, and are read as
+`style:geometry` (a palette edit rebuilds the report, no part). Six parameters: radius_scale on
+default bend radii, corner_radius, block chamfer, panel/plate `fit_to` + reveal, frame
+`overhang` (ring on the legs, ≤ size − wall, square tube only), enclosure `vent` as `vent-n`
+cutouts. `n2f concept build` takes 1200 × 900 iso/front screenshots through the report's
+inline viewer (studio rig: key/fill/rim as N6, ×π for three.js physical light units, softbox
+PMREM environment, contact shadow, a toe-less Neutral roll-off because Neutral's toe turned
+charcoal blue-black) in one reused Chromium page; the z-buffer fallback is noted on the card
+`[revisit]`. ⤵ done: the report viewer paints by role when `style.yaml` exists.
+**Judged (M3 exit):** the industrial and appliance screenshots of the M2 fixture cards read as
+products — distinct face shading, one accent, contact shadow, neutral background — not as
+debug renders. Lesson for cards: the `enclosure` silhouette is an open-top tray, so a closed
+body (a kiln) is a `block`; the appliance door is low-contrast by design (same hue as the body).

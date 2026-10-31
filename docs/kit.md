@@ -15,14 +15,14 @@ geometry:
 
 | generator | makes | flat pattern | key args |
 |---|---|---|---|
-| `plate` | flat rectangle with a hole grid, corner radius | yes | width, depth, thickness, corner_radius, holes{diameter,count_x,count_y,spacing_x,spacing_y,inset} |
-| `panel` | flat sheet with explicit holes and cutouts | yes | width, height, thickness, corner_radius, holes[], cutouts[] |
+| `plate` | flat rectangle with a hole grid, corner radius | yes | width, depth (or fit_to{width,height}, reveal), thickness, corner_radius, holes{diameter,count_x,count_y,spacing_x,spacing_y,inset} |
+| `panel` | flat sheet with explicit holes and cutouts | yes | width, height (or fit_to{width,height}, reveal), thickness, corner_radius, holes[], cutouts[] |
 | `block` | rectangular solid (bricks, boards, COTS boxes) | no (cut list) | length, width, height, fillet, chamfer |
 | `tube` | round/square hollow section or rod | no (cut list) | shape, size, wall, length, axis, corner_radius |
 | `hole_pattern` | plate carrying a bolt pattern (shared math for interfaces) | yes | plate_width, plate_depth, thickness, pattern, count, diameter, spacing, pitch_circle, interface |
 | `bracket_l` | L-bracket with one bend and holes per leg | yes, with bend line | length, height, width, thickness, bend_radius, holes{diameter,spacing,inset,count} |
-| `enclosure` | open-top tray: four bent walls, optional lip, reliefs, cutouts | yes, cross with bend lines | length, width, height, thickness, bend_radius, flange, relief, cutouts[] |
-| `frame` | welded stand of square tube or angle: legs, top/bottom rails | no (cut list) | length, width, height, member{profile,size,wall}, top_rails, bottom_rails, bottom_rail_height |
+| `enclosure` | open-top tray: four bent walls, optional lip, reliefs, cutouts, vent | yes, cross with bend lines | length, width, height, thickness, bend_radius, flange, relief, cutouts[], vent{face,pattern,count,size,pitch,inset} |
+| `frame` | welded stand of square tube or angle: legs, top/bottom rails | no (cut list) | length, width, height, member{profile,size,wall}, top_rails, bottom_rails, bottom_rail_height, overhang |
 
 ## What a generator returns
 
@@ -58,6 +58,39 @@ screening, built by the same generators so nothing is duplicated.
   `features.json` carries `fidelity: massing`), only the overall `dims`, no flat pattern,
   an empty cut list, `props` with `fidelity: massing` (enclosure adds its inner sizes), and
   the note `massing silhouette: features omitted`.
+
+## Aesthetic parameters (`style.yaml`, N7)
+
+Six parameters turn a welded box into a product. Each is an ordinary argument a part may
+set; when it does not, a part **that opts in** takes the default from the product's
+`style.yaml` (`n2f init --style industrial|appliance|lab` seeds it; a product without the
+file gets `industrial`, whose shape cues are all no-ops).
+
+**Opt-in rule (fixed).** Style defaults reach only parts whose `role:` is explicitly `body`,
+`door`, `stand`, `controls` or `trim`. A part with no role, or role `lining`, `fastener` or
+`default`, builds exactly as without a style whatever `style.yaml` says (refractory bricks
+never grow fillets because the shell is rounded). **Default is unchanged:** with no style,
+no role or `industrial`, every generator builds byte-identical geometry to v0.1 (the
+generator goldens, `tests/golden/test_kit_aesthetics.py`, and the enclosure example's
+`tess_hash` values hold it). Massing fidelity ignores every style default (the screenshot
+rig still reads the palette). The part's own value always wins, even an explicit `0`; a
+style default that does not fit the part (a radius larger than a side, an overhang that
+leaves the ring off the legs) is skipped and the part's `notes` say why — a style never
+breaks a build. Opted-in parts record a read of the geometry cues of `style.yaml`, so
+editing them rebuilds exactly those parts; a palette edit rebuilds none.
+
+| # | parameter | where | from `style.yaml` |
+|---|---|---|---|
+| 1 | edge radius scaling | `enclosure`, `bracket_l`: an unset `bend_radius` defaults to `thickness × radius_scale` (1.0 = today) | `radius_scale` |
+| 2 | corner radius | `plate`/`panel` `corner_radius`, `block` `fillet` (vertical edges) when unset | `corner_radius` (0 mm) |
+| 3 | chamfer | `block` `chamfer` (all edges) when neither fillet nor chamfer is set; a style sets 2 or 3, not both | `chamfer` (0 mm) |
+| 4 | panel reveal | `panel`/`plate` `fit_to: {width, height}` cuts the part `reveal` smaller than its opening on each side (plate: height is depth); `reveal` arg, else the style's, else 2 mm. Without `fit_to` nothing changes | `reveal` (2 mm) |
+| 5 | overhang | `frame` `overhang`: the top rails become a ring sitting on the legs and reaching `overhang` beyond them on every side, like a table top (bbox grows by 2·overhang in X and Y; square tube; ≤ size − wall) | `overhang` (0 mm) |
+| 6 | vent / grille | `enclosure` `vent: {face: left|right|back, pattern: slots|holes, count, size, pitch, inset}`: ordinary cutouts `vent-1…` on that wall, so they reach `features.json`, the flat pattern and the rule checks; slots run the wall's flat height less 2·inset, holes sit in one row `inset` below its top | `vent_pattern` when the vent names none (`slots`) |
+
+`fastener_visibility` stays in `style.yaml` only: holes come from interfaces, so it becomes a
+form requirement at promotion (M4), not a kit parameter. Palette and finish by role are
+read by the concept screenshot rig and the report viewer, never by geometry.
 
 ## Sheet-metal conventions (`_sheet.py`)
 

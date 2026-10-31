@@ -157,7 +157,8 @@ def test_init_seeds_style_yaml(tmp_path: Path) -> None:
     _run("init", str(dest), "--template", "blank", cwd=tmp_path)
     text = (dest / "style.yaml").read_text()
     assert text.startswith("# style.yaml") and "n2f concept promote" in text
-    assert StyleFile.model_validate(yaml.safe_load(text)) == StyleFile()
+    # the industrial preset's values, written out in full (M3, N7)
+    assert StyleFile.model_validate(yaml.safe_load(text)) == StyleFile().resolved()
     assert not (dest / "concepts").exists(), "concepts are created, not scaffolded"
     _run("validate", cwd=dest)
     # an existing product folder gets agent files only, never a style.yaml

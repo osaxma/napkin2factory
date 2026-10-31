@@ -20,6 +20,7 @@ from pydantic import (
 )
 
 from napkin2factory.core.model.base import Model, _id, _to_quantity
+from napkin2factory.core.model.style import StyleRole
 from napkin2factory.core.units import UnitError, format_quantity, parse_quantity
 
 ConceptId = Annotated[str, _id(r"C-\d{3}")]
@@ -118,6 +119,8 @@ class MassingCall(Model):
     material: str | None = None
     #: Cost-band process class; defaults to the generator's own ``process``.
     process_class: str | None = None
+    #: Styling role for the picture's palette; defaults to ``as`` when that is a role word.
+    role: StyleRole | None = None
 
 
 Label = Literal["computed", "estimate"]

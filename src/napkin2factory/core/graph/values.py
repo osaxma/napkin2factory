@@ -87,6 +87,16 @@ def value_of(
         return entry.output_hash if entry else "unbuilt"
     if key in MEMBERSHIP:
         return membership_value(product, key)
+    if key in ("style:geometry", "style:look"):
+        from napkin2factory.core.errors import N2FError
+        from napkin2factory.core.style import geometry_fingerprint, load_style, look_fingerprint
+
+        try:
+            if key == "style:look":
+                return sha256_json(look_fingerprint(product.paths.root))
+            return sha256_json(geometry_fingerprint(load_style(product.paths.root)))
+        except N2FError:
+            return "invalid"
     if key.startswith("signoff:"):
         return sha256_file(product.paths.signoffs / f"{key[len('signoff:') :]}.yaml")
     if key.startswith("manifest://product"):

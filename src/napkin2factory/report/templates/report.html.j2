@@ -120,7 +120,7 @@ table.only-open tr.st-pass,table.only-open tr.st-signed{display:none}
 <section class="card" id="model">
   {{ h2('model', '3D model') }}
   {% if glb_b64 %}
-  <div id="viewer" data-n2f-glb="glb-data" data-explode-axis="{{ exploded.axis }}" data-explode-spacing="{{ exploded.spacing }}"></div>
+  <div id="viewer" data-n2f-glb="glb-data" data-explode-axis="{{ exploded.axis }}" data-explode-spacing="{{ exploded.spacing }}"{% if viewer_options %} data-n2f-options="{{ viewer_options }}"{% endif %}></div>
   <script type="text/plain" id="glb-data">{{ glb_b64 }}</script>
   <div class="viewer-bar">
     <label>Explode <input id="explode" type="range" min="0" max="1" step="0.01" value="0"></label>

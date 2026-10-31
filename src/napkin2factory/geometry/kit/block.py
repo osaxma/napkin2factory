@@ -2,6 +2,9 @@
 
 Origin at the centre of the base; the block spans ``z`` from 0 to ``height``.  Optional
 vertical-edge fillet or all-edge chamfer (not both).
+
+Aesthetics (N7): a part with a styling role that sets neither ``fillet`` nor ``chamfer``
+takes ``style.corner_radius`` as its fillet or ``style.chamfer`` as its chamfer.
 """
 
 from __future__ import annotations
@@ -10,7 +13,13 @@ from build123d import Align, Axis, Box, BuildPart, BuildSketch, Rectangle, chamf
 
 from napkin2factory.geometry.features import CutItem, Dim, Features, PartResult
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Length, massing_result, require_positive
+from napkin2factory.geometry.kit._common import (
+    Length,
+    apply_style_defaults,
+    massing_result,
+    require_positive,
+    style_length,
+)
 
 
 class Args(KitArgs):
@@ -46,6 +55,22 @@ def _validate(a: Args) -> None:
         )
 
 
+def _prepare(a: Args, ctx: KitContext) -> tuple[Args, list[str]]:
+    """Apply style edge defaults (opted-in parts only) and validate; return the notes."""
+    notes: list[str] = []
+    if ctx.styled is not None and not {"fillet", "chamfer"} & a.model_fields_set:
+        a, notes = apply_style_defaults(
+            a,
+            {
+                "fillet": style_length(ctx, "corner_radius"),
+                "chamfer": style_length(ctx, "chamfer"),
+            },
+            _validate,
+        )
+    _validate(a)
+    return a, notes
+
+
 def _overall_dims(a: Args) -> list[Dim]:
     hl, hw = a.length / 2, a.width / 2
     return [
@@ -57,7 +82,7 @@ def _overall_dims(a: Args) -> list[Dim]:
 
 def massing(a: Args, ctx: KitContext) -> PartResult:
     """Silhouette (N3): the box, no fillet or chamfer; same validation as :func:`generate`."""
-    _validate(a)
+    a, _ = _prepare(a, ctx)
     shape = Box(a.length, a.width, a.height, align=(Align.CENTER, Align.CENTER, Align.MIN))
     return massing_result(shape, a.process, _overall_dims(a), ctx)
 
@@ -75,7 +100,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
     Raises:
         ValueError: on non-positive sizes or a fillet/chamfer too large for the block.
     """
-    _validate(a)
+    a, notes = _prepare(a, ctx)
     with BuildPart() as bp:
         with BuildSketch():
             Rectangle(a.length, a.width)
@@ -96,4 +121,4 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         thickness=a.height,
         qty=1,
     )
-    return PartResult(shape=shape, features=feats, dims=dims, cut_list=[cut])
+    return PartResult(shape=shape, features=feats, dims=dims, cut_list=[cut], notes=notes)

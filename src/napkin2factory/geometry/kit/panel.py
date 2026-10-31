@@ -4,6 +4,10 @@ Origin at the panel centre; width along X, height along Y, thickness along +Z fr
 Hole and cutout centres are given in panel coordinates (from the centre).  The panel is
 its own flat pattern; rounded corners are sampled into the outline polygons, and the
 developed area is computed analytically.
+
+Aesthetics (N7): ``fit_to: {width, height}`` cuts a door or lid ``reveal`` smaller than its
+opening on each side; a part with a styling role takes its ``corner_radius`` and ``reveal``
+from ``style.yaml`` when it leaves them unset.
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ from build123d import (
     extrude,
     fillet,
 )
+from pydantic import model_validator
 
 from napkin2factory.geometry.features import (
     Cutout,
@@ -35,7 +40,14 @@ from napkin2factory.geometry.features import (
     Vec2,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Length, massing_result, require_positive
+from napkin2factory.geometry.kit._common import (
+    Length,
+    apply_style_defaults,
+    massing_result,
+    require_positive,
+    style_length,
+)
+from napkin2factory.geometry.kit.plate import DEFAULT_REVEAL, FitTo
 
 _EPS = 1e-6
 
@@ -59,15 +71,29 @@ class CutoutItem(KitArgs):
 
 
 class Args(KitArgs):
-    """``panel`` arguments (lengths in any unit; converted to mm)."""
+    """``panel`` arguments (lengths in any unit; converted to mm).
 
-    width: Length
-    height: Length
+    Give ``width`` and ``height``, or ``fit_to`` (the opening) and optionally ``reveal``.
+    """
+
+    width: Length = 0.0
+    height: Length = 0.0
     thickness: Length
     corner_radius: Length = 0.0
     holes: list[HoleItem] = []
     cutouts: list[CutoutItem] = []
+    fit_to: FitTo | None = None
+    reveal: Length | None = None
     process: str = "cut-sheet"
+
+    @model_validator(mode="after")
+    def _size_or_fit(self) -> Args:
+        sized = {"width", "height"} & self.model_fields_set
+        if self.fit_to is not None and sized:
+            raise ValueError("give width and height, or fit_to, not both")
+        if self.fit_to is None and len(sized) < 2:
+            raise ValueError("panel needs width and height (or fit_to: {width, height})")
+        return self
 
 
 ARGS = Args
@@ -187,6 +213,33 @@ def _validate(a: Args) -> None:
                 raise ValueError(f"cutouts {i + 1} and {j + 1} overlap")
 
 
+def fit(a: Args, ctx: KitContext) -> Args:
+    """Resolve ``fit_to``: the opening less ``reveal`` on each side (else ``a`` unchanged)."""
+    if a.fit_to is None:
+        return a
+    if a.reveal is not None:
+        reveal = a.reveal
+    elif ctx.styled is not None:
+        reveal = style_length(ctx, "reveal")
+    else:
+        reveal = DEFAULT_REVEAL
+    return a.model_copy(
+        update={"width": a.fit_to.width - 2 * reveal, "height": a.fit_to.height - 2 * reveal}
+    )
+
+
+def _prepare(a: Args, ctx: KitContext) -> tuple[Args, list[str]]:
+    """Fit, apply style defaults (opted-in parts only) and validate; return the notes."""
+    a = fit(a, ctx)
+    notes: list[str] = []
+    if ctx.styled is not None:
+        a, notes = apply_style_defaults(
+            a, {"corner_radius": style_length(ctx, "corner_radius")}, _validate
+        )
+    _validate(a)
+    return a, notes
+
+
 def _overall_dims(a: Args) -> list[Dim]:
     hw, hh = a.width / 2, a.height / 2
     return [
@@ -198,7 +251,7 @@ def _overall_dims(a: Args) -> list[Dim]:
 
 def massing(a: Args, ctx: KitContext) -> PartResult:
     """Silhouette (N3): a box of the outer size; holes, cutouts and corner radius omitted."""
-    _validate(a)
+    a, _ = _prepare(a, ctx)
     shape = Box(a.width, a.height, a.thickness, align=(Align.CENTER, Align.CENTER, Align.MIN))
     return massing_result(shape, a.process, _overall_dims(a), ctx)
 
@@ -216,7 +269,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
     Raises:
         ValueError: on non-positive sizes, a hole or cutout outside the panel, or overlaps.
     """
-    _validate(a)
+    a, notes = _prepare(a, ctx)
     with BuildPart() as bp:
         with BuildSketch():
             Rectangle(a.width, a.height)
@@ -291,6 +344,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         dims=dims,
         flat_pattern=flat,
         props={"developed_area": flat.area},
+        notes=notes,
         flat_map=lambda p: (
             (p[0], p[1]) if abs(p[0]) <= a.width / 2 and abs(p[1]) <= a.height / 2 else None
         ),

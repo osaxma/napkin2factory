@@ -24,6 +24,8 @@ from numpy.typing import NDArray
 from napkin2factory.core.errors import N2FError
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import Assembly, KitGeometry, ModuleGeometry, Part
+from napkin2factory.core.model.style import STYLED_ROLES
+from napkin2factory.core.style import STYLE_GEOMETRY_KEY, load_style
 from napkin2factory.core.units import UnitError, parse_quantity
 from napkin2factory.geometry import kit as kit_mod
 from napkin2factory.geometry.accessors import (
@@ -158,10 +160,28 @@ def build_part(
     P, I, log = make_accessors(product)
     # Declared fields the geometry depends on are recorded as selector reads (gate-1 B3), so
     # an edit to an unrelated field (cost, notes) does not rebuild the part.
-    for field_name in ("geometry", "material", "mass", "process", "kind", "interfaces", "rev"):
+    for field_name in (
+        "geometry",
+        "material",
+        "mass",
+        "process",
+        "kind",
+        "interfaces",
+        "rev",
+        "role",
+    ):
         log.add(f"{part.uri}#{field_name}")
+    # Style geometry defaults reach only parts that opt in with a styling role (N7); for
+    # them the geometry-relevant part of style.yaml is a recorded read.
+    style = None
+    if part.role in STYLED_ROLES:
+        style = load_style(product.paths.root)
+        log.add(STYLE_GEOMETRY_KEY)
     ctx = kit_mod.KitContext(
-        part_id=part_id, material_name=part.material.name if part.material else ""
+        part_id=part_id,
+        material_name=part.material.name if part.material else "",
+        style=style,
+        role=part.role,
     )
     ctx.interfaces = {iu.id: I[iu.id] for iu in part.interfaces}
     g = part.geometry

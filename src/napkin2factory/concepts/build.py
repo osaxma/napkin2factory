@@ -2,7 +2,7 @@
 
 In-process orchestration with no build graph: concepts are outside it, so nothing here is
 hashed, recorded in the manifest or read by a build rule. One warm process screens every
-card in seconds.
+card in seconds, and one headless browser page takes every card's styled screenshots (N6).
 """
 
 from __future__ import annotations
@@ -18,9 +18,15 @@ from napkin2factory.concepts.screening import (
     write_screening_json,
     write_screening_to_card,
 )
+from napkin2factory.concepts.screenshot import (
+    ScreenshotResult,
+    ScreenshotSession,
+    styled_screenshots,
+)
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.errors import N2FError, Problems
 from napkin2factory.core.model.concepts import ConceptCard, Screening
+from napkin2factory.core.model.style import StyleFile
 
 
 @dataclass
@@ -32,6 +38,14 @@ class ConceptBuild:
     screening: Screening
     out_dir: Path
     seconds: float
+    screenshots: ScreenshotResult | None = None
+
+    @property
+    def picture(self) -> Path | None:
+        """The image to show for this card: the styled iso, else the z-buffer iso."""
+        if self.screenshots is not None and "iso" in self.screenshots.paths:
+            return self.screenshots.paths["iso"]
+        return self.massing.paths.get("render_iso")
 
     def rel(self, root: Path, path: Path) -> str:
         """``path`` relative to the product folder, with forward slashes."""
@@ -53,21 +67,85 @@ class ConceptBuild:
                 for k, v in self.massing.paths.items()
                 if k.startswith("render_")
             },
+            "screenshots": (
+                self.screenshots.to_dict(root) if self.screenshots is not None else None
+            ),
             "seconds": round(self.seconds, 3),
             "screening": self.screening.model_dump(mode="json"),
         }
 
 
-def build_concept(root: Path, card: ConceptCard, render: bool = True) -> ConceptBuild:
-    """Compose, screen and record one card; the card file gains its ``screening:``."""
+def product_style(root: Path) -> tuple[StyleFile, list[str]]:
+    """The product's resolved style; ``industrial`` defaults plus a note if the file is bad.
+
+    A broken ``style.yaml`` never stops a concept picture (ideas are never blocked).
+    """
+    from napkin2factory.core.style import load_style
+
+    try:
+        return load_style(root), []
+    except N2FError as exc:
+        return StyleFile().resolved(), [f"{exc}; pictures use the industrial look"]
+
+
+def build_concept(
+    root: Path,
+    card: ConceptCard,
+    render: bool = True,
+    session: ScreenshotSession | None = None,
+    style: StyleFile | None = None,
+) -> ConceptBuild:
+    """Compose, screen, picture and record one card; the card file gains its ``screening:``.
+
+    Args:
+        root: the product folder.
+        card: the card to build.
+        render: write pictures (z-buffer renders and styled screenshots).
+        session: a browser session to reuse across cards (one is opened if needed).
+        style: the product's resolved style (read from ``style.yaml`` when omitted).
+    """
+    from napkin2factory.core.style import merge_card_style
+
     t0 = time.perf_counter()
     massing = compose(card, root, render=render)
     screening = screen(card, massing, root)
     out_dir = concept_build_dir(root, card.id)
+    shots: ScreenshotResult | None = None
+    if render:
+        notes: list[str] = []
+        if style is None:
+            style, notes = product_style(root)
+        card_style, card_notes = merge_card_style(style, card.style)
+        shots = styled_screenshots(
+            card, massing.paths["glb"], card_style, out_dir / "renders", session
+        )
+        for note in [*notes, *card_notes, *shots.notes]:
+            if note not in screening.notes:
+                screening.notes.append(note)
     write_screening_json(out_dir, card, screening)
     write_screening_to_card(root, card.id, screening)
     updated = cm.load_card(root, card.id)
-    return ConceptBuild(updated, massing, screening, out_dir, time.perf_counter() - t0)
+    return ConceptBuild(
+        updated, massing, screening, out_dir, time.perf_counter() - t0, screenshots=shots
+    )
+
+
+def build_concepts(
+    root: Path, cards: list[ConceptCard], render: bool = True
+) -> tuple[list[ConceptBuild], list[dict[str, str]]]:
+    """Build every card through one browser page; returns (built, errors by card id)."""
+    built: list[ConceptBuild] = []
+    errors: list[dict[str, str]] = []
+    style, notes = product_style(root)
+    with ScreenshotSession() as session:
+        for note in notes:
+            session.warn(note)
+        for card in cards:
+            try:
+                built.append(build_concept(root, card, render, session, style))
+            except N2FError as exc:
+                errors.append({"id": card.id, "error": str(exc)})
+    return built, errors
 
 
 def select_cards(
@@ -137,4 +215,11 @@ def summary_line(card: ConceptCard, screening: Screening) -> str:
     return ", ".join(parts) if parts else "nothing measured yet"
 
 
-__all__ = ["ConceptBuild", "build_concept", "select_cards", "summary_line"]
+__all__ = [
+    "ConceptBuild",
+    "build_concept",
+    "build_concepts",
+    "product_style",
+    "select_cards",
+    "summary_line",
+]

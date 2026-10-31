@@ -50,26 +50,38 @@ STYLE_HEADER = """\
 """
 
 
-def write_style(dest: Path) -> Path:
-    """Seed ``style.yaml`` with the :class:`StyleFile` defaults and a short header (N7)."""
+def write_style(dest: Path, preset: str = "industrial") -> Path:
+    """Seed ``style.yaml`` with the chosen preset's values under a short header (N7).
+
+    Raises:
+        N2FError: ``preset`` is not one of the presets.
+    """
     import yaml
 
     from napkin2factory.core.model import StyleFile
+    from napkin2factory.core.model.style import PRESETS
 
+    if preset not in PRESETS:
+        raise N2FError(f"unknown style {preset!r}; choose one of {' | '.join(PRESETS)}")
     path = dest / "style.yaml"
-    body = yaml.safe_dump(
-        StyleFile().model_dump(mode="json"), sort_keys=False, default_flow_style=None
-    )
+    data = StyleFile.model_validate({"preset": preset}).resolved().model_dump(mode="json")
+    body = yaml.safe_dump(data, sort_keys=False, default_flow_style=False)
     path.write_text(STYLE_HEADER + body, encoding="utf-8")
     return path
 
 
-def write_skeleton(dest: Path, template: str, product_id: str, name: str) -> list[Path]:
+def write_skeleton(
+    dest: Path, template: str, product_id: str, name: str, style: str = "industrial"
+) -> list[Path]:
     """Copy a template plus the common agent-layer files into ``dest``; return files written.
 
     A new product also gets ``style.yaml`` (written here, not shipped in ``_common``, which
     is copied onto existing products too).
     """
+    from napkin2factory.core.model.style import PRESETS
+
+    if style not in PRESETS:
+        raise N2FError(f"unknown style {style!r}; choose one of {' | '.join(PRESETS)}")
     if template not in TEMPLATE_NAMES:
         raise N2FError(f"unknown template {template!r}; choose one of {', '.join(TEMPLATE_NAMES)}")
     src = TEMPLATES_DIR / template
@@ -87,7 +99,7 @@ def write_skeleton(dest: Path, template: str, product_id: str, name: str) -> lis
     data["product"]["id"] = product_id
     data["product"]["name"] = name
     dump_roundtrip(manifest, data)
-    write_style(dest)
+    write_style(dest, style)
     return sorted(p for p in dest.rglob("*") if p.is_file())
 
 
@@ -100,6 +112,9 @@ def init(
     ),
     template: str = typer.Option("blank", "--template", "-t", help="blank | bracket | enclosure"),
     name: str | None = typer.Option(None, "--name", help="Product display name."),
+    style: str = typer.Option(
+        "industrial", "--style", help="Starting look for style.yaml: industrial | appliance | lab."
+    ),
     no_tracking: bool = typer.Option(
         False, "--no-tracking", help="Skip change tracking setup (tests only)."
     ),
@@ -146,7 +161,7 @@ def init(
         return
     product_id = slugify(dest.name)
     display = name or dest.name.replace("-", " ").replace("_", " ").strip().capitalize()
-    files = write_skeleton(dest, template, product_id, display)
+    files = write_skeleton(dest, template, product_id, display, style)
     snapshot = None
     if not no_tracking:
         vcs = Vcs(dest)

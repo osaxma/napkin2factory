@@ -1,0 +1,161 @@
+{
+  "block-chamfer-3": {
+    "area": 25296.702,
+    "bbox": [
+      100.0,
+      80.0,
+      30.0
+    ],
+    "cut_items": 1,
+    "cut_length_total": 100.0,
+    "faces": 26,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 236364.0
+  },
+  "block-corner-radius-6": {
+    "area": 26429.168,
+    "bbox": [
+      100.0,
+      80.0,
+      30.0
+    ],
+    "cut_items": 1,
+    "cut_length_total": 100.0,
+    "faces": 10,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 239072.92
+  },
+  "enclosure-vent-holes": {
+    "area": 145171.013,
+    "bbox": [
+      200.0,
+      120.0,
+      80.0
+    ],
+    "faces": 36,
+    "features": {
+      "bends": 4,
+      "cutouts": 6,
+      "flanges": 4,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 4
+    },
+    "flat_area": 71410.336,
+    "flat_size": [
+      354.597,
+      274.597
+    ],
+    "volume": 107333.217
+  },
+  "enclosure-vent-slots": {
+    "area": 142957.013,
+    "bbox": [
+      200.0,
+      120.0,
+      80.0
+    ],
+    "faces": 54,
+    "features": {
+      "bends": 4,
+      "cutouts": 6,
+      "flanges": 4,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 4
+    },
+    "flat_area": 69934.336,
+    "flat_size": [
+      354.597,
+      274.597
+    ],
+    "volume": 105119.217
+  },
+  "frame-overhang-20": {
+    "area": 1450338.88,
+    "bbox": [
+      640.0,
+      440.0,
+      700.0
+    ],
+    "cut_items": 5,
+    "cut_length_total": 6480.0,
+    "faces": 114,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 12,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 1451523.04
+  },
+  "panel-corner-radius-6": {
+    "area": 16987.292,
+    "bbox": [
+      100.0,
+      80.0,
+      3.0
+    ],
+    "faces": 10,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "flat_area": 7969.097,
+    "flat_size": [
+      100.0,
+      80.0
+    ],
+    "volume": 23907.292
+  },
+  "plate-corner-radius-6": {
+    "area": 16987.292,
+    "bbox": [
+      100.0,
+      80.0,
+      3.0
+    ],
+    "faces": 10,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "flat_area": 8000.0,
+    "flat_size": [
+      100.0,
+      80.0
+    ],
+    "volume": 23907.292
+  }
+}

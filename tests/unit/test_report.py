@@ -13,6 +13,7 @@ from selectolax.lexbor import LexborHTMLParser
 
 from napkin2factory.core.graph.runner import run_build
 from napkin2factory.core.loader import load_product
+from napkin2factory.core.model import StyleFile
 from tests.conftest import EXAMPLES, copy_product
 
 EXTERNAL = re.compile(r"\b(?:src|href)\s*=\s*['\"]?(?:https?:)?//", re.IGNORECASE)
@@ -175,6 +176,8 @@ def test_report_opens_from_file_url_without_console_errors(report: tuple[Path, s
             "Object.fromEntries(window.n2fViewer.nodes()"
             ".map(u => [u, window.n2fViewer.instanceCount(u)]))"
         )
+        # a product without style.yaml keeps the hash colours: no viewer options at all (M3)
+        assert page.get_attribute("#viewer", "data-n2f-options") is None
         page.click('a[data-show3d="part://lid"]')
         card = page.inner_text("#part-card")
         card_links = page.eval_on_selector_all(
@@ -190,6 +193,37 @@ def test_report_opens_from_file_url_without_console_errors(report: tuple[Path, s
     assert counts == {"part://base": 1, "part://bracket": 2, "part://lid": 1}
     assert "part://lid" in card and "Lid" in card
     assert "#drawing-lid" in card_links, card_links
+
+
+def test_report_viewer_paints_the_style_palette_by_role(tmp_path: Path) -> None:
+    """⤵ M3: with style.yaml the viewer colours parts by role instead of hash colours."""
+    pytest.importorskip("playwright")
+    from playwright.sync_api import Error, sync_playwright
+
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=False)
+    base = root / "model" / "parts" / "base.yaml"
+    base.write_text(base.read_text() + "role: body\n")
+    (root / "style.yaml").write_text("preset: lab\npalette: {body: '#c0392b'}\n")
+    run_build(load_product(root), quiet=True, render=False)
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"]
+            )
+            page = browser.new_page()
+            page.goto((root / "build/report/index.html").as_uri())
+            colours = page.evaluate(
+                "window.n2fViewerReady.then(() => { const out = {};"
+                " window.n2fViewer.scene.traverse(o => { if (o.isMesh && o.userData.n2f_uri)"
+                " out[o.userData.n2f_uri] = '#' + o.material.color.getHexString(); });"
+                " return out; })"
+            )
+            browser.close()
+    except Error as exc:
+        pytest.skip(f"Playwright Chromium unavailable: {exc}")
+    assert colours["part://base"] == "#c0392b"  # role body → the file's body colour
+    lab = StyleFile.model_validate({"preset": "lab"}).resolved()
+    assert colours["part://lid"] == lab.palette["default"]  # no role → the default role
 
 
 def test_revision_label_is_honest(tmp_path: Path) -> None:
