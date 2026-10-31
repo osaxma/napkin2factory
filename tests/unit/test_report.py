@@ -214,3 +214,44 @@ def test_revision_label_is_honest(tmp_path: Path) -> None:
     )
     label = gather(load_product(root), root / "build", "2026-10-30")["revision_label"]
     assert label == "draft — changed since Revision v1.0.0"
+
+
+def _visible_uri_texts(tree: LexborHTMLParser) -> dict[str, list[str]]:
+    """The human-readable places a model URI shows up on the page."""
+    return {
+        "bom": [td.text(strip=True) for td in tree.css("#bom tbody tr > td:first-child")],
+        "refs": [a.text(strip=True) for a in tree.css("main a.ref")],
+        "params": [td.text(strip=True) for td in tree.css("#parameters tbody tr > td:first-child")],
+        "captions": [f.text(strip=True) for f in tree.css("#drawings figcaption")],
+    }
+
+
+def test_owner_tables_drop_uri_prefixes(report: tuple[Path, str]) -> None:
+    """B-0008: the owner reads ``base``, not ``part://base``; attributes keep the full URI."""
+    _, html = report
+    tree = LexborHTMLParser(html)
+    assert tree.css_first("html").attributes.get("data-persona") == "owner"
+    texts = _visible_uri_texts(tree)
+    assert all(texts.values()), texts
+    for where, cells in texts.items():
+        for cell in cells:
+            assert "://" not in cell, f"{where}: {cell!r}"
+    assert "base" in texts["bom"] and "box-height" in texts["params"]
+    data_uris = [tr.attributes.get("data-uri") for tr in tree.css("#bom tbody tr")]
+    assert data_uris and all(u and u.startswith(("part://", "asm://")) for u in data_uris)
+    assert all(a.attributes.get("href", "").startswith("#") for a in tree.css("main a.ref"))
+    assert 'data-show3d="part://lid"' in html
+
+
+def test_engineer_tables_keep_uri_prefixes(tmp_path: Path) -> None:
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=False)
+    op = root / "operator.yaml"
+    op.write_text(op.read_text().replace("persona: owner", "persona: engineer"))
+    run_build(load_product(root), quiet=True, render=False)
+    tree = LexborHTMLParser((root / "build/report/index.html").read_text(encoding="utf-8"))
+    assert tree.css_first("html").attributes.get("data-persona") == "engineer"
+    texts = _visible_uri_texts(tree)
+    assert "part://base" in texts["bom"]
+    assert "param://box-height" in texts["params"]
+    assert any("://" in t for t in texts["refs"]), texts["refs"]
+    assert all(c.startswith("part://") for c in texts["captions"]), texts["captions"]

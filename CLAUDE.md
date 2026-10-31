@@ -4,13 +4,13 @@ This is the **system** repo: the `napkin2factory` package and its CLI `n2f`. Pro
 repos (what `n2f init` writes; see `examples/`) have their own `CLAUDE.md`.
 
 ## Read first
-`GRAND_PLAN.md` (the contract) → `STATUS.md` (where we are) → `DECISIONS.md` →
-`git log --oneline -30` → `make check`. For v0.2 work, `NAPKIN_STAGE.md` is the contract
-and GRAND_PLAN §0/§8/§9 still apply.
+`NAPKIN_STAGE.md` (the v0.2 contract; `GRAND_PLAN.md` §0/§8/§9 still apply and its D-series
+decisions stay in force) → `STATUS.md` (where we are) → `DECISIONS.md` →
+`git log --oneline -30` → `make check`. `HANDOFF-REPORT.md` says what v0.1 shipped.
 
 ## Non-negotiables
 - `make check` is green before every commit. Never commit `build/` or `examples/*/build/`.
-- Branch `v0.1-build`; commit messages `M<n>: <what>`. Never force-push, never rewrite history.
+- Branch `v0.2-build` (v0.1 is closed on `main`); commit messages `M<n>: <what>`. Never force-push, never rewrite history.
 - Do not edit `LICENSE`.
 - No `TODO`/`FIXME` in `src/` without a `BACKLOG.md` id (`B-0001`).
 - Public functions have docstrings (ruff `D`); `mypy --strict` on `napkin2factory.core`.

@@ -450,3 +450,27 @@ def test_signoff_binds_parts_without_geometry(tmp_path: Path) -> None:
     # … a change to the part's record voids it
     screw.write_text(screw.read_text().replace("unit: 0.12 USD", "unit: 0.15 USD"))
     assert _result(_checks(root), "req://REQ-009")["status"] == "needs-human"
+
+
+def test_check_table_uri_display_follows_persona(tmp_path: Path) -> None:
+    """B-0008: the owner's tables read ``REQ-001`` and ``base``; the engineer's keep prefixes."""
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=False)
+    r = n2f("check", "--all", cwd=root)
+    assert r.returncode == 0, r.stdout + r.stderr
+    rows = [ln for ln in r.stdout.splitlines() if ln.startswith("│")]
+    req_rows = [ln for ln in rows if "REQ-001" in ln]
+    assert req_rows and all("req://" not in ln for ln in req_rows)
+    subject_cells = [ln.split("│")[2].strip() for ln in rows if "general-v0/" in ln]
+    assert "base" in subject_cells and not any("://" in c for c in subject_cells)
+    assert not any(ln.split("│")[1].strip().startswith("rule://") for ln in rows)
+    op = root / "operator.yaml"
+    op.write_text(op.read_text().replace("persona: owner", "persona: engineer"))
+    r = n2f("check", "--all", cwd=root)
+    assert r.returncode == 0, r.stdout + r.stderr
+    rows = [ln for ln in r.stdout.splitlines() if ln.startswith("│")]
+    subject_cells = [ln.split("│")[2].strip() for ln in rows if "general-v0/" in ln]
+    assert "part://base" in subject_cells
+    assert any(ln.split("│")[1].strip().startswith("rule://") for ln in rows)
+    # machine output is never shortened
+    r = n2f("check", "--json", cwd=root)
+    assert any(x["subject"] == "part://base" for x in json.loads(r.stdout)["results"])

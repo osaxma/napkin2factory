@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 import typer
@@ -13,32 +12,16 @@ from napkin2factory.cli.common import (
     JsonOption,
     console,
     emit_json,
-    err_console,
     handle_errors,
     product_root,
+    warn_if_pin_excludes,
 )
+from napkin2factory.cli.kernel import KERNEL_NOTE, load_cad_kernel
 from napkin2factory.core.loader import load_product
 
+__all__ = ["KERNEL_NOTE", "build", "load_cad_kernel"]
+
 TARGETS = ("geometry", "drawings", "bom", "docs", "checks", "report", "site", "all")
-
-KERNEL_NOTE = (
-    "loading the CAD kernel (the first run on a machine can take a couple of minutes; "
-    "later runs take seconds)…"
-)
-
-
-def load_cad_kernel() -> None:
-    """Import build123d/OCP eagerly, announcing the first-import stall on stderr.
-
-    The first ``import build123d`` in a fresh environment loads a ~140 MB native library
-    and can take one to two minutes with no output; later imports take seconds. Printing
-    the note *before* the import (to stderr, so ``--json`` output stays clean) tells the
-    operator the command has not hung.
-    """
-    if "build123d" in sys.modules:
-        return
-    err_console.print(f"[dim]{KERNEL_NOTE}[/dim]")
-    import build123d  # noqa: F401
 
 
 @handle_errors
@@ -63,6 +46,7 @@ def build(
     if offline:
         os.environ["N2F_OFFLINE"] = "1"
     root = product_root(dir)
+    warn_if_pin_excludes(root, json_out)
     if target not in TARGETS:
         raise typer.BadParameter(f"--target must be one of {', '.join(TARGETS)}")
     product = load_product(root)

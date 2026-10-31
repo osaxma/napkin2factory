@@ -39,14 +39,18 @@ def test_select_props_is_not_declared():
 
 @pytest.mark.parametrize("fixture", INVALID, ids=[p.name for p in INVALID])
 def test_invalid_fixture(fixture: Path):
-    kind, expect = fixture.joinpath("EXPECT").read_text().split("\n")[:2]
+    # EXPECT: line 1 is the command; line 2 the expected text; any further non-empty
+    # lines are additional texts that must all appear in the same run (B-0018).
+    kind, *expects = [ln for ln in fixture.joinpath("EXPECT").read_text().split("\n") if ln]
+    expect = expects[0]
     product, problems = validate(fixture)
     if kind == "validate":
         assert problems.errors, f"{fixture.name}: expected validate to fail"
         text = "\n".join(p.format() for p in problems.errors) + "\n".join(
             p.rule for p in problems.errors
         )
-        assert expect in text, text
+        for want in expects:
+            assert want in text, text
         for p in problems.errors:
             assert p.file and p.message, "every problem names a file and says what is wrong"
     else:
@@ -61,6 +65,17 @@ def test_load_product_raises_with_all_problems():
     with pytest.raises(ModelError) as ei:
         load_product(FIXTURES / "invalid" / "bad-uri-target")
     assert "part://missing" in str(ei.value)
+
+
+def test_expression_and_reference_errors_reported_together():
+    """B-0018: a bad reference elsewhere no longer hides expression errors (cycle included)."""
+    _, problems = validate(FIXTURES / "invalid" / "expr-and-ref-together")
+    rules = [p.rule for p in problems.errors]
+    msgs = "\n".join(p.message for p in problems.errors)
+    assert "uri" in rules and "expr" in rules
+    assert "unknown parameter 'depth'" in msgs
+    assert "parameter cycle" in msgs
+    assert "part://missing" in msgs
 
 
 def test_broken_file_does_not_cascade():

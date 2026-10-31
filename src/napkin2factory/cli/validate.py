@@ -14,6 +14,7 @@ from napkin2factory.cli.common import (
     handle_errors,
     print_problems,
     product_root,
+    warn_if_pin_excludes,
 )
 from napkin2factory.core import lint as lint_mod
 from napkin2factory.core.loader import validate as validate_mod
@@ -23,6 +24,7 @@ from napkin2factory.core.loader import validate as validate_mod
 def validate(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
     """Check that the product model loads and every reference resolves."""
     root = product_root(dir)
+    warn_if_pin_excludes(root, json_out)
     product, problems = validate_mod(root)
     if json_out:
         emit_json(

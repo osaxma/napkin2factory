@@ -132,6 +132,23 @@ def find_uris(text: str) -> list[Uri]:
     return out
 
 
+_DISPLAY_PREFIX_RE = re.compile(r"^(?:" + "|".join(SCHEMES) + r")://")
+
+
+def display_uri(uri: str, persona: str) -> str:
+    """How a model URI reads in a human-facing table cell or caption for ``persona``.
+
+    The owner sees ``outer-shell`` for ``part://outer-shell`` and ``REQ-003#verify.value`` for
+    ``req://REQ-003#verify.value`` (the ``scheme://`` prefix dropped, any ``#selector`` kept);
+    the engineer sees the full URI.  Only a leading known scheme is dropped, so free text that
+    merely starts with a URI (``asm://kiln · iso``) is shortened the same way and anything else
+    passes through.  Machine outputs (JSON, ``data-uri``, anchors, GLB node names) never use this.
+    """
+    if persona != "owner":
+        return uri
+    return _DISPLAY_PREFIX_RE.sub("", uri, count=1)
+
+
 def uri(scheme: str, ident: str) -> Uri:
     """Build a URI from parts, validating the id."""
     return Uri.parse(f"{scheme}://{ident}")

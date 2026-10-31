@@ -10,6 +10,10 @@ from pathlib import Path
 
 import pytest
 
+# Never spawn the background CAD-kernel warm-up of `n2f init` from the suite (B-0016); the
+# subprocess CLI runs inherit this. Tests of the warm-up itself clear it explicitly.
+os.environ.setdefault("N2F_NO_WARMUP", "1")
+
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"

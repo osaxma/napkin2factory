@@ -1,20 +1,50 @@
 # STATUS
 
-**Branch:** `v0.1-build` · **Current milestone:** M9 closing (handoff)
-**Resume note (2026-10-30):** M0–M8 committed; the M9 tree (gate-3/4 fixes, kiln rework,
-handoff report) is being verified and committed as `M9:`. If you find it uncommitted: run
-`make check` (fast, excludes kiln/demos) and `make check-full` (kiln, both demos, timing), then
-commit. Kiln state after the gate-3 rework: 0 fail, 6 EXAMPLE sign-offs, 0 interferences,
-110.5 kg, 995 mm wide; `tests/golden/goldens/kiln.json` re-recorded; ECR-002 patch regenerated
-for the plug door. Review gates 1–4 all ran; outcomes and fixes are in DECISIONS.md.
-**Resume order:** `GRAND_PLAN.md` → this file → `DECISIONS.md` → `git log --oneline -30` → `make check`
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M0 (folds and ratifications), in progress
+**Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
+**Resume note (2026-10-31):** M0 committed (`M0:`). Next is M1 (concept card schema, loader,
+`n2f concept new|list|show|lint|reject`, `style.yaml` seeded at init, optional Napkin stage in
+`n2f status`); the brief's design choices are logged with M1's `S-` entry when it lands. If you
+find the tree uncommitted: run `make check`, then commit `M1:`.
+**Resume order:** `NAPKIN_STAGE.md` → this file → `DECISIONS.md` (S-055 onward) → `git log --oneline -30` → `make check`
 
 ## Environment (host facts a cold reader needs)
-- Intel macOS host (not Linux; see DECISIONS S-001). `uv` installed at `~/.local/bin/uv`
-  (add to PATH). Python 3.13.18 managed by uv. Playwright Chromium installed and working.
-- OCP wheel: `cadquery-ocp-novtk 7.9.3.1.1` → render path is the numpy z-buffer (S-002).
+- Intel macOS host (reference platform, S-001). `uv` at `~/.local/bin/uv` (add to PATH; no `timeout`
+  command on this host). Python 3.13.18 managed by uv. Playwright Chromium installed and working.
+- OCP wheel: `cadquery-ocp-novtk 7.9.3.1.1` → z-buffer render path (S-002); viewer screenshots via
+  Playwright are v0.2's appearance path (N6).
+- `make check` ≈ 11 min; `make check-full` adds the kiln (≈ 1 min build) and both demos (≈ 13 min).
+- Published: `napkin2factory 0.1.0` and alias `n2f 0.1.0` on PyPI (S-054); CI green on Linux and macOS.
 
-## Done
+## v0.2 — done
+- **M0 (done 2026-10-31)** — branch `v0.2-build`; version 0.2.0, every pin `>=0.2,<0.3`; S-055
+  (N2 ratification); S-056 (pin policy: warn, never refuse; schema 1 unchanged; `n2f doctor` row);
+  README installs from PyPI first; `docs/concepts.md` → `docs/how-it-works.md`; CI triggers on the
+  branch. Folds, each with regression tests: B-0015 `ecr close` refuses on missing sign-offs
+  (S-060); B-0008 owner tables drop URI prefixes via `core.uris.display_uri` (S-061); B-0016
+  `n2f init` warms the kernel in a detached process (S-057); B-0018 validate reports expression
+  and reference errors together (S-058); B-0017 true plane section (S-059). **Section judgment
+  (M0 exit):** the kiln section now shows a flat cut plane with straight rims — thin red shell
+  band, wide hatched fiber bands, a narrower hatched brick-liner band around the chamber, the
+  chamber floor and element grooves lit below the plane; v0.1's sawtooth slivers are gone. Kiln
+  assembly section renders in 0.8 s. `make check-full`: 387 passed, 1 skipped, 7 deselected
+  (12 min 25 s), kiln + both demos + timing green.
+
+## Next
+M0 exit: `make check` green with the new regression tests; open the kiln section render and record the
+judgment here. Then M1 (concept card schema, loader, `n2f concept new|list|show|lint|reject`, optional
+Napkin stage in `n2f status`).
+
+## Open risks
+- Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).
+- Playwright screenshot loop speed (N6/M3) and massing-mode feature leakage (N3/M2): see
+  `NAPKIN_STAGE.md` §7 for the fallbacks.
+
+## v0.1 — closed 2026-10-31
+Released as `v0.1.0` on `main`, published to PyPI, CI green on Linux and macOS; `HANDOFF-REPORT.md`
+has the definition-of-done evidence, the dropped items, the `[verify]` numbers and the demo script.
+Milestone notes kept for the record:
+
 - **M0** — skeleton, `pyproject.toml`, `Makefile`, `ci.yml`, `CLAUDE.md`, journals,
   handoff/review moved to `docs/history/`, three.js r170 vendored with hashes (S-003),
   `report/inline.py` + `viewer.js` inliner, `geometry/glb.py` in-house GLB writer (S-004),
@@ -132,11 +162,3 @@ for the plug door. Review gates 1–4 all ran; outcomes and fixes are in DECISIO
 - **M9** — README, docs, `n2f doctor`, `uv build` + `twine check`, PyPI names checked, gate
   outcomes journaled, `HANDOFF-REPORT.md`, `make check` excludes kiln/demos (`-m "not full"`,
   D27) and `make check-full` runs them.
-
-## Next
-Nothing in v0.1. v0.2 is the napkin stage: `NAPKIN_STAGE.md` is its contract (branch
-`v0.2-build`); MCP server and share mode move to v0.3, electrical, manufacturer profiles
-and stack-up to v0.4.
-
-## Open risks
-- Linux is untested until CI first runs on a pushed branch; the reference platform is the macOS host (S-001, amended).

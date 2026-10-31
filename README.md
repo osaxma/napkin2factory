@@ -10,46 +10,50 @@ what it invalidates, shows its impact before anything moves, and ships as a diff
 > says so. Have a qualified person review a design before you build, power or use it.
 > Safety requirements can never pass by computation alone; they need a human sign-off.
 
-Version 0.1 covers mechanical parts and the bill of materials. Electrical design, FEA and
-hosted services are not included (see `BACKLOG.md`).
+Version 0.1 covers mechanical parts and the bill of materials. Version 0.2 (in development
+on this branch) adds the napkin stage: cheap concept variants, screened for feasibility and
+shown side by side before any detailed design (`NAPKIN_STAGE.md`). Electrical design, FEA
+and hosted services are not included (see `BACKLOG.md`).
 
-## Install (from source)
-
-Requires [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`);
-`uv sync` fetches Python 3.13 itself if the machine has none. The repository is private
-until launch, so the clone line is for people with access; everyone else unpacks the source
-archive they were given and starts at `cd`.
+## Install
 
 ```bash
-git clone https://github.com/osaxma/napkin2factory.git   # or unpack the source archive
+uv tool install napkin2factory     # or: pip install napkin2factory
+n2f version
+n2f doctor                         # is this machine ready?
+```
+
+[uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`) fetches
+Python 3.13 itself if the machine has none; `pip install` needs a Python 3.13 environment of
+your own. The PyPI name `n2f` is an alias that installs the same package. Everything works
+offline and needs no account.
+
+**From source (contributors):**
+
+```bash
+git clone https://github.com/osaxma/napkin2factory.git
 cd napkin2factory
 uv sync                 # add --no-dev if you only want to run it, not develop it
-uv run n2f version      # napkin2factory 0.1.0
-uv run n2f doctor       # is this machine ready?
+uv run n2f doctor
 ```
 
-`uv run n2f …` only works from inside this checkout. To have `n2f` on your PATH and usable
-from any folder:
-
-```bash
-uv tool install .
-```
-
-or `pip install -e .` into a virtual environment. Once the package is published,
-`uvx napkin2factory` will work without a checkout.
+Inside the checkout, prefix every command below with `uv run` (it only works from inside
+the checkout); `uv tool install .` puts that checkout's `n2f` on your PATH instead.
 
 ## Ten-minute first run
 
 ```bash
-uv run n2f init demo --template bracket
+n2f init demo --template bracket
 cd demo
-uv run n2f build        # the first build loads the CAD kernel: about two minutes, then seconds
-uv run n2f check
-open build/report/index.html        # macOS; Linux: xdg-open …; or: uv run n2f serve
+n2f build        # seconds, once the CAD kernel has loaded (see below)
+n2f check
+open build/report/index.html        # macOS; Linux: xdg-open …; or: n2f serve
 ```
 
-The first `n2f build` on a machine prints "loading the CAD kernel…" and then sits silent for
-a minute or two while the kernel loads; later builds take seconds. Builds also check that
+The CAD kernel takes one to two minutes to load the first time on a machine. `n2f init`
+starts loading it in the background, so by the time you have read this the first build is
+usually quick; if you run it sooner it prints "loading the CAD kernel…" and waits. Later
+builds take seconds. Builds also check that
 each bought part's vendor link still resolves; set `N2F_OFFLINE=1` (or pass `--offline`) to
 skip that.
 
@@ -57,20 +61,20 @@ The report opens straight from disk: a 3D view you can orbit, drawings, the bill
 materials with a "what to tell the manufacturer" column, and the check matrix. Try a change:
 
 ```bash
-uv run n2f ecr new --title "Longer bracket" --set param://bracket-length=140mm
-uv run n2f ecr impact ECR-001          # what it touches, before anything changes
-uv run n2f ecr approve ECR-001 --by "me"
-uv run n2f ecr apply ECR-001
-uv run n2f build && uv run n2f check
-uv run n2f ecr close ECR-001
-uv run n2f release v1.0.0
+n2f ecr new --title "Longer bracket" --set param://bracket-length=140mm
+n2f ecr impact ECR-001          # what it touches, before anything changes
+n2f ecr approve ECR-001 --by "me"
+n2f ecr apply ECR-001
+n2f build && n2f check
+n2f ecr close ECR-001
+n2f release v1.0.0
 ```
 
 Make a second change the same way, release it as `v1.1.0`, and the headline diff page is
 one command away:
 
 ```bash
-uv run n2f diff v1.0.0 v1.1.0          # → build/site/diff/v1.0.0..v1.1.0/index.html
+n2f diff v1.0.0 v1.1.0          # → build/site/diff/v1.0.0..v1.1.0/index.html
 ```
 
 `n2f status` always tells you where the product stands and what to do next.
@@ -80,7 +84,7 @@ has one: inspect every edge by hand). `n2f check` lists them as `needs your sign
 still exits 0, but `n2f release` refuses until a person has recorded the review:
 
 ```bash
-uv run n2f signoff REQ-004 --by "your name" --statement "what you inspected"
+n2f signoff REQ-004 --by "your name" --statement "what you inspected"
 ```
 
 `n2f status` prints the exact command to run. A sign-off stays valid until the evidence it
@@ -92,7 +96,7 @@ was bound to changes.
    intake and build in its own sandbox.
 2. **GitHub template** — planned: "Use this template", GitHub Actions as the build machine,
    Pages as the product site. Every product folder already carries the workflow files.
-3. **Local CLI** — this: `uv run n2f …` (or `n2f …` after `uv tool install .`), works
+3. **Local CLI** — this: `n2f …`, works
    offline (`N2F_OFFLINE=1`), no accounts. Open the product folder in Claude Code, Codex or
    any coding agent: the folder's `CLAUDE.md` and skills turn it into the project team.
 
@@ -106,7 +110,7 @@ applied from a pre-authored patch.
 
 ## Learn more
 
-- `docs/concepts.md` — the ideas (one canonical model, recorded dependencies, checks as the gate)
+- `docs/how-it-works.md` — the ideas (one canonical model, recorded dependencies, checks as the gate)
 - `docs/cli.md` — every command · `docs/vocabulary.md` — the glossary (draft, snapshot,
   change request, Revision … and what each means underneath)
 - `docs/product-model.md` — the files in a product folder · `docs/kit.md` — the part generators

@@ -13,6 +13,7 @@ import typer
 from rich.console import Console
 from rich.markup import escape
 
+from napkin2factory import __version__
 from napkin2factory.core.errors import N2FError, Problems
 from napkin2factory.core.loader import MANIFEST, find_product_root
 
@@ -40,6 +41,40 @@ def product_root(path: Path | None) -> Path:
             "cd into a product folder or run `n2f init <dir>` to start one"
         )
     return found
+
+
+def pin_warning(root: Path, version: str = __version__) -> str | None:
+    """The version-pin notice for the product at ``root``, or None when the pin includes us.
+
+    Returns None as well when ``n2f.yaml`` cannot be read or validated; ``validate`` reports
+    that on its own.
+    """
+    from napkin2factory.core.model import Manifest
+    from napkin2factory.core.yamlio import read_yaml
+
+    try:
+        manifest = Manifest.model_validate(read_yaml(root / MANIFEST))
+    except Exception:
+        return None
+    if manifest.pin_includes(version):
+        return None
+    return (
+        f"this product was written for napkin2factory {manifest.system}; you are running "
+        f"{version}. It keeps working; once you are happy with the results, set `system:` "
+        f"in n2f.yaml to a range that includes {version}."
+    )
+
+
+def warn_if_pin_excludes(root: Path, json_out: bool = False) -> None:
+    """Print one dim line to stderr when the running version is outside the product's pin.
+
+    Never refuses and never writes to stdout; silent under ``--json`` (D20).
+    """
+    if json_out:
+        return
+    msg = pin_warning(root)
+    if msg is not None:
+        err_console.print(f"[dim]{escape(msg)}[/dim]", soft_wrap=True)
 
 
 def emit_json(payload: dict[str, Any]) -> None:

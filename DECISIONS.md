@@ -464,3 +464,74 @@ a ventilated touch guard whose radiation-balance temperature computes to ~53 deg
 k = 0.12 W/m·K and ρ = 260 kg/m³, film coefficient 10 W/m²·K, emissivities 0.9, Kanthal A1
 ρ = 1.45 Ω·mm²/m, K-factor table, sheet-metal rule thresholds. Element 3 kW / 5 h heat-up
 (DEC-004) after 2.5 kW / 4 h gave a margin of 1.0.
+
+## S-055 — Owner ratifies S-052 (NAPKIN_STAGE N2): one layout, persona in dialogue (2026-10-31)
+`NAPKIN_STAGE.md` N2 records the owner's ratification of S-052's amendment of D17: the
+report — and, in v0.2, the concept board — has one layout for everyone; persona lives in
+dialogue, status words and which artifacts lead in conversation, never in CSS reshuffling.
+This closes the one D-override v0.1 made on its own authority. v0.2 starts here: branch
+`v0.2-build` cut from `53bd7bc` (v0.1 closed; `v0.1.0` tagged on `main`, HANDOFF-REPORT §9).
+
+## S-056 — Version pin across 0.1 → 0.2 (D20): warn, never refuse `[revisit]` (2026-10-31)
+`n2f build`, `n2f check`, `n2f status` and `n2f validate` compare the running version with
+the product's `system` pin; a mismatch prints one dim line on stderr and **never refuses**
+(D10's spirit: upgrading the tool must not lock a person out of their own product; the pin
+says what the product was written for). `n2f doctor` shows the pin inside a product.
+`schema: 1` is unchanged: v0.2 adds optional files only (`concepts/`, `style.yaml`, a
+concept rule pack), so a v0.1 product loads untouched and needs no migration step; upgrade
+migrations stay a non-goal until a schema change forces one. Templates and examples now pin
+`>=0.2,<0.3`; `__version__` is `0.2.0` on `v0.2-build` from M0 (publishing happens only on
+the `v0.2.0` tag, S-054). `[revisit]` if CI builds ever want a strict mode that refuses.
+
+## S-057 — `n2f init` warms the CAD kernel in the background (2026-10-31)
+The first `import build123d` on a machine takes one to two minutes with no output (B-0016).
+`n2f init` now starts `python -c "import build123d"` as a detached process (own session,
+no inherited streams) and exits at once, so the cost is paid while the owner reads the hint;
+`n2f build` still prints its kernel note before its own import if it has to wait. Skipped
+when build123d is already loaded in-process or `N2F_NO_WARMUP=1` (the test suite sets it in
+`conftest.py`). `--json` reports `kernel_warmup`; the next-step line says the kernel is
+warming only when a warm-up started. Code: `cli/kernel.py` (`load_cad_kernel` moved from
+`build.py`, still re-exported there); the concept verbs reuse it from M1 on (N12).
+
+## S-058 — `validate` reports expression errors alongside reference errors (2026-10-31)
+Expression evaluation (cycles, unit mismatches) was skipped whenever any other error existed,
+so the gate-3 kiln rework found thirteen bad expressions only after fixing references (B-0018).
+Evaluation now runs whenever `parameters.yaml` parsed. Cascade suppression (S-012) narrows to
+what it is for: a parameter that is, or transitively reads, one already reported (unsafe
+syntax, unknown name, bad unit) is not re-evaluated, so each fault is reported once.
+Fixture `tests/fixtures/invalid/expr-and-ref-together`; `EXPECT` lines after the second are
+further substrings that must all appear in one run.
+
+## S-059 — True plane section render (amends D12) (2026-10-31)
+`section.png` is now a true plane section (B-0017): `render.clip_below` clips every triangle
+exactly at Z = section_z (nothing above is drawn), and the cut faces are capped in image
+space by back-face capping (viewer above the plane: nearest surface back-facing ⇒ the pixel is
+inside a closed solid). Caps are drawn as part colour × 0.65, flat, with 1 px 45° hatch every
+8 px at × 0.35 — flat shading alone collides with lit side faces; the hatch is the drafting
+convention for cut material. Winding is normalised per mesh by signed volume; open meshes are
+clipped but not capped and noted in `Scene.notes` (not yet surfaced: B-0019). Chosen over loop
+chaining + triangulation (welding fragility) and OCCT half-space booleans (needs shapes at
+render time, per-instance cost). Cost: the kiln assembly section renders in 0.8 s, less than
+the full iso. **Judged:** the kiln section shows the shell as a thin red rim, the fiber as
+wide hatched bands, the brick liner as a narrower hatched band and the chamber floor below,
+with straight edges at the plane — against v0.1's sawtooth slivers. D12 now reads "an
+isometric view and a true plane section (clipped, hatched caps)" in place of "a crude section".
+
+## S-060 — Closing a change request waits for human sign-offs (2026-10-31)
+`n2f ecr close` now refuses (exit 3) while any check result is `needs-human`, as `n2f release`
+already did (B-0015). The wording matches the stage blockers in `core/checks/stage.py`:
+"<ECR> cannot close: REQ-004 needs a human sign-off (<why>) — `n2f signoff REQ-004 --by <name>
+--statement "…"`; sign it off, then close again". Failing checks are listed first; the
+fail-only wording is unchanged. Example sign-offs do not block closing (the release gate and
+`--allow-example-signoffs` weigh them), so `examples/kiln/demo.sh` still runs: re-sign with
+`--example`, then close. Two e2e tests that closed over an unsigned REQ-004 now sign first.
+
+## S-061 — Owners read model URIs without the scheme prefix (2026-10-31)
+`core.uris.display_uri(uri, persona)` is the single display rule (B-0008): for persona
+`owner`, human-readable table cells and captions drop a leading model `scheme://` (part, req,
+asm, param, dec, ecr, iface, doc, calc, rule, bom) and keep any `#selector`; `engineer` sees
+the full URI, byte-identical to before. It applies to the report (ref links, BOM, parameters,
+drawing and render captions), the `n2f check` check/subject columns, and the impact summary's
+edit lines. JSON, `data-uri`/`data-show3d` attributes, hrefs, GLB node names, the viewer, files
+on disk and free-text messages always keep the full URI (copy-paste hints such as
+`--set param://…` must stay whole).

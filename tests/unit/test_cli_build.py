@@ -10,7 +10,7 @@ from types import ModuleType
 import pytest
 from typer.testing import CliRunner
 
-from napkin2factory.cli import build as build_cmd
+from napkin2factory.cli import kernel as kernel_mod
 from napkin2factory.cli.app import app
 from napkin2factory.cli.common import err_console
 
@@ -27,13 +27,20 @@ def test_kernel_note_is_silent_when_the_kernel_is_already_loaded(
 ):
     monkeypatch.setitem(sys.modules, "build123d", ModuleType("build123d"))
     with err_console.capture() as cap:
-        build_cmd.load_cad_kernel()
+        kernel_mod.load_cad_kernel()
     assert cap.get() == ""
 
 
 def test_kernel_note_precedes_the_import(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delitem(sys.modules, "build123d", raising=False)
     with err_console.capture() as cap:
-        build_cmd.load_cad_kernel()
+        kernel_mod.load_cad_kernel()
     assert "CAD kernel" in cap.get() and "couple of minutes" in cap.get()
     assert "build123d" in sys.modules
+
+
+def test_build_module_still_exports_the_kernel_loader():
+    from napkin2factory.cli import build as build_cmd
+
+    assert build_cmd.load_cad_kernel is kernel_mod.load_cad_kernel
+    assert build_cmd.KERNEL_NOTE == kernel_mod.KERNEL_NOTE

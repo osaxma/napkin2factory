@@ -7,11 +7,36 @@ import importlib.util
 import platform
 import shutil
 import sys
+from pathlib import Path
 
 import typer
 
 from napkin2factory import __version__
 from napkin2factory.cli.common import JsonOption, console, emit_json
+
+
+def _pin_row(start: Path | None = None, version: str = __version__) -> dict[str, str] | None:
+    """The product's version pin vs the running version; None outside a product folder."""
+    from napkin2factory.core.loader import MANIFEST, find_product_root
+    from napkin2factory.core.model import Manifest
+    from napkin2factory.core.yamlio import read_yaml
+
+    root = find_product_root(start)
+    if root is None:
+        return None
+    check = f"version pin ({root.name}/{MANIFEST})"
+    try:
+        manifest = Manifest.model_validate(read_yaml(root / MANIFEST))
+    except Exception as exc:
+        return {"check": check, "status": "warn", "detail": f"n2f.yaml unreadable: {exc}"}
+    if manifest.pin_includes(version):
+        return {"check": check, "status": "ok", "detail": f"{manifest.system} includes {version}"}
+    return {
+        "check": check,
+        "status": "warn",
+        "detail": f"{manifest.system} does not include {version}; it keeps working; once you "
+        f"are happy with the results, set `system:` to a range that includes {version}",
+    }
 
 
 def _probe() -> list[dict[str, str]]:
@@ -111,6 +136,9 @@ def _probe() -> list[dict[str, str]]:
 def doctor(json_out: bool = JsonOption) -> None:
     """Check that this machine can run napkin2factory, and say what to fix if not."""
     rows = _probe()
+    pin = _pin_row()
+    if pin is not None:
+        rows.append(pin)
     if json_out:
         emit_json({"version": __version__, "checks": rows})
     else:
