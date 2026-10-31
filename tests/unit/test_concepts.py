@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.errors import ModelError, N2FError
 from napkin2factory.core.model import ConceptCard, MassingCall, StyleFile
+from napkin2factory.core.model.concepts import Screening
 from napkin2factory.core.units import parse_quantity
 from tests.conftest import FIXTURES
 
@@ -201,7 +202,7 @@ def test_write_card_new_and_in_place(tmp_path: Path) -> None:
     path = cm.write_card(tmp_path, card)
     assert cm.load_card(tmp_path, "C-001") == card and "# Concept card C-001" in path.read_text()
     path.write_text(path.read_text().replace("title: t", "title: t  # mine"))
-    cm.write_card(tmp_path, card.model_copy(update={"screening": {"verdict": "green"}}))
+    cm.write_card(tmp_path, card.model_copy(update={"screening": Screening(verdict="green")}))
     text = path.read_text()
     assert "title: t  # mine" in text and yaml.safe_load(text)["screening"] == {"verdict": "green"}
     assert cm.load_card(tmp_path, "C-001").verdict == "green"

@@ -1,8 +1,9 @@
-"""``n2f concept new|list|show|reject|lint``: the napkin stage's cards (NAPKIN_STAGE §4).
+"""``n2f concept new|list|show|build|reject|lint``: the napkin stage's cards (NAPKIN_STAGE §4).
 
 Concepts sit outside the build graph (N1): these verbs need a product folder but never load
-the product model, so a half-written model never blocks exploring ideas.  ``build``,
-``board`` and ``promote`` arrive in later milestones.
+the product model, so a half-written model never blocks exploring ideas.  ``build`` runs the
+massing and screening in-process (no build graph); ``board`` and ``promote`` arrive in later
+milestones.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from napkin2factory.cli.common import (
     JsonOption,
     console,
     emit_json,
+    err_console,
     handle_errors,
     print_problems,
     product_root,
@@ -27,7 +29,7 @@ from napkin2factory.cli.common import (
 from napkin2factory.cli.kernel import warm_kernel_in_background
 from napkin2factory.core import concepts as concepts_mod
 from napkin2factory.core.errors import GateBlocked, Problems
-from napkin2factory.core.model import ConceptCard
+from napkin2factory.core.model import ConceptCard, Screening
 
 concept_app = typer.Typer(
     help="Concepts: cheap, disposable directions for the product, before the design.",
@@ -59,14 +61,39 @@ def screening_line(card: ConceptCard) -> str:
             return "never built"
         return f"not built yet — `n2f concept build {card.id}`"
     verdict = card.verdict or "unknown"
-    reasons = [
-        str(r.get("message") or r.get("id"))
-        for r in card.screening.get("rules", [])
-        if isinstance(r, dict) and r.get("status") in ("fail", "red")
-    ]
+    reasons = [r.message or r.id for r in card.screening.failing]
     if verdict == "red" and reasons:
         return f"screening: red — this direction has problems: {'; '.join(reasons)}"
+    if verdict == "green":
+        return "screening: green — this direction holds up"
     return f"screening: {verdict}"
+
+
+RULE_MARKS = {"pass": "✓", "fail": "✗", "warn": "!", "skip": "·"}
+
+
+def screening_block(screening: Screening) -> list[str]:
+    """The screening as plain lines: computed and estimate numbers labelled, then rules."""
+    at = f" ({screening.at.isoformat(sep=' ')})" if screening.at else ""
+    lines = [f"screening{at}: {screening.verdict or 'not judged'}"]
+    for section, values, what in (
+        ("computed", screening.computed, "measured from the massing shapes"),
+        ("estimate", screening.estimates, "rough, from the calc kit"),
+    ):
+        if not values:
+            continue
+        lines.append(f"  {section} — {what}:")
+        width = max(len(k) for k in values)
+        for name, lv in values.items():
+            lines.append(f"    {name:<{width}}  {lv.value:<22} {lv.label} · {lv.source}")
+    if screening.rules:
+        lines.append("  rules:")
+        for row in screening.rules:
+            relied = f" [{', '.join(row.relies_on)}]" if row.relies_on else ""
+            lines.append(f"    {RULE_MARKS.get(row.status, '?')} {row.id}{relied}: {row.message}")
+    for note in screening.notes:
+        lines.append(f"  note: {note}")
+    return lines
 
 
 @concept_app.command("new")
@@ -138,17 +165,75 @@ def show(
     if json_out:
         emit_json({**data, "summary": screening_line(card)})
         return
+    shown = {k: v for k, v in data.items() if k != "screening"}
     console.print(
-        yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=None),
+        yaml.safe_dump(shown, sort_keys=False, allow_unicode=True, default_flow_style=None),
         markup=False,
         end="",
     )
+    if card.screening is not None:
+        for line in screening_block(card.screening):
+            console.print(line, markup=False, highlight=False, soft_wrap=True)
     if card.status == "rejected":
         reason = (card.decision or {}).get("reason")
         console.print(f"{card.id} is rejected" + (f": {escape(str(reason))}" if reason else ""))
     elif card.status == "promoted":
         console.print(f"{card.id} is the chosen direction (promoted)")
     console.print(escape(screening_line(card)))
+
+
+@concept_app.command("build")
+@handle_errors
+def build(
+    concept_id: str | None = typer.Argument(None, help="Concept id, e.g. C-002."),
+    all_: bool = typer.Option(False, "--all", help="Build every card that is not rejected."),
+    no_render: bool = typer.Option(False, "--no-render", help="Skip the silhouette pictures."),
+    dir: Path | None = DirOption,
+    json_out: bool = JsonOption,
+) -> None:
+    """Build the rough shapes of a concept and screen it (red is information, exit 0)."""
+    from napkin2factory.cli.kernel import load_cad_kernel
+    from napkin2factory.concepts.build import build_concept, select_cards, summary_line
+    from napkin2factory.core.errors import N2FError
+
+    root = product_root(dir)
+    problems = Problems()
+    cards = select_cards(root, concept_id, all_, problems)
+    load_cad_kernel()
+    built = []
+    errors: list[dict[str, str]] = []
+    for card in cards:
+        try:
+            built.append(build_concept(root, card, render=not no_render))
+        except N2FError as exc:
+            errors.append({"id": card.id, "error": str(exc)})
+    errors += [{"id": p.subject, "error": p.message} for p in problems.errors]
+    if json_out:
+        emit_json({"concepts": [b.to_dict(root) for b in built], "errors": errors})
+    else:
+        print_problems(problems, root)
+        for b in built:
+            sc, cid = b.screening, b.card.id
+            summary = summary_line(b.card, sc)
+            if sc.verdict == "red":
+                console.print(f"[red]✗[/red] {cid} — this direction has problems:")
+                for row in sc.failing:
+                    console.print(f"    • {escape(row.message)}", soft_wrap=True)
+                console.print(f"  {escape(summary)}", soft_wrap=True)
+            else:
+                console.print(f"[green]✓[/green] {cid} holds up: {escape(summary)}", soft_wrap=True)
+            for row in sc.rules:
+                if row.status == "warn":
+                    console.print(
+                        f"  [yellow]![/yellow] worth a look: {escape(row.message)}", soft_wrap=True
+                    )
+            if "render_iso" in b.massing.paths:
+                console.print(f"  see {b.rel(root, b.massing.paths['render_iso'])}", soft_wrap=True)
+        for e in errors:
+            if not any(p.subject == e["id"] for p in problems.errors):
+                err_console.print(f"[red]✗[/red] {escape(e['error'])}", soft_wrap=True)
+    if errors:
+        raise typer.Exit(code=1)
 
 
 @concept_app.command("reject")

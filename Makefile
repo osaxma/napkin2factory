@@ -35,7 +35,7 @@ examples-fast:
 	done
 
 check-full: check kiln demos
-	N2F_TIMING=1 $(PY) pytest tests/e2e/test_timing.py -q
+	N2F_TIMING=1 $(PY) pytest tests/e2e/test_timing.py tests/e2e/test_concept_build.py -q
 
 kiln:
 	@echo "== examples/kiln"

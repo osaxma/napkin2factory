@@ -1,12 +1,11 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M2 (massing fidelity, calc kit, screening), in progress
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M3 (styled imagery, style.yaml, kit aesthetics), in progress
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
-**Resume note (2026-10-31):** M0 and M1 committed. M2 runs as three subagent pieces: (a) massing
-fidelity in the kit, (b) the calc kit + kiln calc refactor (parallel, disjoint files), then (c) the
-composer, screening, `rulepacks/concept-v0.yaml` and `n2f concept build`. Briefs live in the
-orchestrator's scratchpad; their design is fixed in the `S-` entries they produce. If you find the
-tree uncommitted: run `make check`, then commit `M2:`.
+**Resume note (2026-10-31):** M0–M2 committed. M3 (styled viewer screenshots via Playwright,
+`style.yaml` presets, six opt-in kit aesthetic parameters) is running as one subagent from a brief in the
+orchestrator's scratchpad; then M4 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
+retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run `make check`, then commit.
 **Resume order:** `NAPKIN_STAGE.md` → this file → `DECISIONS.md` (S-055 onward) → `git log --oneline -30` → `make check`
 
 ## Environment (host facts a cold reader needs)
@@ -35,11 +34,16 @@ tree uncommitted: run `make check`, then commit `M2:`.
   (C5 warns), `n2f concept new|list|show|reject|lint`; optional Napkin gate first in `n2f status`
   (N11, report excluded); `n2f init` seeds `style.yaml` (N7); S-062. `make check`: 429 passed,
   1 skipped, coverage 88.7 %.
+- **M2 (done 2026-10-31)** — massing fidelity in every kit generator (S-063), the calc kit with the
+  kiln's numbers reproduced bit-for-bit (S-064), and concept screening: `n2f concept build [C-xxx|--all]`
+  composes cards into `build/concepts/` outside the build graph, labels every number computed or
+  estimate, runs `concept-v0` and screens the DEC-011 kiln red on an 800 mm alcove with the door swing
+  counted — and on a one-piece blank larger than any stock sheet (S-065). Warm `concept build --all` on
+  the two-card fixture: 1.2 s. `make check`: 482 passed, coverage 90 %.
 
 ## Next
-M2: massing mode through every generator (goldens), `napkin2factory.calckit` with the kiln's
-numbers as the first test vectors, `rulepacks/concept-v0.yaml`, `n2f concept build` with
-`computed`/`estimate` labels and the DEC-011 door-swing regression. Then M3 (styled screenshots).
+M3: `style.yaml` presets and roles, six opt-in kit aesthetic parameters, the Playwright screenshot rig
+with the z-buffer fallback logged, the "product image" checklist and a judged exit. Then M4.
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).

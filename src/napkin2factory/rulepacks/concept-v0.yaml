@@ -1,0 +1,75 @@
+# Concept screening rules v0 (NAPKIN_STAGE N5). Run by `n2f concept build` through
+# rulepacks/concept_checks.py (`run_concept_rules`), never by `n2f check`: the pack applies to
+# concept cards only ({scope: concept}), and no product part has that scope.
+# Same shape as the other packs (S-022): the rule is a named Python check, the YAML carries
+# its severity, thresholds and wording. `fail` reddens the card; `warn` never does.
+# Messages are formatted with the values the check returns and are read by the owner:
+# plain words, no jargon. Thresholds are screening filters, not verified limits; every one
+# is tagged [verify] in DECISIONS.md.
+pack: concept-v0
+title: Concept screening (v0)
+applies_to: {scope: concept}
+rules:
+  - id: fits-site-width
+    title: Fits the alcove width, with the door open
+    severity: fail
+    check: fits_site_width
+    # an open hinged door adds door_swing_factor × its own width beside the hinge side
+    # (1.0 = the leaf swung fully back against the wall: the conservative case) [verify]
+    params: {door_swing_factor: 1.0}
+    message: "it needs {total} of width — {width} for the body plus {door_term} for the open door ({door_basis}) — but the alcove is {limit}"
+    pass_message: "{total} with the door open ({width} + {door_term}) fits the {limit} alcove"
+  - id: fits-site-depth
+    title: Fits the alcove depth
+    severity: fail
+    check: fits_site_extent
+    params: {axis: depth, site_key: alcove_depth}
+    message: "it is {size} deep but the alcove is {limit} deep"
+    pass_message: "{size} deep fits the {limit} alcove"
+  - id: fits-site-height
+    title: Fits the alcove height
+    severity: fail
+    check: fits_site_extent
+    params: {axis: height, site_key: alcove_height}
+    message: "it is {size} tall but the alcove is {limit} tall"
+    pass_message: "{size} tall fits the {limit} alcove"
+  - id: circuit-available
+    title: A supply circuit on site carries it
+    severity: fail
+    check: circuit_available
+    # rating ≥ headroom × current (calckit CIRCUIT_HEADROOM_MIN, the kiln's REQ-006 margin;
+    # NEC 210.20 uses 1.25) [verify]
+    params: {headroom: 1.2}
+    message: "{power} draws {current}; with {margin} headroom it needs {needed}, more than {circuit}"
+    pass_message: "{power} draws {current}: {circuit}"
+    warn_message: "no circuit table for region {region} — confirm the supply"
+  - id: mass-vs-lift-class
+    title: Weight against how it can be moved
+    severity: warn
+    check: mass_vs_lift_class
+    params: {}
+    message: "about {mass}: {handling}, not a {lighter}"
+    pass_message: "about {mass}: {handling}"
+  - id: blank-vs-stock-sheet
+    title: Sheet-metal blanks fit a stock sheet
+    severity: fail
+    check: blank_vs_stock_sheet
+    # shop read-through: a folded shell is cut flat from one sheet; the blank of an open
+    # box is (length + 2·height) × (width + 2·height) [verify sheet sizes with the supplier]
+    params: {}
+    message: "{call}: the flat blank is about {blank}, larger than any {material} sheet on file ({largest}) — split it into panels or make it smaller"
+    pass_message: "every sheet-metal blank fits a stock sheet ({detail})"
+  - id: walls-fit-envelope
+    title: Chamber plus insulation fits inside the body
+    severity: fail
+    check: walls_fit_envelope
+    params: {}
+    message: "the {axis} needs {needed} (chamber {chamber} + 2 × {wall} of insulation) but {call} is only {outer}"
+    pass_message: "chamber plus 2 × {wall} of insulation ({needed}) fits inside {call} ({outer})"
+  - id: controls-not-adjacent-hot-face
+    title: Controls away from the hot air path
+    severity: warn
+    check: controls_not_adjacent_hot_face
+    params: {}
+    message: "controls {where} the door sit in the hot air path — consider the side or below"
+    pass_message: "controls ({controls}) are away from the door ({door})"
