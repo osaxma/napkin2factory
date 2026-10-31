@@ -195,7 +195,7 @@ def test_ecr_then_release_then_diff(released: Path) -> None:
     assert d["totals"]["mass_delta"] > 0
     html = page.read_text(encoding="utf-8")
     tree = LexborHTMLParser(html)
-    assert not tree.css("script[src]") and not tree.css("link")
+    assert not tree.css("script[src]") and not tree.css('link:not([href^="data:"])')
     assert 'id="overlay-base"' in html and 'class="old"' in html and 'class="new"' in html
     assert "titleblock" not in html.split('id="overlay-base"', 1)[1].split("</figure>", 1)[0]
     assert 'id="glb-a"' in html and 'id="glb-b"' in html

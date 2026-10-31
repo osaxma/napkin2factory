@@ -25,6 +25,7 @@ from napkin2factory.core.errors import N2FError
 from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.vcs import Vcs
 from napkin2factory.ecr.release import export_data
+from napkin2factory.report.brand import favicon_link, footer_mark
 from napkin2factory.report.builder import TEMPLATES
 
 TITLEBLOCK_RE = re.compile(r'<g id="titleblock".*?</g>\s*', re.DOTALL)
@@ -329,6 +330,8 @@ def render_diff(
         autoescape=True,
         undefined=jinja2.StrictUndefined,
     )
+    env.globals["n2f_favicon"] = favicon_link()
+    env.globals["n2f_mark"] = footer_mark()
     glb_a, glb_b = _glb_b64(a), _glb_b64(b)
     return env.get_template("diff.html.j2").render(
         product=product.manifest.product,

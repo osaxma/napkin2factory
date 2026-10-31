@@ -175,7 +175,7 @@ def validate_concepts(root: Path, problems: list[str]) -> None:
         problems.append(f"board: {size / 1e6:.1f} MB exceeds the 20 MB budget (N10)")
     tree = LexborHTMLParser(html)
     external = re.compile(r"\b(?:src|href)\s*=\s*['\"]?(?:https?:)?//", re.IGNORECASE)
-    if tree.css("script[src]") or tree.css("link") or external.search(html):
+    if tree.css("script[src]") or tree.css('link:not([href^="data:"])') or external.search(html):
         problems.append("board: has external script/link/asset references (N10)")
     shown = {a.attributes.get("data-id") for a in tree.css("article.concept")}
     for cid, card in cards.items():

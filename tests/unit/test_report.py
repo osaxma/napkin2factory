@@ -34,7 +34,10 @@ def test_self_contained(report: tuple[Path, str]) -> None:
     tree = LexborHTMLParser(html)
     assert not tree.css("script[src]")
     assert not tree.css("link[rel=stylesheet]")
-    assert not tree.css("link")
+    # The only link is the embedded icon (report/brand.py), a data URI.
+    links = tree.css("link")
+    assert [ln.attributes.get("rel") for ln in links] == ["icon"]
+    assert (links[0].attributes.get("href") or "").startswith("data:image/svg+xml;base64,")
     assert not EXTERNAL.search(html), "external reference found"
     assert all(
         s.attributes.get("type") in ("module", "text/plain")

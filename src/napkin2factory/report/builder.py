@@ -519,6 +519,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
 
 def render_report(product: Product, build_dir: Path, snapshot_date: str, build_id: str = "") -> str:
     """Render the page HTML (the viewer bundle inlined)."""
+    from napkin2factory.report.brand import favicon_link, footer_mark
     from napkin2factory.report.inline import bundle_viewer, inline_module_script
 
     env = jinja2.Environment(
@@ -526,6 +527,8 @@ def render_report(product: Product, build_dir: Path, snapshot_date: str, build_i
         autoescape=True,
         undefined=jinja2.StrictUndefined,
     )
+    env.globals["n2f_favicon"] = favicon_link()
+    env.globals["n2f_mark"] = footer_mark()
     data = gather(product, build_dir, snapshot_date)
     anchors = data["anchors"]
     persona = data["persona"]
