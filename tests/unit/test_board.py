@@ -51,7 +51,7 @@ def _article(page: str, cid: str) -> str:
 
 def test_board_is_self_contained_and_within_budget(built: Path, page: str) -> None:
     assert not re.search(r'(?:src|href)="(?:https?:)?//', page)
-    assert "<link" not in page
+    assert "<link" not in page.replace('<link rel="icon" type="image/svg+xml" href="data:', "")
     assert page.count('<script type="module">') == 1
     assert (built / BOARD_PATH).stat().st_size <= board_mod.MAX_REPORT_BYTES
     from napkin2factory.report.builder import MAX_REPORT_BYTES

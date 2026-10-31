@@ -118,7 +118,8 @@ def validate_full(root: Path, product, problems: list[str]) -> None:  # type: ig
         if size > MAX_REPORT:
             problems.append(f"report: {size / 1e6:.1f} MB exceeds the 20 MB budget (D13)")
         tree = LexborHTMLParser(html)
-        if tree.css("script[src]") or tree.css("link") or EXTERNAL.search(html):
+        linked = tree.css('link:not([href^="data:"])')  # the embedded icon is a data URI
+        if tree.css("script[src]") or linked or EXTERNAL.search(html):
             problems.append("report: has external script/link/asset references (D13)")
         modules = [s for s in tree.css("script") if s.attributes.get("type") == "module"]
         if len(modules) != 1 and any(p.has_geometry for p in product.parts.values()):

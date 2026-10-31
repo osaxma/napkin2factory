@@ -499,6 +499,11 @@ def build(out: Path, png: bool) -> None:
     for name, text in files.items():
         (svg_dir / name).write_text(text)
     print(f"wrote {len(files)} SVGs to {svg_dir}")
+    # Generated pages (report, board, diff) embed the small icon; keep their copy in step.
+    report_copy = HERE.parent / "src" / "napkin2factory" / "report" / "brand" / "n2f-icon-32.svg"
+    if out == HERE and report_copy.parent.is_dir():
+        report_copy.write_text(files["n2f-icon-32.svg"])
+        print(f"wrote {report_copy.relative_to(HERE.parent)}")
 
     rsvg = shutil.which("rsvg-convert")
     if not png or not rsvg:
