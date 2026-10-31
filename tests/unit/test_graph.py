@@ -97,3 +97,15 @@ def test_graph_export_static(tmp_path: Path):
     assert {n["id"] for n in around["nodes"]} >= {"part:lid", "asm:enclosure", "drawing:lid"}
     assert "part:base" not in {n["id"] for n in around["nodes"]}
     assert '"nodes"' in to_json(data)
+
+
+def test_validate_json_names_files_relative_to_the_product(tmp_path: Path) -> None:
+    """B-0006: no local path in build/validate.json, so a built folder reads the same anywhere."""
+    from napkin2factory.core.errors import Problem
+    from napkin2factory.core.graph.runs import problem_record
+
+    root = tmp_path / "product"
+    inside = Problem(str(root / "model/parts/lid.yaml"), "part://lid", "bad", rule="schema")
+    outside = Problem("/elsewhere/catalog.yaml", "cat", "bad")
+    assert problem_record(inside, root)["file"] == "model/parts/lid.yaml"
+    assert problem_record(outside, root)["file"] == "/elsewhere/catalog.yaml"

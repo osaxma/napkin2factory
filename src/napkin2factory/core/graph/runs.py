@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from napkin2factory.core.errors import Problem
 from napkin2factory.core.graph.hashing import sha256_file, sha256_json, sha256_text, sha256_tree
 
 if TYPE_CHECKING:
@@ -62,6 +63,19 @@ def viewer_hash() -> str:
 # ---- validate ----------------------------------------------------------------
 
 
+def problem_record(problem: Problem, root: Path) -> dict[str, str]:
+    """A problem for ``validate.json``, its file relative to the product root (B-0006).
+
+    The build folder then reads the same wherever the product sits, and names no local path.
+    """
+    record = problem.to_dict()
+    try:
+        record["file"] = Path(record["file"]).resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        pass  # outside the product (a system file): keep it as given
+    return record
+
+
 def run_validate(ctx: RunContext) -> RunResult:
     """Re-validate from disk (the product is already loaded, but record the outcome)."""
     from napkin2factory.core import lint as lint_mod
@@ -73,8 +87,8 @@ def run_validate(ctx: RunContext) -> RunResult:
     )
     payload = {
         "ok": not problems.errors,
-        "problems": [p.to_dict() for p in problems.items],
-        "lint": [p.to_dict() for p in lint_problems],
+        "problems": [problem_record(p, ctx.product.root) for p in problems.items],
+        "lint": [problem_record(p, ctx.product.root) for p in lint_problems],
     }
     out = _write_json(ctx.build_dir / "validate.json", payload)
     return _result([], [out], sha256_json(payload), payload)
