@@ -42,7 +42,7 @@ dl.vals{display:grid;grid-template-columns:max-content 1fr;gap:.15rem .8rem;marg
 dl.vals dt{color:var(--muted)}dl.vals dd{margin:0;font-variant-numeric:tabular-nums}
 .lbl{display:inline-block;margin-left:.35rem;padding:0 .35rem;border-radius:4px;font-size:.7rem;font-weight:700;letter-spacing:.03em;vertical-align:1px;color:#fff;cursor:help}
 .lbl.computed{background:var(--computed)}.lbl.estimate{background:var(--estimate)}.lbl.given{background:var(--given)}
-.src{display:block;font-size:.72rem;color:var(--muted);line-height:1.3}
+.src{display:block;font-size:.72rem;color:var(--muted);line-height:1.3}.src.band{color:var(--estimate)}
 .rely{display:inline-block;margin-right:.3rem;padding:0 .3rem;border-radius:4px;font-size:.66rem;font-weight:700;color:#fff;vertical-align:1px}
 .rely.computed{background:var(--computed)}.rely.estimate{background:var(--estimate)}.rely.given{background:var(--given)}
 .key{display:inline-block;padding:0 .35rem;border-radius:4px;font-size:.72rem;font-weight:700;color:#fff}
@@ -63,12 +63,12 @@ footer{max-width:1600px;margin:0 auto;padding:0 1.2rem 2rem;font-size:.78rem;col
 </style>
 </head>
 <body>
-{% macro lv(v) -%}<div class="lv-row" data-key="{{ v.key }}" style="display:contents"><dt>{{ v.name }}</dt><dd>{{ v.value }}<span class="lbl {{ v.label }}" title="{{ v.label }} — {{ v.source }}">{{ v.label }}</span>{% if v.label == 'estimate' or v.key == 'footprint_with_door_swing' %}<span class="src">{{ v.source }}</span>{% endif %}</dd></div>{%- endmacro %}
+{% macro lv(v) -%}<div class="lv-row" data-key="{{ v.key }}" style="display:contents"><dt>{{ v.name }}</dt><dd>{{ v.value }}<span class="lbl {{ v.label }}" title="{{ v.label }}: {{ v.source }}">{{ v.label }}</span>{% if v.show_src %}<span class="src">{{ v.source }}</span>{% endif %}{% if v.after %}<span class="src band">{{ v.after }}</span>{% endif %}</dd></div>{%- endmacro %}
 {% macro rely(row) -%}{% for r in row.relies_on %}<span class="rely {{ r }}" title="this relies on {{ r }} numbers">{{ r }}</span>{% endfor %}{{ row.message }}{%- endmacro %}
 <header class="top">
   <h1>{{ product }} — concept board</h1>
   <p class="lead">{{ headline }} <code>{{ choose }}</code>.</p>
-  <p class="legend">Every number says where it comes from: <span class="key given">given</span> from the card (your own inputs, echoed back), <span class="key computed">computed</span> measured from the rough shapes, <span class="key estimate">estimate</span> from the calc kit (rough, before any design). A problem or a point worth a look starts with the labels of the numbers it relied on. A direction with problems stays on the board with its reasons — red is information.</p>
+  <p class="legend">Every number says where it comes from: <span class="key given">given</span> from the card (your own inputs, echoed back), <span class="key computed">computed</span> measured from the rough shapes, <span class="key estimate">estimate</span> — a rough engineering formula, before any design. A problem or a point worth a look starts with the labels of the numbers it relied on. A direction with problems stays on the board with its reasons — red is information.</p>
 </header>
 {% if dropped or notes %}<div class="notes">
   {% if dropped %}<p class="note" id="dropped">To keep this page under {{ max_mb }} MB, these were left out: {{ dropped | join(', ') }}. The files are still under build/concepts/.</p>{% endif %}

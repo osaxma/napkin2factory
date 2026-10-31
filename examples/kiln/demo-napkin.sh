@@ -11,6 +11,8 @@ N2F="${N2F:-uv run --project $SYSTEM n2f}"
 PY="${PY:-uv run --project $SYSTEM python}"
 export N2F_OFFLINE="${N2F_OFFLINE:-1}"
 WORK="${DEMO_DIR:-$(mktemp -d -t n2f-kiln-napkin)}"
+OUT="$(mktemp -d -t n2f-kiln-napkin-out)"
+echo "The shipped kiln already chose C-003; this demo rewinds that choice to replay the napkin stage."
 echo "== working copy: $WORK"
 cp -R "$HERE/." "$WORK/"
 rm -rf "$WORK/build"
@@ -53,19 +55,56 @@ echo "== where we are"
 $N2F status
 echo "== build and screen every direction (red is information, not a stop)"
 $N2F concept build --all
+$PY - <<'EOF'
+from pathlib import Path
+
+import yaml
+
+sc = yaml.safe_load(Path("concepts/C-001.yaml").read_text(encoding="utf-8"))["screening"]
+est, given = sc["estimates"], sc["given"]
+low, high = est["cost_low"]["value"].removesuffix(" USD"), est["cost_high"]["value"]
+heat, power = est["heat_up_time"]["value"], given["power"]["value"]
+print("   C-001 tells two more stories, both in the numbers above:")
+print(
+    f"     cost (DEC-012): the owner hoped for about 1500 USD; screening's band is {low}–{high}"
+    " (estimate), and it counts only the parts it can price, so the wish sits at the bottom"
+    " of a band that is not even complete"
+)
+print(
+    f'     heat-up (DEC-004): the owner asked for "about four hours"; screening says {heat} at'
+    f" {power} (estimate); DEC-004's 7 h is the planned margin on top of that, not the"
+    " calculation"
+)
+EOF
 echo "== the board: every direction side by side"
 $N2F concept board
 echo "== the owner sets the v0.1 look aside"
 $N2F concept reject C-004 --reason "the owner did not like the v0.1 appearance (NAPKIN_STAGE §0)"
 echo "== the owner picks C-003 as the design direction"
 $N2F concept promote C-003 --by "Owner (demo)"
-echo "== the factory carries on"
+echo "== the factory carries on (quietly; everything it made is under build/)"
 $N2F validate
 $N2F lint
-$N2F build --no-render
-$N2F check
+$N2F build --no-render --json >"$OUT/build.json"
+$N2F check --json >"$OUT/checks.json"
+$PY - "$OUT" <<'EOF'
+import json
+import sys
+from pathlib import Path
+
+out = Path(sys.argv[1])
+built = json.loads((out / "build.json").read_text(encoding="utf-8"))
+counts = json.loads((out / "checks.json").read_text(encoding="utf-8"))["summary"]
+print(f"   built {len(built['ran'])} steps: parts, drawings, parts list, manuals, the report")
+print(
+    f"   checks: {counts.get('pass', 0)} OK, {counts.get('fail', 0)} need attention, "
+    f"{counts.get('warn', 0)} worth a look, {counts.get('example', 0)} example sign-offs "
+    "(not reviews)"
+)
+EOF
 $N2F status
 echo
+echo "report           : $WORK/build/report/index.html"
 echo "board            : $WORK/build/concepts/board.html"
 echo "C-001 (red)      : $WORK/build/concepts/C-001/renders/styled-iso.png"
 echo "C-003 (promoted) : $WORK/build/concepts/C-003/renders/styled-iso.png"

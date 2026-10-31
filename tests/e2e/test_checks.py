@@ -250,6 +250,7 @@ def test_signoff_semantics(tmp_path: Path) -> None:
     assert data["summary"]["example"] == 0 and data["summary"]["signed"] == 1
     st = compute_stage(load_product(root))
     assert st.gates[2].ok and st.stage == "verify" and "no Revision" in st.next_step
+    assert st.headline == "ready"  # n2f status: "stage: ready to release" (gate B, B5)
     r = n2f("check", cwd=root)
     assert "1 signed off" in r.stdout and "example" not in r.stdout
     # change the evidence (base geometry) → back to needs-human
@@ -286,6 +287,7 @@ def test_summary_keys_and_released_next_step(tmp_path: Path) -> None:
     v.tag("v1.0.0", "Revision v1.0.0")
     st = compute_stage(load_product(root))
     assert st.stage == "released" and st.next_step == "send the Revision to the manufacturer"
+    assert st.headline == "released"
 
 
 def test_signoff_refuses_failing_requirement(tmp_path: Path) -> None:
@@ -313,6 +315,7 @@ def test_stage_progression(tmp_path: Path) -> None:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=True)
     s0 = compute_stage(load_product(root))
     assert s0.stage == "intake" and any("not been built" in b for b in s0.gates[1].blockers)
+    assert s0.headline == "design"  # Intake is ticked: the owner is in Design (gate B, B5)
     run_build(load_product(root), target="geometry", quiet=True, render=False)
     s1 = compute_stage(load_product(root))
     assert s1.stage == "design" and "checks have not run" in s1.gates[2].blockers[0]

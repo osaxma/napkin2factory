@@ -85,7 +85,7 @@ Run `n2f concept lint` after every edit and fix every error (warnings never fail
 
 ### Screen, then talk limitations from the data
 ```
-n2f concept build --all     # rough shapes + screening + styled pictures, seconds per card
+n2f concept build --all     # every card, set-aside ones too: shapes, screening, pictures
 n2f concept board           # build/concepts/board.html: every direction side by side
 ```
 Tell the owner to open `build/concepts/board.html`, and show
@@ -109,8 +109,8 @@ for the owner. Mention "worth a look" lines too; they never block anything. A wa
 (controls on top → "controls sit above the door in the hot air path") is a trade-off they
 chose, not a problem with their idea: say it that way, with the mitigation ("a heat shield
 or a gap under the control box"). When the owner
-asks "which one fits?", answer from the `fits-site-width` (and depth, height) rows: the
-width with the door open against the alcove, card by card.
+asks "which one fits?", answer from the "fits the alcove with the door open" row (and the
+depth and height rows): the width with the door open against the alcove, card by card.
 
 ### Iterate cheaply
 "Like C-002 but taller" → `n2f concept new "C-002, taller" --from C-002`, change the one
@@ -154,8 +154,8 @@ what it wrote: the parameters it seeded (`owner: napkin`), the requirements — 
 visible on the front, where the controls sit) — the `style.yaml` update and the decision
 (`DEC-xxx`). Only one card can be the design direction.
 
-Promotion sets every other card to rejected by itself. Tell the owner "the other directions
-are kept as rejected alternatives on the record" — never say or imply that the owner
+Promotion sets every other card aside by itself. Tell the owner "the other directions are
+set aside and kept on the record as alternatives" — never say or imply that the owner
 rejected them. Promotion saves a snapshot (it prints "snapshot saved"); to confirm it, run
 `n2f status`, never a version-control command. The promotion decision records only the
 direction: every other choice you made for the owner at the napkin stage (the look, a
@@ -179,7 +179,7 @@ sentence beside the card. It does not wait for intake.
 
 ### Hand-over
 After promotion `n2f status` moves past Napkin and may already show Intake complete
-(promotion wrote requirements). Continue the intake protocol below only for what the cards
+(promotion wrote requirements); its headline then reads "stage: Design". Continue the intake protocol below only for what the cards
 did not answer, then hand over to the designer; skip what the cards already answered (size envelope, site, power, look); promotion has
 already written parameters, requirements, `style.yaml` and a decision, so add to them,
 never duplicate them. Then hand over to `n2f-design`: the promoted card's massing is its

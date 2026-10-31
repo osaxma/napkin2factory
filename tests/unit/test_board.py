@@ -13,6 +13,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from markupsafe import escape
 
 from napkin2factory.concepts import board as board_mod
 from napkin2factory.concepts.board import BOARD_PATH, write_board
@@ -101,9 +102,19 @@ def test_inputs_sources_and_rule_labels_are_on_the_page(page: str, built: Path) 
     assert '2.5 kW<span class="lbl given"' in red
     # the door-swing basis and every estimate's source are printed, not tooltip-only
     foot = card.screening.computed["footprint_with_door_swing"]
-    assert f'<span class="src">{html.escape(foot.source)}</span>' in red
+    assert f'<span class="src">{escape(foot.source)}</span>' in red
     for lv in card.screening.estimates.values():
-        assert f'<span class="src">{html.escape(lv.source)}</span>' in red, lv
+        assert f'<span class="src">{escape(lv.source)}</span>' in red, lv
+    # the two cost rows share one source line, printed once; a wide band says why (C10)
+    cost = card.screening.estimates["cost_high"]
+    assert red.count(f'<span class="src">{escape(cost.source)}</span>') == 1
+    assert '<span class="src band">a wide band: only the parts screening can price' in red
+    # gate B, B2: the owner's sentences only; the engineer's refs never reach the page
+    for lv in card.screening.values.values():
+        if lv.ref:
+            assert escape(lv.ref) not in red, lv.ref
+    assert "calc kit" not in page and "[verify]" not in red
+    assert "a rough engineering formula, before any design" in page
     # each problem starts with the labels of the numbers it relied on
     bad = red[red.index('class="limits bad"') :]
     bad = bad[: bad.index("</div>")]
@@ -194,3 +205,29 @@ def test_board_opens_from_file_url_with_every_viewer(built: Path, page: str) -> 
         "concept://C-003/controls",
         "concept://C-003/door",
     ]
+
+
+def test_decision_lines_say_set_aside_with_the_date_only(built: Path) -> None:
+    """Review gate B, C12: one plain phrase, the date and never the time."""
+    import datetime as dt
+
+    from napkin2factory.core.model.concepts import ConceptDecision
+
+    card = cm.load_card(built, "C-002")
+    at = dt.datetime(2026, 10, 31, 19, 26, 39)
+
+    def line(status: str, **kw: object) -> str | None:
+        decision = ConceptDecision(at=at, **kw)  # type: ignore[arg-type]
+        return board_mod._decision_line(
+            card.model_copy(update={"status": status, "decision": decision})
+        )
+
+    assert line("rejected", reason="set aside when C-003 was chosen (DEC-018)") == (
+        "set aside when C-003 was chosen (DEC-018) — 2026-10-31"
+    )
+    # the wording cards carried before gate B reads the same
+    assert line("rejected", reason="not chosen: C-003 promoted (DEC-018)") == (
+        "set aside when C-003 was chosen (DEC-018) — 2026-10-31"
+    )
+    assert line("rejected", reason="too tall") == "set aside: too tall — 2026-10-31"
+    assert line("promoted", dec="DEC-018") == "the chosen direction (DEC-018) — 2026-10-31"

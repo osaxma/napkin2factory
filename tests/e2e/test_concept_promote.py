@@ -77,7 +77,8 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
     out = _run("concept", "promote", "C-003", cwd=root).stdout
     assert "C-003 is now the design direction (DEC-002)." in out
     assert "Seeded 5 parameters, 5 requirements (3 about form, 1 about the alcove" in out
-    assert "C-001, C-002 and C-004 are kept as rejected alternatives" in out
+    assert "C-001, C-002 and C-004 are kept as alternatives" in out
+    assert "\n  snapshot saved\n" in out
     assert "Next: `n2f build && n2f check`." in out
     again = _run("concept", "promote", "C-002", cwd=root, code=3)
     assert "C-003 is already the chosen direction" in again.stderr
@@ -158,7 +159,8 @@ def test_red_card_overridden_and_its_alcove_requirement_fails(product: Path) -> 
         "op": "<=",
         "value": "100 mm",
     }
-    assert any("form requirement" in n for n in res["notes"])
+    # no form requirement applies, and none needs a note (review gate B, B4)
+    assert not any("form requirement" in n for n in res["notes"])
     _run("validate", cwd=root)
     _run("build", "--no-render", cwd=root)
     data = _check(root, code=2)

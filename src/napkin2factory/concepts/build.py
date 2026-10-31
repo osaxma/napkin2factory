@@ -151,7 +151,11 @@ def build_concepts(
 def select_cards(
     root: Path, concept_id: str | None, all_: bool, problems: Problems
 ) -> list[ConceptCard]:
-    """The cards to build: one by id, or every card not rejected (``--all``)."""
+    """The cards to build: one by id, or every card whatever its status (``--all``).
+
+    Set-aside cards are built too: the board needs a picture of each, and a red card is
+    information (review gate B, B1).
+    """
     if concept_id is not None and all_:
         raise N2FError("name one card (e.g. C-002) or pass --all, not both")
     if concept_id is None and not all_:
@@ -161,7 +165,7 @@ def select_cards(
     cards = cm.load_concepts(root, problems)
     if not cards and not problems.items:
         raise N2FError('there are no concepts yet — `n2f concept new "<title>"` starts one')
-    return [c for c in cards.values() if c.status != "rejected"]
+    return list(cards.values())
 
 
 def _value(screening: Screening, section: str, name: str) -> str | None:
@@ -174,8 +178,29 @@ def _value(screening: Screening, section: str, name: str) -> str | None:
     return lv.value if lv is not None else None
 
 
+_FRACTIONS = {0.5: "a half", 0.25: "a quarter", 0.2: "a fifth", 0.1: "a tenth"}
+
+
+def spare_words(headroom: float) -> str:
+    """A headroom factor in words: 1.2 → ``a fifth``, 1.25 → ``a quarter``, else a percentage.
+
+    The factor itself stays in ``--json`` and in the decision's rationale (review gate B, C7).
+    """
+    extra = round(headroom - 1, 6)
+    return _FRACTIONS.get(extra, f"{extra * 100:.0f} %")
+
+
+def status_tail(card: ConceptCard) -> str:
+    """`` (set aside)`` / `` (the chosen direction)`` after a built card's line (B1)."""
+    if card.status == "rejected":
+        return " (set aside)"
+    if card.status == "promoted":
+        return " (the chosen direction)"
+    return ""
+
+
 def _supply_phrase(screening: Screening) -> str | None:
-    """``2.5 kW (on the card) on the 240V-13A circuit — fits with 1.2 headroom (estimate)``.
+    """``2.5 kW (on the card) on the 240V-13A circuit — fits with a fifth to spare (estimate)``.
 
     The card's own power and circuit are given; only the fit is an estimate (gate A, C1).
     """
@@ -196,11 +221,11 @@ def _supply_phrase(screening: Screening) -> str | None:
     on_card = _value(screening, "given", "circuit_class")
     if on_card:
         row = screening.rule("circuit-available")
-        h = f"{circuit_headroom():g}"
+        spare = spare_words(circuit_headroom())
         if row is not None and row.status == "pass":
-            fit = f"fits with {h} headroom (estimate)"
+            fit = f"fits with {spare} to spare (estimate)"
         elif row is not None and row.status == "fail":
-            fit = f"does not fit with {h} headroom (estimate)"
+            fit = f"does not fit with {spare} to spare (estimate)"
         else:
             fit = "fit not checked"
         return f"{power} on {on_card} — {fit}"
@@ -253,5 +278,7 @@ __all__ = [
     "build_concepts",
     "product_style",
     "select_cards",
+    "spare_words",
+    "status_tail",
     "summary_line",
 ]

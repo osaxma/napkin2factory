@@ -135,7 +135,17 @@ class LabelledValue(Model):
 
     value: str  # a formatted quantity ("995 mm") or a word ("16 A dedicated circuit")
     label: Label
-    source: str
+    source: str  # where it comes from, in the owner's words (shown on the board and in `show`)
+    #: the engineer's reference (calc-kit function, rule parameters); kept in ``--json`` and
+    #: in the card, never shown to the owner (review gate B, B2)
+    ref: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _compact(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if data.get("ref") is None:
+            data.pop("ref", None)
+        return data
 
 
 class RuleRow(Model):
@@ -197,8 +207,9 @@ class ConceptDecision(Model):
     """What reject or promote recorded on a card.
 
     ``n2f concept promote`` writes ``{dec: DEC-0xx, at}`` on the chosen card and
-    ``{reason: "not chosen: …", at}`` on its exploring siblings; ``n2f concept reject``
-    writes ``{reason, at}``. Empty fields are left out when written.
+    ``{reason: "set aside when C-00x was chosen (DEC-0xx)", at}`` on its exploring
+    siblings; ``n2f concept reject`` writes ``{reason, at}``. Empty fields are left out
+    when written.
     """
 
     dec: DecId | None = None

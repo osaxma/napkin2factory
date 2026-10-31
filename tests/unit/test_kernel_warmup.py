@@ -60,9 +60,9 @@ def test_init_announces_the_warmup(
     assert result.exit_code == 0, result.output
     assert len(fake_popen.calls) == 1
     assert (
-        "next: `n2f build` — the CAD kernel is warming up in the background "
-        "(one to two minutes the first time on a machine), then open the folder with your "
-        "AI client and start intake"
+        'next: sketch two directions — `n2f concept new "<title>"` — or go straight to '
+        "`n2f build`; then open the folder with your AI client. The CAD kernel is warming up "
+        "in the background (one to two minutes the first time on a machine)"
     ) in result.output
 
 
@@ -96,4 +96,4 @@ def test_init_without_warmup_keeps_the_plain_hint(
     assert result.exit_code == 0, result.output
     assert fake_popen.calls == []
     assert "warming up" not in result.output
-    assert "next: `n2f build` (the first run loads the CAD kernel" in result.output
+    assert "or go straight to `n2f build` (the first run loads the CAD kernel" in result.output

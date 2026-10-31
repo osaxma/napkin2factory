@@ -189,7 +189,8 @@ def test_kiln_like_card_screens_red_on_the_alcove_with_door_swing(kiln: Screenin
     assert all(v.label == "given" for v in kiln.given.values())
     assert set(kiln.given) == {"power", "circuit_class"}
     assert kiln.given["power"].value == "2.5 kW"
-    assert kiln.given["power"].source == "envelope.power (on the card)"
+    assert kiln.given["power"].source == "on the card"
+    assert kiln.given["power"].ref == "envelope.power"
 
     wide = _screen(_card(KILN, site={"alcove_width": "1300 mm"}))
     assert _rule(wide, "fits-site-width").status == "pass"
@@ -369,7 +370,7 @@ def test_no_material_means_no_mass_and_a_note() -> None:
         call.pop("material")
     s = _screen(_card(bare))
     assert "mass" not in s.computed and "total_mass" not in s.estimates
-    assert any("give these calls a material: body, door" in n for n in s.notes)
+    assert any("give these shapes a material: body, door" in n for n in s.notes)
     assert any("cost leaves out body (no material, so no mass)" in n for n in s.notes)
     assert _rule(s, "mass-vs-lift-class").status == "skip"
 
@@ -397,8 +398,17 @@ def test_labels_at_the_data_level(kiln: Screening, tmp_path: Path) -> None:
     groups = ("given", "computed", "estimates")
     assert all(v["source"] for g in groups for v in data[g].values())
     assert all(set(r["relies_on"]) <= {"computed", "estimate", "given"} for r in data["rules"])
-    sources = {v["source"].split(" ")[0] for v in data["estimates"].values()}
-    assert "thermal_enclosure.steady_loss" in sources and "mass_cost.lift_class" in sources
+    # the engineer's reference travels in the data (ref), the owner's sentence in source
+    refs = {v["ref"].split(" ")[0] for v in data["estimates"].values()}
+    assert "thermal_enclosure.steady_loss" in refs and "mass_cost.lift_class" in refs
+    assert data["estimates"]["heat_up_time"]["source"] == (
+        "from the walls' stored heat and the element power"
+    )
+    assert data["estimates"]["lift_class"]["source"].endswith("; to be checked")
+    for g in groups:
+        for v in data[g].values():
+            for word in ("massing", "calc", "[verify]", "thermal_enclosure", "mass_cost", "."):
+                assert word not in v["source"], (word, v)
 
 
 def test_screening_round_trips_through_the_card(kiln: Screening, tmp_path: Path) -> None:
@@ -452,7 +462,8 @@ def test_summary_line_keeps_inputs_given_and_collapses_one_source_cost(kiln: Scr
 
     line = summary_line(_card(KILN), kiln)
     assert (
-        "2.5 kW (on the card) on the 240V-13A circuit — fits with 1.2 headroom (estimate)" in line
+        "2.5 kW (on the card) on the 240V-13A circuit — fits with a fifth to spare (estimate)"
+        in line
     )
     one = LabelledValue(value="43 USD", label="estimate", source="one band")
     flat = kiln.model_copy(
@@ -460,3 +471,57 @@ def test_summary_line_keeps_inputs_given_and_collapses_one_source_cost(kiln: Scr
     )
     line = summary_line(_card(KILN), flat)
     assert "43 USD (estimate, one source)" in line and "43–43" not in line
+
+
+# --- review gate B: owner words ------------------------------------------------------------
+
+
+def test_masses_under_ten_kilograms_keep_one_decimal() -> None:
+    """Gate B, B3: never "about 0 kg: a one-person lift"."""
+    from napkin2factory.rulepacks.concept_checks import kg_text
+
+    assert kg_text(0.445) == "0.4 kg" and kg_text(9.94) == "9.9 kg"
+    assert kg_text(23.4) == "23 kg" and kg_text(142.0) == "142 kg"
+    plate = {
+        "id": "C-003",
+        "title": "Plate",
+        "massing": [
+            {
+                "kit": "block",
+                "as": "bracket",
+                "material": "mild steel",
+                "args": {"length": "120 mm", "width": "60 mm", "height": "6 mm"},
+            }
+        ],
+    }
+    s = _screen(ConceptCard.model_validate(plate))
+    assert _rule(s, "mass-vs-lift-class").message == "about 0.3 kg: a one-person lift"
+
+
+def test_a_card_without_a_door_has_no_door_row() -> None:
+    """Gate B, C11: no door on the card, no "width with the door open" row."""
+    no_door = copy.deepcopy(SMALL)
+    no_door["layout"] = {"load": "top"}
+    no_door["massing"] = no_door["massing"][:1]
+    s = _screen(ConceptCard.model_validate(no_door))
+    assert "footprint_with_door_swing" not in s.computed and "width" in s.computed
+    row = _rule(s, "fits-site-width")
+    assert row.status == "pass" and row.message == "400 mm wide fits the 800 mm alcove"
+    assert "door" not in row.message
+    sliding = _screen(_card(SMALL, layout={"door": "sliding"}))
+    foot = sliding.computed["footprint_with_door_swing"]
+    assert foot.source == "the body only: a sliding door swings nothing beside it"
+
+
+def test_cost_source_names_what_is_priced_and_what_is_not(kiln: Screening) -> None:
+    """Gate B, B2: the cost line in words; the per-process list stays in ref."""
+    cost = kiln.estimates["cost_high"]
+    assert cost.source.startswith("rough cost of the ")
+    assert cost.source.endswith("from cost bands per process; to be checked") or (
+        "are not counted; to be checked" in cost.source or "is not counted" in cost.source
+    )
+    assert "cots-controls" not in cost.source and "cots-controls" in (cost.ref or "")
+    assert kiln.computed["width"].source == "measured across the rough shapes"
+    assert kiln.computed["footprint_with_door_swing"].source == (
+        "the body plus the door leaf swung open beside the hinge"
+    )
