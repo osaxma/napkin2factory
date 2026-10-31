@@ -64,6 +64,10 @@ before/after in `DECISIONS.md` as an amendment to S-070 and update the ≈ 28 mi
 
 ## 3. Build each example product once per test worker, not per test (B-0055)
 
+**Not done; decided by step 1 (S-080):** the shared fixture would save ≈ 30 s of wall. The
+slowest test file set the pace, so the long files were split instead (`make check` ≈ 8 → 6 min
+52 s). The text below is the original proposal.
+
 **What happens today.** 22 test files call `tests.conftest.copy_product`, and most end-to-end
 tests then run `n2f build` (often `--no-render`) on their fresh copy before testing what they
 are about to test. The bracket builds in a few seconds, the enclosure in tens of seconds; across
