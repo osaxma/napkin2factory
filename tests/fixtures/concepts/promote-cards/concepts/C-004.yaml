@@ -1,0 +1,20 @@
+# Concept card C-004: one possible direction for the product.
+# Concepts sit outside the build: nothing here changes `n2f build`; edit freely.
+# Read it back with `n2f concept show C-004`; check it with `n2f concept lint`.
+id: C-004
+title: Narrow alcove trial
+# status: exploring | rejected | promoted (reject and promote set it for you)
+status: exploring
+refs: []
+layout: {load: front, door: hinged-left}
+envelope: {}
+site: {alcove_width: 300 mm}
+style: {}
+massing:
+  - {kit: enclosure, as: body, material: mild steel, args: {length: 250 mm, width: 250 mm, height: 250 mm, thickness: 1.5 mm}}
+  - {kit: block, as: door, material: mild steel, process_class: sheet-metal, args: {length: 200 mm, width: 3 mm, height: 200 mm}, at: {y: -126.5 mm, z: 25 mm}}
+# notes: anything worth remembering about this direction
+notes: A deliberately tight alcove, to see the open door push it over.
+# written for you: screening by `n2f concept build`, decision by reject or promote
+screening: null
+decision: null

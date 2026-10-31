@@ -19,7 +19,7 @@ from pydantic import (
     model_serializer,
 )
 
-from napkin2factory.core.model.base import Model, _id, _to_quantity
+from napkin2factory.core.model.base import DecId, Model, _id, _to_quantity
 from napkin2factory.core.model.style import StyleRole
 from napkin2factory.core.units import UnitError, format_quantity, parse_quantity
 
@@ -170,6 +170,33 @@ class Screening(Model):
         return [r for r in self.rules if r.status == "fail"]
 
 
+def _to_words(v: Any) -> Any:
+    """A reason as text: YAML reads a bare ``no``/``yes`` or a number as something else."""
+    if isinstance(v, bool):
+        return "yes" if v else "no"
+    if isinstance(v, (int, float)):
+        return str(v)
+    return v
+
+
+class ConceptDecision(Model):
+    """What reject or promote recorded on a card.
+
+    ``n2f concept promote`` writes ``{dec: DEC-0xx, at}`` on the chosen card and
+    ``{reason: "not chosen: …", at}`` on its exploring siblings; ``n2f concept reject``
+    writes ``{reason, at}``. Empty fields are left out when written.
+    """
+
+    dec: DecId | None = None
+    reason: Annotated[str | None, BeforeValidator(_to_words)] = None
+    at: dt.datetime | str | None = None
+
+    @model_serializer(mode="wrap")
+    def _compact(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        return {k: v for k, v in data.items() if v is not None}
+
+
 class ConceptCard(Model):
     """One concept card (``concepts/C-xxx.yaml``); outside the build graph (N1)."""
 
@@ -185,7 +212,7 @@ class ConceptCard(Model):
     massing: list[MassingCall] = Field(default_factory=list)
     notes: str | None = None
     screening: Screening | None = None
-    decision: dict[str, Any] | None = None
+    decision: ConceptDecision | None = None
 
     @property
     def verdict(self) -> str | None:

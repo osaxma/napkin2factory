@@ -17,6 +17,7 @@ from napkin2factory.core.checks.interference import check_interference
 from napkin2factory.core.checks.results import OWNER_WORDS, CheckResult, summarize
 from napkin2factory.core.graph.hashing import sha256_json
 from napkin2factory.core.loader import Product
+from napkin2factory.core.style import STYLE_FORM_KEY
 
 if TYPE_CHECKING:
     from napkin2factory.core.graph.rules import RunContext, RunResult
@@ -36,6 +37,8 @@ def checks_reads(product: Product) -> list[str]:
                 reads.append(str(t))
     for p in product.parts_with_geometry():
         reads.append(p.uri)
+    for p in product.parts.values():
+        reads.append(f"{p.uri}#role")  # the form pack picks parts by styling role
     for a in product.assemblies.values():
         reads.append(a.uri)
     for i in product.interfaces:
@@ -43,6 +46,7 @@ def checks_reads(product: Product) -> list[str]:
     for d in product.docs:
         reads.append(f"doc://{d}")
     reads.append("bom://rollups")
+    reads.append(STYLE_FORM_KEY)  # the form pack reads thresholds from style.yaml
     reads += [
         "set://reqs",
         "set://parts",
@@ -309,11 +313,14 @@ def run_all_checks(ctx: RunContext) -> RunResult:
                 evidence={"allowed-contact": irep.allowed_contacts},
             )
         )
-    for req in product.requirements.values():
-        results.append(evaluate_requirement(ectx, req))
     from napkin2factory.rulepacks.runner import run_rulepacks
 
-    results += run_rulepacks(product, build_dir)
+    # rule-pack rows first: `rule` requirements (form requirements) read them
+    rule_rows = run_rulepacks(product, build_dir)
+    ectx.rule_results = rule_rows
+    for req in product.requirements.values():
+        results.append(evaluate_requirement(ectx, req))
+    results += rule_rows
     results += instance_count_checks(product, build_dir)
     results += doc_staleness(product, build_dir)
     results += bom_validation_checks(build_dir)

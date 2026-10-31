@@ -1,0 +1,29 @@
+# Form rules v0 (NAPKIN_STAGE N8): taste, once chosen, becomes checkable.
+# `n2f concept promote` writes form requirements that point here
+# (verify: {kind: rule, target: rule://form-v0/<id>}); a requirement passes when no part has
+# a `fail` row for its rule. The checks live in rulepacks/form_checks.py. Thresholds are NOT
+# in this file: they come from the product's style.yaml (corner_radius, fastener_visibility,
+# layout.controls), so a product without style choices gets no rows or `skip` rows only.
+# This file carries the wording the owner reads.
+pack: form-v0
+title: Form (v0)
+applies_to: {}
+rules:
+  - id: form-corner-radius
+    title: Exposed corners are rounded as chosen
+    severity: fail
+    check: form_corner_radius
+    params: {}
+    message: "{label} is {radius}, below the {min} corner radius chosen in style.yaml"
+  - id: form-fasteners-hidden-front
+    title: No visible fasteners on the front
+    severity: fail
+    check: form_fasteners_hidden_front
+    params: {}
+    message: "{label} (⌀ {diameter}) is on the front ({where}), but style.yaml hides fasteners on the front"
+  - id: form-controls-placement
+    title: Controls where they were sketched
+    severity: warn
+    check: form_controls_placement
+    params: {}
+    message: "the controls sit {where}, but style.yaml places them {side}"

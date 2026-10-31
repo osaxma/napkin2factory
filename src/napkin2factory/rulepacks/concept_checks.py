@@ -280,14 +280,41 @@ def _material_class(material: str | None) -> str:
     return "mild-steel"
 
 
-def sheet_blank(piece: MassingPiece) -> tuple[float, float] | None:
+#: Reveal used for a ``fit_to`` panel or plate when neither the call nor the card's style
+#: gives one (the kit's own default, ``style.yaml`` schema default).
+DEFAULT_REVEAL_MM = 2.0
+
+
+def _reveal_mm(args: Any, card_style: dict[str, Any] | None) -> float:
+    """The reveal a ``fit_to`` call is cut with: its own, else the card's style, else 2 mm."""
+    if getattr(args, "reveal", None) is not None:
+        return float(args.reveal)
+    raw = (card_style or {}).get("reveal")
+    if raw is not None:
+        from napkin2factory.core.units import parse_quantity
+
+        try:
+            return _q_mm(raw if is_quantity(raw) else parse_quantity(raw, "mm"))
+        except Exception:  # noqa: S110 - an unreadable sketch value falls back to the default
+            pass
+    return DEFAULT_REVEAL_MM
+
+
+def sheet_blank(
+    piece: MassingPiece, card_style: dict[str, Any] | None = None
+) -> tuple[float, float] | None:
     """Developed blank (mm) of a sheet-metal massing call, ``None`` for other kits.
 
     enclosure: ``(length + 2·height) × (width + 2·height)``; bracket_l:
     ``(length + height) × width``; plate: ``width × depth``; panel: ``width × height``.
-    Bend allowances are ignored (envelope grade).
+    A plate or panel sized by ``fit_to`` (no width) is the opening less ``2 × reveal``
+    (the call's ``reveal``, else the card's ``style.reveal``, else 2 mm). Bend allowances
+    are ignored (envelope grade).
     """
     a = piece.args
+    if piece.kit in ("plate", "panel") and getattr(a, "fit_to", None) is not None:
+        r = _reveal_mm(a, card_style)
+        return (a.fit_to.width - 2 * r, a.fit_to.height - 2 * r)
     if piece.kit == "enclosure":
         return (a.length + 2 * a.height, a.width + 2 * a.height)
     if piece.kit == "bracket_l":
@@ -309,7 +336,7 @@ def blank_vs_stock_sheet(facts: ConceptFacts, params: dict[str, Any]) -> Outcome
     fits: list[str] = []
     unknown: list[str] = []
     for piece in facts.massing.pieces:
-        blank = sheet_blank(piece)
+        blank = sheet_blank(piece, facts.card.style)
         if blank is None:
             continue
         mclass = _material_class(piece.material)

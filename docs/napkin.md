@@ -83,3 +83,78 @@ notes say "styled screenshots unavailable (…): showing correctness renders [re
 printed once, dim, on stderr). Z-buffer renders are for correctness, viewer screenshots for
 appearance (D12 as amended, N6). Judge the pictures with `docs/render-checklist.md`,
 "Product image".
+
+## The board: `n2f concept board`
+
+`build/concepts/board.html` puts every card side by side, in id order, for one decision.
+It is read-only — choosing happens in conversation or with `n2f concept promote C-00x` —
+and self-contained exactly like the report: one inline module script, each card's massing
+GLB embedded and shown in its own 3D viewer (the style's materials by role, the studio
+lighting), the styled iso picture as the card's image and the front picture beside it, the
+card's reference images as thumbnails. It opens from `file://` with nothing fetched.
+
+Each card shows its id, title, status (`exploring`, `rejected`, `promoted`, or "not built
+yet"), what it was based on, its sizes and weights, the estimate strip (cost band, heat-up or
+power needed, current, supply, lifting), and "more numbers". **Every number carries its
+`computed` or `estimate` badge, taken from the card's screening data** — the page never
+decides a label. A red card stays in its place with a red header and "this direction has
+problems:" followed by the failing rules in plain words; warnings read "worth a look:". The
+decision line says which card was chosen (and its `DEC-`) or why one was set aside.
+
+The page stays under the report's 20 MB budget: when it would not, reference images are
+left out first, then the front pictures (then, only if still needed, the 3D viewers and the
+iso pictures), and a note at the top says what was left out. The board is written by this
+verb only; no build rule reads `concepts/` or the board (N1).
+
+## Promotion: `n2f concept promote C-00x`
+
+Promotion turns the chosen card into ordinary model content, all or nothing (every edit is
+computed and validated first; a refusal writes nothing):
+
+1. **Gates.** The card must be built (it has a screening). A red card is refused —
+   "C-001 — this direction has problems: … Promote anyway with --override --reason "…";
+   the reason is recorded as a decision." — unless `--override --reason` is given. Only
+   one card can be the design direction; changing it later is a change request. Refusals
+   exit 3.
+2. **Parameters** from `envelope`, `owner: napkin`, `description: from concept C-00x`: a
+   quantity is one parameter (`insulation: 170 mm` → `insulation`), a three-value list
+   becomes `<key>-width/-depth/-height`, other lists `<key>-1…n`, named layers
+   `<layer>-thickness` and `<layer>-clearance`; `power` seeds `element-power`. A parameter
+   that already exists with the same value is left alone ("already declared"); a different
+   value refuses the promotion, naming both values, unless `--override` (then it is
+   overwritten in place and listed in the decision).
+3. **Site constraints become requirements**, allocated to the top assembly
+   (`unallocated` and checked by a person when there is no assembly yet):
+   - `alcove_width` → "Fits the alcove with the door open": `asm://<top>#props.bbox.x ≤
+     alcove_width − door-swing term`, the term being screening's computed one
+     (`footprint_with_door_swing − width`, 0 for a door that does not swing sideways),
+     stated in the rationale. This is what makes DEC-011 impossible to repeat;
+   - `alcove_depth` / `alcove_height` → `bbox.y` / `bbox.z` bounds;
+   - `circuit` with an `envelope.power` → `param://element-power ≤ 0.8 × V × I` (a
+     continuous load uses at most 80 % of the rating, `[verify]`);
+   - `mass_limit` (or a `lift_class` with a weight on file) → `props.mass <` the limit.
+4. **Form requirements** (taste becomes checkable), from the merged style and the layout:
+   corner radius when `style.corner_radius` > 0, no visible front fasteners when
+   `fastener_visibility: hidden-front`, controls placement when the layout names
+   `controls`; each `verify: {kind: rule, target: rule://form-v0/<rule>}` (see
+   [checks.md](checks.md)). Fewer than two apply? The ones that do are written and the
+   output says so.
+5. **`style.yaml`**: the card's `style` keys override the product's, and its `layout` is
+   recorded (the controls rule reads it). When the card names another preset, values that
+   still equal the old preset's take the new one's (the product then looks like the board);
+   hand-edited values are kept and listed.
+6. **The decision**: one `DEC-` ("Design direction: <title>", plus ", despite screening" for
+   an overridden red card) whose context lists every other card with its verdict and
+   one-line reasons as rejected alternatives (and the override reason and failing rules),
+   whose rationale quotes the screening numbers each tagged computed or estimate, linking
+   the new requirements and parameters; `made_by: human` with `--by`, `verify: true` when an
+   estimate was used or `--override` was given.
+7. **Cards**: the chosen card becomes `promoted` (`decision: {dec, at}`), every exploring
+   sibling `rejected` (`decision: {reason: "not chosen: C-00x promoted (DEC-0xx)", at}`).
+   Cards are kept forever.
+8. **A snapshot**, "Promote C-00x: <title>" — the only napkin verb that takes one.
+
+It ends in one line, for example: "C-003 is now the design direction (DEC-002). Seeded 5
+parameters, 5 requirements (3 about form, 1 about the alcove, 1 about the supply), wrote
+style.yaml; C-001, C-002 and C-004 are kept as rejected alternatives. Next: `n2f build &&
+n2f check`." `--json` carries every id. After promotion `n2f status` moves past Napkin.

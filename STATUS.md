@@ -1,9 +1,9 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M4 (board, promotion, form requirements), in progress
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** gate A + M5 (skills), in progress
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
-**Resume note (2026-10-31):** M0–M3 committed. M4 (board, promotion, the `rule` verify kind, form pack) is running as one subagent from a brief in the
-orchestrator's scratchpad; then gate A, M5 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
+**Resume note (2026-10-31):** M0–M4 committed. review gate A (fresh-context, read-only) and M5 (skill texts) run in parallel from briefs in the
+orchestrator's scratchpad; then M6 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
 retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run `make check`, then commit.
 **Resume order:** `NAPKIN_STAGE.md` → this file → `DECISIONS.md` (S-055 onward) → `git log --oneline -30` → `make check`
 
@@ -45,11 +45,16 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
   fallback; the report viewer paints the palette by role (S-066). Warm `concept build --all`: 6.2 s for
   two cards including screenshots. **Judged:** industrial and appliance screenshots read as products.
   `make check`: 510 passed, coverage 90.3 %.
+- **M4 (done 2026-10-31)** — `n2f concept board`: a self-contained, read-only board, red cards in
+  place with reasons, every number badged computed/estimate, under the 20 MB budget. `n2f concept
+  promote`: collision-safe parameter seeding, site and form requirements through the new `rule` verify
+  kind and the `form-v0` pack, `style.yaml` merge, the decision with rejected alternatives, card flips, a
+  snapshot (S-067). Fixture end to end: concepts → board → promote → `n2f build && n2f check` green;
+  flipping a form threshold fails its requirement. **Judged:** the board reads cleanly. `make check`:
+  534 passed, coverage 90.4 %.
 
 ## Next
-M4: the board (self-contained, labelled numbers, red cards with reasons), promotion (collision-safe
-seeding, site constraints → requirements, form requirements via a `rule` verify kind, the DEC with
-rejected siblings), then review gate A.
+Gate A findings → fixes; M5 skills + the scripted simulation (DoD 7); M6 kiln retrofit + demo; gate B; M7.
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).

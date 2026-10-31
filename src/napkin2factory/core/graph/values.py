@@ -87,13 +87,20 @@ def value_of(
         return entry.output_hash if entry else "unbuilt"
     if key in MEMBERSHIP:
         return membership_value(product, key)
-    if key in ("style:geometry", "style:look"):
+    if key in ("style:geometry", "style:look", "style:form"):
         from napkin2factory.core.errors import N2FError
-        from napkin2factory.core.style import geometry_fingerprint, load_style, look_fingerprint
+        from napkin2factory.core.style import (
+            form_fingerprint,
+            geometry_fingerprint,
+            load_style,
+            look_fingerprint,
+        )
 
         try:
             if key == "style:look":
                 return sha256_json(look_fingerprint(product.paths.root))
+            if key == "style:form":
+                return sha256_json(form_fingerprint(product.paths.root))
             return sha256_json(geometry_fingerprint(load_style(product.paths.root)))
         except N2FError:
             return "invalid"

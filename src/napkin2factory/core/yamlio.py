@@ -61,6 +61,15 @@ def dump_roundtrip(path: Path, data: Any, *, explicit_null: bool = False) -> Non
         _ruamel(explicit_null).dump(data, fh)
 
 
+def dumps_roundtrip(data: Any, *, explicit_null: bool = False) -> str:
+    """A ruamel document as text (as :func:`dump_roundtrip` would write it)."""
+    import io
+
+    buf = io.StringIO()
+    _ruamel(explicit_null).dump(data, buf)
+    return buf.getvalue()
+
+
 def split_front_matter(text: str) -> tuple[dict[str, Any], str]:
     """Split front matter (between two ``---`` lines) from a Markdown body."""
     if not text.startswith("---"):

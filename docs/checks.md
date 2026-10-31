@@ -15,6 +15,7 @@ and prints the matrix. Exit code 2 when any row is `fail`.
 | `count` | occurrences of a part across top assemblies | the assemblies |
 | `interface` | both parties' recorded patterns agree within 0.5 mm | both parties |
 | `manual` | always needs a human | — |
+| `rule` | the rule-pack rows of the same run for `rule://<pack>/<rule>`: any `fail` row fails it, a `warn` row makes it `warn` (never a failure), a `pass` row passes it; no applicable part → `skip` "no part this rule applies to yet" | the parts the rows cover |
 
 Safety ladder (S-026): computed `fail` → fail; `safety: true` → `needs-human` until a valid
 sign-off → `signed`; non-safety `manual` → `needs-human` → `pass` with a sign-off; a
@@ -34,7 +35,26 @@ demonstration, in which case the release goes ahead and the report keeps the lab
 reliefs where bends meet, flat pattern present (warn). `general-v0`: custom parts complete
 (process, material, finish, tolerance class), every part in an assembly (warn), COTS parts
 have a source, COTS links verified (warn). Thresholds are nominal shop rules of thumb
-`[verify]`. A product may add `model/rulepacks/*.yaml` using the same named checks.
+`[verify]`. A product may add `model/rulepacks/*.yaml` using the same named checks. A check
+may decide a rule does not concern a part (no row) or concern it without being able to
+decide (a `skip` row saying why).
+
+`form-v0` (v0.2, NAPKIN_STAGE N8) checks taste once it is chosen. Its thresholds live in the
+product's `style.yaml`, not in the pack, and `n2f concept promote` writes the requirements
+that point at it (`verify: {kind: rule, target: rule://form-v0/<rule>}`):
+
+| rule | applies to | fails (or warns) when |
+|---|---|---|
+| `form-corner-radius` | custom parts with role body, door, stand, controls or trim | a bend radius (`features.json`) or the declared `corner_radius`/`fillet` (or the style default the build gave it) is below `style.corner_radius`; skipped while that is 0 |
+| `form-fasteners-hidden-front` | parts with role body or door | `style.fastener_visibility` is `hidden-front` and a hole, placed in a top assembly, has its axis along Y and its centre in the front (−Y) half of the assembly's bounding box |
+| `form-controls-placement` (warn) | the part with role controls | its centroid, placed in a top assembly, is not on the side `style.layout.controls` names (left/right, front/back, top/below of the assembly's centre) |
+
+What the form checks cannot see: edges a generator rounds without recording them (custom
+geometry modules, frame tubes) — such a part is skipped with a message, never passed;
+whether something in front hides a hole; the screws themselves (only holes in the body and
+the door). A part not placed in any built assembly is skipped for the two placement rules.
+The checks re-run when `style.yaml`'s form cues or a part's `role` change (`style:form`,
+`part://x#role` reads).
 
 ## Other rows
 

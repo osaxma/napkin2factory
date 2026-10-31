@@ -2,7 +2,9 @@
 
 Each takes the part model, its ``features.json`` dict, the rule's params, and the product
 context, and returns a list of violation dicts (empty = pass).  Message templates in the
-YAML are formatted with the violation dict.
+YAML are formatted with the violation dict.  A check may raise :class:`RuleNotApplicable`
+(no row for this part) or :class:`RuleSkip` (a ``skip`` row with the reason); the form
+pack's checks live in :mod:`napkin2factory.rulepacks.form_checks` (``FORM_CHECKS``).
 """
 
 from __future__ import annotations
@@ -16,6 +18,17 @@ from napkin2factory.core.model import Part
 
 Violation = dict[str, Any]
 CheckFn = Callable[[Part, dict[str, Any], dict[str, Any], Product], list[Violation]]
+
+
+class RuleNotApplicable(Exception):  # noqa: N818 - a signal, not an error
+    """Raised by a check when the rule does not concern this part: no row is written."""
+
+
+class RuleSkip(Exception):  # noqa: N818 - a signal, not an error
+    """Raised by a check that concerns the part but cannot decide; the row reads ``skip``.
+
+    The exception's text is the row's message (say what would let the rule decide).
+    """
 
 
 def _thickness(feats: dict[str, Any]) -> float | None:

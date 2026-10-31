@@ -634,3 +634,29 @@ charcoal blue-black) in one reused Chromium page; the z-buffer fallback is noted
 products — distinct face shading, one accent, contact shadow, neutral background — not as
 debug renders. Lesson for cards: the `enclosure` silhouette is an open-top tray, so a closed
 body (a kiln) is a `block`; the appliance door is low-contrast by design (same hue as the body).
+
+## S-067 — The board, promotion and form requirements (N8, N10): the `rule` verify kind and the form pack (2026-10-31)
+`n2f concept board` writes `build/concepts/board.html` on the report's machinery: one inline
+module, a viewer per card (role materials, studio rig), styled iso/front PNGs and refs as data
+URIs, ≤ `MAX_REPORT_BYTES` (dropping refs, then front pictures, then viewers, then iso, with a
+visible note). Every number shows the label from the screening data; red cards stay in id order
+with their reasons. Read-only; written only by the verb (N1). `n2f concept promote` is
+all-or-nothing (edits computed, schema-checked, written, re-validated, restored on failure) and
+snapshots "Promote C-00x: <title>". Envelope → parameters (`owner: napkin`; 3-lists
+`-width/-depth/-height`, layers `<name>-thickness/-clearance`, power → `element-power`); equal
+values reconcile, different ones refuse unless `--override`. Site → requirements on the top
+assembly: `alcove_width` → `asm#props.bbox.x ≤ alcove_width − door_swing_term` (the screening's
+computed term); depth/height bounds; circuit → `param://element-power ≤ 0.8·V·I` `[verify]`;
+`mass_limit` (or the lift-class weight) → `props.mass <`; without an assembly they fall back to
+`manual`/`unallocated` with a note. New verify kind `rule` (`rule://<pack>/<rule>`): fails on
+any fail row in the same run, warn rows give warn, no applicable part → skip; the engine runs
+packs first. `form-v0` (thresholds from `style.yaml`, which gains `layout`): `form-corner-radius`
+checks recorded bend radii and declared corner_radius/fillet (edges a generator does not record
+are skipped, never passed); `form-fasteners-hidden-front` flags a hole in a body/door part whose
+axis is along Y and whose centre lies in the front half of the top assembly's bbox — it cannot
+see occlusion or the screws themselves; `form-controls-placement` (warn) compares the controls
+part's placed centroid with `layout.controls`. Checks read `style:form` and `part://x#role`.
+A second promote is refused with "changing direction after promotion is a change request".
+`sheet_blank` resolves `fit_to`. **Judged (board):** four cards side by side, red in place with
+reasons, every number badged; the iso picture and the live viewer show the same view (redundant
+but harmless). Known labelling nit for gate A: a card's own `site.circuit` shows as `estimate`.
