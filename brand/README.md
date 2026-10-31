@@ -1,7 +1,7 @@
 # napkin2factory logo
 
-> **Status:** final design, not yet used by the product. It is to be integrated once v0.2 is
-> done.
+> **Status:** in use. The README header shows the lockup; generated pages carry the small icon
+> and the wordmark in their footer (S-075, S-081).
 
 A napkin with a ballpoint sketch of a hexagon and a handwritten "n2f". Above it floats the
 finished part: an orange hex plate with "n2f" cut through it. Dashed projection lines join the

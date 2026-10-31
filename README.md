@@ -11,7 +11,10 @@ those are in the agent guide.
 -->
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/osaxma/napkin2factory/main/brand/png/n2f-icon-256.png" width="112" alt="napkin2factory: a pen sketch of a hexagon on a napkin, with the finished part floating above it">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/osaxma/napkin2factory/main/brand/png/n2f-lockup-on-dark.png">
+    <img src="https://raw.githubusercontent.com/osaxma/napkin2factory/main/brand/png/n2f-lockup-on-light.png" width="420" alt="napkin2factory: a pen sketch of a hexagon on a napkin, with the finished part floating above it, beside the name">
+  </picture>
 </p>
 
 # napkin2factory
