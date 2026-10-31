@@ -29,6 +29,27 @@ rasters (D12): good enough to judge shape, not finish.
 - [ ] **Scale sanity**: a fastener should look like a fastener next to a wall, not a bollard.
 - [ ] **Exploded hint**: the `exploded.axis` in the YAML is the axis along which the viewer can pull the assembly apart; it should be the stacking axis.
 
+## Product image (styled screenshot)
+`build/concepts/C-xxx/renders/styled-iso.png` and `styled-front.png` (N6) are the pictures
+an owner decides on. Judge them as a buyer would, not as an engineer:
+- [ ] **Reads as an object someone might buy**: an appliance, an instrument, a piece of
+  equipment — not a debug render or a stack of boxes in random colours.
+- [ ] **Plausible materials**: every part wears its role's palette colour and finish from
+  `style.yaml` (powder coat, painted, brushed steel…); no hash colours anywhere.
+- [ ] **Neutral lighting with visible form**: the faces of a box are told apart by shading
+  (front, side and top differ), parts sit on a soft contact shadow; nothing is blown out to
+  pure white or crushed to black, and the palette hue survives (charcoal stays grey).
+- [ ] **No z-fighting**: no speckle or stripes where parts touch or overlap (a door laid on a
+  body must sit proud of it, not inside it).
+- [ ] **Neutral background**: plain light grey, no gradient or colour; the body's silhouette
+  stays readable against it (an off-white body needs the darker appliance background).
+- [ ] **Accent used sparingly**: the accent colour marks controls or one detail, not the body.
+- [ ] **Front view framed**: the door and controls are readable, the whole product in frame,
+  little keystoning.
+- [ ] **Iso framed with margin**: nothing cropped, the product fills most of the frame.
+- [ ] If the image is the z-buffer fallback (`method: zbuffer-fallback`, the note in the
+  card's screening notes), say so when showing it: it is a correctness picture, not a look.
+
 ## When it looks wrong
 Fix the model, not the render. Re-run `n2f build --target geometry --part <id>` and look again.
 Record what you saw in `STATUS.md` at milestone exits (M2, M5, M8).

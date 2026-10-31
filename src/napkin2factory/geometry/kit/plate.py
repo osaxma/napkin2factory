@@ -3,6 +3,10 @@
 Reference implementation for the generator protocol: validated args, a build123d
 solid, declared features (holes with edge distances), dimension callouts, and a flat
 pattern (the plate is its own flat pattern) with a developed-area check.
+
+Aesthetics (N7): ``fit_to: {width, height}`` sizes a lid to its opening less ``reveal`` on
+each side (``height`` is the plate's ``depth``); a part with a styling role takes its
+``corner_radius`` and ``reveal`` from ``style.yaml`` when it leaves them unset.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from build123d import (
     extrude,
     fillet,
 )
+from pydantic import model_validator
 
 from napkin2factory.geometry.features import (
     Dim,
@@ -29,7 +34,18 @@ from napkin2factory.geometry.features import (
     polygon_area,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Count, Length, massing_result, require_positive
+from napkin2factory.geometry.kit._common import (
+    Count,
+    Length,
+    apply_style_defaults,
+    massing_result,
+    require_positive,
+    style_length,
+)
+
+#: Reveal used with ``fit_to`` when neither the part nor an opted-in style gives one (the
+#: ``style.yaml`` schema default).
+DEFAULT_REVEAL = 2.0
 
 
 class HoleSpec(KitArgs):
@@ -43,15 +59,36 @@ class HoleSpec(KitArgs):
     inset: Length = 15.0  # distance from the plate edge when spacing is not given
 
 
-class Args(KitArgs):
-    """``plate`` arguments (lengths in any unit; converted to mm)."""
+class FitTo(KitArgs):
+    """The opening a lid or door is cut to fit: it ends up ``reveal`` smaller on each side."""
 
     width: Length
-    depth: Length
+    height: Length
+
+
+class Args(KitArgs):
+    """``plate`` arguments (lengths in any unit; converted to mm).
+
+    Give ``width`` and ``depth``, or ``fit_to`` (the opening) and optionally ``reveal``.
+    """
+
+    width: Length = 0.0
+    depth: Length = 0.0
     thickness: Length
     corner_radius: Length = 0.0
     holes: HoleSpec | None = None
+    fit_to: FitTo | None = None
+    reveal: Length | None = None
     process: str = "cut-sheet"
+
+    @model_validator(mode="after")
+    def _size_or_fit(self) -> Args:
+        sized = {"width", "depth"} & self.model_fields_set
+        if self.fit_to is not None and sized:
+            raise ValueError("give width and depth, or fit_to, not both")
+        if self.fit_to is None and len(sized) < 2:
+            raise ValueError("plate needs width and depth (or fit_to: {width, height})")
+        return self
 
 
 ARGS = Args
@@ -81,6 +118,38 @@ def _validate(a: Args) -> list[tuple[float, float]]:
     return centers
 
 
+def fit(a: Args, ctx: KitContext) -> Args:
+    """Resolve ``fit_to``: the opening less ``reveal`` on each side (else ``a`` unchanged)."""
+    if a.fit_to is None:
+        return a
+    if a.reveal is not None:
+        reveal = a.reveal
+    elif ctx.styled is not None:
+        reveal = style_length(ctx, "reveal")
+    else:
+        reveal = DEFAULT_REVEAL
+    return a.model_copy(
+        update={"width": a.fit_to.width - 2 * reveal, "depth": a.fit_to.height - 2 * reveal}
+    )
+
+
+def _fits_radius(a: Args) -> None:
+    _validate(a)
+    if a.corner_radius >= min(a.width, a.depth) / 2:
+        raise ValueError(f"it must be below half the smaller side ({min(a.width, a.depth) / 2:g})")
+
+
+def _prepare(a: Args, ctx: KitContext) -> tuple[Args, list[tuple[float, float]], list[str]]:
+    """Fit, apply style defaults (opted-in parts only) and validate; return centres, notes."""
+    a = fit(a, ctx)
+    notes: list[str] = []
+    if ctx.styled is not None:
+        a, notes = apply_style_defaults(
+            a, {"corner_radius": style_length(ctx, "corner_radius")}, _fits_radius
+        )
+    return a, _validate(a), notes
+
+
 def _overall_dims(a: Args) -> list[Dim]:
     hw, hd = a.width / 2, a.depth / 2
     return [
@@ -92,14 +161,14 @@ def _overall_dims(a: Args) -> list[Dim]:
 
 def massing(a: Args, ctx: KitContext) -> PartResult:
     """Silhouette (N3): a box of the outer size, no holes and no corner radius."""
-    _validate(a)
+    a, _, _ = _prepare(a, ctx)
     shape = Box(a.width, a.depth, a.thickness, align=(Align.CENTER, Align.CENTER, Align.MIN))
     return massing_result(shape, a.process, _overall_dims(a), ctx)
 
 
 def generate(a: Args, ctx: KitContext) -> PartResult:
     """Build the plate. Origin at the plate centre, Z up through the thickness."""
-    centers = _validate(a)
+    a, centers, notes = _prepare(a, ctx)
     with BuildPart() as bp:
         with BuildSketch():
             Rectangle(a.width, a.depth)
@@ -151,5 +220,6 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         dims=dims,
         flat_pattern=flat,
         props={"developed_area": flat.area},
+        notes=notes,
         flat_map=lambda p: (p[0], p[1]) if -hw <= p[0] <= hw and -hd <= p[1] <= hd else None,
     )

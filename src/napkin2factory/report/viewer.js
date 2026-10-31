@@ -9,28 +9,135 @@
 //   explode(factor)        -> move top-level instances along the exploded axis
 //   render()               -> queue a redraw (after mutating scene/camera directly)
 //   ready                  -> Promise resolving after the first frame
+//   applyMaterials(map)    -> {uri: {color: '#hex', metallic, roughness}} per part (style.yaml)
+//   view(name)             -> frame the model from a preset camera: 'iso' | 'front'
+//   snapshot()             -> PNG data URL of the current view
+//
+// Options beyond the report's defaults (all optional; the report passes none of them, so its
+// behaviour is unchanged): background ('#hex' or number), materials (as applyMaterials,
+// applied after load), lighting: 'studio' (a fixed three-point rig, a soft environment for
+// metals and a contact shadow), camera: 'iso' | 'front' (applied after load instead of the
+// default fit), transparent (no background).  An element may carry them as JSON in
+// data-n2f-options.
 //
 // Rendering is on demand: a frame is drawn only when something changed (orbit/zoom, an API
 // call, a resize) and only while the viewer is on screen and the tab is visible.  An always-on
 // requestAnimationFrame loop kept the GPU and main thread busy for the whole page lifetime.
+
+// The studio rig (lighting: 'studio'): key, fill and rim directional lights plus a soft
+// hemisphere, a blurred procedural "softbox room" as the environment so metals and paints
+// have something to reflect, neutral tone mapping (keeps palette hues), and a contact shadow
+// on an invisible floor.  place(box) aims the shadow at the loaded model.
+function studioRig(scene, renderer) {
+  // Tone curve: linear below 0.6, then the Khronos PBR Neutral highlight roll-off (so
+  // off-white bodies keep their faces), but without Neutral's toe, which crushes dark
+  // palettes (charcoal turns blue-black).  The palette hue is the point of the picture.
+  ShaderChunk.tonemapping_pars_fragment = ShaderChunk.tonemapping_pars_fragment.replace(
+    'vec3 CustomToneMapping( vec3 color ) { return color; }',
+    `vec3 CustomToneMapping( vec3 color ) {
+      const float StartCompression = 0.6;
+      const float Desaturation = 0.15;
+      color *= toneMappingExposure;
+      float peak = max( color.r, max( color.g, color.b ) );
+      if ( peak < StartCompression ) return color;
+      float d = 1. - StartCompression;
+      float newPeak = 1. - d * d / ( peak + d - StartCompression );
+      color *= newPeak / peak;
+      float g = 1. - 1. / ( Desaturation * ( peak - newPeak ) + 1. );
+      return mix( color, vec3( newPeak ), g );
+    }`);
+  renderer.toneMapping = CustomToneMapping;
+  renderer.toneMappingExposure = 0.8;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = PCFShadowMap;  // honours shadow.radius: a soft contact shadow
+  // Rig intensities are in classic units (key 1.0, fill 0.5, rim 0.6, sky 0.6); three.js
+  // lights are physically based since r155, so they are scaled by PI to keep that meaning.
+  const sky = new HemisphereLight(0xffffff, 0x8c8c8c, 0.6 * Math.PI);
+  sky.position.set(0, 0, 1);  // Z is up in the model
+  scene.add(sky);
+  const lights = [
+    [1.0, new Vector3(1, -1, 2)],
+    [0.5, new Vector3(-1.5, -0.5, 1)],
+    [0.6, new Vector3(0, 1.5, 1.5)],
+  ].map(([intensity, dir]) => {
+    const light = new DirectionalLight(0xffffff, intensity * Math.PI);
+    light.position.copy(dir);
+    scene.add(light);
+    scene.add(light.target);
+    return [light, dir];
+  });
+  const key = lights[0][0];
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.radius = 8;
+
+  const room = new Scene();
+  const box = (color, pos, scale, side) => {
+    const m = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial({ color, side: side || FrontSide }));
+    m.position.set(pos[0], pos[1], pos[2]);
+    m.scale.set(scale[0], scale[1], scale[2]);
+    room.add(m);
+  };
+  // The room is lopsided on purpose: the key light sits almost behind an iso camera, so
+  // the environment carries the modelling: a big softbox front-left, a dim right side.
+  box(new Color(0.32, 0.32, 0.32), [0, 0, 0], [20, 20, 20], BackSide);    // walls
+  box(new Color(0.12, 0.12, 0.12), [0, 0, -9.8], [20, 20, 0.2]);          // floor
+  box(new Color(3.5, 3.5, 3.5), [0, 0, 9.6], [9, 9, 0.2]);                // overhead softbox
+  box(new Color(5, 5, 5), [-4, -9.6, 4], [10, 0.2, 7]);                   // front-left softbox
+  box(new Color(2.5, 2.5, 2.5), [-9.6, -2, 3], [0.2, 8, 6]);              // left softbox
+  box(new Color(1.5, 1.5, 1.5), [0, 9.6, 5], [8, 0.2, 4]);                // rim softbox
+  const pmrem = new PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(room, 0.04).texture;
+  scene.environmentIntensity = 0.6;
+  pmrem.dispose();
+
+  const floor = new Mesh(new PlaneGeometry(1, 1), new ShadowMaterial({ opacity: 0.14 }));
+  floor.receiveShadow = true;
+  floor.visible = false;
+  scene.add(floor);
+  return {
+    place(bbox) {
+      const center = bbox.getCenter(new Vector3());
+      const size = bbox.getSize(new Vector3());
+      const radius = Math.max(size.length() / 2, 1);
+      for (const [light, dir] of lights) {
+        light.target.position.copy(center);
+        light.position.copy(center).addScaledVector(dir.clone().normalize(), radius * 3);
+      }
+      const cam = key.shadow.camera;
+      cam.left = -radius * 1.6; cam.right = radius * 1.6;
+      cam.top = radius * 1.6; cam.bottom = -radius * 1.6;
+      cam.near = radius * 0.5; cam.far = radius * 6;
+      cam.updateProjectionMatrix();
+      key.shadow.bias = -0.0001;
+      key.shadow.normalBias = radius * 0.004;  // no acne on the faces the key light hits
+      floor.scale.set(radius * 8, radius * 8, 1);
+      floor.position.set(center.x, center.y, bbox.min.z - radius * 0.002);
+      floor.visible = true;
+    },
+  };
+}
 
 function n2fCreateViewer(container, options) {
   const opts = Object.assign({ background: 0xf4f4f2, explodeAxis: 'z', explodeSpacing: 80 }, options || {});
   const width = container.clientWidth || 800;
   const height = container.clientHeight || 500;
   const scene = new Scene();
-  scene.background = new Color(opts.background);
+  scene.background = opts.transparent ? null : new Color(opts.background);
   const camera = new PerspectiveCamera(40, width / height, 0.1, 100000);
   // No preserveDrawingBuffer: snapshot() renders and reads back in the same task instead.
-  const renderer = new WebGLRenderer({ antialias: true });
+  const renderer = new WebGLRenderer(opts.transparent ? { antialias: true, alpha: true } : { antialias: true });
   renderer.localClippingEnabled = true;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(width, height);
   container.appendChild(renderer.domElement);
-  scene.add(new HemisphereLight(0xffffff, 0x888888, 1.2));
-  const key = new DirectionalLight(0xffffff, 1.0);
-  key.position.set(1, -1, 2);
-  scene.add(key);
+  const studio = opts.lighting === 'studio' ? studioRig(scene, renderer) : null;
+  if (!studio) {
+    scene.add(new HemisphereLight(0xffffff, 0x888888, 1.2));
+    const key = new DirectionalLight(0xffffff, 1.0);
+    key.position.set(1, -1, 2);
+    scene.add(key);
+  }
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   // The wheel scrolls the page until the viewer is clicked; otherwise scrolling past the model
@@ -102,7 +209,57 @@ function n2fCreateViewer(container, options) {
       }
     });
     for (const child of root.children) basePositions.set(child.uuid, child.position.clone());
-    fit();
+    if (opts.materials) applyMaterials(opts.materials);
+    if (studio) studio.place(new Box3().setFromObject(root));
+    if (opts.camera) view(opts.camera); else fit();
+    requestRender();
+  }
+
+  function applyMaterials(map) {
+    for (const [uri, m] of Object.entries(map || {})) {
+      for (const node of partNodes.get(uri) || []) {
+        node.traverse((o) => {
+          if (!o.isMesh) return;
+          if (m.color) o.material.color.set(m.color);
+          if (typeof m.metallic === 'number') o.material.metalness = m.metallic;
+          if (typeof m.roughness === 'number') o.material.roughness = m.roughness;
+          o.material.needsUpdate = true;
+          if (studio) { o.castShadow = true; o.receiveShadow = true; }
+          baseMaterials.set(o.uuid, o.material.clone());  // reset() returns to the styled look
+        });
+      }
+    }
+    requestRender();
+  }
+
+  // Preset cameras: the model's bounding box is fitted to the frame with a margin.
+  const VIEWS = { iso: new Vector3(1.4, -1.6, 1.1), front: new Vector3(0, -1, 0.06) };
+  function view(name) {
+    const dir = (VIEWS[name] || VIEWS.iso).clone().normalize();
+    camera.fov = 26;  // a longer lens than the orbit view: product shots, little keystoning
+    camera.updateProjectionMatrix();
+    const box = new Box3().setFromObject(root || scene);
+    const center = box.getCenter(new Vector3());
+    const size = box.getSize(new Vector3());
+    camera.up.set(0, 0, 1);
+    const right = new Vector3().crossVectors(dir, camera.up).normalize().negate();
+    const up = new Vector3().crossVectors(right, dir).normalize().negate();
+    const margin = 1.15;
+    const ty = Math.tan((camera.fov * Math.PI) / 360) / margin;
+    const tx = ty * camera.aspect;
+    let dist = 0;
+    for (const sx of [-0.5, 0.5]) for (const sy of [-0.5, 0.5]) for (const sz of [-0.5, 0.5]) {
+      const c = new Vector3(size.x * sx, size.y * sy, size.z * sz);
+      const toward = c.dot(dir);
+      dist = Math.max(dist, toward + Math.abs(c.dot(right)) / tx, toward + Math.abs(c.dot(up)) / ty);
+    }
+    const radius = Math.max(size.length() / 2, 1);
+    camera.position.copy(center).addScaledVector(dir, dist);
+    camera.near = Math.max(dist - radius * 2, radius / 100);
+    camera.far = dist + radius * 4;
+    camera.updateProjectionMatrix();
+    controls.target.copy(center);
+    controls.update();
     requestRender();
   }
 
@@ -170,6 +327,8 @@ function n2fCreateViewer(container, options) {
       requestRender();
     },
     fit,
+    view,
+    applyMaterials,
     // Section: clip everything above the model's mid-height (a global clipping plane).
     section(on) {
       if (!on) { renderer.clippingPlanes = []; requestRender(); return; }
@@ -217,10 +376,14 @@ window.n2fViewerReady = (async () => {
   for (const el of document.querySelectorAll('[data-n2f-glb]')) {
     const dataEl = document.getElementById(el.getAttribute('data-n2f-glb'));
     if (!dataEl) continue;
-    const viewer = n2fCreateViewer(el, {
+    let extra = {};
+    if (el.hasAttribute('data-n2f-options')) {
+      try { extra = JSON.parse(el.getAttribute('data-n2f-options')); } catch (err) { console.error('n2f viewer options', err); }
+    }
+    const viewer = n2fCreateViewer(el, Object.assign({
       explodeAxis: el.getAttribute('data-explode-axis') || 'z',
       explodeSpacing: parseFloat(el.getAttribute('data-explode-spacing') || '80'),
-    });
+    }, extra));
     try {
       await viewer.loadBase64(dataEl.textContent.trim());
       await viewer.ready;

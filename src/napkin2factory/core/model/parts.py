@@ -8,6 +8,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BeforeValidator, Field, model_validator
 
 from napkin2factory.core.model.base import IfaceUri, Model, Quantity, ReqUri, Slug
+from napkin2factory.core.model.style import StyleRole
 
 _KIT_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
@@ -111,6 +112,9 @@ class Part(Model):
     notes: str | None = None
     manufacturer_notes: str | None = None
     tags: list[str] = Field(default_factory=list)
+    #: Styling role (``style.yaml``): picks the palette colour and finish, and opts the part
+    #: into style-sourced geometry defaults when it is body, door, stand, controls or trim.
+    role: StyleRole | None = None
 
     @model_validator(mode="after")
     def _kind_rules(self) -> Part:

@@ -17,6 +17,15 @@ Cutout coordinates are 2D, origin at the centre of the face's flat (planar) regi
 * ``base``: world ``(x, y)``.
 * walls: ``(u, v)`` seen from outside the tray, ``v`` up (+Z) and ``u`` to the right —
   front ``u = +X``, back ``u = −X``, left ``u = −Y``, right ``u = +Y``.
+
+Aesthetics (N7): ``vent`` adds a grille to the left, right or back wall as ordinary cutouts
+(labelled ``vent-1`` …), so it reaches the features JSON, the flat pattern and the rule
+checks like any other cutout: ``slots`` are ``count`` vertical slots ``size`` wide and
+``pitch`` apart running the wall's flat height less ``inset`` top and bottom; ``holes`` are
+``count`` round holes of diameter ``size``, ``pitch`` apart in one row whose top is
+``inset`` below the top of the wall's flat.  A part with a styling role takes the pattern
+from ``style.vent_pattern`` when the vent names none, and leaves ``bend_radius`` unset to
+get ``thickness × style.radius_scale``.
 """
 
 from __future__ import annotations
@@ -27,11 +36,13 @@ from typing import Literal
 
 from build123d import (
     Box,
+    Circle,
     Location,
     Plane,
     Pos,
     Rectangle,
     RectangleRounded,
+    SlotOverall,
     Solid,
     Vector,
     extrude,
@@ -52,7 +63,13 @@ from napkin2factory.geometry.features import (
     polygon_area,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Length, massing_result, require_positive
+from napkin2factory.geometry.kit._common import (
+    Count,
+    Length,
+    apply_style_defaults,
+    massing_result,
+    require_positive,
+)
 from napkin2factory.geometry.kit._sheet import (
     bend_allowance,
     bend_solid,
@@ -77,6 +94,17 @@ class CutoutSpec(KitArgs):
     label: str | None = None
 
 
+class VentSpec(KitArgs):
+    """A grille on one side or back wall, cut as ordinary cutouts (see the module docstring)."""
+
+    face: Literal["left", "right", "back"]
+    pattern: Literal["slots", "holes"] | None = None  # None: style.vent_pattern, else slots
+    count: Count
+    size: Length  # slot width, or hole diameter
+    pitch: Length  # centre to centre along the wall
+    inset: Length = 15.0  # from the top (and, for slots, the bottom) of the wall's flat
+
+
 class Args(KitArgs):
     """``enclosure`` arguments (lengths in any unit; converted to mm)."""
 
@@ -88,6 +116,7 @@ class Args(KitArgs):
     flange: Length = 0.0  # outward lip width beyond the wall's outer face; 0 = no lip
     relief: Length | None = None  # corner gap from the outer corner; default t + r
     cutouts: list[CutoutSpec] = Field(default_factory=list)
+    vent: VentSpec | None = None
     process: str = "sheet-metal"
 
 
@@ -191,9 +220,9 @@ def _validate(a: Args) -> _Layout:
     for i, c in enumerate(a.cutouts):
         tag = c.label or f"#{i + 1}"
         require_positive(cutout_width=c.width, cutout_height=c.height)
-        if c.corner_radius < 0 or c.corner_radius * 2 >= min(c.width, c.height):
+        if c.corner_radius < 0 or c.corner_radius * 2 > min(c.width, c.height) + 1e-9:
             raise ValueError(
-                f"cutout {tag}: corner_radius {c.corner_radius:g} mm must be below half the "
+                f"cutout {tag}: corner_radius {c.corner_radius:g} mm must be at most half the "
                 f"smaller side ({min(c.width, c.height) / 2:g} mm)"
             )
         if c.face == "base":
@@ -207,6 +236,90 @@ def _validate(a: Args) -> _Layout:
                 f"the flat region of the {c.face} face ({2 * hu:g} × {2 * hv:g} mm)"
             )
     return _Layout(t, r, big_r, relief, f, lip, z_top, wall_flat)
+
+
+def vent_cutouts(a: Args, lay: _Layout, pattern: str) -> list[CutoutSpec]:
+    """The vent as cutouts on its wall (face coordinates, labels ``vent-1`` …).
+
+    Raises:
+        ValueError: on a non-positive count or size, or a pitch that merges the openings.
+    """
+    v = a.vent
+    if v is None:
+        return []
+    require_positive(vent_count=v.count, vent_size=v.size, vent_pitch=v.pitch)
+    if v.count > 1 and v.pitch <= v.size:
+        raise ValueError(
+            f"vent pitch {v.pitch:g} mm must exceed its size {v.size:g} mm "
+            "or the openings run into each other"
+        )
+    us = [(i - (v.count - 1) / 2) * v.pitch for i in range(v.count)]
+    half = v.size / 2
+    if pattern == "holes":
+        cv = lay.wall_flat / 2 - v.inset - half
+        return [
+            CutoutSpec(
+                face=v.face,
+                center=(u, cv),
+                width=v.size,
+                height=v.size,
+                corner_radius=half,
+                label=f"vent-{i}",
+            )
+            for i, u in enumerate(us, 1)
+        ]
+    length = lay.wall_flat - 2 * v.inset
+    if length <= v.size:
+        raise ValueError(
+            f"vent slots would be {length:g} mm long: the wall's flat ({lay.wall_flat:g} mm) "
+            f"less 2 × inset ({v.inset:g} mm) leaves no room for a slot {v.size:g} mm wide"
+        )
+    return [
+        CutoutSpec(
+            face=v.face,
+            center=(u, 0.0),
+            width=v.size,
+            height=length,
+            corner_radius=half,
+            label=f"vent-{i}",
+        )
+        for i, u in enumerate(us, 1)
+    ]
+
+
+def _prepare(a: Args, ctx: KitContext) -> tuple[Args, _Layout, list[str]]:
+    """Style defaults (opted-in parts only), the vent expanded into cutouts, validation.
+
+    Returns:
+        The arguments to build from (vent cutouts appended), the layout and any notes.
+    """
+    notes: list[str] = []
+    style = ctx.styled
+    if style is not None and style.radius_scale != 1.0:
+        a, notes = apply_style_defaults(
+            a, {"bend_radius": a.thickness * style.radius_scale}, _validate
+        )
+    lay = _validate(a)
+    if a.vent is None:
+        return a, lay, notes
+    pattern = a.vent.pattern or (style.vent_pattern if style is not None else "slots")
+    cuts = vent_cutouts(a, lay, pattern)
+    a = a.model_copy(update={"cutouts": [*a.cutouts, *cuts]})
+    return a, _validate(a), notes
+
+
+def _profile(c: CutoutSpec) -> Rectangle | RectangleRounded | Circle | SlotOverall:
+    """The 2D opening: rectangle, rounded rectangle, slot (round ends) or circle."""
+    r = c.corner_radius
+    if r <= 0:
+        return Rectangle(c.width, c.height)
+    if 2 * r < min(c.width, c.height) - 1e-9:
+        return RectangleRounded(c.width, c.height, r)
+    if abs(c.width - c.height) < 1e-9:
+        return Circle(c.width / 2)
+    if c.width > c.height:
+        return SlotOverall(c.width, c.height)
+    return SlotOverall(c.height, c.width, rotation=90)
 
 
 def _overall_dims(a: Args) -> list[Dim]:
@@ -234,7 +347,7 @@ def massing(a: Args, ctx: KitContext) -> PartResult:
     ``length × width × height`` (the lip is a feature, not massing).  Same frame as
     :func:`generate`: base centred on XY, bottom face at ``z = 0``.
     """
-    lay = _validate(a)
+    a, lay, _ = _prepare(a, ctx)
     t = lay.t
     outer = Pos(0, 0, a.height / 2) * Box(a.length, a.width, a.height)
     reach = a.height - t + 1.0  # runs out through the open top
@@ -245,7 +358,7 @@ def massing(a: Args, ctx: KitContext) -> PartResult:
 
 def generate(a: Args, ctx: KitContext) -> PartResult:
     """Build the tray (see the module docstring for the frame and face coordinates)."""
-    lay = _validate(a)
+    a, lay, notes = _prepare(a, ctx)
     t, r, big_r, relief, f = lay.t, lay.r, lay.big_r, lay.relief, lay.f
     lip, z_top, wall_flat = lay.lip, lay.z_top, lay.wall_flat
 
@@ -291,11 +404,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
             w = by_name[c.face]
             o = w.n * (w.half - t / 2) + z * (zc + cv) + w.u * cu
             plane = Plane(origin=_vec(o), x_dir=_vec(w.u), z_dir=_vec(w.n))
-        profile = (
-            RectangleRounded(c.width, c.height, c.corner_radius)
-            if c.corner_radius > 0
-            else Rectangle(c.width, c.height)
-        )
+        profile = _profile(c)
         shape = shape - extrude(plane * profile, amount=t, both=True)
     shape.label = ctx.uri
 
@@ -424,6 +533,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
             "bend_allowance": ba,
             "k_factor": k,
         },
+        notes=notes,
     )
     result.flat_map = flat_map
     return result

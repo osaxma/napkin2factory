@@ -26,6 +26,7 @@ from napkin2factory import __version__
 from napkin2factory.core.checks.results import SUMMARY_KEYS
 from napkin2factory.core.graph.hashing import sha256_text
 from napkin2factory.core.loader import Product
+from napkin2factory.core.style import STYLE_LOOK_KEY
 from napkin2factory.core.units import format_quantity
 from napkin2factory.core.uris import display_uri
 
@@ -126,6 +127,8 @@ def report_reads(ctx: RunContext) -> list[str]:
     reads += [f"ecr://{e}#status" for e in product.ecrs]
     reads += [f"param://{p}" for p in product.parameters]
     reads += [f"signoff:{s}" for s in product.signoffs]
+    reads += [f"{p.uri}#role" for p in product.parts_with_geometry()]
+    reads.append(STYLE_LOOK_KEY)  # the palette the viewer paints parts with
     reads += [
         "set://parts",
         "set://asms",
@@ -139,6 +142,25 @@ def report_reads(ctx: RunContext) -> list[str]:
         "manifest://product#name",
     ]
     return reads
+
+
+def _viewer_options(product: Product) -> str:
+    """Viewer options as JSON: the style palette by part role when ``style.yaml`` exists.
+
+    Products without the file keep the viewer's hash colours (and get no options at all).
+    """
+    from napkin2factory.core.errors import N2FError
+    from napkin2factory.core.model.style import role_for
+    from napkin2factory.core.style import load_style, style_path
+
+    if not style_path(product.paths.root).is_file():
+        return ""
+    try:
+        style = load_style(product.paths.root)
+    except N2FError:
+        return ""
+    materials = {p.uri: style.material(role_for(p)) for p in product.parts_with_geometry()}
+    return json.dumps({"materials": materials}, sort_keys=True)
 
 
 def _read_json(path: Path) -> Any:
@@ -227,6 +249,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         ]
     glb_paths = [p for p in glb_paths if p.is_file()]
     glb_b64 = base64.b64encode(glb_paths[0].read_bytes()).decode() if glb_paths else ""
+    viewer_options = _viewer_options(product)
     exploded = {"axis": "z", "spacing": 80.0}
     tops = top_assemblies(product)
     if tops:
@@ -468,6 +491,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "revision_label": revision_label,
         "summary": summary,
         "glb_b64": glb_b64,
+        "viewer_options": viewer_options,
         "exploded": exploded,
         "renders": renders,
         "drawings": drawings,

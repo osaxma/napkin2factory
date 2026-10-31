@@ -8,6 +8,9 @@ of inside radius ``bend_radius`` whose centre is at ``x = z = bend_radius + thic
 The solid is one L cross-section (straight legs plus inner/outer arcs) in the XZ plane,
 extruded ±width/2 along Y, with holes subtracted.  The flat pattern is a strip
 ``flat_vertical + bend_allowance + flat_horizontal`` long, vertical leg first.
+
+Aesthetics (N7): a part with a styling role that leaves ``bend_radius`` unset gets
+``thickness × style.radius_scale`` instead of ``thickness``.
 """
 
 from __future__ import annotations
@@ -44,7 +47,13 @@ from napkin2factory.geometry.features import (
     polygon_area,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Count, Length, massing_result, require_positive
+from napkin2factory.geometry.kit._common import (
+    Count,
+    Length,
+    apply_style_defaults,
+    massing_result,
+    require_positive,
+)
 from napkin2factory.geometry.kit._sheet import bend_allowance, developed_l, k_factor
 
 
@@ -136,6 +145,14 @@ def _validate(a: Args) -> tuple[float, float, float, float, _Rows]:
     return r, big_r, flat_h, flat_v, rows
 
 
+def _styled(a: Args, ctx: KitContext) -> tuple[Args, list[str]]:
+    """Scale the default bend radius by ``style.radius_scale`` (opted-in parts only)."""
+    style = ctx.styled
+    if style is None or style.radius_scale == 1.0:
+        return a, []
+    return apply_style_defaults(a, {"bend_radius": a.thickness * style.radius_scale}, _validate)
+
+
 def _overall_dims(a: Args) -> list[Dim]:
     hw = a.width / 2
     return [
@@ -161,6 +178,7 @@ def massing(a: Args, ctx: KitContext) -> PartResult:
 
 def generate(a: Args, ctx: KitContext) -> PartResult:
     """Build the L bracket (see the module docstring for the frame)."""
+    a, notes = _styled(a, ctx)
     r, big_r, flat_h, flat_v, rows = _validate(a)
     t, w = a.thickness, a.width
     h = a.holes
@@ -277,6 +295,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         dims=dims,
         flat_pattern=fp,
         props={"developed_length": developed, "bend_allowance": ba, "k_factor": k},
+        notes=notes,
     )
     result.flat_map = flat_map
     return result

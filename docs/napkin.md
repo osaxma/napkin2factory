@@ -18,6 +18,8 @@ deleting `concepts/` changes no build output).
    `concept://C-xxx/<as>`), `props.json`, `features.json`, `screening.json` and
    `renders/` (plain z-buffer pictures for checking shape, not for judging looks).
 3. **Screening**, written back into the card's `screening:` block.
+4. **Styled screenshots** (`renders/styled-iso.png`, `styled-front.png`, 1200 × 900): the
+   product image to show and judge (see "Styling" below).
 
 ## The two labels
 
@@ -54,3 +56,30 @@ the box without resistance or stored heat. All of these are `[verify]`.
 A failing rule makes the card **red**; warnings never do. Red is information: the card
 keeps its reasons, `n2f concept build` prints them under "this direction has problems:"
 and still exits 0.
+
+## Styling: `style.yaml` and the styled screenshots
+
+`style.yaml` (seeded by `n2f init --style industrial|appliance|lab`; `industrial` when the
+file is missing) holds the product's look: a `preset`, a `palette` and a `finish` per **part
+role** (`body, door, stand, controls, trim, lining, fastener, default`), a `background`, an
+`accent`, and shape cues (`radius_scale`, `corner_radius`, `chamfer`, `reveal`, `overhang`,
+`vent_pattern`, `fastener_visibility`). Anything the file leaves out comes from its preset.
+Finishes are rendering factors (`powder-coat`, `brushed-steel`, `painted`, `ceramic`,
+`anodized`, `plastic`), not engineering numbers. A card's `style:` sketch lays over the
+product's style for that card's pictures (a different `preset` starts from that preset);
+keys the schema does not know are noted and skipped.
+
+Each massing call has a role: its `role:` if given, else its `as` name when that is a role
+word (`as: door` is a door), else `default`. `n2f concept build` renders every card through
+the same inline viewer the report uses — one self-contained page per card
+(`renders/styled.html`), the role's colour and finish on each node, a fixed studio rig (key,
+fill and rim lights, a soft environment, a contact shadow), an iso and a front camera — in
+one headless browser page reused across cards, and saves the two PNGs. The output line names
+the styled iso; `--json` carries `screenshots: {method, paths, notes}`.
+
+When Playwright or its Chromium is missing (or `N2F_NO_PLAYWRIGHT=1`), the z-buffer renders
+are copied to the styled names, `method` is `zbuffer-fallback`, and the card's screening
+notes say "styled screenshots unavailable (…): showing correctness renders [revisit]" (also
+printed once, dim, on stderr). Z-buffer renders are for correctness, viewer screenshots for
+appearance (D12 as amended, N6). Judge the pictures with `docs/render-checklist.md`,
+"Product image".

@@ -15,6 +15,13 @@ Massing fidelity (N3) is a mode of the same generators: with ``ctx.fidelity ==
 "massing"`` :func:`run` calls ``massing`` instead of ``generate``.  It runs the same
 argument validation (an impossible composition still fails for real) and then builds the
 silhouette from primitive solids, never touching bend, hole, fillet or flat-pattern code.
+
+Aesthetic parameters (N7): ``ctx.style`` carries the product's resolved ``style.yaml`` and
+``ctx.role`` the part's explicit role.  :attr:`KitContext.styled` hands a generator the
+style only at full fidelity and only for the roles in ``STYLED_ROLES`` (body, door, stand,
+controls, trim); every other part builds exactly as without a style.  A style default fills
+only arguments the part left unset, and one that does not fit the part is skipped with a
+note instead of failing the build.
 """
 
 from __future__ import annotations
@@ -27,6 +34,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 from napkin2factory.core.errors import N2FError
+from napkin2factory.core.model.style import STYLED_ROLES, StyleFile
 from napkin2factory.core.units import mm
 from napkin2factory.geometry.features import PartResult
 
@@ -57,6 +65,19 @@ class KitContext:
     interfaces: dict[str, Any] = field(default_factory=dict)  # iface id → Interface (already read)
     kit: Any = None  # the kit namespace, so composite generators can call siblings
     fidelity: Literal["full", "massing"] = "full"  # massing → silhouettes only (N3)
+    style: StyleFile | None = None  # the product's resolved style.yaml (N7)
+    role: str | None = None  # the part's explicit styling role
+
+    @property
+    def styled(self) -> StyleFile | None:
+        """The style when this part opts in to style geometry defaults, else ``None``.
+
+        Opt-in rule (N7): full fidelity, a style present, and an explicit role among
+        body, door, stand, controls and trim.
+        """
+        if self.fidelity != "full" or self.style is None or self.role not in STYLED_ROLES:
+            return None
+        return self.style
 
     @property
     def uri(self) -> str:

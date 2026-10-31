@@ -30,6 +30,14 @@ outer face).  Rails put the outside corner at the frame's outer edge of the rail
 vertical flange in the outer face and a horizontal flange along the rail's top (for top
 rails that is the frame's top edge; bottom rails use the same orientation so the horizontal
 flange can carry a shelf).
+
+Overhang (N7 aesthetics).  With ``overhang > 0`` the top rails become a ring that sits *on*
+the legs and reaches ``overhang`` beyond them on every side, like a table top: the X rails
+run the full ``length + 2·overhang``, the Y rails fit between them, and the legs stop under
+the ring (``height − size``).  The ring must still land on the legs' outer walls, so
+``overhang ≤ size − wall``; square tube only.  Each leg top runs :data:`JOIN_OVERLAP` up
+into the ring.  A part with a styling role that leaves ``overhang`` unset takes
+``style.overhang`` (skipped with a note when it does not fit this frame).
 """
 
 from __future__ import annotations
@@ -41,7 +49,13 @@ from build123d import Box, Pos, Shape
 
 from napkin2factory.geometry.features import CutItem, Dim, Features, Member, PartResult
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Length, massing_result, require_positive
+from napkin2factory.geometry.kit._common import (
+    Length,
+    apply_style_defaults,
+    massing_result,
+    require_positive,
+    style_length,
+)
 
 JOIN_OVERLAP = 0.01  # mm a rail end runs into the leg it is welded to (see module docstring)
 
@@ -64,6 +78,7 @@ class Args(KitArgs):
     top_rails: bool = True
     bottom_rails: bool = True
     bottom_rail_height: Length | None = None  # floor to rail underside; default = member size
+    overhang: Length = 0.0  # top ring beyond the legs on every side; 0 = rails between legs
     process: str = "welding"
 
 
@@ -81,6 +96,7 @@ class _Piece:
     length: float  # true cut length
     corner: tuple[float, float]  # sign of the outside corner in the two cross-section axes
     extend: bool  # rail ends run JOIN_OVERLAP into the legs
+    extend_top: bool = False  # the top end runs JOIN_OVERLAP up into the overhanging ring
 
 
 def profile_name(m: MemberSpec) -> str:
@@ -112,6 +128,18 @@ def validate(a: Args) -> float:
         raise ValueError(f"frame height {a.height:g} must exceed member size {m.size:g}")
     if not (a.top_rails or a.bottom_rails):
         raise ValueError("a frame needs top_rails or bottom_rails: bare legs are not a weldment")
+    if a.overhang < 0:
+        raise ValueError(f"overhang must not be negative, got {a.overhang:g}")
+    if a.overhang > 0:
+        if not a.top_rails:
+            raise ValueError("an overhang needs top rails: the ring is what overhangs")
+        if m.profile != "square-tube":
+            raise ValueError("an overhang needs square-tube members (an angle ring has no floor)")
+        if a.overhang > m.size - m.wall + 1e-9:
+            raise ValueError(
+                f"overhang {a.overhang:g} must not exceed size − wall = {m.size - m.wall:g} "
+                "so the top ring still sits on the legs"
+            )
     hb = m.size if a.bottom_rail_height is None else a.bottom_rail_height
     if a.bottom_rails:
         if hb < 0:
@@ -129,13 +157,41 @@ def pieces(a: Args, bottom_height: float) -> list[_Piece]:
     s = a.member.size
     hx, hy = a.length / 2, a.width / 2
     cx, cy = hx - s / 2, hy - s / 2  # leg centre lines
+    o = a.overhang
     out: list[_Piece] = []
     corners = [(1, 1), (-1, 1), (-1, -1), (1, -1)]
+    leg_h = a.height - s if o > 0 else a.height
     for i, (sx, sy) in enumerate(corners, 1):
-        center = (sx * cx, sy * cy, a.height / 2)
-        out.append(_Piece(f"leg-{i}", "leg", 2, center, a.height, (sx, sy), False))
+        center = (sx * cx, sy * cy, leg_h / 2)
+        out.append(_Piece(f"leg-{i}", "leg", 2, center, leg_h, (sx, sy), False, o > 0))
     levels: list[tuple[str, float]] = []
-    if a.top_rails:
+    if a.top_rails and o > 0:
+        z, rx, ry = a.height - s / 2, hx + o - s / 2, hy + o - s / 2
+        for i, sy in enumerate((-1, 1), 1):  # full-length X rails of the ring
+            out.append(
+                _Piece(
+                    f"top-rail-x-{i}",
+                    "rail-x",
+                    0,
+                    (0.0, sy * ry, z),
+                    a.length + 2 * o,
+                    (sy, 1),
+                    False,
+                )
+            )
+        for i, sx in enumerate((-1, 1), 1):  # Y rails between them
+            out.append(
+                _Piece(
+                    f"top-rail-y-{i}",
+                    "rail-y",
+                    1,
+                    (sx * rx, 0.0, z),
+                    a.width + 2 * o - 2 * s,
+                    (sx, 1),
+                    True,
+                )
+            )
+    elif a.top_rails:
         levels.append(("top", a.height - s / 2))
     if a.bottom_rails:
         levels.append(("bottom", bottom_height + s / 2))
@@ -175,13 +231,23 @@ def _box(axis: int, along: float, u: float, v: float, center: tuple[float, float
     return Pos(*center) * Box(*size)
 
 
+def _solid_span(p: _Piece) -> tuple[float, tuple[float, float, float]]:
+    """Modelled length and centre of a member, join extensions included."""
+    if p.extend_top:
+        c = list(p.center)
+        c[p.axis] += JOIN_OVERLAP / 2
+        return p.length + JOIN_OVERLAP, (c[0], c[1], c[2])
+    return p.length + (2 * JOIN_OVERLAP if p.extend else 0.0), p.center
+
+
 def member_solid(p: _Piece, m: MemberSpec) -> Shape:
     """Model one member as a solid along its axis (see the module docstring for joins)."""
     s, w = m.size, m.wall
     ext = p.length + (2 * JOIN_OVERLAP if p.extend else 0.0)
     if m.profile == "square-tube":
-        outer = _box(p.axis, ext, s, s, p.center)
-        inner = _box(p.axis, ext + 2, s - 2 * w, s - 2 * w, p.center)
+        ext, center = _solid_span(p)
+        outer = _box(p.axis, ext, s, s, center)
+        inner = _box(p.axis, ext + 2, s - 2 * w, s - 2 * w, center)
         return outer - inner
     cross = [i for i in range(3) if i != p.axis]
     cu, cv = p.corner
@@ -221,16 +287,19 @@ def massing(a: Args, ctx: KitContext) -> PartResult:
     """
     hb = validate(a)
     s = a.member.size
-    boxes = [
-        _box(p.axis, p.length + (2 * JOIN_OVERLAP if p.extend else 0.0), s, s, p.center)
-        for p in pieces(a, hb)
-    ]
+    boxes = []
+    for p in pieces(a, hb):
+        ext, center = _solid_span(p)
+        boxes.append(_box(p.axis, ext, s, s, center))
     shape = boxes[0].fuse(*boxes[1:]).clean()
     return massing_result(shape, a.process, _overall_dims(a), ctx)
 
 
 def generate(a: Args, ctx: KitContext) -> PartResult:
     """Build the frame as one fused weldment. Origin at the footprint centre on the floor."""
+    notes: list[str] = []
+    if ctx.styled is not None:
+        a, notes = apply_style_defaults(a, {"overhang": style_length(ctx, "overhang")}, validate)
     hb = validate(a)
     m = a.member
     layout = pieces(a, hb)
@@ -250,6 +319,8 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         "profile": m.profile,
         "join_overlap": JOIN_OVERLAP,
     }
+    if a.overhang > 0:
+        feats.extra["overhang"] = a.overhang
 
     groups: dict[float, list[_Piece]] = {}
     for p in layout:
@@ -279,4 +350,5 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         dims=dims,
         cut_list=cut_list,
         props={"total_member_length": total, "section_area": section_area(m)},
+        notes=notes,
     )

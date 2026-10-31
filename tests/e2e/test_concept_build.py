@@ -50,7 +50,8 @@ def test_concept_build_all_screens_one_red_one_green(product: Path) -> None:
     assert "(estimate)" in out and "worth a look:" in out
     assert "screening failed" not in out.lower()
     for cid in ("C-001", "C-002"):
-        assert f"see build/concepts/{cid}/renders/iso.png" in out
+        # the styled screenshot leads (N6); the z-buffer renders stay beside it
+        assert f"see build/concepts/{cid}/renders/styled-iso.png" in out
         folder = root / "build" / "concepts" / cid
         for rel in (
             "massing.glb",
@@ -59,6 +60,8 @@ def test_concept_build_all_screens_one_red_one_green(product: Path) -> None:
             "screening.json",
             "renders/iso.png",
             "renders/front.png",
+            "renders/styled-iso.png",
+            "renders/styled-front.png",
         ):
             assert (folder / rel).is_file(), f"{cid}: {rel}"
 
@@ -96,6 +99,8 @@ def test_concept_build_all_screens_one_red_one_green(product: Path) -> None:
         and entry["renders"]["iso"] == "build/concepts/C-002/renders/iso.png"
     )
     assert entry["screening"]["estimates"]["heat_up_time"]["label"] == "estimate"
+    assert entry["screenshots"]["method"] in ("viewer", "zbuffer-fallback")
+    assert entry["screenshots"]["paths"]["iso"] == "build/concepts/C-002/renders/styled-iso.png"
     assert one["errors"] == []
 
 

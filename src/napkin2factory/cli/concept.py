@@ -187,26 +187,21 @@ def show(
 def build(
     concept_id: str | None = typer.Argument(None, help="Concept id, e.g. C-002."),
     all_: bool = typer.Option(False, "--all", help="Build every card that is not rejected."),
-    no_render: bool = typer.Option(False, "--no-render", help="Skip the silhouette pictures."),
+    no_render: bool = typer.Option(
+        False, "--no-render", help="Skip the pictures (silhouettes and styled screenshots)."
+    ),
     dir: Path | None = DirOption,
     json_out: bool = JsonOption,
 ) -> None:
     """Build the rough shapes of a concept and screen it (red is information, exit 0)."""
     from napkin2factory.cli.kernel import load_cad_kernel
-    from napkin2factory.concepts.build import build_concept, select_cards, summary_line
-    from napkin2factory.core.errors import N2FError
+    from napkin2factory.concepts.build import build_concepts, select_cards, summary_line
 
     root = product_root(dir)
     problems = Problems()
     cards = select_cards(root, concept_id, all_, problems)
     load_cad_kernel()
-    built = []
-    errors: list[dict[str, str]] = []
-    for card in cards:
-        try:
-            built.append(build_concept(root, card, render=not no_render))
-        except N2FError as exc:
-            errors.append({"id": card.id, "error": str(exc)})
+    built, errors = build_concepts(root, cards, render=not no_render)
     errors += [{"id": p.subject, "error": p.message} for p in problems.errors]
     if json_out:
         emit_json({"concepts": [b.to_dict(root) for b in built], "errors": errors})
@@ -227,8 +222,8 @@ def build(
                     console.print(
                         f"  [yellow]![/yellow] worth a look: {escape(row.message)}", soft_wrap=True
                     )
-            if "render_iso" in b.massing.paths:
-                console.print(f"  see {b.rel(root, b.massing.paths['render_iso'])}", soft_wrap=True)
+            if b.picture is not None:
+                console.print(f"  see {b.rel(root, b.picture)}", soft_wrap=True)
         for e in errors:
             if not any(p.subject == e["id"] for p in problems.errors):
                 err_console.print(f"[red]✗[/red] {escape(e['error'])}", soft_wrap=True)
