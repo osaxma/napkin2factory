@@ -38,7 +38,7 @@ dropped. Simplifications, each in `BACKLOG.md`:
   parts only, not sub-assemblies (B-0005).
 - Owner-view polish left: URI prefixes in tables (B-0008), terminal hanging indents (B-0007),
   design-time wording for inspection sign-offs (B-0009).
-- Python 3.14 untested (B-0003); the host was Intel macOS, Linux only via CI (S-001).
+- Python 3.14 untested (B-0003); the reference platform is the Intel macOS host; Linux is covered only by the CI matrix, which has not run yet (S-001).
 - Kiln after gate 3: the shells are still generated as one-piece developments; the notes let the
   shop build them as multi-piece weldments (B-0011). The door plug tapers but the opening is
   straight, so the hot-end gap is packed with fiber blanket (B-0014). The footprint check is
@@ -48,10 +48,10 @@ dropped. Simplifications, each in `BACKLOG.md`:
 ## 3. `[revisit]` decisions and `[verify]` numbers
 
 `[revisit]` (system):
-- S-001 host platform: the plan's Linux definition of done was exercised through `ci.yml`
-  (ubuntu + macos matrix), not on this machine; run `make check-full` once on Linux.
-- S-011 unattended git identity (`napkin2factory <n2f@localhost>` when none is configured):
-  decide whether intake should ask the owner's name instead.
+- S-001 host platform: resolved 2026-10-31. The macOS sandbox host is the reference
+  platform; Linux is covered only by `ci.yml`'s ubuntu job once the branch is pushed.
+- S-011 unattended git identity: resolved 2026-10-31. Intake never asks; an unconfigured
+  machine snapshots as the product name `<n2f@localhost>`, and a configured identity wins.
 - DEC-011 footprint: the owner's "about 800 mm" alcove is exceeded (996 mm closed, more with
   the door open); flagged for the owner, not silently accepted (B-0012).
 - B-0013: K26 instead of K23 for the hot face if the owner fires above cone 6 regularly.
@@ -122,6 +122,10 @@ Pages to show: `build/report/index.html` (section index on the left; every URI i
    an owner may find alarming. Intended.
 
 ## 6. Recommended next steps for v0.2
+
+_Superseded 2026-10-31: the owner chose the napkin stage for v0.2 (`NAPKIN_STAGE.md`);
+the items below move to v0.3 (MCP server, share mode) and v0.4 (electrical, manufacturer
+profiles, stack-up)._
 
 - **Electrical stage (KiCad).** Add `model/electrical/*.kicad_sch` as source with an
   `elec:<id>` rule family (kicad-cli ERC/DRC → `features.json`-style facts), `wire://` URIs,

@@ -12,10 +12,13 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
+import yaml
+
 from napkin2factory.core.errors import EnvironmentProblem
+from napkin2factory.core.yamlio import read_yaml
 
 NOT_A_PROJECT = (
     "this folder isn't a napkin2factory project yet — run `n2f init <dir>` to start one "
@@ -47,10 +50,45 @@ class Vcs:
 
     root: Path
 
+    _identity: dict[str, str] | None = field(default=None, init=False, repr=False)
+
     def __post_init__(self) -> None:
         self.root = Path(self.root).resolve()
 
     # ---- plumbing ---------------------------------------------------------
+
+    def _product_name(self) -> str:
+        """The product's display name from ``n2f.yaml``, else the folder name."""
+        try:
+            data = read_yaml(self.root / "n2f.yaml")
+            name = data["product"]["name"]
+        except (OSError, KeyError, TypeError, yaml.YAMLError):
+            return self.root.name
+        return name if isinstance(name, str) and name.strip() else self.root.name
+
+    def _fallback_identity(self) -> dict[str, str]:
+        """Author/committer variables for whatever identity git has no value for (S-011).
+
+        A configured ``user.name``/``user.email`` (or ``GIT_*`` variables) always wins; an
+        owner who has never heard of git gets the product name, so snapshots still work.
+        """
+        if self._identity is None:
+            cwd = self.root if self.root.is_dir() else None
+            missing: dict[str, str] = {}
+            for field_, value in (("name", self._product_name()), ("email", "n2f@localhost")):
+                proc = subprocess.run(
+                    ["git", "config", f"user.{field_}"],
+                    cwd=cwd,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if not proc.stdout.strip():
+                    upper = field_.upper()
+                    missing[f"GIT_AUTHOR_{upper}"] = value
+                    missing[f"GIT_COMMITTER_{upper}"] = value
+            self._identity = missing
+        return self._identity
 
     def _git(
         self, *args: str, check: bool = True, env: dict[str, str] | None = None
@@ -60,11 +98,8 @@ class Vcs:
         full_env = dict(os.environ)
         # Never let a user's global hooks/pager/identity gaps break unattended runs.
         full_env.update({"GIT_PAGER": "cat", "GIT_TERMINAL_PROMPT": "0", "LC_ALL": "C"})
-        if "GIT_AUTHOR_NAME" not in full_env:
-            full_env.setdefault("GIT_AUTHOR_NAME", "napkin2factory")
-            full_env.setdefault("GIT_AUTHOR_EMAIL", "n2f@localhost")
-            full_env.setdefault("GIT_COMMITTER_NAME", "napkin2factory")
-            full_env.setdefault("GIT_COMMITTER_EMAIL", "n2f@localhost")
+        for key, value in self._fallback_identity().items():
+            full_env.setdefault(key, value)
         if env:
             full_env.update(env)
         proc = subprocess.run(
