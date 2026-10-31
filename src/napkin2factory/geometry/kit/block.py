@@ -6,11 +6,11 @@ vertical-edge fillet or all-edge chamfer (not both).
 
 from __future__ import annotations
 
-from build123d import Axis, BuildPart, BuildSketch, Rectangle, chamfer, extrude, fillet
+from build123d import Align, Axis, Box, BuildPart, BuildSketch, Rectangle, chamfer, extrude, fillet
 
 from napkin2factory.geometry.features import CutItem, Dim, Features, PartResult
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Length, require_positive
+from napkin2factory.geometry.kit._common import Length, massing_result, require_positive
 
 
 class Args(KitArgs):
@@ -27,19 +27,8 @@ class Args(KitArgs):
 ARGS = Args
 
 
-def generate(a: Args, ctx: KitContext) -> PartResult:
-    """Build the block. Origin at the centre of the base, Z up through the height.
-
-    Args:
-        a: validated arguments.
-        ctx: generator context (labels the shape with ``ctx.uri``).
-
-    Returns:
-        The solid with process, cut size, dimension callouts and a one-line cut list.
-
-    Raises:
-        ValueError: on non-positive sizes or a fillet/chamfer too large for the block.
-    """
+def _validate(a: Args) -> None:
+    """Raise ``ValueError`` on non-positive sizes or an edge treatment that does not fit."""
     require_positive(length=a.length, width=a.width, height=a.height)
     if a.fillet < 0 or a.chamfer < 0:
         raise ValueError("fillet and chamfer must not be negative")
@@ -55,6 +44,38 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
             f"chamfer {a.chamfer} must be smaller than half the smallest side "
             f"({min(a.length, a.width, a.height) / 2})"
         )
+
+
+def _overall_dims(a: Args) -> list[Dim]:
+    hl, hw = a.length / 2, a.width / 2
+    return [
+        Dim("length", a.length, (-hl, -hw, 0), (hl, -hw, 0), view="top"),
+        Dim("width", a.width, (hl, -hw, 0), (hl, hw, 0), view="top"),
+        Dim("height", a.height, (hl, -hw, 0), (hl, -hw, a.height), view="front"),
+    ]
+
+
+def massing(a: Args, ctx: KitContext) -> PartResult:
+    """Silhouette (N3): the box, no fillet or chamfer; same validation as :func:`generate`."""
+    _validate(a)
+    shape = Box(a.length, a.width, a.height, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return massing_result(shape, a.process, _overall_dims(a), ctx)
+
+
+def generate(a: Args, ctx: KitContext) -> PartResult:
+    """Build the block. Origin at the centre of the base, Z up through the height.
+
+    Args:
+        a: validated arguments.
+        ctx: generator context (labels the shape with ``ctx.uri``).
+
+    Returns:
+        The solid with process, cut size, dimension callouts and a one-line cut list.
+
+    Raises:
+        ValueError: on non-positive sizes or a fillet/chamfer too large for the block.
+    """
+    _validate(a)
     with BuildPart() as bp:
         with BuildSketch():
             Rectangle(a.length, a.width)
@@ -67,12 +88,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
     shape.label = ctx.uri
 
     feats = Features(process=a.process, extra={"cut_size": [a.length, a.width, a.height]})
-    hl, hw = a.length / 2, a.width / 2
-    dims = [
-        Dim("length", a.length, (-hl, -hw, 0), (hl, -hw, 0), view="top"),
-        Dim("width", a.width, (hl, -hw, 0), (hl, hw, 0), view="top"),
-        Dim("height", a.height, (hl, -hw, 0), (hl, -hw, a.height), view="front"),
-    ]
+    dims = _overall_dims(a)
     cut = CutItem(
         description=f"{a.length:g}×{a.width:g}×{a.height:g} block",
         length=a.length,

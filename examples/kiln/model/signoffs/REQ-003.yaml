@@ -12,7 +12,7 @@ evidence:
 - param://fiber-thickness
 - param://guard-gap
 evidence_keys:
-  calc://thermal.max_touch_temperature: sha256:15e89c26bba4690f6e24b39d0062e162c5cc6ae8d1c93e99c154e6bf4c604dd0
+  calc://thermal.max_touch_temperature: sha256:2946808fe3b4b7c0c9977d142ceef80dccb774314b4cc10cd49dc170171af255
   part://guard-shell: sha256:f11ec696d047b4d95b309416c0f3fe8ca8e649743a7bb7d2a57d07c60f9dd46c
   part://door-guard: sha256:092488736f8003ee855a2e4596e7fee98e9b17c25748845bfd921ea8a718e234
   part://door-tray: sha256:788ae1c03300aed0f839b1127a48d7755e61af9d82670e4a998708fe7986442a

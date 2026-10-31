@@ -2,7 +2,8 @@
 
 Generators live in `src/napkin2factory/geometry/kit/<name>.py`, one per file. Each exposes
 `ARGS` (a pydantic schema; lengths accept `"15 mm"`, pint quantities or bare millimetres)
-and `generate(args, ctx) -> PartResult`. Parts call them declaratively:
+and `generate(args, ctx) -> PartResult` (plus `massing(args, ctx)`, see below). Parts call
+them declaratively:
 
 ```yaml
 geometry:
@@ -29,6 +30,34 @@ geometry:
 `features` (holes, patterns, bends, flanges, reliefs, cutouts, members, thickness) feed the
 rule packs; `dims` become drawing callouts; `flat_pattern` becomes the flat view and the
 DXF; `flat_map` maps a 3D point to the flat so interface holes land in the DXF (S-034).
+
+## Massing fidelity
+
+Every generator also exposes `massing(args, ctx)`; `kit.run` (and the `kit.plate(...)`
+namespace a custom module receives) calls it when `KitContext.fidelity == "massing"`. It
+exists for the napkin stage (`n2f concept build`, NAPKIN_STAGE N3): fast silhouettes for
+screening, built by the same generators so nothing is duplicated.
+
+- **Validation is identical.** `massing` runs the same argument checks as `generate`
+  (sizes, fillet/chamfer fit, wall vs. footprint, hole and cutout placement, lip and relief
+  rules), so an impossible composition fails for real, with the same message.
+- **Geometry is primitives only** (`Box`, `Cylinder`, fuse/cut), in exactly the full
+  part's frame, so a massing placement and a full placement coincide:
+
+| generator | silhouette |
+|---|---|
+| `plate`, `panel` | box of the outer size; no holes, cutouts or corner radius |
+| `block` | box; no fillet or chamfer |
+| `tube` | the outer solid along `axis` (cylinder or square box), no bore |
+| `hole_pattern` | the plate as a box; an interface is still resolved and checked, but only moves holes, so the plate is unchanged |
+| `bracket_l` | two leg boxes fused at a sharp corner; no bend radius, no holes |
+| `enclosure` | outer box minus the open-top cavity (walls and base keep `thickness`); no bends, reliefs, lip or cutouts — with a `flange` the silhouette stays `length × width × height` |
+| `frame` | every member a solid `size × size` box where the full frame puts it, fused |
+
+- **Result:** `features = Features(process, extra={"fidelity": "massing"})` (so
+  `features.json` carries `fidelity: massing`), only the overall `dims`, no flat pattern,
+  an empty cut list, `props` with `fidelity: massing` (enclosure adds its inner sizes), and
+  the note `massing silhouette: features omitted`.
 
 ## Sheet-metal conventions (`_sheet.py`)
 

@@ -25,7 +25,17 @@ import math
 from dataclasses import dataclass
 from typing import Literal
 
-from build123d import Box, Location, Plane, Rectangle, RectangleRounded, Solid, Vector, extrude
+from build123d import (
+    Box,
+    Location,
+    Plane,
+    Pos,
+    Rectangle,
+    RectangleRounded,
+    Solid,
+    Vector,
+    extrude,
+)
 from pydantic import Field
 
 from napkin2factory.geometry.features import (
@@ -42,7 +52,7 @@ from napkin2factory.geometry.features import (
     polygon_area,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Length, require_positive
+from napkin2factory.geometry.kit._common import Length, massing_result, require_positive
 from napkin2factory.geometry.kit._sheet import (
     bend_allowance,
     bend_solid,
@@ -120,8 +130,27 @@ def _vec(v: Vector) -> tuple[float, float, float]:
     return (float(v.X), float(v.Y), float(v.Z))
 
 
-def generate(a: Args, ctx: KitContext) -> PartResult:
-    """Build the tray (see the module docstring for the frame and face coordinates)."""
+@dataclass(frozen=True)
+class _Layout:
+    """Validated sizes the solid, features and flat pattern are built from."""
+
+    t: float
+    r: float
+    big_r: float
+    relief: float
+    f: float
+    lip: bool
+    z_top: float  # top of the straight wall
+    wall_flat: float
+
+
+def _validate(a: Args) -> _Layout:
+    """Check the tray (walls, reliefs, lip, height, cutouts) can be built.
+
+    Raises:
+        ValueError: on non-positive sizes, a lip too short to bend, reliefs too small, no
+            wall left between the reliefs, too low a height, or a cutout off its face.
+    """
     t = a.thickness
     r = t if a.bend_radius is None else a.bend_radius
     big_r = r + t
@@ -155,13 +184,8 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
             f"height {a.height:g} mm is too low: it must exceed {need:g} mm "
             "(thickness + bend_radius + 1, plus the lip bend if any)"
         )
-
-    k = k_factor(r, t)
-    ba = bend_allowance(r, t, 90.0, k)
     base_l, base_w = a.length - 2 * big_r, a.width - 2 * big_r
-    walls = _walls(a.length, a.width, relief)
-    by_name = {w.name: w for w in walls}
-    zc = (big_r + z_top) / 2  # centre of each wall's flat region
+    by_name = {w.name: w for w in _walls(a.length, a.width, relief)}
 
     # cutout validation, before any modelling
     for i, c in enumerate(a.cutouts):
@@ -182,6 +206,55 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
                 f"cutout {tag} ({c.width:g} × {c.height:g} mm at {cu:g}, {cv:g}) is outside "
                 f"the flat region of the {c.face} face ({2 * hu:g} × {2 * hv:g} mm)"
             )
+    return _Layout(t, r, big_r, relief, f, lip, z_top, wall_flat)
+
+
+def _overall_dims(a: Args) -> list[Dim]:
+    hl, hw = a.length / 2, a.width / 2
+    return [
+        Dim("length", a.length, (-hl, -hw, 0), (hl, -hw, 0), view="front"),
+        Dim("width", a.width, (hl, -hw, 0), (hl, hw, 0), view="top"),
+        Dim("height", a.height, (hl, -hw, 0), (hl, -hw, a.height), view="front"),
+    ]
+
+
+def _inner_props(a: Args) -> dict[str, float]:
+    t = a.thickness
+    return {
+        "inner_length": a.length - 2 * t,
+        "inner_width": a.width - 2 * t,
+        "inner_height": a.height - t,
+    }
+
+
+def massing(a: Args, ctx: KitContext) -> PartResult:
+    """Silhouette (N3): the outer box minus the open-top cavity, walls and base ``t`` thick.
+
+    No bends, reliefs, lip or cutouts: with a ``flange`` the silhouette stays
+    ``length × width × height`` (the lip is a feature, not massing).  Same frame as
+    :func:`generate`: base centred on XY, bottom face at ``z = 0``.
+    """
+    lay = _validate(a)
+    t = lay.t
+    outer = Pos(0, 0, a.height / 2) * Box(a.length, a.width, a.height)
+    reach = a.height - t + 1.0  # runs out through the open top
+    cavity = Pos(0, 0, t + reach / 2) * Box(a.length - 2 * t, a.width - 2 * t, reach)
+    shape = (outer - cavity).clean()
+    return massing_result(shape, a.process, _overall_dims(a), ctx, _inner_props(a))
+
+
+def generate(a: Args, ctx: KitContext) -> PartResult:
+    """Build the tray (see the module docstring for the frame and face coordinates)."""
+    lay = _validate(a)
+    t, r, big_r, relief, f = lay.t, lay.r, lay.big_r, lay.relief, lay.f
+    lip, z_top, wall_flat = lay.lip, lay.z_top, lay.wall_flat
+
+    k = k_factor(r, t)
+    ba = bend_allowance(r, t, 90.0, k)
+    base_l, base_w = a.length - 2 * big_r, a.width - 2 * big_r
+    walls = _walls(a.length, a.width, relief)
+    by_name = {w.name: w for w in walls}
+    zc = (big_r + z_top) / 2  # centre of each wall's flat region
 
     z = Vector(0, 0, 1)
     pieces: list[Solid] = []
@@ -325,12 +398,9 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
                 return flat_pt(w, 2 * ba + wall_flat + d - r, along)
         return None
 
-    hl, hw = a.length / 2, a.width / 2
+    hw = a.width / 2
     c45 = math.cos(math.radians(45))
-    dims = [
-        Dim("length", a.length, (-hl, -hw, 0), (hl, -hw, 0), view="front"),
-        Dim("width", a.width, (hl, -hw, 0), (hl, hw, 0), view="top"),
-        Dim("height", a.height, (hl, -hw, 0), (hl, -hw, a.height), view="front"),
+    dims = _overall_dims(a) + [
         Dim("thickness", t, (0, -hw, 0), (0, -hw, t), view="right"),
         Dim(
             "bend radius",
@@ -350,9 +420,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         flat_pattern=fp,
         props={
             "developed_area": fp.area,
-            "inner_length": a.length - 2 * t,
-            "inner_width": a.width - 2 * t,
-            "inner_height": a.height - t,
+            **_inner_props(a),
             "bend_allowance": ba,
             "k_factor": k,
         },

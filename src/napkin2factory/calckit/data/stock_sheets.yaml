@@ -1,0 +1,26 @@
+# Stock sheet sizes per material class (calckit.mass_cost.stock_sheet_fits). NOT
+# VERIFIED: these are common stockist formats, not a standard; local suppliers differ.
+# Every row is [verify] in DECISIONS.md. An unknown material class returns an `unknown`
+# verdict; the caller warns.
+table: stock_sheets
+rows:
+  - {material_class: mild-steel, label: "1000 x 2000 mm", width_mm: 1000, length_mm: 2000, verify: true,
+     source: "common stockist format for cold-rolled sheet (EN 10130/EN 10131 sheet is cut to order; this is a typical stock size)"}
+  - {material_class: mild-steel, label: "1220 x 2440 mm (4 x 8 ft)", width_mm: 1220, length_mm: 2440, verify: true,
+     source: "common stockist format (4 x 8 ft) for cold-rolled sheet"}
+  - {material_class: mild-steel, label: "1250 x 2500 mm", width_mm: 1250, length_mm: 2500, verify: true,
+     source: "common stockist format for cold-rolled sheet (EN 10131 dimensions)"}
+  - {material_class: mild-steel, label: "1500 x 3000 mm", width_mm: 1500, length_mm: 3000, verify: true,
+     source: "common stockist format for cold-rolled sheet (EN 10131 dimensions)"}
+  - {material_class: stainless-steel, label: "1000 x 2000 mm", width_mm: 1000, length_mm: 2000, verify: true,
+     source: "common stockist format for stainless sheet (EN 10088-2 sheet; typical stock size)"}
+  - {material_class: stainless-steel, label: "1250 x 2500 mm", width_mm: 1250, length_mm: 2500, verify: true,
+     source: "common stockist format for stainless sheet (EN 10088-2 sheet; typical stock size)"}
+  - {material_class: stainless-steel, label: "1500 x 3000 mm", width_mm: 1500, length_mm: 3000, verify: true,
+     source: "common stockist format for stainless sheet (EN 10088-2 sheet; typical stock size)"}
+  - {material_class: aluminium, label: "1000 x 2000 mm", width_mm: 1000, length_mm: 2000, verify: true,
+     source: "common stockist format for aluminium sheet (EN 485 sheet; typical stock size)"}
+  - {material_class: aluminium, label: "1250 x 2500 mm", width_mm: 1250, length_mm: 2500, verify: true,
+     source: "common stockist format for aluminium sheet (EN 485 sheet; typical stock size)"}
+  - {material_class: aluminium, label: "1500 x 3000 mm", width_mm: 1500, length_mm: 3000, verify: true,
+     source: "common stockist format for aluminium sheet (EN 485 sheet; typical stock size)"}

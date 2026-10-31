@@ -24,8 +24,8 @@ def test_box_areas_and_resistances_by_hand(P):  # noqa: N803
     import thermal
 
     # chamber 0.2 m cube; brick outer 0.328; fiber outer 0.328 + 2·(0.003 + 0.125) = 0.584;
-    # shell outer 0.584 + 2·(0.002 + 0.0015) = 0.591; guard 0.591 + 2·0.025 = 0.641 (all cubes: A = 6·s²)
-    expect = [6 * s**2 for s in (0.2, 0.328, 0.584, 0.591, 0.641)]
+    # shell outer 0.584 + 2·(0.002 + 0.0012) = 0.5904; guard 0.5904 + 2·0.025 = 0.6404 (all cubes: A = 6·s²)
+    expect = [6 * s**2 for s in (0.2, 0.328, 0.584, 0.5904, 0.6404)]
     assert thermal._areas(P) == pytest.approx(expect, rel=1e-9)
     # R_b = 0.064 / (0.25·√(0.24·0.645504)) = 0.6504 K/W; R_f = 0.125 / (0.15·√(0.645504·2.046336)) = 0.7251 K/W
     r_b, r_f = thermal._body_resistances(P)
@@ -46,7 +46,7 @@ def test_body_balance_by_hand(P):  # noqa: N803
     assert tg - 273.15 == pytest.approx(44.04, abs=0.1)
     assert ti - 273.15 == pytest.approx(669.8, abs=0.5)
     # the solved temperatures satisfy both balances (re-derived here, not through the module)
-    a_s, a_g = 6 * 0.591**2, 6 * 0.641**2
+    a_s, a_g = 6 * 0.5904**2, 6 * 0.6404**2
     q_body = (1473.15 - ts) / (0.6504065 + 0.7250715)
     q_rad = SIGMA * a_s * (ts**4 - tg**4) / (1 / 0.9 + (a_s / a_g) * (1 / 0.9 - 1))
     assert q_body == pytest.approx(a_s * 5 * (ts - 323.15) + q_rad, rel=1e-4)
@@ -121,9 +121,10 @@ def test_element_by_hand(P):  # noqa: N803
 def test_swing_by_hand(P):  # noqa: N803
     import swing
 
-    # pin (−358.5, 62); opening edge (167, 26); rear corner (162 − 217·tan 6°, 215) = (139.19, 215)
+    # pin x = −(door-guard-width/2 + 1 + 6) = −(702.4/2 + 7) = −358.2, y 62; opening edge (167, 26);
+    # rear corner (162 − 217·tan 6°, 215) = (139.19, 215)
     a_rear = 162 - 217 * math.tan(math.radians(6))
-    r0_sq = (167 + 358.5) ** 2 + (26 - 62) ** 2
-    expect = math.sqrt(r0_sq - (215 - 62) ** 2) - 358.5 - a_rear
+    r0_sq = (167 + 358.2) ** 2 + (26 - 62) ** 2
+    expect = math.sqrt(r0_sq - (215 - 62) ** 2) - 358.2 - a_rear
     assert swing.plug_clearance(P).to("mm").magnitude == pytest.approx(expect, rel=1e-6)
-    assert expect == pytest.approx(6.33, abs=0.01)
+    assert expect == pytest.approx(6.32, abs=0.01)

@@ -7,7 +7,18 @@ pattern (the plate is its own flat pattern) with a developed-area check.
 
 from __future__ import annotations
 
-from build123d import Axis, BuildPart, BuildSketch, Circle, Locations, Rectangle, extrude, fillet
+from build123d import (
+    Align,
+    Axis,
+    Box,
+    BuildPart,
+    BuildSketch,
+    Circle,
+    Locations,
+    Rectangle,
+    extrude,
+    fillet,
+)
 
 from napkin2factory.geometry.features import (
     Dim,
@@ -18,7 +29,7 @@ from napkin2factory.geometry.features import (
     polygon_area,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Count, Length, require_positive
+from napkin2factory.geometry.kit._common import Count, Length, massing_result, require_positive
 
 
 class HoleSpec(KitArgs):
@@ -58,8 +69,8 @@ def hole_centers(a: Args) -> list[tuple[float, float]]:
     return [(x, y) for y in ys for x in xs]
 
 
-def generate(a: Args, ctx: KitContext) -> PartResult:
-    """Build the plate. Origin at the plate centre, Z up through the thickness."""
+def _validate(a: Args) -> list[tuple[float, float]]:
+    """Check sizes and that every hole clears the plate edge; return the hole centres."""
     require_positive(width=a.width, depth=a.depth, thickness=a.thickness)
     centers = hole_centers(a)
     if a.holes is not None:
@@ -67,6 +78,28 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
             edge = min(a.width / 2 - abs(x), a.depth / 2 - abs(y)) - a.holes.diameter / 2
             if edge <= 0:
                 raise ValueError(f"hole at ({x:.1f}, {y:.1f}) breaks the plate edge")
+    return centers
+
+
+def _overall_dims(a: Args) -> list[Dim]:
+    hw, hd = a.width / 2, a.depth / 2
+    return [
+        Dim("width", a.width, (-hw, -hd, 0), (hw, -hd, 0), view="top"),
+        Dim("depth", a.depth, (hw, -hd, 0), (hw, hd, 0), view="top"),
+        Dim("thickness", a.thickness, (hw, -hd, 0), (hw, -hd, a.thickness), view="front"),
+    ]
+
+
+def massing(a: Args, ctx: KitContext) -> PartResult:
+    """Silhouette (N3): a box of the outer size, no holes and no corner radius."""
+    _validate(a)
+    shape = Box(a.width, a.depth, a.thickness, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return massing_result(shape, a.process, _overall_dims(a), ctx)
+
+
+def generate(a: Args, ctx: KitContext) -> PartResult:
+    """Build the plate. Origin at the plate centre, Z up through the thickness."""
+    centers = _validate(a)
     with BuildPart() as bp:
         with BuildSketch():
             Rectangle(a.width, a.depth)
@@ -100,11 +133,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         thickness=a.thickness,
     )
     flat.area = polygon_area(outline) - sum(3.141592653589793 * (d / 2) ** 2 for _, d in flat.holes)
-    dims = [
-        Dim("width", a.width, (-hw, -hd, 0), (hw, -hd, 0), view="top"),
-        Dim("depth", a.depth, (hw, -hd, 0), (hw, hd, 0), view="top"),
-        Dim("thickness", a.thickness, (hw, -hd, 0), (hw, -hd, a.thickness), view="front"),
-    ]
+    dims = _overall_dims(a)
     if a.holes and centers:
         dims.append(
             Dim(

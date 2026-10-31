@@ -30,12 +30,19 @@ Conductivities, densities and specific heats come from ``parameters.yaml`` (Morg
 Kaowool 1260 board datasheets [verify]); h_c = 5 W/m²K natural convection [verify]; the
 gap air temperature is an assumption to be measured [verify]. Not modelled: edge and corner
 bridges at the shell lip, standoff conduction (sixteen M6 standoffs), the door gasket leak.
+
+The body walls, the shell/guard balance and the door guard are computed by the system calc
+kit (``napkin2factory.calckit.thermal_enclosure``: ``guarded_loss``, ``guard_temperature``,
+``box_areas``, ``layer_resistances``), the same functions screening uses, so the two
+fidelities cannot drift apart (NAPKIN_STAGE §7). The door plug and the stored heat stay here:
+their geometry (an open-fronted liner, a tapered plug) is specific to this kiln.
 """
 
 from __future__ import annotations
 
 import math
 
+from napkin2factory.calckit import thermal_enclosure as kit
 from napkin2factory.core.units import Quantity
 
 SIGMA = 5.670374419e-8  # Stefan–Boltzmann constant, W/(m²·K⁴)
@@ -51,90 +58,49 @@ def _m(P, name):  # noqa: N803
     return float(P[name].to("m").magnitude)
 
 
-def _box_area(w, d, h):
-    """Surface area of a box, m²."""
-    return 2.0 * (w * d + w * h + d * h)
+def _wall(P):  # noqa: N803
+    """Chamber, wall layers (brick; fiber behind lining-clearance; shell behind fiber-clearance)."""
+    inner = (P["chamber-width"], P["chamber-depth"], P["chamber-height"])
+    tb, tf = P["brick-thickness"], P["fiber-thickness"]
+    lc, fc = P["lining-clearance"], P["fiber-clearance"]
+    st, gap = P["shell-thickness"], P["guard-gap"]
+    layers = [
+        kit.Layer(tb, P["brick-conductivity"], "brick"),
+        kit.Layer(tf, P["fiber-conductivity"], "fiber", clearance=lc),
+        kit.Layer(st, None, "shell", clearance=fc),
+    ]
+    return inner, layers, gap
 
 
 def _areas(P):  # noqa: N803
     """Inner, brick-outer, fiber-outer, shell-outer and guard box areas, m²."""
-    cw, cd, ch = _m(P, "chamber-width"), _m(P, "chamber-depth"), _m(P, "chamber-height")
-    tb, tf = _m(P, "brick-thickness"), _m(P, "fiber-thickness")
-    lc, fc = _m(P, "lining-clearance"), _m(P, "fiber-clearance")
-    st, gap = _m(P, "shell-thickness"), _m(P, "guard-gap")
-    dims = [cw, cd, ch]
-    out = [_box_area(*dims)]
-    for grow in (2 * tb, 2 * (lc + tf), 2 * (fc + st), 2 * gap):
-        dims = [x + grow for x in dims]
-        out.append(_box_area(*dims))
-    return tuple(out)
+    inner, layers, gap = _wall(P)
+    areas = kit.box_areas(inner, [*layers, kit.Layer(gap, None, "guard gap")])
+    return tuple(float(a.to("m**2").magnitude) for a in areas)
 
 
 def _body_resistances(P):  # noqa: N803
     """Brick and fiber resistances of the body (mean-area method), K/W."""
-    a_in, a_b, a_f, _, _ = _areas(P)
-    k_b = float(P["brick-conductivity"].to("W/(m*K)").magnitude)
-    k_f = float(P["fiber-conductivity"].to("W/(m*K)").magnitude)
-    r_b = _m(P, "brick-thickness") / (k_b * math.sqrt(a_in * a_b))
-    r_f = _m(P, "fiber-thickness") / (k_f * math.sqrt(a_b * a_f))
-    return r_b, r_f
-
-
-def _bisect(f, lo, hi):
-    """Root of a monotone function on [lo, hi] by bisection (to 1e-9 K)."""
-    f_lo = f(lo)
-    for _ in range(200):
-        mid = 0.5 * (lo + hi)
-        f_mid = f(mid)
-        if (f_mid > 0) == (f_lo > 0):
-            lo, f_lo = mid, f_mid
-        else:
-            hi = mid
-        if hi - lo < 1e-9:
-            break
-    return 0.5 * (lo + hi)
-
-
-def _shield(P, t_hot_face, a_in, a_out, e_in, e_out):  # noqa: N803
-    """Temperature of a guard receiving radiation from a surface at ``t_hot_face``, K."""
-    t_amb = _k(P, "ambient-temperature")
-    h_c = float(P["convection-coefficient"].to("W/(m**2*K)").magnitude)
-    denom = 1.0 / e_in + (a_in / a_out) * (1.0 / e_out - 1.0)
-
-    def balance(t_g):
-        gain = SIGMA * a_in * (t_hot_face**4 - t_g**4) / denom
-        loss = a_out * (h_c * (t_g - t_amb) + SIGMA * e_out * (t_g**4 - t_amb**4))
-        return gain - loss
-
-    return _bisect(balance, t_amb, t_hot_face)
+    inner, layers, _ = _wall(P)
+    r_b, r_f, _ = kit.layer_resistances(inner, layers)
+    return float(r_b.to("K/W").magnitude), float(r_f.to("K/W").magnitude)
 
 
 def _body(P):  # noqa: N803
-    """Solve the body: (Q, T_shell, T_guard, T_interface) in W and K."""
-    t_hot, t_amb, t_gap = _k(P, "max-temperature"), _k(P, "ambient-temperature"), _k(P, "gap-air-temperature")
-    h_c = float(P["convection-coefficient"].to("W/(m**2*K)").magnitude)
-    e_s = float(P["shell-emissivity"].magnitude)
-    e_g = float(P["guard-emissivity"].magnitude)
-    _, _, _, a_s, a_g = _areas(P)
-    r_b, r_f = _body_resistances(P)
-
-    def residual(t_s):
-        t_g = _shield(P, t_s, a_s, a_g, e_s, e_g)
-        q_rad = SIGMA * a_s * (t_s**4 - t_g**4) / (1.0 / e_s + (a_s / a_g) * (1.0 / e_g - 1.0))
-        return (t_hot - t_s) / (r_b + r_f) - a_s * h_c * (t_s - t_gap) - q_rad
-
-    t_s = _bisect(residual, max(t_amb, t_gap), t_hot)
-    t_g = _shield(P, t_s, a_s, a_g, e_s, e_g)
-    q = (t_hot - t_s) / (r_b + r_f)
-    return q, t_s, t_g, t_hot - q * r_b
+    """Solve the body (calc kit ``guarded_loss``): the steady-state result, quantities."""
+    t_hot, t_amb, t_gap = P["max-temperature"], P["ambient-temperature"], P["gap-air-temperature"]
+    h_c = P["convection-coefficient"]
+    e_s, e_g = P["shell-emissivity"], P["guard-emissivity"]
+    inner, layers, gap = _wall(P)
+    return kit.guarded_loss(inner, layers, gap, t_hot, t_amb, t_gap, h_c, e_s, e_g)
 
 
 def _door(P):  # noqa: N803
-    """Solve the door: (Q, T_tray face, T_door guard) in W and K."""
+    """Solve the door: (Q in W, T_tray face in K, T_door guard as degC quantity)."""
     t_hot, t_amb = _k(P, "max-temperature"), _k(P, "ambient-temperature")
     h_c = float(P["convection-coefficient"].to("W/(m**2*K)").magnitude)
     e_s = float(P["shell-emissivity"].magnitude)
-    e_g = float(P["guard-emissivity"].magnitude)
+    e_g = P["guard-emissivity"]
     k_b = float(P["brick-conductivity"].to("W/(m*K)").magnitude)
     k_f = float(P["fiber-conductivity"].to("W/(m*K)").magnitude)
     a_d_in = _m(P, "chamber-width") * _m(P, "chamber-height")
@@ -147,8 +113,17 @@ def _door(P):  # noqa: N803
         q_in = (t_hot - t_d) / (r_db + r_df)
         return q_in - a_face * (h_c * (t_d - t_amb) + SIGMA * e_s * (t_d**4 - t_amb**4))
 
-    t_d = _bisect(balance, t_amb, t_hot)
-    t_dg = _shield(P, t_d, a_face, a_face, e_s, e_g)
+    t_d = kit.bisect_root(balance, t_amb, t_hot)
+    face = Quantity(a_face, "m**2")
+    t_dg = kit.guard_temperature(
+        Quantity(t_d, "kelvin"),
+        face,
+        face,
+        P["shell-emissivity"],
+        e_g,
+        h_outer=P["convection-coefficient"],
+        t_ambient=P["ambient-temperature"],
+    )
     return (t_hot - t_d) / (r_db + r_df), t_d, t_dg
 
 
@@ -159,22 +134,22 @@ def _degc(t_k):
 
 def heat_loss(P):  # noqa: N803
     """Steady-state heat loss at max temperature, body plus door, W."""
-    return Quantity(_body(P)[0] + _door(P)[0], "W")
+    return Quantity(_body(P).loss.to("W").magnitude + _door(P)[0], "W")
 
 
 def shell_temperature(P):  # noqa: N803
     """Inner (hot) shell temperature at steady state, degC (behind the guard; not touchable)."""
-    return _degc(_body(P)[1])
+    return _body(P).outer_skin_temperature
 
 
 def guard_temperature(P):  # noqa: N803
     """Body guard temperature at steady state, degC (accessible surface)."""
-    return _degc(_body(P)[2])
+    return _body(P).guard_temperature
 
 
 def interface_temperature(P):  # noqa: N803
     """Brick/fiber interface temperature of the body walls, degC (fiber board class check)."""
-    return _degc(_body(P)[3])
+    return _body(P).interface_temperatures[0]
 
 
 def door_skin_temperature(P):  # noqa: N803
@@ -184,12 +159,12 @@ def door_skin_temperature(P):  # noqa: N803
 
 def door_guard_temperature(P):  # noqa: N803
     """Door guard temperature at steady state, degC (accessible surface)."""
-    return _degc(_door(P)[2])
+    return _door(P)[2]
 
 
 def max_touch_temperature(P):  # noqa: N803
     """Hottest accessible surface: the larger of the body guard and door guard, degC (REQ-003)."""
-    return _degc(max(_body(P)[2], _door(P)[2]))
+    return max(_body(P).guard_temperature, _door(P)[2])
 
 
 def stored_heat(P):  # noqa: N803
@@ -201,10 +176,14 @@ def stored_heat(P):  # noqa: N803
     hollow, plus the door plug. Densities and specific heats from ``parameters.yaml``.
     """
     t_hot, t_amb = _k(P, "max-temperature"), _k(P, "ambient-temperature")
-    _, t_s, _, t_i = _body(P)
+    body = _body(P)
+    t_s = float(body.outer_skin_temperature.to("kelvin").magnitude)
+    t_i = float(body.interface_temperatures[0].to("kelvin").magnitude)
     cw, cd, ch = _m(P, "chamber-width"), _m(P, "chamber-depth"), _m(P, "chamber-height")
-    li_w, li_d, li_h = _m(P, "liner-outer-width"), _m(P, "liner-outer-depth"), _m(P, "liner-outer-height")
-    fb_w, fb_d, fb_h = _m(P, "fiber-box-width"), _m(P, "fiber-box-depth"), _m(P, "fiber-box-height")
+    li_w, li_d = _m(P, "liner-outer-width"), _m(P, "liner-outer-depth")
+    li_h = _m(P, "liner-outer-height")
+    fb_w, fb_d = _m(P, "fiber-box-width"), _m(P, "fiber-box-depth")
+    fb_h = _m(P, "fiber-box-height")
     fi_w, fi_h = _m(P, "fiber-inner-width"), _m(P, "fiber-inner-height")
     tb, tf = _m(P, "brick-thickness"), _m(P, "fiber-thickness")
     plug = _m(P, "door-plug-width") * _m(P, "door-plug-height")
@@ -219,4 +198,5 @@ def stored_heat(P):  # noqa: N803
 
 def required_power(P):  # noqa: N803
     """Element power needed: steady loss plus stored heat over the heat-up time, W."""
-    return (heat_loss(P) + stored_heat(P) / P["heat-up-time"]).to("W")
+    loss = heat_loss(P)
+    return kit.heat_up_power(loss=loss, stored=stored_heat(P), heat_up_time=P["heat-up-time"])

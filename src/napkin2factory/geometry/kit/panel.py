@@ -11,7 +11,9 @@ from __future__ import annotations
 import math
 
 from build123d import (
+    Align,
     Axis,
+    Box,
     BuildPart,
     BuildSketch,
     Circle,
@@ -33,7 +35,7 @@ from napkin2factory.geometry.features import (
     Vec2,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Length, require_positive
+from napkin2factory.geometry.kit._common import Length, massing_result, require_positive
 
 _EPS = 1e-6
 
@@ -185,6 +187,22 @@ def _validate(a: Args) -> None:
                 raise ValueError(f"cutouts {i + 1} and {j + 1} overlap")
 
 
+def _overall_dims(a: Args) -> list[Dim]:
+    hw, hh = a.width / 2, a.height / 2
+    return [
+        Dim("width", a.width, (-hw, -hh, 0), (hw, -hh, 0), view="top"),
+        Dim("height", a.height, (hw, -hh, 0), (hw, hh, 0), view="top"),
+        Dim("thickness", a.thickness, (hw, -hh, 0), (hw, -hh, a.thickness), view="front"),
+    ]
+
+
+def massing(a: Args, ctx: KitContext) -> PartResult:
+    """Silhouette (N3): a box of the outer size; holes, cutouts and corner radius omitted."""
+    _validate(a)
+    shape = Box(a.width, a.height, a.thickness, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return massing_result(shape, a.process, _overall_dims(a), ctx)
+
+
 def generate(a: Args, ctx: KitContext) -> PartResult:
     """Build the panel. Origin at the panel centre, Z up through the thickness.
 
@@ -258,12 +276,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         - sum(rounded_rect_area(c.width, c.height, c.corner_radius) for c in a.cutouts)
     )
 
-    hw, hh = a.width / 2, a.height / 2
-    dims = [
-        Dim("width", a.width, (-hw, -hh, 0), (hw, -hh, 0), view="top"),
-        Dim("height", a.height, (hw, -hh, 0), (hw, hh, 0), view="top"),
-        Dim("thickness", a.thickness, (hw, -hh, 0), (hw, -hh, a.thickness), view="front"),
-    ]
+    dims = _overall_dims(a)
     seen: set[float] = set()
     for h in a.holes:
         key = round(h.diameter, 6)

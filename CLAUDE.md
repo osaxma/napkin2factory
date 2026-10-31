@@ -13,7 +13,7 @@ decisions stay in force) → `STATUS.md` (where we are) → `DECISIONS.md` →
 - Branch `v0.2-build` (v0.1 is closed on `main`); commit messages `M<n>: <what>`. Never force-push, never rewrite history.
 - Do not edit `LICENSE`.
 - No `TODO`/`FIXME` in `src/` without a `BACKLOG.md` id (`B-0001`).
-- Public functions have docstrings (ruff `D`); `mypy --strict` on `napkin2factory.core`.
+- Public functions have docstrings (ruff `D`); `mypy --strict` on `napkin2factory.core` and `napkin2factory.calckit`.
 - No invented engineering numbers: cite the source in the calc file and tag `[verify]` in `DECISIONS.md`.
 - No git vocabulary in user-facing strings or schema fields (`docs/vocabulary.md`): draft,
   snapshot, change request, released, Revision. All git calls go through `core/vcs.py` (D31).
