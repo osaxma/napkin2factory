@@ -14,7 +14,6 @@ entry that closed them. Ids are never reused.
 | B-0003 | Python 3.14 support | Not tried; OCP novtk wheels exist for cp314 per REVIEW E but 3.13 is pinned (D2) |
 | B-0004 | Lock file for concurrent `n2f build` in one product folder | Gate-1 C5: two builds at once would race on the manifest (last writer wins). Rare for a solo tool; revisit with share mode |
 | B-0005 | Interface check for assembly-level parties (`asm://` as a party) | Gate-1 note; v0.1 interfaces are part-to-part only (both examples and the kiln) |
-| B-0006 | `validate.json` embeds absolute paths | Gate-1 note; harmless (build/ is local), tidy when the report links to it |
 | B-0007 | Indent wrapped continuation lines in `n2f status`/impact output at 80 columns | Gate-2 C13; cosmetic, rich wraps without hanging indent |
 | B-0009 | Design-time wording for inspection-type sign-offs (e.g. "the package requires deburring") vs post-manufacture gates | Gate-2 C4; needs a `when: design\|manufacture` field on manual verifies |
 | B-0011 | Multi-piece sheet-metal generator (wrap + end panels, closed corners) | Gate-3 shop read-through: deep trays cannot be brake-formed from one blank and the blanks exceed stock sheet widths; v0.1 notes allow the shop to split the one-piece development |
@@ -50,15 +49,14 @@ entry that closed them. Ids are never reused.
 | B-0047 | Second DoD 7 simulation playing an engineer persona driving the CLI directly | NAPKIN_STAGE §5 M5 ⤵, not done |
 | B-0048 | The two remaining kit aesthetic parameters (six of the capped eight shipped) | NAPKIN_STAGE §7 [revisit]; S-066 |
 | B-0049 | Image → interpretation card with a real sketch or photo (today: worded stand-ins in tests; owner-manual) | NAPKIN_STAGE N9; S-068 |
-| B-0050 | Brand integration, rest: the wordmark and lockup (README header, report) once the font licence is cleared | The icon is in (S-075); the fonts are an owner to-do; the CLI stays plain text |
-| B-0051 | Risk: headless-GL (SwiftShader) flakes under parallel test load beyond the one message now tolerated | S-070 risk watched; B-0024 closed |
+| B-0051 | Risk: headless-GL (SwiftShader) flakes under parallel test load beyond the one message now tolerated | S-070 risk watched; B-0024 closed; 2026-11-01: `test_screenshot.py::test_grey_palette_reads_as_grey` rendered blank once under `make check`, passed alone and with `-n 4` (S-084) |
 | B-0052 | Risk: Linux is covered only by CI; the reference platform is the macOS host | S-001; former STATUS open risk |
-| B-0058 | The README prompts and product `AGENTS.md` link the agent guide on `main`; the link resolves only once `main` carries `docs/agent-guide.md` | S-074; closes when the maintainer fast-forwards `main` |
 
 ## Closed
 
 | id | item | closed by |
 |---|---|---|
+| B-0006 | `validate.json` embeds absolute paths | Closed 2026-11-01 (S-082): paths relative to the product root |
 | B-0008 | Hide URI prefixes in owner-view tables and captions | Closed 2026-10-31 (S-061): `core.uris.display_uri`; report, `n2f check`, impact summary; engineer view and files keep them |
 | B-0010 | Stand standoffs, thermocouple hole and element tails are described, not modelled, in the kiln | Closed by the gate-3 rework: standoffs, hinge post, latch keeper, controller mount, tail and thermocouple holes are modelled with interfaces |
 | B-0015 | `n2f ecr close` should refuse while a requirement needs a sign-off | Closed 2026-10-31 (S-060): `ecr/lifecycle._close_gate`, same wording as the stage blockers; example sign-offs pass |
@@ -67,8 +65,10 @@ entry that closed them. Ids are never reused.
 | B-0018 | `n2f validate` hides expression errors while reference errors are present | Closed 2026-10-31 (S-058): expressions are evaluated whenever `parameters.yaml` parsed; fixture `invalid/expr-and-ref-together` |
 | B-0024 | `tests/e2e/test_release_diff.py::test_diff_page_loads_and_highlights` failed once in `make check` with a SwiftShader `THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false` on `part://base`, then passed three reruns in a row | Closed 2026-10-31: recurred on CI (macOS, docs-only commit bcbb604); `tests/conftest.py::is_swiftshader_flake` recognises the exact message (empty info log), the diff-page test reloads once and the other four Playwright tests ignore it; any other console error still fails |
 | B-0030 | The promote note says "only 0 form requirements applies" (grammar/plural) | Closed 2026-10-31 (gate B, B4): the note appears only when exactly one form requirement applies, in words |
+| B-0050 | Brand integration, rest: the wordmark and lockup | Closed 2026-11-01 (S-081): README lockup, wordmark in the generated pages' footer |
 | B-0053 | Keep review-gate reports in the repo with a reusable gate template | Closed 2026-11-01 (S-078): `docs/reviews/` holds v0.2 gates A, B and v0.1 gate 4 plus `TEMPLATE.md` |
 | B-0054 | Run the three demos in parallel in `make check-full` | Closed 2026-11-01 (S-079): `-n 3`, demos ≈ 12 min → 8 min 19 s |
 | B-0055 | Build each example product once per test worker | Closed 2026-11-01 (S-080): measured ≈ 30 s of wall to gain; long test files split instead, `make check` ≈ 8 min → 6 min 52 s |
 | B-0056 | Visual milestones go to the maintainer as pictures before they are called done | Closed 2026-11-01 (S-078): `AGENTS.md` working-style rule |
 | B-0057 | Client-neutral home for the product role skills | Closed 2026-11-01 (S-077): roles moved to `roles/` with no `.claude/` copy |
+| B-0058 | The README and product `AGENTS.md` link the agent guide on `main` | Closed 2026-11-01 with the 0.3.0 release: `main` fast-forwarded to the release commit, which carries `docs/agent-guide.md` |

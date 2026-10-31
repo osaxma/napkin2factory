@@ -1,5 +1,5 @@
 schema: 1
-system: ">=0.2,<0.3"
+system: ">=0.3,<0.4"
 product:
   id: kiln
   name: Mini electric test kiln
