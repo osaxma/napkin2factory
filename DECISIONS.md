@@ -94,6 +94,7 @@ should confirm before relying on them.
 | S-075 | The icon on generated pages; wordmark waits on the font licence | in force |
 | S-076 | `AGENTS.md` is the only instructions file, here and in product folders | in force |
 | S-077 | Generic for any model and client; product roles move to `roles/` | in force |
+| S-078 | Gate reports kept in `docs/reviews/`; visual exits judged by the maintainer | in force |
 
 ---
 
@@ -928,3 +929,13 @@ image viewing, no browser, no network). The product roles leave `.claude/` for `
 (a tools list) dropped, the product `AGENTS.md` naming the file to read per role. Closes B-0057.
 `n2f init .` on an older folder adds `roles/` and leaves its `.claude/` alone. The rule is a
 non-negotiable in `AGENTS.md`; `test_agent_docs.py` fails on per-client files.
+
+## S-078 — Gate reports in the repo; visual exits judged by the maintainer (2026-11-01)
+B-0053, B-0056 (docs/improvements.md §1, §4). The full gate reports were scratch files and only
+outcomes reached this log; the next gate should start from the last one's questions. Kept in
+`docs/reviews/`: v0.2 gates A and B and v0.1 gate 4, copied unedited from the old scratch folders
+(local paths replaced); v0.1 gates 1–3 were not kept. `docs/reviews/TEMPLATE.md` holds the
+standing reviewer rules and the four question sets (GRAND_PLAN §8.3, NAPKIN_STAGE §5). And: an
+exit judged by eye goes to the maintainer as pictures with a one-line question, the answer
+recorded as "judged by the maintainer: …" (S-066, S-067, S-069 were the agent's judgment alone).
+Both are `AGENTS.md` working-style rules; the next plan's milestone exits should name the second.
