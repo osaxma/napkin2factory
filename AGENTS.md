@@ -54,7 +54,8 @@ holds, propose deleting it to the maintainer instead of obeying it.
   `src/`, `examples/` or the templates → `make check`. CI runs the full check on every push and
   skips commits it has already tested. Never commit `build/` or `examples/*/build/`: they are
   generated from the model and rebuilt anywhere.
-- Work on the release branch named in `STATUS.md` (`v0.2-build` today; v0.1 is closed on `main`).
+- Work on the release branch named in `STATUS.md` (`v0.3-build` today; earlier versions are
+  closed), so every release has one branch whose tip CI has tested.
   Commit messages `M<n>: <what>` while a milestone is open (the milestone's work then reads
   straight from the log); plain imperative otherwise.
   Stage explicit paths, never `git add -A` (unrelated work may sit in the tree).

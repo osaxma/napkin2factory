@@ -1,7 +1,7 @@
 name: ci
 on:
   push:
-    branches: [main, v0.1-build, v0.2-build]
+    branches: [main, "v*-build"]   # every release branch, without an edit per version
   pull_request:
   schedule:
     - cron: "17 3 * * *"   # nightly: make check-full with timing assertions
