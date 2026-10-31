@@ -535,3 +535,21 @@ drawing and render captions), the `n2f check` check/subject columns, and the imp
 edit lines. JSON, `data-uri`/`data-show3d` attributes, hrefs, GLB node names, the viewer, files
 on disk and free-text messages always keep the full URI (copy-paste hints such as
 `--set param://…` must stay whole).
+
+## S-062 — Concept cards, loader and the optional Napkin stage (M1) (2026-10-31)
+Cards (`core/model/concepts.py`) follow NAPKIN_STAGE §3; `envelope` takes a quantity or a
+list of them, `site` keeps a value as a quantity when it parses, else as a word or yes/no
+(`SA`, `240V-13A`, `outdoor: true`). Cards are keyed by file name; schema findings are rule
+`C0-schema`, lint rules `C1-id-matches-file … C6-one-promoted` (C5 warns). `n2f concept new`
+writes a commented skeleton (§3 order); `--from` copies six sections, not refs. Status edits
+round-trip through ruamel with `explicit_null` so a reject is a two-line diff. Concept verbs
+never load the product model (a half-written model never blocks ideas); ids accept `2`/`c-2`.
+Reject records `{reason, at}`; on the promoted card it is refused (exit 3). Napkin gate:
+present iff `concepts/*.yaml` exists, ok iff a card is promoted; later gates are computed
+independently and `release` ignores it; the report calls `compute_stage(napkin=False)` so
+concepts never reach a build output (N1). Bracket `status --json` golden pinned from bcd1451.
+Two calls made here: (1) **napkin verbs do not snapshot** — ideas are cheap and a snapshot
+per card is ceremony; `promote` (M4) snapshots, and `n2f status` already says "unsaved changes"
+before a release. (2) A released product with a new exploring card reads **stage: Napkin** —
+a new idea is a new iteration; the Released gate keeps its own result `[revisit]` if owners
+find it confusing (gate B will tell).

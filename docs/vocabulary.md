@@ -35,7 +35,8 @@ templates for the right-hand words.
 ## Stages (computed by `n2f status`, never stored — D10)
 
 Intake → Design → Verify → Released. A stage is complete when its gate passes; nothing
-can mark a stage complete by hand.
+can mark a stage complete by hand. While `concepts/` holds concept cards an optional
+**Napkin** stage comes first; it is complete once a card is promoted.
 
 ## Persona
 

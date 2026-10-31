@@ -5,6 +5,10 @@ custom part has geometry and the build succeeded; Verify complete when checks ha
 ``fail``, every ``needs-human`` has a valid sign-off and no sign-off is an example; Released
 when a Revision tag exists for the current tree.  ``warn`` never blocks.
 
+Napkin (NAPKIN_STAGE N11) is an optional first gate, present only when ``concepts/`` holds a
+card: complete when one card is ``promoted``.  Products without concepts see exactly the
+four v0.1 gates.  Concepts never gate a release; the gate only names where the product is.
+
 Example sign-offs (``example: true``) are *caveats*, not blockers: they keep the Verify gate
 open and the stage at ``verify``, but they do not stop a demonstration release
 (``n2f release --allow-example-signoffs``), which reads ``Gate.blockers`` only.
@@ -24,8 +28,11 @@ from napkin2factory.core.checks.results import (
 )
 from napkin2factory.core.graph.manifest import Manifest
 from napkin2factory.core.loader import Product
+from napkin2factory.core.model.concepts import CONCEPT_STATUSES as CARD_STATUSES
 
 STAGES = ("intake", "design", "verify", "released")
+#: The optional stage before Intake (N11); present only when ``concepts/`` holds a card.
+NAPKIN = "napkin"
 
 
 @dataclass
@@ -86,12 +93,75 @@ def _checks_stale(product: Product, build_dir: Path, manifest: Manifest) -> bool
         return False
 
 
-def compute_stage(product: Product, build_dir: Path | None = None) -> StageReport:
-    """Derive the stage from the model, the build manifest, checks.json and change tracking."""
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def napkin_gate(root: Path) -> Gate | None:
+    """The Napkin gate, or None when ``concepts/`` holds no card (the stage is then hidden).
+
+    Done when one card is promoted.  Otherwise one owner-worded blocker naming the next
+    command: build the cards first when none has been screened, else compare and choose.
+    """
+    from napkin2factory.core.concepts import card_files, load_concepts
+    from napkin2factory.core.errors import Problems
+
+    files = card_files(root)
+    if not files:
+        return None
+    problems = Problems()
+    cards = load_concepts(root, problems)
+    by_status = {s: [cid for cid, c in cards.items() if c.status == s] for s in CARD_STATUSES}
+    promoted = by_status["promoted"]
+    detail: dict[str, Any] = {
+        "cards": len(files),
+        "exploring": len(by_status["exploring"]),
+        "rejected": len(by_status["rejected"]),
+        "promoted": promoted[0] if promoted else None,
+        "unreadable": len(files) - len(cards),
+    }
+    if promoted:
+        return Gate(NAPKIN, True, [], detail)
+    blockers: list[str] = []
+    exploring = by_status["exploring"]
+    if not exploring:
+        blockers.append(
+            "every concept so far is rejected — "
+            '`n2f concept new "<title>"` to start another direction'
+        )
+    elif not any(cards[cid].screening for cid in exploring):
+        blockers.append(
+            f"{_plural(len(exploring), 'concept')} exploring, none chosen yet — "
+            "`n2f concept build --all` first"
+        )
+    else:
+        blockers.append(
+            f"{_plural(len(exploring), 'concept')} exploring, none chosen yet — "
+            "`n2f concept board` to compare them, then `n2f concept promote C-00x`"
+        )
+    if problems.errors:
+        bad = sorted({Path(p.file).name for p in problems.errors})
+        blockers.append(f"{', '.join(bad)} cannot be read — `n2f concept lint` says why")
+    return Gate(NAPKIN, False, blockers, detail)
+
+
+def compute_stage(
+    product: Product, build_dir: Path | None = None, *, napkin: bool = True
+) -> StageReport:
+    """Derive the stage from the model, the build manifest, checks.json and change tracking.
+
+    ``napkin=False`` leaves out the Napkin gate even when concepts exist; build outputs (the
+    report) pass it so that concepts never change what ``n2f build`` writes (N1).
+    """
     from napkin2factory.core import lint as lint_mod
 
     build_dir = build_dir or product.paths.build
     gates: list[Gate] = []
+    first = napkin_gate(product.root) if napkin else None
+    if first is not None:
+        gates.append(first)
+    names = ((NAPKIN,) if first is not None else ()) + STAGES
+    later = len(gates)  # index of the Intake gate
     # Intake
     lint_problems = lint_mod.lint(product)
     req_errors = [
@@ -182,7 +252,8 @@ def compute_stage(product: Product, build_dir: Path | None = None) -> StageRepor
     except Exception as exc:  # never crash status on a tracking problem
         released_blockers.append(f"change tracking unavailable: {exc}")
     # a Revision made with --allow-example-signoffs is still a Revision: caveats do not undo it
-    verified_enough = gates[2].ok or gates[2].open_only_by_caveats
+    verify_gate = gates[later + 2]
+    verified_enough = verify_gate.ok or verify_gate.open_only_by_caveats
     gates.append(
         Gate(
             "released",
@@ -194,8 +265,8 @@ def compute_stage(product: Product, build_dir: Path | None = None) -> StageRepor
     # The stage is the last gate passed; a gate held open only by caveats is passed through
     # (the product is in that stage, not past it) so example sign-offs read as "Verify",
     # never as "Design" and never as verified.
-    stage = "intake"
-    for g, name in zip(gates, STAGES, strict=True):
+    stage = names[0]
+    for g, name in zip(gates, names, strict=True):
         if g.ok or g.open_only_by_caveats:
             stage = name
         else:

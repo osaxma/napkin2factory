@@ -1,0 +1,47 @@
+{
+  "stage": "intake",
+  "gates": [
+    {
+      "name": "intake",
+      "ok": true,
+      "blockers": [],
+      "detail": {},
+      "caveats": []
+    },
+    {
+      "name": "design",
+      "ok": false,
+      "blockers": [
+        "part://l-bracket has not been built \u2014 run `n2f build`",
+        "asm://bracket has not been built \u2014 run `n2f build`"
+      ],
+      "detail": {},
+      "caveats": []
+    },
+    {
+      "name": "verify",
+      "ok": false,
+      "blockers": [
+        "checks have not run \u2014 run `n2f check`"
+      ],
+      "detail": {
+        "counts": {},
+        "example_signoffs": [],
+        "why": null
+      },
+      "caveats": []
+    },
+    {
+      "name": "released",
+      "ok": false,
+      "blockers": [
+        "no Revision for the current snapshot \u2014 `n2f release vX.Y.Z` when the checks are green"
+      ],
+      "detail": {
+        "revision": null
+      },
+      "caveats": []
+    }
+  ],
+  "next_step": "part://l-bracket has not been built \u2014 run `n2f build`"
+}

@@ -1,0 +1,4 @@
+id: C-001
+title: Uses a kit generator that does not exist
+massing:
+  - {kit: blob, as: body, args: {length: 100 mm}}

@@ -43,8 +43,33 @@ def start_kernel_warmup() -> bool:
     return warm_kernel_in_background() is not None
 
 
+STYLE_HEADER = """\
+# style.yaml: how the product looks (preset, colours and finishes by part role, shape cues).
+# These are the starting defaults. `n2f concept promote` fills it from the chosen concept;
+# you may also edit it by hand. Presets: industrial | appliance | lab.
+"""
+
+
+def write_style(dest: Path) -> Path:
+    """Seed ``style.yaml`` with the :class:`StyleFile` defaults and a short header (N7)."""
+    import yaml
+
+    from napkin2factory.core.model import StyleFile
+
+    path = dest / "style.yaml"
+    body = yaml.safe_dump(
+        StyleFile().model_dump(mode="json"), sort_keys=False, default_flow_style=None
+    )
+    path.write_text(STYLE_HEADER + body, encoding="utf-8")
+    return path
+
+
 def write_skeleton(dest: Path, template: str, product_id: str, name: str) -> list[Path]:
-    """Copy a template plus the common agent-layer files into ``dest``; return files written."""
+    """Copy a template plus the common agent-layer files into ``dest``; return files written.
+
+    A new product also gets ``style.yaml`` (written here, not shipped in ``_common``, which
+    is copied onto existing products too).
+    """
     if template not in TEMPLATE_NAMES:
         raise N2FError(f"unknown template {template!r}; choose one of {', '.join(TEMPLATE_NAMES)}")
     src = TEMPLATES_DIR / template
@@ -62,6 +87,7 @@ def write_skeleton(dest: Path, template: str, product_id: str, name: str) -> lis
     data["product"]["id"] = product_id
     data["product"]["name"] = name
     dump_roundtrip(manifest, data)
+    write_style(dest)
     return sorted(p for p in dest.rglob("*") if p.is_file())
 
 

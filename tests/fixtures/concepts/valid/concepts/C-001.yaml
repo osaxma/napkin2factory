@@ -1,0 +1,4 @@
+id: C-001
+title: The first direction
+status: rejected
+decision: {reason: superseded by C-003, at: '2026-10-31T09:00:00'}

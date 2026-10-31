@@ -216,7 +216,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     }
     summary = {k: int(checks.get("summary", {}).get(k, 0)) for k in SUMMARY_KEYS}
     results = {r["id"]: r for r in checks.get("results", [])}
-    stage = compute_stage(product, build_dir)
+    stage = compute_stage(product, build_dir, napkin=False)  # concepts never reach a build (N1)
     persona = product.operator.persona
 
     # 3D: the top assemblies' GLBs (or every part's GLB when there is no assembly)

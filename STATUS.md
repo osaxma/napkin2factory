@@ -1,11 +1,12 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M0 (folds and ratifications), in progress
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M2 (massing fidelity, calc kit, screening), in progress
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
-**Resume note (2026-10-31):** M0 committed (`M0:`). Next is M1 (concept card schema, loader,
-`n2f concept new|list|show|lint|reject`, `style.yaml` seeded at init, optional Napkin stage in
-`n2f status`); the brief's design choices are logged with M1's `S-` entry when it lands. If you
-find the tree uncommitted: run `make check`, then commit `M1:`.
+**Resume note (2026-10-31):** M0 and M1 committed. M2 runs as three subagent pieces: (a) massing
+fidelity in the kit, (b) the calc kit + kiln calc refactor (parallel, disjoint files), then (c) the
+composer, screening, `rulepacks/concept-v0.yaml` and `n2f concept build`. Briefs live in the
+orchestrator's scratchpad; their design is fixed in the `S-` entries they produce. If you find the
+tree uncommitted: run `make check`, then commit `M2:`.
 **Resume order:** `NAPKIN_STAGE.md` → this file → `DECISIONS.md` (S-055 onward) → `git log --oneline -30` → `make check`
 
 ## Environment (host facts a cold reader needs)
@@ -30,10 +31,15 @@ find the tree uncommitted: run `make check`, then commit `M1:`.
   assembly section renders in 0.8 s. `make check-full`: 387 passed, 1 skipped, 7 deselected
   (12 min 25 s), kiln + both demos + timing green.
 
+- **M1 (done 2026-10-31)** — concept cards outside the build (N1): schema, loader, lint C1–C6
+  (C5 warns), `n2f concept new|list|show|reject|lint`; optional Napkin gate first in `n2f status`
+  (N11, report excluded); `n2f init` seeds `style.yaml` (N7); S-062. `make check`: 429 passed,
+  1 skipped, coverage 88.7 %.
+
 ## Next
-M0 exit: `make check` green with the new regression tests; open the kiln section render and record the
-judgment here. Then M1 (concept card schema, loader, `n2f concept new|list|show|lint|reject`, optional
-Napkin stage in `n2f status`).
+M2: massing mode through every generator (goldens), `napkin2factory.calckit` with the kiln's
+numbers as the first test vectors, `rulepacks/concept-v0.yaml`, `n2f concept build` with
+`computed`/`estimate` labels and the DEC-011 door-swing regression. Then M3 (styled screenshots).
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).
