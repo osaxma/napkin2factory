@@ -1,9 +1,11 @@
-"""The self-contained HTML report (decisions D13, D17).
+"""The self-contained HTML report (decisions D13, D17 as amended by S-050).
 
 One page, zero external references: three.js and the viewer inlined as a single module
 script, GLBs and renders embedded as base64, drawings inlined as SVG, manuals as HTML
-fragments.  An owner/engineer toggle reorders sections and swaps vocabulary; safety
-content is never behind the toggle.
+fragments.  One layout for everyone: a sticky section index, sections grouped by purpose
+(overview, safety, product, verification, design record, manuals), and every model URI
+rendered as a hyperlink to the row that describes it.  The operator persona only picks
+the words used for check statuses; safety content is always visible.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import jinja2
+from markupsafe import Markup
 
 from napkin2factory import __version__
 from napkin2factory.core.checks.results import SUMMARY_KEYS
@@ -29,21 +32,22 @@ if TYPE_CHECKING:
 TEMPLATES = Path(__file__).parent / "templates"
 MAX_REPORT_BYTES = 20 * 1024 * 1024
 
-#: Section order per persona (owner, engineer): lower first.
-SECTION_ORDER: dict[str, tuple[int, int]] = {
-    "safety": (0, 0),
-    "next": (1, 1),
-    "3d": (2, 5),
-    "cost": (3, 6),
-    "drawings": (4, 7),
-    "checks": (5, 2),
-    "reqs": (6, 3),
-    "params": (7, 4),
-    "decisions": (8, 8),
-    "changes": (9, 9),
-    "docs": (10, 10),
-    "signoffs": (11, 11),
-}
+#: Page sections in reading order: (anchor, nav label, group).  The nav groups them.
+SECTIONS: tuple[tuple[str, str, str], ...] = (
+    ("overview", "Overview", ""),
+    ("safety", "Safety", ""),
+    ("model", "3D model", "Product"),
+    ("parts", "Parts & cost", "Product"),
+    ("drawings", "Drawings", "Product"),
+    ("interfaces", "Interfaces", "Product"),
+    ("requirements", "Requirements", "Verification"),
+    ("rules", "Rule checks", "Verification"),
+    ("signoffs", "Sign-offs", "Verification"),
+    ("parameters", "Parameters", "Design record"),
+    ("decisions", "Decisions", "Design record"),
+    ("changes", "Change requests", "Design record"),
+    ("manuals", "Manuals", ""),
+)
 
 VOCAB: dict[str, dict[str, str]] = {
     "owner": {
@@ -69,6 +73,35 @@ VOCAB: dict[str, dict[str, str]] = {
         "changes": "Change requests (ECRs)",
     },
 }
+
+
+def anchor_for(uri: str, anchors: dict[str, str]) -> str | None:
+    """The in-page anchor a model URI points at, ignoring any ``#selector`` suffix."""
+    base = uri.split("#", 1)[0]
+    if base in anchors:
+        return anchors[base]
+    scheme = base.split("://", 1)[0] if "://" in base else ""
+    return {
+        "bom": "parts",
+        "rule": "rules",
+        "manifest": "overview",
+        "param": "parameters",
+        "req": "requirements",
+        "dec": "decisions",
+        "ecr": "changes",
+        "doc": "manuals",
+        "iface": "interfaces",
+        "asm": "model",
+    }.get(scheme)
+
+
+def ref_html(uri: Any, anchors: dict[str, str]) -> Markup:
+    """Render a URI as a hyperlink to its row when the page has one, else as plain text."""
+    text = str(uri)
+    anchor = anchor_for(text, anchors)
+    if anchor is None:
+        return Markup('<span class="mono">{}</span>').format(text)
+    return Markup('<a class="ref mono" href="#{}">{}</a>').format(anchor, text)
 
 
 def report_reads(ctx: RunContext) -> list[str]:
@@ -143,6 +176,15 @@ def _bom_by_uri(flat: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         )
         agg["total_qty"] += int(ln.get("total_qty", 0))
     return out
+
+
+def _spec_summary(spec: Any) -> str:
+    kind = type(spec).__name__
+    if kind == "BoltPatternSpec":
+        return f"{spec.count} × ⌀{spec.diameter}, {spec.pattern}"
+    if kind == "MatingFaceSpec":
+        return f"{spec.width} × {spec.depth}"
+    return kind
 
 
 def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, Any]:
@@ -225,26 +267,79 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
             p.uri,
             {"name": p.name, "kind": p.kind, "total_qty": 0, "unit_cost": None, "manufacturer": ""},
         )
+    drawn = {d["uri"] for d in drawings}
+    seen_rows: set[str] = set()
+    for ln in flat:
+        ln["anchor"] = ln["uri"] not in seen_rows  # the first row of a URI is its anchor
+        seen_rows.add(ln["uri"])
+        ln["has_drawing"] = ln["uri"] in drawn
+    for uri, row in bom_by_uri.items():
+        row["id"] = uri.split("://", 1)[-1]
+        row["has_drawing"] = uri in drawn
+        row["in_bom"] = uri in seen_rows
+
+    # every URI that has a row on this page, so references can be hyperlinks
+    anchors: dict[str, str] = {}
+    for uri in seen_rows:
+        anchors[uri] = f"part-{uri.split('://', 1)[-1]}"
+    for r in product.requirements:
+        anchors[f"req://{r}"] = f"req-{r}"
+    for d in product.decisions:
+        anchors[f"dec://{d}"] = f"dec-{d}"
+    for slug in product.parameters:
+        anchors[f"param://{slug}"] = f"param-{slug}"
+    for e in product.ecrs:
+        anchors[f"ecr://{e}"] = f"ecr-{e}"
+    for d in product.docs:
+        anchors[f"doc://{d}"] = f"doc-{d}"
+    for i in product.interfaces:
+        anchors[f"iface://{i}"] = f"iface-{i}"
+    for a in product.assemblies.values():
+        anchors.setdefault(a.uri, "model")
 
     def signoff_example(rid: str) -> bool:
         so = product.signoffs.get(rid)
         return bool(so and so.example)
 
+    satisfied_by: dict[str, list[str]] = {}
+    for p in product.parts.values():
+        for r in p.satisfies:
+            satisfied_by.setdefault(r.id, []).append(p.uri)
+    for a in product.assemblies.values():
+        for r in a.satisfies:
+            satisfied_by.setdefault(r.id, []).append(a.uri)
+    matrix_rows = {row["id"]: row for row in checks.get("matrix", {}).get("requirements", [])}
     req_rows = []
-    for row in checks.get("matrix", {}).get("requirements", []):
-        res = results.get(f"req://{row['id']}", {})
+    for rid, req in product.requirements.items():
+        row = matrix_rows.get(rid)
+        res = results.get(f"req://{rid}", {})
+        status = res.get("status", row["status"] if row else "skip")
         req_rows.append(
             {
-                **row,
-                "message": res.get("message", row.get("message", "")),
-                "signoff_example": signoff_example(row["id"])
-                and res.get("status") in ("signed", "pass"),
+                "id": rid,
+                "title": req.title,
+                "statement": req.statement,
+                "category": req.category,
+                "priority": req.priority,
+                "safety": req.safety,
+                "kind": req.verify.kind if req.verify else "—",
+                "target": str(req.verify.target) if req.verify and req.verify.target else "",
+                "status": status,
+                "message": res.get("message", (row or {}).get("message", "not checked yet")),
+                "allocation": [str(a) for a in req.allocation]
+                if isinstance(req.allocation, list)
+                else [str(req.allocation or "")],
+                "satisfied_by": satisfied_by.get(rid, []),
+                "signoff_example": signoff_example(rid) and status in ("signed", "pass"),
+                "signed": rid in product.signoffs,
             }
         )
     safety_reqs = [r for r in req_rows if r.get("safety")]
     other_rows = [
         r for r in checks.get("results", []) if r["kind"] != "requirement" and r["status"] != "pass"
     ]
+    rule_results = [r for r in checks.get("results", []) if r["kind"] != "requirement"]
+    rule_summary = {k: sum(1 for r in rule_results if r["status"] == k) for k in SUMMARY_KEYS}
 
     docs = []
     safety_docs = []
@@ -264,23 +359,15 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         }
         (safety_docs if doc.meta.safety else docs).append(entry)
 
-    satisfied_by: dict[str, list[str]] = {}
-    for p in product.parts.values():
-        for r in p.satisfies:
-            satisfied_by.setdefault(r.id, []).append(p.uri)
-    for a in product.assemblies.values():
-        for r in a.satisfies:
-            satisfied_by.setdefault(r.id, []).append(a.uri)
-    trace = [
+    interfaces = [
         {
-            "id": r.id,
-            "statement": r.statement,
-            "allocation": [str(a) for a in r.allocation]
-            if isinstance(r.allocation, list)
-            else [str(r.allocation or "")],
-            "satisfied_by": satisfied_by.get(r.id, []),
+            "id": i.id,
+            "kind": i.kind,
+            "parties": [str(p) for p in i.parties],
+            "description": i.description or "",
+            "spec": _spec_summary(i.spec),
         }
-        for r in product.requirements.values()
+        for i in product.interfaces.values()
     ]
     params = []
     for slug, p in product.parameters.items():
@@ -316,7 +403,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         for e in product.ecrs.values()
     ]
     signoffs = []
-    for s in product.signoffs.values():
+    for s in sorted(product.signoffs.values(), key=lambda x: str(x.requirement)):
         res = results.get(f"req://{s.requirement.id}", {})
         so = res.get("detail", {}).get("signoff", {})
         signoffs.append(
@@ -365,8 +452,9 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     return {
         "product": product.manifest.product,
         "persona": persona,
-        "vocab": VOCAB,
-        "section_order": SECTION_ORDER,
+        "words": VOCAB[persona],
+        "sections": SECTIONS,
+        "anchors": anchors,
         "stage": stage,
         "stage_label": stage_label,
         "revision_label": revision_label,
@@ -381,10 +469,11 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "req_rows": req_rows,
         "safety_reqs": safety_reqs,
         "other_rows": other_rows,
+        "rule_summary": rule_summary,
         "rule_matrix": checks.get("matrix", {}).get(
             "rules", {"parts": [], "rules": {}, "cells": {}}
         ),
-        "trace": trace,
+        "interfaces": interfaces,
         "params": params,
         "decisions": decisions,
         "ecrs": ecrs,
@@ -406,6 +495,8 @@ def render_report(product: Product, build_dir: Path, snapshot_date: str, build_i
         undefined=jinja2.StrictUndefined,
     )
     data = gather(product, build_dir, snapshot_date)
+    anchors = data["anchors"]
+    env.filters["ref"] = lambda uri: ref_html(uri, anchors)
     data["viewer_script"] = inline_module_script(bundle_viewer()) if data["glb_b64"] else ""
     data["build_id"] = build_id
     return env.get_template("report.html.j2").render(**data)

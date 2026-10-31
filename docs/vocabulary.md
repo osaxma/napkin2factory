@@ -22,7 +22,7 @@ templates for the right-hand words.
 
 ## Check statuses
 
-| engineer view | owner view | meaning |
+| engineer words | owner words | meaning |
 |---|---|---|
 | pass | OK | the computed check holds |
 | fail | needs attention | the computed check does not hold; blocks closing and releasing |
@@ -39,5 +39,6 @@ can mark a stage complete by hand.
 
 ## Persona
 
-`operator.yaml` `persona: owner | engineer` picks the default report view and the words the
-CLI uses; the report toggle switches at any time. Safety content is identical in both.
+`operator.yaml` `persona: owner | engineer` picks the words in the CLI and the report (the
+status table above). There is no toggle: the report has one layout for everyone, and its
+safety content is identical for both personas.

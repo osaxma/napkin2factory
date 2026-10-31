@@ -1,4 +1,6 @@
-"""M5 report (D13, D17): self-contained, every URI and REQ id present, file:// smoke."""
+"""M5 report (D13, D17 as amended by S-052): self-contained, every URI and REQ id present,
+one layout with a section index and in-page links (no persona toggle), file:// smoke.
+"""
 
 from __future__ import annotations
 
@@ -67,21 +69,48 @@ def test_every_uri_and_requirement_present(report: tuple[Path, str]) -> None:
     assert "Disclaimer" in html and "not been reviewed by a licensed engineer" in html
 
 
-def test_persona_toggle_and_safety_visibility(report: tuple[Path, str]) -> None:
+def test_navigation_and_links_without_toggle(report: tuple[Path, str]) -> None:
+    from napkin2factory.report.builder import SECTIONS
+
     _, html = report
     tree = LexborHTMLParser(html)
-    assert tree.css_first("#btn-owner") is not None and tree.css_first("#btn-engineer") is not None
-    assert "html[data-persona=owner] #sec-3d{order:2}" in html
-    assert "html[data-persona=engineer] #sec-checks{order:2}" in html
-    safety = tree.css_first("#sec-safety")
+    assert tree.css_first("#btn-owner") is None and tree.css_first("#btn-engineer") is None
+    nav = {a.attributes.get("data-sec") for a in tree.css("nav.side a[data-sec]")}
+    assert {sid for sid, _, _ in SECTIONS} <= nav
+    cards = [s.attributes.get("id") for s in tree.css("main > section.card")]
+    assert cards and all(c in nav for c in cards), cards
+    # safety is always on the page, never inside a collapsed or hidden container
+    safety = tree.css_first("#safety")
     assert safety is not None
-    assert "owner-only" not in (safety.attributes.get("class") or "") and "engineer-only" not in (
-        safety.attributes.get("class") or ""
-    )
-    assert "html[data-persona=owner] #sec-safety{order:0}" in html
     assert "Sheet edges are sharp" in safety.text()
-    # vocabulary swaps: owner words for statuses are present in the owner default view
+    node = safety
+    while node is not None and node.tag != "html":
+        attrs = node.attributes
+        assert "hidden" not in attrs, node.tag
+        assert "display:none" not in (attrs.get("style") or "").replace(" ", ""), node.tag
+        assert node.tag != "details" or "open" in attrs, "safety inside a collapsed <details>"
+        node = node.parent
+    # every model URI that has a row on the page links to it
+    ids = {n.attributes.get("id") for n in tree.css("[id]")}
+    refs = tree.css("a.ref")
+    assert tree.css('a.ref[href^="#req-"]') and tree.css('a.ref[href^="#part-"]')
+    for a in refs:
+        href = a.attributes.get("href") or ""
+        assert href.startswith("#") and href[1:] in ids, href
+    # owner words are the default persona
     assert "needs your sign-off" in html
+
+
+def test_anchor_for() -> None:
+    from napkin2factory.report.builder import anchor_for
+
+    anchors = {"req://REQ-001": "req-REQ-001", "part://lid": "part-lid"}
+    assert anchor_for("req://REQ-001#statement", anchors) == "req-REQ-001"
+    assert anchor_for("part://lid", anchors) == "part-lid"
+    assert anchor_for("req://REQ-999", anchors) == "requirements"
+    assert anchor_for("rule://sheet.min-flange#part://lid", anchors) == "rules"
+    assert anchor_for("nope://x", anchors) is None
+    assert anchor_for("plain text", anchors) is None
 
 
 def test_example_signoff_label(tmp_path: Path) -> None:
@@ -110,11 +139,11 @@ def test_example_signoff_label(tmp_path: Path) -> None:
     assert "0 needs your sign-off" not in header and "signed off" not in header
     assert tree.css_first("header.top span.example") is not None
     # the ladder shows verify as not done, with that reason, and the next step to fix it
-    nxt = tree.css_first("#sec-next").text()
+    nxt = tree.css_first("#overview").text()
     assert "1 example sign-off — not a review" in nxt
     assert "replace the 1 example sign-off (not a review) with a real one" in nxt
     assert "allow-example-signoffs" in nxt
-    gates = tree.css("#sec-next .kv .badge")
+    gates = tree.css("#stage .badge")
     verify_badge = next(b for b in gates if b.text() == "verify")
     assert "ok" not in (verify_badge.attributes.get("class") or "").split()
     # both personas carry words for it
@@ -146,10 +175,11 @@ def test_report_opens_from_file_url_without_console_errors(report: tuple[Path, s
             "Object.fromEntries(window.n2fViewer.nodes()"
             ".map(u => [u, window.n2fViewer.instanceCount(u)]))"
         )
-        page.click("#btn-engineer")
-        persona = page.evaluate("document.documentElement.getAttribute('data-persona')")
-        page.evaluate("window.n2fViewer.select('part://lid')")
+        page.click('a[data-show3d="part://lid"]')
         card = page.inner_text("#part-card")
+        card_links = page.eval_on_selector_all(
+            "#part-card a", "els => els.map(e => e.getAttribute('href'))"
+        )
         page.evaluate(
             "window.n2fViewer.explode(1); window.n2fViewer.section(true); "
             "window.n2fViewer.section(false)"
@@ -158,8 +188,8 @@ def test_report_opens_from_file_url_without_console_errors(report: tuple[Path, s
     assert errors == [], errors
     assert nodes == ["part://base", "part://bracket", "part://lid"]
     assert counts == {"part://base": 1, "part://bracket": 2, "part://lid": 1}
-    assert persona == "engineer"
     assert "part://lid" in card and "Lid" in card
+    assert "#drawing-lid" in card_links, card_links
 
 
 def test_revision_label_is_honest(tmp_path: Path) -> None:

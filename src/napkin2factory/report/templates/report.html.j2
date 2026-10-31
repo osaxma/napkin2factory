@@ -5,81 +5,120 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ product.name }} — napkin2factory report</title>
 <style>
-:root{--bg:#f7f6f2;--fg:#1d1d1b;--muted:#6b6a66;--line:#d9d7d0;--card:#fff;--ok:#1e7f4f;--fail:#b3261e;--warn:#9a6b00;--human:#7a3e9d;--signed:#0b6e8f;--skip:#8a8a8a;--accent:#1f5fbf}
-*{box-sizing:border-box}html{scroll-behavior:smooth}
+:root{--bg:#f7f6f2;--fg:#1d1d1b;--muted:#6b6a66;--line:#d9d7d0;--card:#fff;--ok:#1e7f4f;--fail:#b3261e;--warn:#9a6b00;--human:#7a3e9d;--signed:#0b6e8f;--skip:#8a8a8a;--accent:#1f5fbf;--hl:#fff6d6;--head-h:52px}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:calc(var(--head-h) + 12px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-header.top{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:.6rem 1.2rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+a{color:var(--accent)}a.ref{text-decoration:none;border-bottom:1px dotted currentColor}a.ref:hover{border-bottom-style:solid}
+header.top{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:.55rem 1.2rem;display:flex;gap:.9rem;align-items:center;flex-wrap:wrap;min-height:var(--head-h)}
 header.top h1{font-size:1.15rem;margin:0}
-.badge{display:inline-block;padding:.1rem .55rem;border-radius:999px;font-size:.78rem;font-weight:600;color:#fff;background:var(--skip)}
+header.top .counts a{color:inherit;text-decoration:none}header.top .counts a:hover{text-decoration:underline}
+.badge{display:inline-block;padding:.1rem .55rem;border-radius:999px;font-size:.78rem;font-weight:600;color:#fff;background:var(--skip);white-space:nowrap}
 .badge.pass,.badge.ok{background:var(--ok)}.badge.fail{background:var(--fail)}.badge.warn{background:var(--warn)}.badge.needs-human{background:var(--human)}.badge.signed{background:var(--signed)}.badge.skip{background:var(--skip)}
-.toggle{margin-left:auto;display:flex;gap:.25rem;border:1px solid var(--line);border-radius:999px;padding:2px}
-.toggle button{border:0;background:transparent;padding:.25rem .8rem;border-radius:999px;cursor:pointer;font:inherit}
-.toggle button.active{background:var(--accent);color:#fff}
-main{max-width:1200px;margin:0 auto;padding:1rem 1.2rem 4rem;display:flex;flex-direction:column;gap:1.2rem}
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);max-width:1440px;margin:0 auto;gap:1.2rem;padding:1rem 1.2rem 4rem}
+nav.side{position:sticky;top:calc(var(--head-h) + 1rem);align-self:start;max-height:calc(100vh - var(--head-h) - 2rem);overflow:auto;font-size:.9rem}
+nav.side .group{margin:.7rem 0 .2rem;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+nav.side a{display:block;color:var(--fg);text-decoration:none;padding:.22rem .6rem;border-radius:6px;border-left:3px solid transparent}
+nav.side a:hover{background:#efeee8}nav.side a.active{border-left-color:var(--accent);background:#e8f0fe;color:var(--accent)}
+nav.side a.sub{padding-left:1.4rem;font-size:.85rem;color:var(--muted)}
+main{min-width:0;display:flex;flex-direction:column;gap:1.2rem}
 section.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem}
-section.card h2{margin:.2rem 0 .8rem;font-size:1.05rem}
-.disclaimer{background:#fff4e5;border:1px solid #f0c27a;border-radius:8px;padding:.6rem .9rem;font-size:.9rem}
+section.card h2{margin:.2rem 0 .8rem;font-size:1.1rem;display:flex;align-items:baseline;gap:.5rem}
+h2 a.anchor{color:var(--line);text-decoration:none;font-weight:400}h2:hover a.anchor{color:var(--accent)}
+h3{font-size:.95rem;margin:1.2rem 0 .5rem}
+.lead{margin:0 0 .8rem;color:var(--muted);font-size:.9rem}
+.disclaimer{background:#fff4e5;border:1px solid #f0c27a;border-radius:8px;padding:.6rem .9rem;font-size:.9rem;margin-bottom:1rem}
 .safety{border-color:#e4a3a0;background:#fff7f6}
 table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border-bottom:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#f1f0eb;font-weight:600}
-td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr:target>td,tr:target>th,.row-hl>td{background:var(--hl)}
+tr[id],details[id],figure[id]{scroll-margin-top:calc(var(--head-h) + 12px)}
+.scroll{overflow:auto;max-width:100%}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem}
-figure{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}figure svg{width:100%;height:auto;display:block}figcaption{padding:.4rem .6rem;font-size:.85rem;color:var(--muted);border-top:1px solid var(--line)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:.8rem;margin:.6rem 0 1rem}
+.tile{display:block;border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;background:#fafaf7;color:inherit;text-decoration:none}
+.tile:hover{border-color:var(--accent)}.tile .v{font-size:1.25rem;font-weight:600;line-height:1.3}.tile .k{font-size:.78rem;color:var(--muted)}
+figure{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}figure svg{width:100%;height:auto;display:block;cursor:zoom-in}figcaption{padding:.4rem .6rem;font-size:.85rem;color:var(--muted);border-top:1px solid var(--line)}
+figure.zoom{grid-column:1 / -1}figure.zoom svg{cursor:zoom-out}
 #viewer{width:100%;height:520px;border-radius:8px;overflow:hidden;background:#f4f4f2;position:relative}
-#viewer canvas{display:block}
+#viewer canvas{display:block}#viewer.n2f-active{outline:2px solid var(--accent)}
 .viewer-bar{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin:.6rem 0;font-size:.9rem}
 .viewer-bar input[type=range]{width:160px}
 #part-card{border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;font-size:.9rem;min-height:3rem;background:#fafaf7}
-.muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em}
-.matrix td.cell{text-align:center;font-weight:600}
+.muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em}.small{font-size:.85rem}
 .example{display:inline-block;background:#ffe9a8;color:#5a4300;border:1px solid #e6c34a;border-radius:4px;padding:0 .4rem;font-size:.75rem;font-weight:700;letter-spacing:.04em}
-.engineer-only,.owner-only{display:none}
-html[data-persona=engineer] th.engineer-only,html[data-persona=engineer] td.engineer-only{display:table-cell}
-figure.zoom{grid-column:1 / -1}figure.zoom svg{cursor:zoom-out}figure svg{cursor:zoom-in}
-html[data-persona=engineer] .engineer-only{display:initial}html[data-persona=owner] .owner-only{display:initial}
-html[data-persona=engineer] .engineer-only.block,html[data-persona=owner] .owner-only.block{display:block}
-{% for sec, (o, e) in section_order.items() %}html[data-persona=owner] #sec-{{ sec }}{order:{{ o }}}html[data-persona=engineer] #sec-{{ sec }}{order:{{ e }}}
-{% endfor %}
+.matrix{font-size:.8rem}.matrix th,.matrix td{padding:.25rem .35rem}
+.matrix th.part{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;text-align:left;font-weight:500;padding:.5rem .2rem}
+.matrix th.part a{color:inherit;text-decoration:none}
+.matrix td.rule,.matrix th.rule{position:sticky;left:0;background:#fff;min-width:260px;z-index:1}.matrix th.rule{background:#f1f0eb}
+.matrix td.cell{text-align:center}
+.dot{display:inline-block;width:.85rem;height:.85rem;border-radius:50%;background:var(--skip);vertical-align:middle}
+.dot.pass{background:var(--ok)}.dot.fail{background:var(--fail)}.dot.warn{background:var(--warn)}.dot.needs-human{background:var(--human)}.dot.signed{background:var(--signed)}
+.legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin:.4rem 0}
 .doc{font-size:.95rem}.doc h1{font-size:1.1rem}.doc h2{font-size:1rem}.doc h3{font-size:.95rem}
-details summary{cursor:pointer;font-weight:600}
-.kv{display:grid;grid-template-columns:max-content 1fr;gap:.2rem 1rem;font-size:.9rem}
-.next{font-size:1rem;padding:.5rem .8rem;background:#eef4ff;border:1px solid #c9d8f5;border-radius:8px}
-footer{order:99}
+details summary{cursor:pointer;font-weight:600}details{padding:.3rem 0;border-bottom:1px solid var(--line)}details:last-child{border-bottom:0}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:.3rem 1rem;font-size:.9rem}
+.next{font-size:1rem;padding:.5rem .8rem;background:#eef4ff;border:1px solid #c9d8f5;border-radius:8px;margin:.8rem 0 0}
+.filter{font-size:.85rem;color:var(--muted);margin:0 0 .5rem}
+.wrap{word-break:break-word}#req-table td.req{min-width:220px}#req-table td:nth-child(4){min-width:150px}#req-table td:last-child{min-width:200px}
+table.only-open tr.st-pass,table.only-open tr.st-signed{display:none}
+.actions a{margin-right:.5rem;white-space:nowrap}
+@media (max-width:960px){
+  .layout{display:block}
+  nav.side{position:static;max-height:none;display:flex;flex-wrap:wrap;gap:.2rem;margin-bottom:1rem}
+  nav.side .group{width:100%;margin:.4rem 0 0}nav.side a{padding:.15rem .5rem}nav.side a.sub{display:none}
+  .matrix td.rule,.matrix th.rule{min-width:180px}
+}
 </style>
 </head>
 <body>
-{% macro vv(key) -%}<span class="owner-only">{{ vocab.owner.get(key, key) }}</span><span class="engineer-only">{{ vocab.engineer.get(key, key) }}</span>{%- endmacro %}
+{% macro w(st) -%}{{ words.get(st, st) }}{%- endmacro %}
+{% macro badge(st) -%}<span class="badge {{ st }}" title="{{ st }}">{{ w(st) }}</span>{%- endmacro %}
+{% macro h2(id, title) -%}<h2 id="h-{{ id }}">{{ title }} <a class="anchor" href="#{{ id }}" title="link to this section">#</a></h2>{%- endmacro %}
 <header class="top">
   <h1>{{ product.name }}</h1>
   <span class="badge {{ 'ok' if stage.stage == 'released' else 'warn' if stage.stage == 'verify' else 'skip' }}">{{ stage_label }}</span>
   <span class="muted">{{ revision_label }}</span>
-  <span class="muted">{{ summary.fail }} <span data-v="fail">{{ vv('fail') }}</span>{% if summary['needs-human'] or not summary.example %} · {{ summary['needs-human'] }} <span>{{ vv('needs-human') }}</span>{% endif %}{% if summary.example %} · <span class="example" data-v="example">{{ summary.example }} {{ vv('example_one' if summary.example == 1 else 'example') }}</span>{% endif %} · {{ summary.pass + summary.signed }} <span>{{ vv('pass') }}</span></span>
-  <div class="toggle" role="tablist" aria-label="view">
-    <button id="btn-owner" type="button">Owner view</button>
-    <button id="btn-engineer" type="button">Engineer view</button>
-  </div>
+  <span class="muted counts"><a href="#requirements">{{ summary.fail }} {{ w('fail') }}</a>{% if summary['needs-human'] or not summary.example %} · <a href="#requirements">{{ summary['needs-human'] }} {{ w('needs-human') }}</a>{% endif %}{% if summary.example %} · <a href="#signoffs"><span class="example">{{ summary.example }} {{ w('example_one' if summary.example == 1 else 'example') }}</span></a>{% endif %} · <a href="#requirements">{{ summary.pass + summary.signed }} {{ w('pass') }}</a></span>
 </header>
+<div class="layout">
+<nav class="side" aria-label="sections">
+  {% set ns = namespace(group='') %}
+  {% for id, label, group in sections %}{% if group != ns.group %}{% set ns.group = group %}{% if group %}<div class="group">{{ group }}</div>{% endif %}{% endif %}<a href="#{{ id }}" data-sec="{{ id }}">{{ label if id != 'changes' else words.changes }}</a>{% if id == 'manuals' %}{% for d in docs %}<a class="sub" href="#doc-{{ d.id }}">{{ d.title }}</a>{% endfor %}{% endif %}{% endfor %}
+</nav>
 <main>
-<div class="disclaimer" id="disclaimer"><strong>Disclaimer.</strong> This design was produced with an AI system and has not been reviewed by a licensed engineer. Calculations and checks are computed, not certified. Have a qualified person review it before building, powering, or using it.</div>
 
-<section class="card safety" id="sec-safety">
-  <h2>Safety</h2>
-  {% if safety_docs %}{% for d in safety_docs %}<div class="doc" id="doc-{{ d.id }}">{{ d.html | safe }}</div>{% endfor %}
-  {% else %}<p class="muted">No safety page in this product yet. Every product should carry one (`model/docs/safety.md`).</p>{% endif %}
-  {% if safety_reqs %}<table><thead><tr><th>id</th><th>safety requirement</th><th>status</th><th>finding</th></tr></thead><tbody>
-  {% for r in safety_reqs %}<tr><td class="mono">{{ r.id }}</td><td>{{ r.title }}</td><td><span class="badge {{ r.status }}">{{ vv(r.status) }}</span></td><td>{{ r.message }}{% if r.signoff_example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td></tr>{% endfor %}
-  </tbody></table>{% endif %}
-</section>
-
-<section class="card" id="sec-next">
-  <h2>Where this product stands</h2>
-  <div class="kv">
+<section class="card" id="overview">
+  {{ h2('overview', 'Overview') }}
+  <div class="disclaimer" id="disclaimer"><strong>Disclaimer.</strong> This design was produced with an AI system and has not been reviewed by a licensed engineer. Calculations and checks are computed, not certified. Have a qualified person review it before building, powering, or using it.</div>
+  <div class="tiles">
+    <a class="tile" href="#parts"><div class="v">{{ rollups.total_cost | round(2) }} USD</div><div class="k">per unit, from declared costs{% if not rollups.cost_complete %} · incomplete{% endif %}</div></a>
+    <a class="tile" href="#parts"><div class="v">{{ rollups.part_count }} parts</div><div class="k">{{ rollups.custom_count }} custom · {{ rollups.total_mass | round(2) }} kg</div></a>
+    <a class="tile" href="#parts"><div class="v">{{ rollups.max_lead_time }} d</div><div class="k">longest lead time</div></a>
+    <a class="tile" href="#requirements"><div class="v">{{ summary.pass + summary.signed }} / {{ req_rows | length }}</div><div class="k">requirements {{ w('pass') }}{% if summary.fail %} · {{ summary.fail }} {{ w('fail') }}{% endif %}{% if summary['needs-human'] %} · {{ summary['needs-human'] }} {{ w('needs-human') }}{% endif %}</div></a>
+    <a class="tile" href="#safety"><div class="v">{{ safety_reqs | selectattr('status', 'in', ['pass', 'signed']) | list | length }} / {{ safety_reqs | length }}</div><div class="k">safety requirements {{ w('pass') }}{% if summary.example %} · {{ summary.example }} example{% endif %}</div></a>
+    <a class="tile" href="#rules"><div class="v">{{ rule_summary.fail + rule_summary.warn }}</div><div class="k">rule findings{% if rule_summary.fail %} · {{ rule_summary.fail }} {{ w('fail') }}{% endif %}{% if rule_summary.warn %} · {{ rule_summary.warn }} {{ w('warn') }}{% endif %}</div></a>
+    <a class="tile" href="#drawings"><div class="v">{{ drawings | length }}</div><div class="k">drawings</div></a>
+    <a class="tile" href="#changes"><div class="v">{{ ecrs | rejectattr('status', 'equalto', 'closed') | list | length }}</div><div class="k">open {{ words.changes | lower }}</div></a>
+  </div>
+  <h3>Where this product stands</h3>
+  <div class="kv" id="stage">
     {% for g in stage.gates %}{% set reasons = g.blockers + g.caveats %}<div><span class="badge {{ 'ok' if g.ok else 'warn' if g.open_only_by_caveats else 'skip' }}">{{ g.name }}</span></div><div>{% if g.ok %}done{% else %}{% if g.detail.get('why') %}<span class="example">{{ g.detail.why }}</span> · {% endif %}{{ (reasons[:3] | join('; ')) | replace('`', '') }}{% if reasons | length > 3 %} … ({{ reasons | length }} items){% endif %}{% endif %}</div>{% endfor %}
   </div>
   <p class="next">Next: {{ stage.next_step | replace('`', '') }}</p>
 </section>
 
-<section class="card" id="sec-3d">
-  <h2>3D model</h2>
+<section class="card safety" id="safety">
+  {{ h2('safety', 'Safety') }}
+  {% if safety_docs %}{% for d in safety_docs %}<div class="doc" id="doc-{{ d.id }}">{{ d.html | safe }}</div>{% endfor %}
+  {% else %}<p class="muted">No safety page in this product yet. Every product should carry one (`model/docs/safety.md`).</p>{% endif %}
+  {% if safety_reqs %}<h3>Safety requirements</h3>
+  <table><thead><tr><th>id</th><th>safety requirement</th><th>status</th><th>finding</th><th>sign-off</th></tr></thead><tbody>
+  {% for r in safety_reqs %}<tr><td><a class="ref mono" href="#req-{{ r.id }}">{{ r.id }}</a></td><td>{{ r.title }}</td><td>{{ badge(r.status) }}</td><td>{{ r.message }}{% if r.signoff_example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td><td>{% if r.signed %}<a href="#signoff-{{ r.id }}">view</a>{% else %}<span class="muted">none</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table>{% endif %}
+</section>
+
+<section class="card" id="model">
+  {{ h2('model', '3D model') }}
   {% if glb_b64 %}
   <div id="viewer" data-n2f-glb="glb-data" data-explode-axis="{{ exploded.axis }}" data-explode-spacing="{{ exploded.spacing }}"></div>
   <script type="text/plain" id="glb-data">{{ glb_b64 }}</script>
@@ -87,95 +126,114 @@ footer{order:99}
     <label>Explode <input id="explode" type="range" min="0" max="1" step="0.01" value="0"></label>
     <label><input id="section" type="checkbox"> Section at mid-height</label>
     <button id="fit" type="button">Fit</button>
-    <span class="muted">click a part to see its details · drag to orbit · scroll to zoom</span>
+    <span class="muted">click a part to see its details · drag to orbit · click the model, then scroll to zoom</span>
   </div>
   <div id="part-card" class="muted">Click a part.</div>
   {% else %}<p class="muted">No assembly geometry to show.</p>{% endif %}
-  <div class="grid" style="margin-top:1rem">{% for r in renders %}<figure><img src="data:image/png;base64,{{ r.b64 }}" alt="{{ r.label }}" style="width:100%"><figcaption>{{ r.label | replace('asm://', '') | replace(' · iso', ' — from the corner') | replace(' · section', ' — cut through the middle') }}</figcaption></figure>{% endfor %}</div>
+  {% if renders %}<h3>Rendered views</h3>
+  <div class="grid">{% for r in renders %}<figure><img src="data:image/png;base64,{{ r.b64 }}" alt="{{ r.label }}" style="width:100%"><figcaption>{{ r.label | replace('asm://', '') | replace(' · iso', ' — from the corner') | replace(' · section', ' — cut through the middle') }}</figcaption></figure>{% endfor %}</div>{% endif %}
 </section>
 
-<section class="card" id="sec-cost">
-  <h2><span class="owner-only">What it costs and what to tell the manufacturer</span><span class="engineer-only">Bill of materials</span></h2>
+<section class="card" id="parts">
+  {{ h2('parts', 'Parts and cost') }}
   <p><strong>{{ rollups.total_cost | round(2) }} USD</strong> per unit from declared costs{% if not rollups.cost_complete %} <span class="badge warn">incomplete: some parts have no cost</span>{% endif %} · {{ rollups.total_mass | round(3) }} kg · {{ rollups.part_count }} parts ({{ rollups.custom_count }} custom) · longest lead time {{ rollups.max_lead_time }} d</p>
-  <table id="bom"><thead><tr><th>part</th><th>name</th><th class="num">qty</th><th><span class="owner-only">made or bought</span><span class="engineer-only">kind</span></th><th class="num">unit cost</th><th class="num"><span class="owner-only">total</span><span class="engineer-only">ext.</span></th><th><span class="owner-only">where it comes from</span><span class="engineer-only">sourcing</span></th><th>what to tell the manufacturer</th></tr></thead><tbody>
-  {% for ln in bom_lines %}<tr data-uri="{{ ln.uri }}"><td class="mono">{{ ('&nbsp;&nbsp;' * ln.level) | safe }}{{ ln.uri }}</td><td>{{ ln.name }}</td><td class="num">{{ ln.total_qty }}</td><td>{{ ln.kind }}</td><td class="num">{{ '%.2f' % ln.unit_cost if ln.unit_cost is not none else '—' }}</td><td class="num">{{ '%.2f' % ln.ext_cost if ln.ext_cost is not none else '—' }}</td><td>{% if ln.kind == 'cots' %}<span class="badge {{ 'ok' if ln.sourcing_status == 'verified' else 'warn' if ln.sourcing_status in ('unverified','catalog','no-url','link-failed') else 'fail' if ln.sourcing_status == 'missing' else 'skip' }}">{{ ln.sourcing_status }}</span>{% else %}custom{% endif %}</td><td>{{ ln.manufacturer }}</td></tr>{% endfor %}
-  </tbody></table>
-  <p class="muted" style="font-size:.85rem"><span class="owner-only">Prices are estimates until a shop quotes them.</span><span class="engineer-only">Costs are declared estimates unless the basis says quote.</span> Spreadsheet: <span class="mono">build/bom/bom.xlsx</span>, <span class="mono">build/bom/bom.csv</span>.</p>
+  <div class="scroll"><table id="bom"><thead><tr><th>part</th><th>name</th><th class="num">qty</th><th>made or bought</th><th class="num">unit cost</th><th class="num">total</th><th>sourcing</th><th>what to tell the manufacturer</th><th>see</th></tr></thead><tbody>
+  {% for ln in bom_lines %}<tr data-uri="{{ ln.uri }}"{% if ln.anchor %} id="part-{{ ln.id }}"{% endif %}><td class="mono">{{ ('&nbsp;&nbsp;' * ln.level) | safe }}{{ ln.uri }}</td><td>{{ ln.name }}</td><td class="num">{{ ln.total_qty }}</td><td>{{ 'bought' if ln.kind == 'cots' else ln.kind }}</td><td class="num">{{ '%.2f' % ln.unit_cost if ln.unit_cost is not none else '—' }}</td><td class="num">{{ '%.2f' % ln.ext_cost if ln.ext_cost is not none else '—' }}</td><td>{% if ln.kind == 'cots' %}<span class="badge {{ 'ok' if ln.sourcing_status == 'verified' else 'warn' if ln.sourcing_status in ('unverified','catalog','no-url','link-failed') else 'fail' if ln.sourcing_status == 'missing' else 'skip' }}">{{ ln.sourcing_status }}</span>{% else %}custom{% endif %}</td><td>{{ ln.manufacturer }}</td><td class="actions small">{% if glb_b64 %}<a href="#model" data-show3d="{{ ln.uri }}">3D</a>{% endif %}{% if ln.has_drawing %}<a href="#drawing-{{ ln.id }}">drawing</a>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <p class="muted small">Prices are declared estimates until a shop quotes them. Spreadsheet: <span class="mono">build/bom/bom.xlsx</span>, <span class="mono">build/bom/bom.csv</span>.</p>
 </section>
 
-<section class="card" id="sec-drawings">
-  <h2>Drawings</h2>
-  <p class="muted" style="font-size:.85rem">Click a drawing to enlarge it; the full-size files are in <span class="mono">build/drawings/</span>.</p>
-  <div class="grid">{% for d in drawings %}<figure id="drawing-{{ d.id }}" onclick="this.classList.toggle('zoom')">{{ d.svg | safe }}<figcaption>{{ d.uri }} · rev {{ d.rev }}{% if d.has_flat %} · flat pattern DXF: <span class="mono">build/drawings/{{ d.id }}-flat.dxf</span>{% endif %}</figcaption></figure>{% endfor %}</div>
+<section class="card" id="drawings">
+  {{ h2('drawings', 'Drawings') }}
+  <p class="lead">Click a drawing to enlarge it; the full-size files are in <span class="mono">build/drawings/</span>.</p>
+  {% if drawings %}<div class="grid">{% for d in drawings %}<figure id="drawing-{{ d.id }}"><div onclick="this.parentNode.classList.toggle('zoom')">{{ d.svg | safe }}</div><figcaption>{{ d.uri | ref }} · rev {{ d.rev }}{% if d.has_flat %} · flat pattern: <span class="mono">build/drawings/{{ d.id }}-flat.dxf</span>{% endif %}{% if glb_b64 %} · <a href="#model" data-show3d="{{ d.uri }}">3D</a>{% endif %}</figcaption></figure>{% endfor %}</div>{% else %}<p class="muted">No drawings yet.</p>{% endif %}
 </section>
 
-<section class="card" id="sec-checks">
-  <h2><span class="owner-only">Checks</span><span class="engineer-only">Check matrix</span></h2>
-  <table><thead><tr><th>id</th><th>requirement</th><th>category</th><th class="engineer-only">verify</th><th>status</th><th>finding</th></tr></thead><tbody>
-  {% for r in req_rows %}<tr id="req-{{ r.id }}"><td class="mono">{{ r.id }}{% if r.safety %} ⚠{% endif %}</td><td>{{ r.title }}</td><td>{{ r.category }}</td><td class="mono engineer-only">{{ r.kind }}</td><td><span class="badge {{ r.status }}">{{ vv(r.status) }}</span></td><td>{{ r.message }}{% if r.signoff_example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td></tr>{% endfor %}
-  </tbody></table>
-  {% if rule_matrix.rules %}<details class="engineer-only block" open><summary>Rules × parts</summary>
-  <table class="matrix"><thead><tr><th>rule</th>{% for p in rule_matrix.parts %}<th class="mono">{{ p }}</th>{% endfor %}</tr></thead><tbody>
-  {% for rid, title in rule_matrix.rules.items() %}<tr><td title="{{ rid }}">{{ title }}</td>{% for p in rule_matrix.parts %}{% set st = rule_matrix.cells.get(p, {}).get(rid) %}<td class="cell">{% if st %}<span class="badge {{ st }}">{{ st }}</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}
-  </tbody></table></details>{% endif %}
-  {% if other_rows %}<details class="owner-only block"><summary>Everything that is not simply OK ({{ other_rows | length }})</summary><table><thead><tr><th>check</th><th>subject</th><th>status</th><th>detail</th></tr></thead><tbody>{% for r in other_rows %}<tr><td class="mono">{{ r.id }}</td><td class="mono">{{ r.subject }}</td><td><span class="badge {{ r.status }}">{{ vv(r.status) }}</span></td><td>{{ r.message }}</td></tr>{% endfor %}</tbody></table></details>
-  <details class="engineer-only block"><summary>Non-passing rows ({{ other_rows | length }})</summary><table><thead><tr><th>check</th><th>subject</th><th>status</th><th>detail</th></tr></thead><tbody>{% for r in other_rows %}<tr><td class="mono">{{ r.id }}</td><td class="mono">{{ r.subject }}</td><td><span class="badge {{ r.status }}">{{ r.status }}</span></td><td>{{ r.message }}</td></tr>{% endfor %}</tbody></table></details>{% endif %}
+<section class="card" id="interfaces">
+  {{ h2('interfaces', 'Interfaces') }}
+  <p class="lead">Contracts between parts: both parties' geometry is generated from the same definition and a check confirms they agree.</p>
+  {% if interfaces %}<table><thead><tr><th>id</th><th>kind</th><th>spec</th><th>between</th><th>description</th></tr></thead><tbody>
+  {% for i in interfaces %}<tr id="iface-{{ i.id }}"><td class="mono">{{ i.id }}</td><td>{{ i.kind }}</td><td class="mono">{{ i.spec }}</td><td>{% for p in i.parties %}{{ p | ref }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td><td>{{ i.description }}</td></tr>{% endfor %}
+  </tbody></table>{% else %}<p class="muted">No interfaces declared.</p>{% endif %}
 </section>
 
-<section class="card" id="sec-reqs">
-  <h2>Requirements trace</h2>
-  <table><thead><tr><th>id</th><th>statement</th><th>allocated to</th><th>satisfied by</th></tr></thead><tbody>
-  {% for r in trace %}<tr><td class="mono">{{ r.id }}</td><td>{{ r.statement }}</td><td class="mono">{{ r.allocation | join(', ') }}</td><td class="mono">{{ r.satisfied_by | join(', ') }}</td></tr>{% endfor %}
+<section class="card" id="requirements">
+  {{ h2('requirements', 'Requirements') }}
+  <p class="lead">Every requirement, how it is verified, the verdict, and which parts carry it. ⚠ marks safety requirements.</p>
+  <p class="filter"><label><input type="checkbox" id="req-open-only"> show only what is not {{ w('pass') }}</label></p>
+  <table id="req-table"><thead><tr><th>id</th><th>requirement</th><th>category</th><th>verified by</th><th>status</th><th>finding</th><th>parts</th></tr></thead><tbody>
+  {% for r in req_rows %}<tr id="req-{{ r.id }}" class="st-{{ r.status }}"><td class="mono">{{ r.id }}{% if r.safety %} ⚠{% endif %}</td><td class="req"><strong>{{ r.title }}</strong><br><span class="muted small">{{ r.statement }}</span></td><td>{{ r.category }}{% if r.priority != 'must' %}<br><span class="muted small">{{ r.priority }}</span>{% endif %}</td><td class="mono wrap">{{ r.kind }}{% if r.target %}<br>{{ r.target | ref }}{% endif %}</td><td>{{ badge(r.status) }}</td><td>{{ r.message }}{% if r.signoff_example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}{% if r.signed %} <a class="small" href="#signoff-{{ r.id }}">sign-off</a>{% endif %}</td><td class="small wrap">{% if r.allocation | reject('equalto', '') | list %}<span class="muted">allocated to</span> {% for a in r.allocation %}{{ a | ref }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}{% if r.satisfied_by %}<br><span class="muted">satisfied by</span> {% for s in r.satisfied_by %}{{ s | ref }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td></tr>{% endfor %}
   </tbody></table>
 </section>
 
-<section class="card" id="sec-params">
-  <h2>Parameters</h2>
+<section class="card" id="rules">
+  {{ h2('rules', 'Rule checks') }}
+  <p class="lead">Design rules run against every part (sheet-metal limits, sourcing, completeness) plus assembly-level checks. {{ rule_summary.pass }} {{ w('pass') }}{% if rule_summary.warn %} · {{ rule_summary.warn }} {{ w('warn') }}{% endif %}{% if rule_summary.fail %} · {{ rule_summary.fail }} {{ w('fail') }}{% endif %}{% if rule_summary.skip %} · {{ rule_summary.skip }} {{ w('skip') }}{% endif %}.</p>
+  {% if other_rows %}<h3>Findings ({{ other_rows | length }})</h3>
+  <div class="scroll"><table><thead><tr><th>check</th><th>subject</th><th>status</th><th>detail</th></tr></thead><tbody>{% for r in other_rows %}<tr><td class="mono">{{ r.id | replace('rule://', '') }}</td><td>{{ r.subject | ref }}</td><td>{{ badge(r.status) }}</td><td>{{ r.message }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<p>Every rule passes.</p>{% endif %}
+  {% if rule_matrix.rules %}<h3>Rules × parts</h3>
+  <div class="legend"><span><i class="dot pass"></i> {{ w('pass') }}</span><span><i class="dot warn"></i> {{ w('warn') }}</span><span><i class="dot fail"></i> {{ w('fail') }}</span><span><i class="dot skip"></i> {{ w('skip') }}</span><span>blank: rule does not apply</span></div>
+  <div class="scroll"><table class="matrix"><thead><tr><th class="rule">rule</th>{% for p in rule_matrix.parts %}<th class="part"><a href="#part-{{ p }}">{{ p }}</a></th>{% endfor %}</tr></thead><tbody>
+  {% for rid, title in rule_matrix.rules.items() %}<tr><td class="rule" title="{{ rid }}">{{ title }}</td>{% for p in rule_matrix.parts %}{% set st = rule_matrix.cells.get(p, {}).get(rid) %}<td class="cell">{% if st %}<i class="dot {{ st }}" title="{{ p }}: {{ w(st) }}"></i>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+  </tbody></table></div>{% endif %}
+</section>
+
+<section class="card" id="signoffs">
+  {{ h2('signoffs', 'Sign-offs') }}
+  <p class="lead">A sign-off is a human's statement that a requirement checked by hand holds. It is bound to the evidence at signing time and lapses when that evidence changes.</p>
+  {% if signoffs %}<table><thead><tr><th>requirement</th><th>by</th><th>date</th><th>statement</th><th>valid</th></tr></thead><tbody>{% for s in signoffs %}<tr id="signoff-{{ s.requirement | replace('req://', '') }}"><td>{{ s.requirement | ref }}</td><td>{{ s.by }}{% if s.example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td><td>{{ s.date }}</td><td>{{ s.statement }}</td><td><span class="badge {{ 'ok' if s.valid else 'warn' }}">{{ 'valid' if s.valid else s.why }}</span></td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">None yet.</p>{% endif %}
+</section>
+
+<section class="card" id="parameters">
+  {{ h2('parameters', 'Parameters') }}
+  <p class="lead">The named values the geometry, checks and manuals are generated from. A change request edits these.</p>
   <table><thead><tr><th>name</th><th class="num">value</th><th>description</th></tr></thead><tbody>
-  {% for p in params %}<tr><td class="mono">param://{{ p.slug }}</td><td class="num">{{ p.value }}</td><td>{{ p.description }}{% if p.expr %} <span class="mono muted">= {{ p.expr }}</span>{% endif %}</td></tr>{% endfor %}
+  {% for p in params %}<tr id="param-{{ p.slug }}"><td class="mono">param://{{ p.slug }}</td><td class="num">{{ p.value }}</td><td>{{ p.description }}{% if p.expr %} <span class="mono muted">= {{ p.expr }}</span>{% endif %}</td></tr>{% endfor %}
   </tbody></table>
 </section>
 
-<section class="card" id="sec-decisions">
-  <h2>Decisions</h2>
-  {% for d in decisions %}<details><summary><span class="mono">{{ d.id }}</span> {{ d.title }} <span class="muted">({{ d.date }}, {{ d.made_by }}{% if d.verify %}, <span class="badge warn">verify</span>{% endif %})</span></summary><p>{{ d.decision }}</p>{% if d.rationale %}<p class="muted">{{ d.rationale }}</p>{% endif %}{% if d.sources %}<ul>{% for s in d.sources %}<li class="muted">{{ s }}</li>{% endfor %}</ul>{% endif %}<p class="mono muted">{{ d.links | join(' · ') }}</p></details>{% endfor %}
+<section class="card" id="decisions">
+  {{ h2('decisions', 'Decisions') }}
+  <p class="lead">Why the design is the way it is. <span class="badge warn">verify</span> marks engineering numbers still awaiting human confirmation.</p>
+  {% for d in decisions %}<details id="dec-{{ d.id }}"><summary><span class="mono">{{ d.id }}</span> {{ d.title }} <span class="muted">({{ d.date }}, {{ d.made_by }}{% if d.verify %}, <span class="badge warn">verify</span>{% endif %})</span></summary><p>{{ d.decision }}</p>{% if d.rationale %}<p class="muted">{{ d.rationale }}</p>{% endif %}{% if d.sources %}<ul>{% for s in d.sources %}<li class="muted">{{ s }}</li>{% endfor %}</ul>{% endif %}{% if d.links %}<p class="small">Affects: {% for l in d.links %}{{ l | ref }}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}</details>{% endfor %}
   {% if not decisions %}<p class="muted">No decisions logged yet.</p>{% endif %}
 </section>
 
-<section class="card" id="sec-changes">
-  <h2>{{ vv('changes') }}</h2>
-  {% if ecrs %}<table><thead><tr><th>id</th><th>title</th><th>kind</th><th>status</th><th>released in</th></tr></thead><tbody>{% for e in ecrs %}<tr><td class="mono">{{ e.id }}</td><td>{{ e.title }}</td><td>{{ e.kind }}</td><td><span class="badge {{ 'ok' if e.status == 'closed' else 'skip' }}">{{ e.status }}</span></td><td>{{ e.released_in or '—' }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">No {{ vv('changes') }} yet.</p>{% endif %}
+<section class="card" id="changes">
+  {{ h2('changes', words.changes) }}
+  {% if ecrs %}<table><thead><tr><th>id</th><th>title</th><th>kind</th><th>status</th><th>released in</th></tr></thead><tbody>{% for e in ecrs %}<tr id="ecr-{{ e.id }}"><td class="mono">{{ e.id }}</td><td>{{ e.title }}</td><td>{{ e.kind }}</td><td><span class="badge {{ 'ok' if e.status == 'closed' else 'skip' }}">{{ e.status }}</span></td><td>{{ e.released_in or '—' }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">No {{ words.changes | lower }} yet.</p>{% endif %}
 </section>
 
-<section class="card" id="sec-docs">
-  <h2>Manuals</h2>
+<section class="card" id="manuals">
+  {{ h2('manuals', 'Manuals') }}
+  <p class="lead">Each manual is also a PDF under <span class="mono">build/docs/</span>. The safety page is shown <a href="#safety">above</a>.</p>
   {% for d in docs %}<details id="doc-{{ d.id }}"{% if loop.first %} open{% endif %}><summary>{{ d.title }} <span class="muted">({{ d.audience | join(', ') }})</span> <span class="mono muted">build/docs/{{ d.id }}/page.pdf</span></summary><div class="doc">{{ d.html | safe }}</div></details>{% endfor %}
-</section>
-
-<section class="card" id="sec-signoffs">
-  <h2>Sign-offs</h2>
-  {% if signoffs %}<table><thead><tr><th>requirement</th><th>by</th><th>date</th><th>statement</th><th>valid</th></tr></thead><tbody>{% for s in signoffs %}<tr><td class="mono">{{ s.requirement }}</td><td>{{ s.by }}{% if s.example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}</td><td>{{ s.date }}</td><td>{{ s.statement }}</td><td><span class="badge {{ 'ok' if s.valid else 'warn' }}">{{ 'valid' if s.valid else s.why }}</span></td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">None yet.</p>{% endif %}
+  {% if not docs %}<p class="muted">No manuals yet.</p>{% endif %}
 </section>
 
 <footer class="muted" style="font-size:.8rem">generated by napkin2factory {{ version }} · {{ generated }} · report {{ build_id }}</footer>
 </main>
+</div>
 <script>
 (function(){
-  var root=document.documentElement;
-  function setPersona(p){root.setAttribute('data-persona',p);document.getElementById('btn-owner').classList.toggle('active',p==='owner');document.getElementById('btn-engineer').classList.toggle('active',p==='engineer');try{localStorage.setItem('n2f-persona',p);}catch(e){}}
-  document.getElementById('btn-owner').onclick=function(){setPersona('owner')};
-  document.getElementById('btn-engineer').onclick=function(){setPersona('engineer')};
-  var saved=null;try{saved=localStorage.getItem('n2f-persona');}catch(e){}
-  setPersona(saved||root.getAttribute('data-persona')||'owner');
   var bom={{ bom_json | safe }};
-  window.n2fPartCard=function(uri){var card=document.getElementById('part-card');if(!card)return;if(!uri){card.textContent='Click a part.';card.className='muted';return;}var row=bom[uri]||{};card.className='';card.innerHTML='<strong>'+(row.name||uri)+'</strong> <span class="mono muted">'+uri+'</span><br>'+(row.kind||'')+(row.total_qty?' · qty '+row.total_qty:'')+(row.unit_cost!=null?' · '+row.unit_cost.toFixed(2)+' USD each':'')+(row.manufacturer?'<br><span class="muted">'+row.manufacturer+'</span>':'');document.querySelectorAll('#bom tr').forEach(function(tr){tr.style.background=tr.getAttribute('data-uri')===uri?'#fff6d6':''});};
+  function partLinks(uri){var row=bom[uri]||{};var out=[];if(row.in_bom)out.push('<a href="#part-'+row.id+'">parts list</a>');if(row.has_drawing)out.push('<a href="#drawing-'+row.id+'">drawing</a>');return out.length?'<br><span class="small">'+out.join(' · ')+'</span>':'';}
+  window.n2fPartCard=function(uri){var card=document.getElementById('part-card');if(!card)return;if(!uri){card.textContent='Click a part.';card.className='muted';return;}var row=bom[uri]||{};card.className='';card.innerHTML='<strong>'+(row.name||uri)+'</strong> <span class="mono muted">'+uri+'</span><br>'+(row.kind==='cots'?'bought':(row.kind||''))+(row.total_qty?' · qty '+row.total_qty:'')+(row.unit_cost!=null?' · '+row.unit_cost.toFixed(2)+' USD each':'')+(row.manufacturer?'<br><span class="muted">'+row.manufacturer+'</span>':'')+partLinks(uri);document.querySelectorAll('#bom tr').forEach(function(tr){tr.classList.toggle('row-hl',tr.getAttribute('data-uri')===uri)});};
   document.addEventListener('n2f:select',function(ev){window.n2fPartCard(ev.detail.uri)},true);
   var viewerEl=document.getElementById('viewer');
   if(viewerEl){viewerEl.addEventListener('n2f:select',function(ev){window.n2fPartCard(ev.detail.uri)});
     var ex=document.getElementById('explode');if(ex)ex.oninput=function(){if(window.n2fViewer)window.n2fViewer.explode(parseFloat(ex.value))};
     var sec=document.getElementById('section');if(sec)sec.onchange=function(){if(window.n2fViewer)window.n2fViewer.section(sec.checked)};
     var fit=document.getElementById('fit');if(fit)fit.onclick=function(){if(window.n2fViewer)window.n2fViewer.fit()};
+    document.querySelectorAll('[data-show3d]').forEach(function(a){a.addEventListener('click',function(){var uri=a.getAttribute('data-show3d');if(window.n2fViewer){window.n2fViewer.select(uri);}else{window.n2fPartCard(uri);}});});
   }
+  var only=document.getElementById('req-open-only');if(only)only.onchange=function(){document.getElementById('req-table').classList.toggle('only-open',only.checked)};
+  // section index: highlight the section in view
+  var links={};document.querySelectorAll('nav.side a[data-sec]').forEach(function(a){links[a.getAttribute('data-sec')]=a});
+  var visible={};
+  function refresh(){var best=null,top=Infinity;Object.keys(visible).forEach(function(id){if(visible[id]<top){top=visible[id];best=id}});Object.keys(links).forEach(function(id){links[id].classList.toggle('active',id===best)});}
+  if('IntersectionObserver' in window){var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)visible[e.target.id]=e.boundingClientRect.top;else delete visible[e.target.id]});refresh();},{rootMargin:'-60px 0px -40% 0px',threshold:[0,0.1]});document.querySelectorAll('main > section.card').forEach(function(s){io.observe(s)});}
 })();
 </script>
 {{ viewer_script | safe }}

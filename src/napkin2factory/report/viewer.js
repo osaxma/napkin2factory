@@ -7,7 +7,12 @@
 //   select(uri)            -> highlight one part, fire 'n2f:select' on the container
 //   highlight(uris, color) -> colour a set of parts (changed-part highlighting)
 //   explode(factor)        -> move top-level instances along the exploded axis
+//   render()               -> queue a redraw (after mutating scene/camera directly)
 //   ready                  -> Promise resolving after the first frame
+//
+// Rendering is on demand: a frame is drawn only when something changed (orbit/zoom, an API
+// call, a resize) and only while the viewer is on screen and the tab is visible.  An always-on
+// requestAnimationFrame loop kept the GPU and main thread busy for the whole page lifetime.
 
 function n2fCreateViewer(container, options) {
   const opts = Object.assign({ background: 0xf4f4f2, explodeAxis: 'z', explodeSpacing: 80 }, options || {});
@@ -16,10 +21,11 @@ function n2fCreateViewer(container, options) {
   const scene = new Scene();
   scene.background = new Color(opts.background);
   const camera = new PerspectiveCamera(40, width / height, 0.1, 100000);
-  const renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  // No preserveDrawingBuffer: snapshot() renders and reads back in the same task instead.
+  const renderer = new WebGLRenderer({ antialias: true });
   renderer.localClippingEnabled = true;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(width, height);
-  renderer.setPixelRatio(window.devicePixelRatio || 1);
   container.appendChild(renderer.domElement);
   scene.add(new HemisphereLight(0xffffff, 0x888888, 1.2));
   const key = new DirectionalLight(0xffffff, 1.0);
@@ -27,6 +33,42 @@ function n2fCreateViewer(container, options) {
   scene.add(key);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
+  // The wheel scrolls the page until the viewer is clicked; otherwise scrolling past the model
+  // zooms it instead (and renders a frame per wheel tick).  A click elsewhere hands the wheel back.
+  controls.enableZoom = false;
+  container.addEventListener('pointerdown', () => { controls.enableZoom = true; container.classList.add('n2f-active'); });
+  document.addEventListener('pointerdown', (ev) => {
+    if (!container.contains(ev.target)) { controls.enableZoom = false; container.classList.remove('n2f-active'); }
+  });
+
+  let firstFrame = null;
+  let pending = false;   // a frame is queued
+  let dirty = true;      // something changed while we were not allowed to draw
+  let onScreen = true;   // until the IntersectionObserver says otherwise
+  function canDraw() { return onScreen && !document.hidden; }
+  function frame() {
+    pending = false;
+    if (!canDraw() && !firstFrame) { dirty = true; return; }
+    dirty = false;
+    // With damping, update() keeps returning true (and firing 'change') until the motion settles.
+    if (controls.update()) requestRender();
+    renderer.render(scene, camera);
+    if (firstFrame) { firstFrame(api); firstFrame = null; }
+  }
+  function requestRender() {
+    if (pending) return;
+    if (!canDraw() && !firstFrame) { dirty = true; return; }
+    pending = true;
+    requestAnimationFrame(frame);
+  }
+  controls.addEventListener('change', requestRender);
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((entries) => {
+      onScreen = entries[entries.length - 1].isIntersecting;
+      if (onScreen && dirty) requestRender();
+    }).observe(container);
+  }
+  document.addEventListener('visibilitychange', () => { if (canDraw() && dirty) requestRender(); });
 
   const partNodes = new Map();   // uri -> [Object3D]
   const baseMaterials = new Map(); // mesh.uuid -> material
@@ -61,6 +103,7 @@ function n2fCreateViewer(container, options) {
     });
     for (const child of root.children) basePositions.set(child.uuid, child.position.clone());
     fit();
+    requestRender();
   }
 
   function fit() {
@@ -75,6 +118,7 @@ function n2fCreateViewer(container, options) {
     camera.updateProjectionMatrix();
     controls.target.copy(center);
     controls.update();
+    requestRender();
   }
 
   function setColor(uri, hex, emissive) {
@@ -92,6 +136,7 @@ function n2fCreateViewer(container, options) {
         }
       });
     }
+    requestRender();
   }
 
   const api = {
@@ -122,15 +167,18 @@ function n2fCreateViewer(container, options) {
         child.position.copy(base);
         child.position[axis] = base[axis] + factor * opts.explodeSpacing * i;
       });
+      requestRender();
     },
     fit,
     // Section: clip everything above the model's mid-height (a global clipping plane).
     section(on) {
-      if (!on) { renderer.clippingPlanes = []; return; }
+      if (!on) { renderer.clippingPlanes = []; requestRender(); return; }
       const box = new Box3().setFromObject(root || scene);
       const midZ = (box.min.z + box.max.z) / 2;
       renderer.clippingPlanes = [new Plane(new Vector3(0, 0, -1), midZ)];
+      requestRender();
     },
+    render: requestRender,
     snapshot() { renderer.render(scene, camera); return renderer.domElement.toDataURL('image/png'); },
   };
 
@@ -143,15 +191,9 @@ function n2fCreateViewer(container, options) {
     api.select(hits.length ? uriOf(hits[0].object) : null);
   });
 
-  let firstFrame;
+  // The first frame is drawn even off screen so that `ready` always resolves.
   api.ready = new Promise((resolve) => { firstFrame = resolve; });
-  function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-    if (firstFrame) { firstFrame(api); firstFrame = null; }
-  }
-  animate();
+  requestRender();
 
   api.loadBase64 = function (b64) {
     return new Promise((resolve, reject) => {
@@ -164,6 +206,7 @@ function n2fCreateViewer(container, options) {
   window.addEventListener('resize', () => {
     const w = container.clientWidth || width, h = container.clientHeight || height;
     camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h);
+    requestRender();
   });
   return api;
 }

@@ -99,7 +99,7 @@ For the ECO-loop GIF, in a fresh copy of `examples/kiln` (what `demo.sh` does un
    page: red/green drawing overlay of the shell, BOM delta with cost and mass, side-by-side
    3D with the changed parts in amber (7 s).
 
-Pages to show: `build/report/index.html` (owner view, then toggle to engineer view),
+Pages to show: `build/report/index.html` (section index on the left; every URI is a link),
 `build/site/diff/v1.0.0..v1.1.0/index.html`.
 
 ## 5. Known rough edges in UX, ranked
