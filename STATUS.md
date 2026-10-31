@@ -1,15 +1,18 @@
 # STATUS — napkin2factory
 
-**Version:** 0.2.0, released 2026-11-01 (`v0.2.0` on 42f0672; `main` at the same commit) ·
-**Release branch:** `v0.2-build` (next work continues here until a v0.3 branch is cut) ·
+**Version:** 0.2.0, released 2026-11-01 (`v0.2.0` on 42f0672; `main` at 3a47585) ·
+**Release branch:** `v0.3-build`, cut 2026-11-01 from `v0.2-build` (v0.2 leftovers continue here) ·
 **Open work:** `BACKLOG.md` · **Why things are the way they are:** `DECISIONS.md` (index at the top) ·
 **What shipped:** `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
 
 ## Where we are
 v0.2 (the napkin stage) is complete and published: M0–M7 done, review gates A and B closed with
-their blockers fixed, `make check-full` green from a clean clone. Uncommitted or pending on this
-branch: journal consolidation (S-073), README for people and the agent guide (S-074), the icon on
-generated pages (S-075), `AGENTS.md` only (S-076), generic roles in `roles/` (S-077).
+their blockers fixed, `make check-full` green from a clean clone.
+v0.3 is open on `v0.3-build`, not yet pushed. So far: journal consolidation (S-073), README for
+people and the agent guide (S-074), the icon on generated pages (S-075), `AGENTS.md` only
+(S-076), generic roles in `roles/` (S-077). Package versions still read 0.2.0; releasing 0.3.0
+means bumping the three version files (S-054), pushing, fast-forwarding `main` (which also makes
+the README's guide link resolve, B-0058) and tagging `v0.3.0` on a green commit (S-072).
 
 ## Environment (host facts a cold reader needs)
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via
