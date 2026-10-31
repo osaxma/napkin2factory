@@ -13,7 +13,7 @@ rows:
   - {process_class: cut-block, unit: per_kg, low_usd: 18.8, high_usd: 40.1, verify: true,
      source: "kiln per-part estimates for K-23 insulating firebrick, cut and grooved (basis estimate, DEC-012): liner-slab 50 USD / 2.66 kg, door-brick 60 / 2.50, liner-side 55 / 1.53, liner-back 45 / 1.12"}
   - {process_class: fiber-board, unit: per_kg, low_usd: 2.0, high_usd: 7.9, verify: true,
-     source: "kiln per-part estimates for Kaowool 1260 class board, cut (basis estimate, DEC-012): fiber-slab 22 USD / 11.07 kg, fiber-side 22 / 6.33, fiber-back 20 / 3.61, door-fiber 30 / 3.78 (masses at the 300 kg/m3 density of geometry/materials.py)"}
+     source: "kiln per-part estimates for Kaowool 1260 class board, cut (basis estimate, DEC-012): fiber-slab 22 USD / 11.07 kg, fiber-side 22 / 6.33, fiber-back 20 / 3.61, door-fiber 30 / 3.78 (masses at the 260 kg/m3 density declared on the kiln parts, the calckit/data/materials.yaml row)"}
   - {process_class: welding, unit: per_kg, low_usd: 19.5, high_usd: 19.5, verify: true,
      source: "single kiln per-part estimate (basis estimate, DEC-012): stand, welded 25 x 25 x 1.5 square tube, 140 USD / 7.17 kg; no band yet, replace with quotes"}
   - {process_class: machining, unit: per_kg, low_usd: 31.8, high_usd: 128.9, verify: true,

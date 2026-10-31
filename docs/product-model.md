@@ -86,8 +86,11 @@ schema plus C1 id matches the file name, C2 every `refs` file exists under `conc
 C3 every `massing[].kit` is a kit generator, C4 `based_on` names an existing card, C5 `site`
 keys come from the known list (`alcove_width, alcove_depth, alcove_height, floor_load,
 circuit, region, lift_class, door_clearance, ambient_max, outdoor`; an unknown key only
-warns), C6 at most one card is promoted. While `concepts/` holds a card, `n2f status` shows
-an optional **Napkin** stage before Intake, complete once a card is promoted (N11).
+warns), C6 at most one card is promoted, C7 a `promoted` card carries a screening and
+`decision.dec` naming an entry in `model/decisions.yaml` (what `n2f concept promote` writes)
+and a `rejected` card a `decision.reason`. While `concepts/` holds a card, `n2f status` shows
+an optional **Napkin** stage before Intake, complete once a card is promoted by
+`n2f concept promote` — a status typed by hand is a blocker, not a pass (N11, review gate A).
 
 **style.yaml** — `preset: industrial | appliance | lab, palette: {part role: colour},
 finish: {part role: finish}, radius_scale: 1.0, reveal: 2 mm, fastener_visibility:

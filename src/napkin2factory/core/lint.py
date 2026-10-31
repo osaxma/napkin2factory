@@ -252,4 +252,31 @@ def lint(product: Product) -> Problems:
             rule="L11-operator",
         )
 
+    # L12: form requirements need parts with a style role, or they stay unchecked.
+    form_reqs = [
+        r
+        for r in product.requirements.values()
+        if r.verify is not None
+        and r.verify.kind == "rule"
+        and str(r.verify.target).startswith("rule://form-v0/")
+    ]
+    if form_reqs and not _any_styled_part(product):
+        problems.add(
+            rf,
+            ", ".join(f"req://{r.id}" for r in form_reqs),
+            "form requirements exist (`rule://form-v0/…`) but no custom part declares a "
+            "style `role:` — they will stay unchecked",
+            "give the body, door, stand, controls and trim parts `role:` "
+            "(model/parts/<id>.yaml), or sign the rows off by hand",
+            severity="warn",
+            rule="L12-form-needs-roles",
+        )
+
     return problems
+
+
+def _any_styled_part(product: Product) -> bool:
+    """True when some custom part has a role the form pack checks (explicit or by its id)."""
+    from napkin2factory.core.model.style import STYLED_ROLES, role_for
+
+    return any(role_for(p) in STYLED_ROLES for p in product.custom_parts())

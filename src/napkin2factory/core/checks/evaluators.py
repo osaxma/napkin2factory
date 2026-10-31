@@ -8,7 +8,9 @@ a non-safety ``needs-human`` with a valid sign-off becomes ``pass``.
 ``rule`` (form requirements, v0.2) reads the rule-pack rows of the same check run
 (:attr:`EvalContext.rule_results`, filled by the engine before requirements are
 evaluated): any ``fail`` row for the targeted rule fails the requirement; ``warn`` rows
-never fail it (the row reads ``warn``); no applicable part is ``skip``.
+never fail it (the row reads ``warn``); no applicable part is ``skip`` while the parts are
+not built yet, and ``needs-human`` once they are (no part declares a style role, so a
+person sets roles or signs it off — review gate A, C3).
 """
 
 from __future__ import annotations
@@ -84,6 +86,20 @@ def prop_quantity(props: dict[str, Any], selector: tuple[str, ...]) -> Any:
 
 #: The ``skip`` message of a ``rule`` requirement whose rule applies to no part yet.
 NO_APPLICABLE_PART = "no part this rule applies to yet"
+
+
+#: The ``needs-human`` message of a ``rule`` requirement no part applies to once the
+#: product's parts are built (review gate A, C3).
+NO_STYLED_PART = (
+    "no part declares a style role yet; add `role:` to the body/door/stand/controls/trim "
+    "parts or sign off by hand"
+)
+
+
+def _design_built(ctx: EvalContext) -> bool:
+    """The Design gate's part condition: there are parts with geometry, all of them built."""
+    parts = list(ctx.product.parts_with_geometry())
+    return bool(parts) and all(ctx.props(p.uri) is not None for p in parts)
 
 
 def rule_verdict(ctx: EvalContext, rule_uri: str) -> tuple[str, str, list[str]]:
@@ -263,6 +279,9 @@ def evaluate_requirement(ctx: EvalContext, req: Requirement) -> CheckResult:
         elif v.kind == "rule":
             assert v.target is not None
             computed, res.message, subjects = rule_verdict(ctx, str(v.target.base))
+            if computed == "skip" and not subjects and _design_built(ctx):
+                # no part opted in: a person decides, never a silent skip (gate A, C3)
+                computed, res.message = None, NO_STYLED_PART
             for subject in subjects:
                 evidence[subject] = evidence_key(ctx.product, ctx.build_dir, subject)
     except (CalcError, UnitError, KeyError, AssertionError) as exc:

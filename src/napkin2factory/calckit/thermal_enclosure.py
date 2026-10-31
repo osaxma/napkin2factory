@@ -28,8 +28,10 @@ are used): natural-convection film coefficient h ≈ 5–10 W/m²K on a vertical
 tens of K above the air (simplified correlation h ≈ 1.42 (ΔT/L)^0.25 W/m²K for air);
 emissivity 0.9 for powder coat (0.85–0.95 typical); K-23 insulating firebrick
 k ≈ 0.25 W/m·K at mean wall temperature (Morgan Thermal Ceramics datasheet range
-0.20–0.30 over 400–1000 °C); Kaowool 1260 board k ≈ 0.12 W/m·K, ρ ≈ 260 kg/m³ (Morgan
-Thermal Ceramics datasheet). This module holds no material constants itself.
+0.20–0.30 over 400–1000 °C); Kaowool 1260 board k ≈ 0.15 W/m·K at a ~400 °C mean
+(datasheet range 0.12–0.18 over 400–700 °C), ρ ≈ 260 kg/m³ (Morgan Thermal Ceramics
+datasheet). Those rows live in ``calckit/data/materials.yaml``; this module holds no
+material constants itself.
 
 Every public function takes and returns pint quantities from the shared registry
 (:mod:`napkin2factory.core.units`); floats are used only inside, in SI units.
@@ -42,7 +44,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from napkin2factory.core.units import Quantity
+from napkin2factory.core.units import Quantity, UnitError
 
 #: A pint quantity from the shared registry (pint is untyped for mypy).
 Qty = Any
@@ -94,26 +96,34 @@ class ThermalResult:
 # --- unit boundary ------------------------------------------------------------------
 
 
+def _si(q: Qty, unit: str, example: str) -> float:
+    """``q`` in ``unit`` as a float; a bare number is refused with a unit error."""
+    if not hasattr(q, "to"):
+        raise UnitError(
+            f"thermal_enclosure expects a quantity like {example!r}, got the bare number {q!r}"
+        )
+    return float(q.to(unit).magnitude)
+
+
 def _m(q: Qty) -> float:
-    return float(q.to("m").magnitude)
+    return _si(q, "m", "64 mm")
 
 
 def _kelvin(q: Qty) -> float:
-    return float(q.to("kelvin").magnitude)
+    return _si(q, "kelvin", "1200 degC")
 
 
 def _wmk(q: Qty) -> float:
-    return float(q.to("W/(m*K)").magnitude)
+    return _si(q, "W/(m*K)", "0.15 W/(m*K)")
 
 
 def _h(q: Qty) -> float:
-    return float(q.to("W/(m**2*K)").magnitude)
+    return _si(q, "W/(m**2*K)", "5 W/(m**2*K)")
 
 
 def _dimless(x: Qty) -> float:
-    if hasattr(x, "to"):
-        return float(x.to("dimensionless").magnitude)
-    return float(x)
+    # an emissivity too: Quantity(0.9, "") — the same rule as every other input (gate A, C10)
+    return _si(x, "dimensionless", "Quantity(0.9, '')")
 
 
 def _degc(t_k: float) -> Qty:
@@ -346,8 +356,8 @@ def guard_temperature(
     """
     t_g = _guard_k(
         _kelvin(hot_face_temperature),
-        float(a_hot.to("m**2").magnitude),
-        float(a_guard.to("m**2").magnitude),
+        _si(a_hot, "m**2", "0.5 m**2"),
+        _si(a_guard, "m**2", "0.5 m**2"),
         _dimless(emissivity_hot),
         _dimless(emissivity_guard),
         _h(h_outer),

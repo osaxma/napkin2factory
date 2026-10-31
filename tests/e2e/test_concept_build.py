@@ -47,6 +47,8 @@ def test_concept_build_all_screens_one_red_one_green(product: Path) -> None:
     assert "C-001 — this direction has problems:" in out
     assert "995 mm for the body plus 250 mm for the open door" in out
     assert "C-002 holds up: 400 × 403 × 400 mm (computed)" in out
+    # the card's own power and circuit are given; only the fit is an estimate (gate A, C1)
+    assert "2.5 kW (on the card) on the 240V-13A circuit — fits with 1.2 headroom (estimate)" in out
     assert "(estimate)" in out and "worth a look:" in out
     assert "screening failed" not in out.lower()
     for cid in ("C-001", "C-002"):

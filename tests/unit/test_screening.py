@@ -185,6 +185,11 @@ def test_kiln_like_card_screens_red_on_the_alcove_with_door_swing(kiln: Screenin
     # labels present on every number
     assert all(v.label == "computed" for v in kiln.computed.values())
     assert all(v.label == "estimate" for v in kiln.estimates.values())
+    # the card's own inputs come back as given, never as an estimate (review gate A, C1)
+    assert all(v.label == "given" for v in kiln.given.values())
+    assert set(kiln.given) == {"power", "circuit_class"}
+    assert kiln.given["power"].value == "2.5 kW"
+    assert kiln.given["power"].source == "envelope.power (on the card)"
 
     wide = _screen(_card(KILN, site={"alcove_width": "1300 mm"}))
     assert _rule(wide, "fits-site-width").status == "pass"
@@ -232,14 +237,17 @@ def test_fits_site_depth_and_height(kiln: Screening) -> None:
 
 def test_circuit_available(kiln: Screening) -> None:
     assert _rule(kiln, "circuit-available").status == "pass"
-    assert kiln.estimates["circuit_class"].value == "the 240V-13A circuit"
+    assert kiln.given["circuit_class"].value == "the 240V-13A circuit"
+    assert "circuit_class" not in kiln.estimates
+    assert _rule(kiln, "circuit-available").relies_on == ["estimate", "given"]
     small = _screen(_card(KILN, site={"circuit": "240V-10A"}))
     row = _rule(small, "circuit-available")
     assert row.status == "fail" and "more than the 240V-10A circuit on site" in row.message
     by_region = _without(KILN, "site", "circuit")
     s = _screen(by_region)
     assert _rule(s, "circuit-available").status == "pass"
-    assert s.estimates["circuit_class"].value == "16 A dedicated circuit"
+    assert s.estimates["circuit_class"].value == "16 A dedicated circuit"  # from a table
+    assert "circuit_class" not in s.given
     huge = by_region.model_copy(update={"envelope": {**by_region.envelope}})
     huge.envelope["power"] = parse_quantity("10 kW")
     assert _rule(_screen(huge), "circuit-available").status == "fail"
@@ -385,8 +393,10 @@ def test_labels_at_the_data_level(kiln: Screening, tmp_path: Path) -> None:
     assert data["verdict"] == "red" and data["id"] == "C-001"
     assert {v["label"] for v in data["computed"].values()} == {"computed"}
     assert {v["label"] for v in data["estimates"].values()} == {"estimate"}
-    assert all(v["source"] for v in [*data["computed"].values(), *data["estimates"].values()])
-    assert all(set(r["relies_on"]) <= {"computed", "estimate"} for r in data["rules"])
+    assert {v["label"] for v in data["given"].values()} == {"given"}
+    groups = ("given", "computed", "estimates")
+    assert all(v["source"] for g in groups for v in data[g].values())
+    assert all(set(r["relies_on"]) <= {"computed", "estimate", "given"} for r in data["rules"])
     sources = {v["source"].split(" ")[0] for v in data["estimates"].values()}
     assert "thermal_enclosure.steady_loss" in sources and "mass_cost.lift_class" in sources
 
@@ -433,3 +443,20 @@ def test_part_rule_runner_never_applies_the_concept_pack() -> None:
 
     (pack,) = [p for p in load_packs() if p.id == "concept-v0"]
     assert not pack_applies(pack, FakePart())
+
+
+def test_summary_line_keeps_inputs_given_and_collapses_one_source_cost(kiln: Screening) -> None:
+    """Review gate A, C1 and C9."""
+    from napkin2factory.concepts.build import summary_line
+    from napkin2factory.core.model.concepts import LabelledValue
+
+    line = summary_line(_card(KILN), kiln)
+    assert (
+        "2.5 kW (on the card) on the 240V-13A circuit — fits with 1.2 headroom (estimate)" in line
+    )
+    one = LabelledValue(value="43 USD", label="estimate", source="one band")
+    flat = kiln.model_copy(
+        update={"estimates": {**kiln.estimates, "cost_low": one, "cost_high": one}}
+    )
+    line = summary_line(_card(KILN), flat)
+    assert "43 USD (estimate, one source)" in line and "43–43" not in line

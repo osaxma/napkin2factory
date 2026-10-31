@@ -1,3 +1,5 @@
 id: C-002
 title: Chosen twice
 status: promoted
+screening: {verdict: green}
+decision: {dec: DEC-001}

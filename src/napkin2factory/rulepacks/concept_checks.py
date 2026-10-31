@@ -199,10 +199,13 @@ def circuit_available(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
             "chamber and insulation"
         )
     headroom = float(params.get("headroom", pw.CIRCUIT_HEADROOM_MIN))
-    relies = ["estimate"]
     circuit = facts.card.site.get("circuit")
     region = facts.card.site.get("region")
     parsed = parse_circuit(circuit) if isinstance(circuit, str) else None
+    # the current is an estimate; the card's own power and circuit are given (gate A, C1)
+    relies = ["estimate"]
+    if parsed is not None or facts.extra.get("power_label") == "card":
+        relies.append("given")
     values: dict[str, Any] = {
         "power": _power_text(power),
         "margin": f"{(headroom - 1) * 100:.0f} %",
@@ -487,6 +490,20 @@ def rule_params(rule_id: str, packs: list[RulePack] | None = None) -> dict[str, 
     return {}
 
 
+def circuit_headroom(packs: list[RulePack] | None = None) -> float:
+    """``headroom`` of rule ``circuit-available`` (``rating ≥ headroom × current``).
+
+    The one supply margin of the napkin stage: screening checks it and promotion writes the
+    supply requirement as ``element-power ≤ V·I / headroom`` from the same number (review
+    gate A, B1). Falls back to :data:`calckit.power.CIRCUIT_HEADROOM_MIN` when the pack has
+    no value.
+    """
+    from napkin2factory.calckit import power as pw
+
+    params = rule_params("circuit-available", packs)
+    return float(params.get("headroom", pw.CIRCUIT_HEADROOM_MIN))
+
+
 def run_concept_rules(
     card: ConceptCard,
     computed: dict[str, Any],
@@ -534,7 +551,7 @@ def run_concept_rules(
             else:
                 status = "pass"
                 message = out.message or _fmt(str(rule.get("pass_message", "ok")), out.values)
-            relies = sorted({r for r in out.relies_on if r in ("computed", "estimate")})
+            relies = sorted({r for r in out.relies_on if r in ("computed", "estimate", "given")})
             rows.append(
                 RuleRow(
                     id=rid,

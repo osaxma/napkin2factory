@@ -33,6 +33,7 @@ comments and key order survive.
 from __future__ import annotations
 
 import datetime as dt
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -46,6 +47,7 @@ from napkin2factory.core.model.concepts import ConceptCard, LabelledValue
 from napkin2factory.core.model.style import PRESETS, StyleFile
 from napkin2factory.core.units import format_quantity, is_quantity, parse_quantity
 from napkin2factory.core.uris import SLUG
+from napkin2factory.rulepacks.concept_checks import circuit_headroom, parse_circuit
 
 #: ``owner`` of every seeded parameter.
 SEED_OWNER = "napkin"
@@ -53,9 +55,6 @@ SEED_OWNER = "napkin"
 PARAM_ALIASES: dict[str, str] = {"power": "element-power"}
 #: Suffixes of a three-value envelope entry.
 AXIS_SUFFIXES: tuple[str, str, str] = ("width", "depth", "height")
-#: Share of a circuit's rating a continuous load may use (NEC 210.20 continuous-load rule,
-#: the 80 % convention) [verify].
-CIRCUIT_CONTINUOUS_SHARE = 0.8
 #: The rule pack the form requirements point at.
 FORM_PACK = "form-v0"
 #: Screening values quoted in the decision's rationale, in this order.
@@ -67,6 +66,7 @@ RATIONALE_KEYS: tuple[str, ...] = (
     "mass",
     "total_mass",
     "heat_up_time",
+    "power",
     "required_power",
     "current",
     "circuit_class",
@@ -494,8 +494,6 @@ def site_requirements(
         )
     circuit = card.site.get("circuit")
     if circuit is not None:
-        from napkin2factory.rulepacks.concept_checks import parse_circuit
-
         parsed = parse_circuit(circuit) if isinstance(circuit, str) else None
         power = next((p for p in seeded if p.name == PARAM_ALIASES["power"]), None)
         if parsed is None:
@@ -509,16 +507,20 @@ def site_requirements(
             )
         else:
             volts, amps = parsed
-            limit = (CIRCUIT_CONTINUOUS_SHARE * volts * amps).to("W")
-            limit = Quantity(round(float(limit.magnitude), 1), "W")
-            share = f"{CIRCUIT_CONTINUOUS_SHARE * 100:.0f} %"
+            # One margin for the napkin and the factory (review gate A, B1): the bound is
+            # read from rule circuit-available's `headroom`, the number screening used, so a
+            # green circuit row cannot become a failing requirement on the same inputs.
+            headroom = circuit_headroom()
+            raw = float((volts * amps).to("W").magnitude) / headroom
+            # rounded *up* to 0.1 W so a card exactly at the screening limit still passes
+            limit = Quantity(math.ceil(round(raw * 10, 6)) / 10, "W")
             out.append(
                 (
                     "supply",
                     {
                         "title": "Runs on the site circuit",
-                        "statement": f"The element power stays within {share} of the "
-                        f"{circuit} site circuit ({_q_text(limit)}).",
+                        "statement": f"The element power is at most {_q_text(limit)}, so the "
+                        f"{circuit} site circuit keeps a {headroom:g} headroom.",
                         "category": "performance",
                         "verify": {
                             "kind": "param_bound",
@@ -527,9 +529,9 @@ def site_requirements(
                             "value": _q_text(limit),
                         },
                         "allocation": [f"param://{power.name}"] + ([f"asm://{top}"] if top else []),
-                        "rationale": f"A continuous load uses at most {share} of a circuit's "
-                        f"rating (NEC 210.20 continuous-load convention) [verify]: "
-                        f"{CIRCUIT_CONTINUOUS_SHARE:g} × {_q_text(volts)} × {_q_text(amps)}.",
+                        "rationale": f"{_q_text(volts)} × {_q_text(amps)} / {headroom:g}: the "
+                        f"same {headroom:g} headroom screening used (rule circuit-available); "
+                        "the NEC 210.20 continuous-load factor 1.25 is stricter [verify].",
                     },
                 )
             )
@@ -782,7 +784,7 @@ def _one_line(card: ConceptCard) -> str:
 def _labelled(card: ConceptCard) -> list[str]:
     sc = card.screening
     assert sc is not None
-    values = {**sc.computed, **sc.estimates}
+    values = sc.values
     out = []
     for key in RATIONALE_KEYS:
         lv = values.get(key)
@@ -855,9 +857,10 @@ def promote(
             f"{cid} has no screening yet — build it first: `n2f concept build {cid}`, "
             "look at it on the board, then promote"
         )
-    if card.status == "promoted":
+    # only a promotion on record counts; a `promoted` typed by hand is redone properly (B2)
+    if cm.recorded_promotion(card, root):
         raise GateBlocked(f"{cid} is already the chosen direction")
-    chosen = [c for c in cards.values() if c.status == "promoted" and c.id != cid]
+    chosen = [c for c in cards.values() if cm.recorded_promotion(c, root) and c.id != cid]
     if chosen:
         raise GateBlocked(
             f"{chosen[0].id} is already the chosen direction — changing direction after "
@@ -991,7 +994,9 @@ def promote(
     rejected: list[str] = []
     already: list[str] = []
     for c in siblings:
-        if c.status == "exploring":
+        # an exploring card, or one marked promoted by hand with no decision (B2)
+        by_hand = c.status == "promoted" and not cm.recorded_promotion(c, root)
+        if c.status == "exploring" or by_hand:
             card_texts[c.id] = _card_text(
                 root,
                 c.id,
@@ -1092,7 +1097,6 @@ def _write_all(root: Path, writes: dict[Path, str], validate: Any) -> None:
 
 
 __all__ = [
-    "CIRCUIT_CONTINUOUS_SHARE",
     "NewRequirement",
     "PromotionResult",
     "SeededParam",

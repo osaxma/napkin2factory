@@ -41,8 +41,10 @@ def _is_docstring_or_comment_only(text: str) -> bool:
     sorted((SRC / "cli").glob("*.py"))
     + sorted((SRC / "core").glob("*.py"))
     + sorted((SRC / "ecr").glob("*.py"))
-    if (SRC / "ecr").exists()
-    else sorted((SRC / "cli").glob("*.py")) + sorted((SRC / "core").glob("*.py")),
+    # v0.2 (review gate A, C6): the napkin stage speaks to the owner too
+    + sorted((SRC / "concepts").glob("*.py"))
+    + sorted((SRC / "rulepacks").glob("*.py"))
+    + sorted((SRC / "calckit").glob("*.py")),
 )
 def test_no_git_words_in_user_strings(path: Path):
     if path.name in ALLOWED_FILES:
@@ -87,4 +89,16 @@ def test_templates_use_persona_vocabulary(path: Path):
     hits = [m.group(0) for m in GIT_WORDS.finditer(text)]
     if path.parts[-2:] == ("workflows", "build.yml") or path.name in ("release.yml", "build.yml"):
         return  # CI yaml talks to GitHub, not to the owner
+    assert not hits, f"{path.relative_to(ROOT)}: {hits}"
+
+
+@pytest.mark.parametrize(
+    "path",
+    sorted((SRC / "rulepacks").glob("*.yaml"))
+    + sorted((SRC / "calckit" / "data").glob("*.yaml"))
+    + [SRC / "report" / "templates" / "board.html.j2"],
+)
+def test_napkin_texts_use_persona_vocabulary(path: Path):
+    """Rule-pack messages, calc-kit tables and the board template reach the owner (C6)."""
+    hits = [m.group(0) for m in GIT_WORDS.finditer(path.read_text(encoding="utf-8"))]
     assert not hits, f"{path.relative_to(ROOT)}: {hits}"

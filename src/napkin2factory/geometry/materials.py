@@ -10,19 +10,36 @@ from typing import Any
 
 from napkin2factory.core.units import Quantity
 
+
+def _shared(name: str, keys: tuple[str, ...]) -> list[tuple[str, float, str]]:
+    """Density rows from ``calckit/data/materials.yaml``, the table screening reads too.
+
+    One row per material keeps the massing, concept screening and the calc kit on the same
+    number (review gate A, C4).
+    """
+    # read the file itself: importing the calckit package here would import mass_cost,
+    # which imports this module
+    from pathlib import Path
+
+    from napkin2factory.core.yamlio import read_yaml
+
+    table = Path(__file__).resolve().parents[1] / "calckit" / "data" / "materials.yaml"
+    row = next(r for r in read_yaml(table)["rows"] if r["name"] == name)
+    rho = float(row["density"])
+    src = f"{row['name']} {rho / 1000:g} g/cm³ (calckit/data/materials.yaml) [verify]"
+    return [(key, rho, src) for key in keys]
+
+
 #: Lower-case substring → density in kg/m³.  First match wins, so order matters.
 DENSITIES: list[tuple[str, float, str]] = [
     ("stainless", 7900.0, "AISI 304, ~7.9 g/cm³ (Matweb)"),
-    ("mild steel", 7850.0, "carbon steel 7.85 g/cm³ (handbook)"),
-    ("steel", 7850.0, "carbon steel 7.85 g/cm³ (handbook)"),
+    *_shared("mild steel", ("mild steel", "steel")),
     ("aluminium", 2700.0, "Al 2.70 g/cm³ (handbook)"),
     ("aluminum", 2700.0, "Al 2.70 g/cm³ (handbook)"),
     ("brass", 8500.0, "CuZn ~8.5 g/cm³ (handbook)"),
     ("copper", 8960.0, "Cu 8.96 g/cm³ (handbook)"),
-    ("k23", 480.0, "insulating firebrick K23 ~0.48 g/cm³ [verify]"),
-    ("firebrick", 480.0, "insulating firebrick ~0.48 g/cm³ [verify]"),
-    ("ceramic fiber", 300.0, "ceramic fiber board ~0.30 g/cm³ (vendor range 0.25–0.35) [verify]"),
-    ("fiber board", 300.0, "ceramic fiber board ~0.30 g/cm³ [verify]"),
+    *_shared("K-23 insulating firebrick", ("k23", "firebrick")),
+    *_shared("ceramic fiber board (Kaowool 1260)", ("ceramic fiber", "fiber board")),
     ("kanthal", 7100.0, "Kanthal A1 7.10 g/cm³ (Kanthal datasheet)"),
     ("plywood", 600.0, "softwood plywood ~0.6 g/cm³"),
     ("mdf", 750.0, "MDF ~0.75 g/cm³"),

@@ -6,7 +6,10 @@ label at the data level:
 * ``computed`` — measured from the massing silhouettes (bounding box, volume, mass from
   declared materials, footprint with the door swing);
 * ``estimate`` — from the calc kit (:mod:`napkin2factory.calckit`) fed with the card's
-  envelope numbers; its ``source`` names the calc-kit function.
+  envelope numbers; its ``source`` names the calc-kit function;
+* ``given`` — the card's own inputs echoed back (``envelope.power``, ``site.circuit``):
+  neither measured nor estimated (review gate A, C1). A verdict built on them (does the
+  power fit the circuit?) is still an estimate.
 
 Missing inputs never become invented numbers: the estimate is omitted and a note says what
 would unlock it. A red verdict is information — written to the card with its reasons,
@@ -15,10 +18,12 @@ never hidden.
 Defaults screening states when the card is silent (all from the kiln's own parameters,
 ``examples/kiln/model/parameters.yaml``, and tagged [verify] in DECISIONS.md): room
 25 degC; skin film coefficient 5 W/m²K (natural convection); skin emissivity 0.9 (powder
-coat); hot face 1200 degC; a bare ``insulation: <thickness>`` is one ceramic-fiber-board
-layer (k 0.15 W/m·K, ρ 260 kg/m³, c 1050 J/kg·K); named layers matching ``brick``/``K23``
-take K23 firebrick values (k 0.25 W/m·K, ρ 480 kg/m³, c 1000 J/kg·K); ``shell``/``sheet``
-layers grow the box but carry no resistance and store no heat.
+coat); hot face 1200 degC. Layer materials come from one row each in
+``calckit/data/materials.yaml`` (the table the massing densities read too): a bare
+``insulation: <thickness>`` is one ceramic-fiber-board layer (k 0.15 W/m·K, ρ 260 kg/m³,
+c 1050 J/kg·K); named layers matching ``brick``/``K23`` take K23 firebrick values (k 0.25
+W/m·K, ρ 480 kg/m³, c 1000 J/kg·K); ``shell``/``sheet`` layers grow the box but carry no
+resistance and store no heat.
 """
 
 from __future__ import annotations
@@ -53,23 +58,29 @@ class LayerMaterial:
     source: str
 
 
+def _table_material(name: str) -> LayerMaterial:
+    """One row of ``calckit/data/materials.yaml`` as a layer default (review gate A, C4)."""
+    from napkin2factory.calckit._tables import load_table
+
+    row = next(r for r in load_table("materials") if r["name"] == name)
+
+    def num(key: str) -> float | None:
+        return None if row.get(key) is None else float(row[key])
+
+    k, rho, c = num("conductivity"), num("density"), num("specific_heat")
+    return LayerMaterial(
+        tuple(str(w) for w in row["keywords"]),
+        k,
+        rho,
+        c,
+        row.get("process_class"),
+        f"{row['name']}: k {k:g}, ρ {rho:g}, c {c:g} (calckit/data/materials.yaml) [verify]",
+    )
+
+
 LAYER_MATERIALS: tuple[LayerMaterial, ...] = (
-    LayerMaterial(
-        ("brick", "k23", "k-23", "firebrick"),
-        0.25,
-        480.0,
-        1000.0,
-        "cut-block",
-        "K23 firebrick: k 0.25, ρ 480, c 1000 (kiln parameters, Morgan datasheet) [verify]",
-    ),
-    LayerMaterial(
-        ("fiber", "fibre", "kaowool", "board", "blanket"),
-        0.15,
-        260.0,
-        1050.0,
-        "fiber-board",
-        "ceramic fiber board: k 0.15, ρ 260, c 1050 (kiln parameters, Kaowool 1260) [verify]",
-    ),
+    _table_material("K-23 insulating firebrick"),
+    _table_material("ceramic fiber board (Kaowool 1260)"),
     LayerMaterial(
         ("shell", "sheet", "skin", "steel", "casing", "case"),
         None,
@@ -374,7 +385,13 @@ def _src(layer: ScreenLayer) -> str:
     return m.source.split(":")[0] if m is not None else f"{layer.name} as given"
 
 
-def _supply(card: ConceptCard, est: _Collector, extra: dict[str, Any], notes: list[str]) -> None:
+def _supply(
+    card: ConceptCard,
+    est: _Collector,
+    given: _Collector,
+    extra: dict[str, Any],
+    notes: list[str],
+) -> None:
     from napkin2factory.calckit import power as pw
     from napkin2factory.rulepacks.concept_checks import parse_circuit
 
@@ -398,7 +415,7 @@ def _supply(card: ConceptCard, est: _Collector, extra: dict[str, Any], notes: li
         est.add(
             "current", current, fmt(current, "A"), f"power.element_current at {volts.magnitude:g} V"
         )
-        est.add(
+        given.add(
             "circuit_class",
             f"the {circuit} circuit",
             f"the {circuit} circuit",
@@ -484,6 +501,7 @@ def screen(
     notes: list[str] = []
     comp = _Collector("computed")
     est = _Collector("estimate")
+    given = _Collector("given")
     extra: dict[str, Any] = {}
     if massing is not None and massing.pieces:
         w, d, h = massing.size
@@ -514,7 +532,13 @@ def screen(
         foot = Quantity(w + term, "mm")
         comp.add("footprint_with_door_swing", foot, fmt(foot, "mm"), f"width + open door ({basis})")
     _thermal(card, est, extra, notes)
-    _supply(card, est, extra, notes)
+    card_power = card.envelope.get("power")
+    if is_quantity(card_power):
+        try:
+            given.add("power", card_power, fmt(card_power, "W"), "envelope.power (on the card)")
+        except Exception:  # pint DimensionalityError: not a power
+            notes.append(f"envelope.power {card_power} is not a power (give it in W or kW)")
+    _supply(card, est, given, extra, notes)
     if "mass" in comp.raw and "insulation_mass" in est.raw:
         total = (comp.raw["mass"] + est.raw["insulation_mass"]).to("kg")
         est.add("total_mass", total, fmt(total, "kg"), "massing mass + insulation_mass")
@@ -532,6 +556,7 @@ def screen(
     red = any(r.status == "fail" for r in rules)
     stamp = (now or dt.datetime.now()).replace(microsecond=0)
     return Screening(
+        given=given.out,
         computed=comp.out,
         estimates=est.out,
         rules=rules,
@@ -565,7 +590,7 @@ def write_screening_to_card(root: Path, card_id: str, screening: Screening) -> P
     data = screening.model_dump(mode="json")
     block = CommentedMap()
     for key, value in data.items():
-        if key in ("computed", "estimates"):
+        if key in ("given", "computed", "estimates"):
             sub = CommentedMap()
             for name, lv in value.items():
                 line = CommentedMap(lv)

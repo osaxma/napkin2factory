@@ -123,11 +123,15 @@ class MassingCall(Model):
     role: StyleRole | None = None
 
 
-Label = Literal["computed", "estimate"]
+#: ``given``: copied from the card itself (its ``envelope.power``, its ``site.circuit``) —
+#: an input, neither measured nor estimated (review gate A, C1).
+Label = Literal["computed", "estimate", "given"]
+#: Every label, in display order.
+LABELS: tuple[str, ...] = ("given", "computed", "estimate")
 
 
 class LabelledValue(Model):
-    """One screening number: ``computed`` from massing geometry or ``estimate`` (calc kit)."""
+    """One screening number, labelled ``computed``, ``estimate`` or ``given`` (see Label)."""
 
     value: str  # a formatted quantity ("995 mm") or a word ("16 A dedicated circuit")
     label: Label
@@ -152,6 +156,7 @@ class Screening(Model):
     are left out when written.
     """
 
+    given: dict[str, LabelledValue] = Field(default_factory=dict)
     computed: dict[str, LabelledValue] = Field(default_factory=dict)
     estimates: dict[str, LabelledValue] = Field(default_factory=dict)
     rules: list[RuleRow] = Field(default_factory=list)
@@ -163,6 +168,15 @@ class Screening(Model):
     def _compact(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         data: dict[str, Any] = handler(self)
         return {k: v for k, v in data.items() if v not in (None, [], {})}
+
+    @property
+    def values(self) -> dict[str, LabelledValue]:
+        """Every labelled value: given, then computed, then estimates."""
+        return {**self.given, **self.computed, **self.estimates}
+
+    def rule(self, rule_id: str) -> RuleRow | None:
+        """The row of one rule, if it ran."""
+        return next((r for r in self.rules if r.id == rule_id), None)
 
     @property
     def failing(self) -> list[RuleRow]:

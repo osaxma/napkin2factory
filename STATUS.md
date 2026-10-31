@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** gate A + M5 (skills), in progress
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M6 (kiln retrofit + napkin demo), in progress
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
 **Resume note (2026-10-31):** M0–M4 committed. review gate A (fresh-context, read-only) and M5 (skill texts) run in parallel from briefs in the
 orchestrator's scratchpad; then M6 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
@@ -53,8 +53,26 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
   flipping a form threshold fails its requirement. **Judged:** the board reads cleanly. `make check`:
   534 passed, coverage 90.4 %.
 
+- **Gate A (2026-10-31)** — honesty + architecture review at b6a3589: architecture sound, two
+  blockers (a green `circuit-available` row vs a failing promoted supply requirement, 1.2 headroom
+  vs a 0.8 share; a hand-typed `status: promoted` completed the Napkin stage) and ten concerns.
+  Blockers and nine concerns fixed with regression tests; C5 is M6 wording, C8 is B-0023. Full
+  outcome in DECISIONS "Review gate A — outcome".
+- **M5 (done 2026-10-31)** — the napkin protocol in the PM skill and "after the napkin stage" in
+  the design skill (S-068), synced to every example; product `CLAUDE.md`/`AGENTS.md` carry the
+  napkin words and verbs. DoD 7: a fresh-context PM run on the kiln brief
+  (`tests/e2e/intake-transcripts/napkin-bench-kiln.md`) produced three cards, a board and a
+  promotion with no red card promoted and every limitation traced to screening; its nine
+  gaps (worded sketches get interpretation cards, `[verify]` numbers go in `envelope`/`site`,
+  usefulness varies across directions instead of being asked, PM-made choices become `DEC-`
+  entries after promotion, "kept as rejected alternatives", lock-it-in once, owner-chosen
+  trade-offs with mitigation, snapshots confirmed with `n2f status` only, intake continues only
+  for what cards left open) are now sentences in the skill, each pinned by
+  `tests/e2e/test_napkin_protocol.py`. Gate A fixes ride in this commit. `make check`: 634 tests, coverage 90.2 %; one WebGL shader flake in the
+  release-diff page test on the first run (B-0024), green on three reruns; goldens 131 passed,
+  enclosure example 0 fail.
 ## Next
-Gate A findings → fixes; M5 skills + the scripted simulation (DoD 7); M6 kiln retrofit + demo; gate B; M7.
+M6 kiln retrofit (cards C-001..C-004, promote C-003 in reconcile mode, `demo-napkin.sh`); gate B; M7 close-out.
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).

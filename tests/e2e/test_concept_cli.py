@@ -17,6 +17,7 @@ import yaml
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.loader import load_product
 from napkin2factory.core.model import StyleFile
+from napkin2factory.core.model.concepts import Screening
 from tests.conftest import EXAMPLES, FIXTURES, copy_product, n2f
 
 os.environ.setdefault("N2F_OFFLINE", "1")
@@ -108,8 +109,13 @@ def test_concept_round_trip(product: Path) -> None:
     r = _run("status", cwd=root)
     assert "stage: Napkin" in r.stdout and "1 concept exploring, none chosen yet" in r.stdout
 
-    # a promoted card completes Napkin; the stage moves on, and it cannot be rejected
-    cm.update_card_status(root, "C-001", "promoted", {"dec": "DEC-009", "at": "today"})
+    # a promoted card (screened, its decision on record) completes Napkin; the stage moves
+    # on, and it cannot be rejected
+    cm.write_card(
+        root,
+        cm.load_card(root, "C-001").model_copy(update={"screening": Screening(verdict="green")}),
+    )
+    cm.update_card_status(root, "C-001", "promoted", {"dec": "DEC-001", "at": "today"})
     st = json.loads(_run("status", "--json", cwd=root).stdout)
     assert st["gates"][0] == {**st["gates"][0], "name": "napkin", "ok": True}
     assert st["stage"] == "intake"

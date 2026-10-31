@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="500" height="500" role="img" aria-label="napkin2factory">
+<title>napkin2factory</title>
+<g id="tile"><rect width="100" height="100" rx="16" fill="#1C1B1A"/></g>
+<g id="napkin"><polygon id="napkin-sheet" points="50.00,33.26 97.52,57.02 50.00,80.78 2.48,57.02" fill="#FBF8F1"/></g>
+<g id="sketch"><polygon id="sketch-outline" points="56.32,68.82 32.72,65.66 26.40,53.86 43.68,45.22 67.28,48.38 73.60,60.18" fill="none" stroke="#2346B0" stroke-width="5" stroke-linejoin="round" pathLength="1"/></g>
+<g id="projection"></g>
+<g id="part" data-gap="22"><polygon points="32.72,43.66 26.40,31.86 26.40,25.86 32.72,37.66" fill="#C9541F" stroke="#C9541F" stroke-width=".4" stroke-linejoin="round"/><polygon points="73.60,38.18 56.32,46.82 56.32,40.82 73.60,32.18" fill="#E8692E" stroke="#E8692E" stroke-width=".4" stroke-linejoin="round"/><polygon points="56.32,46.82 32.72,43.66 32.72,37.66 56.32,40.82" fill="#C9541F" stroke="#C9541F" stroke-width=".4" stroke-linejoin="round"/><polygon id="part-top" points="56.32,40.82 32.72,37.66 26.40,25.86 43.68,17.22 67.28,20.38 73.60,32.18" fill="#F3A27C" stroke="#F3A27C" stroke-width=".4" stroke-linejoin="round"/></g>
+</svg>

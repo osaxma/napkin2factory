@@ -31,7 +31,7 @@ from typing import Any
 
 from napkin2factory.concepts.massing import concept_build_dir
 from napkin2factory.core import concepts as cm
-from napkin2factory.core.model.concepts import ConceptCard, LabelledValue
+from napkin2factory.core.model.concepts import ConceptCard, LabelledValue, RuleRow
 
 #: The page budget: the report's (``report.builder.MAX_REPORT_BYTES``, D13).
 MAX_REPORT_BYTES = 20 * 1024 * 1024
@@ -79,6 +79,7 @@ NAMES: dict[str, str] = {
     "required_power": "power needed",
     "current": "current",
     "circuit_class": "supply",
+    "power": "power",
     "lift_class": "lifting",
     "heat_loss": "heat loss",
     "skin_temperature": "outside skin",
@@ -167,6 +168,10 @@ def _value(name: str, lv: LabelledValue) -> dict[str, str]:
     }
 
 
+def _rule_row(row: RuleRow) -> dict[str, Any]:
+    return {"id": row.id, "message": row.message, "relies_on": list(row.relies_on)}
+
+
 def _status_word(card: ConceptCard) -> str:
     if card.status == "exploring" and card.screening is None:
         return "not built yet"
@@ -193,8 +198,13 @@ def gather_card(root: Path, card: ConceptCard, style: Any) -> dict[str, Any]:
     out_dir = concept_build_dir(root, card.id)
     sc = card.screening
     values: dict[str, LabelledValue] = {}
+    given_values: dict[str, LabelledValue] = {}
     if sc is not None:
         values = {**sc.computed, **sc.estimates}
+        given_values = dict(sc.given)
+    # the card's own inputs (power, circuit) are shown as given, apart from what was
+    # measured or estimated (review gate A, C1)
+    given = [_value(k, lv) for k, lv in given_values.items()]
     dims = [_value(k, values[k]) for k in KEY_DIMS if k in values]
     strip = [_value(k, values[k]) for k in STRIP if k in values]
     shown = set(KEY_DIMS) | set(STRIP)
@@ -235,11 +245,15 @@ def gather_card(root: Path, card: ConceptCard, style: Any) -> dict[str, Any]:
         "built": sc is not None,
         "verdict": card.verdict,
         "based_on": card.based_on,
+        "given": given,
         "dims": dims,
         "strip": strip,
         "more": more,
         "problems": [r.message for r in rules if r.status == "fail"],
         "worth_a_look": [r.message for r in rules if r.status == "warn"],
+        # the same rows with the labels of the numbers each relied on (gate A, C2)
+        "problem_rows": [_rule_row(r) for r in rules if r.status == "fail"],
+        "look_rows": [_rule_row(r) for r in rules if r.status == "warn"],
         "screening_notes": list(sc.notes) if sc is not None else [],
         "notes": card.notes,
         "decision": _decision_line(card),

@@ -1,1 +1,2 @@
 massing.json recorded 2026-10-31: new golden file for the kit's massing silhouettes (S-063, N3); no existing golden changed
+tests/fixtures/concepts/promote-golden regenerated 2026-10-31 (N2F_PROMOTE_GOLDEN=1): review gate A B1/C1 — REQ-005's bound now derives from the pack's 1.2 headroom (3066.7 W, new rationale) and the decision text carries the `given` / `(on the card)` labels; no geometry golden changed
