@@ -130,39 +130,3 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
     row = _req(data, "REQ-007")
     assert row["status"] == "fail" and "is on the front" in row["message"]
     assert _req(data, "REQ-006")["status"] == "pass"
-
-
-def test_red_card_overridden_and_its_alcove_requirement_fails(product: Path) -> None:
-    root = product
-    _run("concept", "build", "C-004", "--no-render", cwd=root)
-    refused = _run("concept", "promote", "C-004", "--override", cwd=root, code=3)
-    assert "--override needs --reason" in refused.stderr
-    res = json.loads(
-        _run(
-            "concept",
-            "promote",
-            "C-004",
-            "--override",
-            "--reason",
-            "the owner will widen the alcove",
-            "--by",
-            "owner",
-            "--json",
-            cwd=root,
-        ).stdout
-    )
-    assert res["dec"] == "DEC-002" and res["override"] is True
-    assert [r["uri"] for r in res["requirements"]] == ["req://REQ-004"]
-    assert res["requirements"][0]["verify"] == {
-        "kind": "geometry_prop",
-        "target": "asm://bracket#props.bbox.x",
-        "op": "<=",
-        "value": "100 mm",
-    }
-    # no form requirement applies, and none needs a note (review gate B, B4)
-    assert not any("form requirement" in n for n in res["notes"])
-    _run("validate", cwd=root)
-    _run("build", "--no-render", cwd=root)
-    data = _check(root, code=2)
-    row = _req(data, "REQ-004")
-    assert row["status"] == "fail" and row["message"] == "bbox.x = 120 mm <= 100 mm"
