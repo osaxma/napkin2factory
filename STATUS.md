@@ -70,8 +70,8 @@ for the plug door. Review gates 1–4 all ran; outcomes and fixes are in DECISIO
   fixed; rest in BACKLOG B-0004…B-0006.
 
 - **M5 (in progress)** — report (`report/builder.py`, template, viewer explode/section/
-  select, `n2f serve`, Playwright smoke) done and judged: owner view leads with Safety →
-  status → 3D → cost/manufacturer; engineer view with the check matrix; viewer frames the
+  select, `n2f serve`, Playwright smoke) done and judged; since S-052 one layout for everyone:
+  sticky section index, Safety second, every model URI a link to its row; viewer frames the
   enclosure, explode lifts the lid, clicking a part highlights its BOM row; no console errors
   from `file://`; 1.8 MB. Drawings engine (subagent) judged on `examples/enclosure` base:
   third-angle views, dashed hidden lines, legible dims outside the views, flat pattern with

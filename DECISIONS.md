@@ -413,6 +413,29 @@ middle part. `apply_interfaces` skips a centre already cut at the same spot with
 diameter, so the middle part's hole table lists each hole once; the pattern record keeps
 all centres. The three-party interface stays in the backlog (B-0005).
 
+## S-052 — One report layout, no persona toggle (amends D17) (2026-10-31)
+The owner/engineer toggle is gone: reordering the same cards did not make the page
+navigable. The report has one layout with a sticky section index grouped Overview / Safety /
+Product (3D, parts & cost, drawings, interfaces) / Verification (requirements, rule checks,
+sign-offs) / Design record (parameters, decisions, change requests) / Manuals. Requirement
+status and trace are one table. Every model URI on the page is a hyperlink to its row (the
+`ref` filter over `anchor_for`). The rules × parts matrix is compact dots in a scrollable
+area with a sticky rule column. `operator.persona` now only picks the status words. Safety is
+always the second section and never collapsed.
+
+## S-053 — The viewer renders on demand (2026-10-31)
+The report felt heavy after a few scrolls and switching tabs stalled: the viewer's
+`requestAnimationFrame` loop drew ~60 frames a second for the life of the page, at full
+device pixel ratio with `preserveDrawingBuffer`, whether or not the model was on screen.
+Headless profiling attributed ~97% of the page's scroll cost to it; the 23 inline drawings
+cost ~0.5 CPU-s per pass and the base64 GLB and scroll-spy nothing measurable.
+`viewer.js` now queues at most one frame, only when something changed (orbit, an API call,
+resize, model load) and only while the container intersects the viewport and the tab is
+visible; damping keeps queueing frames until the motion settles. `preserveDrawingBuffer`
+is gone (`snapshot()` renders before reading back), the pixel ratio is capped at 2, and
+`render()` joins the API for callers that mutate the scene directly. The wheel scrolls the
+page until the viewer is clicked, so scrolling past the model no longer zooms it.
+
 ## Kiln engineering decisions (2026-10-30)
 See `examples/kiln/model/decisions.yaml` DEC-001…DEC-011. The notable one: the owner's
 60 degC touch limit cannot be met by a single skin at 1200 degC with any sensible wall
