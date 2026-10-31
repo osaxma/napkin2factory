@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BeforeValidator
 from typing_extensions import Annotated
 
 from napkin2factory.core.units import UnitError, parse_quantity
 from napkin2factory.core.units import mm as _mm
+from napkin2factory.geometry.features import Dim, Features, PartResult
+
+if TYPE_CHECKING:
+    from napkin2factory.geometry.kit import KitContext
+
+MASSING_NOTE = "massing silhouette: features omitted"
 
 
 def _length_mm(v: Any) -> float:
@@ -61,3 +67,37 @@ def require_positive(**values: float) -> None:
     for k, v in values.items():
         if not v > 0:
             raise ValueError(f"{k} must be positive, got {v}")
+
+
+def massing_result(
+    shape: Any,
+    process: str,
+    dims: list[Dim],
+    ctx: KitContext,
+    props: dict[str, Any] | None = None,
+) -> PartResult:
+    """Wrap a silhouette solid as a massing-fidelity :class:`PartResult` (N3).
+
+    Features carry only the process and ``extra = {"fidelity": "massing"}``; there is no
+    flat pattern and no cut list.
+
+    Args:
+        shape: the silhouette solid, built from primitives in the full path's frame.
+        process: the same process string the full path declares.
+        dims: the overall dimension callouts.
+        ctx: generator context (labels the shape with ``ctx.uri``).
+        props: extra cheap scalars that still hold for the silhouette.
+
+    Returns:
+        The massing result.
+    """
+    shape.label = ctx.uri
+    return PartResult(
+        shape=shape,
+        features=Features(process=process, extra={"fidelity": "massing"}),
+        dims=dims,
+        flat_pattern=None,
+        cut_list=[],
+        props={"fidelity": "massing", **(props or {})},
+        notes=[MASSING_NOTE],
+    )

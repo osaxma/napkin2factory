@@ -1,0 +1,35 @@
+# Supply circuit classes per region, for screening an element's current (calckit.power).
+# NOT VERIFIED by the project: every row is the owner's (or their electrician's) to
+# confirm, and DECISIONS.md lists the table as [verify]. A region missing here is not an
+# error: circuit_class() returns `unknown_region` and the caller warns.
+# Columns: region code, label, nominal voltage (V), rating (A), kind (plug | dedicated).
+table: circuits
+rows:
+  - {region: SA, label: "13 A socket (type G)", voltage: 230, rating_a: 13, kind: plug, verify: true,
+     source: "SASO 2203 plugs and socket-outlets (BS 1363 type G, 13 A); 230 V / 60 Hz national supply (Saudi Electricity Company, after the 220 V to 230 V change)"}
+  - {region: SA, label: "16 A dedicated circuit", voltage: 230, rating_a: 16, kind: dedicated, verify: true,
+     source: "IEC 60898-1 preferred MCB ratings; Saudi Building Code SBC 401 (electrical); confirm with a licensed electrician"}
+  - {region: SA, label: "20 A dedicated circuit", voltage: 230, rating_a: 20, kind: dedicated, verify: true,
+     source: "IEC 60898-1 preferred MCB ratings; Saudi Building Code SBC 401 (electrical); confirm with a licensed electrician"}
+  - {region: SA, label: "32 A dedicated circuit", voltage: 230, rating_a: 32, kind: dedicated, verify: true,
+     source: "IEC 60898-1 preferred MCB ratings / IEC 60309 32 A outlet; Saudi Building Code SBC 401 (electrical); confirm with a licensed electrician"}
+  - {region: EU, label: "16 A socket (Schuko)", voltage: 230, rating_a: 16, kind: plug, verify: true,
+     source: "CEE 7/3 socket, CEE 7/4 plug, rated 16 A; 230 V nominal per IEC 60038 / EN 50160 (many makers limit long continuous loads to about 10 A)"}
+  - {region: EU, label: "16 A dedicated circuit", voltage: 230, rating_a: 16, kind: dedicated, verify: true,
+     source: "IEC 60309 16 A (blue) outlet or a dedicated 16 A MCB circuit (IEC 60898-1, HD 60364)"}
+  - {region: UK, label: "13 A socket (BS 1363)", voltage: 230, rating_a: 13, kind: plug, verify: true,
+     source: "BS 1363 13 A socket-outlet with a BS 1362 fused plug; 230 V nominal (IEC 60038, ESQCR 2002)"}
+  - {region: UK, label: "32 A dedicated radial circuit", voltage: 230, rating_a: 32, kind: dedicated, verify: true,
+     source: "BS 7671 radial final circuit on a 32 A protective device (as for a cooker circuit)"}
+  - {region: US, label: "15 A receptacle (NEMA 5-15)", voltage: 120, rating_a: 15, kind: plug, verify: true,
+     source: "NEMA WD 6 configuration 5-15; NEC 210.21(B) receptacle ratings (NEC 210.19/210.20 size continuous loads at 125 %)"}
+  - {region: US, label: "20 A receptacle (NEMA 5-20)", voltage: 120, rating_a: 20, kind: plug, verify: true,
+     source: "NEMA WD 6 configuration 5-20; NEC 210.21(B) receptacle ratings (NEC 210.19/210.20 size continuous loads at 125 %)"}
+  - {region: US, label: "30 A 240 V dedicated circuit (NEMA 6-30)", voltage: 240, rating_a: 30, kind: dedicated, verify: true,
+     source: "NEMA WD 6 configuration 6-30; NEC 210.21(B) and 210.19/210.20 (continuous loads at 125 %)"}
+  - {region: AU, label: "10 A socket (AS/NZS 3112)", voltage: 230, rating_a: 10, kind: plug, verify: true,
+     source: "AS/NZS 3112 10 A socket-outlet; 230 V nominal per AS 60038"}
+  - {region: AU, label: "15 A socket (AS/NZS 3112)", voltage: 230, rating_a: 15, kind: plug, verify: true,
+     source: "AS/NZS 3112 15 A socket-outlet (wider earth pin); 230 V nominal per AS 60038"}
+  - {region: AU, label: "20 A dedicated circuit", voltage: 230, rating_a: 20, kind: dedicated, verify: true,
+     source: "AS/NZS 3000 wiring rules, 20 A final subcircuit; confirm with a licensed electrician"}

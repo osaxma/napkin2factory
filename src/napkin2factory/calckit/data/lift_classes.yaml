@@ -1,0 +1,12 @@
+# Manual-handling classes by mass (calckit.mass_cost.lift_class). NOT VERIFIED: the
+# figures are the UK HSE guideline weights, which are a screening filter, not a safe
+# limit; every row is [verify] in DECISIONS.md. Rows in ascending order; a row without
+# max_kg covers everything heavier.
+table: lift_classes
+rows:
+  - {label: one-person, max_kg: 25, verify: true,
+     source: "HSE INDG143 'Manual handling at work' / L23 guidance, guideline weight for lifting close to the body at waist height (men 25 kg; women 16 kg)"}
+  - {label: two-person, max_kg: 33, verify: true,
+     source: "HSE L23 guidance on team handling: a team of two can handle about two-thirds of the sum of their individual capabilities (2/3 x 2 x 25 kg)"}
+  - {label: equipment, max_kg: null, verify: true,
+     source: "above the HSE two-person team figure: plan a lifting aid, trolley or pallet truck (HSE L23)"}

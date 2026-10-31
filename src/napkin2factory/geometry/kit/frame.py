@@ -41,7 +41,7 @@ from build123d import Box, Pos, Shape
 
 from napkin2factory.geometry.features import CutItem, Dim, Features, Member, PartResult
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Length, require_positive
+from napkin2factory.geometry.kit._common import Length, massing_result, require_positive
 
 JOIN_OVERLAP = 0.01  # mm a rail end runs into the leg it is welded to (see module docstring)
 
@@ -203,6 +203,32 @@ def _endpoints(p: _Piece) -> tuple[tuple[float, float, float], tuple[float, floa
     return (a[0], a[1], a[2]), (b[0], b[1], b[2])
 
 
+def _overall_dims(a: Args) -> list[Dim]:
+    hx, hy = a.length / 2, a.width / 2
+    return [
+        Dim("length", a.length, (-hx, -hy, 0), (hx, -hy, 0), view="front"),
+        Dim("width", a.width, (hx, -hy, 0), (hx, hy, 0), view="right"),
+        Dim("height", a.height, (hx, -hy, 0), (hx, -hy, a.height), view="front"),
+    ]
+
+
+def massing(a: Args, ctx: KitContext) -> PartResult:
+    """Silhouette (N3): every member a solid ``size × size`` box where :func:`pieces` puts it.
+
+    Members are not hollow and angles are not L sections; rail ends run
+    :data:`JOIN_OVERLAP` into the (solid) legs so the fuse is robust and the volume exact.
+    No member features and no cut list.
+    """
+    hb = validate(a)
+    s = a.member.size
+    boxes = [
+        _box(p.axis, p.length + (2 * JOIN_OVERLAP if p.extend else 0.0), s, s, p.center)
+        for p in pieces(a, hb)
+    ]
+    shape = boxes[0].fuse(*boxes[1:]).clean()
+    return massing_result(shape, a.process, _overall_dims(a), ctx)
+
+
 def generate(a: Args, ctx: KitContext) -> PartResult:
     """Build the frame as one fused weldment. Origin at the footprint centre on the floor."""
     hb = validate(a)
@@ -241,10 +267,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
     ]
 
     hx, hy, s = a.length / 2, a.width / 2, m.size
-    dims = [
-        Dim("length", a.length, (-hx, -hy, 0), (hx, -hy, 0), view="front"),
-        Dim("width", a.width, (hx, -hy, 0), (hx, hy, 0), view="right"),
-        Dim("height", a.height, (hx, -hy, 0), (hx, -hy, a.height), view="front"),
+    dims = _overall_dims(a) + [
         Dim("member", s, (hx - s, -hy, a.height), (hx, -hy, a.height), view="top"),
     ]
     if a.bottom_rails:

@@ -15,6 +15,7 @@ from __future__ import annotations
 import math
 
 from build123d import (
+    Box,
     BuildLine,
     BuildPart,
     BuildSketch,
@@ -25,6 +26,7 @@ from build123d import (
     Locations,
     Mode,
     Plane,
+    Pos,
     extrude,
     make_face,
 )
@@ -42,7 +44,7 @@ from napkin2factory.geometry.features import (
     polygon_area,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Count, Length, require_positive
+from napkin2factory.geometry.kit._common import Count, Length, massing_result, require_positive
 from napkin2factory.geometry.kit._sheet import bend_allowance, developed_l, k_factor
 
 
@@ -77,8 +79,18 @@ def _row(count: int, spacing: float) -> list[float]:
     return [-spacing * (count - 1) / 2 + spacing * i for i in range(count)]
 
 
-def generate(a: Args, ctx: KitContext) -> PartResult:
-    """Build the L bracket (see the module docstring for the frame)."""
+_Rows = list[tuple[str, float, list[float]]]
+
+
+def _validate(a: Args) -> tuple[float, float, float, float, _Rows]:
+    """Check the legs and holes fit; return ``(r, big_r, flat_h, flat_v, rows)``.
+
+    ``rows`` holds ``(leg, inset, ys)`` per leg carrying holes.
+
+    Raises:
+        ValueError: on non-positive sizes, a leg too short for the bend, or holes that
+            overlap, break an edge or reach into the bend zone.
+    """
     r = a.thickness if a.bend_radius is None else a.bend_radius
     t, w = a.thickness, a.width
     require_positive(length=a.length, height=a.height, width=w, thickness=t, bend_radius=r)
@@ -90,11 +102,9 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
                 f"{name} {leg_len:g} mm is too short: a leg needs at least bend_radius + "
                 f"2 × thickness = {big_r + t:g} mm to leave a flat after the bend"
             )
-    k = k_factor(r, t)
-    ba = bend_allowance(r, t, 90.0, k)
 
     # holes: (leg, inset, ys) per leg
-    rows: list[tuple[str, float, list[float]]] = []
+    rows: _Rows = []
     h = a.holes
     if h is not None and h.count > 0:
         require_positive(hole_diameter=h.diameter)
@@ -123,6 +133,39 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
                     f"is {flat - inset - h.diameter / 2:g} mm past the bend tangent line"
                 )
             rows.append((leg, inset, ys))
+    return r, big_r, flat_h, flat_v, rows
+
+
+def _overall_dims(a: Args) -> list[Dim]:
+    hw = a.width / 2
+    return [
+        Dim("length", a.length, (0, -hw, 0), (a.length, -hw, 0), view="front"),
+        Dim("height", a.height, (0, -hw, 0), (0, -hw, a.height), view="front"),
+        Dim("width", a.width, (a.length, -hw, 0), (a.length, hw, 0), view="top"),
+    ]
+
+
+def massing(a: Args, ctx: KitContext) -> PartResult:
+    """Silhouette (N3): two leg boxes fused at a sharp corner; no bend radius, no holes.
+
+    Same frame as :func:`generate`: the horizontal leg at ``z ∈ [0, t]``, the vertical
+    leg at ``x ∈ [0, t]``, width centred on Y.
+    """
+    _validate(a)
+    t, w = a.thickness, a.width
+    horizontal = Pos(a.length / 2, 0, t / 2) * Box(a.length, w, t)
+    vertical = Pos(t / 2, 0, a.height / 2) * Box(t, w, a.height)
+    shape = horizontal.fuse(vertical).clean()
+    return massing_result(shape, a.process, _overall_dims(a), ctx)
+
+
+def generate(a: Args, ctx: KitContext) -> PartResult:
+    """Build the L bracket (see the module docstring for the frame)."""
+    r, big_r, flat_h, flat_v, rows = _validate(a)
+    t, w = a.thickness, a.width
+    h = a.holes
+    k = k_factor(r, t)
+    ba = bend_allowance(r, t, 90.0, k)
 
     with BuildPart() as bp:
         with BuildSketch(Plane.XZ):  # sketch (u, v) = world (x, z)
@@ -210,10 +253,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
 
     hw = w / 2
     c45 = math.cos(math.radians(45))
-    dims = [
-        Dim("length", a.length, (0, -hw, 0), (a.length, -hw, 0), view="front"),
-        Dim("height", a.height, (0, -hw, 0), (0, -hw, a.height), view="front"),
-        Dim("width", w, (a.length, -hw, 0), (a.length, hw, 0), view="top"),
+    dims = _overall_dims(a) + [
         Dim("thickness", t, (a.length, -hw, 0), (a.length, -hw, t), view="front"),
         Dim(
             "bend radius",

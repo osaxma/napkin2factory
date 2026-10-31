@@ -1,0 +1,154 @@
+{
+  "block": {
+    "area": 70000.0,
+    "bbox": [
+      200.0,
+      100.0,
+      50.0
+    ],
+    "faces": 6,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 1000000.0
+  },
+  "bracket_l": {
+    "area": 10392.0,
+    "bbox": [
+      60.0,
+      50.0,
+      40.0
+    ],
+    "faces": 8,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 9800.0
+  },
+  "enclosure": {
+    "area": 123138.0,
+    "bbox": [
+      200.0,
+      120.0,
+      60.0
+    ],
+    "faces": 11,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 91633.5
+  },
+  "frame": {
+    "area": 635000.0,
+    "bbox": [
+      600.0,
+      400.0,
+      700.0
+    ],
+    "faces": 45,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 4000000.0
+  },
+  "hole_pattern": {
+    "area": 26200.0,
+    "bbox": [
+      120.0,
+      100.0,
+      5.0
+    ],
+    "faces": 6,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 60000.0
+  },
+  "panel": {
+    "area": 242800.0,
+    "bbox": [
+      400.0,
+      300.0,
+      2.0
+    ],
+    "faces": 6,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 240000.0
+  },
+  "plate": {
+    "area": 17080.0,
+    "bbox": [
+      100.0,
+      80.0,
+      3.0
+    ],
+    "faces": 6,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 24000.0
+  },
+  "tube": {
+    "area": 24543.693,
+    "bbox": [
+      25.0,
+      25.0,
+      300.0
+    ],
+    "faces": 3,
+    "features": {
+      "bends": 0,
+      "cutouts": 0,
+      "flanges": 0,
+      "holes": 0,
+      "members": 0,
+      "patterns": 0,
+      "reliefs": 0
+    },
+    "volume": 147262.156
+  }
+}

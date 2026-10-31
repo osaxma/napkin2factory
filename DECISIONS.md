@@ -553,3 +553,41 @@ per card is ceremony; `promote` (M4) snapshots, and `n2f status` already says "u
 before a release. (2) A released product with a new exploring card reads **stage: Napkin** —
 a new idea is a new iteration; the Released gate keeps its own result `[revisit]` if owners
 find it confusing (gate B will tell).
+
+## S-063 — Massing fidelity in the kit (N3) (2026-10-31)
+`KitContext.fidelity: full|massing`; `kit.run` (and so the `Kit` namespace) dispatches to each
+generator's `massing(args, ctx)`. It runs the *same* validation helper as `generate` (identical
+error text, so an impossible composition fails for real) and builds primitives only
+(Box/Cylinder, fuse/cut) in the full part's frame (bbox coincides within 0.05 mm).
+plate/panel/block/hole_pattern: the outer box (no holes, cutouts or radii; an interface is
+still resolved and checked, it never moves the plate). tube: the outer solid, no bore, sharp
+corners. bracket_l: two leg boxes, sharp corner. enclosure: outer box minus the open-top
+cavity (walls and base keep their thickness so mass reads right); **a flange is a feature:
+the silhouette stays L × W × H**. frame: solid size × size member boxes at `pieces()`
+positions, fused. Result: features `{process, extra: {fidelity: massing}}`, overall dims only,
+no flat pattern or cut list, note "massing silhouette: features omitted". Golden
+`tests/golden/goldens/massing.json` (volume/bbox per generator) recorded once.
+
+## S-064 — The calc kit (N4) (2026-10-31)
+`napkin2factory.calckit` (`thermal_enclosure`, `power`, `mass_cost`, `load_table`) holds the
+envelope-grade calcs: pint in and out, cited docstrings, hand-checked tests
+(`tests/unit/test_calckit.py`, 100 % coverage; `calckit` joins the mypy and coverage gates).
+`Layer(thickness, conductivity, clearance)` models fit gaps as geometry-only layers, which is
+how the kiln's `lining-clearance`/`fiber-clearance`/shell are reproduced exactly. The kiln's
+`thermal.py` (body, guard, door guard) and `element.py` route through it; all 21 calc values
+reproduce bit-for-bit (stored heat and the door plug stay product-specific: an open-fronted
+liner is not a symmetric box). The kiln's own `model/tests/test_calcs.py` had three stale hand
+values from the gate-3 rework (shell 1.2 mm, hinge pin x −358.2); corrected. HANDOFF §3's
+"wire length 24 m" was stale too: the kiln's value is 29.3 m at 2.5 kW / 230 V.
+**Editing a calc module re-keys its evidence** (the key hashes the source), so the REQ-003
+example sign-off was re-signed with the new key — expected, and exactly what S-050 intends.
+`[verify]` constants: mean-area conduction (Incropera & DeWitt ch. 3); σ = 5.670374419e-8 (CODATA
+2018, exact); K-23 k 0.25 W/m·K (Morgan 0.20–0.30); Kaowool 1260 k 0.12, ρ 260; Kanthal A1
+ρ 1.45 Ω·mm²/m; groove surface-load limit 2.0 W/cm² (Kanthal handbook); ε 0.9 powder coat;
+h 5–10 W/m²K; circuit headroom 1.2 (kiln REQ-006; NEC 210.20 uses 1.25).
+`[verify]` tables (`calckit/data`, every row `verify: true`, unknown keys warn, never fail):
+circuits — SA 13 A plug, 16/20/32 A dedicated; EU 16 A; UK 13 A BS 1363, 32 A radial; US 120 V
+15/20 A, 240 V 30 A; AU 10/15 A plug, 20 A (14 rows). cost_bands — 7 process classes seeded from
+the kiln's per-part estimates (DEC-012; two rows rest on one part, so low = high). lift_classes
+— HSE 25 kg one person / 33 kg two people (2/3 × 2 × 25) / equipment. stock_sheets — 1000×2000,
+1220×2440, 1250×2500, 1500×3000 mm for mild steel, plus stainless and aluminium (10 rows).

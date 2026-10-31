@@ -8,9 +8,19 @@ Both parties of a ``bolt-pattern`` interface place their holes with
 from __future__ import annotations
 
 import math
-from typing import Any, Literal
+from typing import Any, Literal, NamedTuple
 
-from build123d import BuildPart, BuildSketch, Cylinder, Location, Plane, Rectangle, extrude
+from build123d import (
+    Align,
+    Box,
+    BuildPart,
+    BuildSketch,
+    Cylinder,
+    Location,
+    Plane,
+    Rectangle,
+    extrude,
+)
 
 from napkin2factory.core.model.interfaces import BoltPatternSpec, Frame
 from napkin2factory.core.units import mm
@@ -25,7 +35,7 @@ from napkin2factory.geometry.features import (
     polygon_area,
 )
 from napkin2factory.geometry.kit import KitArgs, KitContext
-from napkin2factory.geometry.kit._common import Count, Length, require_positive
+from napkin2factory.geometry.kit._common import Count, Length, massing_result, require_positive
 
 Vec2 = tuple[float, float]
 
@@ -265,19 +275,22 @@ def _iface_lookup(ctx: KitContext, ref: str) -> Any:
     return iface_id, None
 
 
-def generate(a: Args, ctx: KitContext) -> PartResult:
-    """Build a plate (origin at its centre, Z up through the thickness) carrying one pattern.
+class _Resolved(NamedTuple):
+    """The pattern as placed on the plate, after validation."""
 
-    With ``interface`` naming an interface in ``ctx.interfaces``, that interface's spec and
-    frame place the holes (the frame normal must be along ±Z) and the pattern is tagged
-    ``iface://<id>``; otherwise the pattern args are used with the frame at the origin.
+    centers: list[Vec3]
+    diameter: float
+    origin: Vec3
+    normal: Vec3
+    pattern: str
+    spacing: list[float] | None
+    pitch_circle: float | None
+    iface_uri: str | None
+    notes: list[str]
 
-    Args:
-        a: validated arguments.
-        ctx: generator context.
 
-    Returns:
-        The plate with the pattern, its holes, dims and flat pattern.
+def _resolve(a: Args, ctx: KitContext) -> _Resolved:
+    """Resolve the pattern (from the args or the interface) and check it fits the plate.
 
     Raises:
         ValueError: on missing pattern data, holes off the plate or overlapping holes.
@@ -319,6 +332,57 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
         for j in range(i + 1, len(centers)):
             if math.dist(centers[i][:2], centers[j][:2]) <= diameter:
                 raise ValueError(f"holes {i + 1} and {j + 1} overlap (Ø{diameter:g})")
+    return _Resolved(
+        centers, diameter, origin, normal, pattern, spacing, pitch_circle, iface_uri, notes
+    )
+
+
+def _overall_dims(a: Args) -> list[Dim]:
+    hw, hd = a.plate_width / 2, a.plate_depth / 2
+    return [
+        Dim("width", a.plate_width, (-hw, -hd, 0), (hw, -hd, 0), view="top"),
+        Dim("depth", a.plate_depth, (hw, -hd, 0), (hw, hd, 0), view="top"),
+        Dim("thickness", a.thickness, (hw, -hd, 0), (hw, -hd, a.thickness), view="front"),
+    ]
+
+
+def massing(a: Args, ctx: KitContext) -> PartResult:
+    """Silhouette (N3): the plate as a box, no holes; the pattern is still validated.
+
+    The plate is always centred on the origin; an interface frame moves only the holes,
+    so the silhouette is the same with or without one.
+    """
+    res = _resolve(a, ctx)
+    shape = Box(
+        a.plate_width, a.plate_depth, a.thickness, align=(Align.CENTER, Align.CENTER, Align.MIN)
+    )
+    result = massing_result(shape, a.process, _overall_dims(a), ctx)
+    result.notes.extend(res.notes)
+    return result
+
+
+def generate(a: Args, ctx: KitContext) -> PartResult:
+    """Build a plate (origin at its centre, Z up through the thickness) carrying one pattern.
+
+    With ``interface`` naming an interface in ``ctx.interfaces``, that interface's spec and
+    frame place the holes (the frame normal must be along ±Z) and the pattern is tagged
+    ``iface://<id>``; otherwise the pattern args are used with the frame at the origin.
+
+    Args:
+        a: validated arguments.
+        ctx: generator context.
+
+    Returns:
+        The plate with the pattern, its holes, dims and flat pattern.
+
+    Raises:
+        ValueError: on missing pattern data, holes off the plate or overlapping holes.
+    """
+    res = _resolve(a, ctx)
+    centers, diameter, origin, normal = res.centers, res.diameter, res.origin, res.normal
+    pattern, spacing, pitch_circle = res.pattern, res.spacing, res.pitch_circle
+    iface_uri, notes = res.iface_uri, res.notes
+    hw, hd = a.plate_width / 2, a.plate_depth / 2
 
     with BuildPart() as bp:
         with BuildSketch():
@@ -361,11 +425,7 @@ def generate(a: Args, ctx: KitContext) -> PartResult:
     )
     flat.area = polygon_area(outline) - len(centers) * math.pi * (diameter / 2) ** 2
 
-    dims = [
-        Dim("width", a.plate_width, (-hw, -hd, 0), (hw, -hd, 0), view="top"),
-        Dim("depth", a.plate_depth, (hw, -hd, 0), (hw, hd, 0), view="top"),
-        Dim("thickness", a.thickness, (hw, -hd, 0), (hw, -hd, a.thickness), view="front"),
-    ]
+    dims = _overall_dims(a)
     if centers:
         c0 = centers[0]
         dims.append(Dim("hole", diameter, c0, c0, view="top", kind="diameter"))
