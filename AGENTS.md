@@ -112,10 +112,17 @@ holds, propose deleting it to the maintainer instead of obeying it.
 ## Working style that has paid off
 - Fresh-context review gates between milestones (architecture/honesty, then UX in the owner
   persona) found the bugs the builders could not see; keep them, and fix blockers before the next
-  milestone.
+  milestone. Write the brief from `docs/reviews/TEMPLATE.md`; keep the full report in
+  `docs/reviews/` and the outcome in `DECISIONS.md`, so the next gate starts from the last one's
+  questions and findings instead of a blank page (S-078).
 - Big implementation chunks go to a subagent with a written brief and disjoint file ownership;
   run `make check` only when no agent is editing `src/`; judge every visual artifact yourself
   before calling a milestone done.
+- When a milestone's exit is judged by eye (renders, the board, a report page), send the
+  maintainer the board screenshot and one or two renders with a one-line question before calling
+  it done, and record the answer in the decision entry ("judged by the maintainer: …"): an
+  agent's taste is not the maintainer's (S-078). Screenshots: `napkin2factory.concepts.screenshot`,
+  or the full-page capture in `tests/unit/test_board.py`.
 - Templates are synced, never hand-edited in `examples/`: edit `src/napkin2factory/templates/`
   and `examples/{bracket,enclosure}`, then `make templates`.
 

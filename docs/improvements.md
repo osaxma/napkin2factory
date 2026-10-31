@@ -9,6 +9,9 @@ third about half a day of change, the fourth is a habit, the fifth a small task 
 
 ## 1. Keep review-gate reports in the repo (B-0053)
 
+**Done (S-078):** the scratch copies still existed; `docs/reviews/` holds v0.2 gates A and B, v0.1
+gate 4 and `TEMPLATE.md`. The text below is the original proposal.
+
 **What happened.** v0.2 had two fresh-context review gates: gate A (honesty and architecture,
 after M4) and gate B (UX in the owner persona, after M6). Their full reports — every finding with
 the exact text seen, the text wanted and a file:line — existed only in the orchestrating agent's
@@ -88,6 +91,8 @@ the built folder per test. (4) Migrate tests file by file, only where the test d
 on a cold build. (5) Measure again and record the numbers.
 
 ## 4. Send the maintainer the pictures at visual milestones (B-0056)
+
+**Done (S-078):** a working-style rule in `AGENTS.md`. The text below is the original proposal.
 
 **What happened.** The napkin stage's exit criteria are partly visual: "judged by eye" for the
 styled renders (M3), the board (M4), the kiln retrofit (M6). In v0.2 the orchestrating agent
