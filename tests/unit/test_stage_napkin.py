@@ -8,6 +8,7 @@ from pathlib import Path
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.checks.stage import STAGES, compute_stage, napkin_gate
 from napkin2factory.core.loader import load_product
+from napkin2factory.core.model.concepts import Screening
 from napkin2factory.core.vcs import Vcs
 
 V01_GATES = ["intake", "design", "verify", "released"]
@@ -58,7 +59,9 @@ def test_exploring_cards_put_napkin_first(bracket: Path) -> None:
 
 def test_screened_cards_point_to_the_board(bracket: Path) -> None:
     cm.new_card(bracket, "Squared shell")
-    card = cm.load_card(bracket, "C-001").model_copy(update={"screening": {"verdict": "green"}})
+    card = cm.load_card(bracket, "C-001").model_copy(
+        update={"screening": Screening(verdict="green")}
+    )
     cm.write_card(bracket, card)
     rep = compute_stage(load_product(bracket))
     assert rep.next_step == (

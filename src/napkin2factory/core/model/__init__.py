@@ -5,7 +5,10 @@ from napkin2factory.core.model.base import Model, Quantity, UriField
 from napkin2factory.core.model.concepts import (
     CONCEPT_STATUSES,
     ConceptCard,
+    LabelledValue,
     MassingCall,
+    RuleRow,
+    Screening,
 )
 from napkin2factory.core.model.decisions import Decision, DecisionsFile
 from napkin2factory.core.model.docs import DocMeta
@@ -43,6 +46,7 @@ __all__ = [
     "BoltPatternSpec",
     "Child",
     "ConceptCard",
+    "LabelledValue",
     "Cost",
     "Decision",
     "DecisionsFile",
@@ -67,6 +71,8 @@ __all__ = [
     "Quantity",
     "Requirement",
     "RequirementsFile",
+    "RuleRow",
+    "Screening",
     "Signoff",
     "Source",
     "StyleFile",

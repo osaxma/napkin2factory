@@ -1,0 +1,32 @@
+# Concept card C-001: one possible direction for the product.
+# Concepts sit outside the build: nothing here changes `n2f build`; edit freely.
+# Read it back with `n2f concept show C-001`; check it with `n2f concept lint`.
+id: C-001
+title: The v0.1 kiln as built
+# status: exploring | rejected | promoted (reject and promote set it for you)
+status: exploring
+refs: []
+layout: {load: front, door: hinged-left, controls: side-right, stand: four-leg}
+# envelope: the kiln's chamber and wall layers (examples/kiln/model/parameters.yaml)
+envelope:
+  chamber: [200 mm, 200 mm, 200 mm]
+  insulation:
+    - {name: brick, thickness: 64 mm, conductivity: 0.25 W/(m*K)}
+    - {name: fiber, thickness: 125 mm, conductivity: 0.15 W/(m*K), clearance: 3 mm}
+    - {name: shell, thickness: 1.2 mm, clearance: 2 mm}
+  power: 2.5 kW
+  max_temperature: 1200 degC
+site: {alcove_width: 800 mm, circuit: 240V-13A, region: SA}
+style: {}
+# massing: guard-sized body with the controller box beside it (995 mm overall), the door
+# leaf, and the stand
+massing:
+  - {kit: enclosure, as: body, material: mild steel, args: {length: 695 mm, width: 650 mm, height: 642 mm, thickness: 2.5 mm}, at: {z: 700 mm}}
+  - {kit: block, as: controls, material: abs, process_class: cots-controls, args: {length: 260 mm, width: 120 mm, height: 160 mm}, at: {x: 517.5 mm, z: 1100 mm}}
+  - {kit: block, as: door, material: mild steel, process_class: sheet-metal, args: {length: 250 mm, width: 3 mm, height: 600 mm}, at: {y: -330 mm, z: 720 mm}}
+  - {kit: frame, as: stand, material: mild steel, args: {length: 600 mm, width: 600 mm, height: 700 mm, member: {size: 25 mm, wall: 1.5 mm}}}
+# notes: anything worth remembering about this direction
+notes: What screening would have said in minute five about DEC-011.
+# written for you: screening by `n2f concept build`, decision by reject or promote
+screening: null
+decision: null

@@ -591,3 +591,25 @@ circuits — SA 13 A plug, 16/20/32 A dedicated; EU 16 A; UK 13 A BS 1363, 32 A 
 the kiln's per-part estimates (DEC-012; two rows rest on one part, so low = high). lift_classes
 — HSE 25 kg one person / 33 kg two people (2/3 × 2 × 25) / equipment. stock_sheets — 1000×2000,
 1220×2440, 1250×2500, 1500×3000 mm for mild steel, plus stainless and aluminium (10 rows).
+
+## S-065 — Concept screening: computed vs estimate, the concept rule pack, red is information (N5) (2026-10-31)
+`n2f concept build` composes a card's massing in-process (kit at fidelity massing, `at {x,y,z,rz}`,
+GLB nodes `concept://C-xxx/<as>`) into `build/concepts/C-xxx/` — never in the manifest, no
+`core.graph` import (N1) — then screens it. Every number is a `LabelledValue`: `computed` (bbox,
+volume, mass when every call has a `material`, footprint with door swing) or `estimate` (calc kit;
+`source` names the function). Missing inputs give a note, never a number. Rules:
+`rulepacks/concept-v0.yaml` (S-022 shape, `applies_to: {scope: concept}`) run by
+`concept_checks.run_concept_rules`; `fail` reddens, `warn` never; red is written to the card
+with reasons and exits 0 ("this direction has problems:"). **Door-swing term:** for
+`layout.door` hinged-left/right, `width + 1.0 × door_width ≤ site.alcove_width`, door width =
+x-extent of the `door` call, else `envelope.door_width`, else 0 with a note (1.0 = the leaf swung
+right back) `[verify]`. Defaults `[verify]` (from kiln parameters): room 25 degC, h 5 W/m²K,
+ε 0.9, hot face 1200 degC; bare `insulation` = fiber board k 0.15 W/m·K, ρ 260, c 1050;
+`brick`/K23 layers k 0.25, ρ 480, c 1000; circuit headroom 1.2; open-box blank (L+2H)×(W+2H),
+bracket (L+H)×W, no edge margin; lift beyond two-person (33 kg) warns. The DEC-011 regression
+card screens red for two reasons: the alcove with the door swing AND a one-piece shell blank
+larger than any stock sheet — the shop read-through's lesson, mechanised. Two honest limits:
+screening's heat-up at 2.5 kW is ≈ 4.4 h (the kiln's own calc 4.8 h) — DEC-004's 7 h is the
+planned margin, not the calc, and the board must not suggest otherwise; the cost band is wide
+(1423–4778 USD for the kiln-like card) because the cost tables span 8–68 USD/kg (B-0022).
+Massing frames are solid boxes, so stand mass and welding cost are overstated (B-0021).
