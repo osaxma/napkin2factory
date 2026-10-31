@@ -6,7 +6,29 @@ on:
   schedule:
     - cron: "17 3 * * *"   # nightly: make check-full with timing assertions
 jobs:
+  # A commit that already passed this workflow (for example the branch tip that was just
+  # fast-forwarded onto main) is not tested again: the gate looks for an earlier successful
+  # run of the same commit and the check matrix is skipped when it finds one.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.seen.outputs.skip }}
+    steps:
+      - id: seen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prior=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ github.sha }}&status=success&per_page=20" \
+            --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }})] | length')
+          if [ "$prior" -gt 0 ]; then
+            echo "::notice::${{ github.sha }} already passed ci ($prior earlier run(s)); not repeating the tests"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
   check:
+    needs: gate
+    if: needs.gate.outputs.skip != 'true'
     strategy:
       fail-fast: false
       matrix:
