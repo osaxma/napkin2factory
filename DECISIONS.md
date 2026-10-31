@@ -730,3 +730,12 @@ sources under the estimates; the C-001 industrial and C-003 appliance pictures r
 (cream body, dark controls and stand; door leaf proud on the front). Nit: C-002's limitations box
 says "no limitations" while its notes carry three trade-offs, because the concept pack has no
 skin-temperature or chamber-volume rule (B-0025). NAPKIN_STAGE §5 M6 reworded for gate A C5.
+
+## S-070 — `make check` runs the tests in parallel (pytest-xdist) (2026-10-31)
+The owner's call ("we are not running on a Raspberry Pi"). `unit` and `golden` take `$(XDIST)`,
+default `-n auto --dist loadfile`: one worker per core, and a module's shared product build
+(e.g. `test_release_diff`'s `released` fixture) stays on one worker. `make check XDIST=` runs
+serially. The timing tests in `check-full` stay serial because they measure wall-clock (D30), as
+do `kiln` and `demos`. Measured on the reference host (16 cores): the unit+e2e step 20 min 04 s →
+5 min 33 s, goldens 82 s → 72 s, same 634 tests and 90.2 % coverage. Coverage is combined by
+pytest-cov across workers. Risk watched: headless-GL flakes under load (B-0024) — none in this run.

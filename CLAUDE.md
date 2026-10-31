@@ -25,6 +25,7 @@ decisions stay in force) → `STATUS.md` (where we are) → `DECISIONS.md` →
 uv sync                      # environment
 uv run n2f --help            # CLI
 make check                   # lint + types + tests (+ examples as milestones add them)
+make check XDIST=            # the same, tests run serially (default: pytest-xdist, one worker per core)
 make check-full              # + kiln + demos + timing (N2F_TIMING=1)
 make templates               # sync examples/{bracket,enclosure} → src/napkin2factory/templates/
 make goldens REASON="..."    # regenerate golden props, logged

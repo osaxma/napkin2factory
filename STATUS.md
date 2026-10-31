@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** parallel `make check` (pytest-xdist), then review gate B, then M7
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** review gate B (UX, owner persona), then M7 close-out
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
 **Resume note (2026-10-31):** M0–M4 committed. review gate A (fresh-context, read-only) and M5 (skill texts) run in parallel from briefs in the
 orchestrator's scratchpad; then M6 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
@@ -82,8 +82,11 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
   voided. DoD 5: `demo-napkin.sh` green in `check-full` (1 min 52 s). DoD 2: two concepts + board 4.8 s
   warm (< 60 s). Kiln geometry golden unchanged; new `kiln-board.json` golden (logged). B-0025–B-0031.
   `make check`: 634 passed, 132 goldens; `make check-full` green.
+- **Parallel `make check` (2026-10-31)** — pytest-xdist in `unit` and `golden` (S-070): the unit+e2e
+  step 20 min → 5.5 min on this host, goldens 82 s → 72 s, same tests and coverage; `make check XDIST=`
+  for a serial run; timing, kiln and demo targets stay serial.
 ## Next
-pytest-xdist in `make check` (owner's call, 2026-10-31); review gate B (fresh eyes on M5–M6); M7 close-out (`HANDOFF-REPORT-v0.2.md`, release notes).
+review gate B (fresh eyes on M5–M6); M7 close-out (`HANDOFF-REPORT-v0.2.md`, release notes).
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).
