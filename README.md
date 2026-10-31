@@ -176,7 +176,7 @@ make check        # lint, types, tests, both small examples (6–10 min; sets N2
 make check-full   # + the kiln, both demos, timing assertions (N2F_TIMING=1)
 ```
 
-See `CLAUDE.md` for the rules, `GRAND_PLAN.md` for the plan this version was built to, and
+See `AGENTS.md` for the rules, `GRAND_PLAN.md` for the plan this version was built to, and
 `DECISIONS.md` / `STATUS.md` / `BACKLOG.md` for the build journal.
 
 ## License

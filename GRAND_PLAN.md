@@ -458,7 +458,7 @@ Build it **as a user would**, through `n2f` and the skills, in `examples/kiln`. 
 ---
 
 ## 12. How the owner should run this plan (not for the agent)
-- **Driver:** Claude Fable 5.1, effort **high**, bypass permissions, sandboxed Linux with network for package installs, 4+ cores, 8+ GB RAM, Python 3.13 available. Not fast mode.
-- **Subagents, as instructed above:** implementation chunks may run on Opus 5.5 at default effort; review gates run on Fable 5.1 at **xhigh**, fresh context.
+- **Driver:** the strongest coding agent available at a high reasoning setting, unattended permissions, a sandboxed machine with network for package installs, 4+ cores, 8+ GB RAM, Python 3.13 available.
+- **Subagents, as instructed above:** implementation chunks may run on a cheaper model at its default setting; review gates run on the strongest model at its highest reasoning setting, in a fresh context.
 - **First message to the driver:** "Read `GRAND_PLAN.md`. It is your contract. Execute it to completion."
 - **Expect:** two to four days of wall-clock; several context compactions; a `v0.1-build` branch with milestone commits; `HANDOFF-REPORT.md` at the end.

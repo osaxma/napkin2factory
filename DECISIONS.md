@@ -1,8 +1,96 @@
 # Decisions log (system build-out)
 
-Decisions beyond `GRAND_PLAN.md` §2, with rationale. `[revisit]` marks ones the owner may
-want to reopen; `[verify]` marks engineering numbers taken from published sources that a
-human should confirm before relying on them.
+Decisions beyond `GRAND_PLAN.md` §2 and `NAPKIN_STAGE.md` §2, with rationale. Convention
+(AGENTS.md): one entry per decision, ≤ 10 lines, dated; a later entry that changes an earlier
+one names it and the earlier one's index row is updated. `[revisit]` marks ones the owner may
+want to reopen; `[verify]` marks engineering numbers taken from published sources that a human
+should confirm before relying on them.
+
+## Index (status as of 2026-11-01; entries below are never rewritten, only their row here changes)
+
+| id | decision | status |
+|---|---|---|
+| S-001 | Host platform differs from the plan | in force |
+| S-002 | OCP wheel and render path pairing (D2 / D12) | amended by S-059 (section render) |
+| S-003 | three.js pinned at r170 (0.170.0), vendored, inlined (D13) | in force |
+| S-004 | In-house GLB writer; URIs carried in glTF `extras` | in force |
+| S-005 | selectolax lexbor backend | in force |
+| S-006 | `rich` and `packaging` added as runtime dependencies | in force |
+| S-007 | Expression grammar: hyphenated names, spaced minus | in force |
+| S-008 | Lint L1 "measurable" exempts binary verify kinds | in force |
+| S-009 | Schema failures do not cascade | in force |
+| S-010 | Product-repo common files live in `templates/_common` | in force |
+| S-011 | Unattended git identity | in force |
+| S-012 | Validate semantics for computed selectors | in force |
+| S-013 | Interface bolt patterns are applied by the build, not by each generator | in force |
+| S-014 | Per-party interface frames and `param://` in specs | in force |
+| S-015 | Assembly instance numbering is global per part URI | in force |
+| S-016 | Downstream rules depend on upstream *output hashes*, not keys | in force |
+| S-017 | `validate` always reruns when any model file changes, never otherwise | in force |
+| S-018 | Interruption safety by atomic manifest writes after each rule | in force |
+| S-019 | `--jobs N` builds parts in a spawn pool; assemblies reload from STEP | in force |
+| S-020 | Impact before the first build is the conservative static read set | in force |
+| S-021 | Manual pages record `depends_on` plus every templated read | in force |
+| S-022 | Rule packs are YAML rules bound to named Python checks | in force |
+| S-023 | BOM link checks default to offline in `make check` | in force |
+| S-024 | Evidence keys (D25) per scheme | amended by S-027, S-040, S-050; role excluded in S-069 |
+| S-025 | `count` verify kind semantics | in force |
+| S-026 | Safety verdict ladder | in force |
+| Gate 1 | Review gate 1 (architecture) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
+| S-027 | Membership keys `set://…` (gate-1 B1) | in force |
+| S-028 | Parts and assemblies record the fields they read (gate-1 B3) | in force |
+| S-029 | Outputs are verified, never trusted (gate-1 B2/B4) | in force |
+| S-030 | Stable instance numbering and placements in the assembly hash (gate-1 B5) | in force |
+| S-031 | Package-tree code hashes (gate-1 B6) | in force |
+| S-032 | Report layout and persona toggle (D13, D17) | superseded by S-052 (one layout) |
+| S-033 | `n2f serve` is a plain `http.server` | in force |
+| S-034 | Interface holes reach the flat pattern through `PartResult.flat_map` | in force |
+| S-035 | Parameter edits are line-targeted; other YAML edits round-trip | in force |
+| S-036 | Revision bump rule (D7/M6) | in force |
+| S-037 | "Unused parameter → nothing rebuilds" holds for artifacts, not for the report | in force |
+| S-038 | Release bundle and frozen site data | in force |
+| S-039 | Diff overlays rescale to the newer drawing | in force |
+| S-040 | Sign-off evidence for parts is geometry, not the manifest hash | amended by S-050, S-069 |
+| S-041 | `n2f check` never changes render state | in force |
+| Gate 2 | Review gate 2 (UX) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
+| S-042 | EXAMPLE sign-offs are visible everywhere and gate releases | in force |
+| S-043 | Drawings read features and flat patterns from the part's files | in force |
+| S-044 | `kind: reference` parts | in force |
+| S-045 | Interface frames may reference parameters | in force |
+| S-046 | Interference volume by inclusion–exclusion | in force |
+| S-047 | Example sign-offs never read as verification | in force |
+| S-048 | First-run notice and `n2f build --offline` | extended by S-057 (kernel warm-up) |
+| Gate 3 | Review gate 3 (engineering) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
+| Gate 4 | Review gate 4 (onboarding) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
+| S-049 | Parents reload up-to-date sub-assemblies from disk | in force |
+| S-050 | Evidence for parts without geometry | in force |
+| S-051 | A bolt shared by two interfaces is one hole | in force |
+| S-052 | One report layout, no persona toggle (amends D17) | in force; ratified by S-055 |
+| S-053 | The viewer renders on demand | in force |
+| S-054 | PyPI publishing through trusted publishers | in force; tagging practice amended by S-072 |
+| Kiln | Kiln engineering decisions (DEC- entries in `examples/kiln`) | in force |
+| S-055 | Owner ratifies S-052 (NAPKIN_STAGE N2): one layout, persona in dialogue | in force |
+| S-056 | Version pin across 0.1 → 0.2 (D20): warn, never refuse `[revisit]` | in force [revisit]: strict pin mode |
+| S-057 | `n2f init` warms the CAD kernel in the background | in force |
+| S-058 | `validate` reports expression errors alongside reference errors | in force |
+| S-059 | True plane section render (amends D12) | in force |
+| S-060 | Closing a change request waits for human sign-offs | in force |
+| S-061 | Owners read model URIs without the scheme prefix | in force |
+| S-062 | Concept cards, loader and the optional Napkin stage (M1) | in force [revisit]: released product with a new card reads Napkin |
+| S-063 | Massing fidelity in the kit (N3) | in force |
+| S-064 | The calc kit (N4) | in force; fiber k 0.15 / ρ 260 per gate A C4 (materials.yaml) |
+| S-065 | Concept screening: computed vs estimate, the concept rule pack, red is information (N5) | in force; door-swing factor 1.0 → B-0029 |
+| S-066 | Styled viewer screenshots, style.yaml presets and six kit aesthetic parameters (N6, N7) | in force [revisit]: z-buffer fallback picture |
+| S-067 | The board, promotion and form requirements (N8, N10): the `rule` verify kind and the form pack | in force; supply bound is V·I / 1.2 since gate A B1 (the 0.8·V·I in the entry is superseded) |
+| S-068 | The napkin protocol in the PM skill; interpretation cards (N9) | in force |
+| Gate A | Review gate A (honesty + architecture) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
+| S-069 | Kiln retrofit: the napkin story recorded after the fact (M6) | in force |
+| S-070 | `make check` runs the tests in parallel (pytest-xdist) | in force |
+| Gate B | Review gate B (UX, owner persona) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
+| S-071 | v0.2 close-out: what is measured, what is the owner's | in force; the release happened (S-072) |
+| S-072 | CI never repeats a commit's tests; 0.2.0 released | in force |
+
+---
 
 ## S-001 — Host platform differs from the plan (2026-10-30)
 The build runs on an Intel macOS host (Darwin 25.6, x86_64, 16 cores, 32 GB), not the
@@ -786,3 +874,15 @@ pushed again, costs one tiny runner instead of two full runs). The nightly `chec
 unchanged. This also amends the S-054 practice: a tag may go on a commit that is green on its
 branch; "green on `main`" was a second run of the same SHA. v0.2.0 was tagged on 42f0672 after
 the branch run passed; `publish.yml` succeeded for both `napkin2factory` and the `n2f` alias.
+
+## S-073 — Journal consolidation and model-agnostic agent rules (2026-11-01)
+Owner's ask after v0.2: lower the reading cost for the next agent, whatever model runs it.
+`AGENTS.md` is the one place for process rules (CI gate, tagging, staging explicit paths, the
+journal convention); `CLAUDE.md` is its identical copy (`make agents-doc`), as in product repos.
+`DECISIONS.md` gains the index table with a status per entry; entries are capped at ten lines
+and never rewritten. `STATUS.md` is state and pointers; its milestone paragraphs are frozen in
+`docs/history/STATUS-through-v0.2.md`. `BACKLOG.md` is the single open-work document: bugs, plan
+leftovers (GRAND_PLAN §1.2, NAPKIN_STAGE ⤵ items), risks, with closed rows in their own table.
+`make verify-list` prints every unconfirmed number (`verify: true` rows, `[verify]` lines) so the
+handoff list is generated, not assembled by hand. The plans' "how to run" sections name no model.
+
