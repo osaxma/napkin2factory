@@ -61,6 +61,19 @@ class StageReport:
     gates: list[Gate]
     next_step: str
 
+    @property
+    def headline(self) -> str:
+        """The stage ``n2f status`` names: the first gate not complete (review gate B, B5).
+
+        ``stage`` is the last gate passed (kept for ``--json`` and the report); the owner
+        reads the stage they are working in, so a ticked Intake reads "Design".  When only
+        Released is open the product is ``ready``; when every gate is done, ``released``.
+        """
+        first_open = next((g.name for g in self.gates if not g.ok), None)
+        if first_open is None:
+            return "released"
+        return "ready" if first_open == "released" else first_open
+
     def to_dict(self) -> dict[str, Any]:
         """JSON form."""
         return {

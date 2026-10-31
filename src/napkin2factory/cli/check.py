@@ -170,9 +170,9 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
         "verify": "Verify",
         "released": "Released",
     }
+    headline = {**names, "ready": "ready to release"}[rep.headline]
     console.print(
-        f"[bold]{escape(product.manifest.product.name)}[/bold] — stage: "
-        f"[bold]{names[rep.stage]}[/bold]"
+        f"[bold]{escape(product.manifest.product.name)}[/bold] — stage: [bold]{headline}[/bold]"
     )
     for g in rep.gates:
         mark = "[green]✓[/green]" if g.ok else "[yellow]○[/yellow]"

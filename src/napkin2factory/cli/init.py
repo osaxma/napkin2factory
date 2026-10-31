@@ -23,13 +23,14 @@ def slugify(name: str) -> str:
 
 
 NEXT_WARMING = (
-    "  next: `n2f build` — the CAD kernel is warming up in the background (one to two "
-    "minutes the first time on a machine), then open the folder with your AI client and "
-    "start intake"
+    '  next: sketch two directions — `n2f concept new "<title>"` — or go straight to '
+    "`n2f build`; then open the folder with your AI client. The CAD kernel is warming up in "
+    "the background (one to two minutes the first time on a machine)"
 )
 NEXT_COLD = (
-    "  next: `n2f build` (the first run loads the CAD kernel; allow a couple of minutes), "
-    "then open the folder with your AI client and start intake"
+    '  next: sketch two directions — `n2f concept new "<title>"` — or go straight to '
+    "`n2f build` (the first run loads the CAD kernel; allow a couple of minutes); then open "
+    "the folder with your AI client"
 )
 
 
@@ -185,5 +186,5 @@ def init(
         f"from the {template} template ({len(files)} files)"
     )
     if snapshot:
-        console.print(f"  first snapshot saved ({snapshot[:10]})")
+        console.print("  first snapshot saved")
     console.print(NEXT_WARMING if warming else NEXT_COLD, soft_wrap=True)

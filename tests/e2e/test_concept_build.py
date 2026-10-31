@@ -48,7 +48,10 @@ def test_concept_build_all_screens_one_red_one_green(product: Path) -> None:
     assert "995 mm for the body plus 250 mm for the open door" in out
     assert "C-002 holds up: 400 × 403 × 400 mm (computed)" in out
     # the card's own power and circuit are given; only the fit is an estimate (gate A, C1)
-    assert "2.5 kW (on the card) on the 240V-13A circuit — fits with 1.2 headroom (estimate)" in out
+    assert (
+        "2.5 kW (on the card) on the 240V-13A circuit — fits with a fifth to spare (estimate)"
+        in out
+    )
     assert "(estimate)" in out and "worth a look:" in out
     assert "screening failed" not in out.lower()
     for cid in ("C-001", "C-002"):
@@ -84,15 +87,46 @@ def test_concept_build_all_screens_one_red_one_green(product: Path) -> None:
         "C-002": "green",
     }
     table = _run("concept", "list", cwd=root).stdout
-    assert "red" in table and "green" in table
+    # gate B, C7: the owner reads "screening: holds up / has problems", JSON keeps the verdict
+    assert "screening" in table and "verdict" not in table
+    assert "has problems" in table and "holds up" in table
+    assert "red" not in table and "green" not in table
 
     shown = _run("concept", "show", "C-002", cwd=root).stdout
-    assert "estimate — rough, from the calc kit:" in shown
-    assert "computed — measured from the massing shapes:" in shown
-    assert "estimate · thermal_enclosure.heat_up_time" in shown
-    assert "screening: green — this direction holds up" in shown
+    # gate B, C8: where the file is, first; no null fields
+    assert shown.startswith("file: concepts/C-002.yaml\n"), shown
+    assert ": null" not in shown and "null" not in shown
+    # gate B, B2/C17: owner sentences, value names and rule titles; no identifiers
+    assert "estimate — a rough engineering formula, before any design:" in shown
+    assert "computed — measured from the rough shapes:" in shown
+    assert "estimate · from the walls' stored heat and the element power" in shown
+    assert "heat-up" in shown and "width with the door open" in shown
+    assert "fits the alcove with the door open" in shown
+    for word in (
+        "thermal_enclosure",
+        "mass_cost",
+        "massing bounding box",
+        "[verify]",
+        "fits-site-width",
+        "footprint_with_door_swing",
+        "calc kit",
+    ):
+        assert word not in shown, word
+    assert "screening: this direction holds up" in shown
     red = json.loads(_run("concept", "show", "C-001", "--json", cwd=root).stdout)
-    assert red["summary"].startswith("screening: red — this direction has problems:")
+    assert red["summary"].startswith("screening: this direction has problems:")
+    # the engineer's references stay in --json
+    assert red["screening"]["estimates"]["heat_up_time"]["ref"] == "thermal_enclosure.heat_up_time"
+    assert red["screening"]["rules"][0]["id"] == "fits-site-width"
+
+    # gate B, B1: --all builds set-aside cards too, and says which they are
+    _run("concept", "reject", "C-002", "--reason", "too small", cwd=root)
+    shutil.rmtree(root / "build" / "concepts")
+    again = _run("concept", "build", "--all", "--no-render", cwd=root).stdout
+    assert "C-002 holds up: 400 × 403 × 400 mm (computed)" in again
+    (line,) = [ln for ln in again.splitlines() if "C-002 holds up" in ln]
+    assert line.endswith(" (set aside)"), line
+    assert (root / "build" / "concepts" / "C-002" / "screening.json").is_file()
 
     one = json.loads(_run("concept", "build", "C-002", "--json", cwd=root).stdout)
     (entry,) = one["concepts"]

@@ -73,6 +73,11 @@ def mm_text(value_mm: float) -> str:
     return f"{value_mm:.0f} mm"
 
 
+def kg_text(kg: float) -> str:
+    """A mass for the owner: one decimal below 10 kg (``0.4 kg``), else whole (``23 kg``)."""
+    return f"{kg:.1f} kg" if abs(kg) < 10 else f"{kg:.0f} kg"
+
+
 def _q_mm(q: Qty) -> float:
     return float(q.to("mm").magnitude)
 
@@ -149,10 +154,10 @@ def fits_site_width(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
     """
     limit = _site_length(facts.card, "alcove_width")
     if limit is None:
-        return _skip("no alcove width on the card (site.alcove_width)")
+        return _skip("no alcove width on the card")
     width = facts.computed.get("width")
     if width is None:
-        return _skip("no massing to measure")
+        return _skip("no rough shapes to measure")
     term, basis = door_swing_term(
         facts.card, facts.massing, float(params.get("door_swing_factor", 1.0))
     )
@@ -165,6 +170,10 @@ def fits_site_width(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
         "limit": mm_text(_q_mm(limit)),
     }
     status: Literal["pass", "violated"] = "pass" if total <= _q_mm(limit) + 1e-6 else "violated"
+    door = str(facts.card.layout.get("door", "") or "").strip().lower()
+    if status == "pass" and door in ("", "none"):  # no door: say it plainly (gate B, C11)
+        msg = f"{values['width']} wide fits the {values['limit']} alcove"
+        return Outcome("pass", values, [], ["computed"], message=msg)
     return Outcome(status, values, [values] if status == "violated" else [], ["computed"])
 
 
@@ -174,10 +183,10 @@ def fits_site_extent(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
     key = str(params.get("site_key", f"alcove_{axis}"))
     limit = _site_length(facts.card, key)
     if limit is None:
-        return _skip(f"no {key.replace('_', ' ')} on the card (site.{key})")
+        return _skip(f"no {key.replace('_', ' ')} on the card")
     size = facts.computed.get(axis)
     if size is None:
-        return _skip("no massing to measure")
+        return _skip("no rough shapes to measure")
     values = {"size": mm_text(_q_mm(size)), "limit": mm_text(_q_mm(limit))}
     ok = _q_mm(size) <= _q_mm(limit) + 1e-6
     return Outcome("pass" if ok else "violated", values, [] if ok else [values], ["computed"])
@@ -195,8 +204,8 @@ def circuit_available(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
     power = facts.extra.get("power")
     if power is None:
         return _skip(
-            "no power to check: give envelope.power, or envelope.heat_up_time with the "
-            "chamber and insulation"
+            "no power to check: give the card a power, or a heat-up time with the chamber "
+            "and insulation"
         )
     headroom = float(params.get("headroom", pw.CIRCUIT_HEADROOM_MIN))
     circuit = facts.card.site.get("circuit")
@@ -225,7 +234,7 @@ def circuit_available(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
             return Outcome("pass", values, [], relies)
         return Outcome("violated", values, [values], relies)
     if not isinstance(region, str) or not region.strip():
-        return _skip("no supply on the card (site.circuit like 240V-13A, or site.region)")
+        return _skip("no supply on the card (a circuit like 240V-13A, or a region)")
     verdict = pw.circuit_for_power(region, power, headroom=headroom)
     if verdict.status == "unknown_region":
         return Outcome("warn", values, [], relies)
@@ -250,11 +259,11 @@ def mass_vs_lift_class(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
     if mass is None:
         mass, label = facts.computed.get("mass"), "computed"
     if mass is None:
-        return _skip("no mass: give each massing call a material")
+        return _skip("no mass: give each rough shape a material")
     verdict = mass_cost.lift_class(mass)
     kg = float(mass.to("kg").magnitude)
     values: dict[str, Any] = {
-        "mass": f"{kg:.0f} kg",
+        "mass": kg_text(kg),
         "handling": LIFT_WORDS.get(verdict.label, verdict.label),
         "lighter": "",
     }
@@ -334,7 +343,7 @@ def blank_vs_stock_sheet(facts: ConceptFacts, params: dict[str, Any]) -> Outcome
     from napkin2factory.calckit import load_table, mass_cost
 
     if facts.massing is None:
-        return _skip("no massing to measure")
+        return _skip("no rough shapes to measure")
     violations: list[dict[str, Any]] = []
     fits: list[str] = []
     unknown: list[str] = []
@@ -362,7 +371,7 @@ def blank_vs_stock_sheet(facts: ConceptFacts, params: dict[str, Any]) -> Outcome
     if unknown:
         return Outcome("warn", {}, [], ["computed"], message="; ".join(unknown))
     if not fits:
-        return _skip("no sheet-metal massing calls (enclosure, bracket_l, panel, plate)")
+        return _skip("no folded sheet-metal shapes on the card")
     return Outcome("pass", {"detail": "; ".join(fits)}, [], ["computed"])
 
 
@@ -375,9 +384,9 @@ def walls_fit_envelope(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
     chamber = facts.extra.get("chamber")
     wall = facts.extra.get("wall")
     if chamber is None or wall is None:
-        return _skip("no envelope.chamber with envelope.insulation on the card")
+        return _skip("no chamber and insulation on the card")
     if facts.massing is None or not facts.massing.pieces:
-        return _skip("no massing to measure")
+        return _skip("no rough shapes to measure")
     body = facts.massing.piece("body") or max(
         facts.massing.pieces, key=lambda p: p.size[0] * p.size[1] * p.size[2]
     )
@@ -435,7 +444,7 @@ def controls_not_adjacent_hot_face(facts: ConceptFacts, params: dict[str, Any]) 
     controls = str(facts.card.layout.get("controls", "")).strip()
     door = str(facts.card.layout.get("door", "")).strip()
     if not controls or not door:
-        return _skip("no layout.controls and layout.door to compare")
+        return _skip("no controls and door placement on the card to compare")
     door_face = (
         "top"
         if _face(door) == "top" or "lid" in door.lower()
@@ -571,6 +580,7 @@ __all__ = [
     "Outcome",
     "concept_packs",
     "door_swing_term",
+    "kg_text",
     "parse_circuit",
     "rule_params",
     "run_concept_rules",

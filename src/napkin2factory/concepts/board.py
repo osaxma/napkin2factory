@@ -158,14 +158,47 @@ def _data_uri(path: Path) -> str:
     return f"data:{mime};base64,{_b64(path)}"
 
 
-def _value(name: str, lv: LabelledValue) -> dict[str, str]:
+#: A cost band wider than this (high ÷ low) gets one sentence under it (review gate B, C10).
+WIDE_BAND = 1.5
+WIDE_BAND_WORDS = "a wide band: only the parts screening can price are counted"
+
+
+def _value(name: str, lv: LabelledValue) -> dict[str, Any]:
+    """One row of the board's numbers.
+
+    The owner's ``source`` is printed under estimates and the door row; the engineer's
+    ``ref`` travels in ``--json`` only (the template never prints it).
+    """
     return {
         "key": name,
         "name": NAMES.get(name, name.replace("_", " ")),
         "value": lv.value,
         "label": lv.label,
         "source": lv.source,
+        "ref": lv.ref,
+        "show_src": lv.label == "estimate" or name == "footprint_with_door_swing",
+        "after": None,
     }
+
+
+def _amount(text: str) -> float | None:
+    try:
+        return float(text.split(" ")[0])
+    except ValueError:
+        return None
+
+
+def _cost_rows(strip: list[dict[str, Any]]) -> None:
+    """The two cost rows share one source line; a wide band says why (C10)."""
+    rows = {v["key"]: v for v in strip}
+    low, high = rows.get("cost_low"), rows.get("cost_high")
+    if low is None or high is None:
+        return
+    if low["source"] == high["source"]:
+        low["show_src"] = False
+    lo, hi = _amount(low["value"]), _amount(high["value"])
+    if lo is not None and hi is not None and lo > 0 and hi / lo > WIDE_BAND:
+        high["after"] = WIDE_BAND_WORDS
 
 
 def _rule_row(row: RuleRow) -> dict[str, Any]:
@@ -179,15 +212,16 @@ def _status_word(card: ConceptCard) -> str:
 
 
 def _decision_line(card: ConceptCard) -> str | None:
+    """``set aside when C-003 was chosen (DEC-018) — 2026-10-31``: the date, never the time."""
     d = card.decision
     if d is None or card.status == "exploring":
         return None
-    at = d.at.isoformat(sep=" ") if isinstance(d.at, dt.datetime) else (d.at or "")
-    at = str(at).replace("T", " ")
-    when = f" ({at})" if at else ""
+    at = d.at.date().isoformat() if isinstance(d.at, dt.datetime) else str(d.at or "")
+    day = at.replace("T", " ").split(" ")[0]
+    when = f" — {day}" if day else ""
     if card.status == "promoted":
-        return f"the chosen direction — {d.dec}{when}" if d.dec else f"the chosen direction{when}"
-    return f"set aside: {d.reason}{when}" if d.reason else f"set aside{when}"
+        return f"the chosen direction ({d.dec}){when}" if d.dec else f"the chosen direction{when}"
+    return f"{cm.set_aside_words(d.reason)}{when}"
 
 
 def gather_card(root: Path, card: ConceptCard, style: Any) -> dict[str, Any]:
@@ -207,6 +241,7 @@ def gather_card(root: Path, card: ConceptCard, style: Any) -> dict[str, Any]:
     given = [_value(k, lv) for k, lv in given_values.items()]
     dims = [_value(k, values[k]) for k in KEY_DIMS if k in values]
     strip = [_value(k, values[k]) for k in STRIP if k in values]
+    _cost_rows(strip)
     shown = set(KEY_DIMS) | set(STRIP)
     more = [_value(k, lv) for k, lv in values.items() if k not in shown]
     rules = sc.rules if sc is not None else []

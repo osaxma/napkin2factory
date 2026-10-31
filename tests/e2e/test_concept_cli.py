@@ -73,11 +73,11 @@ def test_concept_round_trip(product: Path) -> None:
     assert "not built yet — `n2f concept build C-002`" in r.stdout
 
     r = _run("concept", "reject", "C-002", "--reason", "too tall", cwd=root)
-    assert "C-002 rejected: too tall" in r.stdout
+    assert "C-002 set aside: too tall" in r.stdout
     card = yaml.safe_load((root / "concepts" / "C-002.yaml").read_text())
     assert card["status"] == "rejected" and card["decision"]["reason"] == "too tall"
     r = _run("concept", "show", "C-002", cwd=root)
-    assert "status: rejected" in r.stdout and "C-002 is rejected: too tall" in r.stdout
+    assert "status: rejected" in r.stdout and "C-002 is set aside: too tall" in r.stdout
     shown = json.loads(_run("concept", "show", "2", "--json", cwd=root).stdout)
     assert shown["status"] == "rejected" and shown["summary"] == "never built"
 
@@ -119,6 +119,9 @@ def test_concept_round_trip(product: Path) -> None:
     st = json.loads(_run("status", "--json", cwd=root).stdout)
     assert st["gates"][0] == {**st["gates"][0], "name": "napkin", "ok": True}
     assert st["stage"] == "intake"
+    # gate B, B5: the headline names the stage being worked in, never a ticked one
+    r = _run("status", cwd=root)
+    assert "stage: Design" in r.stdout and "stage: Intake" not in r.stdout, r.stdout
     r = _run("concept", "reject", "C-001", "--reason", "changed my mind", cwd=root, code=3)
     assert "chosen direction" in r.stderr
 

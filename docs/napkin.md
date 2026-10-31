@@ -83,12 +83,22 @@ Every number carries a label, in the card, in JSON and on screen:
   still an estimate.
 - **`computed`** — measured from the massing shapes: `width`, `depth`, `height` (the
   bounding box), `volume`, `mass` (only when every call declares a `material`), and
-  `footprint_with_door_swing`.
+  `footprint_with_door_swing` (only when the card's `layout` names a door: no door, no row).
 - **`estimate`** — from the calc kit ([calckit.md](calckit.md)) fed with the card's
   `envelope` numbers: `heat_loss`, `skin_temperature`, `stored_heat`, `heat_up_time`
   (from `envelope.power`) or `required_power` (from `envelope.heat_up_time`),
   `insulation_mass`, `total_mass`, `current`, `circuit_class`, `cost_low`/`cost_high`,
-  `lift_class`. Each names the calc-kit function it came from.
+  `lift_class`.
+
+Every value also says **where it comes from**, twice: `source` is one sentence in the
+owner's words, printed under the number on the board and in `n2f concept show` ("measured
+across the rough shapes", "from the walls' stored heat and the element power", "rough cost
+of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from cost bands
+per process; the body and the door are not counted; to be checked"); a `[verify]` default
+reads "to be checked" at its end. `ref` is the engineer's reference — the calc-kit function
+and the defaults it used (`thermal_enclosure.heat_up_time`, `mass_cost.cost_estimate
+(guard-left: sheet-metal; …) [verify]`) — kept in the card and in `--json`, never shown to the
+owner (review gate B).
 
 A missing input never becomes an invented number: the estimate is left out and a note says
 what would unlock it. When the card is silent, screening states its defaults: room 25 degC,
@@ -103,11 +113,15 @@ the box without resistance or stored heat. All of these are `[verify]`.
 |---|---|
 | `fits-site-width` | width + the open door > `site.alcove_width`. A hinged door (`layout.door: hinged-left/right`) adds its own width beside the hinge (the `door` massing call, else `envelope.door_width`) |
 | `fits-site-depth`, `fits-site-height` | depth/height exceed `site.alcove_depth`/`alcove_height` |
-| `circuit-available` | the current × 1.2 headroom exceeds `site.circuit` (e.g. `240V-13A`) or every class on file for `site.region`; an unknown region only warns |
+| `circuit-available` | the current × 1.2 headroom ("a fifth to spare" in the owner's line) exceeds `site.circuit` (e.g. `240V-13A`) or every class on file for `site.region`; an unknown region only warns |
 | `mass-vs-lift-class` (warning) | the mass needs more than a two-person lift, or more than `site.lift_class` |
 | `blank-vs-stock-sheet` | a sheet-metal call's flat blank (open box: (L + 2H) × (W + 2H)) fits no stock sheet on file |
 | `walls-fit-envelope` | chamber + 2 × insulation does not fit inside the `body` call |
 | `controls-not-adjacent-hot-face` (warning) | controls sit on top or beside the door, in the hot air path |
+
+Each rule carries an owner-worded `title` ("Fits the alcove with the door open", "Every sheet
+fits a stock size", "The walls fit inside the body"); `n2f concept show` prints the title,
+`--json` keeps the id.
 
 A failing rule makes the card **red**; warnings never do. Red is information: the card
 keeps its reasons, `n2f concept build` prints them under "this direction has problems:"
@@ -153,9 +167,15 @@ Each card shows its id, title, status (`exploring`, `rejected`, `promoted`, or "
 yet"), what it was based on, its sizes and weights, the estimate strip (cost band, heat-up or
 power needed, current, supply, lifting), and "more numbers". **Every number carries its
 `given`, `computed` or `estimate` badge, taken from the card's screening data** — the page never
-decides a label. A red card stays in its place with a red header and "this direction has
-problems:" followed by the failing rules in plain words; warnings read "worth a look:". The
-decision line says which card was chosen (and its `DEC-`) or why one was set aside.
+decides a label — and estimates carry their `source` sentence underneath (the two cost rows
+share one; a band whose high end is more than 1.5 × its low end adds "a wide band: only the
+parts screening can price are counted"). A red card stays in its place with a red header and
+"this direction has problems:" followed by the failing rules in plain words; warnings read
+"worth a look:". The decision line says which card was chosen (and its `DEC-`) or why one was
+set aside ("set aside when C-003 was chosen (DEC-018) — 2026-10-31": the date, never the time).
+
+`n2f concept build --all` builds every card, set-aside ones too, so the board has a picture
+of each; their lines end "(set aside)", the promoted card's "(the chosen direction)".
 
 The page stays under the report's 20 MB budget: when it would not, reference images are
 left out first, then the front pictures (then, only if still needed, the 3D viewers and the
@@ -203,19 +223,24 @@ computed and validated first; a refusal writes nothing):
    hand-edited values are kept and listed.
 6. **The decision**: one `DEC-` ("Design direction: <title>", plus ", despite screening" for
    an overridden red card) whose context lists every other card with its verdict and
-   one-line reasons as rejected alternatives (and the override reason and failing rules),
+   one-line reasons as the alternatives (and the override reason and failing rules),
    whose rationale quotes the screening numbers each tagged computed or estimate, linking
    the new requirements and parameters; `made_by: human` with `--by`, `verify: true` when an
    estimate was used or `--override` was given.
 7. **Cards**: the chosen card becomes `promoted` (`decision: {dec, at}`), every exploring
-   sibling `rejected` (`decision: {reason: "not chosen: C-00x promoted (DEC-0xx)", at}`).
+   sibling `rejected` (`decision: {reason: "set aside when C-00x was chosen (DEC-0xx)", at}`).
    Cards are kept forever.
-8. **A snapshot**, "Promote C-00x: <title>" — the only napkin verb that takes one.
+8. **A snapshot**, "Promote C-00x: <title>" — the only napkin verb that takes one; the
+   output says "snapshot saved".
 
 It ends in one line, for example: "C-003 is now the design direction (DEC-002). Seeded 5
 parameters, 5 requirements (3 about form, 1 about the alcove, 1 about the supply), wrote
-style.yaml; C-001, C-002 and C-004 are kept as rejected alternatives. Next: `n2f build &&
-n2f check`." `--json` carries every id. After promotion `n2f status` moves past Napkin.
+style.yaml. C-001, C-002 and C-004 are kept as alternatives. Next: `n2f build && n2f
+check`." A card with no sizes or site limits says so instead: "The card had no sizes or site
+limits, so no numbers or requirements were added; the look is recorded in style.yaml."
+`--json` carries every id. After promotion `n2f status` moves past Napkin: its headline names
+the first stage not yet complete ("stage: Design" once Intake is done; "stage: ready to
+release" when only the Revision is missing).
 
 ## The conversation: the PM skill's napkin protocol
 
@@ -292,7 +317,7 @@ word:
 ```
 ✗ C-001 — this direction has problems:
     • it needs 1698 mm of width — 995 mm for the body plus 702 mm for the open door (hinged-left: the 702 mm door leaf swung open beside the hinge) — but the alcove is 800 mm
-  995 × 667 × 1370 mm (computed), 2.5 kW (on the card) on the 230V-16A circuit — fits with 1.2 headroom (estimate), 4.4 h to temperature (estimate), 1130–2747 USD (estimate)
+  995 × 667 × 1370 mm (computed), 2.5 kW (on the card) on the 230V-16A circuit — fits with a fifth to spare (estimate), 4.4 h to temperature (estimate), 1130–2747 USD (estimate)
 ```
 
 - **DEC-011, the alcove.** The 995 mm is the closed width. It is computed from the rough

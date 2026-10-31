@@ -58,35 +58,35 @@ notes: >-
 # written for you: screening by `n2f concept build`, decision by reject or promote
 screening:
   given:
-    power: {value: 2.5 kW, label: given, source: envelope.power (on the card)}
-    circuit_class: {value: the 230V-16A circuit, label: given, source: site.circuit (on the card)}
+    power: {value: 2.5 kW, label: given, source: on the card, ref: envelope.power}
+    circuit_class: {value: the 230V-16A circuit, label: given, source: on the card, ref: site.circuit}
   computed:
-    width: {value: 995 mm, label: computed, source: massing bounding box (x)}
-    depth: {value: 667 mm, label: computed, source: massing bounding box (y)}
-    height: {value: 1370 mm, label: computed, source: massing bounding box (z)}
-    volume: {value: 261 L, label: computed, source: sum of the massing silhouettes}
-    footprint_with_door_swing: {value: 1698 mm, label: computed, source: 'width + open door (hinged-left: the 702 mm door leaf swung open beside the hinge)'}
+    width: {value: 995 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (x)}
+    depth: {value: 667 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (y)}
+    height: {value: 1370 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (z)}
+    volume: {value: 261 L, label: computed, source: the space the rough shapes fill, ref: sum of the massing silhouettes}
+    footprint_with_door_swing: {value: 1698 mm, label: computed, source: the body plus the door leaf swung open beside the hinge, ref: 'width + open door (hinged-left: the 702 mm door leaf swung open beside the hinge)'}
   estimates:
-    insulation_mass: {value: 54.1 kg, label: estimate, source: layer volumes × density (K-23 insulating firebrick; ceramic fiber board (Kaowool 1260); sheet shell)}
-    heat_loss: {value: 824 W, label: estimate, source: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
-    skin_temperature: {value: 61 degC, label: estimate, source: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
-    stored_heat: {value: 26.4 MJ, label: estimate, source: thermal_enclosure.stored_heat}
-    heat_up_time: {value: 4.4 h, label: estimate, source: thermal_enclosure.heat_up_time}
-    current: {value: 10.9 A, label: estimate, source: power.element_current at 230 V}
-    cost_low: {value: 1130 USD, label: estimate, source: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
-    cost_high: {value: 2747 USD, label: estimate, source: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
+    insulation_mass: {value: 54.1 kg, label: estimate, source: from the wall layers' sizes and their materials; to be checked, ref: layer volumes × density (K-23 insulating firebrick; ceramic fiber board (Kaowool 1260); sheet shell)}
+    heat_loss: {value: 824 W, label: estimate, source: from the wall layers at the hot-face temperature in a 25 °C room; to be checked, ref: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
+    skin_temperature: {value: 61 degC, label: estimate, source: from the heat loss through the outer face; to be checked, ref: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
+    stored_heat: {value: 26.4 MJ, label: estimate, source: 'the heat the walls hold at temperature, from their materials', ref: thermal_enclosure.stored_heat}
+    heat_up_time: {value: 4.4 h, label: estimate, source: from the walls' stored heat and the element power, ref: thermal_enclosure.heat_up_time}
+    current: {value: 10.9 A, label: estimate, source: from the power and the circuit's voltage, ref: power.element_current at 230 V}
+    cost_low: {value: 1130 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from cost bands per process; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
+    cost_high: {value: 2747 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from cost bands per process; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
   rules:
-    - {id: fits-site-width, title: 'Fits the alcove width, with the door open', severity: fail, status: pass, message: 1698 mm with the door open (995 mm + 702 mm) fits the 1750 mm alcove, relies_on: [computed]}
-    - {id: fits-site-depth, title: Fits the alcove depth, severity: fail, status: skip, message: no alcove depth on the card (site.alcove_depth), relies_on: []}
-    - {id: fits-site-height, title: Fits the alcove height, severity: fail, status: skip, message: no alcove height on the card (site.alcove_height), relies_on: []}
-    - {id: circuit-available, title: A supply circuit on site carries it, severity: fail, status: pass, message: '2.5 kW draws 10.9 A at 230 V: fits the 230V-16A circuit on site', relies_on: [estimate, given]}
-    - {id: mass-vs-lift-class, title: Weight against how it can be moved, severity: warn, status: skip, message: 'no mass: give each massing call a material', relies_on: []}
-    - {id: blank-vs-stock-sheet, title: Sheet-metal blanks fit a stock sheet, severity: fail, status: skip, message: 'no sheet-metal massing calls (enclosure, bracket_l, panel, plate)', relies_on: []}
-    - {id: walls-fit-envelope, title: Chamber plus insulation fits inside the body, severity: fail, status: pass, message: chamber plus 2 × 190 mm of insulation (580 × 580 × 580 mm) fits inside body (590 × 586 × 590 mm), relies_on: [computed]}
+    - {id: fits-site-width, title: Fits the alcove with the door open, severity: fail, status: pass, message: 1698 mm with the door open (995 mm + 702 mm) fits the 1750 mm alcove, relies_on: [computed]}
+    - {id: fits-site-depth, title: Fits the alcove depth, severity: fail, status: skip, message: no alcove depth on the card, relies_on: []}
+    - {id: fits-site-height, title: Fits the alcove height, severity: fail, status: skip, message: no alcove height on the card, relies_on: []}
+    - {id: circuit-available, title: The supply on site carries it, severity: fail, status: pass, message: '2.5 kW draws 10.9 A at 230 V: fits the 230V-16A circuit on site', relies_on: [estimate, given]}
+    - {id: mass-vs-lift-class, title: How it can be lifted and moved, severity: warn, status: skip, message: 'no mass: give each rough shape a material', relies_on: []}
+    - {id: blank-vs-stock-sheet, title: Every sheet fits a stock size, severity: fail, status: skip, message: no folded sheet-metal shapes on the card, relies_on: []}
+    - {id: walls-fit-envelope, title: The walls fit inside the body, severity: fail, status: pass, message: chamber plus 2 × 190 mm of insulation (580 × 580 × 580 mm) fits inside body (590 × 586 × 590 mm), relies_on: [computed]}
     - {id: controls-not-adjacent-hot-face, title: Controls away from the hot air path, severity: warn, status: pass, message: controls (side-right) are away from the door (hinged-left), relies_on: []}
   verdict: green
   at: '2026-10-31T19:26:33'
   notes:
-    - 'no massing mass: give these calls a material: body, door'
+    - 'the rough shapes have no mass yet: give these shapes a material: body, door'
     - cost leaves out body (no material, so no mass), door (no material, so no mass)
 decision: {reason: the owner did not like the v0.1 appearance (NAPKIN_STAGE §0), at: '2026-10-31T19:26:37'}

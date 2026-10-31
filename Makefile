@@ -54,8 +54,7 @@ kiln:
 	$(PY) python tests/validate_outputs.py examples/kiln
 	@echo "== examples/kiln: the napkin stage (concepts, board)"
 	rm -rf $(KILN_NAPKIN) && mkdir -p build && cp -R examples/kiln $(KILN_NAPKIN) && rm -rf $(KILN_NAPKIN)/build
-	cd $(KILN_NAPKIN) && $(PY) n2f concept lint && \
-	  for card in concepts/C-*.yaml; do $(PY) n2f concept build $$(basename $$card .yaml) || exit 1; done && \
+	cd $(KILN_NAPKIN) && $(PY) n2f concept lint && $(PY) n2f concept build --all && \
 	  $(PY) n2f concept board
 	$(PY) python tests/validate_outputs.py $(KILN_NAPKIN) --stage concepts
 	N2F_TIMING=1 $(PY) pytest tests/e2e/test_kiln.py -q

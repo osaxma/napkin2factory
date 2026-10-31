@@ -739,3 +739,31 @@ serially. The timing tests in `check-full` stay serial because they measure wall
 do `kiln` and `demos`. Measured on the reference host (16 cores): the unit+e2e step 20 min 04 s →
 5 min 33 s, goldens 82 s → 72 s, same 634 tests and 90.2 % coverage. Coverage is combined by
 pytest-cov across workers. Risk watched: headless-GL flakes under load (B-0024) — none in this run.
+
+## Review gate B (UX, owner persona) — outcome (2026-10-31)
+Reviewed at 1ebca03 by a fresh-context reviewer playing a hobby potter: NOT READY on six owner-facing
+blockers, none architectural; no git word reached the owner; divergence measured at 3 steps / 15 s;
+every refusal one plain sentence with a next step. **Blockers fixed:** (B1) `n2f concept build --all`
+builds every card, set-aside ones too (lines end "(set aside)" / "(the chosen direction)"), so the
+shipped kiln's board shows four pictures — before, the README's "a styled picture of each" was false
+on the showcase. (B2) `LabelledValue.source` is one owner sentence ("measured across the rough
+shapes", "from the walls' stored heat and the element power", the cost line naming what is and is not
+priced); `[verify]` reads "to be checked"; the identifier moved to a new `ref`, kept in cards and
+`--json`, never on the board or in `show`; kiln cards migrated with identical values. (B3) masses
+under 10 kg keep one decimal ("about 0.4 kg: a one-person lift"). (B4) a promotion that seeds nothing
+says so; the form note appears only when exactly one form requirement applies; "snapshot saved" is
+printed as the skill promised. (B5) the `n2f status` headline names the first gate not complete
+("stage: Design" after Intake; "ready to release" when only the Revision is missing); `--json`
+`stage` and the report badge keep "last gate passed" because `ecr close` and the report read it
+[revisit, B-0033]. (B6) `n2f init` points at `n2f concept new` first and prints no snapshot id.
+**Concerns fixed:** C7 "screening: holds up / has problems" in `list`/`show`, "fits with a fifth to
+spare"; C8 `show` prints the file path, no nulls, word-safe wrapping; C9 a `--from` card made after a
+promotion gets a dim notice; C10 a wide cost band (high/low > 1.5) is explained on the board; C11 no
+door row without a door; C12 "set aside when C-003 was chosen (DEC-018) — date"; C13/B4 snapshot
+line; C14 the refusal spells "change request" and keeps the command; C15 the demo opens with its
+rewind sentence, narrates DEC-012/004 from C-001's numbers and quietens the factory half; C17 rule
+titles in owner words (`title:` per rule in `concept-v0.yaml`). **Deferred:** C16 door/controls
+invisible in the styled renders → B-0032; screening notes still name fields in places → B-0034.
+**Judged (orchestrator, fixed board):** four pictures, owner-worded sources under every estimate,
+the wide-band sentence on the kiln cards only, set-aside lines with the date. No golden changed.
+`make check`: 642 passed; `make check-full` green.

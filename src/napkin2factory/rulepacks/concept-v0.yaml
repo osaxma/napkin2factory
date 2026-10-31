@@ -11,7 +11,7 @@ title: Concept screening (v0)
 applies_to: {scope: concept}
 rules:
   - id: fits-site-width
-    title: Fits the alcove width, with the door open
+    title: Fits the alcove with the door open
     severity: fail
     check: fits_site_width
     # an open hinged door adds door_swing_factor × its own width beside the hinge side
@@ -34,7 +34,7 @@ rules:
     message: "it is {size} tall but the alcove is {limit} tall"
     pass_message: "{size} tall fits the {limit} alcove"
   - id: circuit-available
-    title: A supply circuit on site carries it
+    title: The supply on site carries it
     severity: fail
     check: circuit_available
     # rating ≥ headroom × current (calckit CIRCUIT_HEADROOM_MIN, the kiln's REQ-006 margin;
@@ -44,14 +44,14 @@ rules:
     pass_message: "{power} draws {current}: {circuit}"
     warn_message: "no circuit table for region {region} — confirm the supply"
   - id: mass-vs-lift-class
-    title: Weight against how it can be moved
+    title: How it can be lifted and moved
     severity: warn
     check: mass_vs_lift_class
     params: {}
     message: "about {mass}: {handling}, not a {lighter}"
     pass_message: "about {mass}: {handling}"
   - id: blank-vs-stock-sheet
-    title: Sheet-metal blanks fit a stock sheet
+    title: Every sheet fits a stock size
     severity: fail
     check: blank_vs_stock_sheet
     # shop read-through: a folded shell is cut flat from one sheet; the blank of an open
@@ -60,7 +60,7 @@ rules:
     message: "{call}: the flat blank is about {blank}, larger than any {material} sheet on file ({largest}) — split it into panels or make it smaller"
     pass_message: "every sheet-metal blank fits a stock sheet ({detail})"
   - id: walls-fit-envelope
-    title: Chamber plus insulation fits inside the body
+    title: The walls fit inside the body
     severity: fail
     check: walls_fit_envelope
     params: {}

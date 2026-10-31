@@ -366,6 +366,31 @@ def recorded_promotion(card: ConceptCard, root: Path) -> bool:
     return card.status == "promoted" and promotion_problem(card, decision_ids(root)) is None
 
 
+_NOT_CHOSEN = re.compile(r"^not chosen: (C-\d{3}) promoted \((DEC-\d+)\)$")
+
+
+def chosen_instead(chosen: str, dec: str) -> str:
+    """The reason promotion records on a sibling: ``set aside when C-003 was chosen (DEC-018)``."""
+    return f"set aside when {chosen} was chosen ({dec})"
+
+
+def set_aside_words(reason: str | None) -> str:
+    """Why a card was set aside, in one phrase starting ``set aside`` (review gate B, C12).
+
+    Promotion's own reason reads as is; the wording cards carried before (``not chosen: C-003
+    promoted (DEC-018)``) is read the same way; an owner's reason follows ``set aside:``.
+    """
+    text = (reason or "").strip()
+    m = _NOT_CHOSEN.match(text)
+    if m:
+        return chosen_instead(m.group(1), m.group(2))
+    if not text:
+        return "set aside"
+    if text.startswith("set aside"):
+        return text
+    return f"set aside: {text}"
+
+
 def lint_concepts(root: Path) -> Problems:
     """``n2f concept lint``: schema plus rules C1–C7; only C5 (site keys) is a warning."""
     problems = Problems()

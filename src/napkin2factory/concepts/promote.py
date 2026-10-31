@@ -142,15 +142,20 @@ class PromotionResult:
             f" ({', '.join(parts)})" if parts else ""
         )
         style = "wrote style.yaml" if self.style_created else "updated style.yaml"
-        line = (
-            f"{self.card_id} is now the design direction ({self.dec_id}). {params}, {reqs}, {style}"
-        )
+        head = f"{self.card_id} is now the design direction ({self.dec_id})."
+        if not self.params and not self.requirements:  # nothing seeded: say so (gate B, B4)
+            line = (
+                f"{head} The card had no sizes or site limits, so no numbers or requirements "
+                "were added; the look is recorded in style.yaml."
+            )
+        else:
+            line = f"{head} {params}, {reqs}, {style}."
         if self.rejected:
             names = _and(self.rejected)
             verb = "is" if len(self.rejected) == 1 else "are"
-            noun = "alternative" if len(self.rejected) == 1 else "alternatives"
-            line += f"; {names} {verb} kept as rejected {noun}"
-        return line + ". Next: `n2f build && n2f check`."
+            noun = "an alternative" if len(self.rejected) == 1 else "alternatives"
+            line += f" {names} {verb} kept as {noun}."
+        return line + " Next: `n2f build && n2f check`."
 
     def to_dict(self) -> dict[str, Any]:
         """JSON form for ``--json``: every id."""
@@ -298,8 +303,9 @@ def seed_plan(card: ConceptCard, notes: list[str]) -> list[tuple[str, Any, str]]
                         plan.append((f"{name}-{prop}", q, f"envelope.{key}[{i}].{prop}"))
                 skipped |= {k for k in layer if k not in ("name", "thickness", "clearance")}
             if skipped:
+                verb = "stays" if len(skipped) == 1 else "stay"
                 notes.append(
-                    f"envelope.{key}: layer {', '.join(sorted(skipped))} stay on the card "
+                    f"envelope.{key}: layer {_and(sorted(skipped))} {verb} on the card "
                     "(screening values), not seeded as parameters"
                 )
         else:
@@ -405,7 +411,8 @@ def door_swing_term(card: ConceptCard) -> tuple[Any, str]:
     """The screening's computed door-swing term (mm) and its basis.
 
     ``footprint_with_door_swing − width`` from the card's computed values (0 when the door
-    is not hinged); the basis is the footprint's ``source`` text.
+    is not hinged); the basis is the footprint's engineering ``ref`` (its ``source`` on
+    cards screened before review gate B).
     """
     from napkin2factory.core.units import Quantity
 
@@ -414,10 +421,13 @@ def door_swing_term(card: ConceptCard) -> tuple[Any, str]:
     foot = sc.computed.get("footprint_with_door_swing")
     width = _lv_quantity(sc.computed.get("width"))
     footq = _lv_quantity(foot)
+    door = str(card.layout.get("door", "") or "").strip().lower()
+    if foot is None and door in ("", "none"):
+        return Quantity(0.0, "mm"), "no door on the card: nothing swings beside the body"
     if foot is None or width is None or footq is None:
         return Quantity(0.0, "mm"), "no footprint in the screening: no door swing counted"
     term = (footq - width).to("mm")
-    basis = foot.source.removeprefix("width + open door (").removesuffix(")")
+    basis = (foot.ref or foot.source).removeprefix("width + open door (").removesuffix(")")
     return term, basis
 
 
@@ -642,18 +652,17 @@ def form_requirements(
                 },
             )
         )
-    if len(out) < 2:
+    if len(out) == 1:  # none at all needs no note: the summary says so (gate B, B4)
         why = []
         if float(radius.to("mm").magnitude) <= 0:
             why.append("no corner radius")
         if style.fastener_visibility != "hidden-front":
-            why.append(f"fasteners {style.fastener_visibility}")
+            why.append(f"fasteners {str(style.fastener_visibility).replace('-', ' ')}")
         if not controls:
-            why.append("no controls placement in the layout")
+            why.append("no place for the controls in the layout")
         notes.append(
-            f"only {_count(len(out), 'form requirement')} applies: the style chose "
-            f"{', '.join(why)} — add corner_radius or fastener_visibility: hidden-front to "
-            "the card's style for more"
+            f"1 form requirement applies: the style chose {_and(why)} — give the card's style "
+            "a corner radius or hidden front fasteners for more"
         )
     for _, data in out:
         data["allocation"] = allocation
@@ -864,7 +873,7 @@ def promote(
     if chosen:
         raise GateBlocked(
             f"{chosen[0].id} is already the chosen direction — changing direction after "
-            "promotion is a change request (`n2f ecr new --kind design --title …`)"
+            "promotion is a change request: `n2f ecr new --kind design --title …`"
         )
     reason = (reason or "").strip() or None
     if override and not reason:
@@ -930,7 +939,7 @@ def promote(
     alternatives = [
         f'{c.id} "{c.title}" ({_one_line(c)})'
         + (
-            f" — set aside earlier: {c.decision.reason}"
+            f" — {cm.set_aside_words(c.decision.reason)}"
             if c.status == "rejected" and c.decision is not None and c.decision.reason
             else ""
         )
@@ -1001,7 +1010,7 @@ def promote(
                 root,
                 c.id,
                 "rejected",
-                {"reason": f"not chosen: {cid} promoted ({dec_id})", "at": at},
+                {"reason": cm.chosen_instead(cid, dec_id), "at": at},
             )
             rejected.append(c.id)
         else:

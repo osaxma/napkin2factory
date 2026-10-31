@@ -6,10 +6,14 @@ label at the data level:
 * ``computed`` — measured from the massing silhouettes (bounding box, volume, mass from
   declared materials, footprint with the door swing);
 * ``estimate`` — from the calc kit (:mod:`napkin2factory.calckit`) fed with the card's
-  envelope numbers; its ``source`` names the calc-kit function;
+  envelope numbers;
 * ``given`` — the card's own inputs echoed back (``envelope.power``, ``site.circuit``):
   neither measured nor estimated (review gate A, C1). A verdict built on them (does the
   power fit the circuit?) is still an estimate.
+
+Each value's ``source`` says where it comes from in the owner's words (a ``[verify]`` tag
+reads "to be checked"); its ``ref`` names the calc-kit function or rule parameters for
+engineers (``--json`` and the card only, never the board — review gate B, B2).
 
 Missing inputs never become invented numbers: the estimate is omitted and a note says what
 would unlock it. A red verdict is information — written to the card with its reasons,
@@ -228,9 +232,38 @@ class _Collector:
         self.raw: dict[str, Any] = {}
         self.out: dict[str, LabelledValue] = {}
 
-    def add(self, name: str, raw: Any, text: str, source: str) -> None:
+    def add(self, name: str, raw: Any, text: str, source: str, ref: str | None = None) -> None:
+        """Record one value: ``source`` in the owner's words, ``ref`` for engineers."""
         self.raw[name] = raw
-        self.out[name] = LabelledValue(value=text, label=self.label, source=source)  # type: ignore[arg-type]
+        self.out[name] = LabelledValue(
+            value=text,
+            label=self.label,  # type: ignore[arg-type]
+            source=source,
+            ref=ref,
+        )
+
+
+#: The owner's words for a ``[verify]`` tag at the end of a "where it comes from" sentence.
+TO_CHECK = "to be checked"
+
+
+def _and(items: list[str]) -> str:
+    if len(items) <= 1:
+        return "".join(items)
+    return ", ".join(items[:-1]) + f" and {items[-1]}"
+
+
+def owner_names(names: list[str]) -> list[str]:
+    """Call names as words, pieces sharing a prefix grouped: ``guard (5 pieces)``, ``hinge``."""
+    words = [n.replace("_", " ").replace("-", " ").strip() for n in names]
+    heads = [w.split(" ")[0] for w in words]
+    out: list[str] = []
+    for w, head in zip(words, heads, strict=True):
+        n = heads.count(head)
+        item = f"{head} ({n} pieces)" if n > 1 and " " in w else w
+        if item not in out:
+            out.append(item)
+    return out
 
 
 # --- the screen ---------------------------------------------------------------------
@@ -314,6 +347,7 @@ def _thermal(card: ConceptCard, est: _Collector, extra: dict[str, Any], notes: l
             "insulation_mass",
             Quantity(ins_mass, "kg"),
             fmt(Quantity(ins_mass, "kg"), "kg"),
+            f"from the wall layers' sizes and their materials; {TO_CHECK}",
             "layer volumes × density (" + "; ".join(sorted({_src(lay) for lay in layers})) + ")",
         )
     unknown = [layer.name for layer in layers if not layer.known]
@@ -332,16 +366,19 @@ def _thermal(card: ConceptCard, est: _Collector, extra: dict[str, Any], notes: l
         return
     t_hot = _temperature(card, notes)
     res = te.steady_loss(chamber, kit_layers, t_hot, T_AMBIENT, H_OUTER, EMISSIVITY)
+    room = f"{float(T_AMBIENT.magnitude):g} °C"
     est.add(
         "heat_loss",
         res.loss,
         fmt(res.loss, "W"),
+        f"from the wall layers at the hot-face temperature in a {room} room; {TO_CHECK}",
         f"thermal_enclosure.steady_loss ({THERMAL_SOURCE})",
     )
     est.add(
         "skin_temperature",
         res.outer_skin_temperature,
         fmt(res.outer_skin_temperature, "degC"),
+        f"from the heat loss through the outer face; {TO_CHECK}",
         f"thermal_enclosure.steady_loss ({THERMAL_SOURCE})",
     )
     stored = None
@@ -355,7 +392,13 @@ def _thermal(card: ConceptCard, est: _Collector, extra: dict[str, Any], notes: l
             T_AMBIENT,
             res.interface_temperatures,
         )
-        est.add("stored_heat", stored, fmt(stored, "MJ"), "thermal_enclosure.stored_heat")
+        est.add(
+            "stored_heat",
+            stored,
+            fmt(stored, "MJ"),
+            "the heat the walls hold at temperature, from their materials",
+            "thermal_enclosure.stored_heat",
+        )
     else:
         notes.append("an insulation layer has no density: stored heat and heat-up not estimated")
     power = card.envelope.get("power")
@@ -365,7 +408,13 @@ def _thermal(card: ConceptCard, est: _Collector, extra: dict[str, Any], notes: l
     if stored is not None and is_quantity(power):
         try:
             t = te.heat_up_time(stored, res.loss, power)
-            est.add("heat_up_time", t, fmt(t, "hour"), "thermal_enclosure.heat_up_time")
+            est.add(
+                "heat_up_time",
+                t,
+                fmt(t, "hour"),
+                "from the walls' stored heat and the element power",
+                "thermal_enclosure.heat_up_time",
+            )
         except ValueError:
             notes.append(
                 f"{fmt(power, 'W')} does not exceed the {fmt(res.loss, 'W')} steady loss: "
@@ -374,10 +423,30 @@ def _thermal(card: ConceptCard, est: _Collector, extra: dict[str, Any], notes: l
     target = card.envelope.get("heat_up_time")
     if stored is not None and is_quantity(target):
         p = te.heat_up_power(stored, res.loss, target)
-        est.add("required_power", p, fmt(p, "W"), "thermal_enclosure.heat_up_power")
+        est.add(
+            "required_power",
+            p,
+            fmt(p, "W"),
+            "from the walls' stored heat and heat loss over the planned heat-up time",
+            "thermal_enclosure.heat_up_power",
+        )
         if "power" not in extra:
             extra["power"] = p
             extra["power_label"] = "estimate"
+
+
+def _door_words(door: str, basis: str, term: float) -> str:
+    """Where the width with the door open comes from, in the owner's words."""
+    if door not in ("hinged-left", "hinged-right"):
+        return f"the body only: a {door.replace('-', ' ')} door swings nothing beside it"
+    if term <= 0:
+        return (
+            "the body only: the card gives no door shape or door width, so the open door "
+            "is not counted"
+        )
+    if "door_width" in basis:
+        return "the body plus the door (its width on the card) swung open beside the hinge"
+    return "the body plus the door leaf swung open beside the hinge"
 
 
 def _src(layer: ScreenLayer) -> str:
@@ -413,13 +482,18 @@ def _supply(
         volts, _amps = parsed
         current = pw.element_current(power, volts)
         est.add(
-            "current", current, fmt(current, "A"), f"power.element_current at {volts.magnitude:g} V"
+            "current",
+            current,
+            fmt(current, "A"),
+            "from the power and the circuit's voltage",
+            f"power.element_current at {volts.magnitude:g} V",
         )
         given.add(
             "circuit_class",
             f"the {circuit} circuit",
             f"the {circuit} circuit",
-            "site.circuit (on the card)",
+            "on the card",
+            "site.circuit",
         )
         return
     if isinstance(circuit, str) and circuit.strip():
@@ -433,10 +507,22 @@ def _supply(
     if verdict.status == "unknown_region":
         notes.append(f"no circuit table for region {region}: confirm the supply")
         return
-    est.add("current", verdict.current, fmt(verdict.current, "A"), "power.circuit_for_power")
+    est.add(
+        "current",
+        verdict.current,
+        fmt(verdict.current, "A"),
+        f"from the power and the usual {region} supply voltage",
+        "power.circuit_for_power",
+    )
     if verdict.status == "ok":
         label = str(verdict.label)
-        est.add("circuit_class", label, label, f"power.circuit_for_power ({region} table) [verify]")
+        est.add(
+            "circuit_class",
+            label,
+            label,
+            f"the smallest {region} circuit on file that carries it; {TO_CHECK}",
+            f"power.circuit_for_power ({region} table) [verify]",
+        )
     else:
         notes.append(f"no circuit class on file for {region} carries {fmt(verdict.current, 'A')}")
 
@@ -446,6 +532,8 @@ def _cost(massing: Any, est: _Collector, extra: dict[str, Any], notes: list[str]
 
     low = high = 0.0
     counted: list[str] = []
+    priced: list[str] = []
+    unpriced: list[str] = []
     missing: list[str] = []
     items: list[tuple[str, str, float | None]] = []
     if massing is not None:
@@ -460,20 +548,30 @@ def _cost(massing: Any, est: _Collector, extra: dict[str, Any], notes: list[str]
             c = mass_cost.cost_estimate(pclass, mass=None if kg is None else Quantity(kg, "kg"))
         except ValueError:
             missing.append(f"{name} (no material, so no mass)")
+            unpriced.append(name)
             continue
         if not c.known or c.low is None or c.high is None:
             missing.append(f"{name} (no cost band for {pclass!r})")
+            unpriced.append(name)
             continue
         low += float(c.low.to("USD").magnitude)
         high += float(c.high.to("USD").magnitude)
         counted.append(f"{name}: {pclass}")
+        priced.append(name)
     if missing:
         notes.append("cost leaves out " + ", ".join(missing))
     if not counted:
         return
-    src = "mass_cost.cost_estimate (" + "; ".join(counted) + ") [verify]"
-    est.add("cost_low", Quantity(low, "USD"), fmt(Quantity(low, "USD"), "USD"), src)
-    est.add("cost_high", Quantity(high, "USD"), fmt(Quantity(high, "USD"), "USD"), src)
+    ref = "mass_cost.cost_estimate (" + "; ".join(counted) + ") [verify]"
+    words = f"rough cost of the {_and(owner_names(priced))} from cost bands per process"
+    if unpriced:
+        left = owner_names(unpriced)
+        verb = "is" if len(left) == 1 else "are"
+        names = " and the ".join(left) if len(left) < 3 else _and(left)
+        words += f"; the {names} {verb} not counted"
+    words += f"; {TO_CHECK}"
+    est.add("cost_low", Quantity(low, "USD"), fmt(Quantity(low, "USD"), "USD"), words, ref)
+    est.add("cost_high", Quantity(high, "USD"), fmt(Quantity(high, "USD"), "USD"), words, ref)
 
 
 def screen(
@@ -510,38 +608,60 @@ def screen(
                 name,
                 Quantity(value, "mm"),
                 fmt(Quantity(value, "mm"), "mm"),
+                "measured across the rough shapes",
                 f"massing bounding box ({axis})",
             )
         vol = Quantity(massing.volume, "mm**3")
-        comp.add("volume", vol, fmt(vol, "L"), "sum of the massing silhouettes")
+        comp.add(
+            "volume",
+            vol,
+            fmt(vol, "L"),
+            "the space the rough shapes fill",
+            "sum of the massing silhouettes",
+        )
         if massing.mass is not None:
             m = Quantity(massing.mass, "kg")
             comp.add(
                 "mass",
                 m,
                 fmt(m, "kg"),
+                "from the rough shapes and their materials",
                 "silhouette volume × density per call (geometry/materials.py)",
             )
         else:
             notes.append(
-                "no massing mass: give these calls a material: "
+                "the rough shapes have no mass yet: give these shapes a material: "
                 + ", ".join(massing.without_material)
             )
-        factor = float(rule_params("fits-site-width").get("door_swing_factor", 1.0))
-        term, basis = door_swing_term(card, massing, factor)
-        foot = Quantity(w + term, "mm")
-        comp.add("footprint_with_door_swing", foot, fmt(foot, "mm"), f"width + open door ({basis})")
+        door = str(card.layout.get("door", "") or "").strip().lower()
+        if door and door != "none":  # no door on the card: no door row (review gate B, C11)
+            factor = float(rule_params("fits-site-width").get("door_swing_factor", 1.0))
+            term, basis = door_swing_term(card, massing, factor)
+            foot = Quantity(w + term, "mm")
+            comp.add(
+                "footprint_with_door_swing",
+                foot,
+                fmt(foot, "mm"),
+                _door_words(door, basis, term),
+                f"width + open door ({basis})",
+            )
     _thermal(card, est, extra, notes)
     card_power = card.envelope.get("power")
     if is_quantity(card_power):
         try:
-            given.add("power", card_power, fmt(card_power, "W"), "envelope.power (on the card)")
+            given.add("power", card_power, fmt(card_power, "W"), "on the card", "envelope.power")
         except Exception:  # pint DimensionalityError: not a power
             notes.append(f"envelope.power {card_power} is not a power (give it in W or kW)")
     _supply(card, est, given, extra, notes)
     if "mass" in comp.raw and "insulation_mass" in est.raw:
         total = (comp.raw["mass"] + est.raw["insulation_mass"]).to("kg")
-        est.add("total_mass", total, fmt(total, "kg"), "massing mass + insulation_mass")
+        est.add(
+            "total_mass",
+            total,
+            fmt(total, "kg"),
+            "the rough shapes plus the insulation",
+            "massing mass + insulation_mass",
+        )
     _cost(massing, est, extra, notes)
     lift_mass = est.raw.get("total_mass", comp.raw.get("mass"))
     if lift_mass is not None:
@@ -550,6 +670,7 @@ def screen(
             "lift_class",
             verdict.label,
             verdict.label,
+            f"from the mass and the lifting limits; {TO_CHECK}",
             "mass_cost.lift_class (HSE guideline weights) [verify]",
         )
     rules = run_concept_rules(card, comp.raw, est.raw, massing, extra)

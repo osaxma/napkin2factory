@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** review gate B (UX, owner persona), then M7 close-out
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M7 close-out (clean-clone check-full, handoff report, release)
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
 **Resume note (2026-10-31):** M0–M4 committed. review gate A (fresh-context, read-only) and M5 (skill texts) run in parallel from briefs in the
 orchestrator's scratchpad; then M6 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
@@ -85,8 +85,16 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
 - **Parallel `make check` (2026-10-31)** — pytest-xdist in `unit` and `golden` (S-070): the unit+e2e
   step 20 min → 5.5 min on this host, goldens 82 s → 72 s, same tests and coverage; `make check XDIST=`
   for a serial run; timing, kiln and demo targets stay serial.
+- **Gate B (2026-10-31)** — UX review in the owner persona at 1ebca03: NOT READY on six owner-facing
+  blockers (`--all` skipped set-aside cards so the showcase board had one picture; code identifiers as
+  the "where it comes from" lines; "about 0 kg"; an empty promotion summary; the status headline naming
+  a ticked stage; `n2f init` pointing past the napkin), eleven concerns; no architecture finding and no
+  git word reached the owner. All blockers and ten concerns fixed with regression tests; C16 → B-0032,
+  the `--json` stage meaning → B-0033, field names in notes → B-0034. **Judged:** the fixed board shows
+  four pictures and owner-worded sources. `make check`: 642 passed, coverage 90.2 %; `make check-full`
+  green. Full outcome in DECISIONS "Review gate B — outcome".
 ## Next
-review gate B (fresh eyes on M5–M6); M7 close-out (`HANDOFF-REPORT-v0.2.md`, release notes).
+M7 close-out: clean-clone `make check-full`, `HANDOFF-REPORT-v0.2.md` final, then the owner's release call (merge to `main`, `v0.2.0` tag after CI green, S-054).
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).

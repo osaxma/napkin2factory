@@ -109,8 +109,8 @@ def test_promote_green_card_writes_the_expected_model(product: Path) -> None:
         assert text == golden.read_text(encoding="utf-8"), f"{rel} differs from {golden}"
     assert result.summary() == (
         "C-003 is now the design direction (DEC-002). Seeded 5 parameters, 5 requirements "
-        "(3 about form, 1 about the alcove, 1 about the supply), wrote style.yaml; C-001, "
-        "C-002 and C-004 are kept as rejected alternatives. Next: `n2f build && n2f check`."
+        "(3 about form, 1 about the alcove, 1 about the supply), wrote style.yaml. C-001, "
+        "C-002 and C-004 are kept as alternatives. Next: `n2f build && n2f check`."
     )
     # the cards flipped; the chosen one names the decision
     chosen = _card(root, "C-003")
@@ -118,7 +118,7 @@ def test_promote_green_card_writes_the_expected_model(product: Path) -> None:
     for cid in ("C-001", "C-002", "C-004"):
         card = _card(root, cid)
         assert card["status"] == "rejected"
-        assert card["decision"]["reason"] == "not chosen: C-003 promoted (DEC-002)"
+        assert card["decision"]["reason"] == "set aside when C-003 was chosen (DEC-002)"
     # a snapshot, and nothing left unsaved
     vcs = Vcs(root)
     assert vcs.head() != head and result.snapshot == vcs.head() and vcs.is_clean()
@@ -195,7 +195,8 @@ def test_red_card_with_override_records_why(product: Path) -> None:
     assert {"chamber-width", "brick-thickness", "fiber-clearance", "element-power"} <= names
     # an unstyled card still gets the one form requirement that applies, and says so
     assert [r.about for r in result.requirements].count("form") == 1
-    assert any("only 1 form requirement applies" in n for n in result.notes)
+    assert any(n.startswith("1 form requirement applies") for n in result.notes)
+    assert not any("corner_radius" in n or "fastener_visibility" in n for n in result.notes)
     load_product(product)
 
 
@@ -428,3 +429,54 @@ def test_promoting_over_a_hand_edited_card_rejects_it(product: Path) -> None:
     result = promote(product, "C-003", now=NOW)
     assert "C-002" in result.rejected and _card(product, "C-002")["status"] == "rejected"
     assert cm.lint_concepts(product).errors == []
+
+
+# --- review gate B: the owner's words after a promotion ----------------------------------
+
+
+def test_summary_when_nothing_was_seeded_says_so() -> None:
+    """Gate B, B4: no "Seeded 0 parameters, 0 requirements"."""
+    result = PromotionResult("C-001", "Bracket", "DEC-002", False, rejected=["C-002", "C-003"])
+    assert result.summary() == (
+        "C-001 is now the design direction (DEC-002). The card had no sizes or site limits, "
+        "so no numbers or requirements were added; the look is recorded in style.yaml. "
+        "C-002 and C-003 are kept as alternatives. Next: `n2f build && n2f check`."
+    )
+    one = PromotionResult("C-001", "Bracket", "DEC-002", False, rejected=["C-002"])
+    assert "C-002 is kept as an alternative." in one.summary()
+
+
+def test_no_form_requirement_needs_no_note() -> None:
+    """Gate B, B4: the note only when exactly one form requirement applies, in words."""
+    from napkin2factory.concepts.promote import form_requirements
+    from napkin2factory.core.model.style import StyleFile
+
+    card = cm.ConceptCard.model_validate({"id": "C-001", "title": "Plain"})
+    notes: list[str] = []
+    assert form_requirements(card, StyleFile().resolved(), None, notes) == []
+    assert notes == []
+    sideways = card.model_copy(update={"layout": {"controls": "side-right"}})
+    assert len(form_requirements(sideways, StyleFile().resolved(), None, notes)) == 1
+    assert notes == [
+        "1 form requirement applies: the style chose no corner radius and fasteners visible — "
+        "give the card's style a corner radius or hidden front fasteners for more"
+    ]
+
+
+def test_cli_promotion_prints_snapshot_saved_and_plain_refusals(product: Path) -> None:
+    """Gate B, B4 (C13) and C14: the promise in the PM skill holds; no bare acronym."""
+    r = n2f("concept", "promote", "C-003", cwd=product)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "\n  snapshot saved\n" in r.stdout
+    r = n2f("concept", "promote", "C-002", cwd=product)
+    assert r.returncode == 3
+    assert (
+        "changing direction after promotion is a change request: "
+        "`n2f ecr new --kind design --title …`"
+    ) in r.stderr
+    r = n2f("concept", "new", "Taller", "--from", "C-002", cwd=product)
+    assert r.returncode == 0, r.stderr
+    assert (
+        "C-003 is already the design direction; this card can be compared on the board, "
+        "but choosing it instead is a change request."
+    ) in r.stdout
