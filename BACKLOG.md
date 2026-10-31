@@ -53,6 +53,11 @@ entry that closed them. Ids are never reused.
 | B-0050 | Brand integration: `brand/` marks and wordmark into the report, docs and CLI; font licence first | Deferred until after v0.2 (2026-10-31); in progress separately |
 | B-0051 | Risk: headless-GL (SwiftShader) flakes under parallel test load beyond the one message now tolerated | S-070 risk watched; B-0024 closed |
 | B-0052 | Risk: Linux is covered only by CI; the reference platform is the macOS host | S-001; former STATUS open risk |
+| B-0053 | Keep review-gate reports in the repo (`docs/reviews/`) with a reusable gate template; v0.2's two reports were scratch files | docs/improvements.md §1; ~1 h |
+| B-0054 | Run the three demos in parallel in `make check-full` (≈ 28 min → 12–15 min) | docs/improvements.md §2; ~1 h; amends S-070 |
+| B-0055 | Build each example product once per test worker and copy it per test; first check the manifest is relocatable (B-0006) | docs/improvements.md §3; ~½ day of change |
+| B-0056 | Visual milestones: post the board screenshot and a render to the maintainer before calling the milestone done | docs/improvements.md §4; working-style rule for AGENTS.md |
+| B-0057 | Client-neutral home for the product role skills; `.claude/skills/` points at it | docs/improvements.md §5; touches templates, sync, init, two tests |
 
 ## Closed
 
