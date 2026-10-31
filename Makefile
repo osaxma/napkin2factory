@@ -20,11 +20,16 @@ types:
 
 export N2F_OFFLINE ?= 1
 
+# Parallel test runs (pytest-xdist). One worker per core; `--dist loadfile` keeps a module's
+# shared product build on one worker. `make check XDIST=` runs serially; the timing tests in
+# check-full stay serial because they measure wall-clock.
+XDIST ?= -n auto --dist loadfile
+
 unit:
-	$(PY) pytest tests/smoke tests/unit tests/e2e -m "not full" --cov=napkin2factory.core --cov=napkin2factory.calckit --cov-report=term-missing:skip-covered --cov-fail-under=80
+	$(PY) pytest tests/smoke tests/unit tests/e2e -m "not full" $(XDIST) --cov=napkin2factory.core --cov=napkin2factory.calckit --cov-report=term-missing:skip-covered --cov-fail-under=80
 
 golden:
-	$(PY) pytest tests/golden
+	$(PY) pytest tests/golden $(XDIST)
 
 examples-fast:
 	@for ex in $(EXAMPLES_FAST); do \
