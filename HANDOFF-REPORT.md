@@ -1,5 +1,7 @@
 # napkin2factory v0.1 — handoff report
 
+> **Next agent: v0.1 is released (0.1.0 on PyPI, §7). Continue with v0.2 — see §9.**
+
 ## 1. What works, per definition-of-done item
 
 | # | item | status | evidence |
@@ -125,7 +127,7 @@ Pages to show: `build/report/index.html` (section index on the left; every URI i
 
 _Superseded 2026-10-31: the owner chose the napkin stage for v0.2 (`NAPKIN_STAGE.md`);
 the items below move to v0.3 (MCP server, share mode) and v0.4 (electrical, manufacturer
-profiles, stack-up)._
+profiles, stack-up)._ See §9 for where to continue.
 
 - **Electrical stage (KiCad).** Add `model/electrical/*.kicad_sch` as source with an
   `elec:<id>` rule family (kicad-cli ERC/DRC → `features.json`-style facts), `wire://` URIs,
@@ -151,6 +153,17 @@ profiles, stack-up)._
 ## 7. PyPI name availability
 Read-only `GET https://pypi.org/pypi/<name>/json` on 2026-10-30: `napkin2factory` → HTTP 404 (**available**), `n2f` → HTTP 404 (**available**). Nothing was published. Recommendation unchanged from the handoff: publish `napkin2factory`; register `n2f` as a defensive placeholder depending on it.
 
+**Published 2026-10-31.** Tag `v0.1.0` (commit `cff8a82`, first CI run green on
+`ubuntu-latest` and `macos-latest`) ran `publish.yml` (DECISIONS S-054):
+`napkin2factory 0.1.0` and the alias `n2f 0.1.0` (`napkin2factory==0.1.0`) are on PyPI,
+wheel and sdist each. A fresh `pip install n2f` gives a working `n2f`.
+
+**Left for v0.2 M0 (docs out of date since publishing):** README "Install (from source)"
+(line ~16, and line ~38 "Once the package is published…") should lead with
+`uv tool install napkin2factory` / `pip install napkin2factory` and keep the source install
+for contributors; §5 rough edge 2 (`uv run n2f` only inside the checkout) is solved by the
+PyPI install and should say so.
+
 ## 8. Shop read-through verdict (gate 3)
 
 Quoted from `examples/kiln/reports/shop-readthrough.md`, written by the fresh-context gate-3
@@ -175,3 +188,46 @@ probes, independent over-temperature limit, mean-area thermal model with both gu
 computed, 2.5 kW element in five grooves). The read-through is kept verbatim with a preface
 saying what changed; nobody at a real shop has read either version, and the estimate is now
 about 2200 USD against an intake wish of 1500 USD (DEC-012, owner to confirm).
+
+## 9. Continue here: v0.2 (added 2026-10-31)
+
+v0.1 is closed: released as `v0.1.0` on `main`, published to PyPI (§7), CI green on Linux
+and macOS. The next agent continues with **v0.2** on a new branch `v0.2-build` cut from
+`main`.
+
+**The contract is `NAPKIN_STAGE.md`** (the napkin stage: concept cards, massing fidelity,
+calc kit, screening, styled screenshots, `style.yaml`, the board, promotion, the PM-skill
+napkin protocol, the kiln retrofit), with `GRAND_PLAN.md` §0/§8/§9 still in force. It
+already folds in B-0008, B-0015, B-0016 and B-0017. Start at its M0.
+
+Also in v0.2, not covered by `NAPKIN_STAGE.md` (log each outcome in `DECISIONS.md`):
+
+1. **Version pin across the 0.1 → 0.2 boundary (D20).** Every `n2f.yaml` (examples and
+   `templates/`) declares `system: ">=0.1,<0.2"`, and the product CI templates
+   (`templates/_common/.github/workflows/build.yml`, `release.yml`) run
+   `uv tool install "napkin2factory>=0.1,<0.2"`. The pin is only syntax-checked today, not
+   enforced. Decide the policy before tagging 0.2: bump the templates and examples, decide
+   whether `n2f` warns or refuses on a product whose pin excludes the running version,
+   and whether `n2f.yaml` `schema: 1` needs a migration step for v0.1 products (upgrade
+   migrations were a v0.1 non-goal; existing users now exist).
+2. **README and docs after publishing** (§7): install from PyPI first, source for
+   contributors; drop rough edge 2 in §5.
+3. **`docs/concepts.md` naming.** It is the general "how napkin2factory works" explainer;
+   v0.2 introduces "concepts" as napkin cards (`concepts/`, `n2f concept …`). Rename the old
+   page (e.g. `docs/how-it-works.md`) and fix links so the word has one meaning.
+4. **Small backlog items worth taking while the tree is open:** B-0018 (`n2f validate`
+   reports expression and reference errors together) and B-0012 (door-swing envelope as a
+   factory geometry check — the napkin screening checks door swing at concept level, the
+   model should too). B-0003 (Python 3.14) only if the OCP wheels install cleanly.
+5. **Release process for 0.2:** bump `version` in `pyproject.toml`, `packaging/n2f/pyproject.toml`
+   and its `napkin2factory==` pin together; push a `v0.2.0` tag only after CI is green on
+   `main` (S-054).
+
+**Owner-side, not agent work:** the kiln's parked product decisions (DEC-011 alcove width,
+DEC-012 cost target, DEC-004 heat-up time, B-0013 K26 hot face) are for the owner to answer
+(`NAPKIN_STAGE.md` §8); the M6 retrofit tells their "minute five" story either way.
+Account chores (token rotation, environment tag rules) are in the owner's own to-do list,
+not in this repository's scope.
+
+Later releases, not v0.2: v0.3 MCP server and share mode; v0.4 electrical (KiCad),
+manufacturer profiles, tolerance stack-up (§6 has a design sketch for each).
