@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pygltflib
@@ -113,3 +114,65 @@ def test_part_only_build(tmp_path: Path) -> None:
     assert built.props["bbox"]["x"] == pytest.approx(224.0)
     assert not (root / "build/parts/lid/renders").exists()
     assert (root / "build/parts/lid/model.glb").is_file()
+
+
+# --- the kiln's napkin stage (M6): the board golden ---------------------------------------
+
+KILN_BOARD_GOLDEN = Path(__file__).parent / "goldens" / "kiln-board.json"
+
+
+def kiln_board_fingerprint(root: Path) -> dict[str, Any]:
+    """What the kiln's concept board shows, without the pictures (NAPKIN_STAGE M6 golden).
+
+    Card count, statuses and verdicts, the red cards with the exact wording of their
+    reasons, the failing rule ids, and how many numbers carry each label (``given``,
+    ``computed``, ``estimate``). Read from the board's own data (``board.gather``), which reads
+    the cards' screening blocks, so it is the same whether or not the pictures were built.
+    """
+    from collections import Counter
+
+    from napkin2factory.concepts.board import gather
+    from napkin2factory.core import concepts as cm
+
+    data = gather(root)
+    cards = cm.load_concepts(root)
+    labels: Counter[str] = Counter()
+    for c in data["cards"]:
+        for v in [*c["given"], *c["dims"], *c["strip"], *c["more"]]:
+            labels[v["label"]] += 1
+    return {
+        "cards": len(data["cards"]),
+        "statuses": {c["id"]: c["status"] for c in data["cards"]},
+        "verdicts": {c["id"]: c["verdict"] for c in data["cards"]},
+        "red": [c["id"] for c in data["cards"] if c["verdict"] == "red"],
+        "problems": {c["id"]: c["problems"] for c in data["cards"] if c["problems"]},
+        "rules_failed": {
+            cid: [r.id for r in card.screening.failing]
+            for cid, card in cards.items()
+            if card.screening is not None and card.screening.failing
+        },
+        "labels": dict(sorted(labels.items())),
+    }
+
+
+def check_kiln_board_golden(fp: dict[str, Any]) -> None:
+    """Compare with ``goldens/kiln-board.json``; ``N2F_UPDATE_GOLDENS=1`` records it."""
+    import os
+
+    if os.environ.get("N2F_UPDATE_GOLDENS") == "1" or not KILN_BOARD_GOLDEN.is_file():
+        KILN_BOARD_GOLDEN.write_text(json.dumps(fp, indent=2, ensure_ascii=False) + "\n")
+        if os.environ.get("N2F_UPDATE_GOLDENS") != "1":
+            pytest.skip("kiln board golden recorded for the first time; re-run to compare")
+    want = json.loads(KILN_BOARD_GOLDEN.read_text())
+    assert fp == want, f"kiln board drifted:\n got {fp}\n want {want}"
+
+
+def test_shipped_kiln_cards_match_the_board_golden() -> None:
+    """DoD 3: four cards, one red with its reasons, every number labelled — as shipped."""
+    fp = kiln_board_fingerprint(EXAMPLES / "kiln")
+    assert fp["cards"] == 4 and fp["red"] == ["C-001"]
+    assert fp["rules_failed"] == {"C-001": ["fits-site-width"]}
+    assert "for the open door" in fp["problems"]["C-001"][0]
+    assert set(fp["labels"]) == {"given", "computed", "estimate"}
+    assert fp["statuses"]["C-003"] == "promoted"
+    check_kiln_board_golden(fp)

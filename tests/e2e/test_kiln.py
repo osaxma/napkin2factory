@@ -1,5 +1,11 @@
 """M8: the kiln builds clean, every artifact parses, golden assembly props hold, and (under
-N2F_TIMING=1) a clean build finishes within the 10-minute budget (D30)."""
+N2F_TIMING=1) a clean build finishes within the 10-minute budget (D30).
+
+v0.2 M6: the kiln's napkin stage — four concept cards rebuilt on a copy screen exactly as
+shipped (C-001 red on the alcove with the door swing, C-003 green), the board is
+self-contained and matches its golden, and the promoted direction's requirements (the
+alcove, the supply, the form rows) pass on the kiln as built.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +18,8 @@ import pytest
 
 from napkin2factory.core.graph.runner import run_build
 from napkin2factory.core.loader import load_product
-from tests.conftest import EXAMPLES, copy_product
+from tests.conftest import EXAMPLES, copy_product, n2f
+from tests.golden.test_build_examples import check_kiln_board_golden, kiln_board_fingerprint
 from tests.validate_outputs import validate_outputs
 
 pytestmark = pytest.mark.full  # make check-full (D27)
@@ -50,6 +57,25 @@ def test_kiln_checks_green_with_example_signoffs(kiln: tuple[Path, float]) -> No
     assert counts["status"] == "pass"
 
 
+def test_kiln_promoted_direction_holds_on_the_kiln_as_built(kiln: tuple[Path, float]) -> None:
+    """DoD 4: C-003's requirements pass on the as-built kiln; the form rows are real rows."""
+    root, _ = kiln
+    data = json.loads((root / "build/checks/checks.json").read_text())
+    by_id = {r["id"]: r for r in data["results"]}
+    reqs = load_product(root).requirements
+    from_card = {rid: r for rid, r in reqs.items() if (r.source or "").startswith("concept C-003")}
+    assert len(from_card) >= 4
+    for rid in from_card:
+        assert by_id[f"req://{rid}"]["status"] == "pass", by_id[f"req://{rid}"]
+    alcove = next(r for r in from_card.values() if r.title == "Fits the alcove with the door open")
+    assert alcove.verify.kind == "geometry_prop"
+    assert "995.4 mm" in by_id[f"req://{alcove.id}"]["message"]
+    form = [r for r in from_card.values() if r.verify.kind == "rule"]
+    assert len(form) >= 2
+    rows = [r for r in data["results"] if r["id"].startswith("rule://form-v0/")]
+    assert any(r["status"] == "pass" for r in rows) and not any(r["status"] == "fail" for r in rows)
+
+
 def test_kiln_golden_props(kiln: tuple[Path, float]) -> None:
     """Assembly fingerprint (D14): mass, bbox, instance count; regenerate via `make goldens`."""
     root, _ = kiln
@@ -81,3 +107,75 @@ def test_kiln_report_budget(kiln: tuple[Path, float]) -> None:
 def test_kiln_clean_build_under_ten_minutes(kiln: tuple[Path, float]) -> None:
     _, seconds = kiln
     assert seconds < 600, f"clean kiln build took {seconds:.0f} s (budget 600 s, DoD item 3)"
+
+
+# --- the napkin stage (v0.2 M6) ------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def kiln_concepts(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A copy of the kiln with every card rebuilt (rejected ones too) and the board written."""
+    from napkin2factory.concepts.build import build_concepts
+    from napkin2factory.core import concepts as cm
+
+    root = copy_product(EXAMPLES / "kiln", tmp_path_factory.mktemp("napkin") / "kiln", git=False)
+    built, errors = build_concepts(root, list(cm.load_concepts(root).values()))
+    assert errors == [] and len(built) == 4
+    r = n2f("concept", "board", cwd=root)
+    assert r.returncode == 0, r.stdout + r.stderr
+    return root
+
+
+def test_kiln_cards_rebuild_exactly_as_shipped(kiln_concepts: Path) -> None:
+    """DoD 3: one red card with the door-swing reason, three green, every number labelled."""
+    from napkin2factory.core import concepts as cm
+
+    shipped = cm.load_concepts(EXAMPLES / "kiln")
+    rebuilt = cm.load_concepts(kiln_concepts)
+    assert sorted(rebuilt) == ["C-001", "C-002", "C-003", "C-004"]
+    for cid, card in rebuilt.items():
+        sc, was = card.screening, shipped[cid].screening
+        assert sc is not None and was is not None
+        assert sc.verdict == was.verdict, cid
+        assert {k: v.value for k, v in sc.values.items()} == {
+            k: v.value for k, v in was.values.items()
+        }, f"{cid}: the shipped screening is stale; rebuild the cards in place"
+        assert [(r.id, r.status, r.message) for r in sc.rules] == [
+            (r.id, r.status, r.message) for r in was.rules
+        ]
+        for section, label in (
+            ("given", "given"),
+            ("computed", "computed"),
+            ("estimates", "estimate"),
+        ):
+            assert all(v.label == label for v in getattr(sc, section).values()), (cid, section)
+    c1 = rebuilt["C-001"].screening
+    assert c1 is not None and c1.verdict == "red"
+    assert [r.id for r in c1.failing] == ["fits-site-width"]
+    reason = c1.failing[0].message
+    assert "995 mm for the body plus 702 mm for the open door" in reason
+    assert "alcove is 800 mm" in reason
+    assert c1.estimates["heat_up_time"].value == "4.4 h"  # not DEC-004's planned 7 h
+    assert rebuilt["C-003"].verdict == "green"
+
+
+def test_kiln_board_matches_its_golden(kiln_concepts: Path) -> None:
+    from selectolax.lexbor import LexborHTMLParser
+
+    board = kiln_concepts / "build/concepts/board.html"
+    assert board.stat().st_size <= 20 * 1024 * 1024
+    assert validate_outputs(kiln_concepts, "concepts") == []
+    html = board.read_text(encoding="utf-8")
+    tree = LexborHTMLParser(html)
+    assert [a.attributes.get("data-verdict") for a in tree.css("article.concept")] == [
+        "red",
+        "green",
+        "green",
+        "green",
+    ]
+    fp = kiln_board_fingerprint(kiln_concepts)
+    # the page shows exactly the labelled numbers the fingerprint counts
+    for label, count in fp["labels"].items():
+        assert len(tree.css(f"dd span.lbl.{label}")) == count, label
+    assert fp["problems"]["C-001"][0] in tree.css_first("#card-C-001 .limits.bad").text()
+    check_kiln_board_golden(fp)

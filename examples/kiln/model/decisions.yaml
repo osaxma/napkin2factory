@@ -174,3 +174,33 @@ decisions:
     disclosed: true
     verify: true
     sources: ["IEC 60584-1 / ASTM E230: type K thermocouples, heavy-gauge wire usable to about 1260 degC [verify against the supplier's datasheet]", "supplier guidance: stainless sheaths degrade above about 900 degC; use a 1200 degC class ceramic sheath [verify]"]
+  - id: DEC-018
+    date: 2026-10-31
+    title: 'Design direction: As built, softer look, wider alcove assumed'
+    context: 'Chosen among 4 concept direction(s) compared on the concept board by Owner (retrofit 2026-10-31).
+      Rejected alternatives: C-001 "The kiln as built in v0.1" (red: it needs 1698 mm of width — 995 mm
+      for the body plus 702 mm for the open door (hinged-left: the 702 mm door leaf swung open beside the
+      hinge) — but the alcove is 800 mm); C-002 "Compact: fits the 800 mm alcove" (green: 392 × 410 × 1080
+      mm (computed), 2.5 kW (on the card) on the 230V-16A circuit — fits with 1.2 headroom (estimate), 1.4
+      h to temperature (estimate), 747–1100 USD (estimate)); C-004 "As built, v0.1 styling kept" (green:
+      995 × 667 × 1370 mm (computed), 2.5 kW (on the card) on the 230V-16A circuit — fits with 1.2 headroom
+      (estimate), 4.4 h to temperature (estimate), 1130–2747 USD (estimate)) — set aside earlier: the owner
+      did not like the v0.1 appearance (NAPKIN_STAGE §0). Retrofitted 2026-10-31 to record what the napkin
+      stage would have shown; the owner''s answers to DEC-011, DEC-012 and DEC-004 are still pending. The
+      1750 mm alcove is an assumption the owner has not confirmed (DEC-011). The as-built 2.5 kW element
+      passes REQ-024 (at most 3066.7 W on the 230V-16A circuit).'
+    decision: 'Take C-003 (As built, softer look, wider alcove assumed) forward as the design direction:
+      its envelope seeds 0 parameters, its site constraints and style choices become 4 requirements, and
+      style.yaml takes its look.'
+    rationale: 'Screening of C-003 (green): width 995 mm (computed); depth 667 mm (computed); height 1370
+      mm (computed); footprint with door swing 1698 mm (computed); heat up time 4.4 h (estimate); power
+      2.5 kW (given); current 10.9 A (estimate); circuit class the 230V-16A circuit (given); cost low 1130
+      USD (estimate); cost high 2747 USD (estimate).'
+    links: ['req://REQ-023', 'req://REQ-024', 'req://REQ-025', 'req://REQ-026', 'param://chamber-width',
+      'param://chamber-depth', 'param://chamber-height', 'param://brick-thickness', 'param://fiber-thickness',
+      'param://shell-thickness', 'param://lining-clearance', 'param://fiber-clearance', 'param://max-temperature',
+      'param://element-power']
+    made_by: human
+    disclosed: true
+    verify: true
+    sources: [concepts/C-003.yaml, concepts/C-001.yaml, concepts/C-002.yaml, concepts/C-004.yaml]

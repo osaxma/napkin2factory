@@ -2,6 +2,7 @@ id: guard-shell
 rev: A
 name: Ventilated touch guard
 kind: custom
+role: body
 process: sheet-metal
 material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}
 finish: powder coat, black (RAL 9005)

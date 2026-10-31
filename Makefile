@@ -1,6 +1,7 @@
 # napkin2factory developer entry points (GRAND_PLAN §8.2).
 # `make check` is the fast gate run before every commit; it grows by milestone.
-# `make check-full` adds the kiln, both demos, and the timing assertions (N2F_TIMING=1).
+# `make check-full` adds the kiln (and its napkin stage), the three demos, and the timing
+# assertions (N2F_TIMING=1).
 
 UV ?= uv
 PY := $(UV) run
@@ -37,13 +38,24 @@ examples-fast:
 check-full: check kiln demos
 	N2F_TIMING=1 $(PY) pytest tests/e2e/test_timing.py tests/e2e/test_concept_build.py -q
 
+# The kiln's concept cards are rebuilt in a scratch copy (build/kiln-napkin): a concept build
+# rewrites each card's screening timestamp, and the shipped cards must not change under `make`.
+# Every card is built, rejected ones too, so the board shows the whole story with pictures.
+KILN_NAPKIN := build/kiln-napkin
+
 kiln:
 	@echo "== examples/kiln"
 	cd examples/kiln && $(PY) n2f validate && $(PY) n2f lint && $(PY) n2f build && $(PY) n2f check
 	$(PY) python tests/validate_outputs.py examples/kiln
+	@echo "== examples/kiln: the napkin stage (concepts, board)"
+	rm -rf $(KILN_NAPKIN) && mkdir -p build && cp -R examples/kiln $(KILN_NAPKIN) && rm -rf $(KILN_NAPKIN)/build
+	cd $(KILN_NAPKIN) && $(PY) n2f concept lint && \
+	  for card in concepts/C-*.yaml; do $(PY) n2f concept build $$(basename $$card .yaml) || exit 1; done && \
+	  $(PY) n2f concept board
+	$(PY) python tests/validate_outputs.py $(KILN_NAPKIN) --stage concepts
 	N2F_TIMING=1 $(PY) pytest tests/e2e/test_kiln.py -q
 
-demos:
+demos:  # demo.sh, demo-design.sh and demo-napkin.sh, each in a temp copy (D23)
 	N2F_TIMING=1 $(PY) pytest tests/e2e/test_demos.py -q
 
 templates:

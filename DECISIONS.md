@@ -698,3 +698,35 @@ rule packs, calc kit and the board template; C7 the z-buffer fallback picture is
 C11 the stage after `ecr close` points at `n2f release`. **Deferred:** C5 — kiln cards state the
 honest 4–5 h heat-up estimate with a note that DEC-004's 7 h was planned margin (M6 wording); C8 →
 B-0023. The promotion golden was regenerated (REQ-005 bound and rationale; `(on the card)` labels).
+
+## S-069 — Kiln retrofit: the napkin story recorded after the fact (M6) (2026-10-31)
+`examples/kiln/concepts/` holds four hand-written cards citing `parameters.yaml`: C-001 (as built,
+**red**: 995 + 702 mm door leaf = 1698 mm against the ~800 mm alcove; 4.4 h at 2.5 kW, estimate;
+1130–2747 USD, a band over what screening can price only — the inner shell, door sheets and most
+bought-in parts are outside it, and the card says so), C-002 (compact, green: 3.4 L chamber, 91 °C
+skin, controls below — trade-offs visible in its numbers, not in a verdict), C-003 (promoted: as
+built with the appliance look), C-004 (v0.1 look, rejected by the owner's own reason). Massing:
+body = the shell's outer box without material (the layers count the insulation), guard = five
+1 mm steel blocks (16.05 kg vs 16.06 built), door = the door-guard box; computed size
+995 × 667 × 1370 mm, the v0.1 report's bounding box. **C-003 assumes a 1750 mm alcove the owner
+has NOT confirmed (DEC-011, `verify: true`):** screening's door-swing factor 1.0 counts the leaf
+swung fully back, while the as-built 110° door needs ~300 mm (`door-clearance`), so ~1.3 m may do
+in practice — B-0029. Promotion reconciled 10 declared parameters, 0 new; the fit clearances are
+envelope keys, not layer clearances (a layer `clearance` would seed `<layer>-clearance` and
+collide). C-003 carries `corner_radius: 1 mm` and visible fasteners because that is what the
+as-built kiln meets: 8 mm corners failed on every 1 mm bend and hidden-front fasteners failed on
+the door guard's four standoff screws — true findings, so the softer look is a future change
+request, not a weakened rule. Roles on visible parts only (guard-shell body, door-guard door,
+stand, controller box and lid controls; the hidden shell and tray carry none) so report colours
+match the board. **Fix outside the brief:** part evidence keys exclude `role` as they exclude
+`rev` (S-050) — M3's new field had voided five of the kiln's six example sign-offs, which
+`test_checks.py` now pins. **Test change outside the brief:** `test_kit_sheet.py`'s flat-area × t
+≈ volume property tolerance 2 % → 4 % after hypothesis found 2.2 % at t = 3, r = 1, h = 25 and a
+sweep found 3.7 % worst case (B-0026) — the identity has been that loose since M2; the fixed-case
+2 % check is unchanged. `make kiln` builds the cards and the board in a scratch copy because a
+concept build rewrites each card's `at` (B-0031). **Judged (orchestrator):** the board reads
+honestly — C-001 red in place with the alcove reason, every number badged given/computed/estimate,
+sources under the estimates; the C-001 industrial and C-003 appliance pictures read as products
+(cream body, dark controls and stand; door leaf proud on the front). Nit: C-002's limitations box
+says "no limitations" while its notes carry three trade-offs, because the concept pack has no
+skin-temperature or chamber-volume rule (B-0025). NAPKIN_STAGE §5 M6 reworded for gate A C5.

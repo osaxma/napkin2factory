@@ -43,8 +43,10 @@ def evidence_key(
             return "missing"
         if not part.has_geometry:
             # a bought or reference part without geometry: its record is the evidence
-            # (source, cost, notes), minus the revision label (S-050)
-            record = part.model_dump(mode="json", exclude={"rev"})
+            # (source, cost, notes), minus the revision label (S-050) and the styling role
+            # (N7: a picture's colour is not evidence; the field arrived after v0.1's
+            # sign-offs, so keeping it in the record voided them all)
+            record = part.model_dump(mode="json", exclude={"rev", "role"})
             return sha256_json(record)
         # geometry identity, not the manifest hash: a revision bump must not void a sign-off
         part_dir = build_dir / "parts" / u.id

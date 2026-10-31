@@ -447,6 +447,11 @@ def test_signoff_binds_parts_without_geometry(tmp_path: Path) -> None:
     # a revision bump alone keeps the sign-off valid …
     screw.write_text(screw.read_text().replace("rev: A", "rev: B"))
     assert _result(_checks(root), "req://REQ-009")["status"] == "signed"
+    # … and so does a styling role (N7: a colour is not evidence; M6 found the v0.2 `role`
+    # field had voided every v0.1 sign-off on a bought part) …
+    screw.write_text(screw.read_text().replace("kind: cots", "kind: cots\nrole: fastener"))
+    assert "role: fastener" in screw.read_text()
+    assert _result(_checks(root), "req://REQ-009")["status"] == "signed"
     # … a change to the part's record voids it
     screw.write_text(screw.read_text().replace("unit: 0.12 USD", "unit: 0.15 USD"))
     assert _result(_checks(root), "req://REQ-009")["status"] == "needs-human"

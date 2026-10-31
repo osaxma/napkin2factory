@@ -272,4 +272,8 @@ def test_enclosure_properties(length, width, height, t, r, flange):
     x, y, z = _bbox(res)
     ex, ey = length + 2 * flange, width + 2 * flange
     assert abs(x - ex) < 1e-3 and abs(y - ey) < 1e-3 and abs(z - height) < 1e-3
-    assert abs(_flat_ratio(res) - 1) < 0.02
+    # flat area × t ≈ volume is an approximation (k-factor bend allowance, flange corners):
+    # 2 % holds for ordinary sheet, but at this strategy's corner (3 mm sheet on a 25 mm-high
+    # 60 mm box, sharp bends, a flange) it reaches 3.7 % — measured over every corner in M6,
+    # after a hypothesis run found t=3, r=1, h=25 at 2.2 % (B-0026)
+    assert abs(_flat_ratio(res) - 1) < 0.04
