@@ -82,12 +82,32 @@ def test_every_label_is_a_badge_next_to_its_value(page: str, built: Path) -> Non
         if card.screening is None:
             continue
         art = _article(page, card.id)
-        values = {**card.screening.computed, **card.screening.estimates}
+        values = card.screening.values  # given, computed and estimates
         shown += len(values)
         for lv in values.values():
             assert f'{html.escape(lv.value)}<span class="lbl {lv.label}"' in art, (card.id, lv)
         assert art.count('class="lbl ') == len(values)
     assert page.count('class="lbl ') == shown
+
+
+def test_inputs_sources_and_rule_labels_are_on_the_page(page: str, built: Path) -> None:
+    """Review gate A, C1/C2: given inputs apart, sources visible, problems labelled."""
+    assert '<span class="key given">given</span> from the card' in page
+    red = _article(page, "C-001")
+    card = cm.load_card(built, "C-001")
+    assert card.screening is not None
+    # the card's power and circuit are given, under their own heading
+    assert "<h3>From the card</h3>" in red
+    assert '2.5 kW<span class="lbl given"' in red
+    # the door-swing basis and every estimate's source are printed, not tooltip-only
+    foot = card.screening.computed["footprint_with_door_swing"]
+    assert f'<span class="src">{html.escape(foot.source)}</span>' in red
+    for lv in card.screening.estimates.values():
+        assert f'<span class="src">{html.escape(lv.source)}</span>' in red, lv
+    # each problem starts with the labels of the numbers it relied on
+    bad = red[red.index('class="limits bad"') :]
+    bad = bad[: bad.index("</div>")]
+    assert '<li><span class="rely computed"' in bad
 
 
 def test_unbuilt_card_says_so(page: str) -> None:

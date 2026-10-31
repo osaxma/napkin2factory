@@ -74,7 +74,11 @@ def test_a_promoted_card_completes_napkin(bracket: Path) -> None:
     without = compute_stage(load_product(bracket))
     cm.new_card(bracket, "Squared shell")
     cm.new_card(bracket, "Round shell")
-    cm.update_card_status(bracket, "C-001", "promoted", {"dec": "DEC-009", "at": "now"})
+    cm.write_card(
+        bracket,
+        cm.load_card(bracket, "C-001").model_copy(update={"screening": Screening(verdict="green")}),
+    )
+    cm.update_card_status(bracket, "C-001", "promoted", {"dec": "DEC-001", "at": "now"})
     cm.update_card_status(bracket, "C-002", "rejected", {"reason": "round", "at": "now"})
     rep = compute_stage(load_product(bracket))
     assert rep.gates[0].name == "napkin" and rep.gates[0].ok
@@ -98,3 +102,19 @@ def test_the_report_never_shows_the_napkin_gate() -> None:
     from napkin2factory.report import builder
 
     assert "compute_stage(product, build_dir, napkin=False)" in inspect.getsource(builder)
+
+
+def test_a_promotion_without_a_decision_on_record_is_a_blocker(bracket: Path) -> None:
+    """Review gate A, B2: a `promoted` typed by hand does not complete the stage (D10)."""
+    cm.new_card(bracket, "Squared shell")
+    cm.update_card_status(bracket, "C-001", "promoted")
+    gate = compute_stage(load_product(bracket)).gates[0]
+    assert gate.name == "napkin" and not gate.ok and gate.detail["promoted"] is None
+    assert gate.blockers == ["C-001 says promoted but no decision records it — `n2f concept lint`"]
+    # a decision id that model/decisions.yaml does not hold is no better
+    cm.update_card_status(bracket, "C-001", "promoted", {"dec": "DEC-009", "at": "now"})
+    gate = compute_stage(load_product(bracket)).gates[0]
+    assert gate.blockers == [
+        "C-001 says promoted by DEC-009, but model/decisions.yaml has no DEC-009 — "
+        "`n2f concept lint`"
+    ]

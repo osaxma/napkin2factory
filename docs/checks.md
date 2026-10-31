@@ -15,7 +15,7 @@ and prints the matrix. Exit code 2 when any row is `fail`.
 | `count` | occurrences of a part across top assemblies | the assemblies |
 | `interface` | both parties' recorded patterns agree within 0.5 mm | both parties |
 | `manual` | always needs a human | — |
-| `rule` | the rule-pack rows of the same run for `rule://<pack>/<rule>`: any `fail` row fails it, a `warn` row makes it `warn` (never a failure), a `pass` row passes it; no applicable part → `skip` "no part this rule applies to yet" | the parts the rows cover |
+| `rule` | the rule-pack rows of the same run for `rule://<pack>/<rule>`: any `fail` row fails it, a `warn` row makes it `warn` (never a failure), a `pass` row passes it; no applicable part → `skip` "no part this rule applies to yet" while the parts are not built, then `needs-human` once every part with geometry is built ("no part declares a style role yet; add `role:` … or sign off by hand") — a form requirement is never silently skipped; `n2f lint` warns `L12-form-needs-roles` meanwhile | the parts the rows cover |
 
 Safety ladder (S-026): computed `fail` → fail; `safety: true` → `needs-human` until a valid
 sign-off → `signed`; non-safety `manual` → `needs-human` → `pass` with a sign-off; a

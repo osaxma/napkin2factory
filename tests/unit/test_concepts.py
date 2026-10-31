@@ -228,6 +228,7 @@ def test_valid_fixture_lints_clean(tmp_path: Path) -> None:
         ("C3-kit-known", "'blob' is not a kit generator"),
         ("C4-based-on-exists", "based_on C-009: there is no such card"),
         ("C6-one-promoted", "more than one card is promoted (C-001, C-002)"),
+        ("C7-promoted-has-decision", "C-001 says promoted but no decision records it"),
     ],
 )
 def test_each_rule_has_a_failing_fixture(rule: str, fragment: str) -> None:
@@ -270,3 +271,29 @@ def test_kit_list_matches_the_kit_and_loads_no_cad_kernel() -> None:
     )
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
+
+
+def test_promoted_needs_a_decision_on_record_and_rejected_a_reason(tmp_path: Path) -> None:
+    """Review gate A, B2: C7 reads ``model/decisions.yaml`` for the promoted card's id."""
+    d = tmp_path / "concepts"
+    d.mkdir()
+    (tmp_path / "model").mkdir()
+    (tmp_path / "model" / "decisions.yaml").write_text("decisions:\n  - {id: DEC-002}\n")
+    (d / "C-001.yaml").write_text(
+        "id: C-001\ntitle: a\nstatus: promoted\nscreening: {verdict: green}\n"
+        "decision: {dec: DEC-009}\n"
+    )
+    (d / "C-002.yaml").write_text("id: C-002\ntitle: b\nstatus: rejected\n")
+    (d / "C-003.yaml").write_text("id: C-003\ntitle: c\nstatus: exploring\n")
+    messages = {p.subject: p.message for p in cm.lint_concepts(tmp_path).errors}
+    assert messages == {
+        "C-001": "C-001 says promoted by DEC-009, but model/decisions.yaml has no DEC-009",
+        "C-002": "C-002 is rejected but says nothing about why",
+    }
+    # unscreened, even with a real decision
+    (d / "C-001.yaml").write_text(
+        "id: C-001\ntitle: a\nstatus: promoted\ndecision: {dec: DEC-002}\n"
+    )
+    (d / "C-002.yaml").write_text("id: C-002\ntitle: b\nstatus: rejected\ndecision: {reason: no}\n")
+    (err,) = cm.lint_concepts(tmp_path).errors
+    assert err.message == "C-001 says promoted but was never built (no screening)"

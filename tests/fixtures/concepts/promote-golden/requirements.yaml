@@ -37,13 +37,13 @@ requirements:
     source: concept C-003 site constraint
   - id: REQ-005
     title: Runs on the site circuit
-    statement: The element power stays within 80 % of the 230V-16A site circuit (2944 W).
+    statement: The element power is at most 3066.7 W, so the 230V-16A site circuit keeps a 1.2 headroom.
     category: performance
     priority: must
-    verify: {kind: param_bound, target: 'param://element-power', op: <=, value: 2944 W}
+    verify: {kind: param_bound, target: 'param://element-power', op: <=, value: 3066.7 W}
     allocation: ['param://element-power', 'asm://bracket']
-    rationale: 'A continuous load uses at most 80 % of a circuit''s rating (NEC 210.20 continuous-load convention)
-      [verify]: 0.8 × 230 V × 16 A.'
+    rationale: '230 V × 16 A / 1.2: the same 1.2 headroom screening used (rule circuit-available); the NEC
+      210.20 continuous-load factor 1.25 is stricter [verify].'
     source: concept C-003 site constraint
   - id: REQ-006
     title: Rounded exposed corners

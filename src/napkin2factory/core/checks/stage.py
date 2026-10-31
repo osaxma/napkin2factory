@@ -100,10 +100,17 @@ def _plural(n: int, word: str) -> str:
 def napkin_gate(root: Path) -> Gate | None:
     """The Napkin gate, or None when ``concepts/`` holds no card (the stage is then hidden).
 
-    Done when one card is promoted.  Otherwise one owner-worded blocker naming the next
-    command: build the cards first when none has been screened, else compare and choose.
+    Done when one card is promoted *by* ``n2f concept promote`` (a screening and a
+    ``decision.dec`` on record).  A ``promoted`` status typed by hand is a blocker, not a
+    pass (review gate A, B2).  Otherwise one owner-worded blocker naming the next command:
+    build the cards first when none has been screened, else compare and choose.
     """
-    from napkin2factory.core.concepts import card_files, load_concepts
+    from napkin2factory.core.concepts import (
+        card_files,
+        decision_ids,
+        load_concepts,
+        promotion_problem,
+    )
     from napkin2factory.core.errors import Problems
 
     files = card_files(root)
@@ -120,9 +127,18 @@ def napkin_gate(root: Path) -> Gate | None:
         "promoted": promoted[0] if promoted else None,
         "unreadable": len(files) - len(cards),
     }
-    if promoted:
-        return Gate(NAPKIN, True, [], detail)
     blockers: list[str] = []
+    if promoted:
+        dec_ids = decision_ids(root)
+        unrecorded = [w for cid in promoted if (w := promotion_problem(cards[cid], dec_ids))]
+        if not unrecorded:
+            return Gate(NAPKIN, True, [], detail)
+        detail["promoted"] = None
+        blockers.extend(f"{why} — `n2f concept lint`" for why in unrecorded)
+        if problems.errors:
+            bad = sorted({Path(p.file).name for p in problems.errors})
+            blockers.append(f"{', '.join(bad)} cannot be read — `n2f concept lint` says why")
+        return Gate(NAPKIN, False, blockers, detail)
     exploring = by_status["exploring"]
     if not exploring:
         blockers.append(

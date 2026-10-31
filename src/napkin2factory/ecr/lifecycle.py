@@ -405,7 +405,9 @@ def close(product: Product, ecr_id: str) -> dict[str, Any]:
     fresh = load_product(product.root)
     _transition(fresh, fresh.ecrs[ecr.id], "closed")
     vcs.snapshot(f"Close {ecr.id}: {ecr.title}")
-    stage = compute_stage(load_product(product.root))
+    # unpromoted concept cards never gate a release (N11), so the Napkin gate stays out of
+    # the next step here (review gate A, C11)
+    stage = compute_stage(load_product(product.root), napkin=False)
     next_step = "`n2f release vX.Y.Z`" if stage.stage == "verify" else stage.next_step
     return {
         "bumped": {k: list(v) for k, v in bumped.items()},

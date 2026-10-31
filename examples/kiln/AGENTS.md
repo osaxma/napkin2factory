@@ -7,11 +7,15 @@ It is the complete, text-only description of one physical product. Everything el
 
 ## Vocabulary (use these words with the owner; never git words)
 - **draft** — work in progress on the model
-- **snapshot** — a saved state of the model (`n2f ecr apply`, `n2f ecr close` and `n2f release` make them)
+- **snapshot** — a saved state of the model (`n2f ecr apply`, `n2f ecr close`, `n2f concept promote` and `n2f release` make them)
 - **change request (ECR)** — a proposed change, filed in `changes/ECR-xxx.yaml`
 - **impact report** — what a change request would touch, computed before anything changes
 - **approved** — the owner said yes to a change request after reading its impact report
 - **released / Revision** — a frozen, named version (`v1.2.0`) sent to a manufacturer
+- **concept** (a card, `C-001`) — one rough direction for the product, before the design;
+  **screening** marks it **green** (holds up) or **red** (has problems — information, never
+  hidden); the **board** shows every direction side by side; **promote** makes one the
+  design direction
 
 ## Rules for any agent working here
 1. Run `n2f validate` after every model edit. Run `n2f build --target geometry --part <id>`
@@ -43,10 +47,16 @@ It is the complete, text-only description of one physical product. Everything el
 - `model/geometry/*.py` custom geometry (`build(P, I, kit)` / `build(P, I, parts)`), `model/calcs/*.py`
 - `model/docs/*.md` manuals (templated Markdown; `safety.md` is mandatory), `model/signoffs/*.yaml`
 - `changes/` change requests · `reports/` verifier reviews · `build/` generated (ignored)
+- `concepts/C-*.yaml` concept cards (napkin stage; outside the build, never read by it),
+  `concepts/refs/` sketches and photos they cite · `style.yaml` the product's look (preset,
+  colours by part role, shape cues), seeded by `n2f init`, updated by `n2f concept promote`
 
 ## Skills and roles
-- `.claude/skills/n2f-pm` — the project-manager role: intake, explaining, filing change requests
-- `.claude/skills/n2f-design` — the designer role: compose the kit, look at renders, log decisions
+- `.claude/skills/n2f-pm` — the project-manager role: the napkin stage (`n2f concept new`,
+  `n2f concept build --all`, `n2f concept board`, `n2f concept reject`, `n2f concept promote`,
+  interpretation cards for sketches and photos), intake, explaining, filing change requests
+- `.claude/skills/n2f-design` — the designer role: start from the promoted concept and
+  `style.yaml`, compose the kit, look at renders, log decisions
 - `.claude/agents/n2f-verifier` — adversarial review; reads `build/`, writes `reports/`
 - `.claude/agents/n2f-impact-analyst` — explains an impact report in the owner's words
 

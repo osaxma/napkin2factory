@@ -9,7 +9,7 @@ templates for the right-hand words.
 | napkin2factory says | underneath (git) | where you meet it |
 |---|---|---|
 | **draft** | a branch / uncommitted work | `n2f status` ("draft · snapshot …") |
-| **snapshot** | a commit | `n2f init`, `n2f ecr apply`, `n2f ecr close`, `n2f release` make them |
+| **snapshot** | a commit | `n2f init`, `n2f ecr apply`, `n2f ecr close`, `n2f concept promote`, `n2f release` make them |
 | **change request (ECR)** | a pull request | `changes/ECR-xxx.yaml`, `n2f ecr …` |
 | **impact report** | the PR description, computed | `n2f ecr impact`, `n2f impact --set` |
 | **approved** | review approval | `n2f ecr approve` |
@@ -19,6 +19,23 @@ templates for the right-hand words.
 | **unsaved changes** | dirty working tree | release refusal wording |
 | **change tracking** | the repository | `n2f init` sets it up |
 | **scratch copy of a Revision** | a worktree | `n2f diff` builds older Revisions in one |
+
+## Napkin words (the concept stage, NAPKIN_STAGE.md)
+
+These have no version-control counterpart; they are listed so every role uses the same
+words with the owner.
+
+| say | meaning | where you meet it |
+|---|---|---|
+| **concept** (card, `C-001`) | one rough, disposable direction for the product | `concepts/C-xxx.yaml`, `n2f concept new` |
+| **direction** | what a concept proposes; the promoted one is "the design direction" | the board, `n2f concept promote` |
+| **screening** | the quick feasibility pass on a concept (rough shapes, estimates, rules) — not verification | `n2f concept build` |
+| **computed** / **estimate** | measured from the rough shapes / from rough calculations; every screening number carries one | the board, `n2f concept show` |
+| **green** / **red** | holds up / "this direction has problems:" — red is information, never hidden | the board, `n2f concept build` |
+| **board** | every direction side by side, read-only | `build/concepts/board.html`, `n2f concept board` |
+| **promote** | lock a concept in as the design direction (parameters, requirements, style, a decision) | `n2f concept promote` |
+| **set aside** / rejected | a direction not taken; the card is kept as a record | `n2f concept reject` |
+| **interpretation card** | the PM's playback, in words, of what it read in a sketch or photo, corrected by the owner before any card is written | the PM skill (N9) |
 
 ## Check statuses
 

@@ -65,7 +65,9 @@ def test_steady_loss_by_hand():
     assert len(r.interface_temperatures) == 1
     assert _mag(r.wall_resistance, "K/W") == pytest.approx(1 / 72, rel=1e-12)
     # with radiation the skin is cooler and the loss higher; the balance still closes
-    r2 = te.steady_loss(CUBE, [slab], Q(1025, "degC"), Q(25, "degC"), Q(10, "W/(m**2*K)"), 0.9)
+    r2 = te.steady_loss(
+        CUBE, [slab], Q(1025, "degC"), Q(25, "degC"), Q(10, "W/(m**2*K)"), Q(0.9, "")
+    )
     ts, ta = _mag(r2.outer_skin_temperature, "K"), 298.15
     assert _mag(r2.loss, "W") == pytest.approx(
         8.64 * (10 * (ts - ta) + SIGMA * 0.9 * (ts**4 - ta**4)), rel=1e-7
@@ -80,8 +82,8 @@ def test_guard_temperature_by_hand():
         Q(400, "K"),
         Q(1, "m**2"),
         Q(1, "m**2"),
-        1.0,
-        1.0,
+        Q(1.0, ""),
+        Q(1.0, ""),
         h_outer=Q(0, "W/(m**2*K)"),
         t_ambient=Q(300, "K"),
     )
@@ -93,8 +95,8 @@ def test_guard_temperature_by_hand():
         Q(300, "K"),
         Q(1, "m**2"),
         Q(1, "m**2"),
-        1e-12,
-        1e-12,
+        Q(1e-12, ""),
+        Q(1e-12, ""),
         h_outer=Q(5, "W/(m**2*K)"),
         t_ambient=Q(300, "K"),
         h_gap_air=Q(5, "W/(m**2*K)"),
@@ -117,8 +119,8 @@ def test_guarded_loss_by_hand():
         Q(25, "degC"),
         Q(50, "degC"),
         Q(10, "W/(m**2*K)"),
-        1e-12,
-        1e-12,
+        Q(1e-12, ""),
+        Q(1e-12, ""),
     )
     assert _mag(r.loss, "W") == pytest.approx(975 * 72 * 86.4 / 158.4, rel=1e-8)
     assert _mag(r.outer_skin_temperature, "degC") == pytest.approx(50 + 72 * 975 / 158.4, rel=1e-8)
@@ -135,8 +137,8 @@ def test_guarded_loss_by_hand():
         Q(25, "degC"),
         Q(50, "degC"),
         Q(5, "W/(m**2*K)"),
-        0.9,
-        0.9,
+        Q(0.9, ""),
+        Q(0.9, ""),
     )
     r1 = _mag(te.layer_resistances(CUBE, [slab])[0], "K/W")
     assert _mag(r2.interface_temperatures[0], "K") == pytest.approx(
@@ -190,7 +192,20 @@ def test_bisect_root_by_hand():
 def test_length_where_temperature_expected_raises():
     slab = Layer(Q(0.1, "m"), Q(1, "W/(m*K)"), "slab")
     with pytest.raises(pint.DimensionalityError):
-        te.steady_loss(CUBE, [slab], Q(100, "mm"), Q(25, "degC"), Q(10, "W/(m**2*K)"), 0.9)
+        te.steady_loss(CUBE, [slab], Q(100, "mm"), Q(25, "degC"), Q(10, "W/(m**2*K)"), Q(0.9, ""))
+
+
+def test_bare_numbers_are_unit_errors():
+    """Review gate A, C10: an emissivity (or any input) given as a bare float is refused."""
+    from napkin2factory.core.units import UnitError
+
+    slab = Layer(Q(0.1, "m"), Q(1, "W/(m*K)"), "slab")
+    args = [CUBE, [slab], Q(1025, "degC"), Q(25, "degC"), Q(10, "W/(m**2*K)"), Q(0.9, "")]
+    for i, bare in ((5, 0.9), (4, 5.0), (3, 25.0)):
+        bad = list(args)
+        bad[i] = bare
+        with pytest.raises(UnitError, match="expects a quantity"):
+            te.steady_loss(*bad)
 
 
 # --- power -----------------------------------------------------------------------------
@@ -324,7 +339,7 @@ def test_stock_sheet_fits_by_hand():
 
 def test_every_table_row_has_source_and_verify():
     names = table_names()
-    assert set(names) >= {"circuits", "cost_bands", "lift_classes", "stock_sheets"}
+    assert set(names) >= {"circuits", "cost_bands", "lift_classes", "materials", "stock_sheets"}
     for name in names:
         rows = load_table(name)
         assert rows, name
@@ -441,3 +456,25 @@ def test_kiln_body_directly_through_calckit(kiln):
     assert _mag(r.interface_temperatures[0], "degC") == pytest.approx(669.841643614, rel=5e-7)
     # body loss = total 897.82 W less the door (the door is the kiln's own model)
     assert 800 < _mag(r.loss, "W") < 897.83
+
+
+def test_one_row_per_material_for_screening_and_massing():
+    """Review gate A, C4: screening's layer defaults and the massing densities agree."""
+    from napkin2factory.concepts.screening import FIBER_BOARD, LAYER_MATERIALS
+    from napkin2factory.geometry.materials import density_kg_m3
+
+    rows = {r["name"]: r for r in load_table("materials")}
+    fiber, brick = rows["ceramic fiber board (Kaowool 1260)"], rows["K-23 insulating firebrick"]
+    assert (FIBER_BOARD.conductivity, FIBER_BOARD.density) == (0.15, 260.0)
+    assert (fiber["conductivity"], fiber["density"]) == (0.15, 260)
+    assert LAYER_MATERIALS[0].density == brick["density"] == 480
+    assert density_kg_m3("ceramic fiber board")[0] == fiber["density"]
+    assert density_kg_m3("fiber board")[0] == fiber["density"]
+    assert density_kg_m3("K23 brick")[0] == brick["density"]
+    assert density_kg_m3("mild steel")[0] == rows["mild steel"]["density"] == 7850
+    # the kiln's own parameters carry the same values
+    params = (EXAMPLES / "kiln" / "model" / "parameters.yaml").read_text()
+    assert (
+        "fiber-conductivity:  {value: 0.15" in params
+        and "fiber-density:       {value: 260" in params
+    )

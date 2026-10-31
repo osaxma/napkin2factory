@@ -11,14 +11,32 @@ conventions.
 | file | role |
 |---|---|
 | `CLAUDE.md` = `AGENTS.md` | what the folder is, the vocabulary, the rules every agent follows, where things are, the kit list |
-| `.claude/skills/n2f-pm/SKILL.md` | project manager: the only role that talks to the owner; intake protocol, question triage by consequence, register adaptation from `operator.yaml`, safety floor, turning asks into change requests, explaining reports |
-| `.claude/skills/n2f-design/SKILL.md` | designer: compose the kit, inner loop with renders, interfaces, decisions, calcs, "done means" |
+| `.claude/skills/n2f-pm/SKILL.md` | project manager: the only role that talks to the owner; the napkin stage (diverge into 3–5 concept cards, screen them, talk limitations from the screening data, interpretation cards for dropped sketches and photos, promotion in the owner's words), intake protocol, question triage by consequence, register adaptation from `operator.yaml`, safety floor, turning asks into change requests, explaining reports |
+| `.claude/skills/n2f-design/SKILL.md` | designer: start from the promoted concept's massing and `style.yaml` (roles, the kit's aesthetic parameters, form requirements; `concepts/` is never edited after promotion), compose the kit, inner loop with renders, interfaces, decisions, calcs, "done means" |
 | `.claude/agents/n2f-verifier.md` | adversarial reviewer with a fresh context; reads `build/` and calcs, writes `reports/review-*.md`, never edits `model/` |
 | `.claude/agents/n2f-impact-analyst.md` | translates an impact report into the owner's words, cost and safety first |
 | `.github/workflows/build.yml`, `release.yml` | CI for share mode later: build + check on push; tag → ZIP and Pages (written and validated, not run in v0.1) |
 
 The source of these files is `src/napkin2factory/templates/_common/`; `make templates`
 copies them into every example and `tests/unit/test_templates.py` asserts they are identical.
+
+## The napkin stage, in practice (optional)
+
+Before intake, when the owner arrives with an idea rather than a spec (NAPKIN_STAGE N11):
+
+1. The PM role asks only the two or three facts that split directions, then writes 3–5
+   concept cards (`n2f concept new`), builds and screens them (`n2f concept build --all`)
+   and shows the board (`n2f concept board`). Limitations are read from each card's
+   screening, labelled computed or estimate; a red card is explained, never hidden.
+2. A dropped sketch or photo gets an **interpretation card** first — proportions, layout,
+   style cues and `[verify]` dimensions, in words — and the owner corrects it in words
+   before any card is written (N9). The file lands in `concepts/refs/`.
+3. The owner picks a direction; the PM asks "Lock this in as the design direction?" and runs
+   `n2f concept promote`, which seeds parameters, requirements (site and form), `style.yaml`
+   and a decision. Intake then continues, skipping what the cards answered.
+
+The mechanics are in [napkin.md](napkin.md); the protocol is the PM skill's "Napkin stage
+(before intake)" section.
 
 ## Intake, in practice
 
@@ -35,7 +53,10 @@ copies them into every example and `tests/unit/test_templates.py` asserts they a
 `tests/e2e/intake-transcripts/` holds the scripted intake simulation used as the DoD check:
 a fresh-context subagent given only the product `CLAUDE.md`, the PM skill text and a
 role-played owner transcript produced a model that passed validate and lint and built a
-first silhouette.
+first silhouette (`monitor-bracket.md`, v0.1). `napkin-bench-kiln.md` (v0.2) does the same for
+the napkin stage: a textual sketch of a bench kiln, an interpretation card, one correction
+in words, three lint-clean cards, `n2f concept build --all` with a red card explained;
+`tests/e2e/test_napkin_protocol.py` checks the skill text and the transcript's script.
 
 ## Why roles are text, not code
 

@@ -1,4 +1,4 @@
-# The napkin stage: concept screening
+# The napkin stage: concepts, screening, the board and promotion
 
 Concept cards (`concepts/C-xxx.yaml`, NAPKIN_STAGE §3) are cheap directions for the
 product. `n2f concept build C-xxx` (or `--all`) turns one into rough shapes and a
@@ -6,6 +6,58 @@ product. `n2f concept build C-xxx` (or `--all`) turns one into rough shapes and 
 direction holds up. Screening is not verification — it is a third tier for ideas, and
 everything it writes lives outside the build (`build/concepts/`, never in the manifest;
 deleting `concepts/` changes no build output).
+
+## Writing a card
+
+`n2f concept new "<title>"` writes `concepts/C-00x.yaml` as a commented skeleton;
+`--from C-00x` starts a variant with the other card's `layout`, `envelope`, `site`, `style`,
+`massing` and `notes` (not its `refs`). A filled card, the one the PM skill quotes:
+
+```yaml
+id: C-001
+title: Compact bench kiln, controls on top
+status: exploring
+refs: [refs/sketch-01.jpg]          # images that informed it (never geometry); [] if none
+layout: {load: front, door: hinged-left, controls: top, stand: four-leg}
+envelope:                           # rough named sizes; they seed parameters at promotion
+  chamber: [180 mm, 200 mm, 180 mm] # width, depth, height
+  insulation: 115 mm
+  power: 1.8 kW
+site: {alcove_width: 800 mm, circuit: 240V-13A, region: SA}
+style: {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}
+massing:                            # rough shapes, one kit call per line, numbers only
+  - {kit: enclosure, as: body, material: mild steel, args: {length: 420 mm, width: 440 mm, height: 418 mm, thickness: 1.2 mm}, at: {z: 760 mm}}
+  - {kit: plate, as: lid, role: body, material: mild steel, args: {width: 420 mm, depth: 440 mm, thickness: 2 mm}, at: {z: 1178 mm}}
+  - {kit: block, as: door, material: mild steel, process_class: sheet-metal, args: {length: 340 mm, width: 3 mm, height: 340 mm}, at: {y: -221.5 mm, z: 800 mm}}
+  - {kit: block, as: controls, material: abs, process_class: cots-controls, args: {length: 300 mm, width: 160 mm, height: 100 mm}, at: {z: 1180 mm}}
+  - {kit: frame, as: stand, material: mild steel, args: {length: 380 mm, width: 400 mm, height: 760 mm, member: {size: 25 mm, wall: 1.5 mm}}}
+notes: Budget about 1500 USD. Small chamber so the door can swing inside the alcove.
+screening: null                     # written by `n2f concept build`
+decision: null                      # written by promote or reject
+```
+
+(Without the reference image, `refs: []`; with it, the file must exist under
+`concepts/refs/` or lint fails.) This card screens green: 420 × 443 × 1280 mm, 760 mm with
+the door open in the 800 mm alcove, 7.5 A on the 13 A circuit, about 2.7 h to temperature
+and 888–1741 USD (estimates); it warns that the controls sit above the door and that about
+64 kg needs more than a two-person lift.
+
+Conventions for `massing`:
+
+- Each call's **bottom centre** sits at the origin; `at: {x, y, z, rz}` moves it (z up, the
+  front is −y, +x is the right-hand side seen from the front, `rz` in degrees).
+- **Names carry meaning.** `as: door` is the leaf whose x-extent is the door-swing term;
+  `as: body` is the shell the walls check fits the chamber into; `controls` and `stand` are
+  what they say. A name that is a role word is also the part's colour role; any other name
+  takes `role:` explicitly (the lid above is `role: body`).
+- **A closed body** is an `enclosure` (an open-top shell, so its weight reads right) with a
+  `plate` lid. A `block` is solid: a steel block weighs as solid steel (hundreds of
+  kilograms for a kiln body), so use it for doors, control boxes and bought items.
+- **Mass** is computed only when every call has a `material`; `process_class` picks the cost
+  band when the generator's own process is wrong (`cots-controls` for a bought control box).
+- **Numbers only**: a card cannot refer into the model (`param://…`).
+- `n2f concept lint` after every edit: schema, ids, refs that exist, known kit names,
+  quantities that parse; unknown `site` keys only warn.
 
 ## What a build does
 
@@ -130,10 +182,12 @@ computed and validated first; a refusal writes nothing):
      (`footprint_with_door_swing − width`, 0 for a door that does not swing sideways),
      stated in the rationale. This is what makes DEC-011 impossible to repeat;
    - `alcove_depth` / `alcove_height` → `bbox.y` / `bbox.z` bounds;
-   - `circuit` with an `envelope.power` → `param://element-power ≤ 0.8 × V × I` (a
-     continuous load uses at most 80 % of the rating, `[verify]`);
+   - `circuit` with an `envelope.power` → `param://element-power ≤ V × I / headroom`, the
+     `headroom` (1.2) read from rule `circuit-available` — the same margin screening used,
+     so a green circuit row never becomes a failing requirement (NEC 210.20's continuous-load
+     factor 1.25 is stricter, `[verify]`);
    - `mass_limit` (or a `lift_class` with a weight on file) → `props.mass <` the limit.
-4. **Form requirements** (taste becomes checkable), from the merged style and the layout:
+4. **Form requirements** (taste becomes checkable), from the combined style and the layout:
    corner radius when `style.corner_radius` > 0, no visible front fasteners when
    `fastener_visibility: hidden-front`, controls placement when the layout names
    `controls`; each `verify: {kind: rule, target: rule://form-v0/<rule>}` (see
@@ -158,3 +212,63 @@ It ends in one line, for example: "C-003 is now the design direction (DEC-002). 
 parameters, 5 requirements (3 about form, 1 about the alcove, 1 about the supply), wrote
 style.yaml; C-001, C-002 and C-004 are kept as rejected alternatives. Next: `n2f build &&
 n2f check`." `--json` carries every id. After promotion `n2f status` moves past Napkin.
+
+## The conversation: the PM skill's napkin protocol
+
+The verbs above work the same by hand or agent-driven. In a product folder the
+project-manager role (`.claude/skills/n2f-pm/SKILL.md`, section "Napkin stage (before
+intake)") runs them as a conversation; the designer role (`n2f-design`, "After the napkin
+stage") picks up after promotion. The protocol, in short:
+
+1. **When.** A new idea, a dropped sketch or photo, or "I'm not sure what I want yet". A
+   product born as a spec skips the stage (N11); `n2f status` says `stage: Napkin` while
+   cards exist and none is promoted.
+2. **Diverge first.** Ask only the two or three facts that split directions (where it sits →
+   `site`; what goes in it → `envelope`; the look they like → `style.preset`), then propose
+   **3–5 directions** that differ in layout, size class or use, each a card. Show, don't
+   ask the owner to design.
+3. **Screen, then talk limitations from the data.** `n2f concept build --all`,
+   `n2f concept board`, the styled iso pictures in chat. Every limitation the PM states
+   comes from `screening` — the rule rows and the estimate strip — and every number is said
+   to be computed or an estimate. **A red card is information, not rejection**: the PM
+   explains what it would take to make it work and never hides it.
+4. **Iterate cheaply.** "Like C-002 but taller" is `n2f concept new … --from C-002`, one
+   envelope line, `n2f concept build C-004`. Rejecting is `n2f concept reject C-00x
+   --reason "…"`, on the owner's word only.
+5. **Interpretation cards** (N9), below.
+6. **Promotion in the owner's register**: "Lock this in as the design direction? Changing
+   the basic form later is a bigger change than tuning sizes." Then
+   `n2f concept promote C-00x --by "<owner>"` and a read-back of what it wrote. A red card
+   needs `--override --reason "<the owner's reason>"`, and the PM says that the reason is
+   recorded in the decision.
+7. **Safety floor** at the napkin stage too: mains power, hot surfaces, lifting, sharp
+   edges, pinch points are named in one plain sentence when a direction implies them.
+8. **Hand-over**: intake continues (skipping what the cards answered), then `n2f-design`,
+   whose starting layout is the promoted card's massing at full fidelity, which respects
+   `style.yaml` and the form requirements, and which never edits `concepts/` after
+   promotion except the status fields.
+
+### Interpretation cards: images never become geometry
+
+When the owner drops a sketch, photo or drawing, the PM copies it into `concepts/refs/` and,
+before any card exists, replies with an **interpretation card**: a structured playback in
+words of what it read —
+
+```
+Interpretation card — refs/photo-01.jpg
+Proportions:  about twice as wide as it is deep; height about 1.5 × the width (ratios, estimated)
+Layout:       two doors on the front, hinged at the outer edges; a handle on top; four castors
+Style cues:   sharp corners; folded-steel look; hinges and screws on show
+Dimensions:   "600" written along the top edge — 600 mm wide? [verify]
+Not shown:    the back and the inside; I assumed one shelf
+Did I read it right? Tell me in words what is wrong, missing or more important than it looks.
+```
+
+Proportions are ratios; any dimension read off the image is tagged `[verify]` and put to
+the owner. The PM then **waits for the owner's correction in words**, plays back what
+changed, and only then writes cards, each with `refs: [refs/<file>]` when the image
+informed it. The image is provenance (the board shows it as a thumbnail); the numbers on
+the card come from the corrected words. A sketch described in words gets the same
+treatment without a `refs` entry. Automated tests use textual stand-ins
+(`tests/e2e/intake-transcripts/napkin-bench-kiln.md`); runs with a real image in the
+agent's context are the owner's to do by hand (NAPKIN_STAGE §1.2).

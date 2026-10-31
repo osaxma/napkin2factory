@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>napkin2factory logo</title>
+<style>
+  body { margin: 0; padding: 32px; background: #F4F1EC; font: 15px/1.5 -apple-system, Helvetica, Arial, sans-serif; color: #1C1B1A; }
+  h2 { font-size: 16px; font-weight: 600; margin: 32px 0 12px; }
+  .row { display: flex; gap: 24px; align-items: end; flex-wrap: wrap; }
+  .dark { background: #1C1B1A; padding: 16px; border-radius: 12px; }
+  figure { margin: 0; text-align: center; font-size: 12px; color: #6b655c; }
+  button { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+</style>
+<h2>Animated</h2>
+<div class="row">
+  <img id="anim" src="svg/n2f-icon-animated.svg" width="240" alt="napkin2factory animated icon">
+  <button onclick="const i=document.getElementById('anim'); i.src='svg/n2f-icon-animated.svg?'+Date.now()">Replay</button>
+</div>
+<h2>Icon sizes</h2>
+<div class="row">
+  <figure><img src="svg/n2f-icon.svg" width="256" alt=""><figcaption>master</figcaption></figure>
+  <figure><img src="svg/n2f-icon.svg" width="64" alt=""><figcaption>64</figcaption></figure>
+  <figure><img src="svg/n2f-icon-32.svg" width="32" alt=""><figcaption>32</figcaption></figure>
+  <figure><img src="svg/n2f-icon-16.svg" width="16" alt=""><figcaption>16</figcaption></figure>
+</div>
+<h2>Lockups</h2>
+<div class="row"><div class="dark"><img src="svg/n2f-lockup-on-dark.svg" width="520" alt=""></div></div>
+<div class="row" style="margin-top:16px"><img src="svg/n2f-lockup-on-light.svg" width="520" alt=""></div>

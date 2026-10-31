@@ -323,8 +323,51 @@ def update_card_status(
     return load_card(root, card.id)
 
 
+def decision_ids(root: Path) -> set[str]:
+    """The ids in ``model/decisions.yaml``, read raw (empty when the file is missing or odd).
+
+    Read without loading the product so ``n2f concept lint`` and the Napkin gate work while
+    the model has unrelated problems.
+    """
+    path = Path(root) / "model" / "decisions.yaml"
+    try:
+        data = read_yaml(path) if path.is_file() else None
+    except Exception:  # an unreadable file is n2f validate's to report
+        return set()
+    rows = data.get("decisions") if isinstance(data, dict) else None
+    return {str(r["id"]) for r in rows or [] if isinstance(r, dict) and "id" in r}
+
+
+def promotion_problem(card: ConceptCard, dec_ids: set[str]) -> str | None:
+    """Why a ``promoted`` card's promotion is not on record, or None when it is (or N/A).
+
+    ``n2f concept promote`` always leaves a screening and ``decision.dec`` naming a decision
+    in ``model/decisions.yaml``; a status typed by hand has neither, and must not complete
+    the Napkin stage (review gate A, B2; D10).
+    """
+    if card.status != "promoted":
+        return None
+    dec = card.decision.dec if card.decision is not None else None
+    if dec is None:
+        return f"{card.id} says promoted but no decision records it"
+    if dec not in dec_ids:
+        return f"{card.id} says promoted by {dec}, but model/decisions.yaml has no {dec}"
+    if card.screening is None:
+        return f"{card.id} says promoted but was never built (no screening)"
+    return None
+
+
+def recorded_promotion(card: ConceptCard, root: Path) -> bool:
+    """True when the card's promotion is on record: ``promoted`` with no :func:`promotion_problem`.
+
+    A ``decision.dec`` naming a decision that ``model/decisions.yaml`` does not hold is not a
+    record, so ``n2f concept reject`` and ``promote`` treat such a card as typed by hand.
+    """
+    return card.status == "promoted" and promotion_problem(card, decision_ids(root)) is None
+
+
 def lint_concepts(root: Path) -> Problems:
-    """``n2f concept lint``: schema plus rules C1–C6; only C5 (site keys) is a warning."""
+    """``n2f concept lint``: schema plus rules C1–C7; only C5 (site keys) is a warning."""
     problems = Problems()
     cards = load_concepts(root, problems)
     files = {p.stem: p for p in card_files(root)}
@@ -405,6 +448,28 @@ def lint_concepts(root: Path) -> Problems:
                     severity="warn",
                     rule="C5-site-keys",
                 )
+    dec_ids = decision_ids(root)
+    for cid, card in cards.items():
+        why = promotion_problem(card, dec_ids)
+        if why is not None:
+            problems.add(
+                files[cid],
+                card.id,
+                why,
+                f"promote it with `n2f concept build {card.id}` then `n2f concept promote "
+                f"{card.id}` (that records the decision), or set it aside with "
+                f'`n2f concept reject {card.id} --reason "…"`',
+                rule="C7-promoted-has-decision",
+            )
+        elif card.status == "rejected" and (card.decision is None or not card.decision.reason):
+            problems.add(
+                files[cid],
+                card.id,
+                f"{card.id} is rejected but says nothing about why",
+                "give it `decision: {reason: …}`, or use "
+                f'`n2f concept reject {card.id} --reason "…"`',
+                rule="C7-promoted-has-decision",
+            )
     promoted = [cid for cid, c in cards.items() if c.status == "promoted"]
     if len(promoted) > 1:
         for cid in promoted:

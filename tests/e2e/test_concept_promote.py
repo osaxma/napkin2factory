@@ -59,7 +59,9 @@ def _set_style(root: Path, old: str, new: str) -> None:
 
 def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> None:
     root = product
-    _run("concept", "build", "--all", cwd=root, env=NO_SHOTS)
+    built = _run("concept", "build", "--all", cwd=root, env=NO_SHOTS)
+    # gate A, C7: a z-buffer copy is not passed off as the styled picture
+    assert "styled-iso.png (correctness render — styled picture unavailable)" in built.stdout
     r = _run("concept", "board", cwd=root)
     assert "board: build/concepts/board.html — 4 directions side by side (2 with problems)" in (
         r.stdout
@@ -81,15 +83,18 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
     assert "C-003 is already the chosen direction" in again.stderr
 
     _run("validate", cwd=root)
-    _run("lint", cwd=root)
+    lint = _run("lint", cwd=root)  # gate A, C3: no part has a style role yet — a warning
+    assert "L12-form-needs-roles" in lint.stdout + lint.stderr
     _run("build", "--no-render", cwd=root)
     data = _check(root)
     rows = {r["id"]: r for r in data["matrix"]["requirements"]}
     assert rows["REQ-004"]["title"] == "Fits the alcove with the door open"
     assert rows["REQ-004"]["status"] == "pass" and rows["REQ-004"]["kind"] == "geometry_prop"
     assert rows["REQ-005"]["status"] == "pass"
+    # with the parts built and none styled, form rows ask a person instead of skipping
     for rid in ("REQ-006", "REQ-007", "REQ-008"):
-        assert rows[rid]["kind"] == "rule" and rows[rid]["status"] in ("pass", "skip"), rows[rid]
+        assert rows[rid]["kind"] == "rule" and rows[rid]["status"] == "needs-human", rows[rid]
+        assert rows[rid]["message"].startswith("no part declares a style role yet")
     st = json.loads(_run("status", "--json", cwd=root).stdout)
     assert st["gates"][0]["name"] == "napkin" and st["gates"][0]["ok"] is True
     assert st["stage"] != "napkin"
@@ -99,6 +104,8 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
     part.write_text(part.read_text() + "role: body\n")
     _set_style(root, "corner_radius: 8 mm", "corner_radius: 4 mm")
     _run("build", "--no-render", cwd=root)
+    lint = _run("lint", cwd=root)
+    assert "L12-form-needs-roles" not in lint.stdout + lint.stderr
     data = _check(root)
     assert _req(data, "REQ-006")["status"] == "pass"
     assert _req(data, "REQ-007")["status"] == "pass"

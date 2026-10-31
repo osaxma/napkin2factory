@@ -19,18 +19,18 @@ decisions:
       the open door (hinged-left: the 250 mm door leaf swung open beside the hinge) — but the alcove is
       800 mm; body: the flat blank is about 1979 × 1934 mm, larger than any mild-steel sheet on file (1500
       x 3000 mm) — split it into panels or make it smaller); C-002 "Compact test kiln, door on the right"
-      (green: 400 × 403 × 400 mm (computed), about 21.8 kg (estimate), 1.5 kW on a 16 A socket (Schuko)
-      (estimate), 1.9 h to temperature (estimate), 112–857 USD (estimate)); C-004 "Narrow alcove trial"
-      (red: it needs 450 mm of width — 250 mm for the body plus 200 mm for the open door (hinged-left: the
-      200 mm door leaf swung open beside the hinge) — but the alcove is 300 mm).'
+      (green: 400 × 403 × 400 mm (computed), about 21.8 kg (estimate), 1.5 kW (on the card) on a 16 A socket
+      (Schuko) (estimate), 1.9 h to temperature (estimate), 112–857 USD (estimate)); C-004 "Narrow alcove
+      trial" (red: it needs 450 mm of width — 250 mm for the body plus 200 mm for the open door (hinged-left:
+      the 200 mm door leaf swung open beside the hinge) — but the alcove is 300 mm).'
     decision: 'Take C-003 (Appliance-style compact kiln) forward as the design direction: its envelope seeds
       5 parameters, its site constraints and style choices become 5 requirements, and style.yaml takes its
       look.'
     rationale: 'Screening of C-003 (green): width 460 mm (computed); depth 403 mm (computed); height 400
       mm (computed); footprint with door swing 760 mm (computed); mass 12.7 kg (computed); total mass 23
-      kg (estimate); heat up time 1.9 h (estimate); current 6.5 A (estimate); circuit class the 230V-16A
-      circuit (estimate); cost low 147 USD (estimate); cost high 977 USD (estimate); lift class one-person
-      (estimate).'
+      kg (estimate); heat up time 1.9 h (estimate); power 1.5 kW (given); current 6.5 A (estimate); circuit
+      class the 230V-16A circuit (given); cost low 147 USD (estimate); cost high 977 USD (estimate); lift
+      class one-person (estimate).'
     links: ['req://REQ-004', 'req://REQ-005', 'req://REQ-006', 'req://REQ-007', 'req://REQ-008', 'param://chamber-width',
       'param://chamber-depth', 'param://chamber-height', 'param://insulation', 'param://element-power']
     made_by: agent

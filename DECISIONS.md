@@ -660,3 +660,41 @@ A second promote is refused with "changing direction after promotion is a change
 `sheet_blank` resolves `fit_to`. **Judged (board):** four cards side by side, red in place with
 reasons, every number badged; the iso picture and the live viewer show the same view (redundant
 but harmless). Known labelling nit for gate A: a card's own `site.circuit` shows as `estimate`.
+
+## S-068 — The napkin protocol in the PM skill; interpretation cards (N9) (2026-10-31)
+`n2f-pm` gains "Napkin stage (before intake)": optional; diverge first (ask only what splits
+directions, then 3–5 cards); limitations only from `screening`, every number called computed or
+estimate; red is information, never hidden; cheap `--from` variants; interpretation cards (file
+to `concepts/refs/`, playback in words with ratios and `[verify]` dimensions, wait for the
+owner's correction, then cards with `refs:`); the promotion question in the owner's register;
+`--override --reason` only with the owner's own reason. `n2f-design` gains "After the napkin
+stage" (massing as the starting layout, `style.yaml` roles, form rows, no edits to `concepts/`
+after promotion). Product `CLAUDE.md`/`AGENTS.md` list the napkin words, files and verbs; synced
+into every example. The quoted card is pinned lint-clean by `tests/e2e/test_napkin_protocol.py`
+(63 checks after gate A); its body is an enclosure plus a plate lid because a steel `block` screens as a
+solid 645 kg. "Controls on top" always draws the hot-air warning (warn, never red) — the PM says
+so. The DoD 7 simulation transcript lives in `tests/e2e/intake-transcripts/napkin-bench-kiln.md`.
+
+## Review gate A (honesty + architecture) — outcome (2026-10-31)
+Reviewed at b6a3589 (M4): architecture sound (no build-graph rule can read `concepts/`; deleting
+`concepts/` leaves the manifest byte-identical), two honesty blockers, ten concerns. **Blockers
+fixed:** (B1) one supply margin — promotion writes `element-power ≤ ceil₀.₁(V·I / headroom)` from
+rule `circuit-available`'s `headroom` (1.2) via `concept_checks.circuit_headroom()`, so a green
+circuit row implies a passing requirement (tested through the real evaluator on fixture cards;
+NEC 210.20's 1.25 continuous-load factor is stricter [verify]). (B2) lint `C7-promoted-has-decision`;
+the Napkin gate treats a promoted card without a screening, or without `decision.dec` naming a
+decision present in `model/decisions.yaml`, as a blocker (D10); `reject` and `promote` treat such a
+card as typed by hand, and promotion flips a hand-promoted sibling to rejected. Orchestrator's
+tightening: a `decision.dec` that names a missing decision is *not* a record either.
+**Concerns fixed:** C1 card inputs (`envelope.power`, the card's own `site.circuit`) carry a third
+label `given`; C2 the board prints each value's source and `relies_on` badges on problem bullets;
+C3 lint `L12-form-needs-roles`, and a `rule` requirement with no styled part reads `needs-human`
+once parts are built; C4 `calckit/data/materials.yaml` (K-23, Kaowool 1260 board, mild steel; each
+row `verify: true`) read by screening and by `geometry/materials.py` — fiber board k 0.15 at a
+~400 °C mean (DEC-002's 0.12–0.18; 0.12 is the cool end and understates the loss) and ρ 260,
+superseding S-064's "k 0.12" and the kit's 300 kg/m³; C6 the vocabulary scan covers `concepts/`,
+rule packs, calc kit and the board template; C7 the z-buffer fallback picture is labelled
+"correctness render"; C9 one-source cost prints one number; C10 bare floats raise `UnitError`;
+C11 the stage after `ecr close` points at `n2f release`. **Deferred:** C5 — kiln cards state the
+honest 4–5 h heat-up estimate with a note that DEC-004's 7 h was planned margin (M6 wording); C8 →
+B-0023. The promotion golden was regenerated (REQ-005 bound and rationale; `(on the card)` labels).

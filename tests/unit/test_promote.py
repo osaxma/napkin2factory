@@ -28,7 +28,7 @@ from napkin2factory.core.errors import GateBlocked, N2FError
 from napkin2factory.core.loader import load_product
 from napkin2factory.core.model import Requirement
 from napkin2factory.core.vcs import Vcs
-from tests.conftest import EXAMPLES, FIXTURES, copy_product
+from tests.conftest import EXAMPLES, FIXTURES, copy_product, n2f
 
 NOW = dt.datetime(2026, 10, 31, 12, 0, 0)
 GOLDEN = FIXTURES / "concepts" / "promote-golden"
@@ -343,3 +343,88 @@ def test_rule_verdict_reads_the_rows_of_the_run() -> None:
     assert rule_verdict(ctx, target)[:2] == ("skip", NO_APPLICABLE_PART)
     status, message, _ = rule_verdict(ctx, "rule://form-v0/no-such-rule")
     assert status == "fail" and "no rule 'no-such-rule'" in message
+
+
+# --- review gate A, B1: one supply margin for the napkin and the factory ---------------------
+
+
+def _supply_verdict(root: Path, card_id: str, override: bool) -> str:
+    """Promote ``card_id`` and evaluate its supply requirement through the real evaluator."""
+    from napkin2factory.core.checks.evaluators import evaluate_requirement
+
+    result = promote(
+        root, card_id, override=override, reason="gate A" if override else None, now=NOW
+    )
+    supply = [r for r in result.requirements if r.about == "supply"]
+    assert len(supply) == 1, result.notes
+    model = load_product(root)
+    req = model.requirements[supply[0].id]
+    status: str = evaluate_requirement(EvalContext(model, root / "build"), req).status
+    return status
+
+
+def test_green_circuit_row_implies_passing_supply_requirement(built: Path, tmp_path: Path) -> None:
+    from napkin2factory.concepts.build import build_concepts
+
+    root = tmp_path / "base"
+    shutil.copytree(built, root, ignore=shutil.ignore_patterns("build"))
+    # a card whose circuit row fails: C-003 at 3.5 kW on its 230V-16A circuit
+    text = (root / "concepts" / "C-003.yaml").read_text()
+    text = text.replace("id: C-003", "id: C-005").replace("power: 1.5 kW", "power: 3.5 kW")
+    (root / "concepts" / "C-005.yaml").write_text(text)
+    done, errors = build_concepts(root, [cm.load_card(root, "C-005")], render=False)
+    assert errors == [] and len(done) == 1
+    Vcs(root).snapshot("C-005 built")
+    seen: dict[str, str] = {}
+    for card in cm.load_concepts(root).values():
+        if card.site.get("circuit") is None or card.envelope.get("power") is None:
+            continue
+        assert card.screening is not None
+        row = next(r for r in card.screening.rules if r.id == "circuit-available")
+        dest = tmp_path / card.id
+        shutil.copytree(root, dest)
+        verdict = _supply_verdict(dest, card.id, override=card.verdict == "red")
+        assert verdict == ("pass" if row.status == "pass" else "fail"), (card.id, row)
+        seen[card.id] = row.status
+    # C-001: 2.5 kW on 240V-13A — 12.5 A with 1.2 headroom fits 13 A (it failed at 0.8 × V·I)
+    assert seen == {"C-001": "pass", "C-003": "pass", "C-005": "fail"}
+
+
+# --- review gate A, B2: a `promoted` typed by hand does not complete the stage ---------------
+
+
+def test_hand_edited_promotion_is_a_blocker_and_can_be_undone(product: Path) -> None:
+    import json
+
+    path = product / "concepts" / "C-002.yaml"
+    path.write_text(path.read_text().replace("\nstatus: exploring", "\nstatus: promoted", 1))
+    # lint names it
+    r = n2f("concept", "lint", "--json", cwd=product)
+    assert r.returncode == 1, r.stdout + r.stderr
+    rows = [p for p in json.loads(r.stdout)["problems"] if p["rule"] == "C7-promoted-has-decision"]
+    assert [p["message"] for p in rows] == ["C-002 says promoted but no decision records it"]
+    # the Napkin gate stays open with that blocker
+    st = json.loads(n2f("status", "--json", cwd=product).stdout)
+    gate = st["gates"][0]
+    assert gate["name"] == "napkin" and gate["ok"] is False and st["stage"] == "napkin"
+    assert gate["blockers"] == [
+        "C-002 says promoted but no decision records it — `n2f concept lint`"
+    ]
+    # it can be set aside (it was never promoted by the tool) …
+    r = n2f("concept", "reject", "C-002", "--reason", "typed by hand", cwd=product)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert _card(product, "C-002")["status"] == "rejected"
+    # … and another card can then be promoted, which completes the stage
+    result = promote(product, "C-003", now=NOW)
+    assert result.dec_id == "DEC-002"
+    assert n2f("concept", "lint", cwd=product).returncode == 0
+    st = json.loads(n2f("status", "--json", cwd=product).stdout)
+    assert st["gates"][0]["ok"] is True and st["gates"][0]["detail"]["promoted"] == "C-003"
+
+
+def test_promoting_over_a_hand_edited_card_rejects_it(product: Path) -> None:
+    path = product / "concepts" / "C-002.yaml"
+    path.write_text(path.read_text().replace("\nstatus: exploring", "\nstatus: promoted", 1))
+    result = promote(product, "C-003", now=NOW)
+    assert "C-002" in result.rejected and _card(product, "C-002")["status"] == "rejected"
+    assert cm.lint_concepts(product).errors == []

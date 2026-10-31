@@ -165,9 +165,49 @@ def select_cards(
 
 
 def _value(screening: Screening, section: str, name: str) -> str | None:
-    values = screening.computed if section == "computed" else screening.estimates
+    values = {
+        "given": screening.given,
+        "computed": screening.computed,
+        "estimates": screening.estimates,
+    }[section]
     lv = values.get(name)
     return lv.value if lv is not None else None
+
+
+def _supply_phrase(screening: Screening) -> str | None:
+    """``2.5 kW (on the card) on the 240V-13A circuit — fits with 1.2 headroom (estimate)``.
+
+    The card's own power and circuit are given; only the fit is an estimate (gate A, C1).
+    """
+    from napkin2factory.rulepacks.concept_checks import circuit_headroom
+
+    given_power = _value(screening, "given", "power")
+    power = (
+        f"{given_power} (on the card)"
+        if given_power
+        else (
+            f"{_value(screening, 'estimates', 'required_power')} (estimate)"
+            if _value(screening, "estimates", "required_power")
+            else None
+        )
+    )
+    if power is None:
+        return None
+    on_card = _value(screening, "given", "circuit_class")
+    if on_card:
+        row = screening.rule("circuit-available")
+        h = f"{circuit_headroom():g}"
+        if row is not None and row.status == "pass":
+            fit = f"fits with {h} headroom (estimate)"
+        elif row is not None and row.status == "fail":
+            fit = f"does not fit with {h} headroom (estimate)"
+        else:
+            fit = "fit not checked"
+        return f"{power} on {on_card} — {fit}"
+    table = _value(screening, "estimates", "circuit_class")
+    if table:
+        return f"{power} on a {table} (estimate)"
+    return f"{power}, supply not checked"
 
 
 def summary_line(card: ConceptCard, screening: Screening) -> str:
@@ -187,19 +227,9 @@ def summary_line(card: ConceptCard, screening: Screening) -> str:
         parts.append(f"about {mass} (estimate)")
     elif _value(screening, "computed", "mass"):
         parts.append(f"about {_value(screening, 'computed', 'mass')} (computed)")
-    power: str | None = None
-    if is_quantity(card.envelope.get("power")):
-        from napkin2factory.concepts.screening import fmt
-
-        power = fmt(card.envelope["power"], "W")
-    elif _value(screening, "estimates", "required_power"):
-        power = _value(screening, "estimates", "required_power")
-    circuit = _value(screening, "estimates", "circuit_class")
-    if power and circuit:
-        phrase = circuit if circuit.startswith("the ") else f"a {circuit}"
-        parts.append(f"{power} on {phrase} (estimate)")
-    elif power:
-        parts.append(f"{power}, supply not checked")
+    supply = _supply_phrase(screening)
+    if supply:
+        parts.append(supply)
     heat = _value(screening, "estimates", "heat_up_time")
     if heat:
         parts.append(f"{heat} to temperature (estimate)")
@@ -210,7 +240,9 @@ def summary_line(card: ConceptCard, screening: Screening) -> str:
             f"{_value(screening, 'estimates', 'required_power')} for the planned heat-up (estimate)"
         )
     lo, hi = _value(screening, "estimates", "cost_low"), _value(screening, "estimates", "cost_high")
-    if lo and hi:
+    if lo and hi and lo == hi:
+        parts.append(f"{hi} (estimate, one source)")  # a single-source band (C9, B-0022)
+    elif lo and hi:
         parts.append(f"{lo.removesuffix(' USD')}–{hi} (estimate)")
     return ", ".join(parts) if parts else "nothing measured yet"
 

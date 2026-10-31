@@ -10,7 +10,8 @@ drift apart (NAPKIN_STAGE §7).
 Rules every function follows:
 
 - takes and returns pint quantities from the shared registry
-  (`napkin2factory.core.units`); floats are used only inside, in SI units;
+  (`napkin2factory.core.units`); floats are used only inside, in SI units; a bare number
+  (an emissivity of `0.9` included — pass `Quantity(0.9, "")`) raises `UnitError`;
 - its docstring states the method and cites the source of every correlation; material
   constants are the caller's (from datasheets) and are tagged `[verify]`;
 - it is covered by a hand-checked test in `tests/unit/test_calckit.py` (the hand
@@ -75,6 +76,7 @@ fabricator's, supplier's) to confirm. DECISIONS.md lists each table as `[verify]
 |---|---|---|
 | `circuits` | 14 (SA 4, EU 2, UK 2, US 3, AU 3) | the plug and wiring standards named per row (SASO 2203, CEE 7/3, BS 1363, BS 7671, NEMA WD 6 / NEC 210, AS/NZS 3112 / 3000, IEC 60309 / 60898-1) |
 | `cost_bands` | 7 (`sheet-metal`, `cut-sheet`, `cut-block`, `fiber-board`, `welding`, `machining`, `cots-controls`) | the kiln's own per-part estimates (basis `estimate`, DEC-012) over the built part masses; `cut-sheet` and `welding` rest on a single part each (low = high) |
+| `materials` | 3 (K-23 insulating firebrick, ceramic fiber board (Kaowool 1260), mild steel) | the makers' datasheets (Morgan Thermal Ceramics K-23 and Kaowool 1260 board), at the kiln's chosen values: fiber board k 0.15 W/m·K at a ~400 °C mean (datasheet 0.12–0.18), ρ 260 kg/m³. Concept screening's insulation layers and the massing densities (`geometry/materials.py`) both read these rows, so the napkin and the factory use one number per material |
 | `lift_classes` | 3 (one-person ≤ 25 kg, two-person ≤ 33 kg, equipment) | UK HSE INDG143 / L23 guideline weights — a screening filter, not a safe limit |
 | `stock_sheets` | 10 (mild steel 4, stainless 3, aluminium 3) | common stockist formats (1000 × 2000, 1220 × 2440, 1250 × 2500, 1500 × 3000 mm) |
 

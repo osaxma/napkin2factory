@@ -1,0 +1,3 @@
+decisions:
+  - id: DEC-001
+    title: Lint fixture decision (only its id is read)

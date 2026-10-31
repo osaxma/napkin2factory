@@ -75,10 +75,11 @@ RULE_MARKS = {"pass": "✓", "fail": "✗", "warn": "!", "skip": "·"}
 
 
 def screening_block(screening: Screening) -> list[str]:
-    """The screening as plain lines: computed and estimate numbers labelled, then rules."""
+    """The screening as plain lines: given, computed and estimate numbers labelled, then rules."""
     at = f" ({screening.at.isoformat(sep=' ')})" if screening.at else ""
     lines = [f"screening{at}: {screening.verdict or 'not judged'}"]
     for section, values, what in (
+        ("given", screening.given, "from the card"),
         ("computed", screening.computed, "measured from the massing shapes"),
         ("estimate", screening.estimates, "rough, from the calc kit"),
     ):
@@ -228,7 +229,10 @@ def build(
                         f"  [yellow]![/yellow] worth a look: {escape(row.message)}", soft_wrap=True
                     )
             if b.picture is not None:
-                console.print(f"  see {b.rel(root, b.picture)}", soft_wrap=True)
+                shots = b.screenshots
+                plain = shots is None or shots.method == "zbuffer-fallback"
+                tail = " (correctness render — styled picture unavailable)" if plain else ""
+                console.print(f"  see {b.rel(root, b.picture)}{tail}", soft_wrap=True)
         for e in errors:
             if not any(p.subject == e["id"] for p in problems.errors):
                 err_console.print(f"[red]✗[/red] {escape(e['error'])}", soft_wrap=True)
@@ -303,7 +307,7 @@ def reject(
     _warm()
     root = product_root(dir)
     card = concepts_mod.load_card(root, concept_id)
-    if card.status == "promoted":
+    if concepts_mod.recorded_promotion(card, root):  # a status typed by hand may be undone
         raise GateBlocked(
             f"{card.id} is the chosen direction (promoted), so it cannot be rejected; "
             "changing direction after promotion is a change request"
