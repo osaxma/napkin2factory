@@ -198,3 +198,43 @@ requirements:
     allocation: [part://heating-element, part://liner-side, part://liner-back, param://element-coil-diameter, param://element-grooves-per-wall, param://element-pitch-factor-min]
     rationale: Turns closer than two wire diameters shade each other and overheat; the five grooves per wall give the coil enough length to stretch (DEC-005).
     source: review gate 3
+  - id: REQ-023
+    title: Fits the alcove with the door open
+    statement: The closed width plus the door swing of 703 mm stays within the 1750 mm alcove.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: 'asm://kiln#props.bbox.x', op: <=, value: 1047 mm}
+    allocation: ['asm://kiln']
+    rationale: 'Door-swing term 703 mm (computed by screening: hinged-left: the 702 mm door leaf swung open
+      beside the hinge); 1750 mm − 703 mm = 1047 mm for the closed width.'
+    source: concept C-003 site constraint
+  - id: REQ-024
+    title: Runs on the site circuit
+    statement: The element power is at most 3066.7 W, so the 230V-16A site circuit keeps a 1.2 headroom.
+    category: performance
+    priority: must
+    verify: {kind: param_bound, target: 'param://element-power', op: <=, value: 3066.7 W}
+    allocation: ['param://element-power', 'asm://kiln']
+    rationale: '230 V × 16 A / 1.2: the same 1.2 headroom screening used (rule circuit-available); the NEC
+      210.20 continuous-load factor 1.25 is stricter [verify].'
+    source: concept C-003 site constraint
+  - id: REQ-025
+    title: Rounded exposed corners
+    statement: Exposed bends and corners of the body, door, stand, controls and trim have a radius of at
+      least 1 mm.
+    category: geometry
+    priority: must
+    verify: {kind: rule, target: 'rule://form-v0/form-corner-radius'}
+    allocation: ['asm://kiln']
+    rationale: Chosen with C-003 (style corner_radius 1 mm); the threshold lives in style.yaml.
+    source: concept C-003 style
+  - id: REQ-026
+    title: Controls where they were sketched
+    statement: The controls sit side right on the product, as on C-003.
+    category: usability
+    priority: should
+    verify: {kind: rule, target: 'rule://form-v0/form-controls-placement'}
+    allocation: ['asm://kiln']
+    rationale: Layout chosen with C-003 (layout.controls side-right); a misplaced control is a warning,
+      never a failure.
+    source: concept C-003 style

@@ -2,6 +2,7 @@ id: door-guard
 rev: A
 name: Door touch guard
 kind: custom
+role: door
 process: sheet-metal
 material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}
 finish: powder coat, black

@@ -2,6 +2,7 @@ id: controller-box
 rev: A
 name: Controller enclosure
 kind: custom
+role: controls
 process: sheet-metal
 material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}
 finish: powder coat, black

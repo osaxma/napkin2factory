@@ -73,10 +73,14 @@ Conventions for `massing`:
 4. **Styled screenshots** (`renders/styled-iso.png`, `styled-front.png`, 1200 × 900): the
    product image to show and judge (see "Styling" below).
 
-## The two labels
+## The three labels
 
 Every number carries a label, in the card, in JSON and on screen:
 
+- **`given`** — the card's own inputs echoed back: `power` (from `envelope.power`) and
+  `circuit_class` (from `site.circuit`). They are neither measured nor estimated (review
+  gate A); a verdict that relies on them, such as whether the power fits the circuit, is
+  still an estimate.
 - **`computed`** — measured from the massing shapes: `width`, `depth`, `height` (the
   bounding box), `volume`, `mass` (only when every call declares a `material`), and
   `footprint_with_door_swing`.
@@ -148,7 +152,7 @@ card's reference images as thumbnails. It opens from `file://` with nothing fetc
 Each card shows its id, title, status (`exploring`, `rejected`, `promoted`, or "not built
 yet"), what it was based on, its sizes and weights, the estimate strip (cost band, heat-up or
 power needed, current, supply, lifting), and "more numbers". **Every number carries its
-`computed` or `estimate` badge, taken from the card's screening data** — the page never
+`given`, `computed` or `estimate` badge, taken from the card's screening data** — the page never
 decides a label. A red card stays in its place with a red header and "this direction has
 problems:" followed by the failing rules in plain words; warnings read "worth a look:". The
 decision line says which card was chosen (and its `DEC-`) or why one was set aside.
@@ -272,3 +276,61 @@ the card come from the corrected words. A sketch described in words gets the sam
 treatment without a `refs` entry. Automated tests use textual stand-ins
 (`tests/e2e/intake-transcripts/napkin-bench-kiln.md`); runs with a real image in the
 agent's context are the owner's to do by hand (NAPKIN_STAGE §1.2).
+
+## The kiln's story: what screening says in minute five
+
+v0.1 built the kiln (`examples/kiln`) with no napkin stage. Three of the four questions it
+left for the owner were trade-offs that a napkin stage would have raised at the start:
+DEC-011 (the kiln is wider than the alcove), DEC-012 (the cost is above the wish) and DEC-004
+(the heat-up is slower than "about four hours"). v0.2 adds the stage after the fact, in
+`examples/kiln/concepts/`. Each card was written by hand from the kiln's own parameters and
+cites them in its notes. `examples/kiln/demo-napkin.sh` replays the stage unattended.
+
+**C-001, the kiln as built in v0.1, is red.** `n2f concept build` prints its reason word for
+word:
+
+```
+✗ C-001 — this direction has problems:
+    • it needs 1698 mm of width — 995 mm for the body plus 702 mm for the open door (hinged-left: the 702 mm door leaf swung open beside the hinge) — but the alcove is 800 mm
+  995 × 667 × 1370 mm (computed), 2.5 kW (on the card) on the 230V-16A circuit — fits with 1.2 headroom (estimate), 4.4 h to temperature (estimate), 1130–2747 USD (estimate)
+```
+
+- **DEC-011, the alcove.** The 995 mm is the closed width. It is computed from the rough
+  shapes and matches the v0.1 report's bounding box. The 702 mm door leaf, swung open beside
+  its hinge, brings the width to 1698 mm, and the owner's alcove is about 800 mm. The kiln
+  is too wide even with the door shut. v0.1 found this when the report was built, at hour
+  forty. Screening finds it in the time a card takes to build.
+- **DEC-012, the cost.** The estimate is 1130–2747 USD. It counts only the parts screening
+  can price: the guard sheets, the stand, the hinge, one control box, and the brick and
+  fiber. The inner shell, the door sheets and most bought-in parts are not in it. The band
+  is incomplete, and the owner's 1500 USD wish already sits near its bottom. v0.1's
+  per-part estimate came to about 2200 USD.
+- **DEC-004, the heat-up.** The estimate is 4.4 h to 1200 degC at 2.5 kW. That is
+  screening's number, not the 7 h in DEC-004. The 7 h is the margin planned on top of the
+  estimate: 2.5 kW is 1.28 times the 1.95 kW that a 7 h heat-up needs
+  (`calc://element.power_margin`). The owner asked for about four hours, and the screening
+  estimate is close to that. The planned margin is what goes past it.
+
+The other three cards show the choices that follow. **C-002** was worked back from the alcove
+rule and fits it at 773 mm with the door open. To fit, it gives up three things, and its
+notes and numbers show each one. Its chamber is 3.4 L, below the 8 L that REQ-001 asks for.
+It has no touch guard, so its skin estimate is 91 degC against a 60 degC limit. Its
+controller box hangs under the body. The concept rule pack has no rule on skin temperature
+or chamber volume, so the board's limitations box for C-002 stays empty. **C-003** is the
+kiln as built in the appliance look the owner preferred. It assumes an alcove of about
+1.75 m, which the owner has not confirmed (DEC-011). Screening counts the door leaf swung
+fully back. The real door stops at 110°, so about 1.3 m may be enough in practice. **C-004**
+is C-003 in the v0.1 look. It was rejected because the owner did not like that look.
+
+Promoting C-003 shows reconcile mode at work. All ten of the card's envelope numbers were
+already in `parameters.yaml` with the same values, so nothing was seeded or overwritten.
+Four requirements were added. The alcove requirement takes off the door swing, giving
+closed width ≤ 1047 mm, and the kiln as built measures 995.4 mm. The supply requirement is
+element power ≤ 3066.7 W on 230 V / 16 A. The two form requirements are a 1 mm minimum
+corner radius and controls on the right. `style.yaml` takes the appliance look. DEC-018
+records C-001, C-002 and C-004 as rejected alternatives. The card's corner radius and
+fastener choice match what the kiln as built can meet. Its folds are 1 mm, and its door
+guard is screwed on through its face. The softer 8 mm corners and hidden front fasteners
+that the appliance look suggests would therefore be a change request, not something a
+promotion can claim. DEC-018 also notes that the owner has not yet answered DEC-011,
+DEC-012 or DEC-004.

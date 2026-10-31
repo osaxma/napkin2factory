@@ -42,9 +42,51 @@ the checkout); `uv tool install .` puts that checkout's `n2f` on your PATH inste
 
 ## Ten-minute first run
 
+**First act: the napkin.** Before any design, sketch two directions and look at them side by
+side:
+
 ```bash
 n2f init demo --template bracket
 cd demo
+n2f concept new "Flat bracket"
+n2f concept new "Gusseted bracket" --from C-001
+```
+
+Each card (`concepts/C-001.yaml`, `concepts/C-002.yaml`) needs a rough shape: one line per
+piece from the kit, in millimetres. Your coding agent usually writes these; by hand, replace
+`massing: []` in C-001 with
+
+```yaml
+massing:
+  - {kit: bracket_l, as: body, material: mild steel, args: {length: 120 mm, height: 80 mm, width: 60 mm, thickness: 4 mm}}
+```
+
+and give C-002 the same line plus a gusset in the inside corner:
+
+```yaml
+  - {kit: block, as: gusset, material: mild steel, args: {length: 40 mm, width: 4 mm, height: 40 mm}, at: {x: 24 mm, z: 4 mm}}
+```
+
+Then build, screen and compare them:
+
+```bash
+n2f concept build --all     # a styled picture of each, its size, weight and a cost band
+n2f concept board           # → build/concepts/board.html
+open build/concepts/board.html      # macOS; Linux: xdg-open …
+n2f concept promote C-002   # pick one: it becomes the design direction
+```
+
+The board shows the two directions side by side, and every number on it says where it comes
+from: **given** (your own inputs on the card), **computed** (measured from the rough
+shapes) or **estimate** (from the calc kit). A bracket's board is short: its size, its mass
+and a cost band. Directions for a product with heat or power in it also show heat-up time,
+heat loss and the supply circuit (see the kiln below). A direction that does not fit its site
+is shown in red with its reasons. It stays on the board, because red is information.
+`docs/napkin.md` explains the napkin stage.
+
+**Second act: the factory.**
+
+```bash
 n2f build        # seconds, once the CAD kernel has loaded (see below)
 n2f check
 open build/report/index.html        # macOS; Linux: xdg-open …; or: n2f serve
@@ -103,10 +145,20 @@ was bound to changes.
 ## The showcase: a 1200 °C test kiln
 
 `examples/kiln` is a complete product: 21 parts, interfaces, thermal and element calcs,
-six manuals, example sign-offs, and two change requests. `examples/kiln/demo.sh` runs the
-parametric engineering-change loop unattended (release → change → impact → approve → apply →
-rebuild → check → re-sign → release → diff page); `demo-design.sh` adds a design change
-applied from a pre-authored patch.
+six manuals, example sign-offs, and two change requests. It also has the napkin stage it
+should have started with: four concept cards in `concepts/`, written after the fact from the
+kiln's own numbers. C-001, the kiln as built, is **red**. It needs 1698 mm of width with
+the door open, and the owner's alcove is about 800 mm. In v0.1 that problem was found at
+hour forty, and the napkin stage shows it in minute five. C-002 fits the alcove, but its
+chamber is smaller and its skin is hotter. C-003, the same kiln in the look the owner
+preferred, is the promoted direction. C-004 keeps the v0.1 look and was rejected.
+
+`examples/kiln/demo-napkin.sh` replays that stage unattended: it builds the four directions
+and the board, shows the red one with its reasons, sets the v0.1 look aside and promotes
+C-003. The factory loop then validates, builds and checks the kiln green.
+`examples/kiln/demo.sh` runs the parametric engineering-change loop unattended (release →
+change → impact → approve → apply → rebuild → check → re-sign → release → diff page), and
+`demo-design.sh` adds a design change applied from a pre-authored patch.
 
 ## Learn more
 

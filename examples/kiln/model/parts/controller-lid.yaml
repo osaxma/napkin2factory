@@ -2,6 +2,7 @@ id: controller-lid
 rev: A
 name: Controller enclosure lid
 kind: custom
+role: controls
 process: cut-sheet
 material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}
 finish: powder coat, black

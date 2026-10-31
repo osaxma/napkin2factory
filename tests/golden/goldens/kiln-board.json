@@ -1,0 +1,33 @@
+{
+  "cards": 4,
+  "statuses": {
+    "C-001": "rejected",
+    "C-002": "rejected",
+    "C-003": "promoted",
+    "C-004": "rejected"
+  },
+  "verdicts": {
+    "C-001": "red",
+    "C-002": "green",
+    "C-003": "green",
+    "C-004": "green"
+  },
+  "red": [
+    "C-001"
+  ],
+  "problems": {
+    "C-001": [
+      "it needs 1698 mm of width — 995 mm for the body plus 702 mm for the open door (hinged-left: the 702 mm door leaf swung open beside the hinge) — but the alcove is 800 mm"
+    ]
+  },
+  "rules_failed": {
+    "C-001": [
+      "fits-site-width"
+    ]
+  },
+  "labels": {
+    "computed": 20,
+    "estimate": 32,
+    "given": 8
+  }
+}

@@ -2,6 +2,7 @@ id: stand
 rev: A
 name: Welded stand
 kind: custom
+role: stand
 process: welding
 material: {name: mild steel, spec: "25 x 25 x 1.5 square tube, S235"}
 finish: powder coat, black

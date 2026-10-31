@@ -1,9 +1,11 @@
 """Artifact assertions (GRAND_PLAN §8.1): derive the expected artifact set from the model
 and open every output with a real parser.
 
-Usage: ``python tests/validate_outputs.py <product-dir> [--stage geometry|all]`` or import
+Usage: ``python tests/validate_outputs.py <product-dir> [--stage geometry|all|concepts]`` or import
 :func:`validate_outputs`.  Exit code 1 and one line per problem on failure.  The checks grow
-by milestone: M2 geometry, M5 drawings/DXF/BOM/docs/report, M8 kiln-specific.
+by milestone: M2 geometry, M5 drawings/DXF/BOM/docs/report, M8 kiln-specific; v0.2 M6 the
+napkin stage (``build/concepts/``) whenever the product has concept cards and they were built
+(``--stage concepts`` checks only those, for a copy that was not built by the factory).
 """
 
 from __future__ import annotations
@@ -14,7 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
-STAGES = ("geometry", "all")
+STAGES = ("geometry", "all", "concepts")
 
 
 def _png_nonblank(path: Path) -> bool:
@@ -120,13 +122,81 @@ def validate_geometry(root: Path, product, problems: list[str]) -> None:  # type
                 problems.append(f"{asm.uri}: render {view}.png is blank")
 
 
+def validate_concepts(root: Path, problems: list[str]) -> None:
+    """Concept artifacts (N1, N6, N10): per built card and the board, when they exist.
+
+    A card counts as built when ``build/concepts/<id>/`` exists, or, once the board was
+    written, when the card carries a screening (the board shows it): such a card has
+    ``massing.glb`` (parseable, one node per massing call), ``props.json``,
+    ``screening.json`` (the same verdict as the card) and a non-blank ``renders/iso.png``.
+    The board parses, is self-contained (no external script, link or asset), stays under
+    20 MB, shows every card and states each red card's reasons.
+    """
+    import re
+
+    import pygltflib
+    from selectolax.lexbor import LexborHTMLParser
+
+    from napkin2factory.core import concepts as cm
+
+    if not list((root / "concepts").glob("C-*.yaml")):
+        return
+    out = root / "build" / "concepts"
+    board = out / "board.html"
+    cards = cm.load_concepts(root)
+    for cid, card in cards.items():
+        d = out / cid
+        if not d.is_dir() and not (board.is_file() and card.screening is not None):
+            continue
+        for name in ("massing.glb", "props.json", "screening.json", "renders/iso.png"):
+            if not (d / name).is_file():
+                problems.append(f"concept {cid}: missing build/concepts/{cid}/{name}")
+        if (d / "massing.glb").is_file():
+            g = pygltflib.GLTF2().load(str(d / "massing.glb"))
+            uris = {(n.extras or {}).get("n2f_uri") or n.name for n in g.nodes}
+            for call in card.massing:
+                if f"concept://{cid}/{call.as_}" not in uris:
+                    problems.append(f"concept {cid}: GLB lacks the node for {call.as_}")
+        if (d / "screening.json").is_file() and card.screening is not None:
+            sj = json.loads((d / "screening.json").read_text())
+            if sj.get("verdict") != card.screening.verdict:
+                problems.append(
+                    f"concept {cid}: screening.json says {sj.get('verdict')}, "
+                    f"the card says {card.screening.verdict}"
+                )
+        iso = d / "renders" / "iso.png"
+        if iso.is_file() and not _png_nonblank(iso):
+            problems.append(f"concept {cid}: renders/iso.png is blank")
+    if not board.is_file():
+        return
+    html = board.read_text(encoding="utf-8")
+    size = board.stat().st_size
+    if size > 20 * 1024 * 1024:
+        problems.append(f"board: {size / 1e6:.1f} MB exceeds the 20 MB budget (N10)")
+    tree = LexborHTMLParser(html)
+    external = re.compile(r"\b(?:src|href)\s*=\s*['\"]?(?:https?:)?//", re.IGNORECASE)
+    if tree.css("script[src]") or tree.css("link") or external.search(html):
+        problems.append("board: has external script/link/asset references (N10)")
+    shown = {a.attributes.get("data-id") for a in tree.css("article.concept")}
+    for cid, card in cards.items():
+        if cid not in shown:
+            problems.append(f"board: {cid} is not on the board")
+        if card.verdict == "red":
+            node = tree.css_first(f"#card-{cid} .limits.bad")
+            if node is None or "this direction has problems" not in node.text():
+                problems.append(f"board: red card {cid} does not show its reasons")
+
+
 def validate_outputs(root: Path, stage: str = "all") -> list[str]:
     """Return a list of problems (empty means every expected artifact exists and parses)."""
     from napkin2factory.core.loader import load_product
 
     root = Path(root).resolve()
-    product = load_product(root)
     problems: list[str] = []
+    if stage == "concepts":
+        validate_concepts(root, problems)
+        return problems
+    product = load_product(root)
     validate_geometry(root, product, problems)
     if stage == "all":
         try:
@@ -135,13 +205,14 @@ def validate_outputs(root: Path, stage: str = "all") -> list[str]:
             validate_full = None
         if validate_full is not None:
             validate_full(root, product, problems)
+        validate_concepts(root, problems)
     return problems
 
 
 def main(argv: list[str]) -> int:
     """CLI entry."""
     if not argv:
-        print("usage: validate_outputs.py <product-dir> [--stage geometry|all]")
+        print("usage: validate_outputs.py <product-dir> [--stage geometry|all|concepts]")
         return 2
     stage = "all"
     if "--stage" in argv:

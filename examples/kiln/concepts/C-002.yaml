@@ -1,0 +1,78 @@
+# Concept card C-002: one possible direction for the product.
+# Concepts sit outside the build: nothing here changes `n2f build`; edit freely.
+# Read it back with `n2f concept show C-002`; check it with `n2f concept lint`.
+# Retrofit (v0.2, M6): the direction worked back from the 800 mm alcove.
+id: C-002
+title: 'Compact: fits the 800 mm alcove'
+# status: exploring | rejected | promoted (reject and promote set it for you)
+status: rejected
+based_on: C-001  # the card this one started from
+refs: []
+# nothing beside the body: the controller box moves under it, inside the stand
+layout: {load: front, door: hinged-left, controls: below, stand: four-leg}
+# brick as built (brick-thickness, brick-conductivity); fiber cut from 125 mm to 50 mm; no guard
+envelope:
+  chamber: [150 mm, 150 mm, 150 mm]
+  insulation:
+    - {name: brick, thickness: 64 mm, conductivity: 0.25 W/(m*K)}
+    - {name: fiber, thickness: 50 mm, conductivity: 0.15 W/(m*K)}
+    - {name: shell, thickness: 1.2 mm}
+  max_temperature: 1200 degC
+  power: 2500 W
+site: {alcove_width: 800 mm, circuit: 230V-16A}
+style: {preset: industrial}
+# body = chamber + 2 × (64 + 50 + 1.2) mm = 380.4 mm a side; a flush 30 mm door; the as-built
+# hinge, controller box (260 × 120 × 160 mm) and 25 mm tube stand
+massing:
+  - {kit: block, as: body, args: {length: 380.4 mm, width: 380.4 mm, height: 380.4 mm}, at: {y: 190.2 mm, z: 700 mm}}
+  - {kit: block, as: door, args: {length: 380.4 mm, width: 30 mm, height: 380.4 mm}, at: {y: -15 mm, z: 700 mm}}
+  - {kit: block, as: hinge, role: trim, material: mild steel, process_class: machining, args: {length: 12 mm, width: 12 mm, height: 300 mm}, at: {x: -196.2 mm, y: -15 mm, z: 740.2 mm}}
+  - {kit: block, as: controls, material: abs, process_class: cots-controls, args: {length: 260 mm, width: 120 mm, height: 160 mm}, at: {y: 190.2 mm, z: 500 mm}}
+  - {kit: frame, as: stand, material: mild steel, args: {length: 380.4 mm, width: 380.4 mm, height: 700 mm, member: {profile: square-tube, size: 25 mm, wall: 1.5 mm}, top_rails: true, bottom_rails: true, bottom_rail_height: 150 mm}, at: {y: 190.2 mm}}
+notes: >-
+  Worked back from screening's alcove rule: the closed width plus the door leaf swung fully back
+  must stay within 800 mm, so the body can be at most about 390 mm wide. With the as-built 190 mm
+  walls that leaves no room for a chamber at all, so this direction trades three things, each
+  visible in its numbers: (1) a 150 mm chamber, 3.4 L gross, against the 8 L REQ-001 asks for;
+  (2) 50 mm of fiber instead of 125 mm and no touch guard, so the skin estimate is 91 degC (under
+  "more numbers") against the 60 degC touch limit (REQ-003) — adding the 25 mm ventilated guard
+  and a door to match takes it to about 970 mm with the door open, past the alcove again; (3)
+  the controller box moves under the body, inside the stand. The same 2.5 kW element on the same
+  230 V / 16 A circuit then heats the small chamber in 1.4 h (estimate). Screening has no rule on
+  skin temperature or chamber volume, so its limitations box stays clear: the trade-off is in
+  these numbers, not in a red verdict.
+# written for you: screening by `n2f concept build`, decision by reject or promote
+screening:
+  given:
+    power: {value: 2.5 kW, label: given, source: envelope.power (on the card)}
+    circuit_class: {value: the 230V-16A circuit, label: given, source: site.circuit (on the card)}
+  computed:
+    width: {value: 392 mm, label: computed, source: massing bounding box (x)}
+    depth: {value: 410 mm, label: computed, source: massing bounding box (y)}
+    height: {value: 1080 mm, label: computed, source: massing bounding box (z)}
+    volume: {value: 67.8 L, label: computed, source: sum of the massing silhouettes}
+    footprint_with_door_swing: {value: 773 mm, label: computed, source: 'width + open door (hinged-left: the 380 mm door leaf swung open beside the hinge)'}
+  estimates:
+    insulation_mass: {value: 17.1 kg, label: estimate, source: layer volumes × density (K-23 insulating firebrick; ceramic fiber board (Kaowool 1260); sheet shell)}
+    heat_loss: {value: 715 W, label: estimate, source: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
+    skin_temperature: {value: 91 degC, label: estimate, source: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
+    stored_heat: {value: 9.3 MJ, label: estimate, source: thermal_enclosure.stored_heat}
+    heat_up_time: {value: 1.4 h, label: estimate, source: thermal_enclosure.heat_up_time}
+    current: {value: 10.9 A, label: estimate, source: power.element_current at 230 V}
+    cost_low: {value: 747 USD, label: estimate, source: 'mass_cost.cost_estimate (hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
+    cost_high: {value: 1100 USD, label: estimate, source: 'mass_cost.cost_estimate (hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
+  rules:
+    - {id: fits-site-width, title: 'Fits the alcove width, with the door open', severity: fail, status: pass, message: 773 mm with the door open (392 mm + 380 mm) fits the 800 mm alcove, relies_on: [computed]}
+    - {id: fits-site-depth, title: Fits the alcove depth, severity: fail, status: skip, message: no alcove depth on the card (site.alcove_depth), relies_on: []}
+    - {id: fits-site-height, title: Fits the alcove height, severity: fail, status: skip, message: no alcove height on the card (site.alcove_height), relies_on: []}
+    - {id: circuit-available, title: A supply circuit on site carries it, severity: fail, status: pass, message: '2.5 kW draws 10.9 A at 230 V: fits the 230V-16A circuit on site', relies_on: [estimate, given]}
+    - {id: mass-vs-lift-class, title: Weight against how it can be moved, severity: warn, status: skip, message: 'no mass: give each massing call a material', relies_on: []}
+    - {id: blank-vs-stock-sheet, title: Sheet-metal blanks fit a stock sheet, severity: fail, status: skip, message: 'no sheet-metal massing calls (enclosure, bracket_l, panel, plate)', relies_on: []}
+    - {id: walls-fit-envelope, title: Chamber plus insulation fits inside the body, severity: fail, status: pass, message: chamber plus 2 × 115 mm of insulation (380 × 380 × 380 mm) fits inside body (380 × 380 × 380 mm), relies_on: [computed]}
+    - {id: controls-not-adjacent-hot-face, title: Controls away from the hot air path, severity: warn, status: pass, message: controls (below) are away from the door (hinged-left), relies_on: []}
+  verdict: green
+  at: '2026-10-31T19:26:27'
+  notes:
+    - 'no massing mass: give these calls a material: body, door'
+    - cost leaves out body (no material, so no mass), door (no material, so no mass)
+decision: {reason: 'not chosen: C-003 promoted (DEC-018)', at: '2026-10-31T19:26:39'}

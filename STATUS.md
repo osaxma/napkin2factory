@@ -1,6 +1,6 @@
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** M6 (kiln retrofit + napkin demo), in progress
+**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** parallel `make check` (pytest-xdist), then review gate B, then M7
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
 **Resume note (2026-10-31):** M0–M4 committed. review gate A (fresh-context, read-only) and M5 (skill texts) run in parallel from briefs in the
 orchestrator's scratchpad; then M6 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
@@ -71,8 +71,19 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
   `tests/e2e/test_napkin_protocol.py`. Gate A fixes ride in this commit. `make check`: 634 tests, coverage 90.2 %; one WebGL shader flake in the
   release-diff page test on the first run (B-0024), green on three reruns; goldens 131 passed,
   enclosure example 0 fail.
+- **M6 (done 2026-10-31)** — kiln retrofit and `demo-napkin.sh` (S-069). DoD 3: `examples/kiln/concepts`
+  C-001…C-004; C-001 red (1698 mm with the door open vs the 800 mm alcove; 4.4 h at 2.5 kW with DEC-004's
+  7 h named as planned margin; 1130–2747 USD over what screening can price). **Judged:** the board reads
+  honestly, four columns, every number badged given/computed/estimate, red reasons in place; the C-001
+  industrial and C-003 appliance pictures read as products. DoD 4: `promote C-003` reconciled 10 declared
+  parameters, 0 new, wrote 4 requirements (alcove, supply, two form rows verified by rule), `style.yaml`
+  and DEC-018 (`verify: true`: the 1750 mm alcove is an unconfirmed assumption); kiln `check` 0 fail,
+  0 needs-human, 6 example sign-offs — after fixing evidence keys that M3's `role` field had silently
+  voided. DoD 5: `demo-napkin.sh` green in `check-full` (1 min 52 s). DoD 2: two concepts + board 4.8 s
+  warm (< 60 s). Kiln geometry golden unchanged; new `kiln-board.json` golden (logged). B-0025–B-0031.
+  `make check`: 634 passed, 132 goldens; `make check-full` green.
 ## Next
-M6 kiln retrofit (cards C-001..C-004, promote C-003 in reconcile mode, `demo-napkin.sh`); gate B; M7 close-out.
+pytest-xdist in `make check` (owner's call, 2026-10-31); review gate B (fresh eyes on M5–M6); M7 close-out (`HANDOFF-REPORT-v0.2.md`, release notes).
 
 ## Open risks
 - Linux is covered only by CI (`ci.yml` ubuntu job); the reference platform is this macOS host (S-001).

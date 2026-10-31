@@ -1,0 +1,102 @@
+# Concept card C-001: one possible direction for the product.
+# Concepts sit outside the build: nothing here changes `n2f build`; edit freely.
+# Read it back with `n2f concept show C-001`; check it with `n2f concept lint`.
+# Retrofit (v0.2, M6): the v0.1 kiln as built, sketched after the fact to record what the
+# napkin stage would have shown in minute five. Every number is the model's own.
+id: C-001
+title: The kiln as built in v0.1
+# status: exploring | rejected | promoted (reject and promote set it for you)
+status: rejected
+refs: []
+# as built: front door hinged on the left (DEC-013), controller box on the right-hand side on
+# 40 mm standoffs (DEC-011), welded four-leg stand (DEC-009)
+layout: {load: front, door: hinged-left, controls: side-right, stand: four-leg}
+# model/parameters.yaml: chamber-width/-depth/-height; brick-thickness at brick-conductivity;
+# fiber-thickness at fiber-conductivity; shell-thickness; lining-clearance; fiber-clearance;
+# max-temperature; element-power (DEC-004)
+envelope:
+  chamber: [200 mm, 200 mm, 200 mm]
+  insulation:
+    - {name: brick, thickness: 64 mm, conductivity: 0.25 W/(m*K)}
+    - {name: fiber, thickness: 125 mm, conductivity: 0.15 W/(m*K)}
+    - {name: shell, thickness: 1.2 mm}
+  lining_clearance: 3 mm
+  fiber_clearance: 2 mm
+  max_temperature: 1200 degC
+  power: 2500 W
+# intake.md: a bench alcove "about 800 mm" wide; 230 V on a dedicated 16 A circuit (DEC-006)
+site: {alcove_width: 800 mm, circuit: 230V-16A}
+style: {preset: industrial}
+# The as-built silhouette in mm, from the parameters, placed as model/geometry/kiln.py places
+# the parts (origin on the floor under the stand's centre line, y = 0 at the guard's front lip).
+massing:
+  # body: the inner shell's outer box (shell-outer-width/-depth/-height), no material: it is
+  # mostly insulation, which the envelope layers already count
+  - {kit: block, as: body, args: {length: 590.4 mm, width: 586.2 mm, height: 590.4 mm}, at: {y: 319.1 mm, z: 726 mm}}
+  # the touch guard: five 1 mm sheets 25 mm outside the shell (guard-thickness, guard-gap,
+  # guard-outer-*), a multi-piece weldment (DEC-003, DEC-007)
+  - {kit: block, as: guard-left, role: body, material: mild steel, process_class: sheet-metal, args: {length: 1 mm, width: 637.2 mm, height: 642.4 mm}, at: {x: -320.7 mm, y: 318.6 mm, z: 700 mm}}
+  - {kit: block, as: guard-right, role: body, material: mild steel, process_class: sheet-metal, args: {length: 1 mm, width: 637.2 mm, height: 642.4 mm}, at: {x: 320.7 mm, y: 318.6 mm, z: 700 mm}}
+  - {kit: block, as: guard-top, role: body, material: mild steel, process_class: sheet-metal, args: {length: 640.4 mm, width: 637.2 mm, height: 1 mm}, at: {y: 318.6 mm, z: 1341.4 mm}}
+  - {kit: block, as: guard-bottom, role: body, material: mild steel, process_class: sheet-metal, args: {length: 640.4 mm, width: 637.2 mm, height: 1 mm}, at: {y: 318.6 mm, z: 700 mm}}
+  - {kit: block, as: guard-back, role: body, material: mild steel, process_class: sheet-metal, args: {length: 640.4 mm, width: 1 mm, height: 640.4 mm}, at: {y: 636.7 mm, z: 701 mm}}
+  # door: the door guard's outer box (door-guard-width/-height/-depth), 29.5 mm proud of the
+  # lip and wrapping 60 mm back over it; the plug sits inside the body (DEC-013)
+  - {kit: block, as: door, args: {length: 702.4 mm, width: 89.5 mm, height: 702.4 mm}, at: {y: 15.25 mm, z: 668 mm}}
+  # hinge: the 12 mm barrel (hinge-barrel) along the 500 mm hinge post, at hinge-pin-x/-y
+  - {kit: block, as: hinge, role: trim, material: mild steel, process_class: machining, args: {length: 12 mm, width: 12 mm, height: 500 mm}, at: {x: -358.2 mm, y: 62 mm, z: 771.2 mm}}
+  # controls: the controller box with its 10 mm lips (controller-box-*), on 40 mm standoffs
+  - {kit: block, as: controls, material: abs, process_class: cots-controls, args: {length: 280 mm, width: 140 mm, height: 160 mm}, at: {x: 491.2 mm, y: 318.6 mm, z: 1182.4 mm}}
+  # stand: stand-width/-depth/-height, 25 × 1.5 square tube (stand-tube, stand-tube-wall)
+  - {kit: frame, as: stand, material: mild steel, args: {length: 512.4 mm, width: 507.2 mm, height: 700 mm, member: {profile: square-tube, size: 25 mm, wall: 1.5 mm}, top_rails: true, bottom_rails: true, bottom_rail_height: 150 mm}, at: {y: 318.6 mm}}
+notes: >-
+  The v0.1 kiln as it was built, sketched after the fact. Overall 995 × 667 × 1370 mm, the v0.1
+  report's own bounding box. What screening would have said in minute five: (DEC-011) 995 mm
+  closed plus the 702 mm door leaf swung open beside its hinge is 1698 mm, against the owner's
+  alcove of about 800 mm, so this direction is red; (DEC-012) 1130–2747 USD (estimate) for the
+  parts screening can price (the guard sheets, the stand, the hinge, one control box, the brick
+  and the fiber; the inner shell, the door sheets and most bought-in parts are left out), so the
+  1500 USD wish sits at the bottom of a band that is not even complete; (DEC-004) 4.4 h to
+  1200 degC at 2.5 kW (estimate). DEC-004's 7 h is the planned margin on top of that: 2.5 kW is
+  1.28 times the 1.95 kW a 7 h heat-up needs (calc://element.power_margin). The intake did not
+  state a region (230 V assumed, DEC-006), so the card names the circuit and no region. Two
+  limits of the sketch: the fit clearances (lining-clearance 3 mm, fiber-clearance 2 mm) are
+  recorded for promotion but left out of screening's wall layers (a layer's clearance would be
+  seeded under the layer's own name, which means a different gap in this model); and the 61 degC
+  skin estimate is the bare shell, without the ventilated guard that keeps touch surfaces below
+  60 degC (REQ-003).
+# written for you: screening by `n2f concept build`, decision by reject or promote
+screening:
+  given:
+    power: {value: 2.5 kW, label: given, source: envelope.power (on the card)}
+    circuit_class: {value: the 230V-16A circuit, label: given, source: site.circuit (on the card)}
+  computed:
+    width: {value: 995 mm, label: computed, source: massing bounding box (x)}
+    depth: {value: 667 mm, label: computed, source: massing bounding box (y)}
+    height: {value: 1370 mm, label: computed, source: massing bounding box (z)}
+    volume: {value: 261 L, label: computed, source: sum of the massing silhouettes}
+    footprint_with_door_swing: {value: 1698 mm, label: computed, source: 'width + open door (hinged-left: the 702 mm door leaf swung open beside the hinge)'}
+  estimates:
+    insulation_mass: {value: 54.1 kg, label: estimate, source: layer volumes × density (K-23 insulating firebrick; ceramic fiber board (Kaowool 1260); sheet shell)}
+    heat_loss: {value: 824 W, label: estimate, source: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
+    skin_temperature: {value: 61 degC, label: estimate, source: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
+    stored_heat: {value: 26.4 MJ, label: estimate, source: thermal_enclosure.stored_heat}
+    heat_up_time: {value: 4.4 h, label: estimate, source: thermal_enclosure.heat_up_time}
+    current: {value: 10.9 A, label: estimate, source: power.element_current at 230 V}
+    cost_low: {value: 1130 USD, label: estimate, source: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
+    cost_high: {value: 2747 USD, label: estimate, source: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
+  rules:
+    - {id: fits-site-width, title: 'Fits the alcove width, with the door open', severity: fail, status: fail, message: 'it needs 1698 mm of width — 995 mm for the body plus 702 mm for the open door (hinged-left: the 702 mm door leaf swung open beside the hinge) — but the alcove is 800 mm', relies_on: [computed]}
+    - {id: fits-site-depth, title: Fits the alcove depth, severity: fail, status: skip, message: no alcove depth on the card (site.alcove_depth), relies_on: []}
+    - {id: fits-site-height, title: Fits the alcove height, severity: fail, status: skip, message: no alcove height on the card (site.alcove_height), relies_on: []}
+    - {id: circuit-available, title: A supply circuit on site carries it, severity: fail, status: pass, message: '2.5 kW draws 10.9 A at 230 V: fits the 230V-16A circuit on site', relies_on: [estimate, given]}
+    - {id: mass-vs-lift-class, title: Weight against how it can be moved, severity: warn, status: skip, message: 'no mass: give each massing call a material', relies_on: []}
+    - {id: blank-vs-stock-sheet, title: Sheet-metal blanks fit a stock sheet, severity: fail, status: skip, message: 'no sheet-metal massing calls (enclosure, bracket_l, panel, plate)', relies_on: []}
+    - {id: walls-fit-envelope, title: Chamber plus insulation fits inside the body, severity: fail, status: pass, message: chamber plus 2 × 190 mm of insulation (580 × 580 × 580 mm) fits inside body (590 × 586 × 590 mm), relies_on: [computed]}
+    - {id: controls-not-adjacent-hot-face, title: Controls away from the hot air path, severity: warn, status: pass, message: controls (side-right) are away from the door (hinged-left), relies_on: []}
+  verdict: red
+  at: '2026-10-31T19:26:23'
+  notes:
+    - 'no massing mass: give these calls a material: body, door'
+    - cost leaves out body (no material, so no mass), door (no material, so no mass)
+decision: {reason: 'not chosen: C-003 promoted (DEC-018)', at: '2026-10-31T19:26:39'}
