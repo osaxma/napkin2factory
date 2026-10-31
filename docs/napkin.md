@@ -11,7 +11,7 @@ deleting `concepts/` changes no build output).
 
 `n2f concept new "<title>"` writes `concepts/C-00x.yaml` as a commented skeleton;
 `--from C-00x` starts a variant with the other card's `layout`, `envelope`, `site`, `style`,
-`massing` and `notes` (not its `refs`). A filled card, the one the PM skill quotes:
+`massing` and `notes` (not its `refs`). A filled card, the one the project manager role (`roles/pm.md`) quotes:
 
 ```yaml
 id: C-001
@@ -242,11 +242,11 @@ limits, so no numbers or requirements were added; the look is recorded in style.
 the first stage not yet complete ("stage: Design" once Intake is done; "stage: ready to
 release" when only the Revision is missing).
 
-## The conversation: the PM skill's napkin protocol
+## The conversation: the project manager's napkin protocol
 
 The verbs above work the same by hand or agent-driven. In a product folder the
-project-manager role (`.claude/skills/n2f-pm/SKILL.md`, section "Napkin stage (before
-intake)") runs them as a conversation; the designer role (`n2f-design`, "After the napkin
+project-manager role (`roles/pm.md`, section "Napkin stage (before
+intake)") runs them as a conversation; the designer role (`roles/design.md`, "After the napkin
 stage") picks up after promotion. The protocol, in short:
 
 1. **When.** A new idea, a dropped sketch or photo, or "I'm not sure what I want yet". A
@@ -272,7 +272,7 @@ stage") picks up after promotion. The protocol, in short:
    recorded in the decision.
 7. **Safety floor** at the napkin stage too: mains power, hot surfaces, lifting, sharp
    edges, pinch points are named in one plain sentence when a direction implies them.
-8. **Hand-over**: intake continues (skipping what the cards answered), then `n2f-design`,
+8. **Hand-over**: intake continues (skipping what the cards answered), then the designer role,
    whose starting layout is the promoted card's massing at full fidelity, which respects
    `style.yaml` and the form requirements, and which never edits `concepts/` after
    promotion except the status fields.

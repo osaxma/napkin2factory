@@ -84,7 +84,7 @@ def test_schema_field_names_use_persona_vocabulary():
 )
 def test_templates_use_persona_vocabulary(path: Path):
     text = path.read_text(encoding="utf-8")
-    # Product CLAUDE.md explains the mapping once ("never git words"); allow that sentence only.
+    # Product AGENTS.md explains the mapping once ("never git words"); allow that sentence only.
     text = text.replace("never git words", "")
     hits = [m.group(0) for m in GIT_WORDS.finditer(text)]
     if path.parts[-2:] == ("workflows", "build.yml") or path.name in ("release.yml", "build.yml"):

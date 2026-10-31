@@ -6,8 +6,8 @@ A product repository (what `n2f init` writes; `examples/*` follow it exactly):
 <product>/                  # its own tracked project (D23)
   n2f.yaml                  # schema: 1, system: ">=0.1,<0.2", product: {id, name}, units: metric
   operator.yaml             # persona, per-domain expertise, verbosity, delegation, language
-  CLAUDE.md  AGENTS.md      # identical: what this repo is, vocabulary, rules for agents
-  .claude/skills/n2f-pm, n2f-design   .claude/agents/n2f-verifier, n2f-impact-analyst
+  AGENTS.md                 # what this folder is, vocabulary, rules for agents
+  roles/                    # pm.md, design.md, verifier.md, impact-analyst.md: plain Markdown, any agent
   model/
     requirements.yaml  parameters.yaml  decisions.yaml  intake.md
     parts/<id>.yaml  assemblies/<id>.yaml  interfaces/<id>.yaml

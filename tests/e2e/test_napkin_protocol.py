@@ -1,6 +1,6 @@
 """M5: the napkin protocol in the agent layer, checked without an LLM (NAPKIN_STAGE §5 M5).
 
-The PM and design skills, the product ``CLAUDE.md``/``AGENTS.md`` and the scripted
+The PM and design skills, the product ``AGENTS.md`` and the scripted
 simulation transcript are text; these tests pin what the protocol must say (the exact
 commands, the honesty words, the no-edit rule), that the synced copies are byte-identical,
 that the card the skill quotes is lint-clean, and that no git words reach the owner.
@@ -19,15 +19,13 @@ from tests.conftest import EXAMPLES, ROOT
 from tests.unit.test_vocabulary import GIT_WORDS
 
 COMMON = TEMPLATES_DIR / "_common"
-PM = COMMON / ".claude" / "skills" / "n2f-pm" / "SKILL.md"
-DESIGN = COMMON / ".claude" / "skills" / "n2f-design" / "SKILL.md"
-CLAUDE = COMMON / "CLAUDE.md"
+PM = COMMON / "roles" / "pm.md"
+DESIGN = COMMON / "roles" / "design.md"
 AGENTS = COMMON / "AGENTS.md"
 TRANSCRIPT = ROOT / "tests" / "e2e" / "intake-transcripts" / "napkin-bench-kiln.md"
 SYNCED_FILES = (
-    ".claude/skills/n2f-pm/SKILL.md",
-    ".claude/skills/n2f-design/SKILL.md",
-    "CLAUDE.md",
+    "roles/pm.md",
+    "roles/design.md",
     "AGENTS.md",
 )
 
@@ -101,7 +99,7 @@ def test_pm_skill_has_the_napkin_stage_before_intake():
         "change than tuning sizes.",
         "Images never become geometry",
         "Wait for the owner to correct it in words",
-        "n2f-design",
+        "roles/design.md",
         # review gate A / DoD 7 simulation fixes
         "**given** numbers are the owner's own inputs",
         "gets the same interpretation card as an image, in the same mini format",
@@ -129,7 +127,7 @@ def test_pm_skill_quotes_concept_verbs_that_exist():
     cli = (ROOT / "src" / "napkin2factory" / "cli" / "concept.py").read_text(encoding="utf-8")
     verbs = set(re.findall(r'@concept_app\.command\("(\w+)"\)', cli))
     assert {"new", "build", "board", "promote", "reject", "lint"} <= verbs
-    for path in (PM, CLAUDE):
+    for path in (PM, AGENTS):
         quoted = set(re.findall(r"n2f concept (\w+)", path.read_text(encoding="utf-8")))
         assert quoted, f"{path.name} quotes no concept verbs"
         assert quoted <= verbs, quoted - verbs
@@ -174,12 +172,11 @@ def test_design_skill_no_edit_rule_names_the_status_fields():
     assert "Never make a card an input to geometry" in sec
 
 
-def test_product_claude_md_lists_concepts_style_and_napkin_verbs():
-    text = CLAUDE.read_text(encoding="utf-8")
-    assert text == AGENTS.read_text(encoding="utf-8"), "CLAUDE.md and AGENTS.md differ"
+def test_product_agents_md_lists_concepts_style_and_napkin_verbs():
+    text = AGENTS.read_text(encoding="utf-8")
     where = _flat(_section(text, "## Where things are"))
     assert "`concepts/" in where and "style.yaml" in where and "concepts/refs/" in where
-    roles = _flat(_section(text, "## Skills and roles"))
+    roles = _flat(_section(text, "## Roles"))
     for verb in ("new", "build --all", "board", "reject", "promote"):
         assert f"n2f concept {verb}" in roles, verb
     assert "interpretation card" in roles
@@ -234,7 +231,7 @@ def test_transcript_script_and_expected_outcome():
         assert needle in text, needle
 
 
-@pytest.mark.parametrize("path", [PM, DESIGN, CLAUDE, AGENTS, TRANSCRIPT])
+@pytest.mark.parametrize("path", [PM, DESIGN, AGENTS, TRANSCRIPT])
 def test_no_git_words(path: Path):
     text = path.read_text(encoding="utf-8").replace("never git words", "")
     hits = [m.group(0) for m in GIT_WORDS.finditer(text)]

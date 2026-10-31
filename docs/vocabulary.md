@@ -35,7 +35,7 @@ words with the owner.
 | **board** | every direction side by side, read-only | `build/concepts/board.html`, `n2f concept board` |
 | **promote** | lock a concept in as the design direction (parameters, requirements, style, a decision) | `n2f concept promote` |
 | **set aside** / rejected | a direction not taken; the card is kept as a record | `n2f concept reject` |
-| **interpretation card** | the PM's playback, in words, of what it read in a sketch or photo, corrected by the owner before any card is written | the PM skill (N9) |
+| **interpretation card** | the PM's playback, in words, of what it read in a sketch or photo, corrected by the owner before any card is written | the project manager role, `roles/pm.md` (N9) |
 
 ## Check statuses
 

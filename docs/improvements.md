@@ -108,9 +108,13 @@ milestone exit text in the next plan. The screenshots are produced by
 
 ## 5. A client-neutral home for the role skills (B-0057)
 
+**Done (S-077), further than proposed:** the roles moved to `roles/` in each product with no
+`.claude/` copy at all; the product `AGENTS.md` names each role's file. The text below is the
+original proposal.
+
 **What is there.** The product templates (`src/napkin2factory/templates/_common/`) ship the PM
 and designer roles as `.claude/skills/n2f-pm/SKILL.md` and `.claude/skills/n2f-design/SKILL.md`,
-plus two agents under `.claude/agents/`. `AGENTS.md` (= `CLAUDE.md`) in a product describes the
+plus two agents under `.claude/agents/`. `AGENTS.md` in a product describes the
 roles and points at those paths. The sync (`python -m napkin2factory.templates.sync`) copies the
 tree into every example; `tests/e2e/test_napkin_protocol.py` and `tests/unit/test_templates.py`
 compare the copies byte for byte.

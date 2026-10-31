@@ -1,5 +1,9 @@
 # CLI
 
+The map of every command, for agents using napkin2factory and for anyone curious. The
+walkthrough (install, first product, handing over to the product folder) is
+[agent-guide.md](agent-guide.md).
+
 `n2f …` after `uv tool install napkin2factory` (or `pip install napkin2factory`); inside a
 source checkout, `uv run n2f …`. `n2f <command> --help` is the authority; this page is a map of it.
 

@@ -5,6 +5,10 @@ It is the complete, text-only description of one physical product. Everything el
 **generated** from the files in `model/` by `n2f build`. Never edit anything under
 `build/`; edit the model and rebuild.
 
+This file is for an agent working on this product for its owner. If `n2f` is not installed on
+this machine, setup is in napkin2factory's guide for agents (steps 1 and 2):
+https://raw.githubusercontent.com/osaxma/napkin2factory/main/docs/agent-guide.md
+
 ## Vocabulary (use these words with the owner; never git words)
 - **draft** — work in progress on the model
 - **snapshot** — a saved state of the model (`n2f ecr apply`, `n2f ecr close`, `n2f concept promote` and `n2f release` make them)
@@ -51,14 +55,18 @@ It is the complete, text-only description of one physical product. Everything el
   `concepts/refs/` sketches and photos they cite · `style.yaml` the product's look (preset,
   colours by part role, shape cues), seeded by `n2f init`, updated by `n2f concept promote`
 
-## Skills and roles
-- `.claude/skills/n2f-pm` — the project-manager role: the napkin stage (`n2f concept new`,
-  `n2f concept build --all`, `n2f concept board`, `n2f concept reject`, `n2f concept promote`,
-  interpretation cards for sketches and photos), intake, explaining, filing change requests
-- `.claude/skills/n2f-design` — the designer role: start from the promoted concept and
-  `style.yaml`, compose the kit, look at renders, log decisions
-- `.claude/agents/n2f-verifier` — adversarial review; reads `build/`, writes `reports/`
-- `.claude/agents/n2f-impact-analyst` — explains an impact report in the owner's words
+## Roles
+Each role is a plain Markdown file under `roles/`, written for any agent. Read a role's file
+before acting in that role; nothing loads it for you.
+- `roles/pm.md` — the project manager, the only role that talks to the owner. Read it before
+  your first reply. The napkin stage (`n2f concept new`, `n2f concept build --all`,
+  `n2f concept board`, `n2f concept reject`, `n2f concept promote`, interpretation cards for
+  sketches and photos), intake, explaining, filing change requests
+- `roles/design.md` — the designer: start from the promoted concept and `style.yaml`, compose
+  the kit, look at renders, log decisions
+- `roles/verifier.md` — adversarial review; reads `build/`, writes `reports/`. It needs a fresh
+  context: a separate agent if your client can start one, otherwise a new session
+- `roles/impact-analyst.md` — explains an impact report in the owner's words
 
 ## Kit generators (geometry: {kit: <name>, args: {...}})
 plate, panel, block, tube, hole_pattern, bracket_l, enclosure, frame. Lengths accept

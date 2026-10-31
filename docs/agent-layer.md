@@ -1,5 +1,10 @@
 # Agent layer
 
+How napkin2factory equips the agent that **uses** it on a product: the files `n2f init` writes
+and why roles are text. This page explains the design to people developing napkin2factory and
+to anyone curious. An agent that has been asked to use the tool starts at
+[agent-guide.md](agent-guide.md) instead.
+
 napkin2factory does not run agents. It installs roles into every product folder so that
 whatever AI client opens the folder (Claude Code, Codex, Antigravity, or a person) becomes
 the project team, and it enforces the rules with deterministic tools (`n2f validate`,
@@ -10,14 +15,16 @@ conventions.
 
 | file | role |
 |---|---|
-| `CLAUDE.md` = `AGENTS.md` | what the folder is, the vocabulary, the rules every agent follows, where things are, the kit list |
-| `.claude/skills/n2f-pm/SKILL.md` | project manager: the only role that talks to the owner; the napkin stage (diverge into 3–5 concept cards, screen them, talk limitations from the screening data, interpretation cards for dropped sketches and photos, promotion in the owner's words), intake protocol, question triage by consequence, register adaptation from `operator.yaml`, safety floor, turning asks into change requests, explaining reports |
-| `.claude/skills/n2f-design/SKILL.md` | designer: start from the promoted concept's massing and `style.yaml` (roles, the kit's aesthetic parameters, form requirements; `concepts/` is never edited after promotion), compose the kit, inner loop with renders, interfaces, decisions, calcs, "done means" |
-| `.claude/agents/n2f-verifier.md` | adversarial reviewer with a fresh context; reads `build/` and calcs, writes `reports/review-*.md`, never edits `model/` |
-| `.claude/agents/n2f-impact-analyst.md` | translates an impact report into the owner's words, cost and safety first |
+| `AGENTS.md` | what the folder is, the vocabulary, the rules every agent follows, where things are, the kit list |
+| `roles/pm.md` | project manager: the only role that talks to the owner; the napkin stage (diverge into 3–5 concept cards, screen them, talk limitations from the screening data, interpretation cards for dropped sketches and photos, promotion in the owner's words), intake protocol, question triage by consequence, register adaptation from `operator.yaml`, safety floor, turning asks into change requests, explaining reports |
+| `roles/design.md` | designer: start from the promoted concept's massing and `style.yaml` (roles, the kit's aesthetic parameters, form requirements; `concepts/` is never edited after promotion), compose the kit, inner loop with renders, interfaces, decisions, calcs, "done means" |
+| `roles/verifier.md` | adversarial reviewer with a fresh context (a separate agent, or a new session); reads `build/` and calcs, writes `reports/review-*.md`, never edits `model/` |
+| `roles/impact-analyst.md` | translates an impact report into the owner's words, cost and safety first |
 | `.github/workflows/build.yml`, `release.yml` | CI for share mode later: build + check on push; tag → ZIP and Pages (written and validated, not run in v0.1) |
 
-The source of these files is `src/napkin2factory/templates/_common/`; `make templates`
+The roles are plain Markdown in a client-neutral folder, so any agent can follow them; the
+product's `AGENTS.md` says which file to read for which role (S-077). The source of these files
+is `src/napkin2factory/templates/_common/`; `make templates`
 copies them into every example and `tests/unit/test_templates.py` asserts they are identical.
 
 ## The napkin stage, in practice (optional)
@@ -35,8 +42,8 @@ Before intake, when the owner arrives with an idea rather than a spec (NAPKIN_ST
    `n2f concept promote`, which seeds parameters, requirements (site and form), `style.yaml`
    and a decision. Intake then continues, skipping what the cards answered.
 
-The mechanics are in [napkin.md](napkin.md); the protocol is the PM skill's "Napkin stage
-(before intake)" section.
+The mechanics are in [napkin.md](napkin.md); the protocol is the "Napkin stage (before intake)" section of
+`roles/pm.md`.
 
 ## Intake, in practice
 
@@ -51,7 +58,7 @@ The mechanics are in [napkin.md](napkin.md); the protocol is the PM skill's "Nap
    requirements wait for a human `n2f signoff`.
 
 `tests/e2e/intake-transcripts/` holds the scripted intake simulation used as the DoD check:
-a fresh-context subagent given only the product `CLAUDE.md`, the PM skill text and a
+a fresh-context subagent given only the product's agent instructions, the PM skill text and a
 role-played owner transcript produced a model that passed validate and lint and built a
 first silhouette (`monitor-bracket.md`, v0.1). `napkin-bench-kiln.md` (v0.2) does the same for
 the napkin stage: a textual sketch of a bench kiln, an interpretation card, one correction
