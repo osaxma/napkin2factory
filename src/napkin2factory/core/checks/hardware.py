@@ -323,7 +323,7 @@ def _cost(product: Product, uri: str) -> tuple[float, str] | None:
 def _money(x: float, unit: str) -> str:
     if abs(x) < 0.005:
         return "about the same"
-    return f"about {'+' if x > 0 else '-'}{abs(x):.2f} {unit}"
+    return f"about {abs(x):.2f} {unit} {'more' if x > 0 else 'less'}"
 
 
 def spacer_bolt_checks(product: Product, units: BuildUnits | None = None) -> list[CheckResult]:

@@ -123,7 +123,7 @@ def test_kiln_offers_the_bolt_length_choice() -> None:
         "32 M6 x 12 bolts in place of the 32 M6 x 16 bolts"
     )
     assert "16 M6 x 35 bolts and 16 M6 nuts" in opts["through-bolt"]["what_it_takes"]
-    assert opts["through-bolt"]["cost_delta"].startswith("about -4.80 USD (estimate")
+    assert opts["through-bolt"]["cost_delta"].startswith("about 4.80 USD less (estimate")
     # the controller's 40 mm standoffs take the same bolts and are fine (DEC-022)
     assert _row(rows, "fastening://m6-standoff-40/m6x16-bolt").status == "pass"
     # the four hardware counts are untouched (kind "hardware" stays three rows)

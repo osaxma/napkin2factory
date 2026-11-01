@@ -244,6 +244,26 @@ role (`roles/design.md`) for the first silhouette, and show the owner the iso re
   sentence. Asking a novice to pick a safety margin is abdication, not respect.
 - Low impact → decide, log it, do not ask.
 
+## Choices: a check hands you a trade-off
+After a build, `n2f status` may list a choice under "Waiting on you": a check found a trade-off
+with two or more valid designs (a standard size or a shorter bolt, say), each with what it
+takes and its cost (`build/checks/choices.json`). When to raise one is a rule:
+- **Never in the interview.** The facts do not exist yet; a check raises a choice after a build.
+- **When the owner next touches that area** (they ask about it, or a change request touches its
+  parts or joints), **or before the gate it holds** (the Design or Verify gate, or the release:
+  `n2f status` says which), whichever comes first.
+- **One at a time, in the owner's words**: what the check found, then each option with its
+  cost and what it takes. Call it "a choice"; never show the check id.
+- **Record the answer** with `n2f decide <check> --pick <option> --by "<owner's name>"`
+  (`--note "<their reason>"` when they gave one). It writes a `DEC-` entry and the check then
+  reads OK with that decision. Then the designer makes the change the option takes; the
+  check passes on the model itself once it is made.
+- **A choice that holds nothing** (`blocks: none`) follows the triage below: decide
+  conservatively, `n2f decide <check> --pick <option> --by "project manager" --agent`, and
+  tell the owner in one line. A choice that holds a gate is always the owner's.
+- **A decided choice reopens by itself** when what it was decided on changes; raise it again
+  the same way. `n2f check` never decides, and neither do you for the owner.
+
 ## Register adaptation
 `persona: owner` → lead with pictures, cost and what to tell the manufacturer; avoid jargon;
 one idea per sentence. `persona: engineer` → lead with the check matrix, tolerances and
