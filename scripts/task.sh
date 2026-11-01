@@ -81,6 +81,13 @@ cmd_land() {
   # Each attempt starts again from the task's own commits, placeholders intact: if main moved
   # (another task landed), ids given out against the old main may now be taken (S-102).
   start=$(git rev-parse HEAD)
+  # Stopping after ids were given out puts the task's own commits back, placeholders intact:
+  # a numbered branch would collide with whatever lands next (S-109).
+  give_up() {
+    git reset -q --hard "$start"
+    die "$1
+  This folder is back on its own commits, placeholders kept."
+  }
   tries=0
   while :; do
     tries=$((tries + 1))
@@ -94,12 +101,12 @@ cmd_land() {
     case ${LAND_GATE:-fast} in
       fast) "${MAKE:-make}" lint types &&
         N2F_ALLOW_PLACEHOLDERS=0 "${UV:-uv}" run pytest tests/unit/test_journals.py tests/unit/test_agent_docs.py -q ||
-        die "the landing checks failed: fix, commit, then make land again" ;;
-      check) N2F_ALLOW_PLACEHOLDERS=0 "${MAKE:-make}" check || die "make check failed: fix, commit, then make land again" ;;
+        give_up "the landing checks failed: fix, commit, then make land again" ;;
+      check) N2F_ALLOW_PLACEHOLDERS=0 "${MAKE:-make}" check || give_up "make check failed: fix, commit, then make land again" ;;
       none) ;;
       *) die "LAND_GATE is fast (default), check or none, not '$LAND_GATE'" ;;
     esac
-    dirty "$main_dir" && die "the main folder $main_dir has unsaved changes: they must be committed or removed there first"
+    dirty "$main_dir" && give_up "the main folder $main_dir has unsaved changes: they must be committed or removed there first"
     count=$(git rev-list --count main..HEAD)
     landed=
     for wait in 1 2 3; do
@@ -109,8 +116,8 @@ cmd_land() {
     done
     [ -n "$landed" ] && break
     git merge-base --is-ancestor main HEAD &&
-      die "could not fast-forward main in $main_dir: git merge --ff-only $branch there shows why"
-    [ "$tries" -lt 3 ] || die "main kept moving (another task landed) three times: run make land again"
+      give_up "could not fast-forward main in $main_dir: git merge --ff-only $branch there shows why"
+    [ "$tries" -lt 3 ] || give_up "main kept moving (another task landed) three times: run make land again"
     echo "main moved while landing; starting again from this task's own commits"
   done
   here=$(git rev-parse --show-toplevel)
