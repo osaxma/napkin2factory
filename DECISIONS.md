@@ -125,6 +125,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-102 | A landing that loses the race starts again with fresh ids | in force |
 | S-103 | v0.4 is the product's structure (`PRODUCT_STRUCTURE.md`); electrical, profiles, stack-up move later | in force |
 | S-104 | Closed versions' decision entries live in `docs/decisions/` | in force |
+| S-105 | v0.4 M0 baseline: kiln frames meet, one to rewrite; hardware reconciled, shared-hole rule (`docs/v04-baseline.md`) | in force |
 
 ---
 
@@ -410,3 +411,13 @@ unchanged to `docs/decisions/v0.1.md`, S-055–S-072 and gates A, B to `v0.2.md`
 every row, so ids and statuses are where they were. `DECISIONS.md` is now ≈ 400 lines. The block
 was cut from the middle, not the end, so a task appending entries meanwhile (v0.4 was) still
 rebases without a conflict. The journal test and `make verify-list` read all three files.
+## S-105 — v0.4 M0 baseline: the kiln's frames, hardware and placement code (2026-11-01)
+Measured for S-103 (the v0.4 plan) by `scripts/v04_frame_survey.py`; see `docs/v04-baseline.md`.
+Frames: every kiln pair meets in the world (origin and hole miss 0.00 mm), all 18 name `x_axis`;
+offsets 0, 26 (standoff walls), 3 (post, keeper), −26.5 (door). Only `controller-mount` breaks P1
+(normals and x axes opposed, 40): M1 rewrites the box frame (holes unchanged), the post and keeper's
+literal origins, and the 18 helpers, read only by interface frames. Hardware: 50 bolts = 32 + 4 + 4
++ 2 + 8, but a bottom corner cannot take three bolts in one shared hole; M3 adds a through bolt (38
+M6 × 16, 4 M6 × 50), moves the door's stud, anchors and gasket into the door, checks bolt length
+[verify]. Amends P9: a shared hole lists each item once, on the joint it closes; non-hardware lines
+need no field. 180 + 47 placement lines, 159 parameters; `make check-full` 19 min 28 s, red (B-0063).

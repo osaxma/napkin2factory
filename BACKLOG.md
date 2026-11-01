@@ -40,6 +40,7 @@ entry that closed them. Ids are never reused.
 | B-0060 | `ecr close` does not see edits never saved to a snapshot before closing; overlapping change requests can bump extra parts | S-089: `core/vcs.py` has no public diff of a snapshot against unsaved files |
 | B-0061 | The board's live 3D viewer and the fallback pictures do not show the layout marks | S-093: the marks live on the styled screenshot page only |
 | B-0062 | `n2f publish --online` run against a real GitHub project (first send, Pages from `gh-pages`) | S-094: tested against a local bare repository only |
+| B-0063 | `make check-full` fails: the kiln demo's ECR-002 patch (peephole) no longer applies with `git apply` to `door.py` and `door_fiber.py` | Found by S-105 (v0.4 M0); both files last changed in f1d6680 (S-085–S-096). Re-create the patch against the door, after v0.4 M3 (which rewrites `door.py`) |
 
 ## Closed
 

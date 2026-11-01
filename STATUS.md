@@ -38,8 +38,8 @@ and a worktree per task (S-097). Releasing a version: bump the three version fil
   (`tests.conftest.copy_product`). Templates are synced with `make templates`, never hand-edited.
 
 ## Milestones (one line each; detail in the entries named)
-v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces): planned,
-not started; waiting for the maintainer's go — S-103.
+v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103:
+- M0 baseline and reconciliation done (`docs/v04-baseline.md`) — S-105. Next: M1.
 
 v0.2 — `NAPKIN_STAGE.md`:
 - M0 folds and ratifications — S-055–S-061.
