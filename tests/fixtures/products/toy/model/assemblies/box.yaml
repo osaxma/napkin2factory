@@ -1,0 +1,6 @@
+id: box
+rev: A
+name: Toy box
+children:
+  - {part: part://plate, qty: 1}
+  - {part: part://peg, qty: 1}

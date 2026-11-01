@@ -1,0 +1,12 @@
+id: plate
+rev: A
+name: Plate
+kind: custom
+process: toy-cast
+material: {name: aluminium, spec: "6082"}
+finish: anodised
+tolerance_class: ISO2768-m
+geometry: {kit: block, args: {length: 60 mm, width: 40 mm, height: 5 mm}}
+interfaces: [iface://plate-peg]
+cost: {unit: 1 USD, basis: estimate}
+lead_time: 1 d

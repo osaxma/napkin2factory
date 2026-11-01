@@ -81,7 +81,7 @@ class RuleFamily:
     """A kind of build rule (F3): ``make_rules`` returns this family's rules for a product.
 
     ``after`` names the families whose rules must run first; the build walks the families in
-    dependency order (ties by installation order).  ``produces`` is the URI scheme (``toy://``)
+    dependency order (ties by installation order).  ``produces`` is the URI scheme (``<scheme>://``)
     or rule key its rules produce, so a downstream read resolves to their output hash, and
     ``also_produces`` lists further keys (S-117).  A ``reads_all`` family (checks, report,
     site) runs after every family that is not itself ``reads_all``.

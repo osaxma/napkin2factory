@@ -313,7 +313,7 @@ def apply_interfaces(part: Part, result: PartResult, ctx: kit_mod.KitContext) ->
                         label=f"{iface_id}-{i + 1}",
                     )
                 )
-        else:
+        elif iface.kind == "mating-face":  # a domain's interface kind cuts nothing (F6)
             result.features.extra.setdefault("mating_faces", []).append(
                 {
                     "interface": iface.uri,

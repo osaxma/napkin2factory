@@ -1,0 +1,11 @@
+id: peg
+rev: A
+name: Peg
+kind: cots
+process: none
+geometry: none
+interfaces: [iface://plate-peg]
+source: {vendor: Toy shop, mpn: PEG-1, url: "https://example.com/peg", verified: true}
+cost: {unit: 0.1 USD, basis: catalog}
+lead_time: 1 d
+mass: 2 g

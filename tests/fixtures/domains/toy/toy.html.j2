@@ -1,0 +1,4 @@
+<section class="card" id="toy">
+  {{ h2('toy', 'Toy things') }}
+  {% if data.things %}<table><thead><tr><th>toy thing</th><th>name</th><th>glow</th></tr></thead><tbody>{% for t in data.things %}<tr id="toy-{{ t.id }}"><td class="mono">{{ t.id }}</td><td>{{ t.name }}</td><td>{{ t.glow }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">No toy things.</p>{% endif %}
+</section>

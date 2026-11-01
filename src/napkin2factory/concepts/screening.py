@@ -773,6 +773,7 @@ def screen(
             "mass_cost.lift_class (HSE guideline weights) [verify]",
         )
     rules = run_concept_rules(card, comp.raw, est.raw, massing, extra)
+    rules += _registered_screens(card, massing, comp, est, given, notes)  # F8, F10
     red = any(r.status == "fail" for r in rules)
     stamp = (now or dt.datetime.now()).replace(microsecond=0)
     return Screening(
@@ -784,6 +785,33 @@ def screen(
         at=stamp,
         notes=notes,
     )
+
+
+class ScreenValues:
+    """What a registered screen adds to (F8): ``computed``, ``estimate``, ``given``, ``notes``."""
+
+    def __init__(
+        self, computed: _Collector, estimate: _Collector, given: _Collector, notes: list[str]
+    ) -> None:
+        self.computed, self.estimate, self.given, self.notes = computed, estimate, given, notes
+
+
+def _registered_screens(
+    card: ConceptCard,
+    massing: Any,
+    comp: _Collector,
+    est: _Collector,
+    given: _Collector,
+    notes: list[str],
+) -> list[Any]:
+    """Run the screens domains register, after the built-in ones; their rule rows."""
+    from napkin2factory.core.registry import registry
+
+    values = ScreenValues(comp, est, given, notes)
+    rows: list[Any] = []
+    for s in registry().screens():
+        rows += s.run(card, massing, values)
+    return rows
 
 
 def same_screening(a: Screening | None, b: Screening | None) -> bool:
