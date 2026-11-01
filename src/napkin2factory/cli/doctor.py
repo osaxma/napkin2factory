@@ -1,4 +1,10 @@
-"""``n2f doctor``: is this machine ready? Checks Python, the OCP wheel, git, Typst, Playwright."""
+"""``n2f doctor``: is this machine ready, and what is installed?
+
+It checks Python, the OCP wheel, git, Typst and Playwright, and lists the installed domains
+with what each brings that an agent chooses between: verify kinds (how a requirement can be
+checked), check stages (the rows of ``n2f check``) and napkin screens (F14, S-132). Every
+name comes from the registries (``core/registry.py``); this module names none by hand.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +14,7 @@ import platform
 import shutil
 import sys
 from pathlib import Path
+from typing import Any
 
 import typer
 
@@ -133,14 +140,136 @@ def _probe() -> list[dict[str, str]]:
     return rows
 
 
+def _verify_kind(kind: Any) -> dict[str, Any]:
+    """One verify kind as doctor shows it: what it targets and whether it compares a number."""
+    return {
+        "name": kind.name,
+        "title": kind.title,
+        "targets": [f"{s}://" for s in kind.target_schemes],
+        "compares": kind.compares,
+        "binary": kind.binary,
+    }
+
+
+def _screen(screen: Any) -> dict[str, Any]:
+    """One napkin screen: its name, title, phase and the card fields it reads."""
+    from napkin2factory.concepts.screens import fields_of, phase_of
+
+    return {
+        "name": screen.name,
+        "title": screen.title,
+        "phase": phase_of(screen),
+        "fields": [f.name for f in fields_of(screen)],
+    }
+
+
+def installed_domains() -> list[dict[str, Any]]:
+    """Every installed domain with what it registers, read from the registries (F14).
+
+    Verify kinds, check stages (in run order) and screens are what doctor prints; the rest
+    (rule families, gate rows, report sections, model families) is in ``--json`` only.
+    """
+    from napkin2factory.core.registry import registry
+
+    reg = registry()
+    stage_order = [s.name for s in reg.check_stages()]
+    out: list[dict[str, Any]] = []
+    for d in reg.domains:
+        own_stages = {s.name: s for s in d.check_stages}
+        out.append(
+            {
+                "name": d.name,
+                "title": d.title,
+                "verify_kinds": [_verify_kind(v) for v in d.verify_kinds],
+                "check_stages": [
+                    {
+                        "name": n,
+                        "after": list(own_stages[n].after),
+                        "whole_product": own_stages[n].whole_product,
+                    }
+                    for n in stage_order
+                    if n in own_stages
+                ],
+                "screens": [_screen(s) for s in d.screens],
+                "rule_families": [f.name for f in d.rule_families],
+                "gate_rows": [{"gate": r.gate, "title": r.title} for r in d.gate_rows],
+                "report_sections": [s.id for s in d.report_sections],
+                "model_families": [
+                    {"name": f.name, "folder": f.folder, "scheme": f.uri_scheme} for f in d.families
+                ],
+            }
+        )
+    return out
+
+
+def other_screens(root: Path | None) -> dict[str, Any]:
+    """The napkin screens no domain brings: the system's own, and the product's (F10).
+
+    ``product`` is ``None`` outside a product folder; ``error`` says why a product's
+    ``model/screens/`` could not be read.
+    """
+    from napkin2factory.concepts.screens import GENERIC_SCREENS
+
+    out: dict[str, Any] = {"system": [_screen(s) for s in GENERIC_SCREENS], "product": None}
+    if root is not None:
+        from napkin2factory.core.packs import product_screens
+
+        try:
+            out["product"] = [_screen(s) for s in product_screens(root)]
+        except Exception as exc:
+            out["product"] = []
+            out["error"] = str(exc)
+    return out
+
+
+def _names(items: list[dict[str, Any]], show: Any = None) -> str:
+    return ", ".join(show(i) if show else i["name"] for i in items) or "none"
+
+
+def _kind_text(v: dict[str, Any]) -> str:
+    what = [", ".join(v["targets"]) or "no target"]
+    if v["compares"]:
+        what.append("op and value")
+    return f"{v['name']} ({'; '.join(what)})"
+
+
+def _print_domains(domains: list[dict[str, Any]], screens: dict[str, Any]) -> None:
+    console.print("Installed domains (a requirement's verify.kind must be one listed here):")
+    for d in domains:
+        console.print(f"  {d['name']}: {d['title']}" if d["title"] else f"  {d['name']}")
+        console.print(f"    verify kinds: {_names(d['verify_kinds'], _kind_text)}")
+        console.print(f"    check stages: {_names(d['check_stages'])}")
+        console.print(f"    screens: {_names(d['screens'])}")
+    console.print(f"  Napkin screens every product gets: {_names(screens['system'])}")
+    if screens["product"] is not None:
+        console.print(
+            f"  This product's own screens (model/screens/): {_names(screens['product'])}"
+        )
+    if screens.get("error"):
+        console.print(f"  [yellow]![/yellow] {screens['error']}")
+
+
 def doctor(json_out: bool = JsonOption) -> None:
-    """Check that this machine can run napkin2factory, and say what to fix if not."""
+    """Check that this machine can run napkin2factory, and list the installed domains.
+
+    The domains come with their verify kinds, check stages and napkin screens (F14).
+    """
+    from napkin2factory.core.loader import find_product_root
+
     rows = _probe()
     pin = _pin_row()
     if pin is not None:
         rows.append(pin)
+    try:
+        domains = installed_domains()
+    except Exception as exc:  # a broken installed domain must not hide the machine checks
+        domains = []
+        rows.append(
+            {"check": "installed domains", "status": "fail", "detail": f"cannot load: {exc}"}
+        )
+    screens = other_screens(find_product_root())
     if json_out:
-        emit_json({"version": __version__, "checks": rows})
+        emit_json({"version": __version__, "checks": rows, "domains": domains, "screens": screens})
     else:
         console.print(f"napkin2factory {__version__}")
         for r in rows:
@@ -148,5 +277,7 @@ def doctor(json_out: bool = JsonOption) -> None:
                 r["status"]
             ]
             console.print(f"  {mark} {r['check']}: {r['detail']}")
+        if domains:
+            _print_domains(domains, screens)
     if any(r["status"] == "fail" for r in rows):
         raise typer.Exit(code=4)
