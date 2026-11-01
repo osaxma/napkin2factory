@@ -31,10 +31,19 @@ STATUS_STYLE = {
     "skip": "dim",
     "needs-human": "magenta",
     "signed": "cyan",
+    "choice": "blue",
     "example": "yellow",  # summary-only key: example sign-offs are not reviews
 }
 #: The order of the non-requirement rows: what blocks first (gate D).
-STATUS_ORDER = {"fail": 0, "needs-human": 1, "warn": 2, "skip": 3, "signed": 4, "pass": 5}
+STATUS_ORDER = {
+    "fail": 0,
+    "needs-human": 1,
+    "choice": 2,
+    "warn": 3,
+    "skip": 4,
+    "signed": 5,
+    "pass": 6,
+}
 OWNER_WORDS = {
     "pass": "OK",
     "fail": "needs attention",
@@ -42,6 +51,7 @@ OWNER_WORDS = {
     "skip": "not checked",
     "needs-human": "needs your sign-off",
     "signed": "signed off",
+    "choice": "a choice waiting on you",
 }
 
 
@@ -169,7 +179,12 @@ def render_summary(summary: dict[str, int], persona: str) -> str:
     for k, v in summary.items():
         if not v:
             continue
-        text = example_signoff_words(v) if k == "example" else f"{v} {_word(k, persona)}"
+        if k == "example":
+            text = example_signoff_words(v)
+        elif k == "choice":  # F12: "1 choice waiting on you", in both personas
+            text = f"{v} choice{'' if v == 1 else 's'} waiting on you"
+        else:
+            text = f"{v} {_word(k, persona)}"
         parts.append(f"[{STATUS_STYLE.get(k, '')}]{text}[/]")
     return " · ".join(parts)
 
@@ -198,7 +213,7 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
     product = load_product(root)
     rep = compute_stage(product)
     if json_out:
-        emit_json(rep.to_dict())
+        emit_json({**rep.to_dict(), "waiting_on_you": waiting_on_you(product)})
         return
     persona = product.operator.persona
     console.print(
@@ -222,6 +237,7 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
                     "(`n2f status --json` lists all)[/dim]"
                 )
             break
+    print_waiting(waiting_on_you(product))
     console.print(f"next: {escape(rep.next_step)}")
 
 
@@ -235,6 +251,40 @@ def print_scope_rows(scope: list[dict[str, str]]) -> None:
     console.print("  Scope [dim](what this product covers)[/dim]")
     for entry in scope:
         console.print(f"      {escape(entry['line'])}")
+
+
+def waiting_on_you(product) -> list[dict]:  # type: ignore[no-untyped-def,type-arg]
+    """The open choices (F12) the last check wrote, each with its gate in owner words."""
+    from napkin2factory.core.checks.choices import HOLDS_WORDS, decide_command, open_choices
+
+    return [
+        {**c, "holds": HOLDS_WORDS.get(c.get("blocks", ""), ""), "command": decide_command(c)}
+        for c in open_choices(product.paths.build)
+    ]
+
+
+def print_waiting(choices: list[dict]) -> None:  # type: ignore[type-arg]
+    """The "waiting on you" block of ``n2f status``, after the gates and their sign-offs (F12).
+
+    One choice at a time in the owner's words: what the check found, each option with what
+    it takes and its cost, the gate it holds, and the command that records the pick.
+    """
+    if not choices:
+        return
+    from rich.padding import Padding
+
+    def para(text: str, indent: int) -> None:  # wrapped under its own indent, not the margin
+        console.print(Padding(text, (0, 0, 0, indent)))
+
+    n = len(choices)
+    console.print(f"  Waiting on you: {n} choice{'' if n == 1 else 's'}")
+    for c in choices:
+        para(f"[bold]{escape(c.get('title') or c['id'])}[/bold] ({c['holds']})", 6)
+        para(escape(c["message"].split(" Two ways to fix it:")[0]), 8)
+        for i, o in enumerate(c.get("options", []), 1):
+            cost = f" Cost: {o['cost_delta']}." if o.get("cost_delta") else ""
+            para(f"{i}. {escape(o['summary'])} — {escape(o['what_it_takes'])}.{escape(cost)}", 8)
+        para(f"[dim]to record the pick: {escape(c['command'])}[/dim]", 8)
 
 
 @handle_errors
