@@ -78,9 +78,13 @@ cmd_land() {
     die "commits marked WIP are on $branch: finish them, then fold them into one commit
   (this branch is unpushed, so rewriting it is fine): git reset --soft main && git commit"
   fi
+  # Each attempt starts again from the task's own commits, placeholders intact: if main moved
+  # (another task landed), ids given out against the old main may now be taken (S-102).
+  start=$(git rev-parse HEAD)
   tries=0
   while :; do
     tries=$((tries + 1))
+    git reset -q --hard "$start"
     if ! git rebase -q main; then
       die "the rebase onto main stopped on a conflict (it is still in progress).
   Fix the conflicted files (git status lists them), git add them, git rebase --continue,
@@ -97,10 +101,17 @@ cmd_land() {
     esac
     dirty "$main_dir" && die "the main folder $main_dir has unsaved changes: they must be committed or removed there first"
     count=$(git rev-list --count main..HEAD)
-    git -C "$main_dir" merge -q --ff-only "$branch" && break
-    git merge-base --is-ancestor main HEAD && die "could not fast-forward main in $main_dir (see the message above)"
+    landed=
+    for wait in 1 2 3; do
+      git -C "$main_dir" merge -q --ff-only "$branch" 2>/dev/null && landed=1 && break
+      git merge-base --is-ancestor main HEAD || break  # main moved: rebase again
+      sleep "$wait"  # main has not moved: another landing holds git's lock for a moment
+    done
+    [ -n "$landed" ] && break
+    git merge-base --is-ancestor main HEAD &&
+      die "could not fast-forward main in $main_dir: git merge --ff-only $branch there shows why"
     [ "$tries" -lt 3 ] || die "main kept moving (another task landed) three times: run make land again"
-    echo "main moved while landing; rebasing again"
+    echo "main moved while landing; starting again from this task's own commits"
   done
   here=$(git rev-parse --show-toplevel)
   cd "$main_dir"

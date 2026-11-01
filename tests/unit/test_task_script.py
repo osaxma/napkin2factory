@@ -191,3 +191,51 @@ def test_new_and_abandon_guard_rails(repo: Path) -> None:
     run(repo, "env", "CONFIRM=1", "sh", str(TASK), "abandon", "drop")
     assert not folder.exists()
     assert run(repo, "git", "branch", "--list", "task/*").stdout == ""
+
+
+def test_land_starts_again_when_main_moves_mid_land(repo: Path, tmp_path: Path) -> None:
+    """Beta lands while alpha's gate runs: alpha must retry with fresh ids, not reuse its own."""
+    for name in ("alpha", "beta"):
+        task(repo, "new", name, f"goal of {name}")
+        add_decision(repo / ".worktrees" / name, name)
+    # A stand-in for `make` that, the first time alpha's gate calls it, lands beta: main moves
+    # after alpha has rebased and taken ids, exactly the window the retry exists for.
+    marker = tmp_path / "beta-landed"
+    fake_make = tmp_path / "make"
+    fake_make.write_text(
+        f"#!/bin/sh\n[ -e {marker} ] && exit 0\ntouch {marker}\n"
+        f"cd {repo / '.worktrees' / 'beta'} && LAND_GATE=none sh {TASK} land >/dev/null\n"
+    )
+    fake_uv = tmp_path / "uv"
+    fake_uv.write_text("#!/bin/sh\nexit 0\n")
+    for tool in (fake_make, fake_uv):
+        tool.chmod(0o755)
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.com",
+        "N2F_TASK_NO_SYNC": "1",
+        "LAND_GATE": "fast",
+        "MAKE": str(fake_make),
+        "UV": str(fake_uv),
+    }
+    done = subprocess.run(
+        ["sh", str(TASK), "land"],
+        cwd=repo / ".worktrees" / "alpha",
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert done.returncode == 0, done.stdout + done.stderr
+    assert marker.exists() and "main moved while landing" in done.stdout
+
+    log = run(repo, "git", "log", "--format=%s", "main").stdout.splitlines()
+    assert log == ["Add alpha (S-003)", "Add beta (S-002)", "Start"]
+    decisions = (repo / "DECISIONS.md").read_text()
+    assert decisions.count("## S-002 — ") == 1 and decisions.count("## S-003 — ") == 1
+    assert "## S-002 — beta" in decisions and "## S-003 — alpha" in decisions
+    backlog = (repo / "BACKLOG.md").read_text()
+    assert "| B-0002 | beta | S-002 |" in backlog and "| B-0003 | alpha | S-003 |" in backlog
+    assert NEW not in run(repo, "git", "log", "-p", "--format=%B", "main").stdout

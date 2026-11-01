@@ -118,6 +118,7 @@ should confirm before relying on them.
 | S-099 | Landing gives placeholders their ids in every task commit, messages included | in force |
 | S-100 | The why sits where the thing happens: code cites its decision | in force |
 | S-101 | Owners need no uv link-mode setting: one environment, kept across upgrades | in force |
+| S-102 | A landing that loses the race starts again with fresh ids | in force |
 
 ---
 
@@ -1159,3 +1160,12 @@ throwaway tool folder. `uv tool install napkin2factory==0.2.0` made one environm
 it took 7.6 s. Product folders get no environment of their own (`n2f init` makes none), and
 `n2f init` already warms the first import (S-057). A dependency upgrade brings new native files
 whichever link mode is used, so the agent guide's install step stays as it is.
+
+## S-102 — A landing that loses the race starts again with fresh ids (2026-11-01)
+Amends S-097. Found by reading `make land` before testing it: when another task landed between a
+task's rebase and its fast-forward, the retry rebased commits whose ids were already given out
+against the old `main`, so two tasks could both land as the same `S-` id (union merge keeps both
+entries; only the fast gate would notice). Each attempt now resets to the task's own commits
+(placeholders intact), rebases, and takes ids afresh; a fast-forward refused while `main` has not
+moved (two landings meeting on git's lock) waits and retries. `test_task_script.py` lands one task
+inside the other's gate: the old script landed both as S-002, the new one as S-002 and S-003.
