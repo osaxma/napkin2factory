@@ -106,6 +106,12 @@ where its home is, a requirement where everything it is allocated to or satisfie
 the report's Rule checks section groups by them when there are two or more. `n2f check --scope
 asm://<id>` builds that assembly alone (`n2f build --asm`) and runs only the rows whose home is
 it or below it, without documents and sourcing, into `build/checks/scope/<id>/checks.json`.
+A failure in a scoped run is rework of that module; a failing joint between units (a port,
+checked in the assembly both sides are built into) or a `reach://` row is an interface change
+touching both sides (the verifier role classes each). The report's "Joints between units"
+section joins each such joint's `iface://` verdict to the build plan's `between_units` list
+(both units, both parts, how it is joined, its hardware, P13); `n2f ecr impact --json` lists
+the ports a change crosses under `ports`.
 
 ## Stage and gates (`n2f status`)
 

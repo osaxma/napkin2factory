@@ -231,6 +231,11 @@ nothing is built yet. `n2f check --scope` never touches `build/checks/checks.jso
 are checked with the assembly both sides are built into, so finish with `n2f build && n2f check`.
 A parameter may carry `scope: asm://<id>` (the module's own size) and `export: true` (its parent
 may read it); reads across modules are "worth a look" rows in `n2f check` (`docs/checks.md`).
+The report's "Joints between units" section (and `between_units` in `build-plan.json`) lists
+every joint where two units meet, with both units, both parts, the hardware and whether the
+parts meet; `roles/verifier.md` reviews each unit alone, then those joints (does each part
+move, need another material, or need to come apart?), and `n2f ecr impact --json` names the
+ports a change crosses (`ports`).
 
 **Changes after a release** go through a change request, and the owner approves after
 reading the impact:

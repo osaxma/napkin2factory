@@ -135,6 +135,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-112 | v0.4 M5: promotion keeps the napkin's modules (stubs, size budgets) or suggests them; start flat | in force |
 | S-113 | v0.4 M3b: the kiln built from units, door and controls hung by their ports, lining a phantom | in force |
 | S-114 | v0.4 M4: parameters have a scope, a module's context is a command, checks per module | in force |
+| S-115 | v0.4 M6: joints between units in the plan and the report, two-level review roles, the DoD 5 simulation protocol (run pending) | in force |
 
 ---
 
@@ -519,3 +520,13 @@ carry a part's size, so door-guard-width, -depth, -offset and hinge-pin-depth ex
 Context text/json bytes: door 16,653/30,192, controls 10,632/17,343, kiln 31,156/51,881, flat
 kiln 49,570/77,527: P11 splits above 32 kB (a line on one product, not an agent limit). B-0064
 open. 21 new tests; `make check` 8 min 45 s, `make kiln` 2 min 53 s green; scoped door check 8 s.
+## S-115 — v0.4 M6: joints between units reviewed; the one-module simulation prepared (2026-11-01)
+P12, P13. `build-plan.json` gains `between_units` (each joint's sides with their unit, how it is
+joined, hardware, step); the report's new "Joints between units" section adds the `iface://`
+verdict and the decisions linking the joint. Beyond the plan: `ports` in the impact JSON. The
+verifier reviews unit by unit (context, scoped check, inside a module or at a port), then the
+joints with Boothroyd's three questions; a part to combine is a proposed `DEC-` linking the
+joint, never a verdict. Scripted change (`tests/e2e/module-transcripts/`): the door's standoff
+rectangle 10 mm wider and taller (inset 120 to 115 mm, pitch 452.4 to 462.4 mm), door-only;
+tried by hand: no fail, scoped check 8.7 s. Bundle 34,259 B; report 3,792,417 B. 11 new tests;
+`make kiln` 3 min 21 s, `make check` 11 min 8 s green (853 + 141 passed). Simulation not run.

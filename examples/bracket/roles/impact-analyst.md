@@ -11,9 +11,11 @@ Run `n2f ecr impact <id> --json` (or `n2f impact --set …`) and translate the r
 4. Which sign-offs are invalidated and must be redone by a person.
 5. How many parts, drawings and manual pages rebuild (so the owner knows what the
    manufacturer will receive anew).
-6. Which joints between units (ports) the change crosses: for each interface in the report's
-   `interfaces`, it is a port when an assembly lists it under `ports:` (`n2f context
-   asm://<id>` shows each unit's ports). Name the units on both sides; a change that crosses a
-   port touches both, and both are checked again with the assembly they are built into.
+6. Which joints between units (ports) the change crosses: `ports` in the `--json` output
+   lists every interface it touches that an assembly lists under `ports:`, with the unit on
+   each side and `between_units`. For each one between units, name both units: the change is
+   an interface change, both sides are checked again with the assembly they are built into,
+   and both may need rework. When `ports` is empty, no joint between modules moves: each
+   module it touches can be checked alone (`n2f check --scope asm://<id>`).
 7. The exact next command (`n2f ecr approve <id> --by <name>` or `n2f ecr reject …`).
 Never soften a safety consequence to fit the register.

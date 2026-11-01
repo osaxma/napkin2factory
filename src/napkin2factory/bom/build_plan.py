@@ -70,6 +70,31 @@ def _name(product: Product, uri: str) -> str:
     return p.name if p is not None else uri
 
 
+def joint_kind_words(kind: str, holes: int, has_hardware: bool) -> str:
+    """How a joint is made, in owner words (N5): "bolted, 4 holes", "faces that meet"."""
+    if kind == "bolt-pattern":
+        return f"bolted, {holes} holes" if holes else "bolted"
+    if has_hardware:
+        return "faces that meet, with fasteners"
+    return "faces that meet (welded, riveted or clamped: no loose hardware)"
+
+
+def _sides(product: Product, units: BuildUnits, parties: tuple[str, str]) -> list[dict[str, Any]]:
+    """Each party of a joint with the build unit it is built into (P13)."""
+    out = []
+    for party in parties:
+        uid = units.unit_of(units.tree.home(party))
+        out.append(
+            {
+                "part": party,
+                "name": _name(product, party),
+                "unit": f"asm://{uid}" if uid else None,
+                "unit_name": product.assemblies[uid].name if uid else None,
+            }
+        )
+    return out
+
+
 def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str, Any]:
     """The ``build-plan.json`` payload (P8); records its reads in ``log``."""
     log = log if log is not None else ReadLog()
@@ -106,11 +131,15 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
             items.append(row)
         joints = []
         for j in units.joints(uid):
+            kind = product.interfaces[j.iface].kind
             joints.append(
                 {
                     "interface": f"iface://{j.iface}",
                     "parties": list(j.parties),
                     "words": joint_words(product, j.iface),
+                    "kind": kind,
+                    "how": joint_kind_words(kind, j.holes, bool(j.hardware)),
+                    "sides": _sides(product, units, j.parties),
                     "closes_in": f"asm://{j.closes_in}",
                     "occurrences": j.occurrences,
                     "holes": j.holes,
@@ -170,10 +199,19 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
             "hardware": hardware,
             "checks": units.check_ids(uid),
         }
+    # P13: every joint where two units built separately meet, in build order, with the step
+    # that closes it (the verdicts are joined by the report: ``bom`` runs before ``checks``)
+    between = [
+        {**j, "step": step["step"], "closed_by": step["unit"], "closed_by_name": step["name"]}
+        for step in out_units.values()
+        for j in step["joints"]
+        if j["between_units"]
+    ]
     return {
         "schema": SCHEMA,
         "order": order,
         "units": out_units,
+        "between_units": between,
         "joints_in_no_step": [f"iface://{i}" for i in units.unplaced_joints()],
         "words": {"phantom": PHANTOM_WORDS, "between_units": BETWEEN_UNITS_WORDS},
     }
