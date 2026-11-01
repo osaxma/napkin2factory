@@ -142,6 +142,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-118 | Joints in owner words: an optional `name:` and `closed_in:` on interfaces, joints in build order, sheet text never below 2.2 mm | in force |
 | Gate D | Review gate D (UX, owner persona) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-119 | v0.4 closed: version 0.4.0, product pins `>=0.4,<0.5`, handoff report | in force |
+| S-120 | The v0.5 and v0.6 plans reconciled with what v0.4 shipped; the Linux evidence-key defect opened as B-0073 | in force |
 
 ---
 
@@ -601,3 +602,13 @@ kiln copy: build 62.4 s, check no fail (251 OK), report 3,792,169 B, door contex
 box as the golden. `make check` here: 10 min 8 s green (870 passed, 5 skipped; goldens 141). Open:
 B-0064, B-0065, B-0067, B-0069–B-0071, and the Linux nightly's evidence-key failure (a separate
 task). Judged by the maintainer: "looking right" (the build plan section and the door sheet), 2026-11-01.
+## S-120 — The v0.5 and v0.6 plans reconciled with v0.4; the Linux evidence-key defect opened (2026-11-01)
+Read `HANDOFF-REPORT-v0.4.md` and S-112–S-119 against `FOUNDATION.md` and `ELECTRICAL_STAGE.md`.
+Changed in the plans: the registries carry what v0.4 added (a tenth rule kind, `also_produces`,
+15 report sections, the build-unit drivers as an open set, and a context contribution per domain so
+`n2f context` shows a unit's circuits); `build: external` is a third value beside `unit` and
+`phantom` and the build plan lists it as supplied; the kiln's choice example moves off DEC-021
+(decided in M3b) to DEC-022's bolt length or B-0065's rivets; the `make check` budget is v0.4's
+10 min 8 s, not 10 min; M6's budget grows with `promote.py` (1,299 → 1,647 lines). Opened B-0073:
+the first Linux nightly failed on four kiln example sign-offs because a part's evidence key hashes
+the mesh; fixing it (invariants, D14) is a prerequisite of v0.5 M0, outside the waves.

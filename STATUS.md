@@ -38,7 +38,8 @@ the headline), S-111: planned, starts after v0.5. `docs/reviews/v0.6-independent
 outside model's brief for after it lands.
 
 v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
-package, schema policy, scope as data, choices), S-111: planned, starts after v0.4 M7.
+package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120: planned,
+starts once B-0073 (platform-stable sign-off evidence keys; the Linux nightly) is fixed.
 
 v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
 `HANDOFF-REPORT-v0.4.md`:
