@@ -46,6 +46,7 @@ Linux nightly on a pushed `main` is the proof.
 - M2 schema policy (`docs/schema-policy.md`, migrations, `n2f init .` upgrades) and calc reference cases (`calc-case` rows) — S-125; the checks rule hashes the calc kit (M2b) — S-126.
 - M4 scope as data (`scope:` in `n2f.yaml`: in / done elsewhere / later; external stubs; load cases) — S-124.
 - M4b scope follow-ups (the scope a recorded read of the report; stubs said in the build plan) — S-127.
+- M3 the kiln out of the package (screens declare their fields; the heated-box screens are the kiln's own `model/screens/`; product rule packs; `site.width`; neutral style roles; the F9 guard) — S-128.
 
 v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
 `HANDOFF-REPORT-v0.4.md`:

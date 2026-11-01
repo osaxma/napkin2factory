@@ -25,7 +25,6 @@ from __future__ import annotations
 import ast
 import re
 from collections import defaultdict
-from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -41,8 +40,8 @@ TEXT_SUFFIXES = {".py", ".yaml", ".yml", ".j2", ".md", ".html", ".txt", ".json",
 COMPOUND = re.compile(r"[-_0-9]")
 
 #: Example identifiers still in package files another v0.5 task owned in wave 2 (the calc
-#: kit, M2; ``n2f init``, M4), where the v0.5 M3 task could not edit them. B-0084 clears this
-#: list (v0.5 M7); nothing else may be added here.
+#: kit and the calc cases, M2; ``n2f init``, M4), where the v0.5 M3 task could not edit them.
+#: B-0084 clears this list (v0.5 M7); nothing else may be added here.
 _KILN_PARTS = {
     "controller-box", "controller-lid", "door-brick", "door-fiber", "door-guard",
     "door-switch", "door-tray", "fiber-back", "fiber-side", "fiber-slab", "guard-shell",
@@ -64,6 +63,7 @@ ALLOWED: dict[str, set[str]] = {
     "calckit/power.py": {"DEC-004", "DEC-005", "kiln"},
     "calckit/thermal_enclosure.py": {"DEC-004", "DEC-015", "kiln"},
     "cli/init.py": {"kiln"},
+    "core/checks/calcs.py": {"wall-thickness"},
 }
 
 
@@ -190,31 +190,28 @@ def package_files() -> list[Path]:
 
 
 def hits() -> dict[str, list[str]]:
-    """``relative file → ["line: identifier (what)", …]`` for every forbidden identifier."""
+    """``relative file → ["line: identifier (what)", …]`` for every forbidden identifier.
+
+    A text is cut into identifier tokens (letters, digits, ``_``, ``-``, and ``.`` for calc
+    names); a token, or one of its dot-separated parts, that is a forbidden identifier is a hit.
+    Identifiers match case for case, the product names in any case.
+    """
     names = forbidden()
     products = product_names()
     out: dict[str, list[str]] = defaultdict(list)
     for path in package_files():
         rel = path.relative_to(PACKAGE).as_posix()
         for no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-            for m in _pattern(names).finditer(line):
-                name = m.group(1)
-                if name not in names and name.lower() in products:
-                    name = name.lower()
-                if name not in names or name in ALLOWED.get(rel, set()):
-                    continue  # another case of an identifier, or allowed this wave
-                out[rel].append(f"{no}: {m.group(1)} ({names[name]})")
+            for token in TOKEN.findall(line):
+                token = token.strip(".")
+                for word in {token, *token.split(".")}:
+                    name = word.lower() if word.lower() in products else word
+                    if name in names and name not in ALLOWED.get(rel, set()):
+                        out[rel].append(f"{no}: {word} ({names[name]})")
     return dict(out)
 
 
-@lru_cache(maxsize=4)
-def _compiled(alternation: str) -> re.Pattern[str]:
-    return re.compile(rf"(?<![A-Za-z0-9_-])({alternation})(?![A-Za-z0-9_-])", re.IGNORECASE)
-
-
-def _pattern(names: dict[str, str]) -> re.Pattern[str]:
-    """Every name whole; case is checked after the match (only product names ignore it)."""
-    return _compiled("|".join(re.escape(n) for n in sorted(names, key=len, reverse=True)))
+TOKEN = re.compile(r"[A-Za-z0-9_.-]+")
 
 
 def test_the_forbidden_set_is_derived_from_the_examples() -> None:
