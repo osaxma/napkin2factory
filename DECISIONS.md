@@ -147,6 +147,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-122 | v0.5 M0 baseline: a new step edits 10 files (7 in `core/`), 32 package files name the kiln's words, the five big files, `make check` 10 min 14 s | in force |
 | S-123 | v0.5 M1: one domain contract (`core/domain.py`), fifteen registries (`core/registry.py`), the mechanical domain registered in place, the toy domain; a new step edits 0 core files | in force |
 | S-124 | v0.5 M4: scope as data (`scope:` in `n2f.yaml`, `build: external` stubs, `model/loads/`); `later` domains leave the gates with a note, never a safety requirement | in force |
+| S-125 | v0.5 M2: schema policy and migrations (`core/model/migrate.py`, `n2f init .`), calc reference cases (`calc-case` rows, L16) | in force |
 
 ---
 
@@ -662,3 +663,14 @@ wires it; the box keeps its cable entries (DEC-024)"; Verify row "Electrical: la
 checked at this stage; no requirement waits for it"; report "Scope. <line>."; cover "Scope: <line>"
 plus `release.json`. B-0076, B-0077. `test_scope.py` 20 passed, 15.2 s; `make check` green, 927
 passed, 141 goldens, 14 min 42 s (other tasks alongside).
+## S-125 — v0.5 M2: schema policy, the migration hook, calc reference cases (2026-11-01)
+Closes B-0042; DoD 4, 12. `core/model/migrate.py` (by (from, to); `pending`, `apply`; `CURRENT` 1, none yet):
+`n2f init .` snapshots, migrates, says what changed; a newer schema stops it and every load (the loader's
+one call). `tests/fixtures/schema/v1` = the bracket at v0.4; a throwaway 1→2→3 round-trips byte for byte.
+F17: kit `CASES` per pack; product `model/calcs/<m>.cases.yaml` on its own inputs; a `calc-case` stage after
+sourcing (a row per calc, one per kit pack used); lint `L16-calc-case` (M4 took L15) [revisit]. Cases:
+thermal_enclosure 11 (1 external), power 10 (2), mass_cost 5 (1): all 23 kit functions; kiln 21 calcs, 21
+cases from `test_calcs.py`; kiln `n2f check`: 23 `calc-case` rows, all pass. External: Kanthal "Design of wire
+elements" p. 51 (90.9 A, 3.95 W/cm², read in the PDF); Incropera 6th ed. Ex. 3.1, oven window, 50 °C [verify];
+EN 1993-1-1 §3.2.6, steel 7850 kg/m³ [verify]. Hypothesis found the critical-thickness effect (k 1, h 2).
+Times: test_migrate 6.5 s, test_calckit_cases 5.3 s, properties 3.8 s; `make check` 13 min 4 s, 948 passed.
