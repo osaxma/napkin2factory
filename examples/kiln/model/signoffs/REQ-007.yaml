@@ -12,9 +12,9 @@ evidence:
 - param://controller-standoff
 - iface://controller-mount
 evidence_keys:
-  asm://controls: sha256:545d12e77e268ec458b9dd19c96d67a5be2294197774fdd9617149001b21d24d
-  part://controller-box: sha256:ceeb74f601ca6ebe12070fc63f1b86b8e24a2983c5b73e0215c542238d4fc5ad
-  part://controller-lid: sha256:94cba86e88c56e0372c9b83cccd4637ad45ee78d39336c57fe462559f3d3361c
+  asm://controls: inv:{"counts":{"part://contactor":1,"part://controller-box":1,"part://controller-lid":1,"part://limit-controller":1,"part://pid-controller":1,"part://ssr":1},"placements":[{"node":"part://contactor#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[100.0,0.0,2.0],"uri":"part://contactor"},{"node":"part://controller-box#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[0.0,0.0,0.0],"uri":"part://controller-box"},{"node":"part://controller-lid#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[0.0,0.0,160.0],"uri":"part://controller-lid"},{"node":"part://limit-controller#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[-10.0,0.0,76.0],"uri":"part://limit-controller"},{"node":"part://pid-controller#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[-70.0,0.0,76.0],"uri":"part://pid-controller"},{"node":"part://ssr#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[45.0,-20.0,2.0],"uri":"part://ssr"}]}
+  part://controller-box: inv:{"area":304302.794,"bbox":[280.0,140.0,160.0],"centroid":[1.1915,1.8279,67.8599],"counts":[90,248,1],"features":"sha256:5fd5423f5b055018c19f6944115d396b2abdc512413bf5a0973788f366287b92","volume":150784.063}
+  part://controller-lid: inv:{"area":63139.398,"bbox":[260.0,120.0,1.0],"centroid":[0.0,-0.0,0.5],"counts":[10,24,1],"features":"sha256:6f340a31f481f18068018fb9dfe2df953d183fb5c5bb52b5f566f7b704fd075e","volume":31192.274}
   part://m6-standoff-40: sha256:ed2dddd51f7e9a376fd2b65c2c89c8f7484f517d226b3ac9500f0a65564352f1
   param://controller-standoff: sha256:3b42f8e0cc21010be377985e47dbbd0f4577538fa6efb7a8af4d628be5fa2880
   iface://controller-mount: sha256:ce015bd9c17929471bd7784076b9bbfaf8e572cb3598c4686177407ce74b91c2

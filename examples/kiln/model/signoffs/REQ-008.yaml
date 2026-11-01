@@ -12,8 +12,8 @@ evidence:
 - param://circuit-rating
 evidence_keys:
   doc://installation: sha256:a22318f896f71cf30a9a30e19ba254f9f3589c8a61ba773971161ab3845e6435
-  asm://controls: sha256:545d12e77e268ec458b9dd19c96d67a5be2294197774fdd9617149001b21d24d
-  part://controller-box: sha256:ceeb74f601ca6ebe12070fc63f1b86b8e24a2983c5b73e0215c542238d4fc5ad
+  asm://controls: inv:{"counts":{"part://contactor":1,"part://controller-box":1,"part://controller-lid":1,"part://limit-controller":1,"part://pid-controller":1,"part://ssr":1},"placements":[{"node":"part://contactor#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[100.0,0.0,2.0],"uri":"part://contactor"},{"node":"part://controller-box#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[0.0,0.0,0.0],"uri":"part://controller-box"},{"node":"part://controller-lid#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[0.0,0.0,160.0],"uri":"part://controller-lid"},{"node":"part://limit-controller#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[-10.0,0.0,76.0],"uri":"part://limit-controller"},{"node":"part://pid-controller#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[-70.0,0.0,76.0],"uri":"part://pid-controller"},{"node":"part://ssr#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[45.0,-20.0,2.0],"uri":"part://ssr"}]}
+  part://controller-box: inv:{"area":304302.794,"bbox":[280.0,140.0,160.0],"centroid":[1.1915,1.8279,67.8599],"counts":[90,248,1],"features":"sha256:5fd5423f5b055018c19f6944115d396b2abdc512413bf5a0973788f366287b92","volume":150784.063}
   part://rating-label: sha256:3c4c00b1d8813341d1a58d17e51725b744b5e2f53f540f3ad86fe05b411c193e
   param://circuit-rating: sha256:95fce4b018f8b504b0102ac1aac59d633f8196c6adfde32e950b66f5654751b8
 example: true

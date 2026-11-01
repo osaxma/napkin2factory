@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from napkin2factory.core.checks.calcs import CalcError, CalcRecord, run_calc
-from napkin2factory.core.checks.evidence import evidence_key
+from napkin2factory.core.checks.evidence import evidence_key, keys_match, legacy_keys
 from napkin2factory.core.checks.results import CheckResult
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import Requirement, Signoff
@@ -164,7 +164,8 @@ def _signoff_state(
         now = evidence.get(uri) or evidence_key(
             ctx.product, ctx.build_dir, uri, {k: v.to_dict() for k, v in ctx.calc_records.items()}
         )
-        if now != key:
+        # within a tolerance for ``inv:`` keys, and the pre-S-121 hashes still count (B-0073)
+        if not keys_match(key, now) and key not in legacy_keys(ctx.product, ctx.build_dir, uri):
             stale.append(uri)
     if stale:
         return so, False, "evidence changed since signing: " + ", ".join(stale)

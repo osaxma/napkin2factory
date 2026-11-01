@@ -12,9 +12,9 @@ evidence:
 - param://over-temperature-limit
 - doc://installation
 evidence_keys:
-  asm://controls: sha256:545d12e77e268ec458b9dd19c96d67a5be2294197774fdd9617149001b21d24d
-  part://limit-controller: sha256:f0f440d63d188e4632882ce10cec4fb719c081ec691ce210745e06fd4938e4e0
-  part://contactor: sha256:34aa515ff8296217ce966a773e19be2d299f89ee3d31db6b93d26adf93edce1d
+  asm://controls: inv:{"counts":{"part://contactor":1,"part://controller-box":1,"part://controller-lid":1,"part://limit-controller":1,"part://pid-controller":1,"part://ssr":1},"placements":[{"node":"part://contactor#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[100.0,0.0,2.0],"uri":"part://contactor"},{"node":"part://controller-box#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[0.0,0.0,0.0],"uri":"part://controller-box"},{"node":"part://controller-lid#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[0.0,0.0,160.0],"uri":"part://controller-lid"},{"node":"part://limit-controller#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[-10.0,0.0,76.0],"uri":"part://limit-controller"},{"node":"part://pid-controller#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[-70.0,0.0,76.0],"uri":"part://pid-controller"},{"node":"part://ssr#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[45.0,-20.0,2.0],"uri":"part://ssr"}]}
+  part://limit-controller: inv:{"area":23808.0,"bbox":[48.0,100.0,48.0],"centroid":[0.0,0.0,24.0],"counts":[6,12,1],"features":"sha256:0a6a8b0a7770f7d10347cef8a56a664af4d1efb23abe0548bbacce689982b375","volume":230400.0}
+  part://contactor: inv:{"area":27930.0,"bbox":[45.0,78.0,85.0],"centroid":[0.0,-0.0,42.5],"counts":[6,12,1],"features":"sha256:feeb8dfa4d9d3c6c38f0839c65395d99274dc1032d4bcb9926f9e1fe4cfe008b","volume":298350.0}
   part://thermocouple: sha256:b3c84518bcc5d8e4b4115f753ea5838dba06fbb50e88c74a22603693eae8196a
   param://over-temperature-limit: sha256:f976fc59557a95aa7aba040123fd59953792b51f5db5f7869127d4445febce4c
   doc://installation: sha256:a22318f896f71cf30a9a30e19ba254f9f3589c8a61ba773971161ab3845e6435
