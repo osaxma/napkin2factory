@@ -43,6 +43,14 @@ def test_kiln_artifacts_complete(kiln: tuple[Path, float]) -> None:
     assert validate_outputs(root) == []
 
 
+def test_kiln_every_recorded_read_has_a_value(kiln: tuple[Path, float]) -> None:
+    """Gate C, C7: no recorded read in the kiln's manifest is a constant (B1's class, D5)."""
+    from napkin2factory.core.graph.values import unvalued_reads
+
+    root, _ = kiln
+    assert unvalued_reads(load_product(root), root / "build") == {}
+
+
 def test_kiln_checks_green_with_example_signoffs(kiln: tuple[Path, float]) -> None:
     root, _ = kiln
     data = json.loads((root / "build/checks/checks.json").read_text())

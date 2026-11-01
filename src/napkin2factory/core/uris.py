@@ -27,11 +27,14 @@ _ID_PATTERNS: dict[str, str] = {
     "doc": SLUG,
     "calc": r"[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*",
     "rule": rf"{SLUG}/{SLUG}",
-    "bom": r"rollups|validation",
+    # build-plan: the plan the bom rule writes (P8); pages and sheets read its steps (B1, S-117)
+    "bom": r"rollups|validation|build-plan",
 }
 SCHEMES: tuple[str, ...] = tuple(_ID_PATTERNS)
 _URI_RE = re.compile(r"^(?P<scheme>[a-z]+)://(?P<id>[^#\s]+)(?:#(?P<fragment>[A-Za-z0-9_.\-]+))?$")
-_DOTTED_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_\-]*(?:\.[A-Za-z_][A-Za-z0-9_\-]*)*$")
+# Only the first segment must start with a letter (an all-digit fragment is an instance); later
+# segments may be slugs that start with a digit, e.g. ``bom://build-plan#units.2-stage`` (S-117).
+_DOTTED_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_\-]*(?:\.[A-Za-z0-9_][A-Za-z0-9_\-]*)*$")
 
 
 class UriError(ValueError):

@@ -41,8 +41,14 @@ def checks_reads(product: Product) -> list[str]:
         reads.append(p.uri)
     for p in product.parts.values():
         reads.append(f"{p.uri}#role")  # the form pack picks parts by styling role
+        reads.append(f"{p.uri}#name")  # messages name parts (hardware, joints)
     for a in product.assemblies.values():
         reads.append(a.uri)
+        # The asm rule's output hash does not move with `spare:`, `loose:`, `build:` or
+        # `driver:`; the hardware stage and the units read them, so record the fields
+        # (B2, as bom/build_plan.py does; S-117).
+        for field in ("name", "children", "build", "driver", "ports"):
+            reads.append(f"{a.uri}#{field}")
     for i in product.interfaces:
         reads.append(f"iface://{i}")
     for d in product.docs:

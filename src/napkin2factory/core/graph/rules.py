@@ -80,6 +80,13 @@ class Rule:
     depends_on: list[str] = field(
         default_factory=list
     )  # static upstream rule ids (for graph output)
+    #: Further outputs others read by key, e.g. the bom rule's ``bom://build-plan`` (S-117).
+    also_produces: tuple[str, ...] = ()
+
+    @property
+    def produced(self) -> tuple[str, ...]:
+        """Every key this rule produces: ``produces`` then ``also_produces``."""
+        return ((self.produces,) if self.produces else ()) + self.also_produces
 
 
 @dataclass
@@ -209,6 +216,7 @@ def build_rules(product: Product, render: bool = True) -> list[Rule]:
             id="bom",
             kind="bom",
             produces="bom://rollups",
+            also_produces=("bom://build-plan",),  # P8: the plan, read per step (S-117)
             inputs={"code": package_hash("bom", "catalog")},
             run=runs.run_bom,
             description="rollups, validation, CSV, XLSX",

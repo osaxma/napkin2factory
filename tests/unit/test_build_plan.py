@@ -21,6 +21,7 @@ from napkin2factory.core import lint as lint_mod
 from napkin2factory.core.build_units import BuildUnits
 from napkin2factory.core.checks.hardware import hardware_checks
 from napkin2factory.core.graph.runner import run_build
+from napkin2factory.core.graph.values import unvalued_reads
 from napkin2factory.core.loader import Doc, Product, load_product
 from napkin2factory.core.model import DocMeta, Interface
 from napkin2factory.docs.engine import DocRenderError, render_doc
@@ -381,3 +382,91 @@ def test_build_plan_is_rebuilt_when_hardware_changes(built: Path) -> None:
     _edit(built, "interfaces/rail-plate.yaml", "per_hole: 1", "per_hole: 2")
     plan = {rid: run for rid, run, _ in explain_build(load_product(built), render=False)}
     assert plan["bom"] and plan["asmsheet:pod"] and plan["checks"]
+
+
+# ---- review gate C: the plan is a recorded read with a value (B1, B2, C7; S-117) ------------
+
+_GEOMETRIC = ("part:", "asm:", "drawing:")
+
+
+@pytest.fixture
+def built_with_page(tmp_path: Path) -> Path:
+    """The units fixture with an assembly page that prints the pod's step, built once."""
+    root = _copy(tmp_path)
+    page = root / "model/docs/assembly.md"
+    page.parent.mkdir(parents=True, exist_ok=True)
+    page.write_text(
+        '---\nid: assembly\ntitle: Assembly\n---\n\n# Assembly\n\n{{ build_step("asm://pod") }}\n'
+    )
+    run_build(load_product(root), quiet=True, render=False)
+    return root
+
+
+def test_every_recorded_read_has_a_value(built_with_page: Path) -> None:
+    """C7: no key in the manifest is valued ``unknown:`` (the class behind B1)."""
+    assert unvalued_reads(load_product(built_with_page), built_with_page / "build") == {}
+
+
+def test_a_plan_only_change_rebuilds_the_sheet_the_page_and_the_report(
+    built_with_page: Path,
+) -> None:
+    """B1: a driver change is in the plan only: the pod's sheet, the page and the report follow."""
+    from napkin2factory.core.checks.engine import doc_staleness
+    from napkin2factory.core.graph.runner import explain_build
+
+    root = built_with_page
+    product = _edit(
+        root,
+        "assemblies/pod.yaml",
+        "[built-as-unit, tested-as-unit]",
+        "[built-as-unit, tested-as-unit, varies]",
+    )
+    predicted = {rid for rid, run, _ in explain_build(product, render=False) if run}
+    assert {"bom", "asmsheet:pod", "doc:assembly", "report"} <= predicted, predicted
+    run_build(product, quiet=True, render=False, target="bom")
+    stale = [r for r in doc_staleness(product, root / "build") if r.status == "fail"]
+    assert [r.id for r in stale] == ["doc://assembly"]
+    assert "bom://build-plan#units.pod" in stale[0].message
+    ran = run_build(product, quiet=True, render=False)["ran"]
+    assert {"asmsheet:pod", "doc:assembly", "report"} <= set(ran), ran
+    assert not [r for r in ran if r.startswith(_GEOMETRIC)], ran
+    assert "asmsheet:top" not in ran  # the top's step did not change
+    assert "comes in variants" in (root / "build/drawings/assemblies/pod.svg").read_text()
+    assert "comes in variants" in (root / "build/docs/assembly/page.md").read_text()
+    assert "comes in variants" in (root / "build/report/index.html").read_text()
+    assert [r.status for r in doc_staleness(load_product(root), root / "build")] == ["pass"]
+
+
+def test_a_renamed_part_reaches_its_units_sheet(built_with_page: Path) -> None:
+    """B1: the gate renamed a door part; the sheet kept the old name."""
+    root = built_with_page
+    product = _edit(root, "parts/plate.yaml", "name: plate", "name: Plate RENAMED")
+    ran = run_build(product, quiet=True, render=False)["ran"]
+    assert {"asmsheet:pod", "doc:assembly", "report"} <= set(ran), ran
+    assert "Plate RENAMED" in (root / "build/drawings/assemblies/pod.svg").read_text()
+    assert "Plate RENAMED" in (root / "build/docs/assembly/page.md").read_text()
+
+
+def test_the_hardware_verdict_follows_spare_without_a_forced_rerun(tmp_path: Path) -> None:
+    """B2: add then remove ``spare:``; the hardware row warns, passes, warns again."""
+    import json
+
+    root = _copy(tmp_path)
+    _edit(
+        root, "assemblies/top.yaml", "{part: part://bolt, qty: 10}", "{part: part://bolt, qty: 12}"
+    )
+
+    def row() -> tuple[str, str]:
+        run_build(load_product(root), quiet=True, render=False, target="checks")
+        data = json.loads((root / "build/checks/checks.json").read_text())
+        r = next(r for r in data["results"] if r["id"] == "hardware://top")
+        return r["status"], r["message"]
+
+    assert row()[0] == "warn"
+    line = "{part: part://bolt, qty: 12}"
+    _edit(root, "assemblies/top.yaml", line, line[:-1] + ', spare: "two for the cover"}')
+    status, message = row()
+    assert status == "pass" and "two for the cover" in message
+    _edit(root, "assemblies/top.yaml", ', spare: "two for the cover"}', "}")
+    status, message = row()
+    assert status == "warn" and "two for the cover" not in message

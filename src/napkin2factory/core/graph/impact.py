@@ -209,9 +209,9 @@ def compute_impact(
         ]
         if hits:
             affected[rule.id] = ", ".join(hits[:4]) + (" …" if len(hits) > 4 else "")
-            if rule.produces:
-                produced_affected.add(rule.produces)
-                produced_affected.add(rule.produces.split("#")[0])
+            for produced in rule.produced:
+                produced_affected.add(produced)
+                produced_affected.add(produced.split("#")[0])
     parts = sorted(r.split(":", 1)[1] for r in affected if r.startswith("part:"))
     asms = sorted(r.split(":", 1)[1] for r in affected if r.startswith("asm:"))
     drawings = sorted(r.split(":", 1)[1] for r in affected if r.startswith("drawing:"))
@@ -393,7 +393,7 @@ def _static_reads(product: Product, rule: Rule) -> list[str]:
         r.produces or r.id
         for r in build_rules(product)
         if r.kind in ("part", "asm", "doc", "bom", "drawing")
-    ] + ["bom://rollups", "rule:checks", "rule:report"]
+    ] + ["bom://rollups", "bom://build-plan", "rule:checks", "rule:report"]
 
 
 def _hypothetical_verdict(

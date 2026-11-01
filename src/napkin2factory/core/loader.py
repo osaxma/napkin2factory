@@ -232,7 +232,7 @@ class Product:
                 raise KeyError(f"{uri} does not exist: no function {fn} in model/calcs/{mod}.py")
             return (mod, fn)
         if uri.scheme == "bom":
-            return {"rollups": "bom://rollups", "validation": "bom://validation"}[uri.id]
+            return f"bom://{uri.id}"  # rollups, validation, build-plan (core/uris.py, S-117)
         if uri.scheme == "rule":
             return uri.id  # rule packs are validated by the rule runner
         if uri.id not in table[uri.scheme]:
@@ -905,9 +905,11 @@ def _validate_ports(product: Product, problems: Problems) -> None:
     assembly's boundary is an error too.  Skipped when an assembly file did not load, since
     the tree would be incomplete (cascade suppression, S-009).
     """
+    refused: set[str] = set()  # interfaces with an asm:// party: their port rules wait (C1)
     for iface in product.interfaces.values():
         for party in iface.parties:
             if party.scheme == "asm":
+                refused.add(iface.uri)
                 problems.add(
                     product.files[iface.uri],
                     iface.uri,
@@ -945,6 +947,10 @@ def _validate_ports(product: Product, problems: Problems) -> None:
             iid = iuri.removeprefix("iface://")
             if iid not in product.interfaces:
                 continue  # the unresolved reference is already reported
+            if iuri in refused:
+                # gate C, C1: the party error already says to list it here; "remove it"
+                # would contradict it in the same run (S-117)
+                continue
             problems.add(
                 file,
                 asm.uri,

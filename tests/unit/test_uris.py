@@ -63,3 +63,10 @@ def test_find_uris_in_prose():
 
 def test_slug_to_module():
     assert slug_to_module("outer-shell") == "outer_shell"
+
+
+def test_build_plan_steps_parse_even_for_a_unit_named_with_a_digit() -> None:
+    """Gate C, B1: ``bom://build-plan`` parses; a later selector segment may start with a digit."""
+    u = Uri.parse("bom://build-plan#units.2-stage")
+    assert (u.id, u.selector) == ("build-plan", ("units", "2-stage"))
+    assert Uri.parse("part://x#3").instance == 3  # an all-digit fragment is still an instance

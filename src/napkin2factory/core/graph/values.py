@@ -116,6 +116,11 @@ def value_of(
         for part in sel.split(".") if sel else []:
             obj = getattr(obj, part, None)
         return _fmt(obj)
+    if key.startswith("drawing://"):
+        # A rule's output, not a model URI (no `drawing` scheme in core/uris.py): parsed here
+        # so the report's drawing reads have a value (gate C, C7; S-117).
+        entry = manifest.entries.get("drawing:" + key[len("drawing://") :])
+        return entry.output_hash if entry else "unbuilt"
     try:
         uri = Uri.parse(key)
     except UriError:
@@ -152,11 +157,10 @@ def value_of(
     if uri.scheme == "doc":
         entry = manifest.entries.get(f"doc:{uri.id}")
         return entry.output_hash if entry else "unbuilt"
-    if uri.scheme == "drawing":
-        entry = manifest.entries.get(f"drawing:{uri.id}")
-        return entry.output_hash if entry else "unbuilt"
     if uri.scheme == "bom":
-        if uri.selector:
+        # The plan is its own file: bare `bom://build-plan` is the whole plan, not the bom
+        # rule's output hash, which stays the rollups' (P14, S-117).
+        if uri.selector or uri.id == "build-plan":
             return _json_field(build_dir / "bom" / f"{uri.id}.json", uri.selector)
         entry = manifest.entries.get("bom")
         return entry.output_hash if entry else "unbuilt"
@@ -171,3 +175,22 @@ def value_of(
     if uri.scheme == "rule":
         return "rulepack"
     return "unknown"
+
+
+def unvalued_reads(product: Product, build_dir: Path) -> dict[str, list[str]]:
+    """Rule id → the recorded reads :func:`value_of` cannot value (gate C, C7; S-117).
+
+    Such a read is a constant: a change behind it never reruns the rule (D5).  A healthy
+    build returns ``{}``; tests assert that on the examples.
+    """
+    manifest = Manifest.load(build_dir)
+    out: dict[str, list[str]] = {}
+    for rid, entry in sorted(manifest.entries.items()):
+        bad = [
+            k
+            for k in entry.reads
+            if value_of(product, manifest, build_dir, k).startswith("unknown")
+        ]
+        if bad:
+            out[rid] = bad
+    return out

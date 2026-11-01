@@ -42,6 +42,8 @@ entry that closed them. Ids are never reused.
 | B-0064 | The placement warning (P1) does not look at joints through ports: a sub-assembly placed by coordinates although a port could place it is not flagged | S-107: `instances.json` records leaves only, not a sub-assembly's own `via`; record the group placements (M3, when the kiln's door is placed by its ports) |
 | B-0065 | The kiln's rivets are in no parts list: two for the rating label (its note) and the latch keeper plate's (count stated nowhere) | S-113 (v0.4 M3b), product DEC-023; S-105 §2.2 error 4. Choose the rivets, count them, list them in the controls and the kiln |
 | B-0066 | Joint words name only the two parts: the kiln's two hinge joints read the same in the build plan, and long part names shrink a joint's row on the assembly sheet to an unreadable size | S-113 (v0.4 M3b): name the place (the interface's description or a short `title:`), and wrap long joint text on the sheet |
+| B-0067 | Two joints sharing an occurrence (the kiln's hinges): a 12 mm miss on the lower hinge is reported on `hinge-lower` as "400.0 mm apart", the distance to the other hinge | Gate C, C2 (v0.4): report an occurrence that meets none of its joints once, naming the nearest joint and its distance (`core/checks/interface.py`, the shared-occurrence excuse of S-113) |
+| B-0068 | An assembly sheet's "STEP n of N" reads the plan's `order` without recording it: a unit added elsewhere leaves N stale on the other sheets | Gate C fixes (S-117): add `"bom://build-plan#order"` to the reads in `drawings/assembly_sheet.py` (`make_assembly_sheet`) |
 
 ## Closed
 
