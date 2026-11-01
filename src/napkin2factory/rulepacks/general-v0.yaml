@@ -29,6 +29,7 @@ rules:
     message: "{uri}: the vendor link is marked unverified"
   # P10 (S-112): promotion seeds one empty sub-assembly per module the concept sketched;
   # this row keeps each one in view until it has parts. One row per assembly.
+  # A stub of work done elsewhere (build: external, F11) arrives whole: never flagged (S-127).
   - id: module-has-parts
     title: Every module has parts
     subject: assembly

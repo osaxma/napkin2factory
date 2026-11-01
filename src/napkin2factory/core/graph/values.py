@@ -43,6 +43,29 @@ def membership_value(product: Product, key: str) -> str:
     return sha256_json(sorted(coll))
 
 
+#: The manifest's ``scope:`` block (F11) as a recorded read (S-127).  ``manifest://scope`` is
+#: the whole block in ``n2f.yaml`` order (a domain added, removed or moved changes it);
+#: ``manifest://scope#<domain>[.<field>]`` is one entry or one field, so an edit naming a
+#: domain's entry touches exactly the rules that read it (gate-1 B3).
+SCOPE_KEY = "manifest://scope"
+
+
+def scope_value(product: Product, key: str) -> str:
+    """Current value of a ``manifest://scope[#<domain>[.<field>]]`` key."""
+    scope = product.manifest.scope
+    sel = key.split("#", 1)[1] if "#" in key else ""
+    if not sel:
+        # order matters: the scope lines are said in n2f.yaml order
+        return sha256_json([[d, e.model_dump(mode="json")] for d, e in scope.items()])
+    domain, *fields = sel.split(".")
+    if domain not in scope:
+        return "missing"
+    obj: Any = scope[domain]
+    for name in fields:
+        obj = getattr(obj, name, None)
+    return _fmt(obj)
+
+
 def _fmt(v: Any) -> str:
     if is_quantity(v):
         # shortest round-trip repr: 200.0004 mm must not key the same as 200 mm (gate-1 C3)
@@ -110,6 +133,8 @@ def value_of(
         return reach_fingerprint(product, manifest)
     if key.startswith("signoff:"):
         return sha256_file(product.paths.signoffs / f"{key[len('signoff:') :]}.yaml")
+    if key == SCOPE_KEY or key.startswith(SCOPE_KEY + "#"):
+        return scope_value(product, key)
     if key.startswith("manifest://product"):
         sel = key.split("#", 1)[1] if "#" in key else ""
         obj: Any = product.manifest.product

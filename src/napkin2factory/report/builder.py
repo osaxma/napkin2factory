@@ -119,6 +119,19 @@ def ref_html(uri: Any, anchors: dict[str, str], persona: str = "engineer") -> Ma
     return Markup('<a class="ref mono" href="#{}">{}</a>').format(anchor, shown)
 
 
+def scope_reads(product: Product) -> list[str]:
+    """The scope the overview line and the gate notes say (F11), as recorded reads.
+
+    Only a product that declares a ``scope:`` reads it, so a product without one keeps its
+    report key (S-127).  A product's first ``scope:`` therefore reruns the report only when
+    something else it reads changes too, such as the new decision behind it (B-0081).
+    """
+    from napkin2factory.core.graph.values import SCOPE_KEY
+
+    scope = product.manifest.scope
+    return [SCOPE_KEY, *(f"{SCOPE_KEY}#{d}" for d in scope)] if scope else []
+
+
 def report_reads(ctx: RunContext) -> list[str]:
     """The report depends on every artifact: checks, parts, assemblies, drawings, docs, BOM."""
     product = ctx.product
@@ -155,6 +168,7 @@ def report_reads(ctx: RunContext) -> list[str]:
         "set://ifaces",
         "manifest://product#name",
     ]
+    reads += scope_reads(product)
     from napkin2factory.core.registry import registry
 
     for sec in registry().report_sections():  # what a domain's section shows (F5)

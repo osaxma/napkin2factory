@@ -18,6 +18,7 @@ from typing import Any
 
 from napkin2factory.core.build_units import (
     BETWEEN_UNITS_WORDS,
+    EXTERNAL_WORDS,
     PHANTOM_WORDS,
     BuildUnits,
     driver_sentence,
@@ -43,6 +44,8 @@ def _record_reads(product: Product, log: ReadLog) -> None:
     for a in product.assemblies.values():
         for field in ("name", "rev", "children", "build", "driver", "satisfies"):
             log.add(f"{a.uri}#{field}")
+        if a.build == "external":  # its ports are the joints that fit it (F11, S-127)
+            log.add(f"{a.uri}#ports")
     for p in product.parts.values():
         for field in ("name", "kind", "satisfies"):
             log.add(f"{p.uri}#{field}")
@@ -73,6 +76,46 @@ def _name(product: Product, uri: str) -> str:
 
 #: A joint with no hardware to count, in owner words (gate D, S-118).
 NO_FIXINGS = "no loose fixings"
+
+
+def plan_joint_words(product: Product, iface_id: str) -> str:
+    """A joint in plain words, an external stub said by its name, never its URI (F11).
+
+    :func:`~napkin2factory.core.checks.hardware.joint_words` names part parties; a stub
+    (``build: external``) is the one assembly an interface may join (S-124).
+    """
+    iface = product.interfaces[iface_id]
+    parties = [str(p) for p in iface.parties]
+    if iface.name or not any(p.startswith("asm://") for p in parties):
+        return joint_words(product, iface_id)
+    a, b = (_name(product, p) for p in parties)
+    return f"{a} to {b}"
+
+
+def _supplied(product: Product, units: BuildUnits, uid: str) -> list[dict[str, Any]]:
+    """The external stubs the step fits (F11): each with the joints that fit it."""
+    out = []
+    for aid, qty, ports in units.supplied(uid):
+        out.append(
+            {
+                "asm": f"asm://{aid}",
+                "id": aid,
+                "name": product.assemblies[aid].name,
+                "qty": qty,
+                "words": EXTERNAL_WORDS,
+                "ports": ports,
+                "joints": [plan_joint_words(product, p.removeprefix("iface://")) for p in ports],
+            }
+        )
+    return out
+
+
+def supplied_sentence(s: dict[str, Any]) -> str:
+    """Say "Controls: supplied, not built here; fitted at Frame to Controls." (F11)."""
+    qty = f"{s['qty']} × " if s["qty"] != 1 else ""
+    joints = s.get("joints") or []
+    fits = f"; fitted at {'; '.join(joints)}" if joints else ""
+    return f"{qty}{s['name']}: {s['words']}{fits}."
 
 
 def joint_kind_words(kind: str, holes: int, has_hardware: bool) -> str:
@@ -192,7 +235,7 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
                     "interface": f"iface://{j.iface}",
                     **({"closed_later_in": f"asm://{later}"} if later else {}),
                     "parties": list(j.parties),
-                    "words": joint_words(product, j.iface),
+                    "words": plan_joint_words(product, j.iface),
                     "kind": kind,
                     "how": joint_kind_words(kind, j.holes, bool(j.hardware)),
                     "sides": _sides(product, units, j.parties),
@@ -230,6 +273,7 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
             for v in order
             if any(it.uri == asm.uri for it in units.items(v)) and v != uid
         ]
+        supplied = _supplied(product, units, uid)
         out_units[uid] = {
             "step": step_of[uid],
             "unit": asm.uri,
@@ -257,6 +301,8 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
             "joints": joints,
             "hardware": hardware,
             "checks": units.check_ids(uid),
+            # F11: only a step that fits a stub says so; a product without one keeps its plan
+            **({"supplied": supplied} if supplied else {}),
         }
     for step in out_units.values():
         # gate D: grouped lines carry the grouping's name ("lining") for the note column
@@ -313,6 +359,8 @@ def step_markdown(plan: dict[str, Any], unit_id: str) -> str:
         lines[0] += f" {sentence}"
     for f in step["folded"]:
         lines.append(folded_sentence(f))
+    for s in step.get("supplied", []):
+        lines.append(supplied_sentence(s))
     lines += ["", "| item | part | qty | note |", "|---:|---|---:|---|"]
     for it in step["items"]:
         lines.append(f"| {it['item']} | {it['name']} | {it['qty']} | {'; '.join(item_notes(it))} |")
