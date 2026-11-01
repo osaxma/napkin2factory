@@ -70,6 +70,7 @@ class BuiltPart:
     reads: list[str]
     out_dir: Path
     duration: float = 0.0
+    iface_reads: list[str] = field(default_factory=list)  # read only through an interface (P5)
     _tess: tuple[NDArray[np.float64], NDArray[np.int64]] | None = field(default=None, repr=False)
 
     @property
@@ -101,6 +102,7 @@ class BuiltAssembly:
     reads: list[str]
     out_dir: Path
     duration: float = 0.0
+    iface_reads: list[str] = field(default_factory=list)  # read only through an interface (P5)
 
     @property
     def uri(self) -> str:
@@ -232,7 +234,14 @@ def build_part(
     props["rev"] = part.rev
     props["reads"] = log.keys
     write_json(out_dir / "props.json", props)
-    built = BuiltPart(part=part, result=result, props=props, reads=log.keys, out_dir=out_dir)
+    built = BuiltPart(
+        part=part,
+        result=result,
+        props=props,
+        reads=log.keys,
+        out_dir=out_dir,
+        iface_reads=log.iface_reads,
+    )
     built.duration = time.perf_counter() - t0
     return built
 
@@ -450,7 +459,13 @@ def build_assembly(
             rasterize(exploded_scene(leaves, groups, asm.exploded.axis, spacing), "iso"),
         )
     built = BuiltAssembly(
-        assembly=asm, result=result, leaves=leaves, props=props, reads=log.keys, out_dir=out_dir
+        assembly=asm,
+        result=result,
+        leaves=leaves,
+        props=props,
+        reads=log.keys,
+        out_dir=out_dir,
+        iface_reads=log.iface_reads,
     )
     built.duration = time.perf_counter() - t0
     return built

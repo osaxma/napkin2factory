@@ -90,6 +90,23 @@ listed in a sub-unit for a joint that closes in its parent shows as surplus ther
 in the parent. Shared holes count once because each item is listed on one interface only.
 `count` is D18's instance-count stage; this one is `hardware`.
 
+`reach://<reader-kind>/<reader-id>@<param>` (`warn`, P5, S-114): a parameter read from
+outside its reach (`docs/product-model.md`, parameters). The readers are the reads the last
+build recorded for part and assembly rules, minus those made only while resolving an
+interface (`Entry.iface_reads` in the manifest), and, read statically, each parameter's `expr`
+(an unscoped parameter sits at the level of the whole product) and each interface's
+expressions (they may name what either party may read). `detail.why` is `sibling` or
+`unexported`. A unit with no finding gets one `reach://<unit>` row: `pass`, or `skip` until a
+build has recorded its reads. A product with no scoped parameter gets no reach rows (P14).
+
+**Modules (P12).** Every row carries `module`: the build unit it belongs to (`null`: the whole
+product). An interface belongs where its joint closes (a port in the parent), a part's rows
+where its home is, a requirement where everything it is allocated to or satisfied by meets.
+`matrix.modules` lists the groups (build order, the whole product last) with their counts;
+the report's Rule checks section groups by them when there are two or more. `n2f check --scope
+asm://<id>` builds that assembly alone (`n2f build --asm`) and runs only the rows whose home is
+it or below it, without documents and sourcing, into `build/checks/scope/<id>/checks.json`.
+
 ## Stage and gates (`n2f status`)
 
 Intake: requirements and operator pass lint. Design: every custom part has geometry and is

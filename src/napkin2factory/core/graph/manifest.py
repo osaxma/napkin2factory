@@ -27,6 +27,9 @@ class Entry:
     rule_version: int = 1
     inputs: dict[str, str] = field(default_factory=dict)  # declared input hashes at run time
     values: dict[str, str] = field(default_factory=dict)  # value of every read at run time
+    # P5: the reads made only while resolving an interface (the joint's business, not the
+    # rule's own reach); recorded for the reach check, never part of the key
+    iface_reads: list[str] = field(default_factory=list)
 
 
 @dataclass

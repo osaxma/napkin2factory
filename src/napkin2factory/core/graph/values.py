@@ -104,6 +104,10 @@ def value_of(
             return sha256_json(geometry_fingerprint(load_style(product.paths.root)))
         except N2FError:
             return "invalid"
+    if key == "reach:inputs":  # P5: core.reach.REACH_KEY (imported late: core.reach reads us)
+        from napkin2factory.core.reach import reach_fingerprint
+
+        return reach_fingerprint(product, manifest)
     if key.startswith("signoff:"):
         return sha256_file(product.paths.signoffs / f"{key[len('signoff:') :]}.yaml")
     if key.startswith("manifest://product"):

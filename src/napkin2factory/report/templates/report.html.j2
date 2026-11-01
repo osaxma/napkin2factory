@@ -52,6 +52,7 @@ figure.zoom{grid-column:1 / -1}figure.zoom svg{cursor:zoom-out}
 .matrix th.part a{color:inherit;text-decoration:none}
 .matrix td.rule,.matrix th.rule{position:sticky;left:0;background:#fff;min-width:260px;z-index:1}.matrix th.rule{background:#f1f0eb}
 .matrix td.cell{text-align:center}
+tr.module th{background:#f1f0eb;text-align:left;font-weight:600}.matrix th.module{font-size:.72rem;font-weight:500;text-align:left;border-left:1px solid #ddd;white-space:normal}
 .dot{display:inline-block;width:.85rem;height:.85rem;border-radius:50%;background:var(--skip);vertical-align:middle}
 .dot.pass{background:var(--ok)}.dot.fail{background:var(--fail)}.dot.warn{background:var(--warn)}.dot.needs-human{background:var(--human)}.dot.signed{background:var(--signed)}
 .legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin:.4rem 0}
@@ -194,12 +195,15 @@ table.only-open tr.st-pass,table.only-open tr.st-signed{display:none}
 <section class="card" id="rules">
   {{ h2('rules', 'Rule checks') }}
   <p class="lead">Design rules run against every part (sheet-metal limits, sourcing, completeness) plus assembly-level checks. {{ rule_summary.pass }} {{ w('pass') }}{% if rule_summary.warn %} · {{ rule_summary.warn }} {{ w('warn') }}{% endif %}{% if rule_summary.fail %} · {{ rule_summary.fail }} {{ w('fail') }}{% endif %}{% if rule_summary.skip %} · {{ rule_summary.skip }} {{ w('skip') }}{% endif %}.</p>
+  {% if module_groups %}<h3>By module</h3>
+  <p class="small muted">Each unit is checked on its own; a joint between units is checked with the unit both sides are built into.</p>
+  <table class="modules"><thead><tr><th>module</th><th class="num">{{ w('pass') }}</th><th class="num">{{ w('warn') }}</th><th class="num">{{ w('fail') }}</th><th class="num">{{ w('skip') }}</th></tr></thead><tbody>{% for g in module_groups %}<tr><td>{{ g.title }}</td><td class="num">{{ g.summary.get('pass', 0) + g.summary.get('signed', 0) }}</td><td class="num">{{ g.summary.get('warn', 0) }}</td><td class="num">{{ g.summary.get('fail', 0) }}</td><td class="num">{{ g.summary.get('skip', 0) + g.summary.get('needs-human', 0) }}</td></tr>{% endfor %}</tbody></table>{% endif %}
   {% if other_rows %}<h3>Findings ({{ other_rows | length }})</h3>
-  <div class="scroll"><table><thead><tr><th>check</th><th>subject</th><th>status</th><th>detail</th></tr></thead><tbody>{% for r in other_rows %}<tr><td class="mono">{{ r.id | replace('rule://', '') }}</td><td>{{ r.subject | ref }}</td><td>{{ badge(r.status) }}</td><td>{{ r.message }}</td></tr>{% endfor %}</tbody></table></div>
+  <div class="scroll"><table><thead><tr><th>check</th><th>subject</th><th>status</th><th>detail</th></tr></thead>{% for grp in other_groups %}<tbody>{% if grp.title %}<tr class="module"><th colspan="4">{{ grp.title }}</th></tr>{% endif %}{% for r in grp.rows %}<tr><td class="mono">{{ r.id | replace('rule://', '') }}</td><td>{{ r.subject | ref }}</td><td>{{ badge(r.status) }}</td><td>{{ r.message }}</td></tr>{% endfor %}</tbody>{% endfor %}</table></div>
   {% else %}<p>Every rule passes.</p>{% endif %}
   {% if rule_matrix.rules %}<h3>Rules × parts</h3>
   <div class="legend"><span><i class="dot pass"></i> {{ w('pass') }}</span><span><i class="dot warn"></i> {{ w('warn') }}</span><span><i class="dot fail"></i> {{ w('fail') }}</span><span><i class="dot skip"></i> {{ w('skip') }}</span><span>blank: rule does not apply</span></div>
-  <div class="scroll"><table class="matrix"><thead><tr><th class="rule">rule</th>{% for p in rule_matrix.parts %}<th class="part"><a href="#part-{{ p }}">{{ p }}</a></th>{% endfor %}</tr></thead><tbody>
+  <div class="scroll"><table class="matrix"><thead>{% if rule_matrix.groups %}<tr><th class="rule"></th>{% for g in rule_matrix.groups %}<th class="module" colspan="{{ g.span }}">{{ g.title }}</th>{% endfor %}</tr>{% endif %}<tr><th class="rule">rule</th>{% for p in rule_matrix.parts %}<th class="part"><a href="#part-{{ p }}">{{ p }}</a></th>{% endfor %}</tr></thead><tbody>
   {% for rid, title in rule_matrix.rules.items() %}<tr><td class="rule" title="{{ rid }}">{{ title }}</td>{% for p in rule_matrix.parts %}{% set st = rule_matrix.cells.get(p, {}).get(rid) %}<td class="cell">{% if st %}<i class="dot {{ st }}" title="{{ p }}: {{ w(st) }}"></i>{% endif %}</td>{% endfor %}</tr>{% endfor %}
   </tbody></table></div>{% endif %}
 </section>

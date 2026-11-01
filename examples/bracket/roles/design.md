@@ -55,11 +55,21 @@ on the joint it closes. `n2f check` fails a shortfall and warns a surplus unless
 A product starts as one assembly. Make a sub-assembly only when one of the reasons above
 applies (it is built, tested or serviced as one unit, made by another process or supplier,
 or comes in variants), or when the module's working context would be more than one agent
-can hold (`agent-context`). That size threshold has not been set yet; until it is, split for
-the other reasons only. Splitting later is cheap, because every joint is already an explicit
+can hold (`agent-context`): split when `n2f context asm://<id>` prints more than 32 kB
+(`n2f context asm://<id> | wc -c`). That is the reference kiln's measure (S-114): as one flat
+module its context is 50 kB; split into the door (17 kB) and the controls (11 kB), its largest
+module, the kiln with its lining, is 31 kB. It is a line drawn on one product, not a measured
+limit of any agent: the geometry code the context lists comes on top. Splitting later is cheap, because every joint is already an explicit
 interface: move the parts into the new assembly file, list the joints that now cross its
 edge under `ports:`, and place it by one of them. A sub-assembly with no reason is handling
 overhead: fold it back into its parent, or mark it `build: phantom`.
+
+Each unit keeps its own sizes: give a parameter only that unit uses `scope: asm://<id>`, and
+`export: true` to one its parent must read (the door's outside width the hinge post reaches
+to). A unit's parts never read a sibling unit's sizes: move such a size up to the parent, or
+let a joint carry it. Work on one unit with `n2f context asm://<id>` (its files, its sizes,
+its ports), `n2f build --asm <id>` and `n2f check --scope asm://<id>`; then `n2f build && n2f
+check` for the joints between units.
 
 ## After the napkin stage
 When a concept card has been promoted (`n2f concept list` shows it `promoted`; its

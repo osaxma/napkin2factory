@@ -32,16 +32,20 @@ class CheckResult:
     message: str
     persona_message: str = ""
     # requirement | rule | interface | interference | count | hardware | bom | doc | signoff
+    # | reach (P5)
     kind: str = "requirement"
     evidence: dict[str, Any] = field(default_factory=dict)
     evidence_keys: dict[str, str] = field(default_factory=dict)
     safety: bool = False
     title: str = ""
     detail: dict[str, Any] = field(default_factory=dict)
+    # P12: the build unit (module) the row belongs to; ``None`` is the whole product
+    module: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """JSON form."""
         return {
+            "module": self.module,
             "id": self.id,
             "subject": self.subject,
             "status": self.status,

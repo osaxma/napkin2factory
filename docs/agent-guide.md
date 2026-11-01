@@ -217,6 +217,21 @@ joint hardware is counted from each interface's `spec.hardware` (or its `fastene
 `hardware://<unit>` check. The fields are in `docs/product-model.md`; the design role says
 how to use them.
 
+**One module at a time.** A unit (a sub-assembly built as one) can be worked on alone:
+
+```bash
+n2f context asm://door              # its files, its sizes, what it reads from outside, its
+                                    # joints with the rest (ports), its requirements (--json too)
+n2f build --asm door                # its parts, sub-assemblies, itself and its parts' drawings
+n2f check --scope asm://door        # its own checks → build/checks/scope/door/checks.json
+```
+
+`n2f context` takes what the module reads from outside from the last build, and says so when
+nothing is built yet. `n2f check --scope` never touches `build/checks/checks.json`; its ports
+are checked with the assembly both sides are built into, so finish with `n2f build && n2f check`.
+A parameter may carry `scope: asm://<id>` (the module's own size) and `export: true` (its parent
+may read it); reads across modules are "worth a look" rows in `n2f check` (`docs/checks.md`).
+
 **Changes after a release** go through a change request, and the owner approves after
 reading the impact:
 

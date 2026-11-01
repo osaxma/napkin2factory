@@ -134,6 +134,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-110 | v0.4 M3a: build units and phantoms, the build plan derived from the tree, joint hardware counted | in force |
 | S-112 | v0.4 M5: promotion keeps the napkin's modules (stubs, size budgets) or suggests them; start flat | in force |
 | S-113 | v0.4 M3b: the kiln built from units, door and controls hung by their ports, lining a phantom | in force |
+| S-114 | v0.4 M4: parameters have a scope, a module's context is a command, checks per module | in force |
 
 ---
 
@@ -507,3 +508,14 @@ occurrences in alignment (each still needs a pair that meets) and share occurren
 kiln.py 17 → 2 (door 5, controls 5, lining 10), literal offsets 13 → 0; props identical, goldens kept.
 ECR-002 patch re-made (B-0063); REQ-007/008/009/018/019 re-signed. Report 3,783,308 B. `check-full`
 23 min 24 s green; rebased on S-112: `make check` 8 min 42 s, `kiln` 2 min 45 s, `demos` 9 min 7 s green.
+## S-114 — v0.4 M4: parameters have a scope; `n2f context`; checks per module (2026-11-01)
+P5, P6, P12 (`core/reach.py`, `core/context.py`, `core/checks/modules.py`). Beyond the plan: a
+phantom owns no parameters (validate refuses); an unscoped `expr` sits at the product level, so
+it reads a scoped size only if exported; interface expressions may name either party's sizes;
+interface reads are tagged (`iface_reads` in the manifest), keys unchanged. `--scope` adds a
+requirement allocated inside unless its target is another module's build. Kiln: 38 sizes scoped
+(door 32, controls 6); unexported, 5 reads warn (S-113's three, door-leaf-width); no joint can
+carry a part's size, so door-guard-width, -depth, -offset and hinge-pin-depth export: 0 warns.
+Context text/json bytes: door 16,653/30,192, controls 10,632/17,343, kiln 31,156/51,881, flat
+kiln 49,570/77,527: P11 splits above 32 kB (a line on one product, not an agent limit). B-0064
+open. 21 new tests; `make check` 8 min 45 s, `make kiln` 2 min 53 s green; scoped door check 8 s.

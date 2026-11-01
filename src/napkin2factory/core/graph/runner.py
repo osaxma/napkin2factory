@@ -38,16 +38,20 @@ class BuildSummary:
     skipped: list[str] = field(default_factory=list)
     durations: dict[str, float] = field(default_factory=dict)
     target: str = "all"
+    only_asm: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """JSON form."""
-        return {
+        out: dict[str, Any] = {
             "build_id": self.build_id,
             "target": self.target,
             "ran": self.ran,
             "skipped": self.skipped,
             "durations": self.durations,
         }
+        if self.only_asm is not None:
+            out["asm"] = f"asm://{self.only_asm}"
+        return out
 
 
 def read_values(
@@ -132,8 +136,9 @@ def run_build(
     quiet: bool = False,
     build_dir: Path | None = None,
     explain: Any = None,
+    only_asm: str | None = None,
 ) -> dict[str, Any]:
-    """Run the DAG for ``target``; returns the summary dict."""
+    """Run the DAG for ``target`` (``only_asm``: one assembly and what it needs, P6)."""
     from napkin2factory.cli.common import console
 
     build_dir = build_dir or product.paths.build
@@ -148,7 +153,7 @@ def run_build(
     all_rules = build_rules(product, render=render)
     if prune(manifest, all_rules, build_dir):
         manifest.save(build_dir)
-    rules = rules_for_target(all_rules, target, only_part)
+    rules = rules_for_target(all_rules, target, only_part, only_asm)
     ctx = RunContext(product=product, build_dir=build_dir, render=render)
     try:
         from napkin2factory.core.vcs import Vcs
@@ -158,7 +163,7 @@ def run_build(
         )
     except Exception:
         ctx.snapshot_date = "unsnapshotted"
-    summary = BuildSummary(build_id=uuid.uuid4().hex[:12], target=target)
+    summary = BuildSummary(build_id=uuid.uuid4().hex[:12], target=target, only_asm=only_asm)
     manifest.build_id = summary.build_id
 
     def say(message: str) -> None:
@@ -209,6 +214,7 @@ def run_build(
             rule_version=rule.version,
             inputs=dict(rule.inputs),
             values=values,
+            iface_reads=list(result.iface_reads),
         )
         manifest.save(build_dir)
         if kill == rule.id:
@@ -237,6 +243,7 @@ def _worker(root: str, part_id: str, build_dir: str, render: bool) -> dict[str, 
     return {
         "part_id": part_id,
         "reads": built.reads,
+        "iface_reads": built.iface_reads,
         "output_hash": part_output_hash(built.out_dir),
         "outputs": [str(p) for p in sorted(built.out_dir.rglob("*")) if p.is_file()],
         "duration": time.perf_counter() - t0,
@@ -279,6 +286,7 @@ def _run_parts_parallel(
                     rule_version=rule.version,
                     inputs=dict(rule.inputs),
                     values=values,
+                    iface_reads=list(res.get("iface_reads", [])),
                 )
                 manifest.save(build_dir)
                 summary.ran.append(rule.id)
@@ -295,14 +303,18 @@ def _worker_star(args: tuple[str, str, str, bool]) -> dict[str, Any]:
 
 
 def explain_build(
-    product: Product, target: str = "all", build_dir: Path | None = None, render: bool = True
+    product: Product,
+    target: str = "all",
+    build_dir: Path | None = None,
+    render: bool = True,
+    only_asm: str | None = None,
 ) -> list[tuple[str, bool, str]]:
     """Dry run: which rules would run and why (upstream reruns are assumed to change output)."""
     build_dir = build_dir or product.paths.build
     manifest = Manifest.load(build_dir)
     out: list[tuple[str, bool, str]] = []
     changed_outputs: set[str] = set()
-    for rule in rules_for_target(build_rules(product, render=render), target):
+    for rule in rules_for_target(build_rules(product, render=render), target, only_asm=only_asm):
         run, why = needs_run(rule, product, manifest, build_dir)
         if not run:
             entry = manifest.entries.get(rule.id)

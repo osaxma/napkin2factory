@@ -18,19 +18,32 @@ from napkin2factory.core.units import mm as _mm
 
 
 class ReadLog:
-    """Ordered set of dependency keys read during one rule run."""
+    """Ordered set of dependency keys read during one rule run.
+
+    A key read while resolving an interface is added with ``via`` (the interface's URI).  It is
+    one read like any other for invalidation (``keys``), but when it was read *only* that way it
+    is listed in :attr:`iface_reads` too: the reach check (P5) leaves those to the joint.
+    """
 
     def __init__(self) -> None:
         self._keys: dict[str, None] = {}
+        self._direct: set[str] = set()
 
-    def add(self, key: str) -> None:
-        """Record a key (idempotent, order-preserving)."""
+    def add(self, key: str, via: str | None = None) -> None:
+        """Record a key (idempotent, order-preserving); ``via`` names the interface read through."""
         self._keys.setdefault(key, None)
+        if via is None:
+            self._direct.add(key)
 
     @property
     def keys(self) -> list[str]:
         """Keys in first-read order."""
         return list(self._keys)
+
+    @property
+    def iface_reads(self) -> list[str]:
+        """Keys read only while resolving an interface (frames, offset, spec), never directly."""
+        return [k for k in self._keys if k not in self._direct]
 
     def __len__(self) -> int:
         return len(self._keys)
@@ -41,6 +54,7 @@ class ReadLog:
     def clear(self) -> None:
         """Forget everything (a new run)."""
         self._keys.clear()
+        self._direct.clear()
 
 
 class ParamAccessor(Mapping[str, Any]):
@@ -84,6 +98,8 @@ def resolve_interface(product: Product, iface: Interface, log: ReadLog | None = 
     (numbers, quantities, ``param://`` or ``{expr, unit}``, P2) become millimetres.  Each
     parameter read, including every slug an expression names, is recorded in ``log`` (D5), so
     a frame that depends on a parameter invalidates both parties when that parameter changes.
+    Those reads are tagged with the interface (``via``): the other party's frame is the joint's
+    business, so the reach check (P5) exempts them.
     """
     from napkin2factory.core.model import FrameExpr
     from napkin2factory.core.uris import Uri
@@ -92,7 +108,7 @@ def resolve_interface(product: Product, iface: Interface, log: ReadLog | None = 
         if slug not in product.parameters:
             raise KeyError(f"param://{slug} does not exist (named in {iface.uri})")
         if log is not None:
-            log.add(f"param://{slug}")
+            log.add(f"param://{slug}", via=iface.uri)
         return product.parameter_value(slug)
 
     def sub(v: Any) -> Any:

@@ -55,6 +55,10 @@ manuals and the assembly sheets, the field names stay in the files and in `--jso
 | **joint hardware** | the bolts, nuts, standoffs a joint takes, counted from the joint | `spec.hardware` on an interface; the `hardware://<unit>` check row |
 | **spare** | more hardware than the joints need, on purpose, with the reason | `spare: "<reason>"` on a child line |
 | **packed loose for the installer** | shipped with the product, fitted on site, not in the build step | `loose: true` on a child line |
+| **a size of the door** (a scoped parameter) | a size that belongs to one unit; the unit and what it sits in may read it | `scope: asm://door` in `parameters.yaml` (P5) |
+| **shared** (an exported size) | a unit's size its parent may read, e.g. the door's outside width the hinge post must reach | `export: true` |
+| **read from outside its module** | a part or size reading another unit's size it may not; "worth a look" | the `reach://` check rows |
+| **the checks of one unit** | a unit checked alone: its parts, its inside joints, its requirements | `n2f check --scope asm://<id>`; the report's "By module" table |
 
 ## Check statuses
 
