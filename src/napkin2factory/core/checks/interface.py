@@ -1,4 +1,13 @@
-"""Interface conformance (D16): both parties recorded the same pattern in the interface frame."""
+"""Interface conformance (D16) in two stages, plus the coordinate-placement warning (P1).
+
+1. **Patterns**: both parties recorded the same pattern in their own interface frames.
+2. **Alignment** (P3): placed in the lowest assembly that contains both parties, the two
+   frames meet: origin plus ``offset`` along the normal, the same normal and the same
+   ``x_axis``.  Without it a part moved 10 mm in the assembly code passed stage 1.
+
+The world frames use :func:`napkin2factory.core.frames.frame_basis`, the basis the holes
+are cut with and ``place_by`` places with.
+"""
 
 from __future__ import annotations
 
@@ -8,10 +17,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from napkin2factory.core.checks.results import CheckResult
+from napkin2factory.core.frames import WorldFrame, add_scaled, angle_deg, length, sub, world_frame
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import BoltPatternSpec, Interface
 
 TOLERANCE_MM = 0.5
+# P3 alignment tolerances: a design choice (PRODUCT_STRUCTURE.md P3, S-106), not a measured
+# fit. Loose enough for float noise and rounded instance transforms, tight enough that a part
+# moved by a few millimetres or turned by a degree fails.
+ALIGN_MM = 0.5
+ALIGN_DEG = 0.5
 
 
 @dataclass
@@ -21,6 +37,7 @@ class InterfaceReport:
     status: str = "pass"
     message: str = ""
     parties: dict[str, Any] = field(default_factory=dict)
+    alignment: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """JSON form."""
@@ -157,4 +174,225 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
             "both parties record the mating face; contact is allowed in the interference "
             "check (D29)"
         )
+    if rep.status == "pass":
+        rep.alignment = check_alignment(product, iface, build_dir)
+        if rep.alignment["status"] == "fail":
+            rep.status = "fail"
+            rep.message = rep.alignment["message"]
+        elif rep.alignment["status"] == "pass":
+            rep.message += "; " + rep.alignment["message"]
     return rep
+
+
+# ---- stage 2: alignment in the assembly (P3) ---------------------------------------------
+
+
+def _part_uris(product: Product, aid: str, memo: dict[str, frozenset[str]]) -> frozenset[str]:
+    """Every part URI under assembly ``aid``, through its sub-assemblies."""
+    if aid not in memo:
+        memo[aid] = frozenset()  # cycle guard; the loader reports cycles
+        out: set[str] = set()
+        for c in product.assemblies[aid].children:
+            if c.part is not None:
+                out.add(f"part://{c.part.id}")
+            elif c.asm is not None and c.asm.id in product.assemblies:
+                out |= _part_uris(product, c.asm.id, memo)
+        memo[aid] = frozenset(out)
+    return memo[aid]
+
+
+def lowest_common_assemblies(product: Product, a: str, b: str) -> list[str]:
+    """Assemblies containing both parts with no sub-assembly that also contains both (P3)."""
+    memo: dict[str, frozenset[str]] = {}
+    both = {aid for aid in product.assemblies if {a, b} <= _part_uris(product, aid, memo)}
+    return sorted(
+        aid
+        for aid in both
+        if not any(c.asm is not None and c.asm.id in both for c in product.assemblies[aid].children)
+    )
+
+
+def _occurrences(instances: list[dict[str, Any]], uri: str) -> list[dict[str, Any]]:
+    return [i for i in instances if i.get("uri") == uri]
+
+
+def _compare(iface: Interface, wa: WorldFrame, wb: WorldFrame) -> dict[str, float]:
+    """How far the second party's frame is from where the first party's says it should be."""
+    target = add_scaled(wa.origin, wa.normal, float(iface.offset))
+    return {
+        "distance_mm": round(length(sub(wb.origin, target)), 3) + 0.0,
+        "normal_deg": round(angle_deg(wa.normal, wb.normal), 2) + 0.0,
+        "x_axis_deg": round(angle_deg(wa.x_axis, wb.x_axis), 2) + 0.0,
+    }
+
+
+def _ok(m: dict[str, float]) -> bool:
+    return (
+        m["distance_mm"] <= ALIGN_MM
+        and m["normal_deg"] <= ALIGN_DEG
+        and m["x_axis_deg"] <= (ALIGN_DEG)
+    )
+
+
+def _miss_words(m: dict[str, float]) -> str:
+    parts = []
+    if m["distance_mm"] > ALIGN_MM:
+        parts.append(f"their frames are {m['distance_mm']:.1f} mm apart")
+    if m["normal_deg"] > ALIGN_DEG:
+        parts.append(f"their faces are turned {m['normal_deg']:.1f}° from each other")
+    if m["x_axis_deg"] > ALIGN_DEG:
+        parts.append(f"their patterns are rotated {m['x_axis_deg']:.1f}° from each other")
+    return " and ".join(parts) or "they meet"
+
+
+def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict[str, Any]:
+    """Stage 2 (P3): every occurrence of each party has a partner whose frame meets its own.
+
+    ``iface`` must be resolved (``resolve_interface``).  Checked in each lowest assembly that
+    contains both parties, from its ``instances.json`` (leaves in that assembly's frame,
+    nested ones included).  Only interfaces that give each party its own frame (``frames:``)
+    are checked: the shared fallback ``frame`` is in nobody's coordinates in particular.
+
+    Returns:
+        ``{status: pass|fail|skip, message, ...}`` with the world frames as evidence.
+    """
+    a, b = (str(p) for p in iface.parties)
+    if not (a.startswith("part://") and b.startswith("part://")):
+        return {"status": "skip", "message": "assemblies are not placed as parties"}
+    if a not in iface.frames or b not in iface.frames:
+        return {
+            "status": "skip",
+            "message": "where the parts meet is not checked: give each party its own frame "
+            "under frames:",
+        }
+    asms = lowest_common_assemblies(product, a, b)
+    if not asms:
+        return {"status": "skip", "message": "the two parts are not in one assembly"}
+    fa, fb = iface.frame_for(a), iface.frame_for(b)
+    out: dict[str, Any] = {
+        "status": "pass",
+        "tolerance": {"distance_mm": ALIGN_MM, "angle_deg": ALIGN_DEG},
+        "offset_mm": float(iface.offset),
+        "assemblies": {},
+    }
+    failures: list[str] = []
+    worst = 0.0
+    for aid in asms:
+        path = build_dir / "assemblies" / aid / "instances.json"
+        if not path.is_file():
+            out["assemblies"][aid] = {"status": "skip", "why": "not built"}
+            continue
+        instances: list[dict[str, Any]] = json.loads(path.read_text(encoding="utf-8"))
+        occ_a = [
+            (i["node"], world_frame(fa, i["translation"], i["rotation"]))
+            for i in _occurrences(instances, a)
+        ]
+        occ_b = [
+            (i["node"], world_frame(fb, i["translation"], i["rotation"]))
+            for i in _occurrences(instances, b)
+        ]
+        pairs: list[dict[str, Any]] = []
+        for na, wa in occ_a:
+            for nb, wb in occ_b:
+                m = _compare(iface, wa, wb)
+                pairs.append(
+                    {
+                        "occurrences": [na, nb],
+                        **m,
+                        "meets": _ok(m),
+                        "world": {na: wa.to_dict(), nb: wb.to_dict()},
+                    }
+                )
+        lonely: list[dict[str, Any]] = []
+        for node in [n for n, _ in occ_a] + [n for n, _ in occ_b]:
+            mine = [p for p in pairs if node in p["occurrences"]]
+            if mine and not any(p["meets"] for p in mine):
+                nearest = min(mine, key=lambda p: (p["distance_mm"], p["normal_deg"]))
+                if nearest not in lonely:
+                    lonely.append(nearest)
+        for p in pairs:
+            if p["meets"]:
+                worst = max(worst, p["distance_mm"])
+        for p in lonely:
+            na, nb = p["occurrences"]
+            failures.append(f"{na} and {nb} do not meet in asm://{aid}: {_miss_words(p)}")
+        out["assemblies"][aid] = {
+            "status": "fail" if lonely else "pass",
+            "pairs": pairs,
+        }
+    checked = [v for v in out["assemblies"].values() if v["status"] != "skip"]
+    if failures:
+        out["status"] = "fail"
+        out["message"] = (
+            "; ".join(failures)
+            + f" (allowed: {ALIGN_MM} mm and {ALIGN_DEG}°, offset {float(iface.offset):g} mm)"
+        )
+    elif not checked:
+        out["status"] = "skip"
+        out["message"] = "where the parts meet is not checked: the assembly is not built"
+    else:
+        where = ", ".join(f"asm://{aid}" for aid in asms)
+        out["message"] = f"placed, the parts meet in {where} (worst {worst:.2f} mm)"
+    return out
+
+
+# ---- the coordinate-placement warning (P1) ----------------------------------------------
+
+
+def coordinate_placement_warnings(product: Product, build_dir: Path) -> list[CheckResult]:
+    """Warn when a joint was closed by typed-in coordinates although an interface could (P1).
+
+    In each assembly, take every pair of parts placed directly in it that an interface joins.
+    When neither part has an occurrence placed through an interface joining the two, both
+    positions were typed in and can drift apart: one ``warn`` row per such joint, suggesting
+    ``place_by``.  When one side was placed by the joint (the guard onto the stand), the other
+    side's coordinates are the anchor and nothing is said.  The rule needs no placement
+    order, so reordering the placement code changes nothing (S-030, S-106).  Parties inside
+    sub-assemblies are left to ports (v0.4 M2).  A product built before v0.4 has no ``via``
+    in ``instances.json`` and never warns.
+    """
+    out: list[CheckResult] = []
+    for aid in sorted(product.assemblies):
+        path = build_dir / "assemblies" / aid / "instances.json"
+        if not path.is_file():
+            continue
+        instances: list[dict[str, Any]] = json.loads(path.read_text(encoding="utf-8"))
+        via_by_uri: dict[str, set[str]] = {}
+        nodes: dict[str, list[str]] = {}
+        for inst in instances:
+            if inst.get("parent") is None and "via" in inst:
+                via_by_uri.setdefault(str(inst["uri"]), set()).add(str(inst["via"]))
+                nodes.setdefault(str(inst["uri"]), []).append(str(inst["node"]))
+        joints: dict[tuple[str, str], list[str]] = {}
+        for iface in product.interfaces.values():
+            a, b = (str(p) for p in iface.parties)
+            if a != b and a in via_by_uri and b in via_by_uri:
+                joints.setdefault((a, b) if a < b else (b, a), []).append(iface.uri)
+        for (a, b), ifaces in sorted(joints.items()):
+            if (via_by_uri[a] | via_by_uri[b]) & set(ifaces):
+                continue  # one side was placed by the joint: the other side is the anchor
+            name_a, name_b = (product.parts[u.removeprefix("part://")].name for u in (a, b))
+            iface = product.interfaces[ifaces[0].removeprefix("iface://")]
+            child = str(iface.parties[1])
+            cid = child.removeprefix("part://")
+            out.append(
+                CheckResult(
+                    id=f"placement://{aid}@{a.removeprefix('part://')}+{b.removeprefix('part://')}",
+                    subject=child,
+                    status="warn",
+                    kind="interface",
+                    title=f"{name_a} and {name_b}: placed by their joint",
+                    message=(
+                        f"{name_a} and {name_b} are both placed by typed-in coordinates, "
+                        "although a joint between them could place one onto the other; placed "
+                        "by the joint, the two cannot drift apart"
+                    ),
+                    detail={
+                        "assembly": f"asm://{aid}",
+                        "occurrences": nodes[a] + nodes[b],
+                        "interfaces": ifaces,
+                        "fix": f'place_by(I, res, "{iface.id}", "{child}", parts["{cid}"])',
+                    },
+                )
+            )
+    return out

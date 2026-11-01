@@ -4,6 +4,14 @@ parties: [part://outer-shell, part://guard-shell]
 description: Four M6 standoffs (25 mm) between the shell's top wall and the guard's top wall; holes in both.
 frame: {origin: [0, 0, 0], normal: [0, 1, 0]}
 frames:
-  part://outer-shell: {origin: [0, param://shell-half-height, param://standoff-pattern-z-shell], normal: [0, 1, 0], x_axis: [1, 0, 0]}
-  part://guard-shell: {origin: [0, param://guard-half-height, param://standoff-pattern-z-guard], normal: [0, 1, 0], x_axis: [1, 0, 0]}
+  part://outer-shell:
+    origin: [0, {expr: "shell-outer-height / 2", unit: mm}, {expr: "shell-outer-depth / 2", unit: mm}]
+    normal: [0, 1, 0]
+    x_axis: [1, 0, 0]
+  part://guard-shell:
+    origin: [0, {expr: "guard-outer-height / 2", unit: mm}, {expr: "shell-outer-depth / 2 + guard-gap", unit: mm}]
+    normal: [0, 1, 0]
+    x_axis: [1, 0, 0]
+# P2: the guard's wall sits one air gap and one guard sheet outside the shell's (M0 measured 26 mm)
+offset: {expr: "guard-gap + guard-thickness", unit: mm}
 spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://standoff-spacing-width, param://standoff-spacing-depth], fastener: part://m6x16-bolt, depth: 20 mm}

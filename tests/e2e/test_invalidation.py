@@ -372,13 +372,14 @@ def test_stable_instance_numbering(enclosure_built: Path) -> None:
 
 def test_helper_module_change_rebuilds_dependents(enclosure_built: Path) -> None:
     helper = enclosure_built / "model/geometry/layout.py"
-    helper.write_text("LID_Z_EXTRA = 0.0\n")
+    helper.write_text("BRACKET_Y_EXTRA = 0.0\n")
     module = enclosure_built / "model/geometry/enclosure.py"
     text = module.read_text()
+    # the lid is placed by its interface (S-106), so the helper moves the brackets instead
     module.write_text(
         text.replace(
-            '    h = P.mm("box-height")',
-            '    from layout import LID_Z_EXTRA\n\n    h = P.mm("box-height") + LID_Z_EXTRA',
+            '    w = P.mm("box-width")',
+            '    from layout import BRACKET_Y_EXTRA\n\n    w = P.mm("box-width") + BRACKET_Y_EXTRA',
         )
     )
     import sys as _sys
@@ -386,14 +387,14 @@ def test_helper_module_change_rebuilds_dependents(enclosure_built: Path) -> None
     _sys.path.insert(0, str(enclosure_built / "model/geometry"))
     try:
         _build(enclosure_built)
-        helper.write_text("LID_Z_EXTRA = 25.0\n")
+        helper.write_text("BRACKET_Y_EXTRA = 25.0\n")
         s = _build(enclosure_built)
         assert "asm:enclosure" in s["ran"], s
         inst = json.loads(
             (enclosure_built / "build/assemblies/enclosure/instances.json").read_text()
         )
-        lid = next(i for i in inst if i["uri"] == "part://lid")
-        assert abs(lid["translation"][2] - 105.0) < 1e-6
+        bracket = next(i for i in inst if i["uri"] == "part://bracket")
+        assert abs(bracket["translation"][1] - (75.0 + 12.5)) < 1e-6
     finally:
         _sys.path.remove(str(enclosure_built / "model/geometry"))
         module.write_text(text)

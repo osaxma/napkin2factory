@@ -3,6 +3,11 @@
 World frame: X across, Y from front (−Y, door) to back (+Y), Z up. The guard's front lip
 plane is y = 0; the guard's bottom sits on the stand at z = stand-height.
 
+The stand is placed by coordinates; the guard, the shell, the hinge post, the latch keeper and
+the controller box are placed by their interfaces (``place_by``, P1): each frame meets the
+frame of the part already placed, so none of their positions is typed in here. The lining,
+the door and the controls have no interface yet and stay on coordinates (v0.4 M3).
+
 Rotation convention (build123d ``Location`` Euler angles, degrees): a rotation of +90°
 about X maps a part's +Z to −Y and its +Y to +Z; −90° maps +Z to +Y. The enclosure kit
 builds a tray open on +Z, so +90° about X turns the opening to the front (−Y) and the
@@ -12,55 +17,47 @@ tray's "width" (Y) into the kiln's height (Z).
 
 def build(P, I, parts):  # noqa: N803
     """Place every child; counts must match kiln.yaml (the checker verifies)."""
-    from napkin2factory.geometry.assembly import AssemblyResult, place
+    from napkin2factory.geometry.assembly import AssemblyResult, place, place_by
 
     sh_t = P.mm("shell-thickness")
     fib = P.mm("fiber-thickness")
     brick = P.mm("brick-thickness")
     cw, ch = P.mm("chamber-width"), P.mm("chamber-height")
     stand_h = P.mm("stand-height")
-    so_d, so_h = P.mm("shell-outer-depth"), P.mm("shell-outer-height")
     li_d = P.mm("liner-outer-depth")
     lc = P.mm("lining-clearance")
     seal = P.mm("door-seal-gap")
     fi_h = P.mm("fiber-inner-height")
     fb_w, fb_d = P.mm("fiber-box-width"), P.mm("fiber-box-depth")
     gap, gt = P.mm("guard-gap"), P.mm("guard-thickness")
-    go_w, go_d, go_h = (
-        P.mm("guard-outer-width"),
-        P.mm("guard-outer-depth"),
-        P.mm("guard-outer-height"),
-    )
-    standoff = P.mm("controller-standoff")
-    cb_w, cb_h = P.mm("controller-box-width"), P.mm("controller-box-height")
+    go_d = P.mm("guard-outer-depth")
+    cb_h = P.mm("controller-box-height")
     door_gap = P.mm("door-gap")
     res = AssemblyResult()
 
-    # --- stand: footprint centred under the guard, floor at z = 0 ---
+    # --- stand: footprint centred under the guard, floor at z = 0 (the one typed-in anchor) ---
     res.add(place("part://stand", parts["stand"], translate=(0.0, go_d / 2, 0.0), label="stand"))
 
-    # --- guard and shell trays, opening to the front ---
-    guard_z0 = stand_h
+    # --- guard on the stand's rails, shell inside it on the bottom standoffs (trays open to
+    # the front); the other three standoff interfaces are checked, not used to place ---
     res.add(
-        place(
-            "part://guard-shell",
-            parts["guard-shell"],
-            translate=(0.0, go_d, guard_z0 + go_h / 2),
-            rotate=(90.0, 0.0, 0.0),
-            label="guard",
+        place_by(
+            I, res, "shell-frame-mount", "part://guard-shell", parts["guard-shell"], label="guard"
         )
     )
-    y_f = gt + gap  # the shell's front lip plane
-    shell_z0 = guard_z0 + gt + gap
     res.add(
-        place(
+        place_by(
+            I,
+            res,
+            "guard-standoff-bottom",
             "part://outer-shell",
             parts["outer-shell"],
-            translate=(0.0, y_f + so_d, shell_z0 + so_h / 2),
-            rotate=(90.0, 0.0, 0.0),
             label="shell",
         )
     )
+    guard_z0 = stand_h
+    y_f = gt + gap  # the shell's front lip plane
+    shell_z0 = guard_z0 + gt + gap
 
     # --- insulation: the fiber box sits on the shell floor (fiber-clearance above it only) ---
     z_fib0 = shell_z0 + sh_t
@@ -167,40 +164,36 @@ def build(P, I, parts):  # noqa: N803
     )
 
     # --- hinge post and latch keeper bolted to the guard's side walls ---
-    hp_y = P.mm("hinge-post-y")
-    guard_zc = guard_z0 + go_h / 2
     res.add(
-        place(
-            "part://hinge-post",
-            parts["hinge-post"],
-            translate=(-go_w / 2, hp_y, guard_zc),
-            label="hinge-post",
+        place_by(
+            I, res, "guard-hinge-post", "part://hinge-post", parts["hinge-post"], label="hinge-post"
         )
     )
-    # keeper centred on the guard's mid-height, where its bolt holes are
-    # (2 mm above the chamber centre)
     res.add(
-        place(
+        place_by(
+            I,
+            res,
+            "guard-latch-keeper",
             "part://latch-keeper",
             parts["latch-keeper"],
-            translate=(go_w / 2, hp_y, guard_zc),
             label="latch-keeper",
         )
     )
 
-    # --- controller box beside the guard on 40 mm standoffs (tray opening up), lid on top ---
-    cx = go_w / 2 + standoff + cb_w / 2
-    cy = go_d / 2
-    cz = guard_z0 + go_h - cb_h
+    # --- controller box beside the guard on 40 mm standoffs (tray opening up), lid on top;
+    # the lid and the instruments are placed from where the box landed ---
     t = P.mm("controller-sheet")
-    res.add(
-        place(
+    box = res.add(
+        place_by(
+            I,
+            res,
+            "controller-mount",
             "part://controller-box",
             parts["controller-box"],
-            translate=(cx, cy, cz),
             label="controller",
         )
     )
+    cx, cy, cz = tuple(box.location.position)
     res.add(
         place(
             "part://controller-lid",

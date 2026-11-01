@@ -82,6 +82,32 @@ def test_kiln_promoted_direction_holds_on_the_kiln_as_built(kiln: tuple[Path, fl
     assert any(r["status"] == "pass" for r in rows) and not any(r["status"] == "fail" for r in rows)
 
 
+def test_kiln_interfaces_meet_and_a_moved_box_fails(kiln: tuple[Path, float]) -> None:
+    """DoD 2 (P3, S-106): every interface meets as built; the box moved 10 mm fails."""
+    import shutil
+
+    from napkin2factory.core.checks.interface import check_interface
+
+    root, _ = kiln
+    data = json.loads((root / "build/checks/checks.json").read_text())
+    rows = [r for r in data["results"] if r["id"].startswith("iface://")]
+    assert len(rows) == 9 and all(r["status"] == "pass" for r in rows), rows
+    assert all("meet in asm://" in r["message"] for r in rows)
+    assert not [r for r in data["results"] if r["id"].startswith("placement://")]
+    moved = root.parent / "moved-build"
+    shutil.copytree(root / "build", moved)
+    inst_path = moved / "assemblies/kiln/instances.json"
+    inst = json.loads(inst_path.read_text())
+    box = next(i for i in inst if i["uri"] == "part://controller-box")
+    box["translation"][1] += 10.0  # along the guard wall, in the frame plane
+    inst_path.write_text(json.dumps(inst))
+    product = load_product(root)
+    rep = check_interface(product, product.interfaces["controller-mount"], moved)
+    assert rep.status == "fail"
+    assert "part://guard-shell#1 and part://controller-box#1" in rep.message
+    assert "10.0 mm apart" in rep.message
+
+
 def test_kiln_golden_props(kiln: tuple[Path, float]) -> None:
     """Assembly fingerprint (D14): mass, bbox, instance count; regenerate via `make goldens`."""
     root, _ = kiln

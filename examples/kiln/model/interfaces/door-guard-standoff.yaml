@@ -4,6 +4,14 @@ parties: [part://door-tray, part://door-guard]
 description: Four M6 standoffs (25 mm) between the door tray's face and the door guard's face, outside the plug.
 frame: {origin: [0, 0, 0], normal: [0, 0, 1]}
 frames:
-  part://door-tray: {origin: [0, 0, param://door-skin-thickness], normal: [0, 0, 1], x_axis: [1, 0, 0]}
-  part://door-guard: {origin: [0, 0, param://door-guard-thickness], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://door-tray:
+    origin: [0, 0, param://door-skin-thickness]
+    normal: [0, 0, 1]
+    x_axis: [1, 0, 0]
+  part://door-guard:
+    origin: [0, 0, param://door-guard-thickness]
+    normal: [0, 0, 1]
+    x_axis: [1, 0, 0]
+# P2: the door guard's frame sits one air gap and one tray sheet in front of the tray's (−26.5 mm, M0)
+offset: {expr: "-(door-skin-thickness + guard-gap)", unit: mm}
 spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://door-standoff-spacing-x, param://door-standoff-spacing-z], fastener: part://m6x16-bolt, depth: 10 mm}

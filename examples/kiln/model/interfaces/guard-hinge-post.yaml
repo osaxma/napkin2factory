@@ -5,7 +5,15 @@ description: Four M6 bolts hold the hinge post to the guard's left wall, 140 mm 
 frame: {origin: [0, 0, 0], normal: [-1, 0, 0]}
 frames:
   # guard tray coordinates: y is the kiln's height; the post's leg centre line is hinge-post-y behind the lip plane
-  part://guard-shell: {origin: [param://guard-neg-half-width, 0, param://hinge-post-z-guard], normal: [-1, 0, 0], x_axis: [0, 1, 0]}
+  part://guard-shell:
+    origin: [{expr: "-guard-outer-width / 2", unit: mm}, 0, {expr: "guard-outer-depth - hinge-post-y - hinge-post-leg / 2", unit: mm}]
+    normal: [-1, 0, 0]
+    x_axis: [0, 1, 0]
   # post coordinates: leg against the wall at x ∈ [−t, 0], y along the depth from 0, z along the post
-  part://hinge-post: {origin: [-3, 20, 0], normal: [-1, 0, 0], x_axis: [0, 0, 1]}
+  part://hinge-post:
+    origin: [{expr: "-hinge-post-thickness", unit: mm}, {expr: "hinge-post-leg / 2", unit: mm}, 0]
+    normal: [-1, 0, 0]
+    x_axis: [0, 0, 1]
+# P2: the post's frame is on the leg's outer face, one angle thickness out from the guard
+offset: param://hinge-post-thickness
 spec: {pattern: line, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://hinge-post-bolt-spacing], fastener: part://m6x16-bolt, depth: 10 mm}

@@ -15,10 +15,26 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from napkin2factory.core.graph.hashing import sha256_file, sha256_json
+from napkin2factory.core.graph.hashing import sha256_file, sha256_json, sha256_text
 from napkin2factory.core.graph.manifest import Manifest
 from napkin2factory.core.loader import Product
 from napkin2factory.core.uris import Uri, UriError
+
+# The placement fields an assembly key covers: where each occurrence is.  How it was placed
+# (``label``, ``via``, added in v0.4) is left out, so the same placements keep the same key and
+# a sign-off made under v0.3 stays valid after the upgrade (P14, S-106).
+_PLACEMENT_KEYS = ("node", "parent", "rotation", "translation", "uri")
+
+
+def _placements_key(path: Path) -> str:
+    """``sha256:`` of ``instances.json`` as v0.3 wrote it (the placement fields only)."""
+    import json
+
+    if not path.is_file():
+        return "missing"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    kept = [{k: inst[k] for k in _PLACEMENT_KEYS if k in inst} for inst in data]
+    return sha256_text(json.dumps(kept, indent=2, sort_keys=True) + "\n")
 
 
 def evidence_key(
@@ -72,7 +88,7 @@ def evidence_key(
         )
         return sha256_json(
             {
-                "instances": sha256_file(asm_dir / "instances.json"),
+                "instances": _placements_key(asm_dir / "instances.json"),
                 "counts": props.get("instance_counts"),
             }
         )

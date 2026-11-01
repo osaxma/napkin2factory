@@ -432,19 +432,7 @@ def build_assembly(
     props["declared_counts"] = declared_counts(product, asm_id)
     props["notes"] = list(result.notes)
     write_json(out_dir / "props.json", props)
-    write_json(
-        out_dir / "instances.json",
-        [
-            {
-                "node": leaf.node,
-                "uri": leaf.uri,
-                "parent": leaf.parent,
-                "translation": list(_trs(leaf)[0]),
-                "rotation": list(_trs(leaf)[1]),
-            }
-            for leaf in leaves
-        ],
-    )
+    write_json(out_dir / "instances.json", instance_records(leaves))
     if render:
         # section through the mass centroid: a body on a tall stand is cut where the mass is
         render_views(
@@ -455,6 +443,25 @@ def build_assembly(
     )
     built.duration = time.perf_counter() - t0
     return built
+
+
+def instance_records(leaves: list[FlatInstance]) -> list[dict[str, Any]]:
+    """The rows of ``instances.json``: one per leaf occurrence, in the assembly's frame."""
+    return [
+        {
+            "node": leaf.node,
+            "uri": leaf.uri,
+            "parent": leaf.parent,
+            "translation": list(_trs(leaf)[0]),
+            "rotation": list(_trs(leaf)[1]),
+            # how it was placed: the P1 warning and the build marks (parts placed by
+            # coordinates) read these; no placement order, so reordering the placement code
+            # leaves this file unchanged (S-030, S-106)
+            "label": leaf.label,
+            "via": leaf.via,
+        }
+        for leaf in leaves
+    ]
 
 
 def _trs(
@@ -680,7 +687,9 @@ def load_built_assembly(
         trsf = gp_Trsf()
         trsf.SetRotation(gp_Quaternion(x, y, z, w))
         trsf.SetTranslationPart(gp_Vec(*(float(v) for v in inst["translation"])))
-        result.add(place(inst["uri"], cache[part_id], Location(trsf), label=inst.get("label")))
+        placed = place(inst["uri"], cache[part_id], Location(trsf), label=inst.get("label"))
+        placed.via = str(inst.get("via", placed.via))
+        result.add(placed)
     asm = product.assemblies[asm_id]
     leaves, _groups = flatten(result, asm.uri)
     return BuiltAssembly(

@@ -20,7 +20,8 @@ def test_interface_read_records_iface_and_its_params():
     P, I, log = make_accessors(p)
     iface = I["lid-base-mount"]
     assert iface.spec.diameter.to("mm").magnitude == 4.5
-    assert log.keys == ["iface://lid-base-mount", "param://screw-clearance"]
+    # the base's frame height is param://box-height (S-106): a frame read is a read too
+    assert log.keys == ["iface://lid-base-mount", "param://screw-clearance", "param://box-height"]
     assert iface.frame_for("part://base").origin[2] == 80.0
     assert iface.frame_for("part://lid").origin[2] == 0.0
     assert iface.frame_for("part://zzz").origin == [0.0, 0.0, 0.0]

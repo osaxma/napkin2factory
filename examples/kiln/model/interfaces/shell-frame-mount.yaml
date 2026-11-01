@@ -6,6 +6,14 @@ frame: {origin: [0, 0, 0], normal: [0, 0, 1]}
 frames:
   # guard tray coordinates: the kiln's bottom wall is the tray's −Y wall at y = −height/2; the
   # tray's z axis is the kiln's depth, so the pattern is centred at z = depth/2.
-  part://guard-shell: {origin: [0, param://guard-neg-half-height, param://guard-half-depth], normal: [0, 1, 0], x_axis: [1, 0, 0]}
-  part://stand: {origin: [0, 0, param://stand-height], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://guard-shell:
+    origin: [0, {expr: "-guard-outer-height / 2", unit: mm}, {expr: "guard-outer-depth / 2", unit: mm}]
+    normal: [0, 1, 0]
+    x_axis: [1, 0, 0]
+  part://stand:
+    origin: [0, 0, param://stand-height]
+    normal: [0, 0, 1]
+    x_axis: [1, 0, 0]
+# P2: the guard's bottom face sits on the stand's top rails, so the frames coincide
+offset: 0 mm
 spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://mount-bolt-spacing-x, param://mount-bolt-spacing-y], fastener: part://m6x16-bolt, depth: 20 mm}

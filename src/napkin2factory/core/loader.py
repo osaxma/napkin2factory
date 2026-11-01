@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import ast
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -277,17 +277,43 @@ class Product:
         p = self.parameters[slug]
         if p.expr is None:
             return parse_quantity(p.value if p.value is not None else 0, p.unit or None)
-        val = evaluate(p.expr, {}, lookup=lambda s: self.parameter_value(s, (*_stack, slug)))
-        if p.unit:
-            if hasattr(val, "to"):
-                try:
-                    return val.to(p.unit)
-                except Exception as exc:
-                    raise ExprError(
-                        f"param://{slug}: expression result cannot be expressed in {p.unit}: {exc}"
-                    ) from exc
-            return Quantity(val, p.unit)
+        return self.expr_value(
+            p.expr,
+            p.unit,
+            lookup=lambda s: self.parameter_value(s, (*_stack, slug)),
+            where=f"param://{slug}",
+        )
+
+    def expr_value(
+        self,
+        expr: str,
+        unit: str,
+        lookup: Callable[[str], Any] | None = None,
+        where: str = "expression",
+    ) -> Any:
+        """Evaluate ``expr`` over parameter slugs and express it in ``unit``.
+
+        The one evaluation path for parameter ``expr`` fields and interface frame
+        expressions (P2), so both share the grammar and the unit handling.  ``lookup`` (slug →
+        value) lets the caller record each read; by default parameters are read directly.
+
+        Raises:
+            ExprError: on bad syntax, an unknown slug or a result not expressible in ``unit``.
+        """
+        val = evaluate(expr, {}, lookup=lookup or self._lookup_known)
+        if unit:
+            try:
+                return val.to(unit) if hasattr(val, "to") else Quantity(val, unit)
+            except Exception as exc:
+                raise ExprError(
+                    f"{where}: expression result cannot be expressed in {unit}: {exc}"
+                ) from exc
         return val
+
+    def _lookup_known(self, slug: str) -> Any:
+        if slug not in self.parameters:
+            raise ExprError(f"unknown parameter {slug!r}; add it to parameters.yaml")
+        return self.parameter_value(slug)
 
     def resolved_parameters(self) -> dict[str, Any]:
         """Every parameter as a quantity."""
@@ -797,6 +823,7 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
                     "fix the expression or its unit",
                     rule="expr",
                 )
+    _validate_interface_expressions(product, problems, bad)
     # Signoffs point at requirements that exist (already via URI) and keys match evidence.
     for so in product.signoffs.values():
         missing = [str(e) for e in so.evidence if str(e) not in so.evidence_keys]
@@ -810,6 +837,37 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
                 rule="signoff",
             )
     # Product id vs directory is informational only.
+
+
+def _validate_interface_expressions(product: Product, problems: Problems, bad: set[str]) -> None:
+    """Frame coordinates and offsets written as ``{expr, unit}`` name known parameters (P2).
+
+    An unknown slug is an error naming the interface file and the slug; an expression whose
+    result does not fit its unit is reported like a parameter's.  Expressions that read a
+    parameter already reported as bad are not evaluated (cascade suppression, S-009).
+    """
+    for iface in product.interfaces.values():
+        file = product.files[iface.uri]
+        for e in iface.expressions():
+            unknown = [s for s in e.slugs if s not in product.parameters]
+            for name in unknown:
+                problems.add(
+                    file,
+                    iface.uri,
+                    f"expression {e.expr!r} references unknown parameter {name!r}",
+                    "add it to parameters.yaml or fix the spelling",
+                    rule="expr",
+                )
+            if unknown or "param" in product.broken_schemes:
+                continue
+            if any(_reaches_bad_parameter(product, s, bad) for s in e.slugs):
+                continue
+            try:
+                product.expr_value(e.expr, e.unit, where=iface.uri)
+            except (ExprError, UnitError) as exc:
+                problems.add(
+                    file, iface.uri, str(exc), "fix the expression or its unit", rule="expr"
+                )
 
 
 def _reaches_bad_parameter(product: Product, slug: str, bad: set[str]) -> bool:

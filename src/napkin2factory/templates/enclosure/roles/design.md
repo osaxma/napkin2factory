@@ -17,9 +17,16 @@ without 3D (`geometry: none`) are BOM-only and show as a warning.
 
 ## Assemblies
 `model/assemblies/<id>.yaml` declares children with quantities (that is the BOM);
-`model/geometry/<id>.py` places them: `def build(P, I, parts)` returning
-`AssemblyResult` with `place("part://x", parts["x"], translate=(…), rotate=(…), label="…")`
-or `grid(...)` for courses of bricks. The checker verifies placed counts equal quantities.
+`model/geometry/<id>.py` places them: `def build(P, I, parts)` returning `AssemblyResult`.
+A part joined to one already placed is placed **by its interface**:
+`res.add(place_by(I, res, "<iface-id>", "part://x", parts["x"], label="…"))`. The code does
+the arithmetic: the part turns so its frame points the same way as the placed party's and
+lands `offset` along the normal. Add `onto="<label>"` when the other party is placed more
+than once; place the other party first. Only a part with no interface to anything already
+placed (the first one, a loose lining brick) uses
+`place("part://x", parts["x"], translate=(…), rotate=(…), label="…")`, or `grid(...)` for
+courses of bricks. `n2f check` warns when two joined parts are both placed by coordinates.
+The checker verifies placed counts equal quantities.
 Set `exploded: {axis, spacing}` to the stacking axis.
 
 ## After the napkin stage
@@ -66,9 +73,18 @@ If the render does not look like the part, it is not the part.
 
 ## Interfaces
 Two parts that bolt or sit together share an `iface://` file
-(`kind: bolt-pattern | mating-face`, `parties`, `frame`, per-party `frames`, `spec`). List
+(`kind: bolt-pattern | mating-face`, `parties`, per-party `frames`, `offset`, `spec`). List
 it on both parts; the build cuts the pattern into both in their own frames and `n2f check`
-verifies they agree. Never hard-code a mating hole pattern in two places.
+verifies they agree and that, placed, the frames meet. Never hard-code a mating hole pattern
+in two places.
+- **One convention.** Write each party's frame (`origin`, `normal`, `x_axis`) in that part's
+  own coordinates so that, once placed, both normals and both x axes point the same way.
+  `offset` is the signed distance along the normal from the first party's frame to the
+  second's (a standoff's length, a sheet's thickness; default 0). List the party placed
+  first first, so the offset reads from it.
+- **Coordinates are expressions, not helper parameters.** A coordinate or the offset may be
+  `{expr: "-shell-outer-width / 2", unit: mm}` (the same grammar as a parameter `expr`).
+  Never add a parameter only to write a frame.
 
 ## Decisions
 Every material, thickness, process or sizing choice is a `DEC-xxx` with `links:` to the
