@@ -2,7 +2,7 @@
 
 ``req://REQ-001``, ``param://sheet-thickness``, ``part://lid``, ``asm://enclosure``,
 ``iface://lid-base-mount``, ``dec://DEC-031``, ``ecr://ECR-019``, ``doc://installation``,
-``calc://thermal.heat_loss``, ``rule://sheet-metal/min-bend-radius``, ``bom://rollups``.
+``calc://strength.max_stress``, ``rule://sheet-metal/min-bend-radius``, ``bom://rollups``.
 
 Selector: ``<uri>#dotted.path`` selects a field or computed property.  For parts inside an
 assembly, ``part://m4x10-screw#3`` selects the third instance; the grammar distinguishes

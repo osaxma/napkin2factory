@@ -56,7 +56,7 @@ envelope:                           # rough named sizes; they seed parameters at
   chamber: [180 mm, 200 mm, 180 mm] # width, depth, height
   insulation: 115 mm
   power: 1.8 kW
-site: {alcove_width: 800 mm, circuit: 240V-13A, region: SA}
+site: {width: 800 mm, circuit: 240V-13A, region: SA}  # width: the space it must fit
 style: {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}
 modules:                            # what is built, bought or serviced as one unit, and why
   door: {driver: [built-as-unit]}

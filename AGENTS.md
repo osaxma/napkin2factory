@@ -91,6 +91,11 @@ maintainer instead of obeying it.
   identifiers and rule ids stay in `--json` and files (N5, D17).
 - Measured, not claimed: a number in a journal entry or report is one you ran; otherwise write
   "not measured". The next agent cannot ask you what you meant.
+- **The examples are users of the package, never its vocabulary** (F9, S-128): a screen, rule,
+  field or default that only an example needs lives in that example's folder
+  (`model/screens/`, `model/rulepacks/`, F10), and no package file names an example's part,
+  parameter, requirement, decision or product (`tests/unit/test_no_example_identifiers.py`).
+  The kiln once became the schema (`alcove_width`, heated-box screening for every product).
 - Templates are synced, never hand-edited in `examples/`: edit `src/napkin2factory/templates/`
   and `examples/{bracket,enclosure}`, then `make templates`.
 

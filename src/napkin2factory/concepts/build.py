@@ -110,9 +110,10 @@ def build_concept(
     from napkin2factory.core.style import merge_card_style
 
     t0 = time.perf_counter()
+    out_dir = concept_build_dir(root, card.id)
+    before = recorded_screens_key(out_dir)  # read before compose clears the folder
     massing = compose(card, root, render=render)
     screening = screen(card, massing, root)
-    out_dir = concept_build_dir(root, card.id)
     shots: ScreenshotResult | None = None
     if render:
         notes: list[str] = []
@@ -126,7 +127,7 @@ def build_concept(
             if note not in screening.notes:
                 screening.notes.append(note)
     # the product's own screens changed since the last build: its screening is void (F10)
-    key, before = screens_key(root), recorded_screens_key(out_dir)
+    key = screens_key(root)
     changed = before is not None and key != before
     write_screening_json(out_dir, card, screening, key)
     # the card file changes only when the screening says something new (S-086)

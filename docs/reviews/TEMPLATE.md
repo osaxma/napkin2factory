@@ -55,6 +55,10 @@ worked).
   source and `verify`)?
 - Are errors actionable (file, id, what to do)? Any `TODO`/`FIXME` without a `B-` id? Any git
   word in a user-facing string?
+- Does any change in this diff teach the package a product's noun, field or default (a screen,
+  rule, field, default or docstring example only one example needs)? It belongs in that
+  product's folder (`model/screens/`, `model/rulepacks/`; F9, F10). The guard
+  `tests/unit/test_no_example_identifiers.py` catches exact identifiers; this question, the rest.
 
 ### UX in the owner persona (v0.1 gate 2, v0.2 gate B)
 - Follow the README's first run literally; note every place where the text and what the

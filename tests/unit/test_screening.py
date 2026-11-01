@@ -27,13 +27,13 @@ from napkin2factory.concepts.screening import (
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.model import ConceptCard, RuleRow, Screening
 from napkin2factory.core.units import parse_quantity
-from tests.conftest import EXAMPLES
 from napkin2factory.rulepacks.concept_checks import (
     concept_packs,
     parse_circuit,
     rule_params,
     run_concept_rules,
 )
+from tests.conftest import EXAMPLES
 
 #: The product whose own screens (the heated box's) run on these cards.
 KILN_ROOT = EXAMPLES / "kiln"
