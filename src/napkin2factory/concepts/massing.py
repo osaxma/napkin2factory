@@ -77,6 +77,10 @@ class MassingPiece:
     material: str | None = None
     density: float | None = None  # kg/m³
     density_source: str | None = None
+    #: mm³ of material the call really holds when the silhouette is solid where the part is
+    #: not (a frame's members and a tube are hollow: section × cut length, B-0021); ``None``
+    #: = the silhouette volume is the material.
+    material_volume: float | None = None
 
     @property
     def size(self) -> tuple[float, float, float]:
@@ -85,9 +89,14 @@ class MassingPiece:
         return (hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2])
 
     @property
+    def weighed_volume(self) -> float:
+        """The volume the mass is computed from (mm³): the material volume, else the silhouette."""
+        return self.volume if self.material_volume is None else self.material_volume
+
+    @property
     def mass(self) -> float | None:
-        """Silhouette mass in kg (volume × density), ``None`` without a material."""
-        return None if self.density is None else self.volume * 1e-9 * self.density
+        """Mass estimate in kg (weighed volume × density), ``None`` without a material."""
+        return None if self.density is None else self.weighed_volume * 1e-9 * self.density
 
 
 @dataclass
@@ -141,7 +150,7 @@ class MassingResult:
 
     @property
     def mass(self) -> float | None:
-        """Total silhouette mass (kg) when every call declares a material, else ``None``."""
+        """Total mass estimate (kg) when every call declares a material, else ``None``."""
         if not self.pieces or self.without_material:
             return None
         return sum(p.mass or 0.0 for p in self.pieces)
@@ -204,6 +213,9 @@ def _build_piece(card: ConceptCard, call: MassingCall) -> MassingPiece:
         raise kit.KitError(f"{prefix}: {exc}") from exc
     shape = result.shape
     volume = float(shape.volume)
+    raw_material = result.props.get("material_volume")
+    material_volume = None if raw_material is None else float(raw_material)
+    weighed = volume if material_volume is None else material_volume
     density: float | None = None
     density_source: str | None = None
     if call.material:
@@ -212,7 +224,7 @@ def _build_piece(card: ConceptCard, call: MassingCall) -> MassingPiece:
     built = Silhouette(
         result=result,
         props={
-            "mass": 0.0 if density is None else volume * 1e-9 * density,
+            "mass": 0.0 if density is None else weighed * 1e-9 * density,
             "volume": volume,
             "centroid": {"x": c.X, "y": c.Y, "z": c.Z},
         },
@@ -234,6 +246,7 @@ def _build_piece(card: ConceptCard, call: MassingCall) -> MassingPiece:
         material=call.material,
         density=density,
         density_source=density_source,
+        material_volume=material_volume,
     )
 
 
@@ -247,7 +260,11 @@ def _props(card_id: str, pieces: list[MassingPiece], leaves: list[Any]) -> dict[
         props["mass_missing"] = missing
         props["mass_source"] = "no mass: these calls declare no material: " + ", ".join(missing)
     else:
-        props["mass_source"] = "silhouette volume × density per call"
+        props["mass_source"] = "silhouette volume × density per call" + (
+            "; frames and tubes: member section × cut length × density"
+            if any(p.material_volume is not None for p in pieces)
+            else ""
+        )
     props["concept"] = card_id
     props["fidelity"] = "massing"
     props["pieces"] = {
@@ -262,6 +279,11 @@ def _props(card_id: str, pieces: list[MassingPiece], leaves: list[Any]) -> dict[
                 "max": [round(v, 4) for v in p.bbox_max],
             },
             "volume": round(p.volume, 3),
+            **(
+                {"material_volume": round(p.material_volume, 3)}
+                if p.material_volume is not None
+                else {}
+            ),
             "process_class": p.process_class,
             **(
                 {

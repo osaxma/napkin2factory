@@ -14,8 +14,10 @@ rules:
     title: Fits the alcove with the door open
     severity: fail
     check: fits_site_width
-    # an open hinged door adds door_swing_factor × its own width beside the hinge side
-    # (1.0 = the leaf swung fully back against the wall: the conservative case) [verify]
+    # an open hinged door reaches leaf × max(0, −cos θ) past the hinge side for the card's
+    # opening angle θ (envelope.door_swing: nothing up to 90°, the whole leaf at 180°); a card
+    # with no angle counts door_swing_factor × its leaf (1.0 = the leaf swung fully back
+    # against the wall: the conservative case) [verify]
     params: {door_swing_factor: 1.0}
     message: "it needs {total} of width — {width} for the body plus {door_term} for the open door ({door_basis}) — but the alcove is {limit}"
     pass_message: "{total} with the door open ({width} + {door_term}) fits the {limit} alcove"
@@ -73,3 +75,19 @@ rules:
     params: {}
     message: "controls {where} the door sit in the hot air path — consider the side or below"
     pass_message: "controls ({controls}) are away from the door ({door})"
+  - id: skin-vs-touch-limit
+    title: The outside is safe to touch
+    severity: warn
+    check: skin_vs_touch_limit
+    # the card's site.touch_limit; without one, the burn threshold for this contact time from
+    # calckit/data/touch_limits.yaml (ISO 13732-1) [verify]
+    params: {contact: 1 min}
+    message: "the outside skin is about {skin} (estimate), above the {limit} touch limit ({where}) — more insulation or a guard would bring it down"
+    pass_message: "the outside skin is about {skin} (estimate), under the {limit} touch limit ({where})"
+  - id: chamber-volume-vs-target
+    title: The chamber holds the target volume
+    severity: warn
+    check: chamber_volume_vs_target
+    params: {}
+    message: "the {size} chamber holds {volume}, less than the {target} the card aims for"
+    pass_message: "the {size} chamber holds {volume}, at least the {target} the card aims for"

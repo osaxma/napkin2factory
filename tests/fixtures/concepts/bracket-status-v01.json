@@ -1,5 +1,6 @@
 {
   "stage": "intake",
+  "current_stage": "design",
   "gates": [
     {
       "name": "intake",

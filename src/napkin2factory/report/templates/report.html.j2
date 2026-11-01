@@ -77,7 +77,7 @@ table.only-open tr.st-pass,table.only-open tr.st-signed{display:none}
 {% macro h2(id, title) -%}<h2 id="h-{{ id }}">{{ title }} <a class="anchor" href="#{{ id }}" title="link to this section">#</a></h2>{%- endmacro %}
 <header class="top">
   <h1>{{ product.name }}</h1>
-  <span class="badge {{ 'ok' if stage.stage == 'released' else 'warn' if stage.stage == 'verify' else 'skip' }}">{{ stage_label }}</span>
+  <span class="badge {{ stage_class }}">{{ stage_label }}</span>
   <span class="muted">{{ revision_label }}</span>
   <span class="muted counts"><a href="#requirements">{{ summary.fail }} {{ w('fail') }}</a>{% if summary['needs-human'] or not summary.example %} · <a href="#requirements">{{ summary['needs-human'] }} {{ w('needs-human') }}</a>{% endif %}{% if summary.example %} · <a href="#signoffs"><span class="example">{{ summary.example }} {{ w('example_one' if summary.example == 1 else 'example') }}</span></a>{% endif %} · <a href="#requirements">{{ summary.pass + summary.signed }} {{ w('pass') }}</a></span>
 </header>

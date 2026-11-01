@@ -42,7 +42,8 @@ def test_red_card_overridden_and_its_alcove_requirement_fails(product: Path) -> 
         ).stdout
     )
     assert res["dec"] == "DEC-002" and res["override"] is True
-    assert [r["uri"] for r in res["requirements"]] == ["req://REQ-004"]
+    # the alcove row and the open door's own row (B-0023)
+    assert [r["uri"] for r in res["requirements"]] == ["req://REQ-004", "req://REQ-005"]
     assert res["requirements"][0]["verify"] == {
         "kind": "geometry_prop",
         "target": "asm://bracket#props.bbox.x",
@@ -56,3 +57,4 @@ def test_red_card_overridden_and_its_alcove_requirement_fails(product: Path) -> 
     data = _check(root, code=2)
     row = _req(data, "REQ-004")
     assert row["status"] == "fail" and row["message"] == "bbox.x = 120 mm <= 100 mm"
+    assert _req(data, "REQ-005")["status"] == "pass"  # the door itself did not change

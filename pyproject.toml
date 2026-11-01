@@ -72,7 +72,7 @@ include = ["src/napkin2factory", "README.md", "LICENSE", "pyproject.toml"]
 line-length = 100
 target-version = "py313"
 src = ["src", "tests"]
-extend-exclude = ["src/napkin2factory/report/vendor", "src/napkin2factory/templates", "examples", "docs/history"]
+extend-exclude = ["src/napkin2factory/report/vendor", "src/napkin2factory/templates", "examples/*/build", "docs/history"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D", "E722"]
@@ -81,6 +81,7 @@ ignore = ["D203", "D213", "D105", "D107"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "E741"]
 "src/napkin2factory/geometry/**" = ["E741"]   # `I` is the interface accessor by contract (D5)
+"examples/*/model/geometry/**" = ["E741"]     # build rules take `(P, I, …)` (D5)
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

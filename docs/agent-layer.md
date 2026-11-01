@@ -20,7 +20,7 @@ conventions.
 | `roles/design.md` | designer: start from the promoted concept's massing and `style.yaml` (roles, the kit's aesthetic parameters, form requirements; `concepts/` is never edited after promotion), compose the kit, inner loop with renders, interfaces, decisions, calcs, "done means" |
 | `roles/verifier.md` | adversarial reviewer with a fresh context (a separate agent, or a new session); reads `build/` and calcs, writes `reports/review-*.md`, never edits `model/` |
 | `roles/impact-analyst.md` | translates an impact report into the owner's words, cost and safety first |
-| `.github/workflows/build.yml`, `release.yml` | CI for share mode later: build + check on push; tag → ZIP and Pages (written and validated, not run in v0.1) |
+| `.github/workflows/build.yml`, `release.yml` | CI for share mode: build + check on push; a `v*` tag → build, check, a dry-run release that re-packages that Revision, and its ZIP attached to a GitHub release. The web pages are not deployed from a tag (a tag holds one Revision, the pages hold all of them): `n2f publish --online` sends them to the `gh-pages` line |
 
 The roles are plain Markdown in a client-neutral folder, so any agent can follow them; the
 product's `AGENTS.md` says which file to read for which role (S-077). The source of these files

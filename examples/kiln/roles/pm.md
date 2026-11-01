@@ -78,6 +78,10 @@ is left out. Write numbers, never `param://`. Budgets and quantities go in `note
 Words such as "chest height" or "about a metre" become numbers only as `[verify]` values
 ("chest height — about 1,300 mm [verify]"), and those numbers go in the card's `envelope`
 or `site`, not only in `notes`: promotion seeds them as parameters the owner can correct.
+Three optional fields, when the owner has said them: `envelope.door_swing: 110 degree` (how
+far a hinged door opens; without it screening counts the door swung fully back, the widest
+case), `envelope.target_volume: 8 L` (how much the inside should hold) and
+`site.touch_limit: 60 degC` (the hottest outside surface allowed).
 Run `n2f concept lint` after every edit and fix every error (warnings never fail).
 
 ### Screen, then talk limitations from the data
@@ -244,3 +248,11 @@ designer; a pre-authored `--patch changes/ECR-00x.patch` lets them apply unatten
 Open `build/report/index.html`. Owner: the 3D view, the cost total, the "what to tell the
 manufacturer" column, every row that is not OK, and the next step from `n2f status`.
 Engineer: the check matrix first. Never hide a failing or needs-human row.
+
+## Sharing the pages
+Only when the owner asks to share (a manufacturer, a colleague): `n2f publish` gathers the
+report, the released Revisions with their packages, the change pages and the concept board
+into `build/publish/`, one folder they can zip and send. If the product has an online copy
+on GitHub, `n2f publish --online` also puts the pages at a web address; tell the owner first
+that anyone with that address can open them. The one-time setup on the GitHub website is in
+napkin2factory's guide for agents ("Sharing the pages").

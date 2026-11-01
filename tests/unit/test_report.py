@@ -147,6 +147,9 @@ def test_example_signoff_label(tmp_path: Path) -> None:
     assert "1 example sign-off — not a review" in nxt
     assert "replace the 1 example sign-off (not a review) with a real one" in nxt
     assert "allow-example-signoffs" in nxt
+    # the header badge: in Verify, nothing blocks a demonstration release (B-0033)
+    top = tree.css_first("header.top .badge")
+    assert top.text() == "Verify" and "warn" in (top.attributes.get("class") or "").split()
     gates = tree.css("#stage .badge")
     verify_badge = next(b for b in gates if b.text() == "verify")
     assert "ok" not in (verify_badge.attributes.get("class") or "").split()
@@ -238,19 +241,23 @@ def test_revision_label_is_honest(tmp_path: Path) -> None:
     run_build(load_product(root), quiet=True, render=False)
     v = Vcs(root)
     v.snapshot("built")
+    # B-0033: the badge names the stage being worked in, as `n2f status` does
+    ready = gather(load_product(root), root / "build", "2026-10-30")
+    assert (ready["stage_label"], ready["stage_class"]) == ("Ready to release", "warn")
     v.tag("v1.0.0", "r")
-    assert (
-        gather(load_product(root), root / "build", "2026-10-30")["revision_label"]
-        == "Revision v1.0.0"
-    )
+    released = gather(load_product(root), root / "build", "2026-10-30")
+    assert released["revision_label"] == "Revision v1.0.0"
+    assert (released["stage_label"], released["stage_class"]) == ("Released v1.0.0", "ok")
     params = root / "model/parameters.yaml"
     params.write_text(
         params.read_text().replace(
             "bracket-width:     {value: 60,", "bracket-width:     {value: 70,"
         )
     )
-    label = gather(load_product(root), root / "build", "2026-10-30")["revision_label"]
-    assert label == "draft — changed since Revision v1.0.0"
+    edited = gather(load_product(root), root / "build", "2026-10-30")
+    assert edited["revision_label"] == "draft — changed since Revision v1.0.0"
+    # unsaved edits: no longer "Released"; the badge reads as `n2f status` does
+    assert (edited["stage_label"], edited["stage_class"]) == ("Ready to release", "warn")
 
 
 def _visible_uri_texts(tree: LexborHTMLParser) -> dict[str, list[str]]:

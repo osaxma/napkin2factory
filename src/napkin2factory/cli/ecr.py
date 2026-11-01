@@ -121,12 +121,13 @@ def close(
     if json_out:
         emit_json({"id": ecr_id, "status": "closed", **result})
     else:
+        from napkin2factory.core.checks.stage import STAGE_WORDS
+
         for uri, (old, new) in result["bumped"].items():
             console.print(f"  {uri}: rev {old} → {new}")
         nxt = result.get("next_step") or "`n2f release vX.Y.Z`"
-        console.print(
-            f"[green]✓[/green] {ecr_id} closed · stage: {result['stage']} · next: {escape(nxt)}"
-        )
+        words = STAGE_WORDS[result["current_stage"]]
+        console.print(f"[green]✓[/green] {ecr_id} closed · stage: {words} · next: {escape(nxt)}")
 
 
 @ecr_app.command("reject")

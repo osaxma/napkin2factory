@@ -108,8 +108,8 @@ def test_promote_green_card_writes_the_expected_model(product: Path) -> None:
             golden.write_text(text, encoding="utf-8")
         assert text == golden.read_text(encoding="utf-8"), f"{rel} differs from {golden}"
     assert result.summary() == (
-        "C-003 is now the design direction (DEC-002). Seeded 5 parameters, 5 requirements "
-        "(3 about form, 1 about the alcove, 1 about the supply), wrote style.yaml. C-001, "
+        "C-003 is now the design direction (DEC-002). Seeded 7 parameters, 6 requirements "
+        "(3 about form, 2 about the alcove, 1 about the supply), wrote style.yaml. C-001, "
         "C-002 and C-004 are kept as alternatives. Next: `n2f build && n2f check`."
     )
     # the cards flipped; the chosen one names the decision
@@ -125,12 +125,13 @@ def test_promote_green_card_writes_the_expected_model(product: Path) -> None:
     assert "Promote C-003: Appliance-style compact kiln" in vcs._git("log", "-1").stdout
     # the model loads, every new requirement validates and the ids are all in the JSON
     model = load_product(root)
-    assert [f"req://REQ-00{i}" for i in range(4, 9)] == [
+    assert [f"req://REQ-00{i}" for i in range(4, 10)] == [
         r["uri"] for r in result.to_dict()["requirements"]
     ]
     kinds = {r.id: r.verify.kind for r in model.requirements.values() if r.verify}
-    assert [kinds[f"REQ-00{i}"] for i in range(4, 9)] == [
+    assert [kinds[f"REQ-00{i}"] for i in range(4, 10)] == [
         "geometry_prop",
+        "param_bound",  # the door's room beside the hinge, a parameter (B-0023)
         "param_bound",
         "rule",
         "rule",
@@ -228,7 +229,7 @@ def test_parameter_collision_refuses_then_reconciles(product: Path) -> None:
     result = promote(product, "C-003", now=NOW)
     status = {p.name: p.status for p in result.params}
     assert status["chamber-width"] == "declared" and status["chamber-depth"] == "new"
-    assert "Seeded 4 parameters (1 already declared)" in result.summary()
+    assert "Seeded 6 parameters (1 already declared)" in result.summary()
     assert params.read_text().count("chamber-width:") == 1
 
 
@@ -252,7 +253,7 @@ def test_product_without_an_assembly_allocates_unallocated(product: Path) -> Non
     alcove = model.requirements["REQ-004"]
     assert alcove.allocation == "unallocated"
     assert alcove.verify is not None and alcove.verify.kind == "manual"
-    assert model.requirements["REQ-006"].allocation == "unallocated"
+    assert model.requirements["REQ-007"].allocation == "unallocated"  # a form row
     assert any("no assembly yet" in n for n in result.notes)
 
 

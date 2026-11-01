@@ -60,6 +60,7 @@ def test_signoff_semantics(tmp_path: Path) -> None:
     st = compute_stage(load_product(root))
     verify = st.gates[2]
     assert st.stage == "verify" and not verify.ok and verify.blockers == []
+    assert st.current == "verify"  # held open by the example: still being worked in (B-0033)
     assert verify.detail["example_signoffs"] == ["REQ-004"]
     assert verify.detail["why"] == "1 example sign-off — not a review"
     assert verify.caveats == [st.next_step]
@@ -81,6 +82,9 @@ def test_signoff_semantics(tmp_path: Path) -> None:
     st = compute_stage(load_product(root))
     assert st.gates[2].ok and st.stage == "verify" and "no Revision" in st.next_step
     assert st.headline == "ready"  # n2f status: "stage: ready to release" (gate B, B5)
+    assert st.to_dict()["current_stage"] == "ready" and st.to_dict()["stage"] == "verify"
+    r = n2f("status", cwd=root)
+    assert "stage: ready to release" in r.stdout, r.stdout
     r = n2f("check", cwd=root)
     assert "1 signed off" in r.stdout and "example" not in r.stdout
     # change the evidence (base geometry) → back to needs-human

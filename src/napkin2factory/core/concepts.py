@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from napkin2factory.core.errors import N2FError, Problems
 from napkin2factory.core.model.concepts import CONCEPT_STATUSES, ConceptCard
+from napkin2factory.core.units import is_quantity
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip, read_yaml
 
 CONCEPTS_DIR = "concepts"
@@ -36,11 +37,56 @@ SITE_KEYS: frozenset[str] = frozenset(
         "door_clearance",
         "ambient_max",
         "outdoor",
+        "touch_limit",
     }
 )
+#: The kind of number screening reads from a card key: a unit it must convert to, the
+#: kind in words and an example (C8). A number of another kind (``power: 3 kg``) is a lint
+#: error, and screening leaves it out with a note instead of failing on it.
+QUANTITY_KINDS: dict[tuple[str, str], tuple[str, str, str]] = {
+    ("envelope", "power"): ("W", "a power", "2.5 kW"),
+    ("envelope", "heat_up_time"): ("hour", "a time", "4 h"),
+    ("envelope", "max_temperature"): ("degC", "a temperature", "1200 degC"),
+    ("envelope", "door_swing"): ("degree", "an angle", "110 degree"),
+    ("envelope", "door_width"): ("mm", "a length", "600 mm"),
+    ("envelope", "target_volume"): ("L", "a volume", "8 L"),
+    ("site", "alcove_width"): ("mm", "a length", "800 mm"),
+    ("site", "alcove_depth"): ("mm", "a length", "600 mm"),
+    ("site", "alcove_height"): ("mm", "a length", "1400 mm"),
+    ("site", "mass_limit"): ("kg", "a mass", "40 kg"),
+    ("site", "touch_limit"): ("degC", "a temperature", "60 degC"),
+    ("site", "ambient_max"): ("degC", "a temperature", "40 degC"),
+}
 #: Sections ``n2f concept new --from`` copies from the card it starts from.
 COPIED_SECTIONS: tuple[str, ...] = ("layout", "envelope", "site", "style", "massing", "notes")
 SCHEMA_RULE = "C0-schema"
+
+
+def wrong_kind(section: str, key: str, value: Any) -> tuple[str, str, str] | None:
+    """Why a card number is not the kind screening reads, else ``None``.
+
+    Returns ``(the value as written, the kind it should be, an example)``. Only the keys in
+    :data:`QUANTITY_KINDS` are checked; a missing value is not a problem.
+    """
+    spec = QUANTITY_KINDS.get((section, key))
+    if spec is None or value is None:
+        return None
+    unit, kind, example = spec
+    if is_quantity(value):
+        try:
+            value.to(unit)
+        except Exception:  # pint DimensionalityError: another kind of quantity
+            return f"{value.magnitude:g} {value.units:~}", kind, example
+        return None
+    return str(value), kind, example
+
+
+def card_quantity(card: ConceptCard, section: str, key: str) -> Any | None:
+    """The card's ``section.key`` number when it is the kind screening reads, else ``None``."""
+    value = getattr(card, section).get(key)
+    if not is_quantity(value) or wrong_kind(section, key, value) is not None:
+        return None
+    return value
 
 
 def concepts_dir(root: Path) -> Path:
@@ -392,7 +438,7 @@ def set_aside_words(reason: str | None) -> str:
 
 
 def lint_concepts(root: Path) -> Problems:
-    """``n2f concept lint``: schema plus rules C1–C7; only C5 (site keys) is a warning."""
+    """``n2f concept lint``: schema plus rules C1–C8; only C5 (site keys) is a warning."""
     problems = Problems()
     cards = load_concepts(root, problems)
     files = {p.stem: p for p in card_files(root)}
@@ -462,6 +508,17 @@ def lint_concepts(root: Path) -> Problems:
                     f"based_on {card.based_on}: there is no such card",
                     f"name an existing card ({known}) or remove based_on",
                     rule="C4-based-on-exists",
+                )
+        for section, key in QUANTITY_KINDS:
+            wrong = wrong_kind(section, key, getattr(card, section).get(key))
+            if wrong is not None:
+                shown, kind, example = wrong
+                problems.add(
+                    path,
+                    card.id,
+                    f"{section}.{key} is {shown}, which is not {kind}",
+                    f"give it as {kind} with its unit, like {example}",
+                    rule="C8-number-kinds",
                 )
         for key in card.site:
             if key not in SITE_KEYS:

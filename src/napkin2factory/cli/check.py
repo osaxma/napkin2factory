@@ -153,7 +153,7 @@ def render_md(data: dict) -> str:  # type: ignore[type-arg]
 @handle_errors
 def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
     """Where the product is (napkin → intake → … → released) and what blocks the next gate."""
-    from napkin2factory.core.checks.stage import compute_stage
+    from napkin2factory.core.checks.stage import STAGE_WORDS, compute_stage
 
     root = product_root(dir)
     warn_if_pin_excludes(root, json_out)
@@ -163,20 +163,13 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
         emit_json(rep.to_dict())
         return
     persona = product.operator.persona
-    names = {
-        "napkin": "Napkin",
-        "intake": "Intake",
-        "design": "Design",
-        "verify": "Verify",
-        "released": "Released",
-    }
-    headline = {**names, "ready": "ready to release"}[rep.headline]
     console.print(
-        f"[bold]{escape(product.manifest.product.name)}[/bold] — stage: [bold]{headline}[/bold]"
+        f"[bold]{escape(product.manifest.product.name)}[/bold] — "
+        f"stage: [bold]{rep.current_words}[/bold]"
     )
     for g in rep.gates:
         mark = "[green]✓[/green]" if g.ok else "[yellow]○[/yellow]"
-        console.print(f"  {mark} {names[g.name]}")
+        console.print(f"  {mark} {STAGE_WORDS[g.name]}")
         if not g.ok:
             # blockers first, then caveats (example sign-offs: the gate is open, not blocked)
             reasons = g.blockers + g.caveats

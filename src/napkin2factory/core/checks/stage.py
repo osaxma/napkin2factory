@@ -33,6 +33,16 @@ from napkin2factory.core.model.concepts import CONCEPT_STATUSES as CARD_STATUSES
 STAGES = ("intake", "design", "verify", "released")
 #: The optional stage before Intake (N11); present only when ``concepts/`` holds a card.
 NAPKIN = "napkin"
+#: What ``StageReport.current`` reads as to an owner, everywhere it is shown (B-0033):
+#: the ``n2f status`` headline, the report badge and ``n2f ecr close``.
+STAGE_WORDS = {
+    NAPKIN: "Napkin",
+    "intake": "Intake",
+    "design": "Design",
+    "verify": "Verify",
+    "ready": "ready to release",
+    "released": "Released",
+}
 
 
 @dataclass
@@ -55,29 +65,51 @@ class Gate:
 
 @dataclass
 class StageReport:
-    """Current stage plus every gate."""
+    """Where the product stands, every gate, and the next step.
+
+    Two readings of "stage" (B-0033).  :attr:`current` is the one every person sees: the
+    stage being worked in, i.e. the first gate not complete (review gate B, B5) — the
+    ``n2f status`` headline, the report badge and ``n2f ecr close`` all print it, and
+    ``--json`` carries it as ``current_stage``.  :attr:`stage` is the last gate passed
+    (a gate held open only by example sign-offs counts as passed); it stays in ``--json``
+    unchanged for scripts written against v0.1.
+    """
 
     stage: str
     gates: list[Gate]
     next_step: str
 
     @property
-    def headline(self) -> str:
-        """The stage ``n2f status`` names: the first gate not complete (review gate B, B5).
+    def current(self) -> str:
+        """The stage being worked in: the first gate not complete (review gate B, B5).
 
-        ``stage`` is the last gate passed (kept for ``--json`` and the report); the owner
-        reads the stage they are working in, so a ticked Intake reads "Design".  When only
-        Released is open the product is ``ready``; when every gate is done, ``released``.
+        A ticked Intake reads ``design``; when only Released is open the product is
+        ``ready`` (to release); once the current snapshot is a Revision, ``released`` —
+        also a demonstration Revision whose Verify gate stays open only for example
+        sign-offs (the report and ``n2f status`` still list those).
         """
+        if self.gates and self.gates[-1].name == "released" and self.gates[-1].ok:
+            return "released"
         first_open = next((g.name for g in self.gates if not g.ok), None)
         if first_open is None:
             return "released"
         return "ready" if first_open == "released" else first_open
 
+    @property
+    def headline(self) -> str:
+        """Alias of :attr:`current` (the name ``n2f status`` used first)."""
+        return self.current
+
+    @property
+    def current_words(self) -> str:
+        """:attr:`current` in owner words (``STAGE_WORDS``)."""
+        return STAGE_WORDS[self.current]
+
     def to_dict(self) -> dict[str, Any]:
-        """JSON form."""
+        """JSON form: ``stage`` (last gate passed) and ``current_stage`` (being worked in)."""
         return {
             "stage": self.stage,
+            "current_stage": self.current,
             "gates": [g.__dict__ for g in self.gates],
             "next_step": self.next_step,
         }

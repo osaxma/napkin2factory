@@ -23,7 +23,9 @@ def test_without_concepts_the_gates_are_the_v01_gates(bracket: Path) -> None:
     product = load_product(bracket)
     rep = compute_stage(product)
     assert [g.name for g in rep.gates] == V01_GATES
-    assert set(rep.to_dict()) == {"stage", "gates", "next_step"}
+    assert set(rep.to_dict()) == {"stage", "current_stage", "gates", "next_step"}
+    # B-0033: `stage` is the last gate passed, `current_stage` the one being worked in
+    assert rep.to_dict()["stage"] == "intake" and rep.to_dict()["current_stage"] == "design"
     assert rep.to_dict() == compute_stage(product, napkin=False).to_dict()
     assert napkin_gate(bracket) is None
     # an empty concepts/ folder is still "no concepts"

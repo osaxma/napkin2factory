@@ -1,13 +1,16 @@
 """Goldens and properties for the sheet-metal generators ``bracket_l`` and ``enclosure``.
 
-Flat-pattern check (D14/M2): ``flat_pattern.area × thickness`` must match the solid volume
-within 2 %.  Straight regions match exactly; the only difference is in the bends: the flat
-carries the bend allowance ``(π/2)(r + k·t)`` per unit width while the bent solid holds
-``(π/2)(r + t/2)·t`` — i.e. the solid's volume is set by the mid-plane (k = 0.5) and the
-flat by the neutral axis (k ≤ 0.5), so the flat is slightly smaller, by
-``(π/2)(0.5 − k)·t²`` per unit bend length, well under 2 % for any sane part.  The gap
-grows for stubby, thick parts with r/t < 1 (k = 0.33): a 20 mm × 20 mm bracket of 4 mm
-sheet with r = 0.5 is ~3 % off — so the property ranges keep legs ≥ 30 mm and t ≤ 3 mm.
+Flat-pattern check (D14/M2, exact since B-0026): ``flat_pattern.area × thickness`` equals the
+solid volume less a known bend term.  Straight regions, reliefs and cutouts match exactly;
+the only difference is in the bends.  The flat carries the neutral-axis bend allowance
+``(π/2)(r + k·t)`` per unit width, while the modelled bend is a full-thickness annular sector
+of volume ``(π/2)(r + t/2)·t`` — its mid-plane sits at k = 0.5.  So per 90° bend of length
+``L`` the solid holds ``(π/2)(0.5 − k)·t²·L`` more than ``area × t`` (a real bend thins
+instead; the solid models nominal thickness, as CAD sheet-metal solids do).  The term is
+zero at k = 0.5 and largest for thick sheet on sharp bends (k = 0.33): 3.7 % of the volume
+for a 60 mm box of 3 mm sheet, r = 1, 25 mm high with a lip; 3.3 % for a 20 mm bracket of
+4 mm sheet, r = 1.  With the term added the two sides agree to ~1e-14 (measured), so the
+checks compare against it at 1e-6.
 """
 
 import math
@@ -62,6 +65,23 @@ def _flat_ratio(res):
     return res.flat_pattern.area * res.features.thickness / res.shape.volume
 
 
+def _bend_excess(res):
+    """Volume the full-thickness bend solids hold beyond ``flat area × t`` (module docstring)."""
+    t = res.features.thickness
+    return sum(
+        math.pi / 2 * (0.5 - b.k_factor) * t * t * math.dist(b.start, b.end)
+        for b in res.features.bends
+    )
+
+
+def _assert_flat_matches_volume(res):
+    """``flat area × t`` plus the bend term equals the solid volume, and the term is ≥ 0."""
+    excess = _bend_excess(res)
+    assert excess >= 0
+    flat_volume = res.flat_pattern.area * res.features.thickness
+    assert flat_volume + excess == pytest.approx(res.shape.volume, rel=1e-6)
+
+
 # ---------------------------------------------------------------- shared math
 
 
@@ -88,6 +108,7 @@ def test_bracket_basic(check_golden):
     x, y, z = _bbox(r)
     assert abs(x - 60) < 1e-3 and abs(y - 50) < 1e-3 and abs(z - 40) < 1e-3
     assert abs(_flat_ratio(r) - 1) < 0.02
+    _assert_flat_matches_volume(r)
     assert r.shape.label == "part://b"
     assert {d.label for d in r.dims} >= {
         "length",
@@ -155,7 +176,7 @@ def test_bracket_properties(length, height, width, t, r, holes):
     assert res.shape.volume > 0
     x, y, z = _bbox(res)
     assert abs(x - length) < 1e-3 and abs(y - width) < 1e-3 and abs(z - height) < 1e-3
-    assert abs(_flat_ratio(res) - 1) < 0.02
+    _assert_flat_matches_volume(res)
 
 
 # ---------------------------------------------------------------- enclosure
@@ -172,6 +193,7 @@ def test_enclosure_basic(check_golden, tmp_path):
     x, y, z = _bbox(r)  # the lip adds `flange` beyond each wall
     assert abs(x - 224) < 1e-3 and abs(y - 144) < 1e-3 and abs(z - 60) < 1e-3
     assert abs(_flat_ratio(r) - 1) < 0.02
+    _assert_flat_matches_volume(r)
     assert r.shape.label == "part://e"
     assert {d.label for d in r.dims} >= {
         "length",
@@ -229,6 +251,7 @@ def test_enclosure_without_lip():
     x, y, z = _bbox(r)
     assert abs(x - 120) < 1e-3 and abs(y - 80) < 1e-3 and abs(z - 40) < 1e-3
     assert abs(_flat_ratio(r) - 1) < 0.02
+    _assert_flat_matches_volume(r)
     assert r.features.flanges[0].height == pytest.approx(40 - 2 - 2)  # height − t − r
 
 
@@ -272,8 +295,41 @@ def test_enclosure_properties(length, width, height, t, r, flange):
     x, y, z = _bbox(res)
     ex, ey = length + 2 * flange, width + 2 * flange
     assert abs(x - ex) < 1e-3 and abs(y - ey) < 1e-3 and abs(z - height) < 1e-3
-    # flat area × t ≈ volume is an approximation (k-factor bend allowance, flange corners):
-    # 2 % holds for ordinary sheet, but at this strategy's corner (3 mm sheet on a 25 mm-high
-    # 60 mm box, sharp bends, a flange) it reaches 3.7 % — measured over every corner in M6,
-    # after a hypothesis run found t=3, r=1, h=25 at 2.2 % (B-0026)
-    assert abs(_flat_ratio(res) - 1) < 0.04
+    _assert_flat_matches_volume(res)
+
+
+@pytest.mark.parametrize(
+    ("kit", "args", "gap"),
+    [
+        (
+            "enclosure",
+            {
+                "length": 60,
+                "width": 60,
+                "height": 25,
+                "thickness": 3,
+                "bend_radius": 1,
+                "flange": 8,
+                "cutouts": [{"face": "base", "width": 15, "height": 15}],
+            },
+            0.0366,
+        ),
+        (
+            "bracket_l",
+            {
+                "length": 20,
+                "height": 20,
+                "width": 10,
+                "thickness": 4,
+                "bend_radius": 1,
+                "holes": {"diameter": 2.5},
+            },
+            0.0326,
+        ),
+    ],
+)
+def test_flat_identity_worst_corner(kit, args, gap):
+    """B-0026: the worst sweep corners miss ``area × t ≈ volume`` by the bend term alone."""
+    res = run(kit, args, KitContext("p"))
+    assert 1 - _flat_ratio(res) == pytest.approx(gap, abs=5e-4)
+    _assert_flat_matches_volume(res)

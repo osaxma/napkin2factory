@@ -56,8 +56,15 @@ Conventions for `massing`:
 - **Mass** is computed only when every call has a `material`; `process_class` picks the cost
   band when the generator's own process is wrong (`cots-controls` for a bought control box).
 - **Numbers only**: a card cannot refer into the model (`param://…`).
+- **Optional fields screening reads**: `envelope.door_swing` (how far a hinged door opens,
+  `110 degree`; without it the door counts swung fully back, the widest case),
+  `envelope.door_width` (the leaf, when there is no `door` call), `envelope.target_volume`
+  (the useful volume the owner asked for, `8 L`), `site.touch_limit` (the hottest outside
+  surface allowed, `60 degC`; without it, a burn threshold on file, `[verify]`). Like every
+  `envelope` number, `door_swing` and `target_volume` seed parameters at promotion.
 - `n2f concept lint` after every edit: schema, ids, refs that exist, known kit names,
-  quantities that parse; unknown `site` keys only warn.
+  quantities that parse and are the right kind (`power: 3 kg` is an error; screening leaves
+  such a number out with a note); unknown `site` keys only warn.
 
 ## What a build does
 
@@ -83,7 +90,8 @@ Every number carries a label, in the card, in JSON and on screen:
   still an estimate.
 - **`computed`** — measured from the massing shapes: `width`, `depth`, `height` (the
   bounding box), `volume`, `mass` (only when every call declares a `material`), and
-  `footprint_with_door_swing` (only when the card's `layout` names a door: no door, no row).
+  `footprint_with_door_swing` and `door_leaf` (only when the card's `layout` names a door:
+  no door, no rows).
 - **`estimate`** — from the calc kit ([calckit.md](calckit.md)) fed with the card's
   `envelope` numbers: `heat_loss`, `skin_temperature`, `stored_heat`, `heat_up_time`
   (from `envelope.power`) or `required_power` (from `envelope.heat_up_time`),
@@ -111,13 +119,15 @@ the box without resistance or stored heat. All of these are `[verify]`.
 
 | rule | fails when |
 |---|---|
-| `fits-site-width` | width + the open door > `site.alcove_width`. A hinged door (`layout.door: hinged-left/right`) adds its own width beside the hinge (the `door` massing call, else `envelope.door_width`) |
+| `fits-site-width` | width + the open door > `site.alcove_width`. A hinged door (`layout.door: hinged-left/right`) adds what its leaf (the `door` massing call, else `envelope.door_width`) reaches past the hinge: leaf × max(0, −cos `envelope.door_swing`), the whole leaf when the card gives no angle |
 | `fits-site-depth`, `fits-site-height` | depth/height exceed `site.alcove_depth`/`alcove_height` |
 | `circuit-available` | the current × 1.2 headroom ("a fifth to spare" in the owner's line) exceeds `site.circuit` (e.g. `240V-13A`) or every class on file for `site.region`; an unknown region only warns |
 | `mass-vs-lift-class` (warning) | the mass needs more than a two-person lift, or more than `site.lift_class` |
 | `blank-vs-stock-sheet` | a sheet-metal call's flat blank (open box: (L + 2H) × (W + 2H)) fits no stock sheet on file |
 | `walls-fit-envelope` | chamber + 2 × insulation does not fit inside the `body` call |
 | `controls-not-adjacent-hot-face` (warning) | controls sit on top or beside the door, in the hot air path |
+| `skin-vs-touch-limit` (warning) | the skin estimate is above `site.touch_limit`, or without one the 1-minute burn threshold in `calckit/data/touch_limits.yaml` (ISO 13732-1, `[verify]`) |
+| `chamber-volume-vs-target` (warning) | the chamber holds less than `envelope.target_volume` |
 
 Each rule carries an owner-worded `title` ("Fits the alcove with the door open", "Every sheet
 fits a stock size", "The walls fit inside the body"); `n2f concept show` prints the title,
@@ -202,9 +212,15 @@ computed and validated first; a refusal writes nothing):
 3. **Site constraints become requirements**, allocated to the top assembly
    (`unallocated` and checked by a person when there is no assembly yet):
    - `alcove_width` → "Fits the alcove with the door open": `asm://<top>#props.bbox.x ≤
-     alcove_width − door-swing term`, the term being screening's computed one
-     (`footprint_with_door_swing − width`, 0 for a door that does not swing sideways),
-     stated in the rationale. This is what makes DEC-011 impossible to repeat;
+     alcove_width − allowance`, the allowance being the room the open door takes beside
+     the hinge (screening's door-swing term rounded up to 0.1 mm; 0 for a door that does
+     not swing sideways), stated in the rationale. For a hinged door promotion also seeds
+     `door-leaf-width` (screening's leaf; `door-width` when the card gives `door_width`)
+     and `door-swing-clearance` (an expression on it, `door-leaf-width * 0.34202` at 110°),
+     and writes a second row, "The open door keeps to its room beside the hinge":
+     `param://door-swing-clearance ≤ allowance`. Rewrite the leaf as an expression over the
+     designed door's parameters and a wider door or a wider opening fails instead of passing
+     unseen. This is what makes DEC-011 impossible to repeat;
    - `alcove_depth` / `alcove_height` → `bbox.y` / `bbox.z` bounds;
    - `circuit` with an `envelope.power` → `param://element-power ≤ V × I / headroom`, the
      `headroom` (1.2) read from rule `circuit-available` — the same margin screening used,
@@ -316,19 +332,20 @@ word:
 
 ```
 ✗ C-001 — this direction has problems:
-    • it needs 1698 mm of width — 995 mm for the body plus 702 mm for the open door (hinged-left: the 702 mm door leaf swung open beside the hinge) — but the alcove is 800 mm
-  995 × 667 × 1370 mm (computed), 2.5 kW (on the card) on the 230V-16A circuit — fits with a fifth to spare (estimate), 4.4 h to temperature (estimate), 1130–2747 USD (estimate)
+    • it needs 1236 mm of width — 995 mm for the body plus 240 mm for the open door (the 702 mm door leaf opened to 110°) — but the alcove is 800 mm
+  995 × 667 × 1370 mm (computed), 2.5 kW (on the card) on the 230V-16A circuit — fits with a fifth to spare (estimate), 4.4 h to temperature (estimate), 650–2267 USD (estimate)
+  ! worth a look: the outside skin is about 61 degC (estimate), above the 60 degC touch limit (on the card) — more insulation or a guard would bring it down
 ```
 
 - **DEC-011, the alcove.** The 995 mm is the closed width. It is computed from the rough
-  shapes and matches the v0.1 report's bounding box. The 702 mm door leaf, swung open beside
-  its hinge, brings the width to 1698 mm, and the owner's alcove is about 800 mm. The kiln
-  is too wide even with the door shut. v0.1 found this when the report was built, at hour
-  forty. Screening finds it in the time a card takes to build.
-- **DEC-012, the cost.** The estimate is 1130–2747 USD. It counts only the parts screening
+  shapes and matches the v0.1 report's bounding box. The 702 mm door leaf, opened to its
+  110°, reaches 240 mm past the hinge and brings the width to 1236 mm, and the owner's alcove
+  is about 800 mm. The kiln is too wide even with the door shut. v0.1 found this when the
+  report was built, at hour forty. Screening finds it in the time a card takes to build.
+- **DEC-012, the cost.** The estimate is 650–2267 USD. It counts only the parts screening
   can price: the guard sheets, the stand, the hinge, one control box, and the brick and
   fiber. The inner shell, the door sheets and most bought-in parts are not in it. The band
-  is incomplete, and the owner's 1500 USD wish already sits near its bottom. v0.1's
+  is incomplete, and the owner's 1500 USD wish already sits inside it. v0.1's
   per-part estimate came to about 2200 USD.
 - **DEC-004, the heat-up.** The estimate is 4.4 h to 1200 degC at 2.5 kW. That is
   screening's number, not the 7 h in DEC-004. The 7 h is the margin planned on top of the
@@ -340,17 +357,23 @@ The other three cards show the choices that follow. **C-002** was worked back fr
 rule and fits it at 773 mm with the door open. To fit, it gives up three things, and its
 notes and numbers show each one. Its chamber is 3.4 L, below the 8 L that REQ-001 asks for.
 It has no touch guard, so its skin estimate is 91 degC against a 60 degC limit. Its
-controller box hangs under the body. The concept rule pack has no rule on skin temperature
-or chamber volume, so the board's limitations box for C-002 stays empty. **C-003** is the
-kiln as built in the appliance look the owner preferred. It assumes an alcove of about
-1.75 m, which the owner has not confirmed (DEC-011). Screening counts the door leaf swung
-fully back. The real door stops at 110°, so about 1.3 m may be enough in practice. **C-004**
+controller box hangs under the body. Its card states the 8 L target and the 60 degC touch
+limit, so screening lists the small chamber and the hot skin as worth a look: the trade-offs
+show on the board without a red verdict. **C-003** is the kiln as built in the appliance look
+the owner preferred. It assumes an alcove of about 1.75 m, which the owner has not confirmed
+(DEC-011). Its card gives the door's 110° opening, so screening asks for 1236 mm with the door
+open; with a hand's room beside the hinge, about 1.3 m may be enough in practice. **C-004**
 is C-003 in the v0.1 look. It was rejected because the owner did not like that look.
 
-Promoting C-003 shows reconcile mode at work. All ten of the card's envelope numbers were
-already in `parameters.yaml` with the same values, so nothing was seeded or overwritten.
-Four requirements were added. The alcove requirement takes off the door swing, giving
-closed width ≤ 1047 mm, and the kiln as built measures 995.4 mm. The supply requirement is
+Promoting C-003 shows reconcile mode at work. All eleven of the card's envelope numbers, and
+the two door numbers the alcove requirements read (`door-leaf-width`, written in the kiln as
+the door guard's width, and `door-swing-clearance`), were already in `parameters.yaml` with
+the same values, so nothing was seeded or overwritten.
+Five requirements were added. The alcove requirement takes off the 240.3 mm the open door
+needs beside the hinge, giving closed width ≤ 1509.7 mm, and the kiln as built measures
+995.4 mm. A second alcove requirement holds the door to that room: the door's width is a
+parameter (the door guard's outside width), so a wider door or a wider opening fails there
+instead of passing unseen. The supply requirement is
 element power ≤ 3066.7 W on 230 V / 16 A. The two form requirements are a 1 mm minimum
 corner radius and controls on the right. `style.yaml` takes the appliance look. DEC-018
 records C-001, C-002 and C-004 as rejected alternatives. The card's corner radius and

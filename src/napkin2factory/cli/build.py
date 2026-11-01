@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 import typer
 
@@ -17,7 +18,7 @@ from napkin2factory.cli.common import (
     warn_if_pin_excludes,
 )
 from napkin2factory.cli.kernel import KERNEL_NOTE, load_cad_kernel
-from napkin2factory.core.loader import load_product
+from napkin2factory.core.loader import Product, load_product
 
 __all__ = ["KERNEL_NOTE", "build", "load_cad_kernel"]
 
@@ -76,6 +77,7 @@ def build(
                 {
                     "parts": {k: v.props for k, v in parts.items()},
                     "assemblies": {k: v.props for k, v in asms.items()},
+                    "render_notes": _render_notes(product),
                 }
             )
         else:
@@ -83,6 +85,7 @@ def build(
                 f"[green]✓[/green] geometry: {len(parts)} parts, {len(asms)} assemblies "
                 f"→ {product.paths.build}"
             )
+            print_render_notes(product)
         return
     from napkin2factory.core.graph.runner import run_build
 
@@ -96,4 +99,22 @@ def build(
         quiet=json_out,
     )
     if json_out:
-        emit_json(summary)
+        emit_json({**summary, "render_notes": _render_notes(product)})
+    else:
+        print_render_notes(product)
+
+
+def _render_notes(product: Product) -> dict[str, Any]:
+    from napkin2factory.geometry.build import render_notes
+
+    return render_notes(product)
+
+
+def print_render_notes(product: Product) -> None:
+    """Print what the pictures had to remark (B-0019), in plain words, after the summary."""
+    from rich.markup import escape
+
+    from napkin2factory.geometry.build import render_note_lines
+
+    for line in render_note_lines(product, _render_notes(product)):
+        console.print(f"  [yellow]note[/yellow] {escape(line)}", highlight=False)

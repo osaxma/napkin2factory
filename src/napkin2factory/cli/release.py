@@ -54,11 +54,12 @@ def release(
     if json_out:
         emit_json(result)
         return
-    tag = (
-        "[yellow]dry run[/yellow] — nothing tagged"
-        if dry_run
-        else f"Revision [bold]{result['version']}[/bold] released"
-    )
+    if result.get("repackaged"):
+        tag = f"[yellow]dry run[/yellow] — Revision [bold]{result['version']}[/bold] packaged again"
+    elif dry_run:
+        tag = "[yellow]dry run[/yellow] — nothing tagged"
+    else:
+        tag = f"Revision [bold]{result['version']}[/bold] released"
     console.print(f"[green]✓[/green] {tag}")
     console.print(f"  package: {escape(result['zip'])}")
     console.print(f"  site:    {escape(result['site'])}/index.html")

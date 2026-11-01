@@ -6,6 +6,7 @@ centre of one end; the tube extends along ``+axis``.
 
 from __future__ import annotations
 
+import math
 from typing import Any, Literal
 
 from build123d import (
@@ -114,15 +115,42 @@ def _overall_dims(a: Args) -> list[Dim]:
     ]
 
 
+def section_area(a: Args) -> float:
+    """Cross-section area of the stock in mm², bore and rounded corners included.
+
+    The same section :func:`generate` extrudes: a round tube is π/4 (D² − d²); a square
+    one loses (4 − π) r² at its rounded corners, outside (r) and inside (r − wall).
+    """
+    s = a.size
+
+    def area(size: float, radius: float) -> float:
+        if a.shape == "round":
+            return math.pi * size * size / 4
+        return size * size - (4 - math.pi) * radius * radius
+
+    outer = area(s, a.corner_radius)
+    if is_solid(a):
+        return outer
+    return outer - area(s - 2 * a.wall, max(a.corner_radius - a.wall, 0.0))
+
+
 def massing(a: Args, ctx: KitContext) -> PartResult:
-    """Silhouette (N3): the outer solid along ``+axis`` with no bore and sharp corners."""
+    """Silhouette (N3): the outer solid along ``+axis`` with no bore and sharp corners.
+
+    The silhouette is solid, so the props carry what the stock really holds, as
+    ``geometry/kit/frame.py`` does: ``section_area`` × ``length`` = ``material_volume``, the
+    full build's volume. The massing composer weighs a tube by it, so a hollow tube is
+    weighed hollow (B-0021).
+    """
     _validate(a)
     align = (Align.CENTER, Align.CENTER, Align.MIN)
     if a.shape == "round":
         solid: Any = Cylinder(a.size / 2, a.length, align=align)
     else:
         solid = Box(a.size, a.size, a.length, align=align)
-    return massing_result(_orient(solid, a.axis), a.process, _overall_dims(a), ctx)
+    area = section_area(a)
+    props = {"section_area": area, "material_volume": area * a.length}
+    return massing_result(_orient(solid, a.axis), a.process, _overall_dims(a), ctx, props)
 
 
 def generate(a: Args, ctx: KitContext) -> PartResult:

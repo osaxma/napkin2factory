@@ -465,12 +465,19 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         revision = None
     if revision and not clean:
         revision = None  # an edited model is not the released Revision (gate-2 B4)
-    stage_label = {
-        "intake": "Intake",
-        "design": "Design",
-        "verify": "Verify",
-        "released": f"Released {revision or ''}".strip(),
-    }[stage.stage]
+    # the badge names the stage being worked in, as `n2f status` does (B-0033)
+    stage_label = stage.current_words
+    if stage.current == "ready":
+        stage_label = "Ready to release"
+    elif stage.current == "released":
+        stage_label = f"Released {revision or ''}".strip()
+    verify_gate = next(g for g in stage.gates if g.name == "verify")
+    if stage.current == "released":
+        stage_class = "ok"
+    elif stage.current == "ready" or verify_gate.open_only_by_caveats:
+        stage_class = "warn"  # nothing blocks a release (example sign-offs need --allow…)
+    else:
+        stage_class = "skip"
     if revision:
         revision_label = f"Revision {revision}"
     elif last_revision:
@@ -488,6 +495,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "anchors": anchors,
         "stage": stage,
         "stage_label": stage_label,
+        "stage_class": stage_class,
         "revision_label": revision_label,
         "summary": summary,
         "glb_b64": glb_b64,

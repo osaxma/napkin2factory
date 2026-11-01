@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -95,6 +96,33 @@ def test_release_package_and_site(released: Path) -> None:
     # second release of the same name refused
     r = _run("release", "v1.0.0", cwd=root, ok=False)
     assert r.returncode == 3 and "already exists" in r.stderr
+
+
+def test_dry_run_repackages_a_revision_from_its_own_snapshot(released: Path) -> None:
+    """A product's release.yml runs `n2f release <tag> --dry-run` where the tag exists."""
+    from napkin2factory.core.vcs import Vcs
+
+    root, vcs = released, Vcs(released)
+    zip_path = root / "build/release/enclosure-v1.0.0.zip"
+    zip_path.unlink()
+    head = vcs.head()
+    r = _run("release", "v1.0.0", "--dry-run", "--no-render", "--allow-example-signoffs", cwd=root)
+    assert "Revision v1.0.0 packaged again" in r.stdout
+    assert zip_path.is_file() and "report.html" in "".join(zipfile.ZipFile(zip_path).namelist())
+    assert "Released v1.0.0" in (root / "build/site/v1.0.0/index.html").read_text()
+    assert json.loads((root / "build/site/versions.json").read_text())["dry_run"] is False
+    assert vcs.tags() == ["v1.0.0"] and vcs.head() == head and vcs.is_clean()
+    # at any other snapshot the Revision is not what the model holds: refused, nothing written
+    vcs.snapshot("after the release", allow_empty=True)
+    stamp = zip_path.stat().st_mtime_ns
+    r = _run("release", "v1.0.0", "--dry-run", "--no-render", cwd=root, ok=False)
+    assert r.returncode == 3 and "already exists" in r.stderr and "own snapshot" in r.stderr
+    assert zip_path.stat().st_mtime_ns == stamp
+    # a dry run for a new Revision still previews it (then the preview is cleared away)
+    r = _run("release", "v1.0.1", "--dry-run", "--no-render", "--allow-example-signoffs", cwd=root)
+    assert "nothing tagged" in r.stdout and vcs.tags() == ["v1.0.0"]
+    shutil.rmtree(root / "build/site/v1.0.1")
+    (root / "build/release/enclosure-v1.0.1.zip").unlink()
 
 
 def test_release_refused_when_evidence_changed(released: Path) -> None:

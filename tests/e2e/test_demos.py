@@ -66,9 +66,11 @@ def test_demo_napkin(tmp_path: Path) -> None:
         assert w not in out.lower(), f"git vocabulary {w!r} leaked"
     assert out.count("this direction has problems:") == 1
     assert "C-001 — this direction has problems:" in out
-    assert "702 mm for the open door" in out
+    assert "240 mm for the open door (the 702 mm door leaf opened to 110°)" in out
     assert "correctness render" not in out  # the styled pictures were taken (N6)
-    assert "(10 already declared)" in out  # promotion reconciled with the model
+    # promotion reconciled with the model: the 11 envelope numbers and the 2 door numbers
+    assert "Seeded 0 parameters (13 already declared)" in out
+    assert "+ REQ-024 The open door keeps to its room beside the hinge" in out
     work = tmp_path / "demo"
     board = work / "build/concepts/board.html"
     assert board.is_file() and board.stat().st_size <= 20 * 1024 * 1024
