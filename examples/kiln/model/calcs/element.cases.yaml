@@ -1,0 +1,90 @@
+# Reference cases of element.py (F17); see thermal.cases.yaml for how they run. power_margin
+# calls thermal.required_power, so the thermal inputs are given here too. Expected values: the
+# hand computations of model/tests/test_calcs.py (test_element_by_hand).
+inputs:
+  element-power: 2500 W
+  mains-voltage: 230 V
+  element-resistivity: 1.45 ohm*mm**2/m
+  element-wire-diameter: 1.6 mm
+  element-coil-diameter: 12 mm
+  element-grooves-per-wall: 5
+  circuit-rating: 16 A
+  ambient-temperature: 25 degC
+  brick-conductivity: 0.25 W/(m*K)
+  brick-density: 480 kg/m**3
+  brick-specific-heat: 1000 J/(kg*K)
+  brick-thickness: 64 mm
+  chamber-depth: 200 mm
+  chamber-height: 200 mm
+  chamber-width: 200 mm
+  convection-coefficient: 5 W/(m**2*K)
+  door-face-spread: 1.5
+  door-fiber-thickness: 153 mm
+  door-plug-height: 324 mm
+  door-plug-width: 324 mm
+  fiber-box-depth: 583 mm
+  fiber-box-height: 584 mm
+  fiber-box-width: 584 mm
+  fiber-clearance: 2 mm
+  fiber-conductivity: 0.15 W/(m*K)
+  fiber-density: 260 kg/m**3
+  fiber-inner-height: 334 mm
+  fiber-inner-width: 334 mm
+  fiber-specific-heat: 1050 J/(kg*K)
+  fiber-thickness: 125 mm
+  gap-air-temperature: 50 degC
+  guard-emissivity: 0.9
+  guard-gap: 25 mm
+  heat-up-time: 7 hour
+  liner-outer-depth: 264 mm
+  liner-outer-height: 328 mm
+  liner-outer-width: 328 mm
+  lining-clearance: 3 mm
+  max-temperature: 1200 degC
+  shell-emissivity: 0.9
+  shell-thickness: 1.2 mm
+cases:
+  current:
+    - expect: 10.869565 A
+      rel: 1.0e-6
+      source: "hand computation: I = 2500 W / 230 V"
+  resistance:
+    - expect: 21.16 ohm
+      rel: 1.0e-6
+      source: "hand computation: R = 230² / 2500"
+  wire_area:
+    - expect: 2.0106193 mm**2
+      rel: 1.0e-6
+      source: "hand computation: π/4 × 1.6²"
+  wire_length:
+    - expect: 29.341175 m
+      rel: 1.0e-6
+      source: "hand computation: L = 21.16 Ω × 2.0106 mm² / 1.45 Ω·mm²/m"
+  coil_turns:
+    - expect: 898.037
+      rel: 1.0e-5
+      source: "hand computation: 29 341 mm / (π × (12 − 1.6) mm)"
+  available_groove_length:
+    - expect: 3000 mm
+      rel: 1.0e-9
+      source: "hand computation: 5 grooves × (2 × 200 + 200) mm"
+  coil_pitch:
+    - expect: 3.34062 mm
+      rel: 1.0e-5
+      source: "hand computation: 3000 mm / 898.037 turns"
+  pitch_factor:
+    - expect: 2.09
+      abs: 0.01
+      source: "hand computation: 3.34 mm / 1.6 mm"
+  surface_load:
+    - expect: 1.69509 W/cm**2
+      rel: 1.0e-5
+      source: "hand computation: 2500 W / (π × 0.16 cm × 2934.1 cm)"
+  power_margin:
+    - expect: 1.26
+      abs: 0.02
+      source: "hand computation: 2500 W / (897.9 W + 27.46 MJ / 25 200 s)"
+  circuit_headroom:
+    - expect: 1.472
+      rel: 1.0e-6
+      source: "hand computation: 16 A / (2500 W / 230 V)"

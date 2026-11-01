@@ -1,0 +1,15 @@
+inputs:
+  plate-width: 200 mm
+  plate-height: 100 mm
+cases:
+  area:
+    - expect: 20000 mm**2
+      source: "hand computation: 200 mm × 100 mm"
+    - expect: 0.03 m**2
+      rel: 1.0e-9
+      inputs: {plate-width: 300 mm}
+      source: "hand computation: 300 mm × 100 mm"
+  perimeter:
+    - expect: 650 mm        # wrong on purpose: 2 × (200 + 100) = 600 mm
+      abs: 1
+      source: "a deliberately wrong case"

@@ -1,0 +1,7 @@
+schema: 1
+system: '>=0.4,<0.5'
+product:
+  id: calc-cases
+  name: Calc cases
+  description: Reference-case fixture (tests/unit/test_calckit_cases.py, F17).
+units: metric

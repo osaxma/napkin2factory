@@ -194,6 +194,13 @@ CHECK_STAGES = (
     CheckStage("reach", lazy(f"{_ENGINE}:reach_stage"), after=("hardware",)),
     CheckStage("docs", lazy(f"{_ENGINE}:docs_stage"), after=("reach",), whole_product=True),
     CheckStage("sourcing", lazy(f"{_ENGINE}:sourcing_stage"), after=("docs",), whole_product=True),
+    CheckStage(
+        "calc-case",
+        lazy("napkin2factory.core.checks.calcs:calc_case_stage"),
+        after=("sourcing",),
+        whole_product=True,
+        reads=lazy("napkin2factory.core.checks.calcs:calc_case_reads"),
+    ),  # F17: every calc proves itself (S-125)
 )
 
 

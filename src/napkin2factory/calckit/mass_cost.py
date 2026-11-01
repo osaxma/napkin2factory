@@ -14,6 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from napkin2factory.calckit._cases import Case
 from napkin2factory.calckit._tables import load_table
 from napkin2factory.core.units import Quantity
 from napkin2factory.geometry.materials import density_kg_m3
@@ -237,7 +238,60 @@ def stock_sheet_fits(
     )
 
 
+# --- reference cases (F17) -------------------------------------------------------------
+
+#: Every public function's reference cases; ``external`` ones come from a published source.
+CASES: list[Case] = [
+    Case(
+        "density",
+        Quantity(7850, "kg/m**3"),
+        "EN 1993-1-1 (Eurocode 3: design of steel structures, general rules), clause 3.2.6, "
+        "design values of material coefficients for structural steel: density 7850 kg/m3",
+        args=("mild steel",),
+        pick="0",
+        rel=1e-12,
+        external=True,
+        verify=True,
+    ),
+    Case(
+        "mass",
+        Quantity(4.8, "kg"),
+        "hand computation: 10 L of insulating firebrick at 480 kg/m3 (calckit/data/"
+        "materials.yaml) = 0.010 x 480 = 4.8 kg",
+        args=(Quantity(10, "L"), "K23 insulating firebrick"),
+        rel=1e-12,
+    ),
+    Case(
+        "cost_estimate",
+        Quantity(752, "USD"),
+        "calckit/data/cost_bands.yaml, cut-block 18.8-40.1 USD/kg: 18.8 x 40 kg = 752 USD "
+        "(the low end of the band)",
+        args=("cut-block",),
+        kwargs={"mass": Quantity(40, "kg")},
+        pick="low",
+        rel=1e-12,
+    ),
+    Case(
+        "lift_class",
+        "two-person",
+        "calckit/data/lift_classes.yaml (UK HSE INDG143 guideline weights): 30 kg is over "
+        "25 kg for one person and within 33 kg for two",
+        args=(Quantity(30, "kg"),),
+        pick="label",
+    ),
+    Case(
+        "stock_sheet_fits",
+        "1220 x 2440 mm (4 x 8 ft)",
+        "calckit/data/stock_sheets.yaml, mild steel: a 1770 x 1100 mm blank is too wide for "
+        "1000 x 2000 (1100 > 1000) and fits 1220 x 2440 (1100 <= 1220, 1770 <= 2440)",
+        args=((Quantity(1770, "mm"), Quantity(1100, "mm")),),
+        pick="sheet",
+    ),
+]
+
+
 __all__ = [
+    "CASES",
     "CostEstimate",
     "LiftVerdict",
     "StockVerdict",
