@@ -9,7 +9,8 @@ Every view iterates in a stable order: installation order, then the order a doma
 declares things in (rule families and check stages in dependency order).  Every lookup of
 an unknown name raises :class:`UnknownName`, whose message lists the known values (DoD 7).
 The open sets of F6 (processes, finishes, interface kinds, requirement categories,
-build-unit drivers) are the tables in ``core/data/*.yaml`` plus the domains' additions.
+build-unit drivers, style roles) are the tables in ``core/data/*.yaml`` plus the domains'
+additions.
 
 The core never imports a domain by name: it reads these views.
 """
@@ -35,6 +36,7 @@ from napkin2factory.core.domain import (
     ReportSection,
     RuleFamily,
     Screen,
+    StyleRoleSpec,
     VerifyKind,
 )
 
@@ -445,6 +447,27 @@ class Registry:
             out += [c for c in d.categories if c not in out]
         return tuple(out)
 
+    def style_roles(self) -> dict[str, StyleRoleSpec]:
+        """Style role → its declaration: the table's, then the domains' (F6).
+
+        The table is ``core/data/style_roles.yaml``; a later domain never replaces an
+        earlier role of the same id.
+        """
+        self.ensure()
+        out = {
+            str(row["id"]): StyleRoleSpec(
+                str(row["id"]),
+                str(row["words"]),
+                bool(row.get("styled", False)),
+                tuple(str(a) for a in row.get("aliases") or ()),
+            )
+            for row in _style_roles_table()
+        }
+        for d in self.domains:
+            for r in d.style_roles:
+                out.setdefault(r.id, r)
+        return out
+
     def drivers(self) -> dict[str, str]:
         """Build-unit driver → its owner words (v0.4 P7)."""
         self.ensure()
@@ -453,6 +476,12 @@ class Registry:
             for k, words in d.drivers.items():
                 out.setdefault(k, words)
         return out
+
+
+@lru_cache(maxsize=1)
+def _style_roles_table() -> tuple[dict[str, Any], ...]:
+    """``core/data/style_roles.yaml``, read once: every part's role is looked up in it."""
+    return tuple(_table("style_roles"))
 
 
 @lru_cache(maxsize=64)

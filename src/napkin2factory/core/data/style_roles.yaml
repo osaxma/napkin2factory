@@ -4,8 +4,8 @@
 # `styled: true` roles take the style's shape cues (corner radius, reveal, ...) when a part
 # names one explicitly (the opt-in rule, N7); the others only take a colour and a finish.
 - {id: body, words: the main body, styled: true}
-- {id: opening, words: a door, lid or hatch, styled: true, aliases: [door]}
-- {id: support, words: a stand, legs or feet, styled: true, aliases: [stand]}
+- {id: opening, words: "a door, lid or hatch", styled: true, aliases: [door]}
+- {id: support, words: "a stand, legs or feet", styled: true, aliases: [stand]}
 - {id: controls, words: controls and displays, styled: true}
 - {id: trim, words: trim and small visible parts, styled: true}
 - {id: lining, words: an inner lining}

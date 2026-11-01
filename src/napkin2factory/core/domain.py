@@ -3,9 +3,9 @@
 A domain is a Python package exposing one object, ``DOMAIN = Domain(...)``.  Everything it
 adds to the system is declared there: model families, build rule families, verify kinds,
 check stages, gate rows, report sections, doc helpers, vocabulary, interface kinds,
-processes, finishes, requirement categories, build-unit drivers, napkin screens and context
-contributions.  :mod:`napkin2factory.core.registry` holds one registry per kind; the core
-reads the registries and never imports a domain by name.  ``docs/domains.md`` is the
+processes, finishes, requirement categories, build-unit drivers, style roles, napkin screens
+and context contributions.  :mod:`napkin2factory.core.registry` holds one registry per
+kind; the core reads the registries and never imports a domain by name.  ``docs/domains.md`` is the
 contract's documentation, with the toy domain (``tests/fixtures/domains/toy/``) as its
 worked example.
 
@@ -256,18 +256,56 @@ class Process:
     declared: bool = True
 
 
+#: The napkin-stage phases a screen may run in, in order (``concepts/screens/base.py`` says
+#: what each is for): ``measure`` and ``total`` are the system's own steps, a domain's or a
+#: product's screen takes ``estimate`` (its numbers feed the totals) or ``check``.
+SCREEN_PHASES: tuple[str, ...] = ("measure", "estimate", "total", "check")
+
+
 @dataclass(frozen=True)
 class Screen:
-    """A napkin-stage screen (F8, F10), run after the built-in screens.
+    """A napkin-stage screen (F8, F10).
 
     ``run(card, massing, values)`` adds labelled numbers through ``values``
     (``values.computed.add(...)``, ``values.estimate``, ``values.given``, ``values.notes``)
-    and returns concept rule rows.
+    and returns concept rule rows.  ``fields`` are the card fields it reads
+    (:class:`~napkin2factory.concepts.screens.CardField`: section, key, kind of number,
+    example, the owner's words), from which ``n2f concept new`` writes a card's skeleton
+    and ``n2f concept lint`` checks a card; ``phase`` is when it runs (one of
+    :data:`SCREEN_PHASES`).  Left empty, both come from a ``reads`` decorator on ``run``
+    when it has one, else the screen reads no declared field and runs in ``check``.
     """
 
     name: str
     run: Callable[..., list[Any]]
     title: str = ""
+    fields: tuple[Any, ...] = ()
+    phase: str = ""
+
+    def __post_init__(self) -> None:
+        """An unknown phase is an error naming the known ones."""
+        if self.phase and self.phase not in SCREEN_PHASES:
+            raise ValueError(
+                f"screen {self.name!r}: unknown phase {self.phase!r}; "
+                f"known: {', '.join(SCREEN_PHASES)}"
+            )
+
+
+@dataclass(frozen=True)
+class StyleRoleSpec:
+    """A styling role a domain adds to ``core/data/style_roles.yaml`` (F6).
+
+    ``id`` is the word a part's or a rough shape's ``role:`` and ``style.yaml``'s
+    ``palette``/``finish`` keys use; ``words`` say it for the owner; ``styled`` roles take
+    the style's shape cues when a part names one (the opt-in rule, N7); ``aliases`` are
+    other words read as this role.  A role without a colour in the style's preset takes the
+    ``default`` role's.
+    """
+
+    id: str
+    words: str
+    styled: bool = False
+    aliases: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -312,6 +350,7 @@ class Domain:
     finishes: tuple[str, ...] = ()
     categories: tuple[str, ...] = ()
     drivers: dict[str, str] = field(default_factory=dict)
+    style_roles: tuple[StyleRoleSpec, ...] = ()
     screens: tuple[Screen, ...] = ()
     context: tuple[ContextContribution, ...] = ()
     code: tuple[str, ...] = ()

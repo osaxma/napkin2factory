@@ -6,8 +6,9 @@ can copy it.  A *toy thing* (``model/toy/<id>.yaml``) names a part and a ``glow`
 rule family writes ``build/toy/<id>.json`` after the part is built; the ``toy_glow`` verify
 kind compares that glow with a limit; the ``toy`` check stage writes one row per thing; a
 Verify gate row, a report section, a doc helper, an owner word, an interface kind, a process,
-a finish, a requirement category, a build-unit driver, a napkin screen and a module-context
-contribution complete the set.  It imports the core's public API only, never its internals.
+a finish, a requirement category, a build-unit driver, a style role, a napkin screen (with
+the card field it reads and its phase) and a module-context contribution complete the set.
+It imports the core's public API only, never its internals.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from napkin2factory.concepts.screens import CardField
 from napkin2factory.core.checks.results import CheckResult
 from napkin2factory.core.checks.stage import check_rows_state
 from napkin2factory.core.domain import (
@@ -31,6 +33,7 @@ from napkin2factory.core.domain import (
     RuleFamily,
     Screen,
     StageContext,
+    StyleRoleSpec,
     VerifyKind,
 )
 from napkin2factory.core.graph.hashing import sha256_json
@@ -216,6 +219,10 @@ def check_toy_joint(product: Any, iface: Any, build_dir: Path) -> dict[str, Any]
     return {"status": "pass" if firm else "fail", "message": f"it snaps {iface.spec.snap}"}
 
 
+#: The card field the toy screen reads (F8): ``n2f concept new`` writes it into a skeleton.
+TOYS = CardField("envelope", "toys", None, "a count", "5", "how many toys it holds")
+
+
 def toy_screen(card: Any, massing: Any, values: Any) -> list[Any]:
     """A napkin screen: an estimate of the toy count from the card's ``envelope.toys``."""
     from napkin2factory.core.model import RuleRow
@@ -265,6 +272,7 @@ DOMAIN = Domain(
     finishes=("toy-glitter",),
     categories=("fun",),
     drivers={"toy-swapped": "swapped between toys"},
-    screens=(Screen("toy", toy_screen, title="Toy count"),),
+    style_roles=(StyleRoleSpec("toy-shell", "a toy's shell", styled=True, aliases=("casing",)),),
+    screens=(Screen("toy", toy_screen, title="Toy count", fields=(TOYS,), phase="estimate"),),
     context=(ContextContribution("toy", "Toy things on its parts", toy_context),),
 )
