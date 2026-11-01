@@ -52,6 +52,7 @@ entry that closed them. Ids are never reused.
 | B-0101 | The bolts choice reopens on any edit to its joints: the kiln's ECR-001 (chamber height) moves the four guard-standoff joints and reopens it, though the bolt, the spacer and the sheet thicknesses it was decided on are unchanged; the demo decides it again | S-133; key the choice on the facts the rule reads (sizes, thicknesses), not the joints' whole keys (`core/checks/hardware.py`, M5's) |
 | B-0102 | The project manager applied a decided choice's pick to the model in the same turn, without asking the owner or filing a change request (allowed before a release) | S-136 (DoD 6 simulation); decide whether a decided pick that changes the parts list goes through `n2f ecr` with its impact even before release, and say so in `roles/pm.md` |
 | B-0103 | The kiln still writes the earlier style-role words (`role: door` on `door-guard`, `role: stand`, `palette`/`finish` `door` and `stand` in `style.yaml`): six lint L17 warnings until renamed to `opening`/`support` | S-137; rename them in `examples/kiln/` (moves part keys, so regenerate what the kiln goldens hold with a logged reason) before the aliases are removed (F16) |
+| B-0104 | `n2f impact` cannot be asked about an edit of a product rule pack (`model/rulepacks/`): `rule://` keys have no value, so impact names no rule while the build reruns the checks (their `rulepacks` input) | S-138 (gate E B1 named it); close by valuing `rule://<pack>/<rule>` from the pack file, or by impact mapping an edit to the rule inputs that hash its file |
 
 ## Closed
 

@@ -160,6 +160,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-135 | v0.5 M5b follow-up: the concept summary line says only generic values; a product's screens add their own phrases (`SUMMARY_PHRASES`; closes B-0097); `docs/domains.md` fixed where the gadget run found it short (S-134) | in force |
 | S-136 | v0.5 DoD 6: the kiln choice simulation; the choice raised after the first build, decided by the owner | in force |
 | S-137 | v0.5 gate fixes 3: the napkin stage for any product ("the space", no door unless the card names one; the kiln's "alcove" from its pack's `WORDS`); a failing product screen or rule check is one plain line; lint L17 names the `door`/`stand` role aliases | in force |
+| S-138 | v0.5 gate E fixes, the build graph: impact sees whole-object reads (B1), domains read through a recording accessor (B2), the core tables are rule inputs (B4), a bad `--set` is a plain error (C7), the impact test covers every toy field (C14) | in force |
 
 ---
 
@@ -813,3 +814,14 @@ check that fails while running is one `N2FError` naming the file, the screen or 
 `promote/door.py` → `swing.py`, `about: alcove` → `space` (`--json`). Gate E C8: lint `L17-renamed-roles` (warn) for `role:`/`palette`/
 `finish` aliases; L12's fix names the table's roles. Kiln: its four cards re-screen equal, goldens unchanged, six L17 warnings (B-0103).
 Regression tests (each seen failing on `main`'s code): `test_screening_any_product.py`, e2e `test_concept_any_product.py`, `test_lint_role_aliases.py`.
+## S-138 — v0.5 gate E fixes, the build graph: whole-object reads in impact, a recording accessor, the core tables hashed (2026-11-02)
+B1: impact matches a read and an edit of one object when one field path starts with the other (`impact.py::_edit_matcher`):
+`iface://x#spec.depth` reaches rules reading `iface://x` whole, `dec://DEC-xxx#rationale` the checks. B2: `RunContext`,
+`StageContext` and a new `SectionContext` (a section's `data(sctx)`, was `(product, build_dir)`; contract unreleased) carry
+`proxy(obj, uri)` and `log`, merged into the rule's reads; the toy and `docs/domains.md` use it. B4: each open set a rule reads
+adds `table:<file>`, the hash of `core/data/<file>.yaml` (the bom now also reads drivers and interface kinds, the report finishes
+and style roles); those keys move once, code hashes and goldens do not. C7: `parse_set` raises `EditError`, an `N2FError`. C14:
+the impact test runs per toy field and for the toy interface. Tests, each seen failing first: `test_impact_honest.py` (kiln
+interface and decided-choice edits: impact said `['validate']`; driver words reran nothing; bad `--set`), the toy's field and
+interface cases. Rule-pack edits: B-0104. Measured: kiln build without renders 40.8 s; `make check` 16 min 9 s, 3 failures (a
+pinned reason text, an example word) fixed.
