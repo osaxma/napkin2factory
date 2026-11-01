@@ -239,3 +239,31 @@ def test_land_starts_again_when_main_moves_mid_land(repo: Path, tmp_path: Path) 
     backlog = (repo / "BACKLOG.md").read_text()
     assert "| B-0002 | beta | S-002 |" in backlog and "| B-0003 | alpha | S-003 |" in backlog
     assert NEW not in run(repo, "git", "log", "-p", "--format=%B", "main").stdout
+
+
+def test_a_failed_gate_keeps_the_placeholders(repo: Path, tmp_path: Path) -> None:
+    """A gate that fails after ids were given out puts the task's own commits back (S-109)."""
+    task(repo, "new", "alpha", "goal of alpha")
+    folder = repo / ".worktrees" / "alpha"
+    add_decision(folder, "alpha")
+    before = run(folder, "git", "rev-parse", "HEAD").stdout.strip()
+    fake_make = tmp_path / "make"
+    fake_make.write_text("#!/bin/sh\nexit 1\n")
+    fake_make.chmod(0o755)
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.com",
+        "N2F_TASK_NO_SYNC": "1",
+        "LAND_GATE": "check",
+        "MAKE": str(fake_make),
+    }
+    done = subprocess.run(
+        ["sh", str(TASK), "land"], cwd=folder, env=env, capture_output=True, text=True
+    )
+    assert done.returncode != 0 and "placeholders kept" in done.stderr + done.stdout
+    assert run(folder, "git", "rev-parse", "HEAD").stdout.strip() == before
+    assert f"## {S1} — alpha" in (folder / "DECISIONS.md").read_text()
+    assert run(repo, "git", "log", "--format=%s", "main").stdout.splitlines() == ["Start"]

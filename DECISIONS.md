@@ -129,6 +129,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-106 | v0.4 M1: interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly | in force |
 | S-107 | v0.4 M2: sub-assemblies have ports; a part's home; `place_by` places sub-assemblies | in force |
 | S-108 | A styled screenshot whose shader fails under load is rendered once more | in force |
+| S-109 | A landing that stops after giving out ids puts the task's own commits back | in force |
 
 ---
 
@@ -453,3 +454,11 @@ times out of three alone. Headless GL (SwiftShader) raises it under load as it h
 frames, and a reload clears it, so `styled_screenshots` now treats that page error like a blank:
 one more render, then the correctness renders with a note. Any other viewer error still falls back
 at once. How often the shader fails under load: two in five `make check` runs, not otherwise measured.
+
+## S-109 — A landing that stops after giving out ids puts the task's own commits back (2026-11-01)
+Follows S-099 and S-102 (ids at landing; a lost race starts again). When the gate failed, `make land`
+stopped with the branch rebased and its placeholders already numbered. The v0.4 M3a task failed its
+gate once on a flaky test (S-108), kept S-108, and collided with the next task to land, which took
+S-108 too; `test_journals` caught the duplicate. Every stop after ids are given out (failed gate,
+unsaved main folder, failed fast-forward, main moving three times) now resets the folder to the
+task's own commits first and says so. A conflict during the rebase still stops mid-rebase as before.
