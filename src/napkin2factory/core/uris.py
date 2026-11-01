@@ -171,7 +171,7 @@ def _find_re() -> re.Pattern[str]:
 def find_uris(text: str) -> list[Uri]:
     """Every parseable URI mentioned in free text (used by lint and docs).
 
-    The core's schemes and every registered domain's (``toy://widget``), so a domain's
+    The core's schemes and every registered domain's (``<scheme>://<id>``), so a domain's
     reference in prose is found and checked like a part's.
     """
     out: list[Uri] = []

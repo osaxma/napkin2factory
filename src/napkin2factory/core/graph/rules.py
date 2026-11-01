@@ -212,6 +212,7 @@ def validate_rules(b: RuleBuild) -> list[Rule]:
 def part_rules(b: RuleBuild) -> list[Rule]:
     """``part:<id>``: 3D, props, features and renders, one rule per part with geometry."""
     from napkin2factory.core.graph import runs
+    from napkin2factory.geometry.materials import density_input
 
     product = b.product
     return [
@@ -221,6 +222,9 @@ def part_rules(b: RuleBuild) -> list[Rule]:
             produces=f"part://{pid}",
             inputs={
                 "code": code_hash_for_part(product, pid),
+                # the mass reads the calc kit's density row (S-129); the assembly's mass is
+                # the sum of its parts' props, so it follows through their output hashes
+                "material": density_input(product.parts[pid].material),
                 "render": b.render_flag,
             },
             run=runs.make_part_run(pid),
