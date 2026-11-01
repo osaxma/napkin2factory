@@ -61,7 +61,9 @@ def test_backlog_ids_unique() -> None:
     open_part, _, closed_part = text.partition("\n## Closed")
     open_ids, closed_ids = table_ids(open_part), table_ids(closed_part)
     assert [i for i, n in Counter(open_ids + closed_ids).items() if n > 1] == []
-    assert all(re.fullmatch(r"B-\d{4}", i) for i in open_ids + closed_ids)
+    # a task branch's new rows carry placeholders until landing numbers them (S-097)
+    form = r"B-(\d{4}|NEW\d+)" if placeholders_allowed() else r"B-\d{4}"
+    assert all(re.fullmatch(form, i) for i in open_ids + closed_ids)
 
 
 def placeholders_allowed() -> bool:

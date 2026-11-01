@@ -1,0 +1,4 @@
+validate
+model/assemblies/pod.yaml
+iface://clip-rail joins part://rail, inside this assembly, to part://clip, outside it, but is not listed under `ports:`
+add iface://clip-rail to `ports:` in model/assemblies/pod.yaml

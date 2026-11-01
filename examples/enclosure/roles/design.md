@@ -29,6 +29,15 @@ courses of bricks. `n2f check` warns when two joined parts are both placed by co
 The checker verifies placed counts equal quantities.
 Set `exploded: {axis, spacing}` to the stacking axis.
 
+A sub-assembly joins the rest only through **ports**. An interface always joins two parts,
+never an assembly. When its two parts sit in different assemblies, list it under
+`ports: [iface://…]` in every sub-assembly between each part and the assembly holding both;
+`n2f validate` names the file when one is missing. The parent then places the whole
+sub-assembly by that joint, after the other part:
+`res.add(place_by(I, res, "<iface-id>", "asm://door", parts["door"], label="door"))`
+(`inner="<label>"` picks the part's occurrence inside it when there are several). A
+sub-assembly never reads or places its siblings' parts.
+
 ## After the napkin stage
 When a concept card has been promoted (`n2f concept list` shows it `promoted`; its
 decision is in `model/decisions.yaml`), the owner has already chosen the form. Start from it:

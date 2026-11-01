@@ -39,6 +39,7 @@ from napkin2factory.core.model import (
     RequirementsFile,
     Signoff,
 )
+from napkin2factory.core.tree import AssemblyTree
 from napkin2factory.core.units import Quantity, UnitError, parse_quantity
 from napkin2factory.core.uris import Uri, find_uris, slug_to_module
 from napkin2factory.core.yamlio import read_yaml, split_front_matter
@@ -769,6 +770,7 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
     # Assembly graph is acyclic.
     for asm in product.assemblies.values():
         _check_asm_cycle(product, asm, (), problems)
+    _validate_ports(product, problems)
     # Parameter expressions. Static faults (unsafe syntax, unknown names, bad units) mark
     # the parameter as bad; evaluation then runs whenever parameters.yaml parsed, whatever
     # errors other files have (S-012 keeps hiding only what depends on a broken target).
@@ -890,6 +892,79 @@ def _reaches_bad_parameter(product: Product, slug: str, bad: set[str]) -> bool:
         if expr:
             todo.extend(referenced_names(expr))
     return False
+
+
+def _validate_ports(product: Product, problems: Problems) -> None:
+    """Interfaces join parts; a joint crossing a sub-assembly is one of its ports (P4).
+
+    An ``asm://`` party is refused (closes B-0005): the holes live on the part that carries
+    them, and the assembly lists the joint under ``ports:``.  For a joint between two parts
+    with different homes (P5), every assembly from each home up to, not including, the
+    lowest assembly containing both must list it; listing a joint that does not cross the
+    assembly's boundary is an error too.  Skipped when an assembly file did not load, since
+    the tree would be incomplete (cascade suppression, S-009).
+    """
+    for iface in product.interfaces.values():
+        for party in iface.parties:
+            if party.scheme == "asm":
+                problems.add(
+                    product.files[iface.uri],
+                    iface.uri,
+                    f"names {party} as a party, but an interface joins two parts",
+                    f"name the part inside {party} that carries the joint, and list "
+                    f"{iface.uri} under `ports:` in model/assemblies/{party.id}.yaml",
+                    rule="port",
+                )
+    if any(u.startswith("asm://") for u in product.broken):
+        return
+    tree = AssemblyTree(product.assemblies)
+    needed: dict[str, dict[str, tuple[str, str]]] = {}  # asm id -> iface uri -> (in, out)
+    for iface in product.interfaces.values():
+        a, b = (str(p) for p in iface.parties)
+        if not (a.startswith("part://") and b.startswith("part://")):
+            continue
+        for aid in tree.port_crossings(a, b):
+            a_in = tree.home(a) in tree.below(aid)
+            needed.setdefault(aid, {})[iface.uri] = (a, b) if a_in else (b, a)
+    for aid, asm in sorted(product.assemblies.items()):
+        file = product.files[asm.uri]
+        listed = {str(u) for u in asm.ports}
+        for iuri, (inside, outside) in sorted(needed.get(aid, {}).items()):
+            if iuri not in listed:
+                problems.add(
+                    file,
+                    asm.uri,
+                    f"{iuri} joins {inside}, inside this assembly, to {outside}, outside it, "
+                    "but is not listed under `ports:`",
+                    f"add {iuri} to `ports:` in model/assemblies/{aid}.yaml: a joint that "
+                    "crosses an assembly's boundary is one of its ports",
+                    rule="port",
+                )
+        for iuri in sorted(listed - set(needed.get(aid, {}))):
+            iid = iuri.removeprefix("iface://")
+            if iid not in product.interfaces:
+                continue  # the unresolved reference is already reported
+            problems.add(
+                file,
+                asm.uri,
+                f"lists {iuri} under `ports:`, but that joint does not cross this assembly's "
+                f"boundary ({_port_where(tree, aid, product.interfaces[iid])})",
+                f"remove {iuri} from `ports:` in model/assemblies/{aid}.yaml",
+                rule="port",
+            )
+
+
+def _port_where(tree: AssemblyTree, aid: str, iface: Interface) -> str:
+    """Why a listed port is not one: in plain words, where its parties are."""
+    a, b = (str(p) for p in iface.parties)
+    if not (a.startswith("part://") and b.startswith("part://")):
+        return "it does not join two parts"
+    inside = [p for p in (a, b) if p in tree.parts_under(aid)]
+    if len(inside) == 2:
+        return "both parts are inside it"
+    if not inside:
+        return "neither part is inside it"
+    return f"{inside[0]} is also used outside it"
 
 
 def _check_asm_cycle(

@@ -1,0 +1,7 @@
+# Two levels: the top holds the base and two clips; the pod (a sub-assembly) holds a plate
+# and two rails.  The pod sits on the base and the clips on the rails, through ports (P4).
+parameters:
+  base-z:
+    value: 0
+    unit: mm
+    description: Height of the base in the top assembly; only top.py reads it (the S-049 test).

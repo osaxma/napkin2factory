@@ -1,0 +1,6 @@
+schema: 1
+system: '>=0.3,<0.4'
+product:
+  id: ports
+  name: Ports fixture
+units: metric

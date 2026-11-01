@@ -13,7 +13,6 @@ entry that closed them. Ids are never reused.
 | B-0002 | Vectorize the z-buffer rasterizer per mesh (currently a Python loop per triangle) | Measured at M2: five views of the enclosure base take <1 s; build123d import warm-up (~5 s) dominates. Revisit only if kiln renders exceed ~60 s |
 | B-0003 | Python 3.14 support | Not tried; OCP novtk wheels exist for cp314 per REVIEW E but 3.13 is pinned (D2) |
 | B-0004 | Lock file for concurrent `n2f build` in one product folder | Gate-1 C5: two builds at once would race on the manifest (last writer wins). Rare for a solo tool; revisit with share mode |
-| B-0005 | Interface check for assembly-level parties (`asm://` as a party) | Gate-1 note; v0.1 interfaces are part-to-part only (both examples and the kiln) |
 | B-0007 | Indent wrapped continuation lines in `n2f status`/impact output at 80 columns | Gate-2 C13; cosmetic, rich wraps without hanging indent |
 | B-0009 | Design-time wording for inspection-type sign-offs (e.g. "the package requires deburring") vs post-manufacture gates | Gate-2 C4; needs a `when: design\|manufacture` field on manual verifies |
 | B-0011 | Multi-piece sheet-metal generator (wrap + end panels, closed corners) | Gate-3 shop read-through: deep trays cannot be brake-formed from one blank and the blanks exceed stock sheet widths; v0.1 notes allow the shop to split the one-piece development |
@@ -41,11 +40,13 @@ entry that closed them. Ids are never reused.
 | B-0061 | The board's live 3D viewer and the fallback pictures do not show the layout marks | S-093: the marks live on the styled screenshot page only |
 | B-0062 | `n2f publish --online` run against a real GitHub project (first send, Pages from `gh-pages`) | S-094: tested against a local bare repository only |
 | B-0063 | `make check-full` fails: the kiln demo's ECR-002 patch (peephole) no longer applies with `git apply` to `door.py` and `door_fiber.py` | Found by S-105 (v0.4 M0); both files last changed in f1d6680 (S-085–S-096). Re-create the patch against the door, after v0.4 M3 (which rewrites `door.py`) |
+| B-0064 | The placement warning (P1) does not look at joints through ports: a sub-assembly placed by coordinates although a port could place it is not flagged | S-107: `instances.json` records leaves only, not a sub-assembly's own `via`; record the group placements (M3, when the kiln's door is placed by its ports) |
 
 ## Closed
 
 | id | item | closed by |
 |---|---|---|
+| B-0005 | Interface check for assembly-level parties (`asm://` as a party) | Closed 2026-11-01 (S-107): `asm://` parties are refused by `n2f validate` with a pointer to ports; a sub-assembly exports a part's joint under `ports:` and is placed by it |
 | B-0006 | `validate.json` embeds absolute paths | Closed 2026-11-01 (S-082): paths relative to the product root |
 | B-0008 | Hide URI prefixes in owner-view tables and captions | Closed 2026-10-31 (S-061): `core.uris.display_uri`; report, `n2f check`, impact summary; engineer view and files keep them |
 | B-0010 | Stand standoffs, thermocouple hole and element tails are described, not modelled, in the kiln | Closed by the gate-3 rework: standoffs, hinge post, latch keeper, controller mount, tail and thermocouple holes are modelled with interfaces |

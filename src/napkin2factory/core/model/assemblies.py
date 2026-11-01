@@ -6,7 +6,15 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BeforeValidator, Field, model_validator
 
-from napkin2factory.core.model.base import AsmUri, Model, PartUri, Quantity, ReqUri, Slug
+from napkin2factory.core.model.base import (
+    AsmUri,
+    IfaceUri,
+    Model,
+    PartUri,
+    Quantity,
+    ReqUri,
+    Slug,
+)
 from napkin2factory.core.model.parts import ModuleGeometry
 
 
@@ -57,6 +65,9 @@ class Assembly(Model):
     geometry: Annotated[ModuleGeometry | Literal["none"], BeforeValidator(_asm_geometry)] = "none"
     children: list[Child] = Field(default_factory=list)
     exploded: Exploded = Field(default_factory=Exploded)
+    # P4: the joints that cross this assembly's boundary (one part inside, one outside),
+    # each an interface between two parts; the loader requires exactly those (S-107).
+    ports: list[IfaceUri] = Field(default_factory=list)
     satisfies: list[ReqUri] = Field(default_factory=list)
     notes: str | None = None
 

@@ -1,0 +1,11 @@
+id: plate
+rev: A
+name: plate
+kind: custom
+process: cut-block
+material: {name: aluminium, spec: "6082"}
+tolerance_class: ISO2768-m
+geometry: {kit: block, args: {length: 120 mm, width: 80 mm, height: 5 mm}}
+interfaces: []
+cost: {unit: 1 USD, basis: estimate}
+lead_time: 1 d

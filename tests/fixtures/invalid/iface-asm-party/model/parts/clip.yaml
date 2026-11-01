@@ -1,0 +1,11 @@
+id: clip
+rev: A
+name: clip
+kind: custom
+process: cut-block
+material: {name: aluminium, spec: "6082"}
+tolerance_class: ISO2768-m
+geometry: {kit: block, args: {length: 20 mm, width: 10 mm, height: 5 mm}}
+interfaces: [iface://clip-rail]
+cost: {unit: 1 USD, basis: estimate}
+lead_time: 1 d

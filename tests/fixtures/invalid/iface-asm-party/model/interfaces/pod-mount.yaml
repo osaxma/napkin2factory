@@ -1,0 +1,8 @@
+id: pod-mount
+kind: mating-face
+parties: [part://base, asm://pod]
+description: The pod's plate sits on the base's top face; a port of the pod.
+frames:
+  part://base: {origin: [0, 0, 10], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  asm://pod: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {width: 120 mm, depth: 80 mm}
