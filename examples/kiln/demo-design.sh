@@ -10,6 +10,17 @@ export DEMO_DIR="${DEMO_DIR:-$(mktemp -d -t n2f-kiln-demo-design)}"
 "$HERE/demo.sh"
 cd "$DEMO_DIR"
 
+# A change that moves what the bolts choice was decided on reopens it (it holds the release):
+# the owner decides it again, the same way.
+BOLTS=fastening://m6-standoff-25/m6x16-bolt
+redecide_bolts() {
+  if $N2F status --json | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if any(c['id']=='$BOLTS' for c in d.get('waiting_on_you', [])) else 1)"; then
+    echo "== the change reopened the choice: the owner decides it again"
+    $N2F decide "$BOLTS" --pick shorter-bolts --by "demo owner" \
+      --note "Keeps the standoffs and panels as they are; no nut to reach once fitted."
+  fi
+}
+
 # Re-sign every safety requirement whose EXAMPLE sign-off the change invalidated (labelled).
 resign_invalidated() {
   local reason="$1"
@@ -28,6 +39,7 @@ $N2F check || true
 resign_invalidated "ECR-002"
 $N2F ecr close ECR-002
 echo "== v1.2.0: release and diff"
+redecide_bolts
 $N2F release v1.2.0 --no-render --allow-example-signoffs
 $N2F diff v1.1.0 v1.2.0
 echo

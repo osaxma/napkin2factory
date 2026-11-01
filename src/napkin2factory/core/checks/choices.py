@@ -345,7 +345,8 @@ def unapplied_caveats(build_dir: Path) -> list[str]:
         decided = c.get("decided") or {}
         if c.get("status") == CHOICE or not decided.get("id"):
             continue
-        option = next((o for o in c.get("options", []) if o.get("id") == decided.get("option")), {})
+        options: list[dict[str, Any]] = c.get("options", [])
+        option = next((o for o in options if o.get("id") == decided.get("option")), {})
         what = option.get("what_it_takes") or option.get("summary") or decided.get("option", "")
         out.append(
             f"{c.get('title') or c['id']}: decided in {decided['id']} "

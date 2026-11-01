@@ -286,10 +286,7 @@ def release(
         head = f"cannot release {version}" + (
             " yet" if waiting else ": the checks are not green yet"
         )
-        raise GateBlocked(
-            f"{head}:\n  • {shown}"
-            + ("\n  …" if len(blockers) > 8 else "")
-        )
+        raise GateBlocked(f"{head}:\n  • {shown}" + ("\n  …" if len(blockers) > 8 else ""))
     build_dir = product.paths.build
     today = dt.date.today().isoformat()
     closed = [e.id for e in product.ecrs.values() if e.status == "closed" and not e.released_in]
