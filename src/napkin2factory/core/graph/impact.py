@@ -545,7 +545,10 @@ def _evidence_affected(evidence: str, affected: dict[str, str], affected_params:
         return "bom" in affected
     if scheme == "calc":
         return bool(affected_params)
-    return False
+    from napkin2factory.core.registry import registry
+
+    family = registry().produced_scheme(scheme)  # a domain's rule output (F1)
+    return family is not None and f"{family.name}:{ident}" in affected
 
 
 def _cost_delta(product: Product, edits: list[Edit], build_dir: Path) -> tuple[float, str]:

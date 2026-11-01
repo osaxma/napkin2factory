@@ -100,7 +100,12 @@ def test_verify_kind_evaluates(toy_built: tuple[Path, Any, Any]) -> None:
     row = _row(root, "req://REQ-001")
     assert row["status"] == "pass", row
     assert row["message"] == "glow = 3 >= 2"
-    assert "toy://widget" in row["evidence_keys"]
+    from napkin2factory.core.checks.evidence import evidence_key
+
+    # a sign-off held against the thing compares with the core's key for its scheme
+    assert row["evidence_keys"]["toy://widget"] == evidence_key(
+        load_product(root), root / "build", "toy://widget"
+    )
 
 
 def test_check_stage_reports(toy_built: tuple[Path, Any, Any]) -> None:

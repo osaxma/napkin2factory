@@ -253,4 +253,20 @@ def evidence_key(
         return sha256_json(obj.model_dump(mode="json") if hasattr(obj, "model_dump") else str(obj))
     if u.scheme == "rule":
         return "rulepack"
+    return _domain_key(product, manifest, u)
+
+
+def _domain_key(product: Product, manifest: Manifest, u: Uri) -> str:
+    """A domain scheme's key (F1): its rule's output hash, else the declared object's record."""
+    from napkin2factory.core.registry import registry
+
+    reg = registry()
+    family = reg.produced_scheme(u.scheme)
+    if family is not None:
+        entry = manifest.entries.get(f"{family.name}:{u.id}")
+        return entry.output_hash if entry else "missing"
+    for fam in reg.model_families():
+        if fam.uri_scheme == u.scheme:
+            obj = product.families.get(fam.name, {}).get(u.id)
+            return sha256_json(obj.model_dump(mode="json")) if obj is not None else "missing"
     return "missing"

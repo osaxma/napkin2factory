@@ -179,7 +179,7 @@ def build_rules(product: Product, render: bool = True) -> list[Rule]:
 _REGISTRIES_READ: dict[str, tuple[str, ...]] = {
     "validate": ("families", "interface_kinds", "processes", "finishes", "categories", "drivers"),
     "doc": ("doc_helpers",),
-    "checks": ("verify_kinds", "check_stages"),
+    "checks": ("verify_kinds", "check_stages", "interface_kinds", "processes", "categories"),
     "report": ("report_sections", "gate_rows", "vocabulary"),
 }
 

@@ -145,6 +145,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-120 | The v0.5 and v0.6 plans reconciled with what v0.4 shipped; the Linux evidence-key defect opened as B-0073 | in force |
 | S-121 | Sign-off evidence keys are tolerance-compared invariants, not the mesh (closes B-0073) | in force |
 | S-122 | v0.5 M0 baseline: a new step edits 10 files (7 in `core/`), 32 package files name the kiln's words, the five big files, `make check` 10 min 14 s | in force |
+| S-123 | v0.5 M1: one domain contract (`core/domain.py`), fifteen registries (`core/registry.py`), the mechanical domain registered in place, the toy domain; a new step edits 0 core files | in force |
 
 ---
 
@@ -637,3 +638,15 @@ over `src/napkin2factory/` (all / without `templates/`, `report/vendor/`): kiln 
 chamber 11/5, alcove 10/4, union 41/32. Lines: promote 1,647, loader 1,060, screening 866,
 concept_checks 710, geometry/build 728. `make check` in a task folder: 10 min 14 s (613.6 s), green,
 876 passed and 5 skipped, then 141 goldens.
+
+## S-123 — v0.5 M1: the domain contract and the registries (2026-11-01)
+`core/domain.py` holds F1's types, `core/registry.py` 15 registries (rule families, verify kinds,
+check stages, gate rows, report sections, doc helpers, vocabulary, model families, context, screens;
+processes, finishes, interface kinds, categories, drivers as `core/data/*.yaml` plus domains');
+`domains/mechanical` registers v0.4 in place (F2). Bracket, enclosure, kiln: rule keys, reports,
+pages, checks, stage, contexts byte-identical to `main`; goldens unchanged. [revisit] `reads_all`
+families (checks, report, site) run after every producer; a non-mechanical domain's hash is a
+`domain:<name>` input of its rules and of validate/doc/checks/report. Hooks: `core/loader.py`,
+`core/uris.py`, `cli/check.py`, `bom/build_plan.py`, `rulepacks/checks.py`, `concepts/screening.py`,
+`geometry/build.py`. `tests/unit/test_domain_contract.py` (29): the toy domain edits 0 core files
+(S-122: 7). `make check`: CHECK_TIME, green, CHECK_COUNT, 141 goldens.
