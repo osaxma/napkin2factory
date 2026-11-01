@@ -99,9 +99,9 @@ cmd_land() {
     fi
     python3 "$HERE/journal_ids.py" --base main
     case ${LAND_GATE:-fast} in
-      fast) "${MAKE:-make}" lint types &&
-        N2F_ALLOW_PLACEHOLDERS=0 "${UV:-uv}" run pytest tests/unit/test_journals.py tests/unit/test_agent_docs.py -q ||
-        give_up "the landing checks failed: fix, commit, then make land again" ;;
+      # the default gate is make check-fast: lint, types, unit and smoke tests (S-131)
+      fast) N2F_ALLOW_PLACEHOLDERS=0 "${MAKE:-make}" check-fast ||
+        give_up "the landing checks (make check-fast) failed: fix, commit, then make land again" ;;
       check) N2F_ALLOW_PLACEHOLDERS=0 "${MAKE:-make}" check || give_up "make check failed: fix, commit, then make land again" ;;
       none) ;;
       *) die "LAND_GATE is fast (default), check or none, not '$LAND_GATE'" ;;

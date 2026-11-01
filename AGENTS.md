@@ -43,10 +43,10 @@ make check                                # in the main folder, before anything 
   free numbers in every task commit, so parallel tasks never collide and no landed commit
   holds a placeholder. `DECISIONS.md` and `BACKLOG.md` merge line by line (`merge=union`);
   `tests/unit/test_journals.py` catches a duplicated row.
-- **The gate**: `make land` runs lint, types and the journal checks (about a minute);
-  `LAND_GATE=check make land` runs the full `make check` instead. Before a push, run
-  `make check` once on `main` for everything landed since the last push; if it fails,
-  `git bisect run make check` finds the task (history is linear).
+- **The gate**: `make land` runs `make check-fast` (lint, types, the unit and smoke tests; no
+  end-to-end, no examples; ≤ 3 min); `LAND_GATE=check make land` runs the full `make check`
+  instead. Before a push, run `make check` once on `main` for everything landed since the
+  last push; if it fails, `git bisect run make check` finds the task (history is linear).
 - **Push only when the maintainer asks** (another agent may still be landing).
 - **Commits**: `M<n>: <what>` while a milestone is open, plain imperative otherwise. Stage
   explicit paths, never `git add -A`. Never commit `build/` or `examples/*/build/`.
@@ -156,6 +156,7 @@ uv sync                      # environment (export PATH=$HOME/.local/bin:$PATH f
 uv run n2f --help            # CLI
 make task NAME=x GOAL="…"    # start a task in .worktrees/x;  make tasks  lists open ones
 make land                    # from inside a task: rebase, ids, gate, fast-forward main
+make check-fast              # lint + types + unit and smoke tests: the land gate
 make check                   # lint + types + tests (parallel) + goldens + fast examples
 make check-full              # + kiln + demos + timing (N2F_TIMING=1)
 make templates               # sync examples/{bracket,enclosure} + _common → templates/

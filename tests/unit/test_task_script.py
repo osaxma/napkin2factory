@@ -267,3 +267,43 @@ def test_a_failed_gate_keeps_the_placeholders(repo: Path, tmp_path: Path) -> Non
     assert run(folder, "git", "rev-parse", "HEAD").stdout.strip() == before
     assert f"## {S1} — alpha" in (folder / "DECISIONS.md").read_text()
     assert run(repo, "git", "log", "--format=%s", "main").stdout.splitlines() == ["Start"]
+
+
+def test_the_default_gate_is_make_check_fast(repo: Path, tmp_path: Path) -> None:
+    """With no LAND_GATE, landing runs `make check-fast` with placeholders refused (S-097)."""
+    task(repo, "new", "alpha", "goal of alpha")
+    folder = repo / ".worktrees" / "alpha"
+    add_decision(folder, "alpha")
+    calls = tmp_path / "calls"
+    fake_make = tmp_path / "make"
+    fake_make.write_text(f'#!/bin/sh\necho "$* $N2F_ALLOW_PLACEHOLDERS" >> {calls}\n')
+    fake_make.chmod(0o755)
+    env = {k: v for k, v in os.environ.items() if k != "LAND_GATE"}
+    env |= {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.com",
+        "N2F_TASK_NO_SYNC": "1",
+        "MAKE": str(fake_make),
+    }
+    done = subprocess.run(
+        ["sh", str(TASK), "land"], cwd=folder, env=env, capture_output=True, text=True
+    )
+    assert done.returncode == 0, done.stdout + done.stderr
+    assert calls.read_text().splitlines() == ["check-fast 0"]
+    assert (
+        run(repo, "git", "log", "--format=%s", "main").stdout.splitlines()[0] == "Add alpha (S-002)"
+    )
+
+
+def test_check_fast_runs_no_end_to_end_test_and_no_example() -> None:
+    """`make check-fast` is lint, types and the unit and smoke tests only (FOUNDATION §6)."""
+    done = subprocess.run(
+        ["make", "-n", "check-fast"], cwd=REPO, capture_output=True, text=True, check=True
+    )
+    tests = [line for line in done.stdout.splitlines() if "pytest" in line]
+    assert len(tests) == 1 and "tests/smoke tests/unit " in tests[0], done.stdout
+    assert "tests/e2e" not in done.stdout and "tests/golden" not in done.stdout
+    assert "examples/" not in done.stdout.replace("ruff check src tests scripts examples", "")
+    assert "--cov" not in tests[0] and '-m "not full"' in tests[0]

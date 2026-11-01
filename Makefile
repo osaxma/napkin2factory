@@ -3,16 +3,23 @@
 # repeats it); it grows by milestone. Tasks: `make task`, `make land`, `make tasks`,
 # `make abandon` (scripts/task.sh).
 # `make check-full` adds the kiln (and its napkin stage), the three demos, and the timing
-# assertions (N2F_TIMING=1).
+# assertions (N2F_TIMING=1). `make check-fast` is the land gate (S-131): lint, types and the
+# unit and smoke tests, no end-to-end, no examples, no coverage floor.
 
 UV ?= uv
 PY := $(UV) run
 EXAMPLES_FAST := examples/bracket examples/enclosure
 
-.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos verify-list clean \
+.PHONY: check check-fast check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos verify-list clean \
 	task land tasks abandon
 
 check: lint types unit golden examples-fast todo-grep
+
+# The default `make land` gate (S-131, FOUNDATION §6): what a task can break in a minute or
+# three. The end-to-end tests, the goldens, the examples and the coverage floor stay in
+# `make check`, run on main before a push and by CI.
+check-fast: lint types todo-grep
+	$(PY) pytest tests/smoke tests/unit -m "not full" $(XDIST) -q
 
 lint:
 	$(PY) ruff check src tests scripts examples
@@ -89,8 +96,8 @@ clean:
 	rm -rf build dist examples/*/build .pytest_cache .mypy_cache .ruff_cache
 
 # One trunk, a folder per task (scripts/task.sh). `make task NAME=<slug> GOAL="<one line>"` in
-# the primary folder; `make land` inside the task folder (`LAND_GATE=check` runs make check
-# instead of the fast landing checks); `make tasks` lists open work, left by any agent;
+# the primary folder; `make land` inside the task folder (its gate is `make check-fast`;
+# `LAND_GATE=check` runs make check instead); `make tasks` lists open work, left by any agent;
 # `make abandon NAME=<slug> CONFIRM=1` drops a task.
 task:
 	@sh scripts/task.sh new "$(NAME)" "$(GOAL)"
