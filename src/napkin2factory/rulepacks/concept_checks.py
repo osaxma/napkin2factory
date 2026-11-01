@@ -359,43 +359,62 @@ def blank_vs_stock_sheet(facts: ConceptFacts, params: dict[str, Any]) -> Outcome
     return Outcome("pass", {"detail": "; ".join(fits)}, [], ["computed"])
 
 
+#: What the walls-fit-envelope rule calls the inner size and the wall when the screen that
+#: shares them gives no words of its own (``inner_words``, ``wall_words``; S-133).
+INNER_WORDS = "the inner space"
+WALL_WORDS = "wall"
+
+
 def walls_fit_envelope(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
     """``inner size + 2 × wall ≤ body`` on each axis.
 
     The inner size (three lengths) and the wall (per side) are what a screen of the product
-    shares as ``inner_size`` and ``wall``; without them the rule skips. The body is the
-    massing call named ``body``, else the call with the largest bounding box.
+    shares as ``inner_size`` and ``wall``; without them the rule skips. The same screen may
+    share the words its product uses for them (``inner_words``, ``wall_words``); otherwise
+    the rule says "the inner space" and "wall". The body is the massing call named ``body``,
+    else the call with the largest bounding box.
     """
-    chamber = facts.shared.get("inner_size")
+    inner = facts.shared.get("inner_size")
     wall = facts.shared.get("wall")
-    if chamber is None or wall is None:
-        return _skip("no chamber and insulation on the card")
+    if inner is None or wall is None:
+        return _skip("no inner size and wall thickness from a screen")
     if facts.massing is None or not facts.massing.pieces:
         return _skip("no rough shapes to measure")
     body = facts.massing.piece("body") or max(
         facts.massing.pieces, key=lambda p: p.size[0] * p.size[1] * p.size[2]
     )
+    words = {
+        "inner_words": str(facts.shared.get("inner_words") or INNER_WORDS),
+        "wall_words": str(facts.shared.get("wall_words") or WALL_WORDS),
+    }
     wall_mm = _q_mm(wall)
     violations = []
     for i, axis in enumerate(AXES):
-        c = _q_mm(chamber[i])
+        c = _q_mm(inner[i])
         needed, outer = c + 2 * wall_mm, body.size[i]
         if needed > outer + 1e-6:
             violations.append(
                 {
                     "axis": axis,
                     "needed": mm_text(needed),
-                    "chamber": mm_text(c),
+                    "inner": mm_text(c),
                     "wall": mm_text(wall_mm),
                     "call": body.name,
                     "outer": mm_text(outer),
+                    **words,
                 }
             )
     if violations:
         return Outcome("violated", {}, violations, ["computed"])
-    needed_txt = " × ".join(f"{_q_mm(chamber[i]) + 2 * wall_mm:.0f}" for i in range(3)) + " mm"
+    needed_txt = " × ".join(f"{_q_mm(inner[i]) + 2 * wall_mm:.0f}" for i in range(3)) + " mm"
     outer_txt = " × ".join(f"{body.size[i]:.0f}" for i in range(3)) + " mm"
-    values = {"wall": mm_text(wall_mm), "needed": needed_txt, "call": body.name, "outer": outer_txt}
+    values = {
+        "wall": mm_text(wall_mm),
+        "needed": needed_txt,
+        "call": body.name,
+        "outer": outer_txt,
+        **words,
+    }
     return Outcome("pass", values, [], ["computed"])
 
 

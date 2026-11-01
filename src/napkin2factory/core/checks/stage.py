@@ -16,7 +16,8 @@ out: it still needs its sign-off and still blocks a release.
 
 Choices (F12): an open choice never blocks by itself; it blocks the gate its ``blocks`` names
 (``design``, ``verify`` or ``release``; ``none`` holds nothing) until ``n2f decide`` records
-the pick, one blocker per choice in owner words ("a choice is waiting on you: …").
+the pick, one blocker per choice in owner words ("a choice is waiting on you: …").  A decided
+choice the model does not show yet is a Design caveat ("decided in DEC-x …, not yet applied").
 
 Example sign-offs (``example: true``) are *caveats*, not blockers: they keep the Verify gate
 open and the stage at ``verify``, but they do not stop a demonstration release
@@ -409,11 +410,13 @@ def compute_stage(
             design_blockers.append(f"{asm.name}: not built yet — run `n2f build`")
     if not product.parts:
         design_blockers.append("no parts yet — next, the designer gives each module its parts")
-    from napkin2factory.core.checks.choices import choice_blockers
+    from napkin2factory.core.checks.choices import choice_blockers, unapplied_caveats
 
     held = choice_blockers(build_dir)  # F12: an open choice holds the gate it names
     design_blockers += held.get("design", [])
     design_rows, design_caveats = _domain_rows(product, build_dir, "design", design_blockers)
+    # a decided choice the model does not show yet keeps the gate open, never blocked (S-133)
+    design_caveats += unapplied_caveats(build_dir)
     waiting = later_requirements(product)
     for domain in waiting:  # F11: a later domain's design rows are left out, and said so
         d = _installed(domain)

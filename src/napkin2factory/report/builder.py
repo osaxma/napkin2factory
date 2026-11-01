@@ -67,6 +67,7 @@ VOCAB: dict[str, dict[str, str]] = {
         "skip": "not checked",
         "needs-human": "needs your sign-off",
         "signed": "signed off",
+        "choice": "a choice waiting on you",
         "example": "example sign-offs — not reviews",
         "example_one": "example sign-off — not a review",
         "changes": "Change requests",
@@ -78,6 +79,7 @@ VOCAB: dict[str, dict[str, str]] = {
         "skip": "skip",
         "needs-human": "needs-human",
         "signed": "signed",
+        "choice": "choice",
         "example": "example sign-offs — not reviews",
         "example_one": "example sign-off — not a review",
         "changes": "Change requests (ECRs)",
@@ -122,14 +124,14 @@ def ref_html(uri: Any, anchors: dict[str, str], persona: str = "engineer") -> Ma
 def scope_reads(product: Product) -> list[str]:
     """The scope the overview line and the gate notes say (F11), as recorded reads.
 
-    Only a product that declares a ``scope:`` reads it, so a product without one keeps its
-    report key (S-127).  A product's first ``scope:`` therefore reruns the report only when
-    something else it reads changes too, such as the new decision behind it (B-0081).
+    The whole block is always read, declared or not, so a product's first ``scope:`` reruns
+    the report by itself (S-133, closing B-0081; every product's report key moved once with
+    it, at the v0.5 upgrade).  Each declared domain is read too, so an edit to one entry
+    names the report in ``n2f impact``.
     """
     from napkin2factory.core.graph.values import SCOPE_KEY
 
-    scope = product.manifest.scope
-    return [SCOPE_KEY, *(f"{SCOPE_KEY}#{d}" for d in scope)] if scope else []
+    return [SCOPE_KEY, *(f"{SCOPE_KEY}#{d}" for d in product.manifest.scope)]
 
 
 def report_reads(ctx: RunContext) -> list[str]:
@@ -383,6 +385,31 @@ def _by_module(
     )
 
 
+def waiting_on_you(build_dir: Path) -> list[dict[str, Any]]:
+    """The open choices (F12) for the overview's "waiting on you" list (B-0093, S-133).
+
+    From ``choices.json``, which the ``checks`` rule writes (the report reads ``rule:checks``):
+    each with what the check found, its options, the gate it holds and the command that
+    records the pick, in the words ``n2f status`` uses.
+    """
+    from napkin2factory.core.checks.choices import HOLDS_WORDS, decide_command, open_choices
+
+    out: list[dict[str, Any]] = []
+    for c in open_choices(build_dir):
+        found = str(c.get("message", "")).split(" Two ways to fix it:")[0]
+        out.append(
+            {
+                "id": c["id"],
+                "title": c.get("title") or c["id"],
+                "found": found,
+                "options": c.get("options", []),
+                "holds": HOLDS_WORDS.get(c.get("blocks", ""), ""),
+                "command": decide_command(c).strip("`"),
+            }
+        )
+    return out
+
+
 def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, Any]:
     """Collect everything the template needs from ``build/`` and the model."""
     from napkin2factory.bom.rollups import top_assemblies
@@ -558,6 +585,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         (safety_docs if doc.meta.safety else docs).append(entry)
 
     build_steps = _build_steps(build_dir, results, VOCAB[persona])
+    waiting = waiting_on_you(build_dir)
     between_units = _between_units(build_dir, product, results)
 
     interfaces = [
@@ -664,6 +692,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "sections": sections(product),
         "anchors": anchors,
         "stage": stage,
+        "waiting": waiting,
         "stage_label": stage_label,
         "stage_class": stage_class,
         "revision_label": revision_label,

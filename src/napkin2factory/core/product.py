@@ -212,6 +212,8 @@ class Product:
             "dec": self.decisions,
             "ecr": self.ecrs,
             "doc": self.docs,
+            # n2f.yaml's own fields (S-133, B-0091): a decision may link the scope it set
+            "manifest": {"product": self.manifest.product, "scope": self.manifest.scope},
         }
         from napkin2factory.core.registry import registry
 

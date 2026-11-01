@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # The parametric ECO loop, unattended (GRAND_PLAN §1.3 item 4, D23).
-# Copies the kiln example to a temporary folder, sets up change tracking, releases v1.0.0,
+# Copies the kiln example to a temporary folder, sets up change tracking, decides the choice
+# the checks hold the release on (as the owner would), releases v1.0.0,
 # runs ECR-001 (chamber height +50 mm) through impact → approve → apply → rebuild → check →
 # re-sign (an EXAMPLE sign-off, labelled as such) → release v1.1.0, and builds the diff page.
 set -euo pipefail
@@ -27,6 +28,12 @@ resign_invalidated() {
 echo "== v1.0.0: build, check, release"
 $N2F build --no-render
 $N2F check
+# The check offers a choice that holds the release (the bolts meet inside the bottom
+# standoffs). The demo plays the owner and picks what a careful owner would: shorter bolts
+# keep every part where it is and need no nut reached behind a fitted panel.
+echo "== a choice is waiting on the owner: decide it"
+$N2F decide fastening://m6-standoff-25/m6x16-bolt --pick shorter-bolts --by "demo owner" \
+  --note "Keeps the standoffs and panels as they are; no nut to reach once fitted."
 $N2F release v1.0.0 --no-render --allow-example-signoffs
 echo "== ECR-001: impact → approve → apply → rebuild → check"
 $N2F ecr impact ECR-001

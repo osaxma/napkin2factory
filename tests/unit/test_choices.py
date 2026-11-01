@@ -366,6 +366,42 @@ def test_a_choice_that_holds_design_blocks_the_design_gate(built: Path) -> None:
         path.write_text(saved)
 
 
+def test_release_refuses_an_open_choice_that_holds_it(built: Path) -> None:
+    """B-0092 (S-133): ``n2f release`` names the choice and the command that records it."""
+    from napkin2factory.ecr.release import gate_blockers
+
+    blockers = gate_blockers(load_product(built))
+    assert [b for b in blockers if b.startswith("a choice is waiting on you: ")] == [
+        "a choice is waiting on you: Bolts into both ends of the M4 female-female hex spacer, "
+        f'10 mm, steel — `n2f decide {CHOICE} --pick shorter-bolts | through-bolt --by "<name>"`'
+    ]
+    r = CliRunner().invoke(
+        app,
+        ["release", "v1.0.0", "--dry-run", "--no-render", "--allow-example-signoffs"]
+        + ["--dir", str(built)],
+        env={"COLUMNS": "200"},
+    )
+    assert r.exit_code == 3, r.output
+    assert "a choice is waiting on you" in r.output and f"n2f decide {CHOICE}" in r.output
+
+
+def test_the_report_lists_what_is_waiting_on_you(built: Path) -> None:
+    """B-0093 (S-133): owner words for a choice row and the open choices with their options."""
+    from napkin2factory.report.builder import VOCAB, gather, render_report
+
+    assert VOCAB["owner"]["choice"] == "a choice waiting on you"
+    product = load_product(built)
+    waiting = gather(product, built / "build", "today")["waiting"]
+    assert [(c["id"], c["holds"]) for c in waiting] == [(CHOICE, "it holds the release")]
+    assert [o["id"] for o in waiting[0]["options"]] == ["shorter-bolts", "through-bolt"]
+    assert "Two ways to fix it" not in waiting[0]["found"]
+    html = render_report(product, built / "build", "today")
+    assert "<h3>Waiting on you: 1 choice</h3>" in html
+    assert "shorter bolts at both ends: M4 x 6 — 8 M4 x 6 bolts" in html
+    assert f"n2f decide {CHOICE} --pick shorter-bolts | through-bolt" in html
+    assert 'title="choice">a choice waiting on you</span>' in html  # the rule row's badge
+
+
 def test_decide_records_a_decision_and_the_row_reads_pass(built: Path) -> None:
     runner = CliRunner()
     r = runner.invoke(
@@ -389,3 +425,36 @@ def test_decide_records_a_decision_and_the_row_reads_pass(built: Path) -> None:
         app, ["decide", CHOICE, "--pick", "through-bolt", "--by", "Ada", "--dir", str(built)]
     )
     assert again.exit_code != 0 and "already decided (DEC-003)" in again.output
+
+
+def test_a_decided_choice_not_yet_applied_keeps_design_open(built: Path) -> None:
+    """B-0095 (S-133): the row reads ``pass``; the Design gate says the change is still to make.
+
+    A caveat, not a blocker: the release is no longer held by the choice. Runs after the
+    decide test above (same module fixture).
+    """
+    from napkin2factory.ecr.release import gate_blockers
+    from napkin2factory.report.builder import gather
+
+    product = load_product(built)
+    rep = compute_stage(product)
+    design = next(g for g in rep.gates if g.name == "design")
+    assert not design.ok and design.blockers == [] and design.open_only_by_caveats
+    assert design.caveats == [
+        "Bolts into both ends of the M4 female-female hex spacer, 10 mm, steel: decided in "
+        "DEC-003 (one bolt right through each spacer, with a nut: M4 x 20), not yet applied — "
+        "the designer makes the change: 4 M4 x 20 bolts and 4 M4 nuts in place of the 8 "
+        + design.caveats[0].split("in place of the 8 ", 1)[1]
+    ]
+    assert rep.current == "design" and rep.next_step == design.caveats[0]
+    assert not [b for b in gate_blockers(product) if b.startswith("a choice is waiting")]
+    assert gather(product, built / "build", "today")["waiting"] == []
+    # the designer applies the pick: the rule passes on the model, the caveat goes
+    screw = built / "model/parts/m4x10-screw.yaml"
+    saved = screw.read_text(encoding="utf-8")
+    try:
+        screw.write_text(saved.replace("M4 x 10 pan", "M4 x 20 pan"), encoding="utf-8")
+        CliRunner().invoke(app, ["check", "--dir", str(built)])
+        assert compute_stage(load_product(built)).gates[1].caveats == []
+    finally:
+        screw.write_text(saved, encoding="utf-8")

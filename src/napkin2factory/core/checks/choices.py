@@ -332,6 +332,29 @@ def choice_blockers(build_dir: Path) -> dict[str, list[str]]:
     return out
 
 
+def unapplied_caveats(build_dir: Path) -> list[str]:
+    """Design-gate caveats: choices decided but not yet made in the model (S-133) [revisit].
+
+    A decided choice reads ``pass`` with its decision (F12), yet the model still holds what
+    the check found until the designer applies the pick; then the rule passes on the model
+    itself and the row leaves ``choices.json``.  Meanwhile the Design gate stays open, not
+    blocked (a caveat holds no release), so the owner sees the change is still to make.
+    """
+    out: list[str] = []
+    for c in load_choices(build_dir):
+        decided = c.get("decided") or {}
+        if c.get("status") == CHOICE or not decided.get("id"):
+            continue
+        option = next((o for o in c.get("options", []) if o.get("id") == decided.get("option")), {})
+        what = option.get("what_it_takes") or option.get("summary") or decided.get("option", "")
+        out.append(
+            f"{c.get('title') or c['id']}: decided in {decided['id']} "
+            f"({option.get('summary', decided.get('option', ''))}), not yet applied — the designer "
+            f"makes the change: {what}"
+        )
+    return out
+
+
 # ---- n2f decide -------------------------------------------------------------------------
 
 
