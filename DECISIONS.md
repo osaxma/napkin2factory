@@ -158,6 +158,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-133 | v0.5 M5b: the gaps wave 3 left: a release held by an open choice, the report's "waiting on you", decided-not-applied as a Design caveat, the scope always read, `manifest://` links resolve, neutral walls words; B-0097 waits in a separate task | in force |
 | S-134 | v0.5 DoD 2: a fresh agent added the gadget domain from `docs/domains.md` alone; 0 core files changed or opened | in force |
 | S-135 | v0.5 M5b follow-up: the concept summary line says only generic values; a product's screens add their own phrases (`SUMMARY_PHRASES`; closes B-0097); `docs/domains.md` fixed where the gadget run found it short (S-134) | in force |
+| S-136 | v0.5 DoD 6: the kiln choice simulation; the choice raised after the first build, decided by the owner | in force |
 
 ---
 
@@ -790,3 +791,14 @@ seven places S-134's gadget run found short, each checked in the code: L1 for ev
 reads, `%`; bare numbers for `count` only); the eight system categories; which test goes with a field left out; membership, not
 exact lists; card-field keys (first declaration wins); the section order (`joints` always listed) and why the impact test
 rebuilds with `render=False`; `cli.build.targets` in the import list and §8. Touched tests (promote, concept e2e, screening, F9, transcript, agent docs) 3 min 26 s, green.
+
+## S-136 — v0.5 DoD 6: the kiln choice simulation (2026-11-02)
+Run by the overseer per `tests/e2e/intake-transcripts/choice-kiln.md` on an unbuilt kiln copy at 27d4229: a fresh subagent with the
+product `AGENTS.md` and `roles/pm.md`, six scripted owner lines one at a time (545 s, 38 tool calls). Not in the interview (two
+replies, four delegated `DEC-`s); named in one line after the first build and raised in full when the owner asked about the guards,
+both options with what they take and their estimated cost, no check id; `n2f decide … --pick shorter-bolts --by "Sam Rivera"` after
+line 5 only (DEC-029, `made_by: human`). The PM then applied the pick itself as the designer before any release (allowed), so the
+decided row gave way to the new bolt's row passing on the model; criterion e assumed an unapplied pick and is amended to accept
+both forms [revisit]. B-0102: whether a decided pick should go through a change request before release. Transcript:
+`choice-kiln-2026-11-02.md`.
+

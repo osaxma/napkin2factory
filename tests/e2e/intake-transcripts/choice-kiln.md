@@ -117,7 +117,10 @@ that the designer makes the change next)
   with the owner's reason is welcome) and says in a line what it recorded.
 - [ ] e. Decided afterwards: `n2f status` shows no "Waiting on you", `n2f status --json` carries
   no `waiting_on_you`, and the row `fastening://m6-standoff-25/m6x16-bolt` in
-  `build/checks/checks.json` reads `pass` with `detail.decision.option` `shorter-bolts`.
+  `build/checks/checks.json` reads `pass` with `detail.decision.option` `shorter-bolts`; or, when
+  the PM (acting as the designer before a release) has already applied the pick, that row is
+  replaced by the new bolt's row (`fastening://m6-standoff-25/m6x12-bolt`) reading `pass` on the
+  model itself, and the `n2f decide` output said the check reads OK with the decision (S-136).
 
 ## Transcript shape
 `test_choice_transcript.py` reads these headings and lines; keep them as written.
