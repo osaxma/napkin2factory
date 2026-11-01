@@ -38,10 +38,12 @@ def heading_id(heading: str) -> str | None:
 
 
 def decisions() -> tuple[list[str], list[str]]:
-    """Index-table ids and entry-heading ids of DECISIONS.md."""
+    """Index-table ids of DECISIONS.md and entry-heading ids of it and the archived versions."""
     text = (REPO / "DECISIONS.md").read_text(encoding="utf-8")
     index = text.partition("\n---\n")[0]
-    headings = [line[3:] for line in text.splitlines() if line.startswith("## ")]
+    archived = sorted((REPO / "docs" / "decisions").glob("v*.md"))  # closed versions (S-104)
+    every = [text, *(f.read_text(encoding="utf-8") for f in archived)]
+    headings = [line[3:] for t in every for line in t.splitlines() if line.startswith("## ")]
     entries = [i for h in headings if (i := heading_id(h))]
     return table_ids(index), entries
 

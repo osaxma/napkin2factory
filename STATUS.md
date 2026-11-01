@@ -23,6 +23,9 @@ and a worktree per task (S-097). Releasing a version: bump the three version fil
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via
   `uv`; OCP novtk wheel, renders through the built-in rasterizer; Playwright Chromium installed.
 - `export PATH=$HOME/.local/bin:$PATH` before `uv`. No GNU `timeout`; `sed -i ''`.
+- Pushing (only when the maintainer asks): `GH_TOKEN` in `.env` (gitignored; a deploy token for
+  this repository only) authorizes `git push` and `gh`. Load it unprinted, in the same command:
+  `set -a && . ./.env && set +a && git push origin main`.
 - Tasks (S-097), measured 2026-11-01: `make task` takes ≈ 2 s (worktree + `uv sync` from the shared
   cache). macOS scans each newly written native library on first load (`syspolicyd`): 117–190 s
   for the first `import build123d` in a cloned environment. `make task` installs with hardlinks,
