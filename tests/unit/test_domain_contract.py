@@ -355,7 +355,8 @@ def test_mechanical_family_hashes_equal_the_old_subtree_hashes(mechanical_only: 
         "bom": ("bom", "catalog"),
         "asmsheet": ("drawings", "bom"),
         "doc": ("docs",),
-        "checks": ("core/checks", "rulepacks", "bom", "catalog"),
+        # moved on purpose: the checks family hashes the calc kit since B-0078 (S-126)
+        "checks": ("core/checks", "rulepacks", "bom", "catalog", "calckit"),
         "report": ("report", "docs"),
         "site": ("report",),
     }
@@ -379,3 +380,34 @@ def test_mechanical_family_hashes_equal_the_old_subtree_hashes(mechanical_only: 
         "report",
         "site",
     ]
+
+
+def test_a_calc_kit_change_reruns_the_checks_and_no_part(
+    mechanical_only: None, tmp_path: Path
+) -> None:
+    """B-0078 (S-126): editing a calc-kit formula changes the ``checks`` rule's code input.
+
+    Calc requirements and the ``calc-case`` rows run the kit's code inside the checks rule;
+    the parts, assemblies and every other rule do not, so their inputs stay put.  The edit is
+    made in a copy of the package, which the code hashes are pointed at.
+    """
+    copy = tmp_path / "napkin2factory"
+    shutil.copytree(SRC, copy, ignore=shutil.ignore_patterns("__pycache__"))
+    product = load_product(EXAMPLES / "bracket")
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(registry_mod, "SYSTEM_ROOT", copy)
+        try:
+            registry_mod.package_hash.cache_clear()
+            before = {r.id: dict(r.inputs) for r in build_rules(product, render=False)}
+            kit = copy / "calckit" / "power.py"
+            kit.write_text(kit.read_text() + "\n# a formula edit\n")
+            registry_mod.package_hash.cache_clear()
+            after = {r.id: dict(r.inputs) for r in build_rules(product, render=False)}
+        finally:
+            registry_mod.package_hash.cache_clear()
+    assert before.keys() == after.keys()
+    assert any(rid.startswith("part:") for rid in before)
+    assert any(rid.startswith("asm:") for rid in before)
+    moved = {rid for rid in before if before[rid] != after[rid]}
+    assert moved == {"checks"}
+    assert before["checks"]["code"] != after["checks"]["code"]
