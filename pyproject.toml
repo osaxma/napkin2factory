@@ -72,7 +72,7 @@ include = ["src/napkin2factory", "README.md", "LICENSE", "pyproject.toml"]
 line-length = 100
 target-version = "py313"
 src = ["src", "tests"]
-extend-exclude = ["src/napkin2factory/report/vendor", "src/napkin2factory/templates", "examples/*/build", "docs/history"]
+extend-exclude = ["src/napkin2factory/report/vendor", "src/napkin2factory/templates", "examples/*/build", "docs/history", ".worktrees"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D", "E722"]
@@ -97,6 +97,8 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# pytest's defaults plus the task folders (make task)
+norecursedirs = ["*.egg", ".*", "_darcs", "build", "CVS", "dist", "node_modules", "venv", "{arch}", ".worktrees"]
 addopts = "-q -p no:cacheprovider"
 markers = [
   "timing: timing assertions (only under N2F_TIMING=1)",

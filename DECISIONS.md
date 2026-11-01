@@ -88,7 +88,7 @@ should confirm before relying on them.
 | S-070 | `make check` runs the tests in parallel (pytest-xdist) | in force; the demos run in parallel too (S-079); long test files split (S-080) |
 | Gate B | Review gate B (UX, owner persona) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-071 | v0.2 close-out: what is measured, what is the owner's | in force; the release happened (S-072) |
-| S-072 | CI never repeats a commit's tests; 0.2.0 released | in force |
+| S-072 | CI never repeats a commit's tests; 0.2.0 released | in force; CI on `main` only since S-097 |
 | S-073 | Journal consolidation and model-agnostic agent rules | amended by S-076 (no `CLAUDE.md` copy) |
 | S-074 | README for people, agent guide for agents; using vs developing kept apart | in force |
 | S-075 | The icon on generated pages; wordmark waits on the font licence | in force; the wordmark is in use (S-081) |
@@ -113,6 +113,7 @@ should confirm before relying on them.
 | S-094 | Share mode: `n2f publish` and the online copy | in force |
 | S-095 | `release --dry-run` on an existing Revision re-packages it from its own snapshot | in force |
 | S-096 | A card number of the wrong kind is a lint error, not a crash | in force |
+| S-097 | One trunk, a worktree per task, ids at landing: built for successive agents of any provider | in force |
 
 ---
 
@@ -1107,3 +1108,16 @@ Found while closing B-0025. `power: 3 kg` on a card crashed screening with a uni
 which is not a power"); screening leaves such a number out with one note and the rules needing it
 skip. The napkin demo now reports 13 parameters already declared: the shipped kiln declares the
 door numbers (S-085), its `door-leaf-width` an expression on `door-guard-width`.
+
+## S-097 — One trunk, a worktree per task, ids at landing: built for successive agents of any provider (2026-11-01)
+Maintainer: the repo is developed by AI agents of many models and providers, in parallel and one
+after another; efficiency matters, with quality kept. Replaces the per-version `v*-build` branches,
+which only ever mirrored `main`. Now: `main` is the one trunk (releases stay tags, S-072); each task
+is a `task/<slug>` branch in `.worktrees/<slug>` with its own environment (`make task`), committed
+freely, landed by rebase + fast-forward (`make land`: journal placeholders `S-NEW<n>`/`B-NEW<n>` get
+the next free ids, a one-minute gate, linear history); `make check` once on `main` before a push.
+Unfinished work is `WIP:` commits on the task branch, found by `make tasks`. Project rules live in
+the repo, not in any one model's memory (one maintainer's personal preferences stay theirs);
+`AGENTS.md`'s "start here" no longer runs `make check`. Considered and not taken: Jujutsu (another tool every agent must know), test-impact
+selection with pytest-testmon (unreliable with xdist and the build-hash e2e tests).
+

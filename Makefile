@@ -1,5 +1,7 @@
 # napkin2factory developer entry points (GRAND_PLAN §8.2).
-# `make check` is the fast gate run before every commit; it grows by milestone.
+# `make check` is the full gate, run on main's tip in the primary folder before a push (CI
+# repeats it); it grows by milestone. Tasks: `make task`, `make land`, `make tasks`,
+# `make abandon` (scripts/task.sh).
 # `make check-full` adds the kiln (and its napkin stage), the three demos, and the timing
 # assertions (N2F_TIMING=1).
 
@@ -7,7 +9,8 @@ UV ?= uv
 PY := $(UV) run
 EXAMPLES_FAST := examples/bracket examples/enclosure
 
-.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos verify-list clean
+.PHONY: check check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos verify-list clean \
+	task land tasks abandon
 
 check: lint types unit golden examples-fast todo-grep
 
@@ -84,3 +87,19 @@ verify-list:  # every engineering number still to be confirmed, as Markdown
 
 clean:
 	rm -rf build dist examples/*/build .pytest_cache .mypy_cache .ruff_cache
+
+# One trunk, a folder per task (scripts/task.sh). `make task NAME=<slug> GOAL="<one line>"` in
+# the primary folder; `make land` inside the task folder (`LAND_GATE=check` runs make check
+# instead of the fast landing checks); `make tasks` lists open work, left by any agent;
+# `make abandon NAME=<slug> CONFIRM=1` drops a task.
+task:
+	@sh scripts/task.sh new "$(NAME)" "$(GOAL)"
+
+land:
+	@sh scripts/task.sh land
+
+tasks:
+	@sh scripts/task.sh list
+
+abandon:
+	@CONFIRM="$(CONFIRM)" sh scripts/task.sh abandon "$(NAME)"
