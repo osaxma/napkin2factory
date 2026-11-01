@@ -378,6 +378,15 @@ def test_scope_keys_have_values() -> None:
     assert v(SCOPE_KEY) != whole  # the lines are said in n2f.yaml order
 
 
+def test_impact_on_the_command_line_names_the_report_for_a_scope_edit(rig: Path) -> None:
+    """B-0083 (S-129): ``manifest://scope#<domain>.<field>`` is a URI ``--set`` accepts."""
+    out = _cli("impact", "--dir", str(rig), "--set", "manifest://scope#wiring.state=in", "--json")
+    report = json.loads(out)
+    assert "report" in report["rules"], report
+    assert report["rule_reasons"]["report"] == "manifest://scope#wiring"
+    assert not [r for r in report["rules"] if r.startswith(("part:", "asm:", "drawing:"))]
+
+
 def test_a_scope_edit_reruns_the_report_and_nothing_else(rig: Path, tmp_path: Path) -> None:
     from napkin2factory.core.model import Edit
     from napkin2factory.core.uris import Uri

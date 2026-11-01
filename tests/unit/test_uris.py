@@ -70,3 +70,23 @@ def test_build_plan_steps_parse_even_for_a_unit_named_with_a_digit() -> None:
     u = Uri.parse("bom://build-plan#units.2-stage")
     assert (u.id, u.selector) == ("build-plan", ("units", "2-stage"))
     assert Uri.parse("part://x#3").instance == 3  # an all-digit fragment is still an instance
+
+
+def test_find_uris_finds_a_registered_domains_scheme() -> None:
+    """B-0075 (S-129): prose naming a domain's object is found, so the lint checks it."""
+    from napkin2factory.core.registry import installed
+    from tests.fixtures.domains import toy
+
+    text = "The glow of toy://widget#glow sits on part://plate, not on glim://x."
+    with installed(toy.DOMAIN):
+        assert [str(u) for u in find_uris(text)] == ["toy://widget#glow", "part://plate"]
+
+
+def test_the_manifest_is_a_uri_but_not_a_reference_in_prose() -> None:
+    """B-0083 (S-129): ``n2f impact --set manifest://scope#…`` parses; prose never cites it."""
+    u = Uri.parse("manifest://scope#electrical.state")
+    assert (u.scheme, u.id, u.selector) == ("manifest", "scope", ("electrical", "state"))
+    assert str(Uri.parse("manifest://product#name")) == "manifest://product#name"
+    with pytest.raises(UriError, match="not a valid manifest id"):
+        Uri.parse("manifest://parts")
+    assert find_uris("its scope is manifest://scope#electrical") == []
