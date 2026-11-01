@@ -10,6 +10,10 @@
   <table><thead><tr><th class="num">item</th><th>part</th><th>name</th><th class="num">qty</th><th>note</th></tr></thead><tbody>
   {% for it in st['items'] %}<tr><td class="num">{{ it.item }}</td><td>{% if it.kind == 'unit' %}<a href="#step-{{ it.id }}">step {{ it.step }}</a>{% else %}{{ it.uri | ref }}{% endif %}</td><td>{{ it.name }}</td><td class="num">{{ it.qty }}</td><td class="small">{{ it.notes | join(' · ') }}</td></tr>{% endfor %}
   </tbody></table>
+  {%- if st.get('supplied') %}<h3>Supplied, not built here</h3>
+  <table><thead><tr><th>module</th><th class="num">qty</th><th>joints that fit it</th></tr></thead><tbody>
+  {% for x in st['supplied'] %}<tr><td>{{ x.name }}</td><td class="num">{{ x.qty }}</td><td class="small">{{ x.joints | join('; ') or 'none' }}</td></tr>{% endfor %}
+  </tbody></table>{% endif %}
   {% if st.joints %}<h3>Joints closed in this step</h3>
   <table><thead><tr><th>joint</th><th class="num">×</th><th class="num">holes</th><th>hardware</th></tr></thead><tbody>
   {% for j in st.joints %}<tr><td>{{ j.words }}{% if j.status_words %}<br><span class="small muted">{{ j.status_words }}</span>{% endif %}</td><td class="num">{{ j.occurrences }}</td><td class="num">{{ j.holes or 'none' }}</td><td class="small">{{ j.hardware_words }}</td></tr>{% endfor %}
