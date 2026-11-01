@@ -10,8 +10,8 @@ Three packs, each function pint-typed, cited and covered by a hand-checked test:
   class, manual-handling class, stock-sheet fit.
 
 Screening (``n2f concept build``) calls the kit with concept-card envelope numbers; a
-product's own calcs import it where they overlap (the kiln's ``thermal.py`` and
-``element.py``), so both fidelities share one source. Tables live under
+product's own calcs import it where they overlap (a product's thermal and element
+calcs), so both fidelities share one source. Tables live under
 ``calckit/data`` and are read with :func:`load_table`. See ``docs/calckit.md``.
 """
 

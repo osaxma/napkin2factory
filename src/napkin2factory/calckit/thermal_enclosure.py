@@ -1,10 +1,10 @@
 """Layered box enclosures: conduction, skin and guard temperatures, stored heat, heat-up.
 
 Envelope-grade steady-state thermal calcs for a hot box (a chamber wrapped in layers),
-generalised from the kiln's verified calcs (``examples/kiln/model/calcs/thermal.py``,
-DEC-015) so that a concept card can be screened before a product model exists.
+generalised from a product's verified thermal calcs so that a concept card can be screened
+before a product model exists.
 
-Method (one source for both fidelities; the kiln imports these functions):
+Method (one source for both fidelities; a product's own calcs import these functions):
 
 * **Mean-area conduction.** Each layer of a thick-walled box conducts over the geometric
   mean of its inner and outer box areas, ``R = t / (k · √(A_in · A_out))``, the usual
@@ -23,7 +23,7 @@ Method (one source for both fidelities; the kiln imports these functions):
   and loses it to the room by convection and radiation; the skin also loses heat by
   convection to the gap air, which the ventilation carries away.
 
-Values the kiln uses and that callers will usually pass (all [verify], cited where they
+Values a heated box typically uses and callers will usually pass (all [verify], cited where they
 are used): natural-convection film coefficient h ≈ 5–10 W/m²K on a vertical sheet a few
 tens of K above the air (simplified correlation h ≈ 1.42 (ΔT/L)^0.25 W/m²K for air);
 emissivity 0.9 for powder coat (0.85–0.95 typical); K-23 insulating firebrick
@@ -180,7 +180,7 @@ def box_areas(inner: Sequence[Qty], layers: Sequence[Layer]) -> list[Qty]:
     """Inner box area and the outer area of each layer, hot side first (m²).
 
     Method: ``A = 2(w·d + w·h + d·h)``; each layer grows every side by
-    ``2·(clearance + thickness)`` (see the module docstring, DEC-015).
+    ``2·(clearance + thickness)`` (see the module docstring).
 
     Args:
         inner: chamber (width, depth, height).
@@ -196,7 +196,7 @@ def layer_resistances(inner: Sequence[Qty], layers: Sequence[Layer]) -> list[Qty
     """Conduction resistance of each layer by the mean-area method (K/W).
 
     ``R = t / (k · √(A_in · A_out))`` with ``A_in`` the previous layer's outer face and
-    ``A_out`` this layer's outer face (Incropera & DeWitt ch. 3; DEC-015) [verify]. A
+    ``A_out`` this layer's outer face (Incropera & DeWitt ch. 3) [verify]. A
     layer with ``conductivity=None`` contributes 0 K/W.
     """
     return [Quantity(0.0 if r is None else r, "K/W") for r in _resistances(inner, layers)]
@@ -338,11 +338,10 @@ def guard_temperature(
     Two-node radiation balance, solved by bisection on ``[T_amb, T_hot]``: the guard
     gains ``σ·A_h·(T_h⁴ − T_g⁴) / (1/ε_h + (A_h/A_g)·(1/ε_g − 1))`` (two grey surfaces,
     the hot surface inside the guard; Incropera & DeWitt ch. 13) and loses
-    ``A_g·[h·(T_g − T_amb) + ε_g·σ·(T_g⁴ − T_amb⁴)]`` to the room. This is exactly the
-    kiln's guard model (DEC-015), which neglects convection between the guard's inner
-    face and the gap air. ``h_gap_air`` and ``t_gap_air``, when both given, add that
-    exchange over ``A_g`` (gain ``A_g·h_gap·(T_gap − T_g)``) — an extension the kiln does
-    not use.
+    ``A_g·[h·(T_g − T_amb) + ε_g·σ·(T_g⁴ − T_amb⁴)]`` to the room. Without the two
+    gap-air arguments it neglects convection between the guard's inner face and the gap
+    air. ``h_gap_air`` and ``t_gap_air``, when both given, add that exchange over ``A_g``
+    (gain ``A_g·h_gap·(T_gap − T_g)``), an extension.
 
     Args:
         hot_face_temperature: temperature of the surface behind the guard.
@@ -380,7 +379,7 @@ def guarded_loss(
     emissivity_skin: Qty,
     emissivity_guard: Qty,
 ) -> ThermalResult:
-    """Steady loss of a layered box inside a ventilated guard (the kiln body, DEC-015).
+    """Steady loss of a layered box inside a ventilated guard (a heated body).
 
     The skin temperature ``T_s`` is solved by bisection on ``[max(T_amb, T_gap), T_hot]``
     so that conduction equals convection to the gap air plus radiation to the guard,
@@ -392,10 +391,10 @@ def guarded_loss(
 
     ``A_s`` is the outermost layer's outer area; the guard area ``A_g`` grows every side
     of that box by ``2·guard_gap``. The gap air temperature is an assumption the caller
-    supplies (the kiln assumes 50 °C, to be measured) [verify]; one film coefficient is
+    supplies (50 °C is a typical first assumption, to be measured) [verify]; one film coefficient is
     used for the skin and the guard's outer face [verify, 5 W/m²K natural convection].
     Steady state only; the conduction of standoffs and fasteners between skin and guard
-    is not modelled (DEC-015).
+    is not modelled.
     """
     th, ta, tgap = _kelvin(t_hot), _kelvin(t_ambient), _kelvin(t_gap_air)
     h_c = _h(h_convection)
@@ -444,7 +443,7 @@ def stored_heat(
     Each layer's solid volume (its box less the box inside it, the clearance being empty)
     is raised to the mean of its two face temperatures: the first layer between ``t_hot``
     and its outer face, every later layer between the previous layer's outer face and
-    its own (``E = Σ ρ·c·V·(T_mean − T_amb)``, the kiln's method). A layer whose density
+    its own (``E = Σ ρ·c·V·(T_mean − T_amb)``). A layer whose density
     or specific heat is ``None`` stores nothing (an air gap). The material values are the
     caller's, from datasheets [verify].
 
@@ -484,7 +483,7 @@ def heat_up_power(stored: Qty, loss: Qty, heat_up_time: Qty) -> Qty:
     """Power needed to reach temperature in ``heat_up_time``: ``P = Q_loss + E / t`` (W).
 
     Conservative envelope: the full steady loss is charged over the whole heat-up (the
-    real loss grows from zero), as the kiln's ``required_power`` does (DEC-004).
+    real loss grows from zero).
     """
     return (loss + stored / heat_up_time).to("W")
 

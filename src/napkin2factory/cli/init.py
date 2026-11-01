@@ -18,7 +18,7 @@ from napkin2factory.templates import TEMPLATE_NAMES, TEMPLATES_DIR
 
 
 def slugify(name: str) -> str:
-    """``My Kiln!`` → ``my-kiln``."""
+    """``My Lamp!`` → ``my-lamp``."""
     s = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     return s or "product"
 

@@ -16,7 +16,7 @@ rows:
     specific_heat: 1000
     process_class: cut-block
     verify: true
-    source: "Morgan Thermal Ceramics K-23 datasheet: k 0.20-0.30 W/m.K over 400-1000 degC, 0.25 taken at the ~700 degC mean of a 1200 degC hot face; bulk density 0.48 g/cm3; c 1.0-1.1 kJ/kg.K, 1000 taken (the kiln's brick-conductivity, brick-density, brick-specific-heat parameters)"
+    source: "Morgan Thermal Ceramics K-23 datasheet: k 0.20-0.30 W/m.K over 400-1000 degC, 0.25 taken at the ~700 degC mean of a 1200 degC hot face; bulk density 0.48 g/cm3; c 1.0-1.1 kJ/kg.K, 1000 taken"
   - name: ceramic fiber board (Kaowool 1260)
     keywords: [ceramic fiber, fiber board, fiber, fibre, kaowool, board, blanket]
     conductivity: 0.15
@@ -24,7 +24,7 @@ rows:
     specific_heat: 1050
     process_class: fiber-board
     verify: true
-    source: "Morgan Thermal Ceramics Kaowool 1260 board datasheet: k 0.12-0.18 W/m.K over 400-700 degC mean; 0.15 taken because the board sits outside the brick at a ~400 degC mean (the kiln's fiber-conductivity and DEC-002 range; 0.12 is the cool end and would understate the loss); nominal density 260 kg/m3; c 1.0-1.1 kJ/kg.K, 1050 taken"
+    source: "Morgan Thermal Ceramics Kaowool 1260 board datasheet: k 0.12-0.18 W/m.K over 400-700 degC mean; 0.15 taken because the board sits outside the brick at a ~400 degC mean (0.12 is the cool end and would understate the loss); nominal density 260 kg/m3; c 1.0-1.1 kJ/kg.K, 1050 taken"
   - name: mild steel
     keywords: [mild steel, steel]
     conductivity: null

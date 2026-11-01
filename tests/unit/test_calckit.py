@@ -273,11 +273,11 @@ def test_mass_by_hand():
 
 
 def test_cost_estimate_by_hand(monkeypatch):
-    # cut-block (K-23, from the kiln's estimates): 18.8–40.1 USD/kg × 40 kg = 752–1604 USD
+    # cut-block (K-23, from per-part estimates): 18.8–40.1 USD/kg × 40 kg = 752–1604 USD
     c = mass_cost.cost_estimate("cut-block", mass=Q(40, "kg"))
     assert c.known and c.low < c.high
     assert _mag(c.low, "USD") == pytest.approx(752) and _mag(c.high, "USD") == pytest.approx(1604)
-    assert "kiln" in c.source and c.verify
+    assert "per-part estimates" in c.source and c.verify
     # per item: cots-controls 35–120 USD × 3 = 105–360 USD
     k = mass_cost.cost_estimate("cots-controls", count=3)
     assert (_mag(k.low, "USD"), _mag(k.high, "USD")) == pytest.approx((105, 360))
