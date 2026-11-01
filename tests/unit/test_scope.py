@@ -348,3 +348,126 @@ def test_the_kiln_leaves_electrical_for_later() -> None:
     )
     # no kiln requirement belongs to electrical today: the gate leaves nothing out
     assert later_requirements(product) == {"electrical": []}
+
+
+# ---- M4b: the scope is a recorded value (B-0076) ------------------------------------------
+
+
+def _scope_line(root: Path) -> str:
+    html = (root / "build" / "report" / "index.html").read_text(encoding="utf-8")
+    found = re.search(r'<p class="scope" id="scope">(.*?)</p>', html)
+    assert found is not None
+    return found.group(1)
+
+
+def test_scope_keys_have_values() -> None:
+    from napkin2factory.core.graph.manifest import Manifest as BuildManifest
+    from napkin2factory.core.graph.values import SCOPE_KEY, value_of
+
+    product = load_product(SCOPE / "external")
+    build = SCOPE / "external" / "build"  # never written: scope keys read the model only
+
+    def v(key: str) -> str:
+        return value_of(product, BuildManifest(), build, key)
+
+    assert v(f"{SCOPE_KEY}#wiring.state") == "later"
+    assert v(f"{SCOPE_KEY}#electrical.stub") == "asm://controls"
+    assert v(f"{SCOPE_KEY}#mechanical") == "missing"
+    whole = v(SCOPE_KEY)
+    product.manifest.scope = dict(reversed(list(product.manifest.scope.items())))
+    assert v(SCOPE_KEY) != whole  # the lines are said in n2f.yaml order
+
+
+def test_a_scope_edit_reruns_the_report_and_nothing_else(rig: Path, tmp_path: Path) -> None:
+    from napkin2factory.core.model import Edit
+    from napkin2factory.core.uris import Uri
+
+    root = tmp_path / "rig"
+    shutil.copytree(rig, root)
+    assert run_build(load_product(root), render=False, quiet=True)["ran"] == []
+    # impact first, from the built state: a scope entry is a field like any other (gate-1 B3)
+    edit = Edit(set=Uri("manifest", "scope", ("electrical", "note")), to="from the maker")
+    impact = compute_impact(load_product(root), [edit])
+    assert "report" in impact.rules
+    assert impact.rule_reasons["report"] == "manifest://scope#electrical"
+    _edit(root, "n2f.yaml", "come wired from the supplier", "come wired from the maker")
+    ran = run_build(load_product(root), render=False, quiet=True)["ran"]
+    assert "report" in ran and set(ran) <= set(impact.rules), (ran, impact.rules)
+    assert "the controls come wired from the maker (DEC-001)" in _scope_line(root)
+    assert run_build(load_product(root), render=False, quiet=True)["ran"] == []
+    # a domain moved to another state reruns it too, and its line follows
+    _edit(root, "n2f.yaml", "wiring: {state: later", "wiring: {state: in")
+    assert "report" in run_build(load_product(root), render=False, quiet=True)["ran"]
+    assert _scope_line(root).endswith("Wiring: in — Wiring comes later (DEC-002).")
+
+
+@pytest.mark.parametrize("name", ["bracket", "enclosure"])
+def test_a_product_without_scope_reads_no_scope_key(name: str) -> None:
+    """The new read leaves every rule key of a product with no ``scope:`` as it was (S-124).
+
+    Measured once at landing: bracket and enclosure built on ``main`` and on this change have
+    the same read sets and values for every rule; only code hashes differ.
+    """
+    from napkin2factory.report.builder import scope_reads
+
+    product = load_product(EXAMPLES / name)
+    assert product.manifest.scope == {}
+    assert scope_reads(product) == []
+
+
+# ---- M4b: an external stub in the build plan (B-0077) -------------------------------------
+
+
+def test_the_build_plan_says_the_stub_is_supplied(rig: Path) -> None:
+    from napkin2factory.bom.build_plan import step_markdown
+
+    plan = json.loads((rig / "build" / "bom" / "build-plan.json").read_text(encoding="utf-8"))
+    step = plan["units"]["rig"]
+    assert step["supplied"] == [
+        {
+            "asm": "asm://controls",
+            "id": "controls",
+            "name": "Controls (bought wired)",
+            "qty": 1,
+            "words": "supplied, not built here",
+            "ports": ["iface://controls-mount"],
+            "joints": ["Frame to Controls (bought wired)"],
+        }
+    ]
+    # the joint names the stub by its name, never its URI
+    assert [j["words"] for j in step["joints"]] == ["Frame to Controls (bought wired)"]
+    md = step_markdown(plan, "rig")
+    assert (
+        "Controls (bought wired): supplied, not built here; fitted at Frame to Controls "
+        "(bought wired)." in md
+    )
+    assert "asm://" not in md
+    html = (rig / "build" / "report" / "index.html").read_text(encoding="utf-8")
+    section = html.split('id="build"', 1)[1].split("</section>", 1)[0]
+    assert "<h3>Supplied, not built here</h3>" in section
+    assert (
+        '<tr><td>Controls (bought wired)</td><td class="num">1</td>'
+        '<td class="small">Frame to Controls (bought wired)</td></tr>' in section
+    )
+
+
+def test_a_plan_without_a_stub_has_no_supplied_key() -> None:
+    from napkin2factory.bom.build_plan import derive_build_plan
+
+    plan = derive_build_plan(load_product(EXAMPLES / "enclosure"))
+    assert all("supplied" not in step for step in plan["units"].values())
+
+
+def test_module_has_parts_does_not_flag_a_stub(rig: Path) -> None:
+    checks = json.loads((rig / "build" / "checks" / "checks.json").read_text(encoding="utf-8"))
+    row = next(
+        r for r in checks["results"] if r["id"] == "rule://general-v0/module-has-parts@controls"
+    )
+    assert row["status"] == "pass"
+    from napkin2factory.rulepacks.checks import module_has_parts
+
+    product = load_product(SCOPE / "external")
+    stub = product.assemblies["controls"]
+    assert module_has_parts(stub, {}, product) == []
+    stub.build = "unit"  # the same empty module, were it built here, is still flagged
+    assert module_has_parts(stub, {}, product) == [{"uri": "asm://controls", "name": stub.name}]

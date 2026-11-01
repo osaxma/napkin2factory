@@ -217,7 +217,7 @@ an A3 assembly sheet per unit in `build/drawings/assemblies/`). A sub-assembly i
 (`build: unit`, the default, with `driver: [...]` saying why) or a grouping (`build: phantom`),
 or a stub for work done elsewhere (`build: external`: no children, its `ports:` the joints it
 fits by, each an interface naming the stub and the part it fits to; it is supplied, not built
-here); joint hardware is counted from each interface's `spec.hardware` (or its `fastener:`) by the
+here, and the step that fits it lists it so, with those joints); joint hardware is counted from each interface's `spec.hardware` (or its `fastener:`) by the
 `hardware://<unit>` check. The fields are in `docs/product-model.md`; the design role says
 how to use them.
 
