@@ -38,6 +38,13 @@ and a worktree per task (S-097). Releasing a version: bump the three version fil
   (`tests.conftest.copy_product`). Templates are synced with `make templates`, never hand-edited.
 
 ## Milestones (one line each; detail in the entries named)
+v0.6 — `ELECTRICAL_STAGE.md` (the electrical domain through the v0.5 contract; the count of core edits is
+the headline), S-111: planned, starts after v0.5. `docs/reviews/v0.6-independent-trial.md` is the
+outside model's brief for after it lands.
+
+v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
+package, schema policy, scope as data, choices), S-111: planned, starts after v0.4 M7.
+
 v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103:
 - M0 baseline and reconciliation done (`docs/v04-baseline.md`) — S-105.
 - M1 interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly done — S-106.
