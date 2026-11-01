@@ -66,8 +66,9 @@ set; when it does not, a part **that opts in** takes the default from the produc
 `style.yaml` (`n2f init --style industrial|appliance|lab` seeds it; a product without the
 file gets `industrial`, whose shape cues are all no-ops).
 
-**Opt-in rule (fixed).** Style defaults reach only parts whose `role:` is explicitly `body`,
-`door`, `stand`, `controls` or `trim`. A part with no role, or role `lining`, `fastener` or
+**Opt-in rule (fixed).** Style defaults reach only parts whose `role:` is explicitly a styled
+role: `body`, `opening`, `support`, `controls` or `trim` (`door` and `stand` are read as
+`opening` and `support` for v0.5), or a styled role an installed domain adds. A part with no role, or role `lining`, `fastener` or
 `default`, builds exactly as without a style whatever `style.yaml` says (refractory bricks
 never grow fillets because the shell is rounded). **Default is unchanged:** with no style,
 no role or `industrial`, every generator builds byte-identical geometry to v0.1 (the
