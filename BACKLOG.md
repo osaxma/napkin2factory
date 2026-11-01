@@ -61,8 +61,7 @@ entry that closed them. Ids are never reused.
 | B-0087 | The generic walls-fit-envelope rule's wording says "chamber" and "insulation" (kept so the kiln's screening reads as before) | S-128; let the screen that shares `inner_size` and `wall` name them |
 | B-0088 | The aliases `alcove_*` (cards), `door` and `stand` (style roles; `examples/kiln/style.yaml`, the kiln's part roles) are read for v0.5 only | S-128, F16; remove them with a migration at the next schema bump (F7) and rename the kiln's style keys and roles |
 | B-0097 | `concepts/build.py::summary_line` still says the supply and heat-up of a heated box (the rest of B-0086) | S-131; give screens a summary phrase (the build summary was not M6's file) |
-| B-0098 | The promotion hooks of a product's screens (`PROMOTE_REQUIREMENTS`, `PROMOTE_RATIONALE`) are documented only in `concepts/promote/packs.py` | S-131; describe them in `docs/domains.md` and `core/packs.py`, or fold them into the `Screen` contract with B-0089 |
-| B-0089 | `core/domain.py::Screen` carries no fields or phase (a `reads` decorator on `run` declares them) and a domain cannot add style roles (F6) | S-128; add both to the contract when the core is next opened |
+| B-0098 | The promotion hooks of a product's screens (`PROMOTE_REQUIREMENTS`, `PROMOTE_RATIONALE`) are documented only in `concepts/promote/packs.py` | S-131; describe them in `docs/domains.md` and `core/packs.py`, or make them part of the `Screen` contract (S-129) |
 
 ## Closed
 
