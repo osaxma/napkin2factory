@@ -173,7 +173,13 @@ def _signoff_state(
 
 
 def evaluate_requirement(ctx: EvalContext, req: Requirement) -> CheckResult:
-    """Evaluate one requirement into a CheckResult."""
+    """Evaluate one requirement into a CheckResult.
+
+    The verify kind's evaluator (the verify-kind registry, F3) computes the verdict; the
+    sign-off and safety rules below are the same for every kind (D9, D25).
+    """
+    from napkin2factory.core.registry import UnknownName, registry
+
     v = req.verify
     res = CheckResult(
         id=f"req://{req.id}",
@@ -190,109 +196,8 @@ def evaluate_requirement(ctx: EvalContext, req: Requirement) -> CheckResult:
     evidence: dict[str, str] = {}
     computed: str | None = None
     try:
-        if v.kind == "manual":
-            computed = None
-            res.message = v.note or "needs a human check"
-        elif v.kind == "param_bound":
-            assert v.target is not None and v.op and v.value is not None
-            value = ctx.product.parameter_value(v.target.id)
-            ok, txt = _compare(value, v.op, v.value)
-            computed, res.message = ("pass" if ok else "fail"), txt
-            evidence[str(v.target)] = evidence_key(ctx.product, ctx.build_dir, str(v.target))
-        elif v.kind == "geometry_prop":
-            assert v.target is not None and v.op and v.value is not None
-            props = ctx.props(str(v.target.base))
-            if props is None:
-                computed, res.message = "skip", f"{v.target.base} has not been built"
-            elif props.get("instances") == 0:
-                # an empty module stub (P10, S-112): a size of 0 mm would pass every budget
-                # and say nothing, so the row waits until the assembly has parts
-                computed, res.message = (
-                    "skip",
-                    "it has no parts yet, so there is nothing to measure",
-                )
-            else:
-                value = prop_quantity(props, v.target.selector)
-                ok, txt = _compare(value, v.op, v.value)
-                computed, res.message = (
-                    ("pass" if ok else "fail"),
-                    f"{'.'.join(v.target.selector[1:])} = {txt}",
-                )
-                evidence[str(v.target.base)] = evidence_key(
-                    ctx.product, ctx.build_dir, str(v.target.base)
-                )
-        elif v.kind == "bom_rollup":
-            assert v.target is not None and v.op and v.value is not None
-            from napkin2factory.bom.rollups import rollup_value
-
-            data = ctx.rollups_data()
-            if data is None:
-                computed, res.message = "skip", "BOM has not been built"
-            else:
-                value = rollup_value(data, v.target.selector[0])
-                ok, txt = _compare(value, v.op, v.value)
-                computed, res.message = (
-                    ("pass" if ok else "fail"),
-                    f"{v.target.selector[0]} = {txt}",
-                )
-                if not data.get("cost_complete", True) and v.target.selector[0] == "total_cost":
-                    res.message += " (some parts have no declared cost)"
-                evidence["bom://rollups"] = evidence_key(
-                    ctx.product, ctx.build_dir, "bom://rollups"
-                )
-        elif v.kind == "calc":
-            assert v.target is not None and v.op and v.value is not None
-            rec = ctx.calc(str(v.target))
-            ok, txt = _compare(rec.value, v.op, v.value)
-            computed, res.message = ("pass" if ok else "fail"), f"{v.target} = {txt}"
-            evidence[rec.uri] = rec.key
-            res.detail["calc"] = rec.to_dict()
-        elif v.kind == "interference":
-            assert v.target is not None
-            rep = ctx.interference.get(v.target.id)
-            if rep is None:
-                computed, res.message = "skip", f"{v.target} has not been built"
-            else:
-                computed = "pass" if rep["interferences"] == [] else "fail"
-                res.message = (
-                    f"{rep['pairs_checked']} pair(s) checked, {len(rep['allowed_contacts'])} "
-                    f"allowed contact(s), {len(rep['interferences'])} interference(s)"
-                )
-                res.detail["interference"] = rep
-                evidence[str(v.target)] = evidence_key(ctx.product, ctx.build_dir, str(v.target))
-        elif v.kind == "interface":
-            assert v.target is not None
-            rep = ctx.interfaces.get(v.target.id)
-            if rep is None:
-                computed, res.message = "skip", f"{v.target} was not checked"
-            else:
-                computed, res.message = (
-                    rep["status"] if rep["status"] in ("pass", "fail", "skip") else "fail",
-                    rep["message"],
-                )
-                for party in ctx.product.interfaces[v.target.id].parties:
-                    evidence[str(party)] = evidence_key(ctx.product, ctx.build_dir, str(party))
-        elif v.kind == "count":
-            assert v.target is not None and v.op and v.value is not None
-            count = _count_of(ctx, str(v.target.base))
-            if count is None:
-                computed, res.message = "skip", f"{v.target.base} count unavailable (build first)"
-            else:
-                ok, txt = _compare(parse_quantity(count), v.op, v.value)
-                computed, res.message = ("pass" if ok else "fail"), f"count = {txt}"
-                for aid in ctx.product.assemblies:
-                    evidence[f"asm://{aid}"] = evidence_key(
-                        ctx.product, ctx.build_dir, f"asm://{aid}"
-                    )
-        elif v.kind == "rule":
-            assert v.target is not None
-            computed, res.message, subjects = rule_verdict(ctx, str(v.target.base))
-            if computed == "skip" and not subjects and _design_built(ctx):
-                # no part opted in: a person decides, never a silent skip (gate A, C3)
-                computed, res.message = None, NO_STYLED_PART
-            for subject in subjects:
-                evidence[subject] = evidence_key(ctx.product, ctx.build_dir, subject)
-    except (CalcError, UnitError, KeyError, AssertionError) as exc:
+        computed = registry().verify_kind(v.kind).evaluate(ctx, req, res, evidence)
+    except (CalcError, UnitError, KeyError, AssertionError, UnknownName) as exc:
         res.status, res.message = "fail", f"could not evaluate: {exc}"
         res.evidence_keys = evidence
         return res
@@ -328,6 +233,175 @@ def evaluate_requirement(ctx: EvalContext, req: Requirement) -> CheckResult:
     else:
         res.status = "pass"
     return res
+
+
+# ---- the mechanical verify kinds (registered in place by domains/mechanical, F2) ---------
+# Each returns the computed verdict (None: a person decides), sets ``res.message`` and fills
+# ``evidence`` with the keys a sign-off is held against.
+
+
+def eval_manual(
+    ctx: EvalContext, req: Requirement, res: CheckResult, evidence: dict[str, str]
+) -> str | None:
+    """``manual``: a person checks it."""
+    assert req.verify is not None
+    res.message = req.verify.note or "needs a human check"
+    return None
+
+
+def eval_param_bound(
+    ctx: EvalContext, req: Requirement, res: CheckResult, evidence: dict[str, str]
+) -> str | None:
+    """``param_bound``: a parameter's value against a limit."""
+    v = req.verify
+    assert v is not None and v.target is not None and v.op and v.value is not None
+    value = ctx.product.parameter_value(v.target.id)
+    ok, res.message = _compare(value, v.op, v.value)
+    evidence[str(v.target)] = evidence_key(ctx.product, ctx.build_dir, str(v.target))
+    return "pass" if ok else "fail"
+
+
+def eval_geometry_prop(
+    ctx: EvalContext, req: Requirement, res: CheckResult, evidence: dict[str, str]
+) -> str | None:
+    """``geometry_prop``: a built part's or assembly's property against a limit."""
+    v = req.verify
+    assert v is not None and v.target is not None and v.op and v.value is not None
+    props = ctx.props(str(v.target.base))
+    if props is None:
+        res.message = f"{v.target.base} has not been built"
+        return "skip"
+    if props.get("instances") == 0:
+        # an empty module stub (P10, S-112): a size of 0 mm would pass every budget
+        # and say nothing, so the row waits until the assembly has parts
+        res.message = "it has no parts yet, so there is nothing to measure"
+        return "skip"
+    value = prop_quantity(props, v.target.selector)
+    ok, txt = _compare(value, v.op, v.value)
+    res.message = f"{'.'.join(v.target.selector[1:])} = {txt}"
+    evidence[str(v.target.base)] = evidence_key(ctx.product, ctx.build_dir, str(v.target.base))
+    return "pass" if ok else "fail"
+
+
+def eval_bom_rollup(
+    ctx: EvalContext, req: Requirement, res: CheckResult, evidence: dict[str, str]
+) -> str | None:
+    """``bom_rollup``: a BOM total (cost, mass, lead time) against a limit."""
+    from napkin2factory.bom.rollups import rollup_value
+
+    v = req.verify
+    assert v is not None and v.target is not None and v.op and v.value is not None
+    data = ctx.rollups_data()
+    if data is None:
+        res.message = "BOM has not been built"
+        return "skip"
+    value = rollup_value(data, v.target.selector[0])
+    ok, txt = _compare(value, v.op, v.value)
+    res.message = f"{v.target.selector[0]} = {txt}"
+    if not data.get("cost_complete", True) and v.target.selector[0] == "total_cost":
+        res.message += " (some parts have no declared cost)"
+    evidence["bom://rollups"] = evidence_key(ctx.product, ctx.build_dir, "bom://rollups")
+    return "pass" if ok else "fail"
+
+
+def eval_calc(
+    ctx: EvalContext, req: Requirement, res: CheckResult, evidence: dict[str, str]
+) -> str | None:
+    """``calc``: a product calculation's result against a limit."""
+    v = req.verify
+    assert v is not None and v.target is not None and v.op and v.value is not None
+    rec = ctx.calc(str(v.target))
+    ok, txt = _compare(rec.value, v.op, v.value)
+    res.message = f"{v.target} = {txt}"
+    evidence[rec.uri] = rec.key
+    res.detail["calc"] = rec.to_dict()
+    return "pass" if ok else "fail"
+
+
+def eval_interference(
+    ctx: EvalContext, req: Requirement, res: CheckResult, evidence: dict[str, str]
+) -> str | None:
+    """``interference``: no two parts of an assembly overlap."""
+    v = req.verify
+    assert v is not None and v.target is not None
+    rep = ctx.interference.get(v.target.id)
+    if rep is None:
+        res.message = f"{v.target} has not been built"
+        return "skip"
+    res.message = (
+        f"{rep['pairs_checked']} pair(s) checked, {len(rep['allowed_contacts'])} "
+        f"allowed contact(s), {len(rep['interferences'])} interference(s)"
+    )
+    res.detail["interference"] = rep
+    evidence[str(v.target)] = evidence_key(ctx.product, ctx.build_dir, str(v.target))
+    return "pass" if rep["interferences"] == [] else "fail"
+
+
+def eval_interface(
+    ctx: EvalContext, req: Requirement, res: CheckResult, evidence: dict[str, str]
+) -> str | None:
+    """``interface``: the joint's own check row (holes line up, faces placed)."""
+    v = req.verify
+    assert v is not None and v.target is not None
+    rep = ctx.interfaces.get(v.target.id)
+    if rep is None:
+        res.message = f"{v.target} was not checked"
+        return "skip"
+    res.message = rep["message"]
+    for party in ctx.product.interfaces[v.target.id].parties:
+        evidence[str(party)] = evidence_key(ctx.product, ctx.build_dir, str(party))
+    return str(rep["status"]) if rep["status"] in ("pass", "fail", "skip") else "fail"
+
+
+def eval_count(
+    ctx: EvalContext, req: Requirement, res: CheckResult, evidence: dict[str, str]
+) -> str | None:
+    """``count``: how many of a part the product holds, against a limit."""
+    v = req.verify
+    assert v is not None and v.target is not None and v.op and v.value is not None
+    count = _count_of(ctx, str(v.target.base))
+    if count is None:
+        res.message = f"{v.target.base} count unavailable (build first)"
+        return "skip"
+    ok, txt = _compare(parse_quantity(count), v.op, v.value)
+    res.message = f"count = {txt}"
+    for aid in ctx.product.assemblies:
+        evidence[f"asm://{aid}"] = evidence_key(ctx.product, ctx.build_dir, f"asm://{aid}")
+    return "pass" if ok else "fail"
+
+
+def eval_rule(
+    ctx: EvalContext, req: Requirement, res: CheckResult, evidence: dict[str, str]
+) -> str | None:
+    """``rule``: the rule-pack rows of the targeted rule (form requirements, v0.2)."""
+    v = req.verify
+    assert v is not None and v.target is not None
+    computed: str | None
+    computed, res.message, subjects = rule_verdict(ctx, str(v.target.base))
+    if computed == "skip" and not subjects and _design_built(ctx):
+        # no part opted in: a person decides, never a silent skip (gate A, C3)
+        computed, res.message = None, NO_STYLED_PART
+    for subject in subjects:
+        evidence[subject] = evidence_key(ctx.product, ctx.build_dir, subject)
+    return computed
+
+
+def check_geometry_prop(verify: Any) -> None:
+    """A ``geometry_prop`` target selects a property: ``part://x#props.mass``."""
+    if not verify.target.selector or verify.target.selector[0] != "props":
+        raise ValueError("geometry_prop targets select a property: part://x#props.mass")
+
+
+def check_bom_rollup(verify: Any) -> None:
+    """A ``bom_rollup`` target selects a rollup: ``bom://rollups#total_cost``."""
+    if not verify.target.selector:
+        raise ValueError("bom_rollup targets select a rollup: bom://rollups#total_cost")
+
+
+def check_rule(verify: Any) -> None:
+    """A ``rule`` requirement takes a target only."""
+    if verify.op is not None or verify.value is not None:
+        raise ValueError("verify.kind rule takes a target only (rule://<pack>/<rule-id>)")
 
 
 def _count_of(ctx: EvalContext, uri: str) -> int | None:
