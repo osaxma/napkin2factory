@@ -206,15 +206,21 @@ def _scalar(key: str, value: Any) -> str:
     )
 
 
-def _reads_lines(section: str, fields: list[Any]) -> list[str]:
-    """``#   screens read: width (a length, like 800 mm), …`` wrapped as comment lines."""
+def _reads_lines(section: str, fields: list[Any], given: Any = None) -> list[str]:
+    """``#   screens read: width (a length, like 800 mm), …`` wrapped as comment lines.
+
+    A field declared ``hint=False`` (a door's, read only when the card names one) is listed
+    only when ``given`` (the card's section) already holds it (gate F, S-137).
+    """
+    present = set(given) if isinstance(given, dict) else set()
     items = [
         f"{f.key} ({f.kind}, like {f.example})" if f.unit else f"{f.key} (like {f.example})"
         for f in fields
         if f.section == section
+        and (getattr(f, "hint", True) or present & {f.key, *getattr(f, "aliases", ())})
     ]
     if not items:
-        return ["#   (no installed screen reads this section)"]
+        return ["#   (no screen asks for anything here yet)"]
     lines, line = [], "#   screens read:"
     for i, item in enumerate(items):
         piece = f" {item}" + ("," if i < len(items) - 1 else "")
@@ -251,25 +257,25 @@ def render_card(data: dict[str, Any], fields: list[Any] | None = None) -> str:
         "#   e.g. [refs/sketch-01.jpg]",
         f"refs: {_flow(data.get('refs') or [])}",
         "# layout: where things go, in words",
-        *_reads_lines("layout", fields),
+        *_reads_lines("layout", fields, data.get("layout")),
         f"layout: {_flow(data.get('layout') or {})}",
         "# envelope: named rough sizes, any name; they seed parameters when this card is chosen",
-        *_reads_lines("envelope", fields),
+        *_reads_lines("envelope", fields, data.get("envelope")),
         f"envelope: {_flow(data.get('envelope') or {})}",
         "# site: the space it must fit and what it plugs into; screening checks what its",
         "#   screens read, and these become requirements when chosen",
-        *_reads_lines("site", fields),
+        *_reads_lines("site", fields, data.get("site")),
         f"site: {_flow(data.get('site') or {})}",
         "# style: look and feel,",
         "#   e.g. {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}",
         f"style: {_flow(data.get('style') or {})}",
         "# modules: the units it is built from and why, when a reason applies (else leave it",
-        "#   empty), e.g. {door: {driver: [built-as-unit, serviced-as-unit]}};",
-        "#   a massing line joins one with `module: door`",
+        "#   empty), e.g. {lid: {driver: [built-as-unit, serviced-as-unit]}};",
+        "#   a massing line joins one with `module: lid`",
         f"modules: {_flow(data.get('modules') or {})}",
         "# massing: rough shapes from the kit, one line each, e.g.",
         "#   - {kit: enclosure, as: body, args: {length: 540 mm, width: 540 mm, height: 620 mm}}",
-        "#   - {kit: block, as: door, module: door, args: {…}, at: {…}}",
+        "#   - {kit: block, as: lid, module: lid, args: {…}, at: {…}}",
     ]
     massing = data.get("massing") or []
     if massing:

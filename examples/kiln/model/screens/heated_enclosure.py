@@ -811,6 +811,10 @@ SCREENS = (
     Screen("chamber-volume", chamber_volume, title="Chamber volume"),
 )
 
+#: The kiln's word for the space it must fit: the system's rows and promotion say "the
+#: alcove" for it, where a product without one says "the space" (S-137).
+WORDS = {"space": "alcove"}
+
 
 # --- what promotion seeds from these fields (B-0086) ----------------------------------------
 # Promotion reads these two names from a product's screens (``concepts/promote/packs.py``):

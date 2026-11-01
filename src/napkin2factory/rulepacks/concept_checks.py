@@ -7,7 +7,8 @@ screens shared) plus the rule's YAML ``params`` and returns an :class:`Outcome`.
 rows with the rule's wording; a product's own screen (``model/screens/``, F10) uses it for
 its rules too. ``rulepacks.runner.run_rulepacks`` never runs this pack: it iterates
 product parts, and no part has ``scope: concept``. The checks here are the generic
-screens' (F8): the space, the lift, the sheets, the walls.
+screens' (F8): the space, the lift, the sheets, the walls. Their words say ``{space}``, the
+product's word for the space it must fit (S-137).
 
 Values in ``computed`` and ``estimates`` are pint quantities (or words); a rule row records
 which of the two labels it relied on, so a reader can tell geometry from estimate.
@@ -70,6 +71,8 @@ class Outcome:
     violations: list[dict[str, Any]] = field(default_factory=list)
     relies_on: list[str] = field(default_factory=list)
     message: str | None = None  # used as is (skip reasons, unknown-table notes)
+    #: the rule's wording variant to use (``door``: ``title_door``, ``message_door``…)
+    variant: str | None = None
 
 
 CheckFn = Callable[[ConceptFacts, dict[str, Any]], Outcome]
@@ -186,16 +189,20 @@ def fits_site_width(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
 
     ``width + door leaf × max(0, −cos θ) ≤ site.width`` for a hinged door opening to θ,
     ``width + door_swing_factor × door leaf`` when the card gives no angle (see
-    :func:`door_swing_term`); other doors add nothing.
+    :func:`door_swing_term`); the outcome then takes the rule's ``door`` wording. Any other
+    card (no door, or one that does not swing beside the body) is held by its width alone,
+    in words that name no door (gate F, S-137).
     """
     from napkin2factory.concepts.screens.generic import SITE_WIDTH
 
+    door = str(facts.card.layout.get("door", "") or "").strip().lower()
+    variant = "door" if door in HINGED else None
     limit = SITE_WIDTH.quantity(facts.card)
     if limit is None:
-        return _skip("no alcove width on the card")
+        return Outcome("skip", message="no {space} width on the card", variant=variant)
     width = facts.computed.get("width")
     if width is None:
-        return _skip("no rough shapes to measure")
+        return Outcome("skip", message="no rough shapes to measure", variant=variant)
     term, basis = door_swing_term(
         facts.card, facts.massing, float(params.get("door_swing_factor", 1.0))
     )
@@ -208,11 +215,8 @@ def fits_site_width(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
         "limit": mm_text(_q_mm(limit)),
     }
     status: Literal["pass", "violated"] = "pass" if total <= _q_mm(limit) + 1e-6 else "violated"
-    door = str(facts.card.layout.get("door", "") or "").strip().lower()
-    if status == "pass" and door in ("", "none"):  # no door: say it plainly (gate B, C11)
-        msg = f"{values['width']} wide fits the {values['limit']} alcove"
-        return Outcome("pass", values, [], ["computed"], message=msg)
-    return Outcome(status, values, [values] if status == "violated" else [], ["computed"])
+    found = [values] if status == "violated" else []
+    return Outcome(status, values, found, ["computed"], variant=variant)
 
 
 def fits_site_extent(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
@@ -222,7 +226,7 @@ def fits_site_extent(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
     axis = str(params.get("axis", "depth"))
     limit = (SITE_HEIGHT if axis == "height" else SITE_DEPTH).quantity(facts.card)
     if limit is None:
-        return _skip(f"no alcove {axis} on the card")
+        return _skip(f"no {{space}} {axis} on the card")
     size = facts.computed.get(axis)
     if size is None:
         return _skip("no rough shapes to measure")

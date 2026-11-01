@@ -7,6 +7,12 @@ They run phase by phase (``measure``, ``estimate``, ``total``, ``check``; see
 :mod:`.base`). Between ``measure`` and ``estimate`` a card number of the wrong kind for a
 field some screen declares is left out with one note. Then the ``concept-v0`` pack's rules
 run on what the screens found, and each screen's own rows follow in phase order.
+
+The product's own words for what the generic rows name (``WORDS`` in its screens modules,
+:func:`napkin2factory.core.packs.product_words`: a "recess", say) reach the rules as
+``values.shared["space_words"]``; without them the rows say "the space" (S-137). A product
+screen that fails while running is a plain error naming its file, the screen and the next
+step (gate F, S-137); the system's and the domains' screens fail as code does.
 """
 
 from __future__ import annotations
@@ -17,6 +23,7 @@ from typing import Any
 
 from napkin2factory.concepts.screens.base import (
     PHASES,
+    SPACE_WORDS,
     CardField,
     ScreenValues,
     fields_of,
@@ -24,6 +31,7 @@ from napkin2factory.concepts.screens.base import (
 )
 from napkin2factory.concepts.screens.generic import GENERIC_SCREENS
 from napkin2factory.core.domain import Screen
+from napkin2factory.core.errors import N2FError
 from napkin2factory.core.model.concepts import ConceptCard, RuleRow, Screening
 
 
@@ -58,7 +66,9 @@ def card_fields(root: Path | None = None) -> list[CardField]:
     return declared_fields(installed_screens(root))
 
 
-def wrong_kind_notes(card: ConceptCard, fields: list[CardField]) -> list[str]:
+def wrong_kind_notes(
+    card: ConceptCard, fields: list[CardField], space: str = SPACE_WORDS
+) -> list[str]:
     """One note per card number of the wrong kind: screening leaves it out (C8, S-096)."""
     notes = []
     for f in fields:
@@ -66,10 +76,46 @@ def wrong_kind_notes(card: ConceptCard, fields: list[CardField]) -> list[str]:
         if wrong is not None:
             shown, kind, example = wrong
             notes.append(
-                f"{f.words} on the card ({shown}) is not {kind}, so screening leaves it out: "
-                f"give it like {example}"
+                f"{f.said(space)} on the card ({shown}) is not {kind}, so screening leaves it "
+                f"out: give it like {example}"
             )
     return notes
+
+
+def _product_file(screen: Screen, root: Path | None) -> str | None:
+    """``model/screens/shelf.py`` when ``screen`` comes from the product's own pack, else None."""
+    import sys
+
+    if root is None:
+        return None
+    module = sys.modules.get(getattr(screen.run, "__module__", "") or "")
+    file = getattr(module, "__file__", None)
+    if not file:
+        return None
+    folder = (Path(root) / "model" / "screens").resolve()
+    path = Path(file).resolve()
+    return f"model/screens/{path.name}" if path.parent == folder else None
+
+
+def _run_one(
+    screen: Screen, card: ConceptCard, massing: Any, values: ScreenValues, root: Path | None
+) -> list[RuleRow]:
+    """One screen's rows; a product screen that fails says so in plain words (gate F)."""
+    try:
+        return list(screen.run(card, massing, values))
+    except N2FError:
+        raise
+    except Exception as exc:
+        file = _product_file(screen, root)
+        if file is None:
+            raise  # the system's or a domain's screen: a fault in installed code
+        from napkin2factory.core.packs import move_out
+
+        raise N2FError(
+            f"{file}: the screen '{screen.title or screen.name}' failed while running on "
+            f"{card.id} ({type(exc).__name__}: {exc}) → {move_out('screens')}, then run "
+            f"`n2f concept build {card.id}` again"
+        ) from exc
 
 
 def run_screens(
@@ -90,17 +136,20 @@ def run_screens(
         screens: run exactly these instead of the installed ones (tests).
         now: the timestamp to record (default: now, to the second).
     """
+    from napkin2factory.core.packs import product_words
     from napkin2factory.rulepacks.concept_checks import run_concept_rules
 
     chosen = screens if screens is not None else installed_screens(root)
     values = ScreenValues()
+    space = product_words(root).get("space", SPACE_WORDS)
+    values.shared["space_words"] = space
     own_rows: dict[str, list[RuleRow]] = {p: [] for p in PHASES}
     for phase in PHASES:
         if phase == "estimate":
-            values.notes += wrong_kind_notes(card, declared_fields(chosen))
+            values.notes += wrong_kind_notes(card, declared_fields(chosen), space)
         for s in chosen:
             if phase_of(s) == phase:
-                own_rows[phase] += list(s.run(card, massing, values))
+                own_rows[phase] += _run_one(s, card, massing, values, root)
     rules = run_concept_rules(
         card, values.computed.raw, values.estimate.raw, massing, values.shared
     )

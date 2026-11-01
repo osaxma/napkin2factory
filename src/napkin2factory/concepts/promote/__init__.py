@@ -14,8 +14,9 @@ validated before the first byte is written; a refusal writes nothing):
    A parameter already declared with
    the same value is left alone ("already declared"); a different value refuses the whole
    promotion unless ``--override`` (then it is overwritten and listed in the decision).
-3. **Site constraints → requirements** — the alcove (width with the open door's term,
-   depth, height), what the product's own screens seed (a supply circuit, ``packs``) and a
+3. **Site constraints → requirements** — the space it must fit (its width, with the open
+   door's term when the card names a hinged door; depth; height; in the product's own word
+   for the space, S-137), what the product's own screens seed (a supply circuit, ``packs``) and a
    mass limit become ordinary ``req://`` rows allocated to the top assembly, so a product
    too wide for its space is caught on paper.
    3b. **Modules** (P10) — when the product has no assembly yet and the card names modules
@@ -37,7 +38,7 @@ requirements and decisions are appended in the files' own style; an overwritten 
 is a one-line change); ``style.yaml`` and the cards go through ruamel round-trip, so
 comments and key order survive.
 
-One module per seeder (F15, S-131): ``parameters`` (step 2), ``door`` and ``site`` (step 3),
+One module per seeder (F15, S-131): ``parameters`` (step 2), ``swing`` and ``site`` (step 3),
 ``modules`` (3b), ``form`` (4), ``style`` (5), ``decision`` (6 and 7); ``packs`` reads what a
 product's own screens seed (B-0086); ``verb`` runs them in
 order and writes once; ``result`` says what happened. Every public name is importable from
@@ -46,15 +47,6 @@ here, as it was when promotion was one file.
 
 from napkin2factory.concepts.promote.common import NewRequirement, SeededParam
 from napkin2factory.concepts.promote.decision import RATIONALE_KEYS
-from napkin2factory.concepts.promote.door import (
-    DOOR_LEAF_PARAM,
-    DOOR_ROOM_PARAM,
-    DOOR_ROW_TITLE,
-    DoorSwing,
-    door_seeds,
-    door_swing,
-    door_swing_term,
-)
 from napkin2factory.concepts.promote.form import FORM_PACK, form_requirements
 from napkin2factory.concepts.promote.modules import (
     BUDGET_AXES,
@@ -75,6 +67,15 @@ from napkin2factory.concepts.promote.parameters import (
 from napkin2factory.concepts.promote.result import PromotionResult
 from napkin2factory.concepts.promote.site import site_requirements
 from napkin2factory.concepts.promote.style import STYLE_HEADER, plan_style
+from napkin2factory.concepts.promote.swing import (
+    DOOR_LEAF_PARAM,
+    DOOR_ROOM_PARAM,
+    DOOR_ROW_TITLE,
+    DoorSwing,
+    door_seeds,
+    door_swing,
+    door_swing_term,
+)
 from napkin2factory.concepts.promote.verb import promote
 
 __all__ = [

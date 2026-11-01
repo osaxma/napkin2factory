@@ -69,13 +69,20 @@ def rule_rows(
     """One :class:`RuleRow` per rule, each evaluated by its named check in ``checks``.
 
     ``rules`` are pack-shaped dicts (id, title, severity, check, params, message,
-    pass_message, warn_message). A product's own screen (F10) states its rules the same way
-    and calls this.
+    pass_message, warn_message). A check may pick a variant of the wording (its outcome's
+    ``variant``, say ``door``: ``title_door``, ``message_door``… where the rule has them).
+    Titles and messages may say ``{space}``: the product's word for the space it must fit
+    (``facts.shared["space_words"]``, else "space"; S-137). A product's own screen (F10)
+    states its rules the same way and calls this.
     """
+    from napkin2factory.concepts.screens.base import SPACE_WORDS
+
+    # the product's word for the space it must fit (S-137), for every title and message
+    words = {"space": str(facts.shared.get("space_words") or SPACE_WORDS)}
     rows: list[RuleRow] = []
     for rule in rules:
         rid = str(rule["id"])
-        title = str(rule.get("title", rid))
+        title = _fmt(str(rule.get("title", rid)), words)
         severity: Literal["fail", "warn"] = (
             "warn" if str(rule.get("severity", "fail")) == "warn" else "fail"
         )
@@ -92,22 +99,31 @@ def rule_rows(
             )
             continue
         out = fn(facts, dict(rule.get("params") or {}))
+
+        def said(key: str, default: str, out: Any = out) -> str:
+            """The rule's wording for ``key``, its check's variant first (``message_door``)."""
+            variant = getattr(out, "variant", None)  # an outcome built before variants
+            if variant and f"{key}_{variant}" in rule:
+                return str(rule[f"{key}_{variant}"])
+            return str(rule.get(key, default))
+
+        title = _fmt(said("title", rid), words)
         if out.status == "skip":
-            status, message = "skip", out.message or "not checked"
+            status, message = "skip", _fmt(out.message or "not checked", words)
         elif out.status == "violated":
-            template = str(rule.get("message", rid))
+            template = said("message", rid)
             status = severity
-            message = "; ".join(_fmt(template, v) for v in out.violations) or _fmt(
-                template, out.values
+            message = "; ".join(_fmt(template, {**words, **v}) for v in out.violations) or _fmt(
+                template, {**words, **out.values}
             )
         elif out.status == "warn":
             status = "warn"
             message = out.message or _fmt(
-                str(rule.get("warn_message", rule.get("message", rid))), out.values
+                said("warn_message", said("message", rid)), {**words, **out.values}
             )
         else:
             status = "pass"
-            message = out.message or _fmt(str(rule.get("pass_message", "ok")), out.values)
+            message = out.message or _fmt(said("pass_message", "ok"), {**words, **out.values})
         relies = sorted({r for r in out.relies_on if r in ("computed", "estimate", "given")})
         rows.append(
             RuleRow(

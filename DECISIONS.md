@@ -159,6 +159,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-134 | v0.5 DoD 2: a fresh agent added the gadget domain from `docs/domains.md` alone; 0 core files changed or opened | in force |
 | S-135 | v0.5 M5b follow-up: the concept summary line says only generic values; a product's screens add their own phrases (`SUMMARY_PHRASES`; closes B-0097); `docs/domains.md` fixed where the gadget run found it short (S-134) | in force |
 | S-136 | v0.5 DoD 6: the kiln choice simulation; the choice raised after the first build, decided by the owner | in force |
+| S-137 | v0.5 gate fixes 3: the napkin stage for any product ("the space", no door unless the card names one; the kiln's "alcove" from its pack's `WORDS`); a failing product screen or rule check is one plain line; lint L17 names the `door`/`stand` role aliases | in force |
 
 ---
 
@@ -802,3 +803,13 @@ decided row gave way to the new bolt's row passing on the model; criterion e ass
 both forms [revisit]. B-0102: whether a decided pick should go through a change request before release. Transcript:
 `choice-kiln-2026-11-02.md`.
 
+## S-137 — v0.5 gate fixes 3: the napkin stage for any product (2026-11-02)
+Gate F B3: generic rows and promotion say `{space}`, "space" or a screens module's `WORDS = {"space": …}` (`core/packs.py`, seeded
+into `values.shared` like S-133's walls words; the kiln's says "alcove"). A check may pick a wording variant (`title_door`…):
+`fits-site-width` does for a hinged door only, else "it is 600 mm wide but the space is 500 mm wide"; promotion "Fits the space width".
+Door fields are `hint=False`: a new card lists them only once it names a door. Gate F B4 and concern 5: a product screen or rule-pack
+check that fails while running is one `N2FError` naming the file, the screen or check and the next step (`screens/runner.py`;
+`core/packs.py` wraps `CHECKS`, passing `RuleSkip`/`RuleNotApplicable`, imported lazily from `rulepacks` [revisit]). Gate E C13:
+`promote/door.py` → `swing.py`, `about: alcove` → `space` (`--json`). Gate E C8: lint `L17-renamed-roles` (warn) for `role:`/`palette`/
+`finish` aliases; L12's fix names the table's roles. Kiln: its four cards re-screen equal, goldens unchanged, six L17 warnings (B-0103).
+Regression tests (each seen failing on `main`'s code): `test_screening_any_product.py`, e2e `test_concept_any_product.py`, `test_lint_role_aliases.py`.

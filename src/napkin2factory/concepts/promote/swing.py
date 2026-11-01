@@ -1,4 +1,8 @@
-"""The hinged door's swing: the parameters and terms the alcove requirements read (S-085)."""
+"""The hinged opening's swing: the parameters and terms the width requirements read (S-085).
+
+Named after the swing, not the door (gate E, C13): it is the generic door-swing term of F8,
+read only when the card names a hinged door; a card without one seeds nothing here.
+"""
 
 from __future__ import annotations
 
@@ -26,17 +30,23 @@ def _site_length(card: ConceptCard, field: Any) -> Any:
     return None
 
 
-#: Parameters promotion seeds for the alcove requirements (S-085): the leaf that swings
+#: Parameters promotion seeds for the width requirements (S-085): the leaf that swings
 #: (unless the card gives ``envelope.door_width``, seeded under its own name) and the room it
 #: takes beside the hinge, an expression over the leaf. The fits-the-space screen names them.
 DOOR_LEAF_PARAM = generic.DOOR_LEAF_PARAM
 DOOR_ROOM_PARAM = generic.DOOR_ROOM_PARAM
 DOOR_ROW_TITLE = "The open door keeps to its room beside the hinge"
+#: What each seeded parameter is, ``{space}`` the product's word for the space (S-137).
 _SEED_WORDS = {
     DOOR_LEAF_PARAM: ": the width of the door that swings open; write it as an expression "
-    "over the door's own parameters so the alcove requirements follow the designed door",
+    "over the door's own parameters so the {space} requirements follow the designed door",
     DOOR_ROOM_PARAM: ": the room the open door takes beside the hinge",
 }
+
+
+def seed_words(name: str, space: str) -> str:
+    """What the seeded parameter ``name`` is, after ``from concept C-00x`` (else empty)."""
+    return _SEED_WORDS.get(name, "").replace("{space}", space)
 
 
 @dataclass
@@ -125,9 +135,9 @@ def door_swing(card: ConceptCard) -> DoorSwing | None:
 
 
 def door_seeds(card: ConceptCard) -> list[tuple[str, Any, str, str | None]]:
-    """``(name, quantity, source, expr)`` for the door parameters the alcove rows read.
+    """``(name, quantity, source, expr)`` for the door parameters the width rows read.
 
-    Only for a card with an alcove width and a hinged door that reaches past the hinge.
+    Only for a card with a width for the space and a hinged door that reaches past the hinge.
     """
     ds = door_swing(card)
     if ds is None or ds.factor <= 0 or _site_length(card, generic.SITE_WIDTH) is None:

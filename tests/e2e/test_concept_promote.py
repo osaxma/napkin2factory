@@ -86,6 +86,8 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
     _run("validate", cwd=root)
     lint = _run("lint", cwd=root)  # gate A, C3: no part has a style role yet — a warning
     assert "L12-form-needs-roles" in lint.stdout + lint.stderr
+    # its fix names the style table's roles, not an example's (gate E, C8; S-137)
+    assert "door, stand" not in lint.stdout + lint.stderr
     _run("build", "--no-render", cwd=root)
     data = _check(root)
     rows = {r["id"]: r for r in data["matrix"]["requirements"]}

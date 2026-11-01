@@ -37,6 +37,8 @@ class PromotionResult:
     modules: list[str] = field(default_factory=list)
     #: the modules as a suggestion, when the product already had its assemblies
     suggestion: str | None = None
+    #: the product's word for the space it must fit (its screens' ``WORDS``; S-137)
+    space: str = "space"
 
     def summary(self) -> str:
         """The owner's line: what changed, what was kept, what to do next."""
@@ -54,8 +56,9 @@ class PromotionResult:
         abouts: dict[str, int] = {}
         for r in self.requirements:
             abouts[r.about] = abouts.get(r.about, 0) + 1
-        order = ("form", "alcove", "supply", "weight", "budget")
-        parts = [f"{abouts[a]} about {_ABOUT_WORDS[a]}" for a in order if a in abouts]
+        order = ("form", "space", "supply", "weight", "budget")
+        words = {**_ABOUT_WORDS, "space": f"the {self.space}"}
+        parts = [f"{abouts[a]} about {words[a]}" for a in order if a in abouts]
         reqs = _count(len(self.requirements), "requirement") + (
             f" ({', '.join(parts)})" if parts else ""
         )
@@ -132,9 +135,11 @@ class PromotionResult:
         }
 
 
+#: What each ``about`` is in the owner's words; ``space`` says the product's own word for
+#: the space it must fit (``PromotionResult.space``; gate E, C13).
 _ABOUT_WORDS = {
     "form": "form",
-    "alcove": "the alcove",
+    "space": "the space",
     "supply": "the supply",
     "weight": "the weight",
     "budget": "module sizes",

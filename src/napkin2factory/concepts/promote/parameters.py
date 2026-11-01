@@ -17,7 +17,7 @@ from napkin2factory.concepts.promote.common import (
     _slug,
     _split,
 )
-from napkin2factory.concepts.promote.door import _SEED_WORDS, door_seeds
+from napkin2factory.concepts.promote.swing import door_seeds, seed_words
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.model.concepts import ConceptCard
 from napkin2factory.core.units import is_quantity
@@ -93,6 +93,10 @@ def plan_parameters(
     card: ConceptCard, product: Any, text: str, override: bool, notes: list[str]
 ) -> tuple[list[SeededParam], str, list[str]]:
     """Seeded parameters, the new ``parameters.yaml`` text, and refusals (collisions)."""
+    from napkin2factory.concepts.screens import SPACE_WORDS
+    from napkin2factory.core.packs import product_words
+
+    space = product_words(product.paths.root).get("space", SPACE_WORDS)
     seeded: list[SeededParam] = []
     conflicts: list[str] = []
     new_lines: list[str] = []
@@ -142,7 +146,7 @@ def plan_parameters(
             name: {
                 **fields,
                 "unit": unit,
-                "description": f"from concept {card.id}" + _SEED_WORDS.get(name, ""),
+                "description": f"from concept {card.id}" + seed_words(name, space),
                 "owner": SEED_OWNER,
             }
         }

@@ -33,7 +33,7 @@ class NewRequirement:
 
     id: str
     title: str
-    about: str  # alcove | supply | weight | form | budget (a module size, P10)
+    about: str  # space | supply | weight | form | budget (a module size, P10)
     data: dict[str, Any] = field(default_factory=dict)
 
 

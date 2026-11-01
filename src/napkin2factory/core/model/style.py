@@ -117,6 +117,27 @@ def canonical_role(name: str) -> str:
     return ROLE_ALIASES.get(name, name)
 
 
+def alias_uses(data: Any) -> list[tuple[str, str, str]]:
+    """``(where, alias, role)`` for each earlier role word a raw ``style.yaml`` still uses.
+
+    ``where`` is ``palette.door`` or ``finish.stand``. The schema reads the aliases as their
+    roles for one version (F16) and forgets how they were written, so ``n2f lint`` reads
+    the raw file to say so before they stop being read (gate E, C8; S-137).
+    """
+    if not isinstance(data, dict):
+        return []
+    out = []
+    for section in ("palette", "finish"):
+        table = data.get(section)
+        if isinstance(table, dict):
+            out += [
+                (f"{section}.{k}", str(k), ROLE_ALIASES[str(k)])
+                for k in table
+                if str(k) in ROLE_ALIASES
+            ]
+    return out
+
+
 def _role_names() -> list[str]:
     return [*STYLE_ROLES, *ROLE_ALIASES]
 
@@ -363,6 +384,7 @@ def role_for(obj: Any) -> str:
 
 
 __all__ = [
+    "alias_uses",
     "PRESETS",
     "ROLE_ALIASES",
     "ROLE_WORDS",

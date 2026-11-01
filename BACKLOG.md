@@ -51,6 +51,7 @@ entry that closed them. Ids are never reused.
 | B-0100 | F1 lists calc packs among what a domain brings, but `Domain` has no field for them: the calc kit is the system's, a domain's code only imports it | S-132 (`docs/domains.md` §9); a `calc_packs` field whose cases join the `calc-case` rows, when a domain first ships formulas |
 | B-0101 | The bolts choice reopens on any edit to its joints: the kiln's ECR-001 (chamber height) moves the four guard-standoff joints and reopens it, though the bolt, the spacer and the sheet thicknesses it was decided on are unchanged; the demo decides it again | S-133; key the choice on the facts the rule reads (sizes, thicknesses), not the joints' whole keys (`core/checks/hardware.py`, M5's) |
 | B-0102 | The project manager applied a decided choice's pick to the model in the same turn, without asking the owner or filing a change request (allowed before a release) | S-136 (DoD 6 simulation); decide whether a decided pick that changes the parts list goes through `n2f ecr` with its impact even before release, and say so in `roles/pm.md` |
+| B-0103 | The kiln still writes the earlier style-role words (`role: door` on `door-guard`, `role: stand`, `palette`/`finish` `door` and `stand` in `style.yaml`): six lint L17 warnings until renamed to `opening`/`support` | S-137; rename them in `examples/kiln/` (moves part keys, so regenerate what the kiln goldens hold with a logged reason) before the aliases are removed (F16) |
 
 ## Closed
 

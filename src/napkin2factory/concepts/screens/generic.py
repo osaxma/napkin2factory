@@ -1,9 +1,10 @@
 """The system's generic screens (F8): what any product's card can be screened for.
 
 * **fits-the-space** — the rough shapes' size, volume and mass, and the width a hinged door
-  takes beside its hinge when a massing call is named ``door``; its rules (``fits-site-*``)
-  hold them against ``site.width``, ``site.depth`` and ``site.height`` (the space it must
-  fit; ``alcove_*`` read as aliases for one version, F16).
+  takes beside its hinge when the card names one (``layout.door``, a massing call named
+  ``door`` or ``envelope.door_width``); its rules (``fits-site-*``) hold them against
+  ``site.width``, ``site.depth`` and ``site.height`` (the space it must fit; ``alcove_*``
+  read as aliases for one version, F16). A card with no door gets no door words (S-137).
 * **total mass** — the rough shapes plus what other screens add (``values.mass_items``).
 * **cost band** — the rough shapes and other screens' ``cost_items`` priced per process.
 * **mass-vs-lift** — how the total can be lifted and moved (``site.lift_class``).
@@ -33,23 +34,40 @@ from napkin2factory.core.domain import Screen
 from napkin2factory.core.model.concepts import ConceptCard, RuleRow
 from napkin2factory.core.units import Quantity
 
-#: The space it must fit (F8); ``alcove_*`` are the v0.4 keys, read for one version.
+#: The space it must fit (F8); ``alcove_*`` are the v0.4 keys, read for one version. Their
+#: words say ``{space}``: "the space", or the product's own word for it (S-137).
 SITE_WIDTH = CardField(
-    "site", "width", "mm", "a length", "800 mm", "the alcove width", ("alcove_width",)
+    "site", "width", "mm", "a length", "800 mm", "the {space} width", ("alcove_width",)
 )
 SITE_DEPTH = CardField(
-    "site", "depth", "mm", "a length", "600 mm", "the alcove depth", ("alcove_depth",)
+    "site", "depth", "mm", "a length", "600 mm", "the {space} depth", ("alcove_depth",)
 )
 SITE_HEIGHT = CardField(
-    "site", "height", "mm", "a length", "1400 mm", "the alcove height", ("alcove_height",)
+    "site", "height", "mm", "a length", "1400 mm", "the {space} height", ("alcove_height",)
 )
+#: The door-swing term's fields: read when the card names a door, never suggested on a new
+#: card (``hint=False``), so a product without a door is not asked about one (S-137).
 DOOR_LAYOUT = CardField(
-    "layout", "door", None, "words", "hinged-left", "how the door opens (hinged-left, sliding…)"
+    "layout",
+    "door",
+    None,
+    "words",
+    "hinged-left",
+    "how the door opens (hinged-left, sliding…)",
+    hint=False,
 )
 DOOR_SWING = CardField(
-    "envelope", "door_swing", "degree", "an angle", "110 degree", "how far the door opens"
+    "envelope",
+    "door_swing",
+    "degree",
+    "an angle",
+    "110 degree",
+    "how far the door opens",
+    hint=False,
 )
-DOOR_WIDTH = CardField("envelope", "door_width", "mm", "a length", "600 mm", "the door width")
+DOOR_WIDTH = CardField(
+    "envelope", "door_width", "mm", "a length", "600 mm", "the door width", hint=False
+)
 LIFT_CLASS = CardField(
     "site", "lift_class", None, "words", "two-person", "how it may be lifted (one-person…)"
 )

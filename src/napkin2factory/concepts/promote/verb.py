@@ -25,9 +25,11 @@ from napkin2factory.concepts.promote.parameters import plan_parameters
 from napkin2factory.concepts.promote.result import PromotionResult
 from napkin2factory.concepts.promote.site import site_requirements
 from napkin2factory.concepts.promote.style import plan_style
+from napkin2factory.concepts.screens import SPACE_WORDS
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.errors import GateBlocked, N2FError
 from napkin2factory.core.model.concepts import ConceptCard
+from napkin2factory.core.packs import product_words
 
 
 def _refuse_red(card: ConceptCard) -> GateBlocked:
@@ -283,6 +285,7 @@ def promote(
         assemblies=modules.seeded,
         modules=modules.words,
         suggestion=modules.suggestion,
+        space=product_words(root).get("space", SPACE_WORDS),
     )
     # 8. snapshot
     if snapshot:

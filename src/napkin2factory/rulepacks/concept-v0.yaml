@@ -12,8 +12,14 @@ pack: concept-v0
 title: Concept screening (v0)
 applies_to: {scope: concept}
 rules:
+  # {space} is the space the product must fit: "space", or the product's own word for it
+  # (WORDS = {space: …} in its model/screens/, like "recess"; S-137). A rule may
+  # carry a variant of its title and messages (`title_door`, `message_door`,
+  # `pass_message_door`) that its check picks; a card with no hinged door never gets the
+  # door's words (gate F, S-137).
   - id: fits-site-width
-    title: Fits the alcove with the door open
+    title: Fits the {space} width
+    title_door: Fits the {space} with the door open
     severity: fail
     check: fits_site_width
     # an open hinged door reaches leaf × max(0, −cos θ) past the hinge side for the card's
@@ -22,22 +28,24 @@ rules:
     # with no angle counts door_swing_factor × its leaf (1.0 = the leaf swung fully back
     # against the wall: the conservative case) [verify]
     params: {door_swing_factor: 1.0}
-    message: "it needs {total} of width — {width} for the body plus {door_term} for the open door ({door_basis}) — but the alcove is {limit}"
-    pass_message: "{total} with the door open ({width} + {door_term}) fits the {limit} alcove"
+    message: "it is {width} wide but the {space} is {limit} wide"
+    pass_message: "{width} wide fits the {limit} {space}"
+    message_door: "it needs {total} of width — {width} for the body plus {door_term} for the open door ({door_basis}) — but the {space} is {limit}"
+    pass_message_door: "{total} with the door open ({width} + {door_term}) fits the {limit} {space}"
   - id: fits-site-depth
-    title: Fits the alcove depth
+    title: Fits the {space} depth
     severity: fail
     check: fits_site_extent
     params: {axis: depth}
-    message: "it is {size} deep but the alcove is {limit} deep"
-    pass_message: "{size} deep fits the {limit} alcove"
+    message: "it is {size} deep but the {space} is {limit} deep"
+    pass_message: "{size} deep fits the {limit} {space}"
   - id: fits-site-height
-    title: Fits the alcove height
+    title: Fits the {space} height
     severity: fail
     check: fits_site_extent
     params: {axis: height}
-    message: "it is {size} tall but the alcove is {limit} tall"
-    pass_message: "{size} tall fits the {limit} alcove"
+    message: "it is {size} tall but the {space} is {limit} tall"
+    pass_message: "{size} tall fits the {limit} {space}"
   - id: mass-vs-lift-class
     title: How it can be lifted and moved
     severity: warn
