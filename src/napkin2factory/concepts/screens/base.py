@@ -1,11 +1,12 @@
 """The screen contract: the fields a screen reads, the values it writes (F8, F10, S-128).
 
 A screen is a :class:`~napkin2factory.core.domain.Screen`: ``run(card, massing, values)``
-adds labelled numbers through ``values`` and returns concept rule rows. Decorate ``run``
-with :func:`reads` to declare the card fields it reads (section, key, the kind of number,
-an example, the owner's words) and the phase it runs in; ``n2f concept new`` writes the
-skeleton from those declarations and ``n2f concept lint`` checks the cards against them. A
-plain function declares nothing and runs after the system's totals (the ``check`` phase).
+adds labelled numbers through ``values`` and returns concept rule rows. It declares the card
+fields it reads (section, key, the kind of number, an example, the owner's words) and the
+phase it runs in, either on the ``Screen`` itself (``fields=``, ``phase=``: the contract,
+S-129) or with :func:`reads` on ``run``; ``n2f concept new`` writes the skeleton from those
+declarations and ``n2f concept lint`` checks the cards against them. A screen that declares
+nothing runs after the system's totals (the ``check`` phase).
 
 Phases, in order (one screening):
 
@@ -24,11 +25,12 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from napkin2factory.core.domain import SCREEN_PHASES
 from napkin2factory.core.model.concepts import ConceptCard, LabelledValue
 from napkin2factory.core.units import is_quantity
 
 #: The phases a screen may run in, in order (see the module docstring).
-PHASES: tuple[str, ...] = ("measure", "estimate", "total", "check")
+PHASES: tuple[str, ...] = SCREEN_PHASES
 #: The phase of a screen that declares none.
 DEFAULT_PHASE = "check"
 #: The card sections a field may sit in.
@@ -118,13 +120,13 @@ def reads(*fields: CardField, phase: str = DEFAULT_PHASE) -> Callable[[Any], Any
 
 
 def fields_of(screen: Any) -> tuple[CardField, ...]:
-    """The fields a screen declares (none for a plain function)."""
-    return tuple(getattr(screen.run, "fields", ()))
+    """The fields a screen declares: its own ``fields``, else its ``run``'s :func:`reads`."""
+    return tuple(getattr(screen, "fields", ()) or getattr(screen.run, "fields", ()))
 
 
 def phase_of(screen: Any) -> str:
-    """The phase a screen runs in (``check`` for a plain function)."""
-    return str(getattr(screen.run, "phase", DEFAULT_PHASE))
+    """The phase a screen runs in: its own ``phase``, else its ``run``'s, else ``check``."""
+    return str(getattr(screen, "phase", "") or getattr(screen.run, "phase", DEFAULT_PHASE))
 
 
 class Collector:

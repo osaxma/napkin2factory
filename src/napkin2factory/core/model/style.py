@@ -2,7 +2,8 @@
 
 Colours and finishes are keyed by **part role**, a table of neutral words
 (``core/data/style_roles.yaml``: ``body``, ``opening``, ``support``, ``controls``, ``trim``,
-``lining``, ``fastener``, ``default``; F6, F9).  The earlier words ``door`` and ``stand`` are
+``lining``, ``fastener``, ``default``; F6, F9) plus the roles domains register
+(``Domain.style_roles``).  The earlier words ``door`` and ``stand`` are
 read as aliases of ``opening`` and ``support`` for one version (F16).  Three
 presets are plain data (:data:`PRESETS`); :meth:`StyleFile.resolved` fills whatever the file
 leaves out from its preset.  The kit's aesthetic parameters read the shape cues
@@ -14,8 +15,8 @@ leaves out from its preset.  The kit's aesthetic parameters read the shape cues
 from __future__ import annotations
 
 import re
-from functools import lru_cache
-from pathlib import Path
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from typing import Annotated, Any, Literal
 
 from pydantic import Field, field_validator, model_validator
@@ -26,23 +27,89 @@ StylePreset = Literal["industrial", "appliance", "lab"]
 FastenerVisibility = Literal["visible", "hidden-front", "hidden"]
 
 
-@lru_cache(maxsize=1)
-def _roles_table() -> tuple[dict[str, Any], ...]:
-    """``core/data/style_roles.yaml`` (F6): the roles, their words, aliases and opt-in flag."""
-    import yaml
+def _roles() -> dict[str, Any]:
+    """The style-role registry: ``core/data/style_roles.yaml`` plus the domains' (F6)."""
+    from napkin2factory.core.registry import registry
 
-    path = Path(__file__).resolve().parents[1] / "data" / "style_roles.yaml"
-    return tuple(yaml.safe_load(path.read_text(encoding="utf-8")))
+    return registry().style_roles()
 
 
-#: Every role, in display order (the table's).
-STYLE_ROLES: tuple[str, ...] = tuple(str(r["id"]) for r in _roles_table())
+class _RoleNames(Sequence[str]):
+    """Every role, in display order (the table's, then the domains'), read live."""
+
+    def __getitem__(self, i: Any) -> Any:
+        return tuple(_roles())[i]
+
+    def __len__(self) -> int:
+        return len(_roles())
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(tuple(_roles()))
+
+    def __contains__(self, x: object) -> bool:
+        return x in _roles()
+
+    def __eq__(self, other: object) -> bool:
+        return tuple(self) == (tuple(other) if isinstance(other, (tuple, list)) else other)
+
+    __hash__ = None  # type: ignore[assignment]
+
+    def __repr__(self) -> str:
+        return repr(tuple(self))
+
+
+class _RoleMap(Mapping[str, str]):
+    """A live mapping over the registered roles (``pick`` says which)."""
+
+    def __init__(self, pick: Callable[[], dict[str, str]]) -> None:
+        self._pick = pick
+
+    def __getitem__(self, key: str) -> str:
+        return self._pick()[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._pick())
+
+    def __len__(self) -> int:
+        return len(self._pick())
+
+    def __repr__(self) -> str:
+        return repr(self._pick())
+
+
+class _RoleSet(AbstractSet[str]):
+    """The styled roles and their aliases, read live."""
+
+    def __contains__(self, x: object) -> bool:
+        return x in _styled()
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(sorted(_styled()))
+
+    def __len__(self) -> int:
+        return len(_styled())
+
+    def __repr__(self) -> str:
+        return repr(frozenset(_styled()))
+
+
+def _aliases() -> dict[str, str]:
+    return {a: r.id for r in _roles().values() for a in r.aliases}
+
+
+def _styled() -> frozenset[str]:
+    styled = {r.id for r in _roles().values() if r.styled}
+    return frozenset(styled | {a for a, role in _aliases().items() if role in styled})
+
+
+# These read the registry on each use (they are views, not copies), so a domain's roles,
+# registered after this module is imported, are seen wherever they were imported (S-129).
+#: Every role, in display order (the table's, then the domains').
+STYLE_ROLES: Sequence[str] = _RoleNames()
 #: An earlier role word → the role it is read as, for one version (F16, S-128).
-ROLE_ALIASES: dict[str, str] = {
-    str(alias): str(r["id"]) for r in _roles_table() for alias in r.get("aliases") or ()
-}
+ROLE_ALIASES: Mapping[str, str] = _RoleMap(_aliases)
 #: Each role in the owner's words.
-ROLE_WORDS: dict[str, str] = {str(r["id"]): str(r["words"]) for r in _roles_table()}
+ROLE_WORDS: Mapping[str, str] = _RoleMap(lambda: {k: r.words for k, r in _roles().items()})
 
 
 def canonical_role(name: str) -> str:
@@ -72,10 +139,7 @@ VentPattern = Literal["slots", "holes"]
 #: Roles whose parts take style-sourced geometry defaults (the opt-in rule): a part with no
 #: role, or role ``lining``/``fastener``/``default``, builds exactly as without a style.
 #: The aliases are members too, so a part written ``role: door`` builds as it did.
-_STYLED = {str(r["id"]) for r in _roles_table() if r.get("styled")}
-STYLED_ROLES: frozenset[str] = frozenset(
-    _STYLED | {alias for alias, role in ROLE_ALIASES.items() if role in _STYLED}
-)
+STYLED_ROLES: AbstractSet[str] = _RoleSet()
 
 
 def __getattr__(name: str) -> Any:

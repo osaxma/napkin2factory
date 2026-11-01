@@ -177,9 +177,24 @@ def build_rules(product: Product, render: bool = True) -> list[Rule]:
 #: The domain registries each mechanical rule kind reads (their contributors' code hashes
 #: are inputs of its rules, gate E); a domain's own families read their own code.
 _REGISTRIES_READ: dict[str, tuple[str, ...]] = {
-    "validate": ("families", "interface_kinds", "processes", "finishes", "categories", "drivers"),
+    "validate": (
+        "families",
+        "interface_kinds",
+        "processes",
+        "finishes",
+        "categories",
+        "drivers",
+        "style_roles",
+    ),
     "doc": ("doc_helpers",),
-    "checks": ("verify_kinds", "check_stages", "interface_kinds", "processes", "categories"),
+    "checks": (
+        "verify_kinds",
+        "check_stages",
+        "interface_kinds",
+        "processes",
+        "categories",
+        "style_roles",  # the form pack's styled-role rows
+    ),
     "report": ("report_sections", "gate_rows", "vocabulary"),
 }
 
@@ -226,6 +241,7 @@ def part_rules(b: RuleBuild) -> list[Rule]:
                 # the sum of its parts' props, so it follows through their output hashes
                 "material": density_input(product.parts[pid].material),
                 "render": b.render_flag,
+                **_role_inputs(product, pid),
             },
             run=runs.make_part_run(pid),
             description=f"3D, props, features, renders for part://{pid}",
@@ -233,6 +249,24 @@ def part_rules(b: RuleBuild) -> list[Rule]:
         )
         for pid in sorted(p.id for p in product.parts_with_geometry())
     ]
+
+
+def _role_inputs(product: Product, pid: str) -> dict[str, str]:
+    """A part whose ``role`` a domain registers reads that domain's declaration (gate E).
+
+    Whether the role is styled decides whether the style's shape cues apply, so the
+    domain's code hash is an input of exactly the parts that name one of its roles (S-129).
+    """
+    from napkin2factory.core.registry import registry
+
+    role = product.parts[pid].role
+    if not role:
+        return {}
+    reg = registry()
+    for d in reg.contributors("style_roles"):
+        if any(role == r.id or role in r.aliases for r in d.style_roles):
+            return {f"domain:{d.name}": reg.domain_hash(d)}
+    return {}
 
 
 def asm_rules(b: RuleBuild) -> list[Rule]:

@@ -205,26 +205,56 @@ An interface of that kind validates its `spec:` with your schema, cuts nothing i
 geometry, reads as your title in the build plan, and is checked by `check(product, iface,
 build_dir) -> {"status", "message"}` (no `check`: "not checked").
 
-### 2.10 Open sets (F6): processes, finishes, categories, drivers
+### 2.10 Open sets (F6): processes, finishes, categories, drivers, style roles
 - `processes=(Process("toy-cast", "Toy casting"),)` — values of a part's `process:`.
   `declared=False` means "not decided" (the general rule pack then asks for one).
 - `finishes=("toy-glitter",)` — values of `style.yaml` finishes (neutral render factors).
 - `categories=("fun",)` — requirement categories.
 - `drivers={"toy-swapped": "swapped between toys"}` — why a sub-assembly is built on its own,
   with its owner words.
+- `style_roles=(StyleRoleSpec("toy-shell", "a toy's shell", styled=True, aliases=("casing",)),)`
+  — values of a part's or a rough shape's `role:` and the keys of `style.yaml`'s `palette`
+  and `finish`. `words` say the role for the owner; `styled=True` gives a part that names it
+  the style's shape cues (corner radius, reveal …, the opt-in rule); `aliases` are other
+  words read as it. A role the preset gives no colour takes the `default` role's. A part
+  naming your role reads your domain's code hash, so a change to your declaration rebuilds
+  exactly those parts (and `validate` and `checks`).
 The system's own values are the tables in `src/napkin2factory/core/data/*.yaml`; yours are
-added to them. An unknown value is an error listing the known ones.
+added to them (a value the table already has stays the table's). An unknown value is an
+error listing the known ones.
 
-### 2.11 Screens — `screens=(Screen("toy", toy_screen),)`
-Napkin-stage screening of a concept card (runs after the built-in screens).
+### 2.11 Screens — `screens=(Screen("toy", toy_screen, fields=(TOYS,), phase="estimate"),)`
+Napkin-stage screening of a concept card. A screen declares the card fields it reads and the
+phase it runs in; `n2f concept new` writes the fields into a new card's skeleton and
+`n2f concept lint` checks a card's numbers against their kind.
 
 ```python
+from napkin2factory.concepts.screens import CardField
+from napkin2factory.core.domain import Screen
+
+TOYS = CardField("envelope", "toys", None, "a count", "5", "how many toys it holds")
+#        section, key, unit it converts to (None: words), kind of number, example, words
+
 def toy_screen(card, massing, values) -> list[RuleRow]:
     values.estimate.add("toy_count", n, f"{n} toys", "from the card", "toy screen")
     return [RuleRow(id="toy-count", title="Enough toys", status="pass", message=f"{n} toys")]
+
+Screen("toy", toy_screen, title="Toy count", fields=(TOYS,), phase="estimate")
 ```
+- `fields`: the `CardField`s the screen reads (`section` is `envelope`, `site` or `layout`;
+  `aliases` are earlier keys still read; `param` names the parameter an envelope field seeds
+  at promotion when it is not the key with hyphens).
+- `phase`: `measure` and `total` are the system's own steps; take `estimate` when the totals
+  (mass, cost band) read your numbers (`values.mass_items`, `values.cost_items`, or
+  `values.shared` for a later screen), else `check` (the default). An unknown phase is an
+  error naming the known ones (`core.domain.SCREEN_PHASES`).
+- Left empty, both come from a `@reads(*fields, phase=...)` decorator on the function (the
+  form a product's own `model/screens/*.py` may use too); with neither, the screen reads no
+  declared field and runs in `check`.
+
 `values.computed`, `values.estimate`, `values.given` each `.add(name, raw, text, source, ref)`;
 `values.notes` is a list of owner sentences. `card.envelope` / `card.site` numbers are quantities.
+The rows come after the system's generic rows, in phase order.
 
 ### 2.12 Context contributions — `context=(ContextContribution(...),)`
 What `n2f context asm://<id>` adds for a module: `collect(product, aid, members) -> list[str]`

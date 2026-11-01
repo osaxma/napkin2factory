@@ -75,6 +75,8 @@ def test_every_registry_sees_the_toy(toy_built: tuple[Path, Any, Any]) -> None:
     assert "fun" in reg.categories()
     assert reg.drivers()["toy-swapped"] == "swapped between toys"
     assert [s.name for s in reg.screens()] == ["toy"]
+    assert reg.screens()[0].fields == (toy.TOYS,) and reg.screens()[0].phase == "estimate"
+    assert reg.style_roles()["toy-shell"].styled
     assert [c.name for c in reg.context_contributions()] == ["toy"]
     assert reg.model_family("toy").folder == "model/toy"
     assert [d.name for d in reg.domains] == ["mechanical", "toy"]
@@ -204,6 +206,62 @@ def test_screen_runs_on_a_card(toy_built: tuple[Path, Any, Any]) -> None:
     result = screen(card, None)
     assert result.estimates["toy_count"].value == "5 toys"
     assert [r.id for r in result.rules][-1] == "toy-count"
+
+
+def test_screen_declares_its_fields_and_phase(toy_built: tuple[Path, Any, Any]) -> None:
+    """B-0089 (S-129): ``Screen(fields=…, phase=…)`` is the contract, no decorator needed."""
+    from napkin2factory.concepts.screens import card_fields, fields_of, phase_of
+    from napkin2factory.core.concepts import render_card
+    from napkin2factory.core.domain import Screen
+
+    screen = registry().screens()[0]
+    assert fields_of(screen) == (toy.TOYS,) and phase_of(screen) == "estimate"
+    assert "envelope.toys" in [f.name for f in card_fields()]
+    skeleton = render_card({"id": "C-001", "title": "Toy chest"})
+    assert "toys (like 5)" in skeleton, skeleton
+    with pytest.raises(ValueError, match="unknown phase 'later'; known: measure, estimate"):
+        Screen("late", toy.toy_screen, phase="later")
+
+
+def test_style_role_is_a_role_while_the_domain_is_installed(
+    toy_built: tuple[Path, Any, Any],
+) -> None:
+    """B-0089 (S-129): a domain's style role validates, is styled, and keys a palette."""
+    from napkin2factory.core.model import Part
+    from napkin2factory.core.model.style import (
+        ROLE_ALIASES,
+        STYLE_ROLES,
+        STYLED_ROLES,
+        StyleFile,
+        canonical_role,
+    )
+
+    _, product, _ = toy_built
+    assert STYLE_ROLES[-1] == "toy-shell" and "toy-shell" in STYLED_ROLES  # live views
+    assert ROLE_ALIASES["casing"] == "toy-shell" and canonical_role("casing") == "toy-shell"
+    part = Part.model_validate({"id": "x", "name": "x", "role": "casing"})
+    assert part.role == "casing"
+    style = StyleFile.model_validate({"palette": {"toy-shell": "#123456"}})
+    assert style.colour("toy-shell") == "#123456"
+    assert StyleFile().colour("toy-shell") == StyleFile().colour("default")
+    # a part naming the role reads the domain's code; the toy's own parts do not
+    product.parts["plate"].role = "toy-shell"
+    try:
+        rules = {r.id: r for r in build_rules(product, render=False)}
+        assert "domain:toy" in rules["part:plate"].inputs
+    finally:
+        product.parts["plate"].role = None
+    rules = {r.id: r for r in build_rules(product, render=False)}
+    assert "domain:toy" not in rules["part:plate"].inputs
+    assert "domain:toy" in rules["validate"].inputs
+
+
+def test_a_role_no_domain_registers_lists_the_known_ones() -> None:
+    from napkin2factory.core.model import Part
+
+    with pytest.raises(ValidationError) as err:
+        Part.model_validate({"id": "x", "name": "x", "role": "glow-panel"})
+    assert "unknown style role 'glow-panel'; known: body, opening" in str(err.value)
 
 
 def test_context_contribution(toy_built: tuple[Path, Any, Any]) -> None:
