@@ -76,10 +76,12 @@ Conventions for `massing`:
   writes every installed screen's fields into the skeleton. The system's screens read
   `site.width`, `site.depth`, `site.height` (the space it must fit; `alcove_width`,
   `alcove_depth`, `alcove_height` before v0.5, still read with a lint warning),
-  `layout.door` (`hinged-left`, `hinged-right`, `sliding` …), `envelope.door_swing` (how far
-  a hinged door opens, `110 degree`; without it the door counts swung fully back, the widest
-  case), `envelope.door_width` (the leaf, when there is no `door` call), `site.lift_class` and
-  `site.mass_limit`. The card above also gives `chamber`, `insulation`, `power`, `circuit`
+  `site.lift_class` and `site.mass_limit`; and, when the card names a door, `layout.door`
+  (`hinged-left`, `hinged-right`, `sliding` …), `envelope.door_swing` (how far a hinged door
+  opens, `110 degree`; without it the door counts swung fully back, the widest case) and
+  `envelope.door_width` (the leaf, when there is no `door` call). A new card's skeleton
+  lists the door fields only when the card already gives one, so a product without a door
+  is never asked about one. The card above also gives `chamber`, `insulation`, `power`, `circuit`
   and `region`: those are read by the kiln's own heated-box screens, which a product carries
   in its `model/screens/` (below). Every `envelope` number seeds a parameter at promotion.
 - `n2f concept lint` after every edit: schema, ids, refs that exist, known kit names,
@@ -150,7 +152,12 @@ mass, cost band, lift class) and `check` (everything else). Three sources, in th
    example (`examples/kiln/model/screens/heated_enclosure.py`): heat loss and heat-up, the
    supply circuit, controls away from the heat, safe to touch, chamber volume. Copy that file
    into a product's `model/screens/` to screen a heated box. Such a module may also give
-   promotion requirements and decision quotes of its own (below).
+   promotion requirements and decision quotes of its own (below), and its own word for the
+   space it must fit: `WORDS = {"space": "alcove"}` (the kiln's). The system's rows and
+   promotion then say "Fits the alcove …"; without it they say "the space". A screen of the
+   product that fails while running stops the build with one plain line naming its file,
+   the screen and the next step (fix the file, or move it out of `model/screens/`), not a
+   traceback; a product rule-pack check (`model/rulepacks/*.py`) likewise.
 
 `n2f doctor` lists every screen installed, inside a product folder its own too.
 
@@ -160,7 +167,7 @@ The system's rules (`rulepacks/concept-v0.yaml`), for every product:
 
 | rule | fails when |
 |---|---|
-| `fits-site-width` | width + the open door > `site.width` (`alcove_width` before v0.5, still read). A hinged door (`layout.door: hinged-left/right`) adds what its leaf (the `door` massing call, else `envelope.door_width`) reaches past the hinge: leaf × max(0, −cos `envelope.door_swing`), the whole leaf when the card gives no angle |
+| `fits-site-width` | width (+ the open door) > `site.width` (`alcove_width` before v0.5, still read). A hinged door (`layout.door: hinged-left/right`) adds what its leaf (the `door` massing call, else `envelope.door_width`) reaches past the hinge: leaf × max(0, −cos `envelope.door_swing`), the whole leaf when the card gives no angle; the row then reads "with the door open". A card with no hinged door is held by its width alone, in words that name no door |
 | `fits-site-depth`, `fits-site-height` | depth/height exceed `site.depth`/`site.height` |
 | `mass-vs-lift-class` (warning) | the mass needs more than a two-person lift, or more than `site.lift_class` |
 | `blank-vs-stock-sheet` | a sheet-metal call's flat blank (open box: (L + 2H) × (W + 2H)) fits no stock sheet on file |
@@ -175,8 +182,8 @@ The kiln's own rules (its `model/screens/`), as an example of a product's:
 | `skin-vs-touch-limit` (warning) | the skin estimate is above `site.touch_limit`, or without one the 1-minute burn threshold in `calckit/data/touch_limits.yaml` (ISO 13732-1, `[verify]`) |
 | `chamber-volume-vs-target` (warning) | the chamber holds less than `envelope.target_volume` |
 
-Each rule carries an owner-worded `title` ("Fits the alcove with the door open", "Every sheet
-fits a stock size", "The walls fit inside the body"); `n2f concept show` prints the title,
+Each rule carries an owner-worded `title` ("Fits the space width", "Fits the alcove with the
+door open" for the kiln, "Every sheet fits a stock size", "The walls fit inside the body"); `n2f concept show` prints the title,
 `--json` keeps the id. The system's rows come first, then each screen's in phase order.
 
 A failing rule makes the card **red**; warnings never do. Red is information: the card
@@ -260,7 +267,10 @@ computed and validated first; a refusal writes nothing):
    overwritten in place and listed in the decision).
 3. **Site constraints become requirements**, allocated to the top assembly
    (`unallocated` and checked by a person when there is no assembly yet):
-   - `width` (`alcove_width` before v0.5) → "Fits the alcove with the door open": `asm://<top>#props.bbox.x ≤
+   - `width` (`alcove_width` before v0.5) → "Fits the space width" (`bbox.x ≤ site.width`)
+     for a card with no hinged door; with one, "Fits the space with the door open" (the
+     product's own word for the space, the kiln's "alcove", when its screens give one):
+     `asm://<top>#props.bbox.x ≤
      site.width − allowance`, the allowance being the room the open door takes beside
      the hinge (screening's door-swing term rounded up to 0.1 mm; 0 for a door that does
      not swing sideways), stated in the rationale. For a hinged door promotion also seeds

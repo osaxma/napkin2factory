@@ -37,6 +37,10 @@ DEFAULT_PHASE = "check"
 SECTIONS: tuple[str, ...] = ("envelope", "site", "layout")
 #: The owner's words for a ``[verify]`` tag at the end of a "where it comes from" sentence.
 TO_CHECK = "to be checked"
+#: The system's word for the space a product must fit (F8). A product names it its own way
+#: with ``WORDS = {"space": "recess"}`` in a screens module (``core.packs.product_words``);
+#: the generic rows, a field's words (``{space}``) and promotion then say that (S-137).
+SPACE_WORDS = "space"
 
 
 @dataclass(frozen=True)
@@ -45,10 +49,14 @@ class CardField:
 
     ``unit`` is the unit the screen converts it to (``None``: words, like a region code);
     ``kind`` names that kind of number for the owner (``a length``); ``words`` say what the
-    field is (``the alcove width``); ``aliases`` are earlier keys still read for one
+    field is (``the {space} width``: ``{space}`` is the product's word for the space it must
+    fit, :meth:`said`); ``aliases`` are earlier keys still read for one
     version (F16) — the card's key wins over an alias when both are present. ``param``
     names the parameter an envelope field seeds when its card is promoted, when that is not
-    the key itself with hyphens (``None``: the key).
+    the key itself with hyphens (``None``: the key). ``hint`` false keeps the field out of a
+    new card's "screens read" lines unless the card already gives it: a field only some
+    products have (the generic door-swing term's door fields), so a shelf's card never
+    suggests a door (gate F, S-137).
     """
 
     section: str
@@ -59,11 +67,16 @@ class CardField:
     words: str
     aliases: tuple[str, ...] = ()
     param: str | None = None
+    hint: bool = True
 
     @property
     def name(self) -> str:
         """``site.width``."""
         return f"{self.section}.{self.key}"
+
+    def said(self, space: str = SPACE_WORDS) -> str:
+        """The field's words with the product's word for the space (``the space width``)."""
+        return self.words.replace("{space}", space)
 
     def written(self, card: ConceptCard) -> str | None:
         """The key the card uses for this field (the field's own, else an alias), or None."""
@@ -229,6 +242,7 @@ __all__ = [
     "DEFAULT_PHASE",
     "PHASES",
     "SECTIONS",
+    "SPACE_WORDS",
     "TO_CHECK",
     "CardField",
     "Collector",

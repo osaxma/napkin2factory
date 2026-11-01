@@ -297,11 +297,16 @@ def lint(product: Product) -> Problems:
             ", ".join(f"req://{r.id}" for r in form_reqs),
             "form requirements exist (`rule://form-v0/…`) but no custom part declares a "
             "style `role:` — they will stay unchecked",
-            "give the body, door, stand, controls and trim parts `role:` "
-            "(model/parts/<id>.yaml), or sign the rows off by hand",
+            "give the parts the form rows are about a style `role:` (model/parts/<id>.yaml; "
+            "the roles are the style table's words, like body, opening, support, controls "
+            "and trim), or sign the rows off by hand",
             severity="warn",
             rule="L12-form-needs-roles",
         )
+
+    # L17: an earlier style-role word (`door`, `stand`) is read as its role for this version
+    # only (F9, F16); say so before it stops being read (gate E, C8; S-137).
+    _lint_role_aliases(product, problems)
 
     # L14: a joint closed later names a unit above the one where its parts meet (S-118).
     if any(i.closed_in is not None for i in product.interfaces.values()):
@@ -385,6 +390,47 @@ def _lint_scope(product: Product, problems: Problems) -> None:
                 severity="warn",
                 rule="L15-scope",
             )
+
+
+ROLE_ALIAS_RULE = "L17-renamed-roles"
+
+
+def _lint_role_aliases(product: Product, problems: Problems) -> None:
+    """L17 (a warning): a part's ``role:`` or a ``style.yaml`` key written as an alias."""
+    from napkin2factory.core.model.style import ROLE_ALIASES, alias_uses
+    from napkin2factory.core.style import style_path
+    from napkin2factory.core.yamlio import read_yaml
+
+    for part in product.parts.values():
+        role = str(getattr(part, "role", None) or "")
+        if role in ROLE_ALIASES:
+            problems.add(
+                product.paths.parts / f"{part.id}.yaml",
+                part.uri,
+                f"role: {role} is read as role: {ROLE_ALIASES[role]} for this version only",
+                f"write role: {ROLE_ALIASES[role]} (same look); the old word stops being read "
+                "in the next version",
+                severity="warn",
+                rule=ROLE_ALIAS_RULE,
+            )
+    path = style_path(product.paths.root)
+    if not path.is_file():
+        return
+    try:
+        data = read_yaml(path)
+    except Exception:  # an unreadable style.yaml is validate's to report, not this rule's
+        return
+    for where, alias, role in alias_uses(data):
+        section = where.split(".")[0]
+        problems.add(
+            path,
+            where,
+            f"{where} is read as {section}.{role} for this version only",
+            f"rename the key to {role} (same value); the old word stops being read in the "
+            "next version",
+            severity="warn",
+            rule=ROLE_ALIAS_RULE,
+        )
 
 
 def _any_styled_part(product: Product) -> bool:

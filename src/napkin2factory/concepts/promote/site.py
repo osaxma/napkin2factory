@@ -9,17 +9,20 @@ from napkin2factory.concepts.promote.common import (
     SeededParam,
     _q_text,
 )
-from napkin2factory.concepts.promote.door import (
+from napkin2factory.concepts.promote.packs import pack_requirements
+from napkin2factory.concepts.promote.swing import (
     DOOR_ROOM_PARAM,
     DOOR_ROW_TITLE,
     _site_length,
     door_swing,
     door_swing_term,
 )
-from napkin2factory.concepts.promote.packs import pack_requirements
-from napkin2factory.concepts.screens import generic
+from napkin2factory.concepts.screens import SPACE_WORDS, generic
 from napkin2factory.core.model.concepts import ConceptCard
 from napkin2factory.core.units import is_quantity
+
+#: The ``about`` of the rows that hold the product to the space it must fit (``--json``).
+SPACE_ABOUT = "space"
 
 
 def site_requirements(
@@ -32,9 +35,16 @@ def site_requirements(
     """``(about, requirement fields)`` for each site constraint on the card.
 
     The space it must fit, then what the product's own screens seed (``root``'s
-    ``model/screens/``, :mod:`.packs`), then the weight.
+    ``model/screens/``, :mod:`.packs`), then the weight. The rows name the space in the
+    product's own word (``WORDS`` of its screens, else "space"), and name a door only when
+    the card names a hinged one (gate F, S-137).
     """
+    from napkin2factory.core.packs import product_words
     from napkin2factory.core.units import Quantity
+    from napkin2factory.rulepacks.concept_checks import HINGED
+
+    space = product_words(root).get("space", SPACE_WORDS)
+    door = str(card.layout.get("door", "") or "").strip().lower()
 
     src = f"concept {card.id} site constraint"
     allocation: Any = [f"asm://{top}"] if top else "unallocated"
@@ -59,7 +69,7 @@ def site_requirements(
     ds = door_swing(card)
     if width is not None and ds is not None and DOOR_ROOM_PARAM in seeded_names:
         # the door is a parameter, not a number frozen in the bound (review gate A, C8;
-        # S-085): the closed width gets the alcove less the door's allowance, and a second
+        # S-085): the closed width gets the space less the door's allowance, and a second
         # row holds the door to that allowance, so a wider or further-opening door fails
         allowance = ds.allowance
         limit = (width - allowance).to("mm")
@@ -67,11 +77,11 @@ def site_requirements(
         leaf_uri = f"param://{ds.leaf_param}"
         out.append(
             (
-                "alcove",
+                SPACE_ABOUT,
                 {
-                    "title": "Fits the alcove with the door open",
+                    "title": f"Fits the {space} with the door open",
                     "statement": f"The closed width plus the {_q_text(allowance)} the open door "
-                    f"takes beside the hinge stays within the {_q_text(width)} alcove.",
+                    f"takes beside the hinge stays within the {_q_text(width)} {space}.",
                     "category": "geometry",
                     "verify": geometry("bbox.x", "<=", limit),
                     "allocation": [f"asm://{top}", room] if top else "unallocated",
@@ -84,11 +94,11 @@ def site_requirements(
         )
         out.append(
             (
-                "alcove",
+                SPACE_ABOUT,
                 {
                     "title": DOOR_ROW_TITLE,
                     "statement": f"The open door takes at most {_q_text(allowance)} beside the "
-                    "hinge, the room the alcove leaves it.",
+                    f"hinge, the room the {space} leaves it.",
                     "category": "geometry",
                     "verify": {
                         "kind": "param_bound",
@@ -105,12 +115,26 @@ def site_requirements(
                 },
             )
         )
+    elif width is not None and door not in HINGED:
+        # no door that swings beside the body: the width alone, no door words (gate F)
+        out.append(
+            (
+                SPACE_ABOUT,
+                {
+                    "title": f"Fits the {space} width",
+                    "statement": f"The assembled product is at most {_q_text(width)} wide.",
+                    "category": "geometry",
+                    "verify": geometry("bbox.x", "<=", width),
+                    "rationale": f"site.{generic.SITE_WIDTH.written(card)} on {card.id}.",
+                },
+            )
+        )
     elif width is not None:
         term, basis = door_swing_term(card)
         if ds is None and float(term.magnitude) > 0:
             notes.append(
-                "the screening does not record the door's width (it predates that): the "
-                "alcove bound holds the door swing as a number — rebuild the card "
+                f"the screening does not record the door's width (it predates that): the "
+                f"{space} bound holds the door swing as a number — rebuild the card "
                 f"(`n2f concept build {card.id}`) and promote again to make it a parameter"
             )
         limit = (width - term).to("mm")
@@ -122,11 +146,11 @@ def site_requirements(
         )
         out.append(
             (
-                "alcove",
+                SPACE_ABOUT,
                 {
-                    "title": "Fits the alcove with the door open",
+                    "title": f"Fits the {space} with the door open",
                     "statement": f"The closed width plus {swing} stays within the "
-                    f"{_q_text(width)} alcove.",
+                    f"{_q_text(width)} {space}.",
                     "category": "geometry",
                     "verify": geometry("bbox.x", "<=", limit),
                     "rationale": f"Door-swing term {_q_text(term)} (computed by screening: "
@@ -144,9 +168,9 @@ def site_requirements(
             continue
         out.append(
             (
-                "alcove",
+                SPACE_ABOUT,
                 {
-                    "title": f"Fits the alcove {site_field.key}",
+                    "title": f"Fits the {space} {site_field.key}",
                     "statement": f"The assembled product is at most {_q_text(limit)} {word}.",
                     "category": "geometry",
                     "verify": geometry(axis, "<=", limit),

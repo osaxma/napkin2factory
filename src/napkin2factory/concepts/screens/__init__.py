@@ -14,12 +14,14 @@ def supply(card, massing, values):
     return []  # concept rule rows
 
 SCREENS = (Screen("supply", supply),)
+WORDS = {"space": "recess"}  # optional: the product's word for the space it must fit
 ```
 """
 
 from napkin2factory.concepts.screens.base import (
     DEFAULT_PHASE,
     PHASES,
+    SPACE_WORDS,
     TO_CHECK,
     CardField,
     Collector,
@@ -48,6 +50,7 @@ __all__ = [
     "DEFAULT_PHASE",
     "GENERIC_SCREENS",
     "PHASES",
+    "SPACE_WORDS",
     "TO_CHECK",
     "CardField",
     "Collector",
