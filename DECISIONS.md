@@ -115,6 +115,7 @@ should confirm before relying on them.
 | S-096 | A card number of the wrong kind is a lint error, not a crash | in force |
 | S-097 | One trunk, a worktree per task, ids at landing: built for successive agents of any provider | in force |
 | S-098 | Task folders hardlink uv's cache so macOS scans native libraries once | in force |
+| S-099 | Landing gives placeholders their ids in every task commit, messages included | in force |
 
 ---
 
@@ -1130,3 +1131,12 @@ newly written executable file on first load; uv's macOS default installs clones,
 folder had all-new files. With `UV_LINK_MODE=hardlink` the files are the cache's own: the first
 hardlinked folder still took 179 s, the next 10.2 s. `make task` now syncs with hardlinks (an
 explicit `UV_LINK_MODE` wins). Nothing writes into installed files, so the shared cache is safe.
+
+## S-099 — Landing gives placeholders their ids in every task commit, messages included (2026-11-01)
+Amends S-097. Found on the first real landing (S-098): ids were assigned in a final "Assign journal
+ids" commit, so the task's own commit kept `S-099` in its files and subject on `main`, and
+`git bisect run make check` would have blamed that commit for the placeholder check. Now
+`scripts/journal_ids.py` rebuilds each task commit from its snapshot with the ids applied to its
+changed files and its message (plumbing: `read-tree`, `hash-object`, `commit-tree`; no patch is
+replayed, so nothing can conflict). Commit `3d50f7e` on `main` predates this and keeps its
+placeholder; history on `main` is never rewritten.

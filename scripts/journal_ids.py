@@ -4,7 +4,10 @@ In a task branch, new decisions are written ``S-NEW<n>`` and new backlog rows ``
 so two tasks never claim the same number. After the task is rebased onto ``main``, this
 script replaces every placeholder with the next free id (the highest ``S-`` id in
 DECISIONS.md or ``B-`` id in BACKLOG.md, plus one, in the placeholders' numeric order), in
-every file the task changed, and commits the result as "Assign journal ids".
+every commit of the task: the files each commit holds and its message. History is rewritten
+commit by commit from the snapshots (no patches are replayed, so nothing can conflict), so no
+placeholder ever reaches ``main`` and every landed commit passes the journal check on its own
+(``git bisect`` relies on that).
 
 Run it from inside the task's folder: ``python3 scripts/journal_ids.py [--base main]``.
 """
@@ -12,6 +15,7 @@ Run it from inside the task's folder: ``python3 scripts/journal_ids.py [--base m
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -67,25 +71,87 @@ def assign(root: Path, texts: dict[Path, str]) -> dict[str, str]:
     return mapping
 
 
+def placeholder_messages(root: Path, base: str) -> dict[Path, str]:
+    """Return the task's commit messages, keyed like files, so their placeholders count too."""
+    log = git("log", "--format=%B%x00", f"{base}..HEAD", cwd=root)
+    return {Path(f"<message {i}>"): text for i, text in enumerate(log.split("\0"))}
+
+
+def rewrite_history(root: Path, base: str, mapping: dict[str, str]) -> str:
+    """Rebuild each commit after ``base`` with ``mapping`` applied; return the new tip."""
+
+    def fix(text: str) -> str:
+        return PLACEHOLDER.sub(lambda m: mapping.get(m.group(0), m.group(0)), text)
+
+    commits = git("rev-list", "--reverse", f"{base}..HEAD", cwd=root).split()
+    parent = git("rev-parse", base, cwd=root).strip()
+    index = Path(git("rev-parse", "--absolute-git-dir", cwd=root).strip()) / "journal-ids-index"
+    env = {"GIT_INDEX_FILE": str(index)}
+    try:
+        for commit in commits:
+            git_env(root, env, "read-tree", commit)
+            for name in git("diff", "--name-only", base, commit, cwd=root).splitlines():
+                entry = git("ls-tree", commit, "--", name, cwd=root).split()
+                if not entry or entry[1] != "blob":
+                    continue  # deleted in this commit, or a submodule
+                raw = subprocess.run(
+                    ["git", "cat-file", "blob", entry[2]], cwd=root, check=True, capture_output=True
+                ).stdout
+                try:
+                    text = raw.decode("utf-8")
+                except UnicodeDecodeError:
+                    continue  # binary
+                if fix(text) != text:
+                    blob = (
+                        subprocess.run(
+                            ["git", "hash-object", "-w", "--stdin"],
+                            cwd=root,
+                            input=fix(text).encode("utf-8"),
+                            check=True,
+                            capture_output=True,
+                        )
+                        .stdout.decode()
+                        .strip()
+                    )
+                    git_env(root, env, "update-index", "--cacheinfo", f"{entry[0]},{blob},{name}")
+            tree = git_env(root, env, "write-tree").strip()
+            meta = git("log", "-1", "--format=%an%x00%ae%x00%ad%x00%B", commit, cwd=root)
+            name, email, date, message = meta.split("\0", 3)
+            author = {"GIT_AUTHOR_NAME": name, "GIT_AUTHOR_EMAIL": email, "GIT_AUTHOR_DATE": date}
+            parent = git_env(
+                root, author, "commit-tree", tree, "-p", parent, "-m", fix(message).rstrip("\n")
+            ).strip()
+    finally:
+        index.unlink(missing_ok=True)
+    return parent
+
+
+def git_env(root: Path, env: dict[str, str], *args: str) -> str:
+    """Run git like :func:`git` with extra environment variables."""
+    done = subprocess.run(
+        ["git", *args],
+        cwd=root,
+        env={**os.environ, **env},
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return done.stdout
+
+
 def main(argv: list[str] | None = None) -> int:
-    """Rewrite the placeholders, commit, and print what became what."""
+    """Rewrite the placeholders through the task's history and print what became what."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--base", default="main", help="branch the task lands on")
     args = parser.parse_args(argv)
     root = Path(git("rev-parse", "--show-toplevel", cwd=Path.cwd()).strip())
-    texts = changed_text_files(root, args.base)
+    texts = changed_text_files(root, args.base) | placeholder_messages(root, args.base)
     mapping = assign(root, texts)
     if not mapping:
         print("journal ids: no placeholders")
         return 0
-    changed = []
-    for path, text in texts.items():
-        new = PLACEHOLDER.sub(lambda m: mapping[m.group(0)], text)
-        if new != text:
-            path.write_text(new, encoding="utf-8")
-            changed.append(str(path.relative_to(root)))
-    git("add", "--", *changed, cwd=root)
-    git("commit", "-q", "-m", "Assign journal ids", cwd=root)
+    tip = rewrite_history(root, args.base, mapping)
+    git("reset", "-q", "--hard", tip, cwd=root)
     for old, new in mapping.items():
         print(f"journal ids: {old} -> {new}")
     return 0

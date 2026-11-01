@@ -39,8 +39,9 @@ make check                                # in the main folder, before anything 
   finds it with `make tasks`. `make land` refuses `WIP` commits: fold them first
   (`git reset --soft main && git commit`).
 - **Journal ids are placeholders until landing**: write `S-NEW<n>` (1, 2 …) and `B-NEW<n>`
-  everywhere you reference them; `make land` gives them the next free numbers, so parallel
-  tasks never collide. `DECISIONS.md` and `BACKLOG.md` merge line by line (`merge=union`);
+  everywhere you reference them, commit messages included; `make land` gives them the next
+  free numbers in every task commit, so parallel tasks never collide and no landed commit
+  holds a placeholder. `DECISIONS.md` and `BACKLOG.md` merge line by line (`merge=union`);
   `tests/unit/test_journals.py` catches a duplicated row.
 - **The gate**: `make land` runs lint, types and the journal checks (about a minute);
   `LAND_GATE=check make land` runs the full `make check` instead. Before a push, run

@@ -107,7 +107,7 @@ def add_decision(folder: Path, name: str) -> None:
     )
     (folder / "BACKLOG.md").write_text(backlog)
     (folder / "src" / f"{name}.py").write_text(f"# TODO({B1}): finish {name}\n")
-    commit(folder, f"Add {name}")
+    commit(folder, f"Add {name} ({S1})")
 
 
 def test_two_tasks_land_with_distinct_ids(repo: Path) -> None:
@@ -121,11 +121,13 @@ def test_two_tasks_land_with_distinct_ids(repo: Path) -> None:
     assert "goal of alpha" in listing and "Add beta" in listing
 
     out = task(wt["alpha"], "land").stdout
-    assert "Landed 2 commit(s)" in out and "make check" in out
+    assert "Landed 1 commit(s)" in out and "make check" in out
     task(wt["beta"], "land")
 
     log = run(repo, "git", "log", "--format=%s", "main").stdout.splitlines()
-    assert log == ["Assign journal ids", "Add beta", "Assign journal ids", "Add alpha", "Start"]
+    assert log == ["Add beta (S-003)", "Add alpha (S-002)", "Start"]  # messages rewritten too
+    history = run(repo, "git", "log", "-p", "--format=%B", "main").stdout
+    assert NEW not in history  # no landed commit ever held a placeholder (bisect-safe)
     assert run(repo, "git", "rev-list", "--merges", "--count", "main").stdout.strip() == "0"
     decisions = (repo / "DECISIONS.md").read_text()
     assert "## S-002 — alpha" in decisions and "## S-003 — beta" in decisions
