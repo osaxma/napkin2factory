@@ -259,7 +259,16 @@ def waiting_on_you(product) -> list[dict]:  # type: ignore[no-untyped-def,type-a
     from napkin2factory.core.checks.choices import HOLDS_WORDS, decide_command, open_choices
 
     return [
-        {**c, "holds": HOLDS_WORDS.get(c.get("blocks", ""), ""), "command": decide_command(c)}
+        {
+            **c,
+            "holds": HOLDS_WORDS.get(c.get("blocks", ""), ""),
+            "command": decide_command(c),
+            # one runnable command per option (gate F, concern 12)
+            "options": [
+                {**o, "command": decide_command(c, o["id"]).strip("`")}
+                for o in c.get("options", [])
+            ],
+        }
         for c in open_choices(product.paths.build)
     ]
 
@@ -268,7 +277,8 @@ def print_waiting(choices: list[dict]) -> None:  # type: ignore[type-arg]
     """The "waiting on you" block of ``n2f status``, after the gates and their sign-offs (F12).
 
     One choice at a time in the owner's words: what the check found, each option with what
-    it takes and its cost, the gate it holds, and the command that records the pick.
+    it takes and its cost and, under it, the command that records that pick (runnable as
+    printed; the option's number works too), and the gate it holds.
     """
     if not choices:
         return
@@ -285,7 +295,12 @@ def print_waiting(choices: list[dict]) -> None:  # type: ignore[type-arg]
         for i, o in enumerate(c.get("options", []), 1):
             cost = f" Cost: {o['cost_delta']}." if o.get("cost_delta") else ""
             para(f"{i}. {escape(o['summary'])} — {escape(o['what_it_takes'])}.{escape(cost)}", 8)
-        para(f"[dim]to record the pick: {escape(c['command'])}[/dim]", 8)
+            if o.get("command"):  # one unwrapped line, so it pastes as printed
+                console.print(
+                    f"{' ' * 11}[dim]to pick it:[/dim] {escape(o['command'])}",
+                    soft_wrap=True,
+                    highlight=False,
+                )
 
 
 @handle_errors

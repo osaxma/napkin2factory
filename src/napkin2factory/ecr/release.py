@@ -124,8 +124,18 @@ def drawings_pdf(build_dir: Path, product: Product, out: Path) -> bool:
     return True
 
 
-def make_bundle(product: Product, build_dir: Path, version: str, out_dir: Path) -> Path:
-    """Assemble ``<product>-<version>.zip`` with STEP, drawings, DXFs, BOM, manuals, report."""
+def make_bundle(
+    product: Product,
+    build_dir: Path,
+    version: str,
+    out_dir: Path,
+    example_ids: list[str] | None = None,
+) -> Path:
+    """Assemble ``<product>-<version>.zip`` with STEP, drawings, DXFs, BOM, manuals, report.
+
+    ``example_ids``: the safety requirements released on EXAMPLE sign-offs (a demonstration,
+    ``--allow-example-signoffs``); the cover says so (gate F, concern 17).
+    """
     stage = out_dir / version
     if stage.exists():
         shutil.rmtree(stage)
@@ -167,6 +177,7 @@ def make_bundle(product: Product, build_dir: Path, version: str, out_dir: Path) 
     lines = scope_lines(product)
     (stage / "README.txt").write_text(
         f"{product.manifest.product.name} — Revision {version}\n\n"
+        + "".join(f"{para}\n\n" for para in cover_notes(product, example_ids or []))
         + ("".join(f"Scope: {line}\n" for line in lines) + "\n" if lines else "")
         + "Contents: step/ (3D models), drawings/ (SVG + drawings.pdf), flat-patterns/ (DXF for\n"
         "laser or punch), bom/ (bom.xlsx, bom.csv), manuals/ (PDF + HTML), report.html, "
@@ -174,15 +185,58 @@ def make_bundle(product: Product, build_dir: Path, version: str, out_dir: Path) 
         "been reviewed by a licensed engineer.\n",
         encoding="utf-8",
     )
-    (stage / "release.json").write_text(
-        json.dumps(release_record(product, version), indent=2) + "\n", encoding="utf-8"
-    )
+    record = release_record(product, version)
+    if example_ids:
+        record["example_signoffs"] = list(example_ids)
+    (stage / "release.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     zip_path = out_dir / f"{product.id}-{version}.zip"
+    zip_stage(stage, zip_path)
+    return zip_path
+
+
+def zip_stage(stage: Path, zip_path: Path) -> None:
+    """Write ``zip_path`` from the package folder ``stage`` (paths under its version folder)."""
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for p in sorted(stage.rglob("*")):
             if p.is_file():
                 zf.write(p, p.relative_to(stage.parent))
-    return zip_path
+
+
+def _req_words(product: Product, rid: str) -> str:
+    """A requirement as the owner reads it: its id with its title (gate F, concern 15)."""
+    req = product.requirements.get(rid)
+    return f"{rid} ({req.title})" if req is not None and req.title else rid
+
+
+def cover_notes(product: Product, example_ids: list[str]) -> list[str]:
+    """The cover's paragraphs before the scope: a demonstration, and the choices made (F12).
+
+    A Revision released on EXAMPLE sign-offs says so first, naming each requirement, so a
+    shop never takes a demonstration for a reviewed design (gate F, concern 17).  Each choice
+    decided with ``n2f decide`` is listed with its decision, so the package says why the
+    design is the way it is where a check offered two.
+    """
+    from napkin2factory.core.checks.choices import decided_choices, unapplied
+
+    out: list[str] = []
+    # only a pick that holds nothing can be released before it is made (S-139); say so
+    pending = {c["decided"]["id"] for c in unapplied(product.paths.build)}
+    if example_ids:
+        named = "; ".join(_req_words(product, r) for r in example_ids)
+        out.append(
+            "DEMONSTRATION: this Revision was released with EXAMPLE sign-offs, which are not "
+            f"reviews, for: {named}. A qualified person must review and sign each of these "
+            "before anything is made from this package."
+        )
+    picks = []
+    for rec in decided_choices(product).values():
+        dec = product.decisions.get(rec.decision)
+        title = dec.title if dec is not None else rec.option
+        later = "; not yet in the design" if rec.decision in pending else ""
+        picks.append(f"- {title} ({rec.decision}, chosen by {rec.by}{later})")
+    if picks:
+        out.append("Choices made:\n" + "\n".join(picks))
+    return out
 
 
 def scope_lines(product: Product) -> list[str]:
@@ -196,9 +250,12 @@ def release_record(product: Product, version: str) -> dict[str, Any]:
     """``release.json`` in the package: the Revision, the system that made it, its scope (F11).
 
     ``scope`` lists every declared domain with its state and decision, so what the Revision
-    leaves to a later stage or to someone else is recorded with it, never only in the model.
+    leaves to a later stage or to someone else is recorded with it, never only in the model;
+    ``choices`` lists the picks decided with ``n2f decide`` (each made in the model: a pick
+    that is not holds the release, S-139).
     """
     from napkin2factory import __version__
+    from napkin2factory.core.checks.choices import decided_choices
     from napkin2factory.core.checks.stage import scope_entries
 
     return {
@@ -210,15 +267,21 @@ def release_record(product: Product, version: str) -> dict[str, Any]:
             {k: e[k] for k in ("domain", "state", "decision", "note", "stub", "line") if k in e}
             for e in scope_entries(product)
         ],
+        # F12: every choice decided with `n2f decide`, as the cover lists it (S-139)
+        "choices": [
+            {"check": r.check, "decision": r.decision, "option": r.option, "by": r.by}
+            for r in decided_choices(product).values()
+        ],
     }
 
 
 def gate_blockers(product: Product) -> list[str]:
     """What stops a release, from the stage computation (checks must have run).
 
-    The Intake, Design and Verify gates' blockers, then every open choice that holds the
-    release (F12, S-133): the Released gate's other blockers (no Revision yet, unsaved
-    changes) are what the release itself resolves, so only its choices are read here.
+    The Intake, Design and Verify gates' blockers, then every choice that holds the release
+    (F12, S-133): an open one, or a decided pick the model does not show yet (S-139).  The
+    Released gate's other blockers (no Revision yet, unsaved changes) are what the release
+    itself resolves, so only its choices are read here.
     """
     from napkin2factory.core.checks.choices import choice_blockers
     from napkin2factory.core.checks.stage import compute_stage
@@ -270,19 +333,24 @@ def release(
         vcs.require_clean()
     run_build(product, quiet=True, render=render)
     examples = example_signoffs(product)
-    if examples and not allow_example_signoffs:
-        raise GateBlocked(
-            f"cannot release {version}: {', '.join(examples)} rely on EXAMPLE sign-offs, which "
-            "are not reviews. A real person must `n2f signoff <REQ> --by <name> --statement …`, "
-            "or pass --allow-example-signoffs for a demonstration release (the report labels them)."
-        )
+    # one refusal with every reason (gate F, concern 14): the gates, the choices, the examples
     blockers = gate_blockers(load_product(product.root))
+    owners: list[str] = []  # reasons that are a person's to settle, not checks to fix
+    if examples and not allow_example_signoffs:
+        owners.append(
+            "the safety sign-offs for "
+            + "; ".join(_req_words(product, r) for r in examples)
+            + " are EXAMPLES, not reviews: a real person signs each with `n2f signoff <REQ> "
+            "--by <name> --statement …`, or pass --allow-example-signoffs for a demonstration "
+            "release (the package and the report say so)"
+        )
+    blockers += owners
     if blockers:
         shown = "\n  • ".join(blockers[:8])
         # only choices left: they are the owner's to make, not checks to fix
-        from napkin2factory.core.checks.choices import WAITING
+        from napkin2factory.core.checks.choices import UNAPPLIED, WAITING
 
-        waiting = all(b.startswith(WAITING) for b in blockers)
+        waiting = all(b.startswith((WAITING, UNAPPLIED)) or b in owners for b in blockers)
         head = f"cannot release {version}" + (
             " yet" if waiting else ": the checks are not green yet"
         )
@@ -301,25 +369,31 @@ def release(
         run_build(product, quiet=True, render=render)  # the report shows "released in"
     release_dir = build_dir / "release"
     release_dir.mkdir(parents=True, exist_ok=True)
-    zip_path = make_bundle(product, build_dir, version, release_dir)
+    shown_examples = examples if allow_example_signoffs else []
+    # the package is built before the Revision exists, so a failure leaves no Revision behind
+    zip_path = make_bundle(product, build_dir, version, release_dir, shown_examples)
     site = build_dir / "site"
     frozen = site / version
     if frozen.exists():
         shutil.rmtree(frozen)
     frozen.mkdir(parents=True)
     shutil.copyfile(build_dir / "report" / "index.html", frozen / "index.html")
-    shutil.copyfile(zip_path, frozen / zip_path.name)
     export_data(product, build_dir, frozen / "data")
     snapshot = None
     if not dry_run:
         snapshot = vcs.snapshot(f"Release {version}")
         vcs.tag(version, f"Revision {version}")
-        # the frozen report must say "Released vX.Y.Z": re-render now that the tag exists
+        # the report must say "Released vX.Y.Z": re-render now that the Revision exists, into
+        # the frozen site, the build and the package (gate F, blocker 2: the zip held the draft)
         from napkin2factory.report.builder import render_report
 
         html = render_report(load_product(product.root), build_dir, vcs.commit_date())
         (frozen / "index.html").write_text(html, encoding="utf-8")
         (build_dir / "report" / "index.html").write_text(html, encoding="utf-8")
+        stage = release_dir / version
+        (stage / "report.html").write_text(html, encoding="utf-8")
+        zip_stage(stage, zip_path)
+    shutil.copyfile(zip_path, frozen / zip_path.name)
     # re-packaging a released Revision is the Revision itself, not a preview
     write_site_index(product, site, latest=version, dry_run=dry_run and not existing)
     return {

@@ -357,7 +357,8 @@ def spacer_bolt_checks(product: Product, units: BuildUnits | None = None) -> lis
             subject=g.spacer,
             status="pass",
             kind="fastening",
-            title=f"Bolts into both ends of the {spacer_name}",
+            # one name for the part (gate F, concern 11): "the spacer", defined once here
+            title=f"Bolts into both ends of each spacer ({spacer_name})",
             message="",
             detail={
                 "bolt": g.bolt,
@@ -382,25 +383,51 @@ def spacer_bolt_checks(product: Product, units: BuildUnits | None = None) -> lis
         same: dict[tuple[float, float], list[str]] = {}
         for j, r in zip(g.joints, reach, strict=True):
             same.setdefault(r, []).append(j.words)
+        # the sums explained (gate F, concern 11): each bolt's length less the sheet it passes
         sums = " ".join(
-            f"{_mm(a)} + {_mm(b)} = {_mm(a + b)} mm of bolt in {_num(ls)} mm at {'; '.join(where)}."
+            f"At {'; '.join(where)}, the two bolts reach {_mm(a)} and {_mm(b)} mm into the "
+            f"spacer: {_mm(a)} + {_mm(b)} = {_mm(a + b)} mm of bolt in {_num(ls)} mm."
             for (a, b), where in same.items()
         )
         problem = (
-            f"As listed, the {bolts}, one into each end of a {_num(ls)} mm spacer, meet inside "
-            f"it. {sums}"
+            f"As listed, the {bolts}, one into each end of each {_num(ls)} mm spacer, meet "
+            f"inside it: each bolt reaches into the spacer its {_num(lb)} mm less the sheet it "
+            f"passes through. {sums}"
         )
         cost = _cost(product, g.bolt)
         options = [
-            _shorter_bolts(g, holes, bolt_name, cost),
+            _shorter_bolts(g, holes, bolt_name, cost, _thread_through(product, g.spacer)),
             _through_bolt(product, g, holes, bolt_name, cost),
         ]
         out.append(offer(res, options, blocks="release", problem=problem))
     return out
 
 
-def _shorter_bolts(g: _Group, holes: int, bolt_name: str, cost: tuple[float, str] | None) -> Option:
-    """Option: a shorter standard bolt at both ends of every spacer."""
+#: A spacer's name or notes saying it is threaded end to end ("threaded through").
+_THROUGH = re.compile(
+    r"thread(?:ed)?\s+(?:all\s+the\s+way\s+)?through|through[- ]thread|fully\s+threaded"
+    r"|tapped\s+(?:right\s+)?through",
+    re.IGNORECASE,
+)
+
+
+def _thread_through(product: Product, uri: str) -> bool:
+    """Whether the listed spacer says it is threaded all the way through (its name or notes)."""
+    part = product.parts.get(uri.removeprefix("part://"))
+    return part is not None and bool(_THROUGH.search(f"{part.name} {part.notes or ''}"))
+
+
+def _shorter_bolts(
+    g: _Group,
+    holes: int,
+    bolt_name: str,
+    cost: tuple[float, str] | None,
+    through: bool = False,
+) -> Option:
+    """Option: a shorter standard bolt at both ends of every spacer.
+
+    ``through``: the listed spacer says it is threaded all the way through, so it qualifies.
+    """
     d, ls = g.thread, g.spacer_len
     least = MIN_ENGAGEMENT_DIAMETERS * d
     sheets = [j.sheets for j in g.joints]
@@ -421,12 +448,19 @@ def _shorter_bolts(g: _Group, holes: int, bolt_name: str, cost: tuple[float, str
     n = max(fits)
     ends = [e for a, b in sheets for e in (n - a, n - b)]
     gap = min(ls - ((n - a) + (n - b)) for a, b in sheets)
+    # plain words for thread engagement, and whether the listed spacer qualifies (gate F, 11)
+    listed = (
+        "the listed spacer says it is threaded all the way through, so it qualifies"
+        if through
+        else "the parts list does not say how deep the listed spacer's thread goes: check it "
+        "with the supplier, or list one threaded all the way through"
+    )
     take = (
         f"{2 * holes} M{_num(d)} x {_num(n)} bolts in place of the {2 * holes} {_listed(g)} "
-        f"(a new line on the parts list); each end engages {_mm(min(ends))} to "
-        f"{_mm(max(ends))} mm of thread and the two ends stay {_mm(gap)} mm apart, so the "
-        f"spacer's thread must reach {_mm(max(ends))} mm from each end (a spacer tapped right "
-        "through does)"
+        f"(a new line on the parts list); each bolt goes {_mm(min(ends))} to "
+        f"{_mm(max(ends))} mm into the spacer and the two ends stay {_mm(gap)} mm apart, so the "
+        f"spacer's thread must reach {_mm(max(ends))} mm in from each end (a spacer threaded "
+        f"all the way through does; {listed})"
     )
     delta = f"{_money(0, cost[1])} (estimate: priced like the {bolt_name})" if cost else None
     return Option("shorter-bolts", f"{summary}: M{_num(d)} x {_num(n)}", take, delta)
@@ -454,8 +488,8 @@ def _through_bolt(
     take = (
         f"{holes} M{_num(d)} x {_num(n)} bolts and {holes} M{_num(d)} nuts in place of the "
         f"{2 * holes} {_listed(g)}; each bolt passes right through, so the spacer must be "
-        f"tapped right through or be a plain spacer, and both ends must be reachable when it "
-        f"is fitted; the nut sits on the far side ({'; '.join(far)})"
+        f"threaded all the way through or have no thread at all, and both ends must be "
+        f"reachable when it is fitted; the nut sits on the far side ({'; '.join(far)})"
     )
     nut_part = next(
         (

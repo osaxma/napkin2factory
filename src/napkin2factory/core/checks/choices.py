@@ -8,9 +8,13 @@ is a valid design (:func:`offer`); a failure stays a failure.  The row carries
 ``evidence_keys``).
 
 ``n2f decide <check> --pick <option> --by "<name>"`` writes a ``DEC-`` entry
-(:func:`record_decision`); ``n2f check`` never decides.  From then on the row reads ``pass``
-with its decision while every evidence key is unchanged; when one changes (or the option is
-no longer offered) the choice reopens, exactly like a sign-off (D25).
+(:func:`decision_entry`, :func:`append_decision`); ``n2f check`` never decides.  From then on
+the row reads ``pass`` with its decision while every evidence key is unchanged; when one
+changes (or the option is no longer offered) the choice reopens, exactly like a sign-off (D25).
+
+A decided pick is not yet a design: until the agent makes the change and the rule passes on
+the model itself (the row then leaves ``choices.json``), a decided choice that holds a gate
+holds the release (:func:`choice_blockers`, S-139): a failure stays a failure (§7).
 
 The entry is an ordinary decision: the schema has no field for a choice (F7: no change to it
 in v0.5), so the check, the option, the person and the evidence keys are its ``sources``
@@ -44,6 +48,10 @@ CHOICES_JSON = Path("checks") / "choices.json"
 DEFAULT_BLOCKS = "release"
 #: How a gate blocker for an open choice starts (``n2f release`` reads it too).
 WAITING = "a choice is waiting on you"
+#: How a release blocker for a decided pick the model does not show yet starts (S-139).
+UNAPPLIED = "a choice is decided but not yet in the design"
+#: Who makes a decided pick, in owner text (gate F, concern 13): the owner's agent.
+AGENT_WORDS = "your agent"
 #: What ``n2f status`` and the gates call a gate a choice holds, in owner words.
 HOLDS_WORDS = {
     "design": "it holds the Design gate",
@@ -315,14 +323,55 @@ def open_choices(build_dir: Path) -> list[dict[str, Any]]:
     return [c for c in load_choices(build_dir) if c.get("status") == CHOICE]
 
 
-def decide_command(choice: dict[str, Any]) -> str:
-    """The command that records a pick for ``choice``."""
-    ids = " | ".join(o["id"] for o in choice.get("options", []))
-    return f'`n2f decide {choice["id"]} --pick {ids or "<option>"} --by "<name>"`'
+def decide_command(choice: dict[str, Any], option: str | None = None) -> str:
+    """The command that records a pick for ``choice``, runnable as printed (gate F, concern 12).
+
+    With ``option`` (an option id): that option's command.  Without: the first option's
+    command by number, then the other numbers, each with its summary ("`n2f decide X --pick 1
+    --by "<your name>"` for shorter bolts, or `--pick 2` for one bolt through").
+    """
+    head = f"n2f decide {choice['id']} --pick"
+    by = '--by "<your name>"'
+    if option is not None:
+        return f"`{head} {option} {by}`"
+    opts: list[dict[str, Any]] = choice.get("options", [])
+    if not opts:
+        return f"`{head} 1 {by}`"
+    first = f"`{head} 1 {by}` for {opts[0].get('summary', opts[0]['id'])}"
+    rest = [f"`--pick {i}` for {o.get('summary', o['id'])}" for i, o in enumerate(opts[1:], 2)]
+    return ", or ".join([first, *rest])
+
+
+def _picked(c: dict[str, Any]) -> tuple[str, str]:
+    """The decided option's summary and what it takes, for a ``choices.json`` row."""
+    decided = c.get("decided") or {}
+    options: list[dict[str, Any]] = c.get("options", [])
+    option = next((o for o in options if o.get("id") == decided.get("option")), {})
+    summary = str(option.get("summary") or decided.get("option", ""))
+    return summary, str(option.get("what_it_takes") or summary)
+
+
+def unapplied(build_dir: Path) -> list[dict[str, Any]]:
+    """The choices decided but not yet made in the model (S-133).
+
+    A decided choice reads ``pass`` with its decision (F12), yet the model still holds what the
+    check found until the agent applies the pick; then the rule passes on the model itself and
+    the row leaves ``choices.json``.
+    """
+    return [
+        c
+        for c in load_choices(build_dir)
+        if c.get("status") != CHOICE and (c.get("decided") or {}).get("id")
+    ]
 
 
 def choice_blockers(build_dir: Path) -> dict[str, list[str]]:
-    """Gate → the open choices that hold it (F12: ``blocks`` honoured by the gate it names)."""
+    """Gate → the choices that hold it (F12: ``blocks`` honoured by the gate it names).
+
+    An open choice holds the gate its ``blocks`` names.  A decided choice that holds a gate
+    but is not yet made in the model holds the release (gate E B3, S-139): the release
+    would otherwise freeze the design the check found faulty.  ``none`` holds nothing.
+    """
     out: dict[str, list[str]] = {}
     for c in open_choices(build_dir):
         gate = c.get("blocks", DEFAULT_BLOCKS)
@@ -331,29 +380,30 @@ def choice_blockers(build_dir: Path) -> dict[str, list[str]]:
         out.setdefault("released" if gate == "release" else gate, []).append(
             f"{WAITING}: {c.get('title') or c['id']} — {decide_command(c)}"
         )
+    for c in unapplied(build_dir):
+        if c.get("blocks", DEFAULT_BLOCKS) == "none":
+            continue
+        summary, what = _picked(c)
+        out.setdefault("released", []).append(
+            f"{UNAPPLIED}: {c.get('title') or c['id']} — you chose {summary} "
+            f"({c['decided']['id']}), but the design and its parts list do not show it yet; "
+            f"{AGENT_WORDS} makes the change ({what}), then builds and checks"
+        )
     return out
 
 
 def unapplied_caveats(build_dir: Path) -> list[str]:
-    """Design-gate caveats: choices decided but not yet made in the model (S-133) [revisit].
+    """Design-gate caveats: choices decided but not yet made in the model (S-133, S-139).
 
-    A decided choice reads ``pass`` with its decision (F12), yet the model still holds what
-    the check found until the designer applies the pick; then the rule passes on the model
-    itself and the row leaves ``choices.json``.  Meanwhile the Design gate stays open, not
-    blocked (a caveat holds no release), so the owner sees the change is still to make.
+    The Design gate stays open (a caveat), so the owner sees the change is still to make; a
+    choice that holds a gate also holds the release meanwhile (:func:`choice_blockers`).
     """
     out: list[str] = []
-    for c in load_choices(build_dir):
-        decided = c.get("decided") or {}
-        if c.get("status") == CHOICE or not decided.get("id"):
-            continue
-        options: list[dict[str, Any]] = c.get("options", [])
-        option = next((o for o in options if o.get("id") == decided.get("option")), {})
-        what = option.get("what_it_takes") or option.get("summary") or decided.get("option", "")
+    for c in unapplied(build_dir):
+        summary, what = _picked(c)
         out.append(
-            f"{c.get('title') or c['id']}: decided in {decided['id']} "
-            f"({option.get('summary', decided.get('option', ''))}), not yet applied — the designer "
-            f"makes the change: {what}"
+            f"{c.get('title') or c['id']}: decided in {c['decided']['id']} ({summary}), not "
+            f"yet in the design — {AGENT_WORDS} makes the change: {what}, then builds and checks"
         )
     return out
 
@@ -392,6 +442,19 @@ def next_decision_id(product: Product) -> str:
     return f"DEC-{(max(nums) + 1 if nums else 1):03d}"
 
 
+def pick_option(row: dict[str, Any], pick: str) -> str:
+    """The option id ``pick`` names: its id, or its number as `n2f status` lists it (gate F 12)."""
+    ids = [o["id"] for o in (row.get("detail") or {}).get("options", [])]
+    if pick in ids:
+        return pick
+    if pick.isdigit() and 1 <= int(pick) <= len(ids):
+        return ids[int(pick) - 1]
+    known = ", ".join(f"{i} ({oid})" for i, oid in enumerate(ids, 1))
+    raise ChoiceError(
+        f"{pick!r} is not an option of {row['id']}; pick one by its number or id: {known}"
+    )
+
+
 def decision_entry(
     product: Product,
     row: dict[str, Any],
@@ -405,10 +468,7 @@ def decision_entry(
     from napkin2factory.core.uris import Uri, UriError
 
     options = {o["id"]: o for o in (row.get("detail") or {}).get("options", [])}
-    if option_id not in options:
-        raise ChoiceError(
-            f"{option_id!r} is not an option of {row['id']}; pick one of: {', '.join(options)}"
-        )
+    option_id = pick_option(row, option_id)
     blocks = (row.get("detail") or {}).get("blocks", DEFAULT_BLOCKS)
     if agent and blocks != "none":
         raise ChoiceError(

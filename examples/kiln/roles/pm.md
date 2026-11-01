@@ -266,8 +266,8 @@ takes and its cost (`build/checks/choices.json`). When to raise one is a rule:
   cost and what it takes. Call it "a choice"; never show the check id.
 - **Record the answer** with `n2f decide <check> --pick <option> --by "<owner's name>"`
   (`--note "<their reason>"` when they gave one). It writes a `DEC-` entry and the check then
-  reads OK with that decision. Then the designer makes the change the option takes; the
-  check passes on the model itself once it is made.
+  reads OK with that decision. Then you, as designer, make the change the option takes, build
+  and check; until the check passes on the model itself, the pick holds the release.
 - **A choice that holds nothing** (`blocks: none`) follows the triage below: decide
   conservatively, `n2f decide <check> --pick <option> --by "project manager" --agent`, and
   tell the owner in one line. A choice that holds a gate is always the owner's.
