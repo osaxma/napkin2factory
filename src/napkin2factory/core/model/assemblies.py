@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, get_args
 
-from pydantic import BeforeValidator, Field, model_validator
+from pydantic import (
+    BeforeValidator,
+    Field,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from napkin2factory.core.model.base import (
     AsmUri,
@@ -28,12 +35,51 @@ def _asm_geometry(v: Any) -> Any:
     raise ValueError("assembly geometry is {module: geometry/<file>.py} or 'none'")
 
 
+#: Why a sub-assembly is built on its own (P7): the module drivers.
+Driver = Literal[
+    "built-as-unit",
+    "tested-as-unit",
+    "serviced-as-unit",
+    "separate-process-or-supplier",
+    "varies",
+    "agent-context",
+]
+DRIVERS: tuple[str, ...] = get_args(Driver)
+
+
+def _drop_defaults(data: Any, defaults: dict[str, Any]) -> Any:
+    """Leave out fields still at their v0.4 defaults, so a v0.3 file dumps as before (P14)."""
+    if isinstance(data, dict):
+        for key, default in defaults.items():
+            if key in data and data[key] == default:
+                data.pop(key)
+    return data
+
+
 class Child(Model):
-    """One membership line: a part or a sub-assembly with a quantity."""
+    """One membership line: a part or a sub-assembly with a quantity.
+
+    ``spare`` says why the line holds more interface hardware than its joints need (P9; the
+    hardware check then passes the surplus); ``loose`` marks a line shipped loose for the
+    installer instead of fitted in the build step (S-105).
+    """
 
     part: PartUri | None = None
     asm: AsmUri | None = None
     qty: int = 1
+    spare: str | None = None
+    loose: bool = False
+
+    @field_validator("spare")
+    @classmethod
+    def _spare_has_reason(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError('spare needs a reason, e.g. spare: "two extra for the installer"')
+        return v
+
+    @model_serializer(mode="wrap")
+    def _dump(self, handler: SerializerFunctionWrapHandler) -> Any:
+        return _drop_defaults(handler(self), {"spare": None, "loose": False})
 
     @model_validator(mode="after")
     def _one_of(self) -> Child:
@@ -57,11 +103,18 @@ class Exploded(Model):
 
 
 class Assembly(Model):
-    """Membership and quantities (the BOM structure); geometry is Python."""
+    """Membership and quantities (the BOM structure); geometry is Python.
+
+    ``build`` and ``driver`` (P7) say how a sub-assembly is built and why: a ``unit`` is a
+    step of the build plan of its own, a ``phantom`` only groups lines and folds into its
+    parent's step.  The top assembly is always built and needs neither.
+    """
 
     id: Slug
     rev: str = "A"
     name: str
+    build: Literal["unit", "phantom"] = "unit"
+    driver: list[Driver] = Field(default_factory=list)
     geometry: Annotated[ModuleGeometry | Literal["none"], BeforeValidator(_asm_geometry)] = "none"
     children: list[Child] = Field(default_factory=list)
     exploded: Exploded = Field(default_factory=Exploded)
@@ -70,6 +123,10 @@ class Assembly(Model):
     ports: list[IfaceUri] = Field(default_factory=list)
     satisfies: list[ReqUri] = Field(default_factory=list)
     notes: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _dump(self, handler: SerializerFunctionWrapHandler) -> Any:
+        return _drop_defaults(handler(self), {"build": "unit", "driver": []})
 
     @property
     def uri(self) -> str:

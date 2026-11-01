@@ -38,8 +38,9 @@ density?}, finish, tolerance_class: ISO2768-f|m|c|v (custom only), geometry: {ki
 source: {vendor, mpn, url, verified} (COTS), manufacturer_notes`. Kit args may reference
 `param://` and `iface://`; quantities are strings like `15 mm`.
 
-**assemblies/<id>.yaml** — `id, rev, name, geometry: {module} | none, children: [{part|asm,
-qty}], ports: [iface uris], exploded: {axis, spacing}, satisfies`. The YAML is the BOM
+**assemblies/<id>.yaml** — `id, rev, name, build: unit|phantom, driver: [...], geometry:
+{module} | none, children: [{part|asm, qty, spare?, loose?}], ports: [iface uris], exploded:
+{axis, spacing}, satisfies`. The YAML is the BOM
 structure; the module places instances, by interface with `place_by` or by coordinates with
 `place`; the checker verifies instance counts equal quantities (D18).
 `build/assemblies/<id>/instances.json` records each occurrence's `via` (`coordinates` or
@@ -58,10 +59,35 @@ its leaves; `inner` names the leaf by label when the party occurs there more tha
 meets the placed party's. The placed party may itself be a leaf of a sub-assembly already
 placed (`onto` then matches that sub-assembly's label or the leaf's).
 
+**Build units and the build plan** (P7, P8, S-110): a sub-assembly is a *unit* (`build:
+unit`, the default), put together on its own and fitted as a whole, or a *phantom* (`build:
+phantom`), a grouping whose lines fold into the step of the unit that contains it. `driver:`
+says why a unit is built on its own: `built-as-unit`, `tested-as-unit`, `serviced-as-unit`,
+`separate-process-or-supplier`, `varies`, `agent-context`; `n2f lint` warns
+(`L13-assembly-driver`) on a unit sub-assembly without one. The top assembly is always the last
+step and needs neither field. The `bom` rule derives the plan from the tree,
+`build/bom/build-plan.json`: one step per unit, children first, each with its items (numbered;
+the same numbers on the unit's assembly sheet and in `build_step()`), the joints it closes (an
+interface closes in the lowest assembly containing both parties' homes, folded up to its unit)
+with their hardware, and the ids of the checks that cover it. The plan is also a "Build plan"
+sheet in `bom.xlsx`, a report section, and one A3 sheet per unit
+(`build/drawings/assemblies/<id>.svg`: the unit assembled and pulled apart, the item table, the
+joints). On a child line, `spare: "<reason>"` says why the line holds more joint hardware than
+its joints need, and `loose: true` marks a line packed loose for the installer.
+
+**Joint hardware** (P9 as amended by S-105): `spec.hardware: [{part, per_hole: n} |
+{part, per_joint: n}]` lists what one hole (or one joint) takes; without it `fastener: X` reads
+as `[{part: X, per_hole: 1}]`, and `hardware: []` says "none" whatever `fastener:` says. A mating
+face has no holes, so it counts `per_joint` only (rivets, a gasket; a welded joint lists none).
+A joint occurs, per assembly it closes in, as often as the more numerous of its two parties.
+Where two interfaces share holes (S-051), list each item once, on the interface whose joint it
+is fitted to close. A *hardware part* is one named in some `hardware` (or `fastener`); other
+lines (earth studs, glands, labels) are not counted and need no field.
+
 **interfaces/<id>.yaml** — `id, kind: bolt-pattern|mating-face, parties: [two uris],
 frame: {origin, normal, x_axis?}, frames: {party uri: frame} (per-party copies),
-offset?, spec: {pattern, count, diameter, spacing, pitch_circle, fastener, depth} |
-{width, depth, flatness_note}`. Spec quantities may be `param://` references. A frame
+offset?, spec: {pattern, count, diameter, spacing, pitch_circle, fastener, depth, hardware} |
+{width, depth, flatness_note, hardware}`. Spec quantities may be `param://` references. A frame
 coordinate and `offset` may be a number (mm), a quantity, a `param://` or
 `{expr: "<expression over parameter slugs>", unit: mm}` (evaluated like a parameter `expr`;
 every slug is a recorded read). `offset` (default 0) is the signed distance along the normal
@@ -80,7 +106,9 @@ every check (D25).
 
 **docs/*.md** — front matter `{id, title, audience, depends_on, order, safety}` and a
 Jinja2 Markdown body: `{{ P["x"] }}`, `{{ part("id").name }}`, `{{ req("REQ-001").statement }}`,
-`{{ bom.total_cost }}`, `{{ product.name }}`. Every read is recorded; a stale page blocks release.
+`{{ bom.total_cost }}`, `{{ product.name }}`, `{{ build_step("asm://door") }}` (one build step's
+items, joints and hardware as Markdown; records `bom://build-plan#units.door`). Every read is
+recorded; a stale page blocks release.
 
 ## Concepts (`concepts/`) and `style.yaml`
 

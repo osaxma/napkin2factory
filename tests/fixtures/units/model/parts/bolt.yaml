@@ -1,0 +1,7 @@
+id: bolt
+rev: A
+name: M6 x 16 bolt
+kind: cots
+source: {vendor: Example, mpn: bolt-1, url: "https://example.com/bolt", verified: false}
+cost: {unit: 0.1 USD, basis: estimate}
+lead_time: 2 d

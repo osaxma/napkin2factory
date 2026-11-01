@@ -23,7 +23,7 @@ import jinja2
 from markupsafe import Markup
 
 from napkin2factory import __version__
-from napkin2factory.core.checks.results import SUMMARY_KEYS
+from napkin2factory.core.checks.results import SUMMARY_KEYS, is_example_signoff
 from napkin2factory.core.graph.hashing import sha256_text
 from napkin2factory.core.loader import Product
 from napkin2factory.core.style import STYLE_LOOK_KEY
@@ -44,6 +44,7 @@ SECTIONS: tuple[tuple[str, str, str], ...] = (
     ("parts", "Parts & cost", "Product"),
     ("drawings", "Drawings", "Product"),
     ("interfaces", "Interfaces", "Product"),
+    ("build", "Build plan", "Product"),
     ("requirements", "Requirements", "Verification"),
     ("rules", "Rule checks", "Verification"),
     ("signoffs", "Sign-offs", "Verification"),
@@ -129,6 +130,11 @@ def report_reads(ctx: RunContext) -> list[str]:
     reads += [f"signoff:{s}" for s in product.signoffs]
     reads += [f"{p.uri}#role" for p in product.parts_with_geometry()]
     reads.append(STYLE_LOOK_KEY)  # the palette the viewer paints parts with
+    # P8: the build plan section and each unit's assembly sheet
+    reads += ["bom://build-plan#order", "bom://build-plan#units"]
+    from napkin2factory.core.build_units import BuildUnits
+
+    reads += [f"rule:asmsheet:{a}" for a in BuildUnits(product).order()]
     reads += [
         "set://parts",
         "set://asms",
@@ -215,6 +221,48 @@ def _spec_summary(spec: Any) -> str:
     if kind == "MatingFaceSpec":
         return f"{spec.width} × {spec.depth}"
     return kind
+
+
+def _build_steps(
+    build_dir: Path, results: dict[str, dict[str, Any]], words: dict[str, str]
+) -> list[dict[str, Any]]:
+    """The build plan's steps (P8) with each unit's sheet inlined and its checks' verdicts.
+
+    The plan holds static check ids (``bom`` runs before ``checks``); here they meet the
+    verdicts of this run.  An id with no row yet reads "not checked".
+    """
+    from napkin2factory.bom.build_plan import PLAN_FILE
+    from napkin2factory.drawings.assembly_sheet import sheet_path
+
+    plan = _read_json(build_dir / "bom" / PLAN_FILE) or {"order": [], "units": {}}
+    steps = []
+    for uid in plan.get("order", []):
+        step = dict(plan["units"][uid])
+        svg_path = sheet_path(build_dir, uid)
+        svg = svg_path.read_text(encoding="utf-8") if svg_path.is_file() else ""
+        step["id"] = uid
+        step["sheet_svg"] = svg.split("?>", 1)[1] if svg.startswith("<?xml") else svg
+        checks = []
+        for cid in step.get("checks", []):
+            r = results.get(cid)
+            checks.append(
+                {
+                    "id": cid,
+                    "status": r["status"] if r else "skip",
+                    # an example sign-off is counted apart, never as a review (S-042)
+                    "example": bool(r and is_example_signoff(r["status"], r.get("detail", {}))),
+                    "title": (r.get("title") or cid) if r else cid,
+                    "message": r.get("message", "") if r else "not checked yet",
+                }
+            )
+        step["check_rows"] = checks
+        counts = {
+            k: sum(1 for c in checks if ("example" if c["example"] else c["status"]) == k)
+            for k in SUMMARY_KEYS
+        }
+        step["check_summary"] = " · ".join(f"{n} {words.get(k, k)}" for k, n in counts.items() if n)
+        steps.append(step)
+    return steps
 
 
 def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, Any]:
@@ -390,6 +438,8 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         }
         (safety_docs if doc.meta.safety else docs).append(entry)
 
+    build_steps = _build_steps(build_dir, results, VOCAB[persona])
+
     interfaces = [
         {
             "id": i.id,
@@ -514,6 +564,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
             "rules", {"parts": [], "rules": {}, "cells": {}}
         ),
         "interfaces": interfaces,
+        "build_steps": build_steps,
         "params": params,
         "decisions": decisions,
         "ecrs": ecrs,

@@ -31,9 +31,8 @@ class CheckResult:
     status: str
     message: str
     persona_message: str = ""
-    kind: str = (
-        "requirement"  # requirement | rule | interface | interference | count | bom | doc | signoff
-    )
+    # requirement | rule | interface | interference | count | hardware | bom | doc | signoff
+    kind: str = "requirement"
     evidence: dict[str, Any] = field(default_factory=dict)
     evidence_keys: dict[str, str] = field(default_factory=dict)
     safety: bool = False

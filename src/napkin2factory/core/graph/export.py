@@ -78,6 +78,7 @@ def to_dot(data: dict[str, Any]) -> str:
         "asm": "lightgreen",
         "drawing": "khaki",
         "bom": "orange",
+        "asmsheet": "wheat",
         "doc": "plum",
         "checks": "salmon",
         "report": "gold",

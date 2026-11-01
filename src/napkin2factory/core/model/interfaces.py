@@ -94,12 +94,58 @@ class Frame(Model):
         return self
 
 
+class HardwareItem(Model):
+    """One kind of loose hardware a joint takes (P9): ``per_hole`` or ``per_joint``, not both.
+
+    ``{part: part://m6x16-bolt, per_hole: 2}`` is two bolts in every hole of the pattern;
+    ``{part: part://gasket, per_joint: 1}`` is one per occurrence of the joint, holes or not
+    (the only form a mating face takes, having no holes).
+    """
+
+    part: PartUri
+    per_hole: int | None = None
+    per_joint: int | None = None
+
+    @model_validator(mode="after")
+    def _one_count(self) -> HardwareItem:
+        if (self.per_hole is None) == (self.per_joint is None):
+            raise ValueError(
+                f"hardware {self.part}: give exactly one of per_hole (items in every hole) "
+                "or per_joint (items per joint)"
+            )
+        n = self.per_hole if self.per_hole is not None else self.per_joint
+        if n is not None and n < 1:
+            raise ValueError(f"hardware {self.part}: the count must be at least 1")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _dump(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if isinstance(data, dict):
+            for key in ("per_hole", "per_joint"):
+                if data.get(key) is None:
+                    data.pop(key, None)
+        return data
+
+
+def _drop_unset_hardware(data: Any) -> Any:
+    # P14: a spec without `hardware:` dumps (and so hashes, for sign-off evidence keys)
+    # exactly as in v0.3; an explicit `hardware: []` is kept, it says "nothing here".
+    if isinstance(data, dict) and data.get("hardware") is None:
+        data.pop("hardware", None)
+    return data
+
+
 class BoltPatternSpec(Model):
     """A rectangular or circular bolt pattern.
 
     The build cuts this pattern into every party automatically (S-013): holes along the
     frame normal, reaching ``depth`` on each side of the frame plane (default 10 mm, enough
     for a sheet or a lip without piercing the far wall of a box).
+
+    ``hardware`` lists everything one hole takes (P9); without it, ``fastener: X`` reads as
+    ``[{part: X, per_hole: 1}]``.  Where two interfaces share holes (S-051), each item is
+    listed once, on the interface whose joint it is fitted to close (S-105).
     """
 
     pattern: Literal["rect", "circle", "line"] = "rect"
@@ -109,14 +155,50 @@ class BoltPatternSpec(Model):
     pitch_circle: QuantityOrParam | None = None  # circle
     fastener: PartUri | None = None
     depth: QuantityOrParam = "10 mm"
+    hardware: list[HardwareItem] | None = None
+
+    @model_serializer(mode="wrap")
+    def _dump(self, handler: SerializerFunctionWrapHandler) -> Any:
+        return _drop_unset_hardware(handler(self))
+
+    def hardware_items(self) -> list[HardwareItem]:
+        """The hardware one joint takes: ``hardware``, else the ``fastener`` alias (P9)."""
+        if self.hardware is not None:
+            return list(self.hardware)
+        if self.fastener is not None:
+            return [HardwareItem(part=self.fastener, per_hole=1)]
+        return []
 
 
 class MatingFaceSpec(Model):
-    """Two flat faces that are expected to touch (allowed contact, D29)."""
+    """Two flat faces that are expected to touch (allowed contact, D29).
+
+    A mating face has no holes, so its ``hardware`` (rivets, adhesive, a gasket) is counted
+    ``per_joint`` only; a welded joint lists none.
+    """
 
     width: QuantityOrParam
     depth: QuantityOrParam
     flatness_note: str | None = None
+    hardware: list[HardwareItem] | None = None
+
+    @field_validator("hardware")
+    @classmethod
+    def _no_holes(cls, v: list[HardwareItem] | None) -> list[HardwareItem] | None:
+        for item in v or []:
+            if item.per_hole is not None:
+                raise ValueError(
+                    f"hardware {item.part}: a mating face has no holes; count it per_joint"
+                )
+        return v
+
+    @model_serializer(mode="wrap")
+    def _dump(self, handler: SerializerFunctionWrapHandler) -> Any:
+        return _drop_unset_hardware(handler(self))
+
+    def hardware_items(self) -> list[HardwareItem]:
+        """The hardware one joint takes (P9)."""
+        return list(self.hardware or [])
 
 
 class Interface(Model):
@@ -150,6 +232,15 @@ class Interface(Model):
         if isinstance(data, dict) and data.get("offset") in (0, 0.0):
             data.pop("offset")
         return data
+
+    @property
+    def holes(self) -> int:
+        """Holes in one occurrence of the joint: the pattern's count, none for a mating face."""
+        return self.spec.count if isinstance(self.spec, BoltPatternSpec) else 0
+
+    def hardware_items(self) -> list[HardwareItem]:
+        """The hardware one occurrence of the joint takes, ``fastener`` alias applied (P9)."""
+        return self.spec.hardware_items()
 
     def frame_for(self, party_uri: str) -> Frame:
         """The frame in ``party_uri``'s own coordinates (falls back to ``frame``)."""

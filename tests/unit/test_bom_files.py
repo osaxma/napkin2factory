@@ -77,7 +77,7 @@ def test_xlsx(built: Path) -> None:
 
     rollups = _rollups(built)
     wb = openpyxl.load_workbook(built / "bom.xlsx")
-    assert wb.sheetnames == ["BOM", "Rollups", "Parts", "Manufacturer"]
+    assert wb.sheetnames == ["BOM", "Rollups", "Parts", "Manufacturer", "Build plan"]  # P8
 
     ws = wb["BOM"]
     header = [c.value for c in ws[1]]

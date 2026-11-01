@@ -1,0 +1,10 @@
+id: rail-plate
+kind: bolt-pattern
+parties: [part://plate, part://rail]
+description: Each rail is bolted to the plate through two holes.
+spec:
+  pattern: line
+  count: 2
+  diameter: 6.6 mm
+  spacing: [60 mm]
+  hardware: [{part: part://bolt, per_hole: 1}]

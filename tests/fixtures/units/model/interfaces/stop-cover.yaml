@@ -1,0 +1,10 @@
+id: stop-cover
+kind: bolt-pattern
+parties: [part://cover, part://stop]
+description: The stop shares the cover's two holes with cover-base, whose bolts pass through; a nut under each holds the stop while the cover group is put together.
+spec:
+  pattern: line
+  count: 2
+  diameter: 6.6 mm
+  spacing: [30 mm]
+  hardware: [{part: part://nut, per_hole: 1}]

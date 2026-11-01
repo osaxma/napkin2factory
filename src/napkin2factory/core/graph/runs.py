@@ -184,19 +184,39 @@ def make_drawing_run(part_id: str) -> Any:
 
 def run_bom(ctx: RunContext) -> RunResult:
     """Rollups (M3) + validation and CSV/XLSX files (M4/M5)."""
+    from napkin2factory.bom.build_plan import PLAN_FILE, derive_build_plan
     from napkin2factory.bom.files import write_bom_files
     from napkin2factory.bom.rollups import compute_rollups
     from napkin2factory.geometry.accessors import ReadLog
 
     log = ReadLog()
     rollups = compute_rollups(ctx.product, ctx.build_dir, log)
+    plan = derive_build_plan(ctx.product, log)  # P8: the build plan, from the tree
     out_dir = ctx.build_dir / "bom"
     outputs = [_write_json(out_dir / "rollups.json", rollups)]
-    outputs += write_bom_files(ctx, rollups)
+    outputs.append(_write_json(out_dir / PLAN_FILE, plan))
+    outputs += write_bom_files(ctx, rollups, plan)
     ctx.payloads["rollups"] = rollups
+    ctx.payloads["build_plan"] = plan
     content = dict(rollups)
     content.pop("reads", None)
+    # The output hash stays the rollups' (P14: a `bom://` sign-off key made under v0.3 holds);
+    # pages and sheets read the plan through `bom://build-plan#units.<id>` instead.
     return _result(log.keys, outputs, sha256_json(content), rollups)
+
+
+# ---- assembly sheets (P8) --------------------------------------------------------------
+
+
+def make_asmsheet_run(asm_id: str) -> Any:
+    """Run function for ``asmsheet:<id>``: the build unit's assembly sheet."""
+
+    def run(ctx: RunContext) -> RunResult:
+        from napkin2factory.drawings.assembly_sheet import make_assembly_sheet
+
+        return make_assembly_sheet(ctx, asm_id)
+
+    return run
 
 
 # ---- docs ---------------------------------------------------------------------------
@@ -213,8 +233,12 @@ def make_doc_run(doc_id: str) -> Any:
         if rollups is None:
             p = ctx.build_dir / "bom" / "rollups.json"
             rollups = json.loads(p.read_text(encoding="utf-8")) if p.is_file() else None
+        plan = ctx.payloads.get("build_plan")
+        if plan is None:
+            pp = ctx.build_dir / "bom" / "build-plan.json"
+            plan = json.loads(pp.read_text(encoding="utf-8")) if pp.is_file() else None
         doc = ctx.product.docs[doc_id]
-        rendered = render_doc(ctx.product, doc, rollups)
+        rendered = render_doc(ctx.product, doc, rollups, plan)
         out_dir = ctx.build_dir / "docs" / doc_id
         out_dir.mkdir(parents=True, exist_ok=True)
         md = out_dir / "page.md"

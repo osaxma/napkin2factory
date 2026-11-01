@@ -1,0 +1,10 @@
+id: pod-mount
+kind: bolt-pattern
+parties: [part://base, part://plate]
+description: The pod's plate stands off the base on four standoffs, a bolt at each end; a port of the pod.
+spec:
+  pattern: rect
+  count: 4
+  diameter: 6.6 mm
+  spacing: [100 mm, 60 mm]
+  hardware: [{part: part://standoff, per_hole: 1}, {part: part://bolt, per_hole: 2}]

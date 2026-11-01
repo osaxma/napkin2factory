@@ -51,6 +51,40 @@ class AssemblyTree:
             )
         return self._parts[aid]
 
+    def tops(self) -> list[str]:
+        """Assemblies no other assembly contains, sorted."""
+        used = {c.asm.id for a in self._asms.values() for c in a.children if c.asm is not None}
+        return sorted(a for a in self._asms if a not in used)
+
+    def order(self) -> list[str]:
+        """Every assembly, children before parents (depth first, ids sorted at each level)."""
+        out: list[str] = []
+        seen: set[str] = set()
+
+        def visit(aid: str) -> None:
+            if aid in seen:
+                return
+            seen.add(aid)
+            for c in self._asms[aid].children:
+                if c.asm is not None and c.asm.id in self._asms:
+                    visit(c.asm.id)
+            out.append(aid)
+
+        for aid in sorted(self._asms):
+            visit(aid)
+        return out
+
+    def count_under(self, aid: str, part_uri: str) -> int:
+        """Occurrences of ``part_uri`` in one ``aid``, quantities multiplied through every level."""
+        pid = part_uri.removeprefix("part://")
+        total = 0
+        for c in self._asms[aid].children:
+            if c.part is not None and c.part.id == pid:
+                total += c.qty
+            elif c.asm is not None and c.asm.id in self._asms and c.asm.id != aid:
+                total += c.qty * self.count_under(c.asm.id, part_uri)
+        return total
+
     def listers(self, part_uri: str) -> list[str]:
         """Assemblies that list ``part_uri`` as a direct child line, sorted."""
         pid = part_uri.removeprefix("part://")

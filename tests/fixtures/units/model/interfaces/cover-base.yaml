@@ -1,0 +1,5 @@
+id: cover-base
+kind: bolt-pattern
+parties: [part://base, part://cover]
+description: Two bolts go through the stop and the cover into the base; the stop shares these holes (stop-cover lists only its nuts, S-105).
+spec: {pattern: line, count: 2, diameter: 6.6 mm, spacing: [30 mm], fastener: part://bolt}

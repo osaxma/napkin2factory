@@ -3,7 +3,9 @@
 A manual page's body is a Jinja2 template over the product model.  Every value it
 reads is recorded: ``P["x"]`` → ``param://x``; ``part("id").name`` → ``part://id#name``;
 ``req("REQ-001").statement`` → ``req://REQ-001#statement``; ``bom.total_cost`` →
-``bom://rollups#total_cost``; ``asm("id").name`` → ``asm://id#name``.  The ``doc:<id>`` rule
+``bom://rollups#total_cost``; ``asm("id").name`` → ``asm://id#name``;
+``build_step("asm://door")`` (P8) renders one step of the build plan (its items, joints and
+hardware) as Markdown and records ``bom://build-plan#units.door``.  The ``doc:<id>`` rule
 stores those keys as ``reads.json`` so the checks rule can flag a stale page when any
 recorded value changed after the page was last rendered.
 """
@@ -137,8 +139,17 @@ def make_env() -> jinja2.Environment:
     )
 
 
-def render_doc(product: Product, doc: Doc, rollups: dict[str, Any] | None = None) -> Rendered:
-    """Render one page's Markdown body with recording accessors."""
+def render_doc(
+    product: Product,
+    doc: Doc,
+    rollups: dict[str, Any] | None = None,
+    plan: dict[str, Any] | None = None,
+) -> Rendered:
+    """Render one page's Markdown body with recording accessors.
+
+    ``plan`` is the build plan the ``bom`` rule wrote (``build-plan.json``); without it the
+    plan is derived from the model, which gives the same steps.
+    """
     _, iface_accessor, log = make_accessors(product)
     P = _FormattedParams(product, log)
     warnings: list[str] = []
@@ -171,6 +182,23 @@ def render_doc(product: Product, doc: Doc, rollups: dict[str, Any] | None = None
             raise DocRenderError(f"doc://{doc.meta.id}: dec('{did}') does not exist")
         return _Proxy(product.decisions[did], f"dec://{did}", log)
 
+    def build_step(aid: str) -> str:
+        from napkin2factory.bom.build_plan import derive_build_plan, plan_key, step_markdown
+
+        nonlocal plan
+        aid = aid.replace("asm://", "")
+        if aid not in product.assemblies:
+            raise DocRenderError(f"doc://{doc.meta.id}: build_step('{aid}') does not exist")
+        if plan is None:
+            plan = derive_build_plan(product)
+        if aid not in plan.get("units", {}):
+            raise DocRenderError(
+                f"doc://{doc.meta.id}: asm://{aid} is a grouping (build: phantom) with no "
+                "step of its own; its parts are in the step of the unit that contains it"
+            )
+        log.add(plan_key(aid))  # D5: the step's whole record, items to hardware
+        return step_markdown(plan, aid)
+
     env = make_env()
     try:
         template = env.from_string(doc.body)
@@ -181,6 +209,7 @@ def render_doc(product: Product, doc: Doc, rollups: dict[str, Any] | None = None
             req=req,
             iface=iface,
             dec=dec,
+            build_step=build_step,
             bom=_Bom(rollups, log),
             product=_Proxy(product.manifest.product, "manifest://product", log),
         )

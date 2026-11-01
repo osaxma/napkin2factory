@@ -1,0 +1,4 @@
+# Two build units and a phantom (P7–P9): the top holds the base and a phantom frame (cover
+# and stop); the pod, a unit of its own, holds a plate and two rails.  Hardware is counted
+# from the interfaces: see tests/unit/test_build_plan.py.
+parameters: {}

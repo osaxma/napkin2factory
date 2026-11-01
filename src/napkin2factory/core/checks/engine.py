@@ -1,4 +1,4 @@
-"""``checks`` run: every evaluator, rule packs, interfaces, interference, counts, docs, BOM.
+"""``checks`` run: evaluators, rule packs, interfaces, interference, counts, hardware, docs, BOM.
 
 Writes ``build/checks/checks.json`` (results, matrix, summary) and ``calcs.json``.  The
 read set is everything a verdict depends on (parts, assemblies, docs, BOM, requirements,
@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from napkin2factory.core.checks.evaluators import EvalContext, evaluate_requirement
+from napkin2factory.core.checks.hardware import hardware_checks
 from napkin2factory.core.checks.interface import check_interface, coordinate_placement_warnings
 from napkin2factory.core.checks.interference import check_interference
 from napkin2factory.core.checks.results import OWNER_WORDS, CheckResult, summarize
@@ -327,6 +328,7 @@ def run_all_checks(ctx: RunContext) -> RunResult:
         results.append(evaluate_requirement(ectx, req))
     results += rule_rows
     results += instance_count_checks(product, build_dir)
+    results += hardware_checks(product)  # P9: joint hardware per build unit
     results += doc_staleness(product, build_dir)
     results += bom_validation_checks(build_dir)
     persona = product.operator.persona

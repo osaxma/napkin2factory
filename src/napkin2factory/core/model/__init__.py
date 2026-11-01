@@ -1,6 +1,6 @@
 """Pydantic schemas for every file in a product repository (GRAND_PLAN §4.2)."""
 
-from napkin2factory.core.model.assemblies import Assembly, Child, Exploded
+from napkin2factory.core.model.assemblies import DRIVERS, Assembly, Child, Exploded
 from napkin2factory.core.model.base import Model, Quantity, UriField
 from napkin2factory.core.model.concepts import (
     CONCEPT_STATUSES,
@@ -18,6 +18,7 @@ from napkin2factory.core.model.interfaces import (
     BoltPatternSpec,
     Frame,
     FrameExpr,
+    HardwareItem,
     Interface,
     MatingFaceSpec,
 )
@@ -41,6 +42,7 @@ from napkin2factory.core.model.style import StyleFile
 
 __all__ = [
     "CONCEPT_STATUSES",
+    "DRIVERS",
     "TRANSITIONS",
     "Applied",
     "Approval",
@@ -59,6 +61,7 @@ __all__ = [
     "Exploded",
     "Frame",
     "FrameExpr",
+    "HardwareItem",
     "Interface",
     "KitGeometry",
     "Manifest",

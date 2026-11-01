@@ -1,0 +1,11 @@
+id: stop
+rev: A
+name: stop
+kind: custom
+process: cut-block
+material: {name: aluminium, spec: "6082"}
+tolerance_class: ISO2768-m
+geometry: {kit: block, args: {length: 20 mm, width: 40 mm, height: 3 mm}}
+interfaces: [iface://stop-cover]
+cost: {unit: 1 USD, basis: estimate}
+lead_time: 1 d
