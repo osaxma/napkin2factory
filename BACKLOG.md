@@ -46,6 +46,8 @@ entry that closed them. Ids are never reused.
 | B-0070 | Assembly sheets carry no item numbers on the pictures (balloons) | Gate D concern 8 (S-118): the footer's claim was dropped instead; a numbered leader on each custom item of the pulled-apart view would let a workshop tie a picture to a line |
 | B-0071 | Check counts differ by what they count: a build step's (its joints, counts, requirements; a shared requirement in each step), the report's By-module table (every row of the unit) and `n2f check --scope` (no documents or sourcing) | Gate D concern 12 (S-118): each is now labelled; one count per unit everywhere would need the engine's module rows and the scope filter to agree |
 | B-0072 | Python and dependency review: drop unused dev tools, declare Pillow, replace httpx, build123d 0.13 (OCCT 8), then Python 3.14, an optional screenshots extra | Review of 2026-11-01, set aside by the maintainer; reasoning, evidence and order in `docs/improvements.md` §6. Python 3.15 waits for cp315 OCP wheels and build123d's `<3.15` cap |
+| B-0074 | `n2f build --target` offers a fixed list (`cli/build.py::TARGETS`): a domain's rule family is a target through the API (`run_build(target=...)`) but not on the command line | S-123; derive the option's choices from the rule-family registry |
+| B-0075 | URIs in prose (`core/uris.py::find_uris`, used by lint and manual pages) know only the core's schemes: a domain's `<scheme>://id` in text is not found or checked | S-123; build the pattern from the registered schemes |
 
 ## Closed
 
