@@ -411,17 +411,44 @@ def test_a_scope_edit_reruns_the_report_and_nothing_else(rig: Path, tmp_path: Pa
 
 
 @pytest.mark.parametrize("name", ["bracket", "enclosure"])
-def test_a_product_without_scope_reads_no_scope_key(name: str) -> None:
-    """The new read leaves every rule key of a product with no ``scope:`` as it was (S-124).
-
-    Measured once at landing: bracket and enclosure built on ``main`` and on this change have
-    the same read sets and values for every rule; only code hashes differ.
-    """
+def test_a_product_without_scope_still_reads_the_scope(name: str) -> None:
+    """B-0081 (S-133): the whole block is always read, so a first ``scope:`` is seen."""
+    from napkin2factory.core.graph.values import SCOPE_KEY
     from napkin2factory.report.builder import scope_reads
 
     product = load_product(EXAMPLES / name)
     assert product.manifest.scope == {}
-    assert scope_reads(product) == []
+    assert scope_reads(product) == [SCOPE_KEY]
+
+
+def test_a_first_scope_reruns_the_report_by_itself(tmp_path: Path) -> None:
+    """B-0081 (S-133): no new decision behind it, yet the report says the new scope."""
+    root = copy_product(FIXTURES / "ports", tmp_path / "ports", git=False)
+    run_build(load_product(root), render=False, quiet=True)
+    assert run_build(load_product(root), render=False, quiet=True)["ran"] == []
+    with (root / "n2f.yaml").open("a", encoding="utf-8") as f:
+        f.write("scope:\n  wiring: {state: later, note: wired by the maker}\n")
+    ran = run_build(load_product(root), render=False, quiet=True)["ran"]
+    assert "report" in ran
+    assert "Wiring: later" in _scope_line(root)
+
+
+def test_a_decision_may_link_the_scope_it_set(tmp_path: Path) -> None:
+    """B-0091 (S-133): ``manifest://scope#<domain>`` resolves against ``n2f.yaml``."""
+    root = copy_product(SCOPE / "external", tmp_path / "rig", git=False)
+    _edit(
+        root,
+        "model/decisions.yaml",
+        "decision: The harness is designed after the frame.",
+        "decision: The harness is designed after the frame.\n"
+        "    links: [manifest://scope#wiring, manifest://scope#wiring.state, manifest://product]",
+    )
+    assert [p for p in _problems(root) if p[1] == "uri"] == []
+    product = load_product(root)
+    assert product.select("manifest://scope#wiring.state") == "later"
+    _edit(root, "model/decisions.yaml", "manifest://product]", "manifest://scope#cooling]")
+    found = [m for _, rule, m in _problems(root) if rule == "uri"]
+    assert len(found) == 1 and "manifest://scope#cooling: no key 'cooling'" in found[0], found
 
 
 # ---- M4b: an external stub in the build plan (B-0077) -------------------------------------

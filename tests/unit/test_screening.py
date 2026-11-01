@@ -352,6 +352,32 @@ def test_walls_fit_envelope(kiln: Screening) -> None:
     assert "but body is only 695 mm" in row.message
 
 
+def test_walls_fit_envelope_says_neutral_words_unless_the_screen_gives_its_own() -> None:
+    """B-0087 (S-133): the system's rule names no product's inside or wall."""
+    from napkin2factory.rulepacks.concept_rules import run_concept_rules
+
+    card = _card(SMALL)
+    massing = compose(card, write=False)
+    shared: dict[str, Any] = {
+        "inner_size": [parse_quantity("150 mm")] * 3,
+        "wall": parse_quantity("100 mm"),
+    }
+
+    def row(extra: dict[str, Any]) -> RuleRow:
+        rows = run_concept_rules(card, {}, {}, massing, shared={**shared, **extra})
+        return next(r for r in rows if r.id == "walls-fit-envelope")
+
+    plain = row({})
+    assert plain.status == "pass", plain.message
+    assert plain.message.startswith("the inner space plus 2 × 100 mm of wall (350 × 350 × 350 mm)")
+    tight = row({"wall": parse_quantity("150 mm")})
+    assert "(the inner space 150 mm + 2 × 150 mm of wall)" in tight.message
+    own = row({"inner_words": "the tank", "wall_words": "foam"})
+    assert own.message.startswith("the tank plus 2 × 100 mm of foam")
+    for r in (plain, tight, own):
+        assert "chamber" not in r.message and "insulation" not in r.message
+
+
 def test_controls_not_adjacent_hot_face(kiln: Screening) -> None:
     assert _rule(kiln, "controls-not-adjacent-hot-face").status == "pass"
     top = _screen(_card(SMALL, layout={"controls": "top"}))

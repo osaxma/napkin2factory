@@ -25,6 +25,8 @@ from napkin2factory.core.vcs import Vcs
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip
 
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
+#: How a gate blocker for an open choice starts (``core/checks/choices.py``).
+CHOICE_WAITING = "a choice is waiting on you"
 
 
 class ReleaseError(N2FError):
@@ -214,7 +216,13 @@ def release_record(product: Product, version: str) -> dict[str, Any]:
 
 
 def gate_blockers(product: Product) -> list[str]:
-    """Verify-gate blockers from the stage computation (checks must have run)."""
+    """What stops a release, from the stage computation (checks must have run).
+
+    The Intake, Design and Verify gates' blockers, then every open choice that holds the
+    release (F12, S-133): the Released gate's other blockers (no Revision yet, unsaved
+    changes) are what the release itself resolves, so only its choices are read here.
+    """
+    from napkin2factory.core.checks.choices import choice_blockers
     from napkin2factory.core.checks.stage import compute_stage
 
     rep = compute_stage(product)
@@ -222,6 +230,7 @@ def gate_blockers(product: Product) -> list[str]:
     for g in rep.gates:
         if g.name in ("intake", "design", "verify") and not g.ok:
             out.extend(g.blockers)
+    out += [b for b in choice_blockers(product.paths.build).get("released", []) if b not in out]
     return out
 
 
@@ -272,8 +281,13 @@ def release(
     blockers = gate_blockers(load_product(product.root))
     if blockers:
         shown = "\n  • ".join(blockers[:8])
+        # only choices left: they are the owner's to make, not checks to fix
+        waiting = all(b.startswith(CHOICE_WAITING) for b in blockers)
+        head = f"cannot release {version}" + (
+            " yet" if waiting else ": the checks are not green yet"
+        )
         raise GateBlocked(
-            f"cannot release {version}: the checks are not green yet:\n  • {shown}"
+            f"{head}:\n  • {shown}"
             + ("\n  …" if len(blockers) > 8 else "")
         )
     build_dir = product.paths.build

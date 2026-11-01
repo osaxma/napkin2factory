@@ -59,6 +59,7 @@ rules:
     severity: fail
     check: walls_fit_envelope
     params: {}
-    # the inner size and the wall come from a product's screen (shared as inner_size, wall)
-    message: "the {axis} needs {needed} (chamber {chamber} + 2 × {wall} of insulation) but {call} is only {outer}"
-    pass_message: "chamber plus 2 × {wall} of insulation ({needed}) fits inside {call} ({outer})"
+    # the inner size and the wall come from a product's screen (shared as inner_size, wall),
+    # and so may the words for them (inner_words, wall_words; S-133)
+    message: "the {axis} needs {needed} ({inner_words} {inner} + 2 × {wall} of {wall_words}) but {call} is only {outer}"
+    pass_message: "{inner_words} plus 2 × {wall} of {wall_words} ({needed}) fits inside {call} ({outer})"

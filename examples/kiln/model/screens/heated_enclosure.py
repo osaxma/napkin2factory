@@ -317,6 +317,9 @@ def thermal(card: ConceptCard, massing: Any, values: ScreenValues) -> list[RuleR
         Quantity(0, "mm"),
     )
     extra["wall"] = wall.to("mm")
+    # this product's words for them, said by the system's rule (S-133)
+    extra["inner_words"] = "chamber"
+    extra["wall_words"] = "insulation"
     # insulation mass (layers with a density)
     volumes = _layer_volumes(chamber, layers)
     ins_mass = 0.0
