@@ -742,4 +742,5 @@ screening 167 (M3). `validate_refs` in parts, interfaces, assemblies, parameters
 validate's problems identical on 3 examples and 40 fixtures. B-0086: a product's screens may expose
 `PROMOTE_REQUIREMENTS`/`PROMOTE_RATIONALE` (`promote/packs.py`); the kiln's seeds the supply row (`POWER_KEY`
 dropped) [revisit]; promote goldens unchanged. `make check-fast` (lint, types, unit, smoke) is `make land`'s gate:
-CHECKFAST. `make check`: CHECKTIME. No file moved behind `-m full`.
+2 min 1 s, host idle at start. `make check`: 9 min 52 s, green, 1000 passed, 141 goldens (another task's tests ran
+for about 3 of those minutes; 14 min 7 s fully alongside one); under S-119's 10 min 8 s, so no file moved to `-m full`.
