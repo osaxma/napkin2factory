@@ -22,7 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from napkin2factory.core.build_units import DRIVER_WORDS, PHANTOM_WORDS, BuildUnits, unit_title
+from napkin2factory.core.build_units import PHANTOM_WORDS, BuildUnits, driver_words, unit_title
 from napkin2factory.core.checks.modules import RowModules
 from napkin2factory.core.expr import ExprError, referenced_names
 from napkin2factory.core.graph.manifest import Manifest
@@ -296,7 +296,7 @@ def module_context(product: Product, aid: str, build_dir: Path | None = None) ->
         "title": unit_title(asm.name, is_top)
         if units.is_unit(aid)
         else f"{asm.name}, {PHANTOM_WORDS}",
-        "why": [DRIVER_WORDS.get(d, d) for d in asm.driver],
+        "why": [driver_words().get(d, d) for d in asm.driver],
         "inside": parents,
         "assemblies": assemblies,
         "parts": parts,
@@ -321,7 +321,24 @@ def module_context(product: Product, aid: str, build_dir: Path | None = None) ->
             "build": f"n2f build --asm {aid}",
             "check": f"n2f check --scope asm://{aid}",
         },
+        **_domain_context(product, aid, mine),
     }
+
+
+def _domain_context(product: Product, aid: str, mine: list[str]) -> dict[str, Any]:
+    """What registered domains add to the module's context (F1), only when they add any.
+
+    ``{"domains": [{"name", "title", "lines"}]}``; a product no domain has content in gets
+    no key, so its context reads exactly as before.
+    """
+    from napkin2factory.core.registry import registry
+
+    out = []
+    for c in registry().context_contributions():
+        lines = c.collect(product, aid, mine)
+        if lines:
+            out.append({"name": c.name, "title": c.title, "lines": list(lines)})
+    return {"domains": out} if out else {}
 
 
 def _mm(v: Any) -> Any:
@@ -463,4 +480,8 @@ def render_text(ctx: dict[str, Any]) -> str:
         here = "" if r["checked_here"] else "; checked with the assembly above it"
         target = f" {r['target']}" if r["target"] else ""
         add(f"- {r['id']}{safety}: {r['title']}. Verified by {r['verify']}{target}{here}")
+    for d in ctx.get("domains", []):  # a domain's contribution (F1)
+        add("")
+        add(f"## {d['title']}")
+        out += d["lines"]
     return "\n".join(out) + "\n"

@@ -1,0 +1,4 @@
+<section class="card" id="changes">
+  {{ h2('changes', words.changes) }}
+  {% if ecrs %}<table><thead><tr><th>id</th><th>title</th><th>kind</th><th>status</th><th>released in</th></tr></thead><tbody>{% for e in ecrs %}<tr id="ecr-{{ e.id }}"><td class="mono">{{ e.id }}</td><td>{{ e.title }}</td><td>{{ e.kind }}</td><td><span class="badge {{ 'ok' if e.status == 'closed' else 'skip' }}">{{ e.status }}</span></td><td>{{ e.released_in or '—' }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">No {{ words.changes | lower }} yet.</p>{% endif %}
+</section>

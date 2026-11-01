@@ -1,0 +1,6 @@
+<section class="card" id="manuals">
+  {{ h2('manuals', 'Manuals') }}
+  <p class="lead">Each manual is also a PDF under <span class="mono">build/docs/</span>. The safety page is shown <a href="#safety">above</a>.</p>
+  {% for d in docs %}<details id="doc-{{ d.id }}"{% if loop.first %} open{% endif %}><summary>{{ d.title }} <span class="muted">({{ d.audience | join(', ') }})</span> <span class="mono muted">build/docs/{{ d.id }}/page.pdf</span></summary><div class="doc">{{ d.html | safe }}</div></details>{% endfor %}
+  {% if not docs %}<p class="muted">No manuals yet.</p>{% endif %}
+</section>

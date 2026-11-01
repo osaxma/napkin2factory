@@ -319,10 +319,16 @@ class Registry:
     # ---- report sections, doc helpers, vocabulary, context (F5, F1) --------------------------
 
     def report_sections(self) -> list[ReportSection]:
-        """The report's sections in page order: each domain's go at the end of their group."""
+        """The report's sections in page order.
+
+        The first domain's in its order; a later domain's each go at the end of their group.
+        """
         self.ensure()
         out: list[ReportSection] = []
         for d in self.domains:
+            if not out:  # the first domain's sections set the page's order
+                out += d.report_sections
+                continue
             for s in d.report_sections:
                 last = max((i for i, x in enumerate(out) if x.group == s.group), default=None)
                 if last is None:

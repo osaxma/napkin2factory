@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import importlib
 import re
+from collections.abc import Callable, Iterable
 from typing import Annotated, Any
 
 from pydantic import (
@@ -120,6 +122,27 @@ IfaceUri = uri_of("iface")
 DocUri = uri_of("doc")
 CalcUri = uri_of("calc")
 ChildUri = uri_of("part", "asm")
+
+
+def table_check(kind: str, known: Callable[[], Iterable[str]]) -> Any:
+    """The validator of a string from an open set (FOUNDATION F6), checked against ``known()``.
+
+    Use it as ``Annotated[str, table_check("process", processes)]``.
+
+    The check runs when a file is validated, so a domain's additions count; the error lists
+    the known values.
+    """
+
+    def check(v: Any) -> Any:
+        if isinstance(v, str):
+            # by name: the registry imports the schemas' module graph (no import cycle here)
+            importlib.import_module("napkin2factory.core.registry").check_known(
+                kind, v, list(known())
+            )
+        return v
+
+    return BeforeValidator(check)
+
 
 _SLUG_RE = re.compile(rf"^{SLUG}$")
 

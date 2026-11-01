@@ -36,24 +36,28 @@ if TYPE_CHECKING:
 TEMPLATES = Path(__file__).parent / "templates"
 MAX_REPORT_BYTES = 20 * 1024 * 1024
 
-#: Page sections in reading order: (anchor, nav label, group).  The nav groups them.
-SECTIONS: tuple[tuple[str, str, str], ...] = (
-    ("overview", "Overview", ""),
-    ("safety", "Safety", ""),
-    ("model", "3D model", "Product"),
-    ("parts", "Parts & cost", "Product"),
-    ("drawings", "Drawings", "Product"),
-    ("interfaces", "Interfaces", "Product"),
-    ("build", "Build plan", "Product"),
-    ("joints", "Joints between units", "Product"),
-    ("requirements", "Requirements", "Verification"),
-    ("rules", "Rule checks", "Verification"),
-    ("signoffs", "Sign-offs", "Verification"),
-    ("parameters", "Parameters", "Design record"),
-    ("decisions", "Decisions", "Design record"),
-    ("changes", "Change requests", "Design record"),
-    ("manuals", "Manuals", ""),
-)
+
+def __getattr__(name: str) -> Any:
+    """``SECTIONS`` is the report-section registry's view (F5), read on each access."""
+    if name == "SECTIONS":
+        return sections()
+    raise AttributeError(name)
+
+
+def sections(product: Product | None = None) -> tuple[tuple[str, str, str], ...]:
+    """Page sections in reading order: (anchor, nav label, group); the nav groups them.
+
+    The registered report sections (F5); with ``product``, those whose ``show`` says no are
+    left out.
+    """
+    from napkin2factory.core.registry import registry
+
+    return tuple(
+        (sec.id, sec.label, sec.group)
+        for sec in registry().report_sections()
+        if product is None or sec.show is None or sec.show(product)
+    )
+
 
 VOCAB: dict[str, dict[str, str]] = {
     "owner": {
@@ -151,6 +155,11 @@ def report_reads(ctx: RunContext) -> list[str]:
         "set://ifaces",
         "manifest://product#name",
     ]
+    from napkin2factory.core.registry import registry
+
+    for sec in registry().report_sections():  # what a domain's section shows (F5)
+        if sec.reads is not None:
+            reads += sec.reads(product)
     return reads
 
 
@@ -638,7 +647,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "product": product.manifest.product,
         "persona": persona,
         "words": VOCAB[persona],
-        "sections": SECTIONS,
+        "sections": sections(product),
         "anchors": anchors,
         "stage": stage,
         "stage_label": stage_label,
@@ -676,11 +685,23 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
 
 def render_report(product: Product, build_dir: Path, snapshot_date: str, build_id: str = "") -> str:
     """Render the page HTML (the viewer bundle inlined)."""
+    from napkin2factory.core.registry import registry
     from napkin2factory.report.brand import favicon_link, footer_mark, footer_wordmark
     from napkin2factory.report.inline import bundle_viewer, inline_module_script
 
+    reg = registry()
+    fragments = {f"section:{sec.id}": reg.fragment_path(sec) for sec in reg.report_sections()}
+
+    def load_fragment(name: str) -> str | None:
+        path = fragments.get(name)
+        return path.read_text(encoding="utf-8") if path is not None else None
+
+    # the page shell, then one fragment per registered section (F5): a domain adds a section
+    # without editing the page
     env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(str(TEMPLATES)),
+        loader=jinja2.ChoiceLoader(
+            [jinja2.FileSystemLoader(str(TEMPLATES)), jinja2.FunctionLoader(load_fragment)]
+        ),
         autoescape=True,
         undefined=jinja2.StrictUndefined,
     )
@@ -694,6 +715,17 @@ def render_report(product: Product, build_dir: Path, snapshot_date: str, build_i
     env.filters["disp"] = lambda uri: display_uri(str(uri), persona)
     data["viewer_script"] = inline_module_script(bundle_viewer()) if data["glb_b64"] else ""
     data["build_id"] = build_id
+    shown = {sid for sid, _, _ in data["sections"]}
+    data["page_sections"] = [
+        {"id": sec.id, "template": f"section:{sec.id}"}
+        for sec in reg.report_sections()
+        if sec.id in shown
+    ]
+    data["section_data"] = {
+        sec.id: sec.data(product, build_dir)
+        for sec in reg.report_sections()
+        if sec.id in shown and sec.data is not None
+    }
     return env.get_template("report.html.j2").render(**data)
 
 

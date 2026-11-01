@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from napkin2factory.core.checks.results import (
     example_signoff_why,
@@ -29,6 +29,9 @@ from napkin2factory.core.checks.results import (
 from napkin2factory.core.graph.manifest import Manifest
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model.concepts import CONCEPT_STATUSES as CARD_STATUSES
+
+if TYPE_CHECKING:
+    from napkin2factory.core.domain import GateRowState
 
 STAGES = ("intake", "design", "verify", "released")
 #: The optional stage before Intake (N11); present only when ``concepts/`` holds a card.
@@ -206,6 +209,53 @@ def napkin_gate(root: Path) -> Gate | None:
     return Gate(NAPKIN, False, blockers, detail)
 
 
+def _domain_rows(
+    product: Product, build_dir: Path, gate: str, blockers: list[str]
+) -> tuple[list[dict[str, str]], list[str]]:
+    """The registered gate rows of ``gate`` that apply (F4): ``(rows, caveats)``.
+
+    A row's blockers are added to ``blockers``; a domain with no content returns no row, so
+    an empty domain shows nothing.  Each row is ``{"title", "summary"}`` for ``n2f status``.
+    """
+    from napkin2factory.core.registry import registry
+
+    rows: list[dict[str, str]] = []
+    caveats: list[str] = []
+    for gate_row in registry().gate_rows(gate):
+        state = gate_row.row(product, build_dir)
+        if state is None:
+            continue
+        rows.append({"title": gate_row.title, "summary": state.summary})
+        blockers += state.blockers
+        caveats += state.caveats
+    return rows, caveats
+
+
+def check_rows_state(build_dir: Path, kind: str, words: dict[str, str]) -> GateRowState | None:
+    """A gate row from the ``checks.json`` rows of one ``kind`` (a helper for domains, F4).
+
+    "3 checks OK, 1 needs attention" in ``words`` (status → owner words); ``None`` when no
+    row of that kind exists or the checks have not run.  The failing rows block the Verify
+    gate on their own already, so the row adds no blocker.
+    """
+    from napkin2factory.core.domain import GateRowState
+
+    path = build_dir / "checks" / "checks.json"
+    if not path.is_file():
+        return None
+    results = json.loads(path.read_text(encoding="utf-8")).get("results", [])
+    rows = [r for r in results if r.get("kind") == kind]
+    if not rows:
+        return None
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    order = ("pass", "fail", "needs-human", "warn", "skip", "signed")
+    parts = [f"{counts[k]} {words.get(k, k)}" for k in order if counts.get(k)]
+    noun = "check" if len(rows) == 1 else "checks"
+    return GateRowState(f"{len(rows)} {noun}: " + ", ".join(parts))
+
+
 def compute_stage(
     product: Product, build_dir: Path | None = None, *, napkin: bool = True
 ) -> StageReport:
@@ -251,7 +301,16 @@ def compute_stage(
             design_blockers.append(f"{asm.name}: not built yet — run `n2f build`")
     if not product.parts:
         design_blockers.append("no parts yet — next, the designer gives each module its parts")
-    gates.append(Gate("design", not design_blockers and not intake_blockers, design_blockers))
+    design_rows, design_caveats = _domain_rows(product, build_dir, "design", design_blockers)
+    gates.append(
+        Gate(
+            "design",
+            not design_blockers and not design_caveats and not intake_blockers,
+            design_blockers,
+            {"rows": design_rows} if design_rows else {},
+            design_caveats,
+        )
+    )
     # Verify
     verify_blockers: list[str] = []
     example_ids: list[str] = []
@@ -287,6 +346,8 @@ def compute_stage(
         if data.get("status") == "placeholder":
             verify_blockers.append("checks are placeholders in this build")
     verify_caveats = [example_signoff_hint(example_ids)] if example_ids else []
+    verify_rows, row_caveats = _domain_rows(product, build_dir, "verify", verify_blockers)
+    verify_caveats += row_caveats
     gates.append(
         Gate(
             "verify",
@@ -299,6 +360,7 @@ def compute_stage(
                 "counts": counts,
                 "example_signoffs": example_ids,
                 "why": example_signoff_why(len(example_ids)) if example_ids else None,
+                **({"rows": verify_rows} if verify_rows else {}),
             },
             verify_caveats,
         )

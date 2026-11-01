@@ -160,10 +160,13 @@ def custom_part_complete(
     """process, material, finish, tolerance_class on custom parts."""
     if part.kind != "custom":
         return []
+    from napkin2factory.core.registry import registry
+
+    process = registry().processes().get(part.process)  # F6: the processes table says
     missing = [
         k
         for k, v in (
-            ("process", part.process != "none"),
+            ("process", process is not None and process.declared),
             ("material", part.material is not None),
             ("finish", bool(part.finish)),
             ("tolerance_class", part.tolerance_class is not None),

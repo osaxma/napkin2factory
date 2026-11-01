@@ -18,10 +18,10 @@ from typing import Any
 
 from napkin2factory.core.build_units import (
     BETWEEN_UNITS_WORDS,
-    DRIVER_WORDS,
     PHANTOM_WORDS,
     BuildUnits,
     driver_sentence,
+    driver_words,
     unit_title,
 )
 from napkin2factory.core.checks.hardware import joint_words
@@ -234,7 +234,7 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
             "title": unit_title(asm.name, top),
             "top": top,
             "driver": list(asm.driver),
-            "driver_words": [DRIVER_WORDS[d] for d in asm.driver],
+            "driver_words": [driver_words()[d] for d in asm.driver],  # F6: the table
             "driver_sentence": driver_sentence(list(asm.driver)),
             "built_per_product": sum(_count_asm(product, t, uid) for t in tops),
             "parents": parents,

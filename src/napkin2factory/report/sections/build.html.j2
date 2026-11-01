@@ -1,0 +1,20 @@
+<section class="card" id="build">
+  {{ h2('build', 'Build plan') }}
+  <p class="lead">How the product goes together: one step for each unit put together on its own, smaller units first. Parts that are not put together on their own (a lining, say) are laid in place in the step that contains them, and marked in the note column. A joint between units is where two units built separately meet. Item numbers match the assembly sheet and the parts list.</p>
+  {% for st in build_steps %}<div class="step" id="step-{{ st.id }}">
+  <h3>Step {{ st.step }}: {{ st.title }}</h3>
+  <p class="small muted">{% if st.why %}{{ st.why }} {% endif %}{% for fw in st.folded_words %}{{ fw }} {% endfor %}{% if st.built_per_product != 1 %}Built {{ st.built_per_product }} times per product. {% endif %}{% for pa in st.parent_steps %}Fitted in <a href="#step-{{ pa.unit | replace('asm://', '') }}">step {{ pa.step }}</a> ({{ pa.title }}). {% endfor %}{% if st.check_summary %}Checks of this step (its joints, counts and requirements; a requirement shared by two steps counts in both): {{ st.check_summary }}.{% endif %}</p>
+  <div class="stepgrid">
+  {% if st.sheet_svg %}<figure id="sheet-{{ st.id }}"><div onclick="this.parentNode.classList.toggle('zoom')">{{ st.sheet_svg | safe }}</div><figcaption>assembly sheet · <span class="mono">build/drawings/assemblies/{{ st.id }}.svg</span></figcaption></figure>{% endif %}
+  <div>
+  <table><thead><tr><th class="num">item</th><th>part</th><th>name</th><th class="num">qty</th><th>note</th></tr></thead><tbody>
+  {% for it in st['items'] %}<tr><td class="num">{{ it.item }}</td><td>{% if it.kind == 'unit' %}<a href="#step-{{ it.id }}">step {{ it.step }}</a>{% else %}{{ it.uri | ref }}{% endif %}</td><td>{{ it.name }}</td><td class="num">{{ it.qty }}</td><td class="small">{{ it.notes | join(' · ') }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% if st.joints %}<h3>Joints closed in this step</h3>
+  <table><thead><tr><th>joint</th><th class="num">×</th><th class="num">holes</th><th>hardware</th></tr></thead><tbody>
+  {% for j in st.joints %}<tr><td>{{ j.words }}{% if j.status_words %}<br><span class="small muted">{{ j.status_words }}</span>{% endif %}</td><td class="num">{{ j.occurrences }}</td><td class="num">{{ j.holes or 'none' }}</td><td class="small">{{ j.hardware_words }}</td></tr>{% endfor %}
+  </tbody></table>{% endif %}
+  {% set open_checks = st.check_rows | rejectattr('status', 'in', ['pass', 'signed']) | list %}{% if open_checks %}<h3>Checks of this step not {{ w('pass') }}</h3>
+  <table><tbody>{% for c in open_checks %}<tr><td>{{ badge(c.status) }}</td><td>{{ c.title }}</td><td class="small">{{ c.message }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+  </div></div></div>{% else %}<p class="muted">No assemblies yet, so no build plan.</p>{% endfor %}
+</section>

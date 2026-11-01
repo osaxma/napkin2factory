@@ -141,10 +141,35 @@ def _within(worst: float) -> str:
     return f"within {max(math.ceil(round(worst * 100, 6)) / 100, 0.01):.2f} mm"
 
 
+#: The kinds this module checks itself; any other is a domain's (core/data/interface_kinds.yaml).
+CORE_KINDS = ("bolt-pattern", "mating-face")
+
+
+def _domain_kind_report(product: Product, iface: Interface, build_dir: Path) -> InterfaceReport:
+    """A domain kind's own check (``InterfaceKind.check``), or "not checked"."""
+    from napkin2factory.core.registry import registry
+
+    kind = registry().interface_kind(iface.kind)
+    if kind.check is None:
+        return InterfaceReport(status="skip", message=f"no check for a {iface.kind} joint")
+    out = kind.check(product, iface, build_dir)
+    return InterfaceReport(
+        status=str(out.get("status", "skip")),
+        message=str(out.get("message", "")),
+        parties=dict(out.get("parties", {})),
+    )
+
+
 def check_interface(product: Product, iface: Interface, build_dir: Path) -> InterfaceReport:
-    """Compare the parties' recorded patterns (bolt-pattern) or face records (mating-face)."""
+    """Compare the parties' recorded patterns (bolt-pattern) or face records (mating-face).
+
+    A domain's interface kind (F6) is checked by the kind's own ``check``; a kind without one
+    is reported as not checked.
+    """
     from napkin2factory.geometry.accessors import resolve_interface
 
+    if iface.kind not in CORE_KINDS:
+        return _domain_kind_report(product, iface, build_dir)
     iface = resolve_interface(product, iface)
     rep = InterfaceReport()
     patterns: dict[str, Any] = {}

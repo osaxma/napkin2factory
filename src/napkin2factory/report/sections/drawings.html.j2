@@ -1,0 +1,5 @@
+<section class="card" id="drawings">
+  {{ h2('drawings', 'Drawings') }}
+  <p class="lead">Click a drawing to enlarge it; the full-size files are in <span class="mono">build/drawings/</span>.</p>
+  {% if drawings %}<div class="grid">{% for d in drawings %}<figure id="drawing-{{ d.id }}"><div onclick="this.parentNode.classList.toggle('zoom')">{{ d.svg | safe }}</div><figcaption>{{ d.uri | ref }} · rev {{ d.rev }}{% if d.has_flat %} · flat pattern: <span class="mono">build/drawings/{{ d.id }}-flat.dxf</span>{% endif %}{% if glb_b64 %} · <a href="#model" data-show3d="{{ d.uri }}">3D</a>{% endif %}</figcaption></figure>{% endfor %}</div>{% else %}<p class="muted">No drawings yet.</p>{% endif %}
+</section>

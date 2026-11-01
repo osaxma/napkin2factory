@@ -17,6 +17,7 @@ from typing import Any
 
 import jinja2
 
+from napkin2factory.core.domain import HelperContext
 from napkin2factory.core.loader import Doc, Product
 from napkin2factory.core.units import format_quantity, is_quantity
 from napkin2factory.geometry.accessors import ParamAccessor, ReadLog, make_accessors
@@ -150,69 +151,28 @@ def render_doc(
     ``plan`` is the build plan the ``bom`` rule wrote (``build-plan.json``); without it the
     plan is derived from the model, which gives the same steps.
     """
+    from napkin2factory.core.registry import registry
+
     _, iface_accessor, log = make_accessors(product)
-    P = _FormattedParams(product, log)
     warnings: list[str] = []
-
-    def part(pid: str) -> _Proxy:
-        pid = pid.replace("part://", "")
-        if pid not in product.parts:
-            raise DocRenderError(f"doc://{doc.meta.id}: part('{pid}') does not exist")
-        return _Proxy(product.parts[pid], f"part://{pid}", log)
-
-    def asm(aid: str) -> _Proxy:
-        aid = aid.replace("asm://", "")
-        if aid not in product.assemblies:
-            raise DocRenderError(f"doc://{doc.meta.id}: asm('{aid}') does not exist")
-        return _Proxy(product.assemblies[aid], f"asm://{aid}", log)
-
-    def req(rid: str) -> _Proxy:
-        rid = rid.replace("req://", "")
-        if rid not in product.requirements:
-            raise DocRenderError(f"doc://{doc.meta.id}: req('{rid}') does not exist")
-        return _Proxy(product.requirements[rid], f"req://{rid}", log)
-
-    def iface(iid: str) -> _Proxy:
-        iid = iid.replace("iface://", "")
-        return _Proxy(iface_accessor[iid], f"iface://{iid}", log)
-
-    def dec(did: str) -> _Proxy:
-        did = did.replace("dec://", "")
-        if did not in product.decisions:
-            raise DocRenderError(f"doc://{doc.meta.id}: dec('{did}') does not exist")
-        return _Proxy(product.decisions[did], f"dec://{did}", log)
-
-    def build_step(aid: str) -> str:
-        from napkin2factory.bom.build_plan import derive_build_plan, plan_key, step_markdown
-
-        nonlocal plan
-        aid = aid.replace("asm://", "")
-        if aid not in product.assemblies:
-            raise DocRenderError(f"doc://{doc.meta.id}: build_step('{aid}') does not exist")
-        if plan is None:
-            plan = derive_build_plan(product)
-        if aid not in plan.get("units", {}):
-            raise DocRenderError(
-                f"doc://{doc.meta.id}: asm://{aid} is a grouping (build: phantom) with no "
-                "step of its own; its parts are in the step of the unit that contains it"
-            )
-        log.add(plan_key(aid))  # D5: the step's whole record, items to hardware
-        return step_markdown(plan, aid)
+    hctx = HelperContext(
+        product=product,
+        doc=doc,
+        log=log,
+        rollups=rollups,
+        plan=plan,
+        proxy=lambda obj, uri: _Proxy(obj, uri, log),
+        error=lambda msg: DocRenderError(f"doc://{doc.meta.id}: {msg}"),
+        state={"iface": iface_accessor},
+    )
+    # every helper a page can call comes from the doc-helper registry (F5); each records
+    # the keys it reads in ``log`` (D5)
+    helpers = {name: factory(hctx) for name, factory in registry().doc_helpers().items()}
 
     env = make_env()
     try:
         template = env.from_string(doc.body)
-        text = template.render(
-            P=P,
-            part=part,
-            asm=asm,
-            req=req,
-            iface=iface,
-            dec=dec,
-            build_step=build_step,
-            bom=_Bom(rollups, log),
-            product=_Proxy(product.manifest.product, "manifest://product", log),
-        )
+        text = template.render(**helpers)
     except (jinja2.TemplateError, DocRenderError, KeyError, AttributeError) as exc:
         line = getattr(exc, "lineno", None)
         if line is None:
@@ -226,3 +186,103 @@ def render_doc(
     for dep in doc.meta.depends_on:
         log.add(str(dep))
     return Rendered(markdown=text, reads=log.keys, warnings=warnings)
+
+
+# ---- the mechanical doc helpers (registered in place by domains/mechanical, F2) ----------
+# Each is a factory: given the page's HelperContext, it returns what the template calls.
+
+
+def helper_P(h: HelperContext) -> Any:  # noqa: N802 - the template's name for it
+    """``P["x"]`` renders a parameter as ``"50 mm"`` and records ``param://x``."""
+    return _FormattedParams(h.product, h.log)
+
+
+def helper_part(h: HelperContext) -> Any:
+    """``part("id").name`` records ``part://id#name``."""
+
+    def part(pid: str) -> _Proxy:
+        pid = pid.replace("part://", "")
+        if pid not in h.product.parts:
+            raise h.error(f"part('{pid}') does not exist")
+        return _Proxy(h.product.parts[pid], f"part://{pid}", h.log)
+
+    return part
+
+
+def helper_asm(h: HelperContext) -> Any:
+    """``asm("id").name`` records ``asm://id#name``."""
+
+    def asm(aid: str) -> _Proxy:
+        aid = aid.replace("asm://", "")
+        if aid not in h.product.assemblies:
+            raise h.error(f"asm('{aid}') does not exist")
+        return _Proxy(h.product.assemblies[aid], f"asm://{aid}", h.log)
+
+    return asm
+
+
+def helper_req(h: HelperContext) -> Any:
+    """``req("REQ-001").statement`` records ``req://REQ-001#statement``."""
+
+    def req(rid: str) -> _Proxy:
+        rid = rid.replace("req://", "")
+        if rid not in h.product.requirements:
+            raise h.error(f"req('{rid}') does not exist")
+        return _Proxy(h.product.requirements[rid], f"req://{rid}", h.log)
+
+    return req
+
+
+def helper_iface(h: HelperContext) -> Any:
+    """``iface("id").spec.count`` reads the interface through ``I`` (parameters resolved)."""
+    accessor = h.state["iface"]
+
+    def iface(iid: str) -> _Proxy:
+        iid = iid.replace("iface://", "")
+        return _Proxy(accessor[iid], f"iface://{iid}", h.log)
+
+    return iface
+
+
+def helper_dec(h: HelperContext) -> Any:
+    """``dec("DEC-001").title`` records ``dec://DEC-001#title``."""
+
+    def dec(did: str) -> _Proxy:
+        did = did.replace("dec://", "")
+        if did not in h.product.decisions:
+            raise h.error(f"dec('{did}') does not exist")
+        return _Proxy(h.product.decisions[did], f"dec://{did}", h.log)
+
+    return dec
+
+
+def helper_build_step(h: HelperContext) -> Any:
+    """``build_step("asm://door")`` renders one step of the build plan (P8)."""
+
+    def build_step(aid: str) -> str:
+        from napkin2factory.bom.build_plan import derive_build_plan, plan_key, step_markdown
+
+        aid = aid.replace("asm://", "")
+        if aid not in h.product.assemblies:
+            raise h.error(f"build_step('{aid}') does not exist")
+        if h.plan is None:
+            h.plan = derive_build_plan(h.product)
+        if aid not in h.plan.get("units", {}):
+            raise h.error(
+                f"asm://{aid} is a grouping (build: phantom) with no "
+                "step of its own; its parts are in the step of the unit that contains it"
+            )
+        h.log.add(plan_key(aid))  # D5: the step's whole record, items to hardware
+        return step_markdown(h.plan, aid)
+
+    return build_step
+
+
+def helper_bom(h: HelperContext) -> Any:
+    """``bom.total_cost`` records ``bom://rollups#total_cost``."""
+    return _Bom(h.rollups, h.log)
+
+
+def helper_product(h: HelperContext) -> Any:
+    """``product.name`` records ``manifest://product#name``."""
+    return _Proxy(h.product.manifest.product, "manifest://product", h.log)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, get_args
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BeforeValidator,
@@ -21,6 +21,7 @@ from napkin2factory.core.model.base import (
     Quantity,
     ReqUri,
     Slug,
+    table_check,
 )
 from napkin2factory.core.model.parts import ModuleGeometry
 
@@ -35,16 +36,22 @@ def _asm_geometry(v: Any) -> Any:
     raise ValueError("assembly geometry is {module: geometry/<file>.py} or 'none'")
 
 
-#: Why a sub-assembly is built on its own (P7): the module drivers.
-Driver = Literal[
-    "built-as-unit",
-    "tested-as-unit",
-    "serviced-as-unit",
-    "separate-process-or-supplier",
-    "varies",
-    "agent-context",
-]
-DRIVERS: tuple[str, ...] = get_args(Driver)
+def _drivers() -> list[str]:
+    from napkin2factory.core.registry import registry
+
+    return list(registry().drivers())
+
+
+#: Why a sub-assembly is built on its own (P7): ``core/data/drivers.yaml`` plus the domains'
+#: (F6), each with its owner words (``core.build_units.driver_words``).
+Driver = Annotated[str, table_check("build-unit driver", _drivers)]
+
+
+def __getattr__(name: str) -> Any:
+    """``DRIVERS`` (every driver, table order) is read from the registry on each access."""
+    if name == "DRIVERS":
+        return tuple(_drivers())
+    raise AttributeError(name)
 
 
 def _drop_defaults(data: Any, defaults: dict[str, Any]) -> Any:
