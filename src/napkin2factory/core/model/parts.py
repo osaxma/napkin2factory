@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BeforeValidator, Field, model_validator
 
 from napkin2factory.core.model.base import IfaceUri, Model, Quantity, ReqUri, Slug, table_check
 from napkin2factory.core.model.style import StyleRole
+
+if TYPE_CHECKING:
+    from napkin2factory.core.errors import Problems
+    from napkin2factory.core.loader import Product
 
 _KIT_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
@@ -138,3 +142,41 @@ class Part(Model):
     def has_geometry(self) -> bool:
         """True unless geometry is ``none``."""
         return self.geometry != "none"
+
+
+def validate_refs(product: Product, problems: Problems) -> None:
+    """A part's kit generator is known and its geometry module exists (F15).
+
+    A custom part with no geometry is a warning: it builds, but produces nothing to make.
+    """
+    from napkin2factory.geometry.kit import GENERATORS
+
+    for part in product.parts.values():
+        g = part.geometry
+        if isinstance(g, KitGeometry) and g.kit not in GENERATORS:
+            problems.add(
+                product.files[part.uri],
+                part.uri,
+                f"unknown kit generator {g.kit!r}",
+                f"use one of: {', '.join(GENERATORS)}",
+                rule="geometry",
+            )
+        if isinstance(g, ModuleGeometry):
+            mod = product.paths.model / g.module
+            if not mod.is_file():
+                problems.add(
+                    product.files[part.uri],
+                    part.uri,
+                    f"geometry module {g.module} not found",
+                    f"create model/{g.module} exposing build(P, I, kit), or use a kit generator",
+                    rule="geometry",
+                )
+        elif part.kind == "custom" and g == "none":
+            problems.add(
+                product.files[part.uri],
+                part.uri,
+                "custom part has no geometry",
+                "add geometry: {kit: …} or {module: geometry/<id>.py}",
+                severity="warn",
+                rule="geometry",
+            )
