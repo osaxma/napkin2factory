@@ -3,14 +3,23 @@
 `n2f check` builds what it needs, evaluates everything, writes `build/checks/checks.json`
 and prints the matrix. Exit code 2 when any row is `fail`.
 
+Rows come from the **check stages**, in order: `interface`, `interference`, `requirements`,
+`count`, `hardware`, `reach`, `docs`, `sourcing`, `calc-case`, then any an installed domain
+adds (`docs/domains.md` §3.4). A row's status is `pass`, `fail`, `warn`, `skip`,
+`needs-human`, `signed` or `choice`; only `fail` blocks.
+
 ## Requirement evaluators (`core/checks/evaluators.py`)
+
+The system's verify kinds; an installed domain may add more (`n2f doctor` lists every
+installed kind with what it targets, and a requirement naming one that is not installed is an
+error listing them).
 
 | verify.kind | compares | evidence |
 |---|---|---|
 | `param_bound` | the parameter's value with `op value` | the parameter |
 | `geometry_prop` | `part://x#props.bbox.x|y|z`, `volume`, `area`, `mass`, `centroid.*` from props.json | the part/assembly |
 | `bom_rollup` | `bom://rollups#total_cost|total_mass|part_count|custom_ratio|max_lead_time` | the BOM |
-| `calc` | the result of `model/calcs/<m>.py:<f>(P)` (pint) | source + inputs + result hash |
+| `calc` | the result of `model/calcs/<m>.py:<f>(P)` (pint); every calc carries reference cases (below) | source + inputs + result hash |
 | `interference` | pairwise boolean common volume > 1 mm³ on an assembly | the assembly |
 | `count` | occurrences of a part across top assemblies | the assemblies |
 | `interface` | both parties' recorded patterns agree within 0.5 mm; placed, their frames meet (below) | both parties |
@@ -31,6 +40,54 @@ verifies nothing: `summary.example` counts it instead of `summary.signed`, `n2f 
 sign-offs — not reviews" in amber, and the Verify gate stays open until a real person
 replaces them. `n2f release` refuses them unless `--allow-example-signoffs` is given for a
 demonstration, in which case the release goes ahead and the report keeps the labels.
+
+**Choosing the method by consequence** (F14). A requirement's method is its `verify.kind`,
+chosen once when it is written and logged. Offer the stronger method (a computed check over a
+manual one, a calc over a rule of thumb) when the consequence of being wrong is high or the
+owner is an expert in that area (`operator.yaml`); the roles say how.
+
+## Calc reference cases (`calc-case` rows, F17)
+
+Every calc proves itself. A product calc `model/calcs/<module>.py:<fn>` lists its cases in
+`model/calcs/<module>.cases.yaml` (or a module-level `CASES` of the same shape):
+
+```yaml
+inputs:                 # parameter values every case below reads, unless it overrides them
+  plate-thickness: 64 mm
+cases:
+  skin_temperature:
+    - expect: 78.8 degC
+      abs: 0.1          # in the expected unit; or rel: 0.01; default rel 1e-6
+      source: "hand computation: <the formula with its numbers, written out>"
+      inputs: {plate-thickness: 70 mm}   # optional, overrides the shared value
+```
+
+A case runs the calc on its own inputs, never on the product's current parameters: it checks
+the formula, not the design (the requirements do that). `n2f check` writes one `calc-case`
+row per calc: `pass` when every case reproduces; `fail` naming the calc, the expected and the
+computed value (or the parameter a case did not give); `warn` "no reference case" when it
+has none (lint `L16-calc-case` says the same before a build). Each calc-kit pack the
+product's calcs use gets a row too, running that pack's own cases, one of them from an
+outside source (`docs/calckit.md`). Write the case with the calc: the source is a hand
+computation written out, or a handbook or datasheet example with its page.
+
+## Choices (`choice` rows, F12)
+
+A check may find a trade-off with two or more valid designs: its row is a `choice`, never a
+failure by itself, carrying `detail.options` (`id`, `summary`, `what_it_takes`,
+`cost_delta?`), `detail.blocks` (the gate it holds until decided: `design`, `verify`,
+`release` or `none`) and its evidence (the facts it would be decided on). With one valid fix
+the row fails naming it; with none, it fails. Owner text says "a choice waiting on you".
+`build/checks/choices.json` lists every row that is or was a choice; `n2f status` lists the
+open ones under "Waiting on you". `n2f decide <row id> --pick <option> --by "<name>"` writes a
+`DEC-` entry (the check, the option and the evidence keys in its `sources`); from then on the
+row reads `pass` with the decision until an evidence key changes, when the choice opens again
+(like a sign-off, D25). `n2f check` never decides.
+
+The first choice is the `fastening://<spacer>/<bolt>` row of the hardware stage: bolts driven
+into both ends of a spacer must not meet inside it. The kiln's M6 bolts into its 25 mm
+spacers meet, and two designs fix it: shorter bolts at both ends, or one bolt right through
+with a nut; `blocks: release`.
 
 ## Rule packs (`rulepacks/*.yaml`)
 
@@ -82,6 +139,8 @@ and names both occurrences and the distance; the evidence holds every pair's wor
 both placed by coordinates; `place_by` on that interface closes the joint instead. Joints
 through ports are not looked at yet (B-0064).
 
+`fastening://<spacer>/<bolt>` (F12, S-130): see "Choices" above.
+
 `hardware://<unit>` (P9 as amended by S-105, S-110): one row per build unit whose joints
 need hardware or whose lines list some. For each hardware part (one named in some interface's
 `hardware`, or its `fastener`), the quantity on the unit's lines and its phantoms' (folded,
@@ -119,7 +178,11 @@ the ports a change crosses under `ports`.
 ## Stage and gates (`n2f status`)
 
 Intake: requirements and operator pass lint. Design: every custom part has geometry and is
-built. Verify: no `fail`, no `needs-human`, no example sign-offs. Released: a Revision tag
+built. Verify: no `fail`, no `needs-human`, no example sign-offs. An installed domain adds a
+row under Design or Verify when the product has content for it ("Wiring: 3 checks OK"); scope
+(`n2f.yaml`, F11) leaves a `later` domain's rows and requirements out of both gates with a row
+saying so (safety requirements still count). An open choice holds the gate its `blocks` names
+and is listed under "Waiting on you". Released: a Revision tag
 exists for a clean tree. `warn` never changes the stage. Example sign-offs are caveats, not
 blockers: the stage reads `verify` (in verification, not verified), `next` says to replace
 them or release with `--allow-example-signoffs`, and a demonstration Revision made that way

@@ -4,14 +4,18 @@ A product repository (what `n2f init` writes; `examples/*` follow it exactly):
 
 ```
 <product>/                  # its own tracked project (D23)
-  n2f.yaml                  # schema: 1, system: ">=0.1,<0.2", product: {id, name}, units: metric
+  n2f.yaml                  # schema: 1, system: ">=0.4,<0.5", product: {id, name}, units: metric, scope?
   operator.yaml             # persona, per-domain expertise, verbosity, delegation, language
   AGENTS.md                 # what this folder is, vocabulary, rules for agents
   roles/                    # pm.md, design.md, verifier.md, impact-analyst.md: plain Markdown, any agent
   model/
     requirements.yaml  parameters.yaml  decisions.yaml  intake.md
     parts/<id>.yaml  assemblies/<id>.yaml  interfaces/<id>.yaml
-    geometry/<id_with_underscores>.py   calcs/*.py   docs/*.md   signoffs/REQ-xxx.yaml
+    geometry/<id_with_underscores>.py   calcs/*.py  calcs/*.cases.yaml   docs/*.md
+    signoffs/REQ-xxx.yaml   loads/<id>.yaml
+    screens/*.py            # the product's own napkin screens (optional, F10)
+    rulepacks/*.yaml *.py   # the product's own rule packs (optional, F10)
+    <family>/<id>.yaml      # an installed domain's model files (docs/domains.md)
   changes/ECR-xxx.yaml [ECR-xxx.patch]   reports/review-*.md   CHANGELOG.md   build/ (ignored)
   style.yaml                # the product's look (seeded by `n2f init` for new products)
   concepts/C-xxx.yaml  concepts/refs/   # concept cards, outside the build (when present)
@@ -19,12 +23,28 @@ A product repository (what `n2f init` writes; `examples/*` follow it exactly):
 
 ## Files and their schemas (`src/napkin2factory/core/model/`)
 
+**n2f.yaml** — `schema` (the file format's version, `docs/schema-policy.md`), `system` (the
+napkin2factory versions the product was made with; only ever warns), `product: {id, name,
+description?}`, `units: metric`, and optionally `scope:` (F11): one line per domain (a step of
+making the product, such as `electrical`) saying where its work stands, `{state: in |
+external | later, decision: DEC-xxx, note: "…", stub: asm://<id>?}`. `in` (the default for a
+domain with content) is done here; `external` (said "done elsewhere") is done outside the
+product, and a sub-assembly with `build: external` and its `ports:` stands for it (`stub:`
+names it); `later` leaves the domain's requirements (except safety ones) and gate rows out of
+the Design and Verify gates, each gate saying so in a row. Every state names the decision
+behind it (lint `L15-scope` warns otherwise, and on content left under a `later` domain).
+`n2f status`, the report overview, the release package cover and `release.json` say the scope.
+
 **requirements.yaml** — `requirements: [{id: REQ-001, title, statement, category, priority,
-safety, verify: {kind, target, op, value}, allocation: [uris] | unallocated, rationale, source}]`.
-`verify.kind` ∈ `param_bound | geometry_prop | bom_rollup | calc | interference | count |
-interface | manual | rule`; the target scheme must match the kind (`param://`,
-`part://x#props.…`, `bom://rollups#…`, `calc://m.f`, `asm://`, `part://` (count), `iface://`,
-`rule://<pack>/<rule>`; `rule` takes no `op`/`value` — see [checks.md](checks.md)). `n2f lint` adds:
+safety, verify: {kind, target, op, value}, allocation: [uris] | unallocated, rationale, source,
+tags}]`. `category` is one of the categories on file (`performance`, `geometry`, `cost`,
+`mass`, `safety`, `manufacturing`, `usability`, `interface`) or an installed domain's.
+`verify.kind` is an installed verify kind (`n2f doctor` lists them; an unknown one is an
+error listing them): the system's are `param_bound | geometry_prop | bom_rollup | calc |
+interference | count | interface | manual | rule`; the target scheme must match the kind
+(`param://`, `part://x#props.…`, `bom://rollups#…`, `calc://m.f`, `asm://`, `part://`
+(count), `iface://`, `rule://<pack>/<rule>`; `rule` takes no `op`/`value` — see
+[checks.md](checks.md)). `tags: [electrical]` ties a requirement to a domain for scope. `n2f lint` adds:
 a measurable value with a unit in the statement (unless the kind is binary), a verify block,
 an allocation, and `safety: true` requirements need verify.
 
@@ -42,10 +62,14 @@ check rules are exempt. Out-of-reach reads are `reach://` rows in `n2f check` (`
 **parts/<id>.yaml** — `id, rev, name, kind: custom|cots|reference (owner-supplied or existing, not quoted), process, material: {name, spec,
 density?}, finish, tolerance_class: ISO2768-f|m|c|v (custom only), geometry: {kit, args} |
 {module} | none, interfaces, satisfies, cost: {unit, basis, note}, lead_time, mass?,
-source: {vendor, mpn, url, verified} (COTS), manufacturer_notes`. Kit args may reference
+source: {vendor, mpn, url, verified} (COTS), manufacturer_notes, role?`. `process` is one of
+the processes on file (`sheet-metal`, `machining`, `welding`, `cut-block`, `cut-sheet`,
+`3d-print`, `none`: not decided) or an installed domain's; an unknown one is an error listing
+them. `role` is the part's style role (`body`, `opening`, `support`, `controls`, `trim`,
+`lining`, `fastener`; `door` and `stand` are read as `opening` and `support` for v0.5). Kit args may reference
 `param://` and `iface://`; quantities are strings like `15 mm`.
 
-**assemblies/<id>.yaml** — `id, rev, name, build: unit|phantom, driver: [...], geometry:
+**assemblies/<id>.yaml** — `id, rev, name, build: unit|phantom|external, driver: [...], geometry:
 {module} | none, children: [{part|asm, qty, spare?, loose?}], ports: [iface uris], exploded:
 {axis, spacing}, satisfies`. The YAML is the BOM
 structure; the module places instances, by interface with `place_by` or by coordinates with
@@ -74,9 +98,12 @@ pair that meets; in the build plan they share the occurrences (S-113).
 unit`, the default), put together on its own and fitted as a whole, or a *phantom* (`build:
 phantom`), a grouping whose lines fold into the step of the unit that contains it. `driver:`
 says why a unit is built on its own: `built-as-unit`, `tested-as-unit`, `serviced-as-unit`,
-`separate-process-or-supplier`, `varies`, `agent-context`; `n2f lint` warns
+`separate-process-or-supplier`, `varies`, `agent-context`, or an installed domain's;
+`n2f lint` warns
 (`L13-assembly-driver`) on a unit sub-assembly without one. The top assembly is always the last
-step and needs neither field. The `bom` rule derives the plan from the tree,
+step and needs neither field. A *stub* (`build: external`, F11) stands for work done
+elsewhere: no children, its `ports:` the joints it fits by; the plan lists it as supplied, not
+built here. The `bom` rule derives the plan from the tree,
 `build/bom/build-plan.json`: one step per unit, children first, each with its items (numbered;
 the same numbers on the unit's assembly sheet and in `build_step()`), the joints it closes (an
 interface closes in the lowest assembly containing both parties' homes, folded up to its unit)
@@ -96,7 +123,7 @@ Where two interfaces share holes (S-051), list each item once, on the interface 
 is fitted to close. A *hardware part* is one named in some `hardware` (or `fastener`); other
 lines (earth studs, glands, labels) are not counted and need no field.
 
-**interfaces/<id>.yaml** — `id, kind: bolt-pattern|mating-face, parties: [two uris],
+**interfaces/<id>.yaml** — `id, kind: bolt-pattern|mating-face (or an installed domain's kind, whose `spec` it validates), parties: [two uris],
 frame: {origin, normal, x_axis?}, frames: {party uri: frame} (per-party copies),
 offset?, spec: {pattern, count, diameter, spacing, pitch_circle, fastener, depth, hardware} |
 {width, depth, flatness_note, hardware}`. Spec quantities may be `param://` references. A frame
@@ -113,6 +140,19 @@ wiring): it stays listed, with its hardware, where they meet ("closed later, in 
 appears again in that unit's step; `n2f lint` warns (`L14-closed-in`) when the unit is not
 built after the joint's own. The build plan lists a step's joints in the order its child lines
 are written (a joint comes with the later of its two parts), so write the lines in fitting order.
+
+**loads/<id>.yaml** (F11, reserved) — a load case: `id, name, kind, value, acts_on: part:// |
+asm://, faces: [...], direction?, source?, note?`, cited as `load://<id>` by a requirement's
+allocation. Validated; nothing computes with it yet.
+
+**calcs/*.py** and **calcs/<module>.cases.yaml** — product calcs (`calc://<module>.<fn>`,
+taking the parameter accessor `P`) and their reference cases (F17): `inputs:` (parameter
+values the cases read) and `cases: {<fn>: [{expect: "<value with unit>", rel: | abs:,
+source: "<hand computation or handbook example>", inputs?: {...}}]}`. `n2f check` runs them
+as `calc-case` rows; see [calckit.md](calckit.md).
+
+**screens/*.py** and **rulepacks/** (F10) — the product's own napkin screens and rule-pack
+checks, loaded like `calcs/`; the formats are in `docs/domains.md` §6.
 
 **decisions.yaml** — `decisions: [{id: DEC-001, date, title, context, decision,
 rationale, links: [uris], made_by, disclosed, verify, sources}]`. Lint requires links.
@@ -137,11 +177,12 @@ under concepts/], layout: {word: word}, envelope: {name: quantity | [quantities]
 {key: quantity | word}, style: {…}, modules?: {name: {driver: [...], build: unit | phantom}},
 massing: [{kit, as, args, at?, module?}], notes, screening,
 decision` (schema: `core/model/concepts.py`; the full example is in `NAPKIN_STAGE.md` §3).
-Optional fields screening reads: `envelope.door_swing` (a hinged door's opening angle,
-`110 degree`; without it the door counts swung fully back), `envelope.door_width` (the leaf
-when no massing call is named `door`), `envelope.target_volume` (`8 L`, the chamber volume
-aimed for) and `site.touch_limit` (`60 degC`, the hottest outside surface allowed); see
-[napkin.md](napkin.md).
+`envelope` and `site` take any named quantity or word; the fields screening reads are
+declared by the installed screens (the system's, a domain's, the product's own
+`model/screens/`), and `n2f concept new` writes them into the skeleton. The system's read
+`site.width/depth/height` (the space it must fit; `alcove_*` before v0.5, still read),
+`layout.door`, `envelope.door_swing`, `envelope.door_width`, `site.lift_class`,
+`site.mass_limit`; see [napkin.md](napkin.md).
 `n2f concept new` writes a commented card with every section; `--from C-00x` copies the
 content of an earlier card and records `based_on`.
 
@@ -158,22 +199,23 @@ in `concepts/refs/` and are provenance only, never geometry. Status words:
 `screening` is written by `n2f concept build` and `decision` by reject/promote; neither is
 written by hand. `n2f concept lint` is the only validator and is deliberately light: the
 schema plus C1 id matches the file name, C2 every `refs` file exists under `concepts/`,
-C3 every `massing[].kit` is a kit generator, C4 `based_on` names an existing card, C5 `site`
-keys come from the known list (`alcove_width, alcove_depth, alcove_height, floor_load,
-circuit, region, lift_class, mass_limit, door_clearance, ambient_max, outdoor,
-touch_limit`; an unknown key only warns), C6 at most one card is promoted, C7 a `promoted`
+C3 every `massing[].kit` is a kit generator, C4 `based_on` names an existing card, C5 (a
+warning) every `site` key is one some installed screen reads, C6 at most one card is promoted, C7 a `promoted`
 card carries a screening and `decision.dec` naming an entry in `model/decisions.yaml` (what
 `n2f concept promote` writes) and a `rejected` card a `decision.reason`, C8 every number
-screening reads is the right kind (`envelope.power` a power, `site.alcove_width` a length;
-`QUANTITY_KINDS` in `core/concepts.py`), C9 (warnings only) the modules use the
-assemblies' reason words and every module has a massing line and every line's module an
-entry (P10). While `concepts/` holds a card, `n2f status` shows
+screening reads is the kind its screen declares (`site.width` a length), C9 (warnings only)
+the modules use the assemblies' reason words and every module has a massing line and every
+line's module an entry (P10), C10 (a warning) a key renamed in v0.5 (`alcove_width` →
+`site.width`) is still read under its old name. While `concepts/` holds a card, `n2f status` shows
 an optional **Napkin** stage before Intake, complete once a card is promoted by
 `n2f concept promote` — a status typed by hand is a blocker, not a pass (N11, review gate A).
 
 **style.yaml** — `preset: industrial | appliance | lab, palette: {part role: colour},
 finish: {part role: finish}, radius_scale: 1.0, reveal: 2 mm, fastener_visibility:
-visible | hidden-front | hidden` (schema: `core/model/style.py`). `n2f init` seeds it with
+visible | hidden-front | hidden` (schema: `core/model/style.py`). The part roles are
+`body, opening, support, controls, trim, lining, fastener, default` plus any an installed
+domain adds; finishes `powder-coat, brushed-steel, painted, ceramic, anodized, plastic` plus
+a domain's. `n2f init` seeds it with
 these defaults for a new product; `n2f concept promote` fills it from the chosen concept.
 
 ## Quantities and units

@@ -61,24 +61,30 @@ Conventions for `massing`:
 - Each call's **bottom centre** sits at the origin; `at: {x, y, z, rz}` moves it (z up, the
   front is −y, +x is the right-hand side seen from the front, `rz` in degrees).
 - **Names carry meaning.** `as: door` is the leaf whose x-extent is the door-swing term;
-  `as: body` is the shell the walls check fits the chamber into; `controls` and `stand` are
-  what they say. A name that is a role word is also the part's colour role; any other name
-  takes `role:` explicitly (the lid above is `role: body`).
+  `as: body` is the shell the walls check fits the inside into. A name that is a role word
+  (`body`, `opening`, `support`, `controls`, `trim`, `lining`, `fastener`; `door` and
+  `stand` are still read as `opening` and `support`) is also the shape's colour role; any
+  other name takes `role:` explicitly (the lid above is `role: body`).
 - **A closed body** is an `enclosure` (an open-top shell, so its weight reads right) with a
   `plate` lid. A `block` is solid: a steel block weighs as solid steel (hundreds of
   kilograms for a kiln body), so use it for doors, control boxes and bought items.
 - **Mass** is computed only when every call has a `material`; `process_class` picks the cost
   band when the generator's own process is wrong (`cots-controls` for a bought control box).
 - **Numbers only**: a card cannot refer into the model (`param://…`).
-- **Optional fields screening reads**: `envelope.door_swing` (how far a hinged door opens,
-  `110 degree`; without it the door counts swung fully back, the widest case),
-  `envelope.door_width` (the leaf, when there is no `door` call), `envelope.target_volume`
-  (the useful volume the owner asked for, `8 L`), `site.touch_limit` (the hottest outside
-  surface allowed, `60 degC`; without it, a burn threshold on file, `[verify]`). Like every
-  `envelope` number, `door_swing` and `target_volume` seed parameters at promotion.
+- **The fields screening reads are the screens' own** (next section): each screen declares
+  the card fields it reads, with their kind of number and an example, and `n2f concept new`
+  writes every installed screen's fields into the skeleton. The system's screens read
+  `site.width`, `site.depth`, `site.height` (the space it must fit; `alcove_width`,
+  `alcove_depth`, `alcove_height` before v0.5, still read with a lint warning),
+  `layout.door` (`hinged-left`, `hinged-right`, `sliding` …), `envelope.door_swing` (how far
+  a hinged door opens, `110 degree`; without it the door counts swung fully back, the widest
+  case), `envelope.door_width` (the leaf, when there is no `door` call), `site.lift_class` and
+  `site.mass_limit`. The card above also gives `chamber`, `insulation`, `power`, `circuit`
+  and `region`: those are read by the kiln's own heated-box screens, which a product carries
+  in its `model/screens/` (below). Every `envelope` number seeds a parameter at promotion.
 - `n2f concept lint` after every edit: schema, ids, refs that exist, known kit names,
   quantities that parse and are the right kind (`power: 3 kg` is an error; screening leaves
-  such a number out with a note); unknown `site` keys only warn.
+  such a number out with a note); a `site` key no installed screen reads only warns.
 
 ## What a build does
 
@@ -98,19 +104,18 @@ Conventions for `massing`:
 
 Every number carries a label, in the card, in JSON and on screen:
 
-- **`given`** — the card's own inputs echoed back: `power` (from `envelope.power`) and
-  `circuit_class` (from `site.circuit`). They are neither measured nor estimated (review
-  gate A); a verdict that relies on them, such as whether the power fits the circuit, is
-  still an estimate.
+- **`given`** — the card's own inputs echoed back (the kiln's screens echo `power` and
+  `circuit_class`). They are neither measured nor estimated (review gate A); a verdict that
+  relies on them, such as whether the power fits the circuit, is still an estimate.
 - **`computed`** — measured from the massing shapes: `width`, `depth`, `height` (the
   bounding box), `volume`, `mass` (only when every call declares a `material`), and
   `footprint_with_door_swing` and `door_leaf` (only when the card's `layout` names a door:
   no door, no rows).
 - **`estimate`** — from the calc kit ([calckit.md](calckit.md)) fed with the card's
-  `envelope` numbers: `heat_loss`, `skin_temperature`, `stored_heat`, `heat_up_time`
-  (from `envelope.power`) or `required_power` (from `envelope.heat_up_time`),
-  `insulation_mass`, `total_mass`, `current`, `circuit_class`, `cost_low`/`cost_high`,
-  `lift_class`.
+  numbers: the system's `total_mass`, `cost_low`/`cost_high` and `lift_class`, plus what a
+  product's own screens add (the kiln's: `heat_loss`, `skin_temperature`, `stored_heat`,
+  `heat_up_time` from `envelope.power` or `required_power` from `envelope.heat_up_time`,
+  `insulation_mass`, `current`).
 
 Every value also says **where it comes from**, twice: `source` is one sentence in the
 owner's words, printed under the number on the board and in `n2f concept show` ("measured
@@ -123,29 +128,56 @@ and the defaults it used (`thermal_enclosure.heat_up_time`, `mass_cost.cost_esti
 owner (review gate B).
 
 A missing input never becomes an invented number: the estimate is left out and a note says
-what would unlock it. When the card is silent, screening states its defaults: room 25 degC,
-skin film coefficient 5 W/m²K, emissivity 0.9, hot face 1200 degC; a bare
-`insulation: 170 mm` is one ceramic-fiber-board layer (the kiln's values); layers named
-`brick`/`K23` or `fiber` take the kiln's K23 and fiber-board values; `shell` layers grow
-the box without resistance or stored heat. All of these are `[verify]`.
+what would unlock it. A screen that assumes a value when the card is silent says so, and the
+value is `[verify]`; the kiln's heated-box screens, for example, state a room of 25 degC, a
+skin film coefficient of 5 W/m²K, an emissivity of 0.9 and a hot face of 1200 degC, and read
+a bare `insulation: 170 mm` as one ceramic-fiber-board layer.
 
-## The rules (`rulepacks/concept-v0.yaml`)
+## Screens: what reads a card
+
+Screening is a list of **screens**, each a function that reads some card fields and adds
+labelled numbers and rule rows. They run in four phases: `measure` (the system's: sizes,
+volume and mass of the rough shapes, the door term), `estimate` (screens whose numbers the
+totals read, such as an insulation mass or a part to price), `total` (the system's: total
+mass, cost band, lift class) and `check` (everything else). Three sources, in this order:
+
+1. **The system's screens**, for every product: fits the space, total mass, cost band, how it
+   can be lifted, sheets fit stock sizes, walls fit the body.
+2. **A domain's screens** (an installed step of making a product, `docs/domains.md` §3.11).
+3. **The product's own screens**, `model/screens/*.py` in the product folder: a module
+   listing `SCREENS = (Screen("name", run), ...)`, each `run` declaring its fields and phase
+   with `@reads(...)` (`docs/domains.md` §6). The kiln's heated-box screens are the worked
+   example (`examples/kiln/model/screens/heated_enclosure.py`): heat loss and heat-up, the
+   supply circuit, controls away from the heat, safe to touch, chamber volume. Copy that file
+   into a product's `model/screens/` to screen a heated box. Such a module may also give
+   promotion requirements and decision quotes of its own (below).
+
+`n2f doctor` lists every screen installed, inside a product folder its own too.
+
+## The rules
+
+The system's rules (`rulepacks/concept-v0.yaml`), for every product:
 
 | rule | fails when |
 |---|---|
 | `fits-site-width` | width + the open door > `site.width` (`alcove_width` before v0.5, still read). A hinged door (`layout.door: hinged-left/right`) adds what its leaf (the `door` massing call, else `envelope.door_width`) reaches past the hinge: leaf × max(0, −cos `envelope.door_swing`), the whole leaf when the card gives no angle |
-| `fits-site-depth`, `fits-site-height` | depth/height exceed `site.alcove_depth`/`alcove_height` |
-| `circuit-available` | the current × 1.2 headroom ("a fifth to spare" in the owner's line) exceeds `site.circuit` (e.g. `240V-13A`) or every class on file for `site.region`; an unknown region only warns |
+| `fits-site-depth`, `fits-site-height` | depth/height exceed `site.depth`/`site.height` |
 | `mass-vs-lift-class` (warning) | the mass needs more than a two-person lift, or more than `site.lift_class` |
 | `blank-vs-stock-sheet` | a sheet-metal call's flat blank (open box: (L + 2H) × (W + 2H)) fits no stock sheet on file |
-| `walls-fit-envelope` | chamber + 2 × insulation does not fit inside the `body` call |
+| `walls-fit-envelope` | the inside size plus two walls, as a product's screen gives them, does not fit inside the `body` call (no such screen: the row is skipped) |
+
+The kiln's own rules (its `model/screens/`), as an example of a product's:
+
+| rule | fails when |
+|---|---|
+| `circuit-available` | the current × 1.2 headroom ("a fifth to spare" in the owner's line) exceeds `site.circuit` (e.g. `240V-13A`) or every class on file for `site.region`; an unknown region only warns |
 | `controls-not-adjacent-hot-face` (warning) | controls sit on top or beside the door, in the hot air path |
 | `skin-vs-touch-limit` (warning) | the skin estimate is above `site.touch_limit`, or without one the 1-minute burn threshold in `calckit/data/touch_limits.yaml` (ISO 13732-1, `[verify]`) |
 | `chamber-volume-vs-target` (warning) | the chamber holds less than `envelope.target_volume` |
 
 Each rule carries an owner-worded `title` ("Fits the alcove with the door open", "Every sheet
 fits a stock size", "The walls fit inside the body"); `n2f concept show` prints the title,
-`--json` keeps the id.
+`--json` keeps the id. The system's rows come first, then each screen's in phase order.
 
 A failing rule makes the card **red**; warnings never do. Red is information: the card
 keeps its reasons, `n2f concept build` prints them under "this direction has problems:"
@@ -155,7 +187,9 @@ and still exits 0.
 
 `style.yaml` (seeded by `n2f init --style industrial|appliance|lab`; `industrial` when the
 file is missing) holds the product's look: a `preset`, a `palette` and a `finish` per **part
-role** (`body, door, stand, controls, trim, lining, fastener, default`), a `background`, an
+role** (`body, opening, support, controls, trim, lining, fastener, default`; `door` and
+`stand` are read as `opening` and `support` for v0.5, and an installed domain may add
+roles), a `background`, an
 `accent`, and shape cues (`radius_scale`, `corner_radius`, `chamfer`, `reveal`, `overhang`,
 `vent_pattern`, `fastener_visibility`). Anything the file leaves out comes from its preset.
 Finishes are rendering factors (`powder-coat`, `brushed-steel`, `painted`, `ceramic`,
@@ -164,7 +198,7 @@ product's style for that card's pictures (a different `preset` starts from that 
 keys the schema does not know are noted and skipped.
 
 Each massing call has a role: its `role:` if given, else its `as` name when that is a role
-word (`as: door` is a door), else `default`. `n2f concept build` renders every card through
+word (`as: door` is an opening), else `default`. `n2f concept build` renders every card through
 the same inline viewer the report uses — one self-contained page per card
 (`renders/styled.html`), the role's colour and finish on each node, a fixed studio rig (key,
 fill and rim lights, a soft environment, a contact shadow), an iso and a front camera — in
@@ -219,14 +253,15 @@ computed and validated first; a refusal writes nothing):
 2. **Parameters** from `envelope`, `owner: napkin`, `description: from concept C-00x`: a
    quantity is one parameter (`insulation: 170 mm` → `insulation`), a three-value list
    becomes `<key>-width/-depth/-height`, other lists `<key>-1…n`, named layers
-   `<layer>-thickness` and `<layer>-clearance`; `power` seeds `element-power`. A parameter
+   `<layer>-thickness` and `<layer>-clearance`; a screen's field may name the parameter it
+   seeds (the kiln's `power` seeds `element-power`). A parameter
    that already exists with the same value is left alone ("already declared"); a different
    value refuses the promotion, naming both values, unless `--override` (then it is
    overwritten in place and listed in the decision).
 3. **Site constraints become requirements**, allocated to the top assembly
    (`unallocated` and checked by a person when there is no assembly yet):
    - `width` (`alcove_width` before v0.5) → "Fits the alcove with the door open": `asm://<top>#props.bbox.x ≤
-     alcove_width − allowance`, the allowance being the room the open door takes beside
+     site.width − allowance`, the allowance being the room the open door takes beside
      the hinge (screening's door-swing term rounded up to 0.1 mm; 0 for a door that does
      not swing sideways), stated in the rationale. For a hinged door promotion also seeds
      `door-leaf-width` (screening's leaf; `door-width` when the card gives `door_width`)
@@ -235,12 +270,15 @@ computed and validated first; a refusal writes nothing):
      `param://door-swing-clearance ≤ allowance`. Rewrite the leaf as an expression over the
      designed door's parameters and a wider door or a wider opening fails instead of passing
      unseen. This is what makes DEC-011 impossible to repeat;
-   - `alcove_depth` / `alcove_height` → `bbox.y` / `bbox.z` bounds;
-   - `circuit` with an `envelope.power` → `param://element-power ≤ V × I / headroom`, the
-     `headroom` (1.2) read from rule `circuit-available` — the same margin screening used,
-     so a green circuit row never becomes a failing requirement (NEC 210.20's continuous-load
-     factor 1.25 is stricter, `[verify]`);
-   - `mass_limit` (or a `lift_class` with a weight on file) → `props.mass <` the limit.
+   - `depth` / `height` (`alcove_depth` / `alcove_height` before v0.5) → `bbox.y` /
+     `bbox.z` bounds;
+   - `mass_limit` (or a `lift_class` with a weight on file) → `props.mass <` the limit;
+   - whatever the product's own screens add (`PROMOTE_REQUIREMENTS`, between the space and
+     the weight): the kiln's turns `circuit` with an `envelope.power` into
+     `param://element-power ≤ V × I / headroom`, the `headroom` (1.2) read from rule
+     `circuit-available` — the same margin screening used, so a green circuit row never
+     becomes a failing requirement (NEC 210.20's continuous-load factor 1.25 is stricter,
+     `[verify]`).
 4. **Form requirements** (taste becomes checkable), from the combined style and the layout:
    corner radius when `style.corner_radius` > 0, no visible front fasteners when
    `fastener_visibility: hidden-front`, controls placement when the layout names
@@ -268,7 +306,8 @@ computed and validated first; a refusal writes nothing):
 6. **The decision**: one `DEC-` ("Design direction: <title>", plus ", despite screening" for
    an overridden red card) whose context lists every other card with its verdict and
    one-line reasons as the alternatives (and the override reason and failing rules),
-   whose rationale quotes the screening numbers each tagged computed or estimate, linking
+   whose rationale quotes the screening numbers each tagged computed or estimate (the size
+   and mass, then the keys the product's screens name in `PROMOTE_RATIONALE`), linking
    the new requirements and parameters; `made_by: human` with `--by`, `verify: true` when an
    estimate was used or `--override` was given.
 7. **Cards**: the chosen card becomes `promoted` (`decision: {dec, at}`), every exploring
