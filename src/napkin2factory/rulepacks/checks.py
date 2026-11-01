@@ -226,9 +226,11 @@ def module_has_parts(asm: Assembly, params: dict[str, Any], product: Product) ->
     Promotion seeds one empty stub per module the concept sketched; the row stays a warning
     until the designer gives it parts (or folds it back into its parent).  A stub of work done
     elsewhere (``build: external``, F11) has no children by design: it is supplied whole, so
-    there is nothing to design here and it is never flagged (S-127).
+    the rule does not concern it and it gets no row (S-127, S-129).
     """
-    if asm.children or asm.build == "external":
+    if asm.build == "external":
+        raise RuleNotApplicable
+    if asm.children:
         return []
     return [{"uri": asm.uri, "name": asm.name}]
 

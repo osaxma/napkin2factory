@@ -170,7 +170,10 @@ PLAN_COLUMNS = ["step", "unit", "row", "item", "uri", "name", "qty", "note"]
 
 
 def plan_rows(plan: dict[str, Any]) -> Iterator[list[Any]]:
-    """Rows of the "Build plan" sheet, step by step: items, joints, then hardware totals.
+    """Rows of the "Build plan" sheet, step by step: items, supplied units, joints, hardware.
+
+    A stub supplied from elsewhere (``build: external``, F11) is a ``supplied`` row of the
+    step that fits it, with its joints in the note, as the build plan says it (S-129).
 
     Args:
         plan: The ``build-plan.json`` payload.
@@ -212,6 +215,18 @@ def plan_rows(plan: dict[str, Any]) -> Iterator[list[Any]]:
                 it["name"],
                 it["qty"],
                 "; ".join(note),
+            ]
+        for s in st.get("supplied", []):
+            fits = "; ".join(s.get("joints") or [])
+            yield [
+                st["step"],
+                st["name"],
+                "supplied",
+                None,
+                s["asm"],
+                s["name"],
+                s["qty"],
+                s["words"] + (f"; fitted at {fits}" if fits else ""),
             ]
         for j in st["joints"]:
             hw = hardware_words(j)

@@ -467,16 +467,32 @@ def test_a_plan_without_a_stub_has_no_supplied_key() -> None:
     assert all("supplied" not in step for step in plan["units"].values())
 
 
-def test_module_has_parts_does_not_flag_a_stub(rig: Path) -> None:
+def test_module_has_parts_does_not_concern_a_stub(rig: Path) -> None:
+    """B-0082 (S-129): a stub supplied whole gets no row at all, not a pass."""
     checks = json.loads((rig / "build" / "checks" / "checks.json").read_text(encoding="utf-8"))
-    row = next(
-        r for r in checks["results"] if r["id"] == "rule://general-v0/module-has-parts@controls"
-    )
-    assert row["status"] == "pass"
-    from napkin2factory.rulepacks.checks import module_has_parts
+    ids = {r["id"] for r in checks["results"]}
+    assert "rule://general-v0/module-has-parts@rig" in ids
+    assert "rule://general-v0/module-has-parts@controls" not in ids
+    from napkin2factory.rulepacks.checks import RuleNotApplicable, module_has_parts
 
     product = load_product(SCOPE / "external")
     stub = product.assemblies["controls"]
-    assert module_has_parts(stub, {}, product) == []
+    with pytest.raises(RuleNotApplicable):
+        module_has_parts(stub, {}, product)
     stub.build = "unit"  # the same empty module, were it built here, is still flagged
     assert module_has_parts(stub, {}, product) == [{"uri": "asm://controls", "name": stub.name}]
+
+
+def test_the_build_plan_sheet_lists_a_supplied_stub(rig: Path) -> None:
+    """B-0082 (S-129): ``bom.xlsx``'s "Build plan" sheet says the stub as the plan does."""
+    from openpyxl import load_workbook
+
+    wb = load_workbook(rig / "build" / "bom" / "bom.xlsx", read_only=True)
+    rows = [tuple(r) for r in wb["Build plan"].iter_rows(values_only=True)]
+    supplied = [r for r in rows if r[2] == "supplied"]
+    assert len(supplied) == 1, rows
+    step, unit, _, _, uri, name, qty, note = supplied[0]
+    assert (uri, qty) == ("asm://controls", 1)
+    assert note.startswith("supplied, not built here; fitted at "), note
+    kinds = [r[2] for r in rows if r[1] == unit]
+    assert kinds.index("supplied") < kinds.index("joint")  # items, supplied, joints, hardware
