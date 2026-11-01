@@ -95,6 +95,22 @@ def test_rule_family_runs_after_the_parts_and_before_the_checks(
     assert "toy" not in registry().target_kinds()["drawings"]
 
 
+def test_the_rule_family_is_a_build_target_on_the_command_line(
+    toy_built: tuple[Path, Any, Any],
+) -> None:
+    """B-0074 (S-129): ``n2f build --target`` offers every registered family by its name."""
+    from napkin2factory.cli.build import targets
+
+    root, _, _ = toy_built
+    assert {"toy", "geometry", "drawings", "docs", "checks", "all"} <= set(targets())
+    out = _cli("build", "-C", str(root), "--target", "toy", "--explain", "--json")
+    plan = [step["rule"] for step in json.loads(out)["plan"]]
+    assert "toy:widget" in plan and "part:plate" in plan  # the family and what it waits for
+    assert not [r for r in plan if r.startswith(("drawing:", "doc:", "checks", "report"))]
+    unknown = CliRunner().invoke(app, ["build", "-C", str(root), "--target", "glow"])
+    assert unknown.exit_code != 0 and "toy" in unknown.output, unknown.output
+
+
 def test_verify_kind_evaluates(toy_built: tuple[Path, Any, Any]) -> None:
     root, _, _ = toy_built
     row = _row(root, "req://REQ-001")

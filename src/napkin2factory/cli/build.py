@@ -20,15 +20,30 @@ from napkin2factory.cli.common import (
 from napkin2factory.cli.kernel import KERNEL_NOTE, load_cad_kernel
 from napkin2factory.core.loader import Product, load_product
 
-__all__ = ["KERNEL_NOTE", "build", "load_cad_kernel"]
+__all__ = ["KERNEL_NOTE", "build", "load_cad_kernel", "targets"]
 
-TARGETS = ("geometry", "drawings", "bom", "docs", "checks", "report", "site", "all")
+#: The names ``--help`` shows; every registered rule family is a target too (S-129).
+TARGET_HELP = (
+    "all (default), geometry, drawings, bom, docs, checks, report, site, or any build "
+    "step's name (an unknown name lists them)"
+)
+
+
+def targets() -> tuple[str, ...]:
+    """Every ``--target`` name, from the rule-family registry (F3, S-129).
+
+    The names kept from v0.4 (``geometry``, ``drawings`` …) are the families' aliases; each
+    family is a target by its own name too, so an installed domain's step is reachable here.
+    """
+    from napkin2factory.core.graph.rules import target_kinds
+
+    return tuple(target_kinds())
 
 
 @handle_errors
 def build(
     dir: Path | None = DirOption,
-    target: str = typer.Option("all", "--target", "-t", help="|".join(TARGETS)),
+    target: str = typer.Option("all", "--target", "-t", help=TARGET_HELP),
     part: str | None = typer.Option(None, "--part", "-p", help="Build only this part id."),
     asm: str | None = typer.Option(
         None, "--asm", help="Build one assembly and what it needs (its parts, sub-assemblies)."
@@ -51,8 +66,9 @@ def build(
         os.environ["N2F_OFFLINE"] = "1"
     root = product_root(dir)
     warn_if_pin_excludes(root, json_out)
-    if target not in TARGETS:
-        raise typer.BadParameter(f"--target must be one of {', '.join(TARGETS)}")
+    known = targets()
+    if target not in known:
+        raise typer.BadParameter(f"--target must be one of {', '.join(known)}")
     product = load_product(root)
     aid = None
     if asm is not None:
