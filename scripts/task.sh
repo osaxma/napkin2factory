@@ -1,5 +1,6 @@
 #!/bin/sh
 # One trunk, a folder per task: `make task`, `make land`, `make tasks`, `make abandon`.
+# Why: S-097 (the flow), S-098 (hardlinked environments), S-099 (ids in every commit).
 #
 #   task.sh new <slug> <goal>   branch task/<slug> in .worktrees/<slug>, from main
 #   task.sh land                rebase onto main, assign journal ids, gate, fast-forward main

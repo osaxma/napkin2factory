@@ -1,4 +1,4 @@
-"""``n2f publish``: share mode (B-0037).
+"""``n2f publish``: share mode (S-094).
 
 Puts the pages that already exist into ``build/publish/``, one folder a web host serves as it
 is. ``--online`` also sends the snapshots, the Revisions and those pages to the product's

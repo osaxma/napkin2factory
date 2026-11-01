@@ -219,6 +219,8 @@ def release(
     existing = version in vcs.tags()
     if existing and not dry_run:
         raise ReleaseError(f"Revision {version} already exists; pick the next version number")
+    # A product's release workflow dry-runs the tag it was started by, so the Revision exists:
+    # re-package it, but only from its own snapshot (S-095).
     if existing and vcs.revision_snapshot(version) != vcs.head():
         raise ReleaseError(
             f"Revision {version} already exists and the model has changed since; a dry run "

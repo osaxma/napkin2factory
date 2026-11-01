@@ -581,7 +581,7 @@ def load_props(build_dir: Path, uri: str) -> dict[str, Any]:
 
 
 def render_notes(product: Product, build_dir: Path | None = None) -> dict[str, dict[str, Any]]:
-    """What the renders of every built part and assembly had to remark, by URI (B-0019).
+    """What the renders of every built part and assembly had to remark, by URI (S-088).
 
     Read from each ``renders/notes.json`` (written by
     :func:`~napkin2factory.geometry.exporters.render_views`), so a part that was up to date

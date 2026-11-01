@@ -47,7 +47,7 @@ check-full: check kiln demos
 	N2F_TIMING=1 $(PY) pytest tests/e2e/test_timing.py tests/e2e/test_concept_build.py -q
 
 # The kiln's concept cards are rebuilt in a scratch copy (build/kiln-napkin). An unchanged card
-# no longer changes on a rebuild (its screening time moves only with its content, B-0031), but a
+# no longer changes on a rebuild (its screening time moves only with its content, S-086), but a
 # card whose screening is stale would be rewritten in place: `make` would leave the tree dirty
 # and test_kiln.py would then compare the rebuilt cards with themselves. In the copy, a stale
 # shipped card fails that test instead. Every card is built, rejected ones too, so the board

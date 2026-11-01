@@ -413,7 +413,7 @@ def _site_length(card: ConceptCard, key: str) -> Any:
     return None
 
 
-#: Parameters promotion seeds for the alcove requirements (B-0023): the leaf that swings
+#: Parameters promotion seeds for the alcove requirements (S-085): the leaf that swings
 #: (unless the card gives ``envelope.door_width``, seeded as ``door-width``) and the room it
 #: takes beside the hinge, an expression over the leaf.
 DOOR_LEAF_PARAM = "door-leaf-width"
@@ -530,7 +530,7 @@ def door_swing_term(card: ConceptCard) -> tuple[Any, str]:
     """The screening's door-swing term (mm) and its basis.
 
     From the raw leaf and the card's angle (:func:`door_swing`) when the screening recorded
-    the leaf (B-0027: never the difference of two rounded values); otherwise, for cards
+    the leaf (S-085: never the difference of two rounded values); otherwise, for cards
     screened before, ``footprint_with_door_swing − width`` from the card's computed values
     (0 when the door is not hinged). The basis is the footprint's engineering ``ref`` (its
     ``source`` on cards screened before review gate B).
@@ -587,7 +587,7 @@ def site_requirements(
     ds = door_swing(card)
     if width is not None and ds is not None and DOOR_ROOM_PARAM in seeded_names:
         # the door is a parameter, not a number frozen in the bound (review gate A, C8;
-        # B-0023): the closed width gets the alcove less the door's allowance, and a second
+        # S-085): the closed width gets the alcove less the door's allowance, and a second
         # row holds the door to that allowance, so a wider or further-opening door fails
         allowance = ds.allowance
         limit = (width - allowance).to("mm")

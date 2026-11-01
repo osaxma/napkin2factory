@@ -280,7 +280,7 @@ def apply(product: Product, ecr_id: str, snapshot: bool = True) -> list[str]:
     # validate the result before snapshotting
     fresh = load_product(product.root)
     # always a snapshot of its own (empty for a tasks-only design change), so the one before
-    # it is the model as it stood before this change request (B-0020, `_snapshot_before`)
+    # it is the model as it stood before this change request (S-089, `_snapshot_before`)
     sha = (
         vcs.snapshot(f"Apply {ecr.id}: {ecr.title}", allow_empty=True)
         if snapshot
@@ -362,7 +362,7 @@ _EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
 
 def _snapshot_before(product: Product, ecr: Ecr) -> str | None:
-    """The snapshot just before ``ecr`` was applied (B-0020).
+    """The snapshot just before ``ecr`` was applied (S-089).
 
     ``apply`` records the snapshot that holds the change; its parent is the model as it
     stood before.  Later snapshots (a sign-off, the designer's own work) are all inside
@@ -449,7 +449,7 @@ def close(product: Product, ecr_id: str) -> dict[str, Any]:
     # unpromoted concept cards never gate a release (N11), so the Napkin gate stays out of
     # the next step here (review gate A, C11)
     # ``stage`` keeps its v0.1 meaning (last gate passed) for scripts; ``current_stage`` is
-    # the stage being worked in, the one `n2f status` and the report name (B-0033)
+    # the stage being worked in, the one `n2f status` and the report name (S-090)
     stage = compute_stage(load_product(product.root), napkin=False)
     next_step = "`n2f release vX.Y.Z`" if stage.current == "ready" else stage.next_step
     return {

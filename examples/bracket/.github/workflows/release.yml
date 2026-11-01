@@ -4,7 +4,7 @@ on:
     tags: ["v*"]
 # The web pages are not deployed from here: a tag can rebuild only its own Revision, and the
 # pages hold every Revision. `n2f publish --online` sends the folder the owner has seen to the
-# gh-pages line, which GitHub Pages serves (B-0037).
+# gh-pages line, which GitHub Pages serves (S-094).
 permissions:
   contents: write
 jobs:

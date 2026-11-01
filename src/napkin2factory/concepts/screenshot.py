@@ -18,7 +18,7 @@ ink on the shapes' faces (a door outline with a heavy hinge edge and a handle ba
 it, a controls panel with a display and two knobs).  They annotate the words; they are not
 designed geometry and nothing is measured from them.
 
-A blank capture (headless GL occasionally hands back an empty frame under load, B-0051) is
+A blank capture (headless GL occasionally hands back an empty frame under load, S-093) is
 detected and the card is rendered once more; a second blank falls back to the correctness
 renders with a note, like any other viewer failure.
 """
@@ -94,7 +94,7 @@ class ScreenshotResult:
     paths: dict[str, Path] = field(default_factory=dict)
     method: Method = "viewer"
     notes: list[str] = field(default_factory=list)
-    #: The first capture came back blank and the card was rendered once more (B-0051).
+    #: The first capture came back blank and the card was rendered once more (S-093).
     retried: bool = False
 
     def to_dict(self, root: Path | None = None) -> dict[str, Any]:
@@ -560,7 +560,7 @@ def styled_screenshots(
             if attempt == 2:
                 why = f"the viewer drew a blank {' and '.join(blank)} picture twice"
                 return _fallback(out_dir, why, session)
-            retried = True  # headless GL can hand back an empty frame under load (B-0051)
+            retried = True  # headless GL can hand back an empty frame under load (S-093)
     except Exception as exc:  # a crashed page or a timeout: show the correctness renders
         first = str(exc).strip().splitlines()[0] if str(exc).strip() else type(exc).__name__
         return _fallback(out_dir, f"the viewer failed: {first}", session)
@@ -592,7 +592,7 @@ def _capture(
 
 
 def blank_capture(png: bytes) -> bool:
-    """True when a snapshot shows nothing but its backdrop (B-0051).
+    """True when a snapshot shows nothing but its backdrop (S-093).
 
     Under load headless GL now and then hands back a frame with no model in it: one flat
     colour (the background, or black or transparent from a lost context).  A styled picture

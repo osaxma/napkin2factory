@@ -41,7 +41,7 @@ SITE_KEYS: frozenset[str] = frozenset(
     }
 )
 #: The kind of number screening reads from a card key: a unit it must convert to, the
-#: kind in words and an example (C8). A number of another kind (``power: 3 kg``) is a lint
+#: kind in words and an example (C8, S-096). A number of another kind (``power: 3 kg``) is a lint
 #: error, and screening leaves it out with a note instead of failing on it.
 QUANTITY_KINDS: dict[tuple[str, str], tuple[str, str, str]] = {
     ("envelope", "power"): ("W", "a power", "2.5 kW"),

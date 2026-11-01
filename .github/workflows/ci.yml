@@ -1,7 +1,7 @@
 name: ci
 on:
   push:
-    branches: [main]   # the one trunk; tasks land on it locally, tags go to publish.yml
+    branches: [main]   # the one trunk (S-097); tasks land on it locally, tags go to publish.yml
   pull_request:
   schedule:
     - cron: "17 3 * * *"   # nightly: make check-full with timing assertions

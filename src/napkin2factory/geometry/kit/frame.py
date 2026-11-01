@@ -286,7 +286,7 @@ def massing(a: Args, ctx: KitContext) -> PartResult:
     No member features and no cut list.
 
     The silhouette overstates the metal several times over, so the props carry what the
-    stock really holds (B-0021): ``section_area`` × ``total_member_length`` =
+    stock really holds (S-087): ``section_area`` × ``total_member_length`` =
     ``material_volume``, the same volume the full build's fused weldment has (see the module
     docstring). The massing composer weighs a frame by ``material_volume``, not the boxes.
     """
