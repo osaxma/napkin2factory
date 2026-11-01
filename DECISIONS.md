@@ -144,6 +144,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-119 | v0.4 closed: version 0.4.0, product pins `>=0.4,<0.5`, handoff report | in force |
 | S-120 | The v0.5 and v0.6 plans reconciled with what v0.4 shipped; the Linux evidence-key defect opened as B-0073 | in force |
 | S-121 | Sign-off evidence keys are tolerance-compared invariants, not the mesh (closes B-0073) | in force |
+| S-122 | v0.5 M0 baseline: a new step edits 10 files (7 in `core/`), 32 package files name the kiln's words, the five big files, `make check` 10 min 14 s | in force |
 
 ---
 
@@ -626,3 +627,13 @@ is voided. Measured on a fresh kiln copy: 0 needs-human before and after re-keyi
 sign-offs (`scripts/rekey_signoffs.py`); a test changes the mesh hash and keeps the sign-off, and
 changes the volume by 1 % to void it. Docs and drawings still key on output hashes: whether those
 differ on Linux is what the next nightly says; B-0073 reopens if they do.
+## S-122 — v0.5 M0 baseline: the before numbers (2026-11-01)
+Measured on `main` at 4c8d66c. Dry run (scratch branch, discarded): a no-op rule family, verify kind,
+check stage, report section and doc helper, each shown reached by `n2f build` on a bracket copy, edited
+10 files, 7 under `core/`: `graph/{rules,runs,impact}.py`, `checks/{evaluators,engine}.py`, `lint.py`
+(L1's binary kinds), `model/requirements.py` (target schemes), plus `docs/engine.py`, `report/builder.py`,
+`report.html.j2`; lint and requirements were missing from §0.2 and M1, now added. `grep -rlw` files
+over `src/napkin2factory/` (all / without `templates/`, `report/vendor/`): kiln 19/13, door 34/25,
+chamber 11/5, alcove 10/4, union 41/32. Lines: promote 1,647, loader 1,060, screening 866,
+concept_checks 710, geometry/build 728. `make check` in a task folder: 10 min 14 s (613.6 s), green,
+876 passed and 5 skipped, then 141 goldens.
