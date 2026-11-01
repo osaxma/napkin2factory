@@ -153,6 +153,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-128 | v0.5 M3: the kiln out of the package: screens declare their fields, the heated-box screens are the kiln's own pack (`model/screens/`), product rule packs, `site.width`, neutral style roles, the F9 guard | in force |
 | S-129 | v0.5 gaps: `--target` and prose URIs from the registries, `manifest://` URIs, part keys read their density row, stubs get no module row, no example ids, screens declare fields and phase, domain style roles; B-0081, B-0087 kept open | in force |
 | S-130 | v0.5 M5: choices (`choice` status, `build/checks/choices.json`, `n2f decide` writes a `DEC-`, reopened on evidence); the kiln's bolts-into-a-spacer choice (DEC-022) | in force |
+| S-131 | v0.5 M6: splits and the fast gate (`validate_refs` beside each schema, `concepts/promote/`, `build_part`/`build_asm`, `make check-fast` as the land gate) | in force |
 
 ---
 
@@ -733,3 +734,12 @@ writes a plain `DEC-`, check, option, name, keys in its `sources` (B-0094) [revi
 `thickness`. DEC-022's blind tapping is no fix (14.8 + 15.0 > 25 mm): M6 x 12 at both ends, or M6 x 35 through, nut (ISO
 4762/261/4032, 1 d engaged, 2 pitches past [verify]). Status: "Waiting on you: 1 choice", "… 25 mm, steel (it holds the
 release)". B-0082: a stub by name. test_choices 18 passed, 40.5 s; `make check` green, 1016 passed, 141 goldens, 13 min 55 s.
+## S-131 — v0.5 M6: splits and the fast gate (2026-11-01)
+DoD 8, 9; F15. Lines before → after: loader 1,107 → 386 (`Product`, `Paths`, `Doc` → new `core/product.py`, 366,
+re-exported [revisit]); promote 1,658 → `concepts/promote/` (12 modules, largest `verb.py` 362); geometry/build 728 →
+57 + `build_part.py` 344 + `build_asm.py` 416; concept_checks 538 → 428 + `concept_rules.py` 140 (the runner);
+screening 167 (M3). `validate_refs` in parts, interfaces, assemblies, parameters, signoff, run in their old order:
+validate's problems identical on 3 examples and 40 fixtures. B-0086: a product's screens may expose
+`PROMOTE_REQUIREMENTS`/`PROMOTE_RATIONALE` (`promote/packs.py`); the kiln's seeds the supply row (`POWER_KEY`
+dropped) [revisit]; promote goldens unchanged. `make check-fast` (lint, types, unit, smoke) is `make land`'s gate:
+CHECKFAST. `make check`: CHECKTIME. No file moved behind `-m full`.
