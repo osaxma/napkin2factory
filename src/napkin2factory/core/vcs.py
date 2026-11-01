@@ -38,7 +38,7 @@ NO_ONLINE_COPY = (
     "website, signed in to your account), then have your agent link this folder to it; "
     "napkin2factory never creates accounts or online projects itself"
 )
-# The line of the online copy that GitHub serves as web pages (share mode, B-0037). It holds
+# The line of the online copy that GitHub serves as web pages (share mode, S-094). It holds
 # nothing but the shared pages, is rewritten on every send, and is never shown to the owner.
 PAGES_LINE = "gh-pages"
 

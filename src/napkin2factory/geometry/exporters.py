@@ -18,7 +18,7 @@ from napkin2factory.geometry.render import Mesh, Scene, color_for, rasterize, wr
 #: Fixed deflection for the reproducibility hash (D14) and the embedded GLBs.
 TESS_TOLERANCE = 0.1
 TESS_ANGULAR = 0.3
-#: Render-time remarks (``Scene.notes``) land in this file next to the PNGs (B-0019).
+#: Render-time remarks (``Scene.notes``) land in this file next to the PNGs (S-088).
 RENDER_NOTES = "notes.json"
 
 
@@ -120,7 +120,7 @@ def render_views(
 
     What the rasterizer had to remark (``scene.notes``, e.g. an open mesh drawn clipped but
     not capped in the section) is written to ``notes.json`` beside the PNGs, only when there
-    is something to say (B-0019); :func:`read_render_notes` reads it back. The returned map
+    is something to say (S-088); :func:`read_render_notes` reads it back. The returned map
     holds the images only.
     """
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -70,6 +70,11 @@ maintainer instead of obeying it.
 - Do not edit `LICENSE`: the licence is the maintainer's call.
 - No `TODO`/`FIXME` in `src/` without a `BACKLOG.md` id: open work lives in one table, and an
   unlisted TODO gets lost (`make todo-grep`).
+- **The why sits where the thing happens.** Where code, config, a script or a test does
+  something for a reason a reader could not guess (a workaround, a measured choice, a rule), a
+  short comment there names the decision holding the full reason (`S-098`), so whoever changes
+  that line sees why first. Cite the decision, not a closed backlog row: backlog ids mark open
+  work (`TODO(B-0042)`).
 - Public functions have docstrings (ruff `D`): the next agent reads the code cold. `mypy
   --strict` on `napkin2factory.core` and `napkin2factory.calckit`, where a type slip becomes a
   wrong part or a wrong number. Coverage ≥ 80 %, the floor CI enforces.

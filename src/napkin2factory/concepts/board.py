@@ -65,7 +65,7 @@ STRIP: tuple[str, ...] = (
     "lift_class",
 )
 #: Values kept for promotion and ``--json`` but not printed on the board: the door leaf is
-#: already inside "width with the door open" (B-0027).
+#: already inside "width with the door open" (S-085).
 HIDDEN: tuple[str, ...] = ("door_leaf",)
 #: Owner words for value names; anything else shows its name with spaces.
 NAMES: dict[str, str] = {

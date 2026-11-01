@@ -33,7 +33,7 @@ from napkin2factory.core.model.concepts import CONCEPT_STATUSES as CARD_STATUSES
 STAGES = ("intake", "design", "verify", "released")
 #: The optional stage before Intake (N11); present only when ``concepts/`` holds a card.
 NAPKIN = "napkin"
-#: What ``StageReport.current`` reads as to an owner, everywhere it is shown (B-0033):
+#: What ``StageReport.current`` reads as to an owner, everywhere it is shown (S-090):
 #: the ``n2f status`` headline, the report badge and ``n2f ecr close``.
 STAGE_WORDS = {
     NAPKIN: "Napkin",
@@ -67,7 +67,7 @@ class Gate:
 class StageReport:
     """Where the product stands, every gate, and the next step.
 
-    Two readings of "stage" (B-0033).  :attr:`current` is the one every person sees: the
+    Two readings of "stage" (S-090).  :attr:`current` is the one every person sees: the
     stage being worked in, i.e. the first gate not complete (review gate B, B5) — the
     ``n2f status`` headline, the report badge and ``n2f ecr close`` all print it, and
     ``--json`` carries it as ``current_stage``.  :attr:`stage` is the last gate passed

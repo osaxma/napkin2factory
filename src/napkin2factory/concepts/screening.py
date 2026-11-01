@@ -32,7 +32,7 @@ the card's opening angle θ (``leaf × max(0, −cos θ)``); a card that gives n
 leaf swung fully back (the widest case) and a note says so.
 
 A re-screen that finds exactly what the card already says keeps the card's ``at``
-(:func:`keep_unchanged_at`), so rebuilding an unchanged card leaves its file alone (B-0031).
+(:func:`keep_unchanged_at`), so rebuilding an unchanged card leaves its file alone (S-086).
 """
 
 from __future__ import annotations
@@ -723,7 +723,7 @@ def screen(
             leaf = door_leaf(card, massing) if door in HINGED else None
             if leaf is not None:
                 # the leaf to 0.1 mm (the precision of the massing), so promotion bounds the
-                # alcove with the raw numbers, not the difference of two rounded ones (B-0027)
+                # alcove with the raw numbers, not the difference of two rounded ones (S-085)
                 comp.add(
                     "door_leaf",
                     Quantity(leaf[0], "mm"),
@@ -787,7 +787,7 @@ def screen(
 
 
 def same_screening(a: Screening | None, b: Screening | None) -> bool:
-    """Whether two screenings say the same thing, whenever each was taken (B-0031).
+    """Whether two screenings say the same thing, whenever each was taken (S-086).
 
     Everything but ``at`` is compared: the given, computed and estimated values with their
     sources, the rule rows, the verdict and the notes.

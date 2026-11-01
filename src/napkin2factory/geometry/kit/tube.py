@@ -140,7 +140,7 @@ def massing(a: Args, ctx: KitContext) -> PartResult:
     The silhouette is solid, so the props carry what the stock really holds, as
     ``geometry/kit/frame.py`` does: ``section_area`` × ``length`` = ``material_volume``, the
     full build's volume. The massing composer weighs a tube by it, so a hollow tube is
-    weighed hollow (B-0021).
+    weighed hollow (S-087).
     """
     _validate(a)
     align = (Align.CENTER, Align.CENTER, Align.MIN)

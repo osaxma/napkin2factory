@@ -78,7 +78,7 @@ class MassingPiece:
     density: float | None = None  # kg/m³
     density_source: str | None = None
     #: mm³ of material the call really holds when the silhouette is solid where the part is
-    #: not (a frame's members and a tube are hollow: section × cut length, B-0021); ``None``
+    #: not (a frame's members and a tube are hollow: section × cut length, S-087); ``None``
     #: = the silhouette volume is the material.
     material_volume: float | None = None
 

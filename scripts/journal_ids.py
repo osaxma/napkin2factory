@@ -9,6 +9,8 @@ commit by commit from the snapshots (no patches are replayed, so nothing can con
 placeholder ever reaches ``main`` and every landed commit passes the journal check on its own
 (``git bisect`` relies on that).
 
+Why: S-097 (placeholders), S-099 (every commit, messages included).
+
 Run it from inside the task's folder: ``python3 scripts/journal_ids.py [--base main]``.
 """
 

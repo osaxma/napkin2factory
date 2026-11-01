@@ -465,7 +465,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         revision = None
     if revision and not clean:
         revision = None  # an edited model is not the released Revision (gate-2 B4)
-    # the badge names the stage being worked in, as `n2f status` does (B-0033)
+    # the badge names the stage being worked in, as `n2f status` does (S-090)
     stage_label = stage.current_words
     if stage.current == "ready":
         stage_label = "Ready to release"

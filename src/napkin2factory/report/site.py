@@ -4,7 +4,7 @@
 Revisions under ``build/site/vX.Y.Z/`` and ``n2f diff`` adds change pages under
 ``build/site/diff/A..B/`` (S-038).
 
-``n2f publish`` (B-0037) gathers what already exists into one folder a web host can serve as
+``n2f publish`` (S-094) gathers what already exists into one folder a web host can serve as
 it is: an index page, the latest report, every released Revision with its package, every
 change page between released Revisions, and the concept board. It never builds anything:
 what is missing is reported with the command that makes it. Every page is self-contained

@@ -81,7 +81,7 @@ class Scene:
     ``notes`` collects render-time remarks (e.g. a mesh that could not be capped in a
     section) for the caller to log; :func:`rasterize` appends to it. ``uncapped`` lists the
     labels of the meshes behind those notes, so a caller can name the part in its own words
-    (B-0019).
+    (S-088).
     """
 
     meshes: list[Mesh] = field(default_factory=list)

@@ -124,7 +124,7 @@ def build_concept(
             if note not in screening.notes:
                 screening.notes.append(note)
     write_screening_json(out_dir, card, screening)
-    # the card file changes only when the screening says something new (B-0031)
+    # the card file changes only when the screening says something new (S-086)
     if not keep_unchanged_at(card.screening, screening):
         write_screening_to_card(root, card.id, screening)
     updated = cm.load_card(root, card.id)

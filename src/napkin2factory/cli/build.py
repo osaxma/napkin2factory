@@ -111,7 +111,7 @@ def _render_notes(product: Product) -> dict[str, Any]:
 
 
 def print_render_notes(product: Product) -> None:
-    """Print what the pictures had to remark (B-0019), in plain words, after the summary."""
+    """Print what the pictures had to remark (S-088), in plain words, after the summary."""
     from rich.markup import escape
 
     from napkin2factory.geometry.build import render_note_lines

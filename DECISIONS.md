@@ -116,6 +116,7 @@ should confirm before relying on them.
 | S-097 | One trunk, a worktree per task, ids at landing: built for successive agents of any provider | in force |
 | S-098 | Task folders hardlink uv's cache so macOS scans native libraries once | in force |
 | S-099 | Landing gives placeholders their ids in every task commit, messages included | in force |
+| S-100 | The why sits where the thing happens: code cites its decision | in force |
 
 ---
 
@@ -1140,3 +1141,11 @@ ids" commit, so the task's own commit kept its placeholder in its files and subj
 changed files and its message (plumbing: `read-tree`, `hash-object`, `commit-tree`; no patch is
 replayed, so nothing can conflict). Commit `3d50f7e` on `main` predates this and keeps its
 placeholder; history on `main` is never rewritten.
+
+## S-100 — The why sits where the thing happens: code cites its decision (2026-11-01)
+Maintainer: fixes should be documented where they happen, so the next agent understands why
+things are done the way they are. `AGENTS.md` makes it a rule: a non-obvious line carries a short
+comment naming the decision with the full reason. Today's fixes cited closed backlog rows
+(`B-0019` …), one hop short of the reason; they now cite their decisions (S-085–S-099), and the
+task script, id assignment, `.gitattributes`, CI's trigger, the release dry run and the card
+number lint gained the pointer they lacked. Earlier code is left as it is until next touched.
