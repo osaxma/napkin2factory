@@ -15,8 +15,9 @@ validated before the first byte is written; a refusal writes nothing):
    the same value is left alone ("already declared"); a different value refuses the whole
    promotion unless ``--override`` (then it is overwritten and listed in the decision).
 3. **Site constraints → requirements** — the alcove (width with the open door's term,
-   depth, height), the supply circuit and a mass limit become ordinary ``req://`` rows
-   allocated to the top assembly, so a product too wide for its space is caught on paper.
+   depth, height), what the product's own screens seed (a supply circuit, ``packs``) and a
+   mass limit become ordinary ``req://`` rows allocated to the top assembly, so a product
+   too wide for its space is caught on paper.
    3b. **Modules** (P10) — when the product has no assembly yet and the card names modules
    (``modules:``, ``module:`` on massing lines): the top assembly ``<product id>``, one empty
    stub per module and three size budgets per module (``asm://<m>#props.bbox.x|y|z``, from
@@ -37,7 +38,8 @@ is a one-line change); ``style.yaml`` and the cards go through ruamel round-trip
 comments and key order survive.
 
 One module per seeder (F15, S-131): ``parameters`` (step 2), ``door`` and ``site`` (step 3),
-``modules`` (3b), ``form`` (4), ``style`` (5), ``decision`` (6 and 7); ``verb`` runs them in
+``modules`` (3b), ``form`` (4), ``style`` (5), ``decision`` (6 and 7); ``packs`` reads what a
+product's own screens seed (B-0086); ``verb`` runs them in
 order and writes once; ``result`` says what happened. Every public name is importable from
 here, as it was when promotion was one file.
 """
@@ -71,7 +73,7 @@ from napkin2factory.concepts.promote.parameters import (
     seed_plan,
 )
 from napkin2factory.concepts.promote.result import PromotionResult
-from napkin2factory.concepts.promote.site import POWER_KEY, site_requirements
+from napkin2factory.concepts.promote.site import site_requirements
 from napkin2factory.concepts.promote.style import STYLE_HEADER, plan_style
 from napkin2factory.concepts.promote.verb import promote
 
@@ -83,7 +85,6 @@ __all__ = [
     "DOOR_ROW_TITLE",
     "FORM_PACK",
     "MODULE_HEADER",
-    "POWER_KEY",
     "RATIONALE_KEYS",
     "SEED_OWNER",
     "STYLE_HEADER",

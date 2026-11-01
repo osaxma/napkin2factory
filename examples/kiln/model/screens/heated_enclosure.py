@@ -29,6 +29,7 @@ ceramic-fiber-board layer (k 0.15 W/m·K, ρ 260 kg/m³, c 1050 J/kg·K); named 
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -806,3 +807,76 @@ SCREENS = (
     Screen("skin-vs-touch", skin_vs_touch, title="Safe to touch"),
     Screen("chamber-volume", chamber_volume, title="Chamber volume"),
 )
+
+
+# --- what promotion seeds from these fields (B-0086) ----------------------------------------
+# Promotion reads these two names from a product's screens (``concepts/promote/packs.py``):
+# the supply requirement and the screening values the decision quotes, which only a heated
+# box has.
+
+#: Screening values the promotion decision quotes, after the size and mass.
+PROMOTE_RATIONALE = ("heat_up_time", "power", "required_power", "current", "circuit_class")
+
+
+def promote_requirements(
+    card: ConceptCard, seeded: list[Any], top: str | None, notes: list[str]
+) -> list[tuple[str, dict[str, Any]]]:
+    """The supply requirement: the element power the site's circuit carries (gate A, B1).
+
+    ``power ≤ V·I / headroom`` on the parameter ``envelope.power`` seeded, with the headroom
+    of rule ``circuit-available``, the number screening used, so a green circuit row cannot
+    become a failing requirement on the same inputs.
+    """
+    from napkin2factory.core.units import format_quantity
+
+    circuit = CIRCUIT.raw(card)
+    power = next((p for p in seeded if p.source == f"envelope.{POWER.key}"), None)
+    if circuit is None:
+        if REGION.raw(card) is not None and power is not None:
+            notes.append(
+                f"site.region {REGION.raw(card)} but no site.circuit: no supply requirement "
+                "written — add site.circuit (e.g. 230V-16A) once the socket is known"
+            )
+        return []
+    parsed = parse_circuit(circuit) if isinstance(circuit, str) else None
+    if parsed is None:
+        notes.append(
+            f"site.circuit {circuit!r} is not like 240V-13A: no supply requirement written"
+        )
+        return []
+    if power is None:
+        notes.append(
+            "no power on the card (envelope.power): no supply requirement written — "
+            "add one once the element power is known"
+        )
+        return []
+    volts, amps = parsed
+    headroom = float(RULES["circuit-available"]["params"]["headroom"])
+    raw = float((volts * amps).to("W").magnitude) / headroom
+    # rounded *up* to 0.1 W so a card exactly at the screening limit still passes
+    limit = Quantity(math.ceil(round(raw * 10, 6)) / 10, "W")
+    q = format_quantity
+    return [
+        (
+            "supply",
+            {
+                "title": "Runs on the site circuit",
+                "statement": f"The element power is at most {q(limit)}, so the "
+                f"{circuit} site circuit keeps a {headroom:g} headroom.",
+                "category": "performance",
+                "verify": {
+                    "kind": "param_bound",
+                    "target": f"param://{power.name}",
+                    "op": "<=",
+                    "value": q(limit),
+                },
+                "allocation": [f"param://{power.name}"] + ([f"asm://{top}"] if top else []),
+                "rationale": f"{q(volts)} × {q(amps)} / {headroom:g}: the "
+                f"same {headroom:g} headroom screening used (rule circuit-available); "
+                "the NEC 210.20 continuous-load factor 1.25 is stricter [verify].",
+            },
+        )
+    ]
+
+
+PROMOTE_REQUIREMENTS = promote_requirements

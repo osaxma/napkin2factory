@@ -131,7 +131,7 @@ def promote(
     # 3 + 4. requirements: at the seeded top assembly when there was none before
     top = _top_assembly(product, notes) or modules.top
     planned = (
-        site_requirements(card, seeded, top, notes)
+        site_requirements(card, seeded, top, notes, root)
         + form_requirements(card, style, top, notes)
         + modules.budgets
     )
@@ -209,8 +209,8 @@ def promote(
             "assemblies, so they were suggested, not written."
         )
     rationale = (
-        f"Screening of {cid} ({card.verdict}): " + "; ".join(_labelled(card)) + "."
-        if _labelled(card)
+        f"Screening of {cid} ({card.verdict}): " + "; ".join(_labelled(card, root)) + "."
+        if _labelled(card, root)
         else f"Screening of {cid} ({card.verdict})."
     )
     links = (
