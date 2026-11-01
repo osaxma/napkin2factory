@@ -1,7 +1,7 @@
 """Resistive heating elements and the supply circuit they need.
 
-Element sizing from a rated power (mirrors ``examples/kiln/model/calcs/element.py``,
-DEC-004/DEC-005)::
+Element sizing from a rated power (Ohm's law and the wire's resistivity; a product's own
+element calc may import these)::
 
     I = P / V          R = V² / P          L = R · A / ρ          q = P / (π · d · L)
 
@@ -36,9 +36,9 @@ Qty = Any
 #: handbook, surface-load guidance for embedded/grooved elements) [verify].
 KANTHAL_GROOVE_SURFACE_LOAD_LIMIT = Quantity(2.0, "W/cm**2")
 
-#: Minimum circuit rating over the element current. The kiln's REQ-006 ceiling (3000 W
-#: on a 16 A, 230 V circuit) is a ratio of ~1.23; compare NEC 210.19(A)/210.20(A), which
-#: sizes continuous loads at 125 % (pass ``headroom=1.25`` for US circuits) [verify].
+#: Minimum circuit rating over the element current. A 3000 W ceiling on a 16 A, 230 V
+#: circuit (one product's requirement) is a ratio of ~1.23; compare NEC 210.19(A)/210.20(A),
+#: which sizes continuous loads at 125 % (pass ``headroom=1.25`` for US circuits) [verify].
 CIRCUIT_HEADROOM_MIN = 1.2
 
 

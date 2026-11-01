@@ -72,7 +72,8 @@ def cost_estimate(
     Reads ``calckit/data/cost_bands.yaml`` (rows ``{process_class, unit: per_kg |
     per_m2 | per_item, low_usd, high_usd, source, verify}``): ``per_kg`` multiplies by
     ``mass``, ``per_m2`` by ``area``, ``per_item`` by ``count`` alone. The bands are
-    first derived from the kiln's own per-part estimates (DEC-012) [verify].
+    first derived from one product's own per-part estimates (the table's ``source``)
+    [verify].
 
     Raises:
         ValueError: the row needs a mass or an area that was not given.

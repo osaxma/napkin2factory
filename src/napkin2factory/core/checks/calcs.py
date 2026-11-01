@@ -9,13 +9,13 @@ Reference cases (F17): a product calc proves itself by reproducing cases listed 
 ``model/calcs/<module>.cases.yaml`` (or a module-level ``CASES`` of the same shape)::
 
     inputs:                 # parameter values every case below reads, unless it overrides
-      wall-thickness: 64 mm
+      plate-thickness: 64 mm
     cases:
       skin_temperature:
         - expect: 78.8 degC
           abs: 0.1          # in the expected unit; or rel: 0.01; default rel 1e-6
           source: "hand computation: …"
-          inputs: {wall-thickness: 70 mm}   # optional, overrides the shared value
+          inputs: {plate-thickness: 70 mm}   # optional, overrides the shared value
 
 A case runs the calc on its own inputs, never on the product's current parameters: it checks
 the formula, not the design (the requirements do that), and a parameter the calc reads that

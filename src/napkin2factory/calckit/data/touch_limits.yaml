@@ -4,7 +4,7 @@
 # surface temperature at which a contact of a given length starts a burn; the long-contact
 # figures below are quoted from it for metal (other materials are higher) and every row is
 # [verify] against the standard's own table. They are thresholds, not design limits: a
-# product's own touch limit (a card's `site.touch_limit`, a requirement) takes precedence.
+# product's own touch limit (a value on its concept card, a requirement) takes precedence.
 # Short accidental touches (about 1 to 10 s) tolerate more and depend on the material; they
 # are not tabulated here.
 table: touch_limits

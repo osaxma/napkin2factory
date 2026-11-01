@@ -39,32 +39,10 @@ EXCLUDED = (TEMPLATES, PACKAGE / "report" / "vendor")
 TEXT_SUFFIXES = {".py", ".yaml", ".yml", ".j2", ".md", ".html", ".txt", ".json", ".css", ".js"}
 COMPOUND = re.compile(r"[-_0-9]")
 
-#: Example identifiers still in package files another v0.5 task owned in wave 2 (the calc
-#: kit and the calc cases, M2; ``n2f init``, M4), where the v0.5 M3 task could not edit them.
-#: B-0084 clears this list (v0.5 M7); nothing else may be added here.
-_KILN_PARTS = {
-    "controller-box", "controller-lid", "door-brick", "door-fiber", "door-guard",
-    "door-switch", "door-tray", "fiber-back", "fiber-side", "fiber-slab", "guard-shell",
-    "hinge-post", "latch-keeper", "limit-controller", "liner-back", "liner-side", "liner-slab",
-    "outer-shell", "pid-controller",
-}  # fmt: skip
-ALLOWED: dict[str, set[str]] = {
-    "calckit/__init__.py": {"kiln"},
-    "calckit/data/cost_bands.yaml": {"DEC-012", "kiln", *_KILN_PARTS},
-    "calckit/data/materials.yaml": {
-        "brick-conductivity",
-        "brick-density",
-        "brick-specific-heat",
-        "fiber-conductivity",
-        "kiln",
-    },  # fmt: skip
-    "calckit/data/touch_limits.yaml": {"touch_limit"},
-    "calckit/mass_cost.py": {"DEC-012", "kiln"},
-    "calckit/power.py": {"DEC-004", "DEC-005", "kiln"},
-    "calckit/thermal_enclosure.py": {"DEC-004", "DEC-015", "kiln"},
-    "cli/init.py": {"kiln"},
-    "core/checks/calcs.py": {"wall-thickness"},
-}
+#: Example identifiers a package file may still name (emptied in S-129): keep it empty;
+#: a product's noun belongs in its folder (F10), a source cites a handbook or "a product's
+#: measured value", never an example's ids.
+ALLOWED: dict[str, set[str]] = {}
 
 
 def _stems(folder: Path, pattern: str) -> set[str]:
