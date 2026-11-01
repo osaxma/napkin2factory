@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import math
+from pathlib import Path
 from typing import Any
 
 from napkin2factory.concepts.promote.common import (
@@ -16,13 +16,10 @@ from napkin2factory.concepts.promote.door import (
     door_swing,
     door_swing_term,
 )
+from napkin2factory.concepts.promote.packs import pack_requirements
 from napkin2factory.concepts.screens import generic
 from napkin2factory.core.model.concepts import ConceptCard
 from napkin2factory.core.units import is_quantity
-from napkin2factory.rulepacks.concept_checks import circuit_headroom, parse_circuit
-
-#: The envelope key whose seeded parameter the supply requirement bounds.
-POWER_KEY = "power"
 
 
 def site_requirements(
@@ -30,8 +27,13 @@ def site_requirements(
     seeded: list[SeededParam],
     top: str | None,
     notes: list[str],
+    root: Path | None = None,
 ) -> list[tuple[str, dict[str, Any]]]:
-    """``(about, requirement fields)`` for each site constraint on the card."""
+    """``(about, requirement fields)`` for each site constraint on the card.
+
+    The space it must fit, then what the product's own screens seed (``root``'s
+    ``model/screens/``, :mod:`.packs`), then the weight.
+    """
     from napkin2factory.core.units import Quantity
 
     src = f"concept {card.id} site constraint"
@@ -152,56 +154,8 @@ def site_requirements(
                 },
             )
         )
-    circuit = card.site.get("circuit")
-    if circuit is not None:
-        parsed = parse_circuit(circuit) if isinstance(circuit, str) else None
-        power = next((p for p in seeded if p.source == f"envelope.{POWER_KEY}"), None)
-        if parsed is None:
-            notes.append(
-                f"site.circuit {circuit!r} is not like 240V-13A: no supply requirement written"
-            )
-        elif power is None:
-            notes.append(
-                "no power on the card (envelope.power): no supply requirement written — "
-                "add one once the element power is known"
-            )
-        else:
-            volts, amps = parsed
-            # One margin for the napkin and the factory (review gate A, B1): the bound is
-            # read from rule circuit-available's `headroom`, the number screening used, so a
-            # green circuit row cannot become a failing requirement on the same inputs.
-            headroom = circuit_headroom()
-            raw = float((volts * amps).to("W").magnitude) / headroom
-            # rounded *up* to 0.1 W so a card exactly at the screening limit still passes
-            limit = Quantity(math.ceil(round(raw * 10, 6)) / 10, "W")
-            out.append(
-                (
-                    "supply",
-                    {
-                        "title": "Runs on the site circuit",
-                        "statement": f"The element power is at most {_q_text(limit)}, so the "
-                        f"{circuit} site circuit keeps a {headroom:g} headroom.",
-                        "category": "performance",
-                        "verify": {
-                            "kind": "param_bound",
-                            "target": f"param://{power.name}",
-                            "op": "<=",
-                            "value": _q_text(limit),
-                        },
-                        "allocation": [f"param://{power.name}"] + ([f"asm://{top}"] if top else []),
-                        "rationale": f"{_q_text(volts)} × {_q_text(amps)} / {headroom:g}: the "
-                        f"same {headroom:g} headroom screening used (rule circuit-available); "
-                        "the NEC 210.20 continuous-load factor 1.25 is stricter [verify].",
-                    },
-                )
-            )
-    elif card.site.get("region") is not None and any(
-        p.source == f"envelope.{POWER_KEY}" for p in seeded
-    ):
-        notes.append(
-            f"site.region {card.site['region']} but no site.circuit: no supply requirement "
-            "written — add site.circuit (e.g. 230V-16A) once the socket is known"
-        )
+    # what only the product's own screens know (a heated box's supply, B-0086)
+    out += pack_requirements(root, card, seeded, top, notes)
     mass_limit: Any = card.site.get("mass_limit")
     basis = f"site.mass_limit on {card.id}"
     if not is_quantity(mass_limit) and isinstance(card.site.get("lift_class"), str):

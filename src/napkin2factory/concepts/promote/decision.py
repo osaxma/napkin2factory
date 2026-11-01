@@ -5,10 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from napkin2factory.concepts.promote.packs import pack_rationale_keys
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.model.concepts import ConceptCard
 
-#: Screening values quoted in the decision's rationale, in this order.
+#: Screening values quoted in the decision's rationale, in this order: the size and mass,
+#: then the keys the product's own screens add (``PROMOTE_RATIONALE``, B-0086), then the
+#: cost and the lift (:data:`RATIONALE_SPLIT` keys come first).
 RATIONALE_KEYS: tuple[str, ...] = (
     "width",
     "depth",
@@ -16,15 +19,12 @@ RATIONALE_KEYS: tuple[str, ...] = (
     "footprint_with_door_swing",
     "mass",
     "total_mass",
-    "heat_up_time",
-    "power",
-    "required_power",
-    "current",
-    "circuit_class",
     "cost_low",
     "cost_high",
     "lift_class",
 )
+#: How many of :data:`RATIONALE_KEYS` come before the product's own keys.
+RATIONALE_SPLIT = 6
 
 
 def _card_text(root: Path, card_id: str, status: str, decision: dict[str, Any]) -> str:
@@ -53,12 +53,14 @@ def _one_line(card: ConceptCard) -> str:
     return "green: " + summary_line(card, card.screening)
 
 
-def _labelled(card: ConceptCard) -> list[str]:
+def _labelled(card: ConceptCard, root: Path | None = None) -> list[str]:
     sc = card.screening
     assert sc is not None
     values = sc.values
+    own = pack_rationale_keys(root)
+    keys = (*RATIONALE_KEYS[:RATIONALE_SPLIT], *own, *RATIONALE_KEYS[RATIONALE_SPLIT:])
     out = []
-    for key in RATIONALE_KEYS:
+    for key in dict.fromkeys(keys):
         lv = values.get(key)
         if lv is not None:
             out.append(f"{key.replace('_', ' ')} {lv.value} ({lv.label})")
