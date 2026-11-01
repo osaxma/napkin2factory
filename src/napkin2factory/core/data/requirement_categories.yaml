@@ -1,0 +1,9 @@
+# Requirement categories (F6). A domain adds its own through `Domain.categories`.
+- {id: performance, title: Performance}
+- {id: geometry, title: Size and shape}
+- {id: cost, title: Cost}
+- {id: mass, title: Mass}
+- {id: safety, title: Safety}
+- {id: manufacturing, title: Manufacturing}
+- {id: usability, title: Use}
+- {id: interface, title: Joints}

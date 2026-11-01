@@ -121,6 +121,9 @@ def value_of(
         # so the report's drawing reads have a value (gate C, C7; S-117).
         entry = manifest.entries.get("drawing:" + key[len("drawing://") :])
         return entry.output_hash if entry else "unbuilt"
+    domain_value = _domain_value(product, manifest, key)
+    if domain_value is not None:
+        return domain_value
     try:
         uri = Uri.parse(key)
     except UriError:
@@ -175,6 +178,49 @@ def value_of(
     if uri.scheme == "rule":
         return "rulepack"
     return "unknown"
+
+
+def _domain_value(product: Product, manifest: Manifest, key: str) -> str | None:
+    """A key a registered domain answers (F1), or ``None`` for the core's own schemes.
+
+    ``<scheme>://<id>#<path>`` of a domain's model family is the declared field (as
+    ``part://x#name`` is); ``<scheme>://<id>`` alone is the output hash of the rule a domain's
+    rule family runs for it (``<family>:<id>``), or the object's hash when no rule makes it.
+    """
+    scheme, sep, rest = key.partition("://")
+    if not sep or scheme in RULE_FOR_SCHEME or scheme in _CORE_SCHEMES:
+        return None
+    from napkin2factory.core.registry import registry
+
+    reg = registry()
+    family = reg.produced_scheme(scheme)
+    ident, _, selector = rest.partition("#")
+    if not selector and family is not None:
+        entry = manifest.entries.get(f"{family.name}:{ident}")
+        return entry.output_hash if entry else "unbuilt"
+    objects = next(
+        (product.families.get(f.name, {}) for f in reg.model_families() if f.uri_scheme == scheme),
+        None,
+    )
+    if objects is None:
+        return None
+    if ident not in objects:
+        return "missing"
+    cur: Any = objects[ident]
+    for name in selector.split(".") if selector else []:
+        if isinstance(cur, dict) and name in cur:
+            cur = cur[name]
+        elif hasattr(cur, name):
+            cur = getattr(cur, name)
+        else:
+            return "missing"
+    return _fmt(cur)
+
+
+#: The schemes :func:`value_of` itself knows; any other is asked of the domains.
+_CORE_SCHEMES = frozenset(
+    {"param", "iface", "part", "asm", "doc", "bom", "calc", "req", "dec", "ecr", "rule"}
+)
 
 
 def unvalued_reads(product: Product, build_dir: Path) -> dict[str, list[str]]:

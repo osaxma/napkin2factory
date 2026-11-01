@@ -1,0 +1,5 @@
+# Interface kinds (F6). The two the core knows; their `spec:` schemas are BoltPatternSpec
+# and MatingFaceSpec (core/model/interfaces.py). A domain adds kinds through
+# `Domain.interface_kinds`, each with its own spec schema and check.
+- {id: bolt-pattern, title: Bolted joint}
+- {id: mating-face, title: Faces that touch}

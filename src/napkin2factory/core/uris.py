@@ -11,6 +11,7 @@ the two by whether the fragment is all digits.
 
 from __future__ import annotations
 
+import importlib
 import re
 from dataclasses import dataclass
 from typing import ClassVar
@@ -31,6 +32,31 @@ _ID_PATTERNS: dict[str, str] = {
     "bom": r"rollups|validation|build-plan",
 }
 SCHEMES: tuple[str, ...] = tuple(_ID_PATTERNS)
+#: Schemes of the model families domains register (F1), set by ``core.registry``, and the
+#: owner's word for each (a domain's vocabulary), which :func:`display_uri` puts first.
+_DOMAIN_PATTERNS: dict[str, str] = {}
+_DOMAIN_WORDS: dict[str, str] = {}
+
+
+def set_domain_schemes(patterns: dict[str, str], owner_words: dict[str, str]) -> None:
+    """Replace the domains' schemes (``core.registry`` calls this on every registration)."""
+    _DOMAIN_PATTERNS.clear()
+    _DOMAIN_PATTERNS.update({k: v for k, v in patterns.items() if k not in _ID_PATTERNS})
+    _DOMAIN_WORDS.clear()
+    _DOMAIN_WORDS.update({k: v for k, v in owner_words.items() if k in _DOMAIN_PATTERNS})
+
+
+def _pattern(scheme: str) -> str | None:
+    """The id pattern of ``scheme``: the core's, or a registered domain's."""
+    if scheme in _ID_PATTERNS:
+        return _ID_PATTERNS[scheme]
+    if scheme not in _DOMAIN_PATTERNS:
+        # the installed domains' schemes are registered on first use; imported by name so the
+        # URI grammar, which every schema imports, stays out of the registry's import cycle
+        importlib.import_module("napkin2factory.core.registry").REGISTRY.ensure()
+    return _DOMAIN_PATTERNS.get(scheme)
+
+
 _URI_RE = re.compile(r"^(?P<scheme>[a-z]+)://(?P<id>[^#\s]+)(?:#(?P<fragment>[A-Za-z0-9_.\-]+))?$")
 # Only the first segment must start with a letter (an all-digit fragment is an instance); later
 # segments may be slugs that start with a digit, e.g. ``bom://build-plan#units.2-stage`` (S-117).
@@ -64,12 +90,13 @@ class Uri:
                 f"or req://REQ-001#verify.value"
             )
         scheme, ident, fragment = m.group("scheme"), m.group("id"), m.group("fragment")
-        if scheme not in _ID_PATTERNS:
-            raise UriError(f"unknown scheme {scheme!r} in {text!r}; known: {', '.join(SCHEMES)}")
-        if not re.fullmatch(_ID_PATTERNS[scheme], ident):
+        pattern = _pattern(scheme)
+        if pattern is None:
+            known = ", ".join((*SCHEMES, *_DOMAIN_PATTERNS))
+            raise UriError(f"unknown scheme {scheme!r} in {text!r}; known: {known}")
+        if not re.fullmatch(pattern, ident):
             raise UriError(
-                f"{ident!r} is not a valid {scheme} id in {text!r} "
-                f"(expected pattern {_ID_PATTERNS[scheme]})"
+                f"{ident!r} is not a valid {scheme} id in {text!r} (expected pattern {pattern})"
             )
         selector: tuple[str, ...] = ()
         instance: int | None = None
@@ -149,6 +176,9 @@ def display_uri(uri: str, persona: str) -> str:
     """
     if persona != "owner":
         return uri
+    scheme, sep, rest = uri.partition("://")
+    if sep and scheme in _DOMAIN_PATTERNS:  # a domain's scheme: its owner word first (F1)
+        return f"{_DOMAIN_WORDS[scheme]} {rest}" if scheme in _DOMAIN_WORDS else rest
     return _DISPLAY_PREFIX_RE.sub("", uri, count=1)
 
 

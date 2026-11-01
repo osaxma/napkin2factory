@@ -348,52 +348,84 @@ def Uri_refs(obj: Any) -> list[Uri]:  # noqa: N802
 
 
 def _static_reads(product: Product, rule: Rule) -> list[str]:
-    """Conservative read set for a rule that has never run (before the first build)."""
-    if rule.kind == "part":
-        pid = rule.id.split(":", 1)[1]
-        part = product.parts[pid]
-        reads = [f"param://{u.id}" for u in Uri_refs(part) if u.scheme == "param"]
-        reads += [f"iface://{u.id}" for u in part.interfaces]
-        reads += [
-            f"param://{u.id}"
-            for i in part.interfaces
-            for u in Uri_refs(product.interfaces[i.id])
-            if u.scheme == "param"
-        ]
-        # P2: slugs named inside frame expressions are reads too (S-106)
-        reads += [
-            f"param://{s}"
-            for i in part.interfaces
-            for s in product.interfaces[i.id].expression_slugs()
-        ]
-        return reads
-    if rule.kind == "asm":
-        aid = rule.id.split(":", 1)[1]
-        return [c.uri for c in product.assemblies[aid].children] + [
-            f"param://{p}" for p in product.parameters
-        ]
-    if rule.kind == "drawing":
-        return [f"part://{rule.id.split(':', 1)[1]}"]
-    if rule.kind == "bom":
-        return (
-            [f"{p.uri}#cost" for p in product.parts.values()]
-            + [p.uri for p in product.parts.values()]
-            + [f"{a.uri}#children" for a in product.assemblies.values()]
-            + [f"iface://{i}" for i in product.interfaces]  # the build plan's hardware (P9)
-        )
-    if rule.kind == "asmsheet":
-        aid = rule.id.split(":", 1)[1]
-        return [f"asm://{aid}", f"bom://build-plan#units.{aid}"]
-    if rule.kind == "doc":
-        did = rule.id.split(":", 1)[1]
-        return [str(d) for d in product.docs[did].meta.depends_on] + [
-            f"param://{p}" for p in product.parameters
-        ]
-    return [
-        r.produces or r.id
-        for r in build_rules(product)
-        if r.kind in ("part", "asm", "doc", "bom", "drawing")
-    ] + ["bom://rollups", "bom://build-plan", "rule:checks", "rule:report"]
+    """Conservative read set for a rule that has never run (before the first build).
+
+    Each rule family declares its own (``RuleFamily.static_reads``); a family that declares
+    none (checks, report, site) reads every artifact a rule produces.
+    """
+    from napkin2factory.core.registry import registry
+
+    reg = registry()
+    family = next((f for f in reg.rule_families() if f.name == rule.kind), None)
+    if family is not None and family.static_reads is not None:
+        return list(family.static_reads(product, rule))
+    # every rule that produces a model artifact (a URI; not validate's or a sheet's rule key)
+    produced = [r.produces for r in build_rules(product) if r.produces and "://" in r.produces]
+    return produced + [
+        "bom://rollups",
+        "bom://build-plan",
+        "rule:checks",
+        "rule:report",
+    ]
+
+
+# ---- the mechanical families' static read sets (registered in place, F2) -----------------
+
+
+def part_static_reads(product: Product, rule: Rule) -> list[str]:
+    """A part reads its parameters, its interfaces and theirs, and frame-expression slugs."""
+    pid = rule.id.split(":", 1)[1]
+    part = product.parts[pid]
+    reads = [f"param://{u.id}" for u in Uri_refs(part) if u.scheme == "param"]
+    reads += [f"iface://{u.id}" for u in part.interfaces]
+    reads += [
+        f"param://{u.id}"
+        for i in part.interfaces
+        for u in Uri_refs(product.interfaces[i.id])
+        if u.scheme == "param"
+    ]
+    # P2: slugs named inside frame expressions are reads too (S-106)
+    reads += [
+        f"param://{s}" for i in part.interfaces for s in product.interfaces[i.id].expression_slugs()
+    ]
+    return reads
+
+
+def asm_static_reads(product: Product, rule: Rule) -> list[str]:
+    """An assembly reads its children and every parameter."""
+    aid = rule.id.split(":", 1)[1]
+    return [c.uri for c in product.assemblies[aid].children] + [
+        f"param://{p}" for p in product.parameters
+    ]
+
+
+def drawing_static_reads(product: Product, rule: Rule) -> list[str]:
+    """A drawing reads its part."""
+    return [f"part://{rule.id.split(':', 1)[1]}"]
+
+
+def bom_static_reads(product: Product, rule: Rule) -> list[str]:
+    """The BOM reads every part, its cost, every assembly's children and every interface."""
+    return (
+        [f"{p.uri}#cost" for p in product.parts.values()]
+        + [p.uri for p in product.parts.values()]
+        + [f"{a.uri}#children" for a in product.assemblies.values()]
+        + [f"iface://{i}" for i in product.interfaces]  # the build plan's hardware (P9)
+    )
+
+
+def asmsheet_static_reads(product: Product, rule: Rule) -> list[str]:
+    """An assembly sheet reads its unit's assembly and its step of the plan."""
+    aid = rule.id.split(":", 1)[1]
+    return [f"asm://{aid}", f"bom://build-plan#units.{aid}"]
+
+
+def doc_static_reads(product: Product, rule: Rule) -> list[str]:
+    """A manual page reads what it declares and every parameter."""
+    did = rule.id.split(":", 1)[1]
+    return [str(d) for d in product.docs[did].meta.depends_on] + [
+        f"param://{p}" for p in product.parameters
+    ]
 
 
 def _hypothetical_verdict(
@@ -404,64 +436,104 @@ def _hypothetical_verdict(
     affected: dict[str, str],
     build_dir: Path,
 ) -> tuple[str, str]:
+    """Would ``r`` pass after the edit? Its verify kind answers (``VerifyKind.hypothetical``)."""
+    from napkin2factory.core.registry import UnknownName, registry
+
     v = r.verify
     if v is None:
         return "re-check", "no verify method"
-    if v.kind == "manual":
-        return "re-check", "a person must sign this off (again, if it was signed)"
-    if v.kind == "param_bound" and v.target is not None and v.op and v.value is not None:
-        slug = v.target.id
-        value = hyp.get(slug, product.parameter_value(slug) if slug in product.parameters else None)
-        limit = overrides.get(f"req://{r.id}#verify.value", v.value)
-        if isinstance(limit, str):
-            try:
-                limit = parse_quantity(limit)
-            except UnitError:
-                return "re-check", f"cannot read the new limit {limit!r}"
-        if value is None or isinstance(value, str):
-            return "re-check", "parameter could not be evaluated"
-        try:
-            ok = compare(value, v.op, limit)
-        except UnitError as exc:
-            return "re-check", str(exc)
-        return (
-            "would-pass" if ok else "would-fail"
-        ), f"{format_quantity(value)} {v.op} {format_quantity(limit)}"
-    if (
-        v.kind == "bom_rollup"
-        and v.target is not None
-        and v.op
-        and v.value is not None
-        and v.target.selector == ("total_cost",)
-    ):
-        delta, _ = _cost_delta(
-            product,
-            [
-                Edit(set=Uri.parse(k), to=val)
-                for k, val in overrides.items()
-                if k.startswith("part://") and "#cost" in k
-            ],
-            build_dir,
-        )
-        rollups_path = build_dir / "bom" / "rollups.json"
-        if not rollups_path.is_file():
-            return "estimate", "BOM not built yet"
-        import json
+    try:
+        kind = registry().verify_kind(v.kind)
+    except UnknownName:
+        return "re-check", ""
+    if kind.hypothetical is None:
+        return "estimate", "known after the rebuild"
+    return kind.hypothetical(product, r, overrides, hyp, affected, build_dir)
 
-        total = (
-            float(json.loads(rollups_path.read_text(encoding="utf-8")).get("total_cost", 0.0))
-            + delta
-        )
-        limit = v.value
-        ok = compare(parse_quantity(total, "USD"), v.op, limit)
-        return (
-            "would-pass" if ok else "would-fail"
-        ), f"{total:.2f} USD {v.op} {format_quantity(limit)} (declared costs)"
-    if v.kind in ("geometry_prop", "interference", "interface", "count", "rule"):
-        return "estimate", "depends on geometry; known after the rebuild"
-    if v.kind == "calc":
-        return "estimate", "the calculation re-runs with the new values at `n2f check`"
-    return "re-check", ""
+
+# ---- the mechanical verify kinds' answers (registered in place, F2) ----------------------
+
+
+def hyp_manual(*_: Any) -> tuple[str, str]:
+    """A person signs it off again."""
+    return "re-check", "a person must sign this off (again, if it was signed)"
+
+
+def hyp_after_rebuild(*_: Any) -> tuple[str, str]:
+    """Geometry decides; known after the rebuild."""
+    return "estimate", "depends on geometry; known after the rebuild"
+
+
+def hyp_calc(*_: Any) -> tuple[str, str]:
+    """The calculation re-runs at ``n2f check``."""
+    return "estimate", "the calculation re-runs with the new values at `n2f check`"
+
+
+def hyp_param_bound(
+    product: Product,
+    r: Any,
+    overrides: dict[str, Any],
+    hyp: dict[str, Any],
+    affected: dict[str, str],
+    build_dir: Path,
+) -> tuple[str, str]:
+    """Compare the hypothetical parameter value with the (possibly edited) limit."""
+    v = r.verify
+    if v.target is None or not v.op or v.value is None:
+        return "re-check", ""
+    slug = v.target.id
+    value = hyp.get(slug, product.parameter_value(slug) if slug in product.parameters else None)
+    limit = overrides.get(f"req://{r.id}#verify.value", v.value)
+    if isinstance(limit, str):
+        try:
+            limit = parse_quantity(limit)
+        except UnitError:
+            return "re-check", f"cannot read the new limit {limit!r}"
+    if value is None or isinstance(value, str):
+        return "re-check", "parameter could not be evaluated"
+    try:
+        ok = compare(value, v.op, limit)
+    except UnitError as exc:
+        return "re-check", str(exc)
+    return (
+        "would-pass" if ok else "would-fail"
+    ), f"{format_quantity(value)} {v.op} {format_quantity(limit)}"
+
+
+def hyp_bom_rollup(
+    product: Product,
+    r: Any,
+    overrides: dict[str, Any],
+    hyp: dict[str, Any],
+    affected: dict[str, str],
+    build_dir: Path,
+) -> tuple[str, str]:
+    """The declared total cost plus the declared cost delta of the edit."""
+    v = r.verify
+    if v.target is None or not v.op or v.value is None or v.target.selector != ("total_cost",):
+        return "re-check", ""
+    delta, _ = _cost_delta(
+        product,
+        [
+            Edit(set=Uri.parse(k), to=val)
+            for k, val in overrides.items()
+            if k.startswith("part://") and "#cost" in k
+        ],
+        build_dir,
+    )
+    rollups_path = build_dir / "bom" / "rollups.json"
+    if not rollups_path.is_file():
+        return "estimate", "BOM not built yet"
+    import json
+
+    total = (
+        float(json.loads(rollups_path.read_text(encoding="utf-8")).get("total_cost", 0.0)) + delta
+    )
+    limit = v.value
+    ok = compare(parse_quantity(total, "USD"), v.op, limit)
+    return (
+        "would-pass" if ok else "would-fail"
+    ), f"{total:.2f} USD {v.op} {format_quantity(limit)} (declared costs)"
 
 
 def _evidence_affected(evidence: str, affected: dict[str, str], affected_params: set[str]) -> bool:

@@ -1,0 +1,9 @@
+# Why a sub-assembly is built on its own (v0.4 P7), with the owner words each reads as
+# (docs/vocabulary.md). "built-as-unit" is not "built as one unit", which the step's title
+# already says (gate D). A domain adds drivers through `Domain.drivers`.
+- {id: built-as-unit, words: put together and fitted as one piece}
+- {id: tested-as-unit, words: tested as one unit}
+- {id: serviced-as-unit, words: serviced or replaced as one unit}
+- {id: separate-process-or-supplier, words: made by another process or supplier}
+- {id: varies, words: comes in variants}
+- {id: agent-context, words: worked on as one module}
