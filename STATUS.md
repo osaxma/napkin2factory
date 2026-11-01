@@ -1,23 +1,18 @@
 # STATUS — napkin2factory
 
-**Version:** 0.3.0, released 2026-11-01 (tag `v0.3.0`) · **Trunk:** `main`; work happens in task
-worktrees (`make task`, `make land`; S-097); the old `v*-build` branches are closed ·
-**Open work:** `BACKLOG.md` · **Why things are the way they are:** `DECISIONS.md` (index at the top) ·
-**What shipped:** `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
+**Version:** 0.4.0, ready to tag; not tagged (last release 0.3.0, tag `v0.3.0`) · **Trunk:** `main`;
+work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:** `BACKLOG.md` ·
+**Why things are the way they are:** `DECISIONS.md` (index at the top) · **What shipped:**
+`HANDOFF-REPORT-v0.4.md` (v0.4), `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
 
 ## Where we are
-v0.2 (the napkin stage) is complete and published: M0–M7 done, review gates A and B closed with
-their blockers fixed, `make check-full` green from a clean clone.
-v0.3 is released: journal consolidation (S-073), README for people and the agent guide (S-074),
-the icon and the wordmark on generated pages (S-075, S-081), `AGENTS.md` only (S-076), generic
-roles in `roles/` (S-077), gate reports kept and visual exits judged by the maintainer (S-078),
-faster checks (S-079, S-080, S-084), relative paths in `validate.json` (S-082), product pin
-`>=0.3,<0.4` (S-083). Since 0.3.0, unreleased on `main`: the v0.2 leftovers (S-085–S-096),
-including share mode `n2f publish` (S-094) and the product release workflow's dry-run fix (S-095);
-B-0022 (cost bands), B-0036 (MCP server) and B-0047–B-0049 left open by the maintainer; one trunk
-and a worktree per task (S-097). Releasing a version: bump the three version files and the pins
-(S-054, S-083), `make check` on `main`, push, wait for CI, tag `v<version>` on that green commit
-(S-072).
+v0.4 (the tree, `PRODUCT_STRUCTURE.md`) is closed: M0–M7 done, gates C and D closed with their
+blockers fixed, version files and product pins at 0.4.0 / `>=0.4,<0.5` (S-119). Left to the
+maintainer: the visual judgment of the build-plan section and one assembly sheet (DoD 7),
+`make check-full` from a clean clone, push and the `v0.4.0` tag. Known open: the Linux nightly
+fails on a sign-off evidence key (owned by a separate task). Next: v0.5 (`FOUNDATION.md`).
+Releasing a version: bump the three version files and the pins (S-054, S-083), `make check` on
+`main`, push, wait for CI, tag `v<version>` on that green commit (S-072).
 
 ## Environment (host facts a cold reader needs)
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via
@@ -45,16 +40,21 @@ outside model's brief for after it lands.
 v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
 package, schema policy, scope as data, choices), S-111: planned, starts after v0.4 M7.
 
-v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103:
-- M0 baseline and reconciliation done (`docs/v04-baseline.md`) — S-105.
-- M1 interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly done — S-106.
-- M2 sub-assemblies have ports (`ports:`, a part's home, `place_by` for sub-assemblies) done — S-107.
-- M3a build plan and hardware done — S-110.
-- M3b kiln restructure done — S-113.
-- M5 napkin modules and promotion done — S-112.
-- M4 scope and module context done — S-114.
-- M6 joints review and simulation protocol done — S-115; door simulation passed — S-116. Next: M7.
-- Gate C (architecture and honesty) — "Review gate C — outcome"; its blockers fixed — S-117.
+v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
+`HANDOFF-REPORT-v0.4.md`:
+- M0 baseline and reconciliation (`docs/v04-baseline.md`) — S-105.
+- M1 interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly — S-106.
+- M2 sub-assemblies have ports (`ports:`, a part's home, `place_by` for sub-assemblies) — S-107.
+- M3a build plan and hardware — S-110. M3b kiln restructure — S-113.
+- M5 napkin modules and promotion — S-112. M4 scope and module context — S-114.
+- M6 joints review and simulation protocol — S-115; door simulation passed — S-116.
+- M7 gate C (architecture and honesty) — "Review gate C — outcome", blockers fixed in S-117; gate D
+  (UX, owner persona) — "Review gate D — outcome", blockers fixed in S-118; close-out, 0.4.0 — S-119.
+
+v0.3 — released 0.3.0 on 2026-11-01: journals, README for people and the agent guide, brand,
+`AGENTS.md` only, roles in `roles/`, gate reports kept, faster checks, pin `>=0.3,<0.4` —
+S-073–S-084. Landed after the tag and shipped with 0.4.0: the v0.2 leftovers and share mode
+`n2f publish` (S-085–S-096), one trunk and a worktree per task (S-097–S-102).
 
 v0.2 — `NAPKIN_STAGE.md`:
 - M0 folds and ratifications — S-055–S-061.
