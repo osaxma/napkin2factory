@@ -23,6 +23,9 @@ and a worktree per task (S-097). Releasing a version: bump the three version fil
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via
   `uv`; OCP novtk wheel, renders through the built-in rasterizer; Playwright Chromium installed.
 - `export PATH=$HOME/.local/bin:$PATH` before `uv`. No GNU `timeout`; `sed -i ''`.
+- Tasks (S-097), measured 2026-11-01: `make task` takes ≈ 2 s (worktree + `uv sync` from the shared
+  cache); the first `import build123d` in the new environment then took 117 s (6.6 s after), so
+  `make task` starts that import detached, as `n2f init` does (S-057).
 - `make check` ≈ 7 min (tests in parallel, S-070; long files split, S-080, S-084);
   `make check-full` ≈ 21 min (2026-11-01: `check` 7 min 27 s, then kiln, demos side by side
   and timing 13 min 27 s; was ≈ 28 min, S-079); the first `import build123d` on a machine takes
