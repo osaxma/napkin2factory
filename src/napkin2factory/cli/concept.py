@@ -270,7 +270,7 @@ def build(
         print_problems(problems, root)
         for b in built:
             sc, cid = b.screening, b.card.id
-            summary = summary_line(b.card, sc)
+            summary = summary_line(b.card, sc, root)
             tail = escape(status_tail(b.card))
             if sc.verdict == "red":
                 console.print(f"[red]✗[/red] {cid} — this direction has problems:")

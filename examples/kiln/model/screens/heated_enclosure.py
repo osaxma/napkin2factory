@@ -883,3 +883,63 @@ def promote_requirements(
 
 
 PROMOTE_REQUIREMENTS = promote_requirements
+
+
+# --- what the build summary says from these fields (B-0097) ---------------------------------
+# The concept build's one-line summary reads this name from a product's screens
+# (``concepts/build.py::pack_summary_phrases``): the supply and the heat-up, which only a
+# heated box has, after the size and mass and before the cost.
+
+
+def _supply_phrase(screening: Any) -> str | None:
+    """``2.5 kW (on the card) on the 240V-13A circuit — fits with a fifth to spare (estimate)``.
+
+    The card's own power and circuit are given; only the fit is an estimate (gate A, C1).
+    """
+    from napkin2factory.concepts.build import screening_text, spare_words
+
+    def v(section: str, name: str) -> str | None:
+        return screening_text(screening, section, name)
+
+    given_power = v("given", "power")
+    if given_power:
+        power = f"{given_power} (on the card)"
+    elif v("estimates", "required_power"):
+        power = f"{v('estimates', 'required_power')} (estimate)"
+    else:
+        return None
+    on_card = v("given", "circuit_class")
+    if on_card:
+        row = screening.rule("circuit-available")
+        spare = spare_words(float(RULES["circuit-available"]["params"]["headroom"]))
+        if row is not None and row.status == "pass":
+            fit = f"fits with {spare} to spare (estimate)"
+        elif row is not None and row.status == "fail":
+            fit = f"does not fit with {spare} to spare (estimate)"
+        else:
+            fit = "fit not checked"
+        return f"{power} on {on_card} — {fit}"
+    table = v("estimates", "circuit_class")
+    if table:
+        return f"{power} on a {table} (estimate)"
+    return f"{power}, supply not checked"
+
+
+def summary_phrases(card: ConceptCard, screening: Any) -> list[str]:
+    """The supply, then the heat-up (or the power a planned heat-up needs), each labelled."""
+    from napkin2factory.concepts.build import screening_text
+
+    out: list[str] = []
+    supply = _supply_phrase(screening)
+    if supply:
+        out.append(supply)
+    heat = screening_text(screening, "estimates", "heat_up_time")
+    required = screening_text(screening, "estimates", "required_power")
+    if heat:
+        out.append(f"{heat} to temperature (estimate)")
+    elif required and is_quantity(card.envelope.get(HEAT_UP_TIME.key)):
+        out.append(f"{required} for the planned heat-up (estimate)")
+    return out
+
+
+SUMMARY_PHRASES = summary_phrases

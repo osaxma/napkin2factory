@@ -43,14 +43,14 @@ def _card_text(root: Path, card_id: str, status: str, decision: dict[str, Any]) 
     return dumps_roundtrip(doc, explicit_null=True)
 
 
-def _one_line(card: ConceptCard) -> str:
+def _one_line(card: ConceptCard, root: Path | None = None) -> str:
     from napkin2factory.concepts.build import summary_line
 
     if card.screening is None or card.verdict is None:
         return "not built"
     if card.verdict == "red":
         return "red: " + "; ".join(r.message for r in card.screening.failing)
-    return "green: " + summary_line(card, card.screening)
+    return "green: " + summary_line(card, card.screening, root)
 
 
 def _labelled(card: ConceptCard, root: Path | None = None) -> list[str]:
