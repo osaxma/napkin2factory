@@ -30,6 +30,9 @@ def build(
     dir: Path | None = DirOption,
     target: str = typer.Option("all", "--target", "-t", help="|".join(TARGETS)),
     part: str | None = typer.Option(None, "--part", "-p", help="Build only this part id."),
+    asm: str | None = typer.Option(
+        None, "--asm", help="Build one assembly and what it needs (its parts, sub-assemblies)."
+    ),
     clean: bool = typer.Option(
         False, "--clean", help="Forget what was built before and rebuild everything."
     ),
@@ -51,10 +54,21 @@ def build(
     if target not in TARGETS:
         raise typer.BadParameter(f"--target must be one of {', '.join(TARGETS)}")
     product = load_product(root)
+    aid = None
+    if asm is not None:
+        from napkin2factory.cli.build_asm import assembly_id, check_target
+
+        aid = assembly_id(product, asm)
+        check_target(target)
     if explain:
         from napkin2factory.core.graph.runner import explain_build
 
-        plan = explain_build(product, target, render=not no_render)
+        plan = explain_build(
+            product,
+            "drawings" if aid and target == "all" else target,
+            render=not no_render,
+            only_asm=aid,
+        )
         if json_out:
             emit_json({"plan": [{"rule": r, "run": run, "why": why} for r, run, why in plan]})
         else:
@@ -63,6 +77,17 @@ def build(
                 console.print(f"  {mark} {rid} [dim]({why})[/dim]")
         return
     load_cad_kernel()
+    if aid is not None:
+        from napkin2factory.cli.build_asm import build_assembly_alone
+
+        summary = build_assembly_alone(
+            product, aid, target, clean=clean, render=not no_render, quiet=json_out
+        )
+        if json_out:
+            emit_json({**summary, "render_notes": _render_notes(product)})
+        else:
+            print_render_notes(product)
+        return
     if target == "geometry":
         from napkin2factory.geometry.build import build_geometry
 

@@ -771,6 +771,7 @@ def _cross_validate(product: Product, problems: Problems) -> None:  # noqa: C901
     for asm in product.assemblies.values():
         _check_asm_cycle(product, asm, (), problems)
     _validate_ports(product, problems)
+    _validate_parameter_scopes(product, problems)
     # Parameter expressions. Static faults (unsafe syntax, unknown names, bad units) mark
     # the parameter as bad; evaluation then runs whenever parameters.yaml parsed, whatever
     # errors other files have (S-012 keeps hiding only what depends on a broken target).
@@ -951,6 +952,60 @@ def _validate_ports(product: Product, problems: Problems) -> None:
                 f"boundary ({_port_where(tree, aid, product.interfaces[iid])})",
                 f"remove {iuri} from `ports:` in model/assemblies/{aid}.yaml",
                 rule="port",
+            )
+
+
+def _validate_parameter_scopes(product: Product, problems: Problems) -> None:
+    """A parameter's ``scope`` names an existing assembly that is built as a unit (P5, M4).
+
+    A phantom only groups lines and folds into its parent's build step (P7), so it is not a
+    module of its own and owns no parameters: the hint names the unit it folds into.
+    ``export`` on an unscoped parameter changes nothing and is a warning.  Whether rules and
+    expressions stay within reach is a check, not a validation error (``core/reach.py``).
+    """
+    if not product.parameters or any(u.startswith("asm://") for u in product.broken):
+        return
+    tree = AssemblyTree(product.assemblies)
+    tops = set(tree.tops())
+    for slug, p in sorted(product.parameters.items()):
+        subject = f"param://{slug}"
+        if p.scope is None:
+            if p.export:
+                problems.add(
+                    product.paths.parameters,
+                    subject,
+                    "is marked `export: true` but has no `scope:`; an unscoped parameter is "
+                    "the whole product's already",
+                    "add `scope: asm://<id>` or remove `export`",
+                    severity="warn",
+                    rule="scope",
+                )
+            continue
+        aid = p.scope.id
+        if aid not in product.assemblies:
+            problems.add(
+                product.paths.parameters,
+                subject,
+                f"`scope: {p.scope}` names no assembly; known: "
+                f"{', '.join(sorted(product.assemblies)) or 'none'}",
+                "scope it to an assembly in model/assemblies/, or remove `scope:`",
+                rule="scope",
+            )
+            continue
+        if aid not in tops and product.assemblies[aid].build == "phantom":
+            parents = sorted(
+                a.id
+                for a in product.assemblies.values()
+                if any(c.asm is not None and c.asm.id == aid for c in a.children)
+            )
+            problems.add(
+                product.paths.parameters,
+                subject,
+                f"`scope: {p.scope}` names a phantom, a grouping that is not built on its own "
+                "and owns no parameters",
+                f"scope it to {', '.join(f'asm://{x}' for x in parents) or 'its parent'}, the "
+                "unit it is built in, or remove `scope:`",
+                rule="scope",
             )
 
 

@@ -18,6 +18,7 @@ from napkin2factory.core.checks.interference import check_interference
 from napkin2factory.core.checks.results import OWNER_WORDS, CheckResult, summarize
 from napkin2factory.core.graph.hashing import sha256_json
 from napkin2factory.core.loader import Product
+from napkin2factory.core.reach import REACH_KEY
 from napkin2factory.core.style import STYLE_FORM_KEY
 
 if TYPE_CHECKING:
@@ -48,6 +49,7 @@ def checks_reads(product: Product) -> list[str]:
         reads.append(f"doc://{d}")
     reads.append("bom://rollups")
     reads.append(STYLE_FORM_KEY)  # the form pack reads thresholds from style.yaml
+    reads.append(REACH_KEY)  # P5: scopes, exports and the recorded reads of parts and assemblies
     reads += [
         "set://reqs",
         "set://parts",
@@ -231,11 +233,15 @@ def bom_validation_checks(build_dir: Path) -> list[CheckResult]:
     return out
 
 
-def build_matrix(product: Product, results: list[CheckResult]) -> dict[str, Any]:
-    """Requirements × status and rules × parts."""
+def build_matrix(
+    product: Product, results: list[CheckResult], only_present: bool = False
+) -> dict[str, Any]:
+    """Requirements × status and rules × parts (``only_present``: the requirements checked)."""
     req_rows = []
     for r in product.requirements.values():
         res = next((x for x in results if x.id == f"req://{r.id}"), None)
+        if res is None and only_present:
+            continue  # a module's checks (--scope) leave the other requirements out
         req_rows.append(
             {
                 "id": r.id,
@@ -261,14 +267,32 @@ def build_matrix(product: Product, results: list[CheckResult]) -> dict[str, Any]
     }
 
 
-def run_all_checks(ctx: RunContext) -> RunResult:
-    """The ``checks`` rule body."""
-    from napkin2factory.core.graph.rules import RunResult
+def collect_results(
+    product: Product, build_dir: Path, within: str | None = None
+) -> tuple[list[CheckResult], EvalContext]:
+    """Every check row, each with its module (P12); ``within`` keeps one module's rows only.
 
-    product, build_dir = ctx.product, ctx.build_dir
+    ``within`` (an assembly id, ``n2f check --scope``) keeps the rows whose home is that
+    assembly or one below it: its parts' rules, the requirements allocated to it or its parts,
+    the joints that close inside it (both stages; its ports close in the parent), interference,
+    counts and hardware of its assemblies, and its reach rows.  Documents and sourcing are the
+    whole product's and are left out.  The costly checks are skipped outside the scope.
+    """
+    from napkin2factory.core.checks.modules import RowModules
+    from napkin2factory.core.graph.manifest import Manifest
+    from napkin2factory.core.reach import reach_checks
+
+    modules = RowModules(product)
+    below = modules.tree.below(within) if within is not None else None
+
+    def keep(home: str | None) -> bool:
+        return below is None or (home is not None and home in below)
+
     ectx = EvalContext(product, build_dir)
     results: list[CheckResult] = []
     for iface in product.interfaces.values():
+        if not keep(modules.closing.get(iface.id)):
+            continue
         rep = check_interface(product, iface, build_dir)
         ectx.interfaces[iface.id] = rep.to_dict()
         results.append(
@@ -288,6 +312,8 @@ def run_all_checks(ctx: RunContext) -> RunResult:
         )
     results += coordinate_placement_warnings(product, build_dir)  # P1
     for aid in product.assemblies:
+        if not keep(aid):
+            continue
         irep = check_interference(product, aid, build_dir)
         ectx.interference[aid] = irep.to_dict()
         status = (
@@ -325,35 +351,31 @@ def run_all_checks(ctx: RunContext) -> RunResult:
     rule_rows = run_rulepacks(product, build_dir)
     ectx.rule_results = rule_rows
     for req in product.requirements.values():
-        results.append(evaluate_requirement(ectx, req))
+        if within is None or modules.requirement_in(req, within):
+            results.append(evaluate_requirement(ectx, req))
     results += rule_rows
     results += instance_count_checks(product, build_dir)
-    results += hardware_checks(product)  # P9: joint hardware per build unit
-    results += doc_staleness(product, build_dir)
-    results += bom_validation_checks(build_dir)
-    persona = product.operator.persona
-    for r in results:
-        r.persona_message = (
-            f"{OWNER_WORDS[r.status]}: {r.message}" if persona == "owner" else r.message
-        )
-    summary = summarize(results)
-    payload: dict[str, Any] = {
-        "status": "ok" if summary["fail"] == 0 else "fail",
-        "summary": summary,
-        "results": [r.to_dict() for r in results],
-        "matrix": build_matrix(product, results),
-        "calcs": {k: v.to_dict() for k, v in ectx.calc_records.items()},
-    }
+    results += hardware_checks(product, modules.units)  # P9: joint hardware per build unit
+    results += reach_checks(product, Manifest.load(build_dir))  # P5
+    if within is None:
+        results += doc_staleness(product, build_dir)
+        results += bom_validation_checks(build_dir)
+    modules.annotate(results)
+    if within is not None:
+        results = [r for r in results if modules.inside(r, within)]
+    return results, ectx
+
+
+def run_all_checks(ctx: RunContext) -> RunResult:
+    """The ``checks`` rule body."""
+    from napkin2factory.core.graph.rules import RunResult
+
+    product, build_dir = ctx.product, ctx.build_dir
+    results, ectx = collect_results(product, build_dir)
+    payload = check_payload(product, results, ectx)
     out_dir = build_dir / "checks"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / "checks.json"
-    out.write_text(
-        json.dumps(payload, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8"
-    )
-    calcs_out = out_dir / "calcs.json"
-    calcs_out.write_text(
-        json.dumps(payload["calcs"], indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8"
-    )
+    out = _write(out_dir / "checks.json", payload)
+    calcs_out = _write(out_dir / "calcs.json", payload["calcs"])
     reads = checks_reads(product)
     for rec in ectx.calc_records.values():
         reads += rec.reads
@@ -366,7 +388,56 @@ def run_all_checks(ctx: RunContext) -> RunResult:
         reads=list(seen),
         outputs=[out, calcs_out],
         output_hash=sha256_json(
-            {"summary": summary, "results": [(r["id"], r["status"]) for r in payload["results"]]}
+            {
+                "summary": payload["summary"],
+                "results": [(r["id"], r["status"]) for r in payload["results"]],
+            }
         ),
         payload=payload,
     )
+
+
+def _write(path: Path, data: Any) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(data, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8"
+    )
+    return path
+
+
+def scope_dir(build_dir: Path, aid: str) -> Path:
+    """Where ``n2f check --scope asm://<aid>`` writes: never ``build/checks/checks.json`` (P12)."""
+    return build_dir / "checks" / "scope" / aid
+
+
+def run_scoped_checks(product: Product, build_dir: Path, aid: str) -> dict[str, Any]:
+    """One module's checks (P12), written to ``build/checks/scope/<aid>/checks.json``."""
+    results, ectx = collect_results(product, build_dir, within=aid)
+    payload = check_payload(product, results, ectx, scoped=True)
+    payload["scope"] = f"asm://{aid}"
+    _write(scope_dir(build_dir, aid) / "checks.json", payload)
+    return payload
+
+
+def check_payload(
+    product: Product, results: list[CheckResult], ectx: EvalContext, scoped: bool = False
+) -> dict[str, Any]:
+    """The ``checks.json`` document: verdict, summary, rows, the matrix by module, calcs."""
+    persona = product.operator.persona
+    for r in results:
+        r.persona_message = (
+            f"{OWNER_WORDS[r.status]}: {r.message}" if persona == "owner" else r.message
+        )
+    summary = summarize(results)
+    rows = [r.to_dict() for r in results]
+    matrix = build_matrix(product, results, only_present=scoped)
+    from napkin2factory.core.checks.modules import module_groups
+
+    matrix["modules"] = module_groups(product, rows)
+    return {
+        "status": "ok" if summary["fail"] == 0 else "fail",
+        "summary": summary,
+        "results": rows,
+        "matrix": matrix,
+        "calcs": {k: v.to_dict() for k, v in ectx.calc_records.items()},
+    }

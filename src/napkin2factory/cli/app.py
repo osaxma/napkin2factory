@@ -8,6 +8,7 @@ from napkin2factory import __version__
 from napkin2factory.cli import build as build_cmd
 from napkin2factory.cli import check as check_cmd
 from napkin2factory.cli import concept as concept_cmd
+from napkin2factory.cli import context as context_cmd
 from napkin2factory.cli import doctor as doctor_cmd
 from napkin2factory.cli import ecr as ecr_cmd
 from napkin2factory.cli import graph as graph_cmd
@@ -49,6 +50,7 @@ app.command("graph")(graph_cmd.graph)
 app.command("check")(check_cmd.check)
 app.command("status")(check_cmd.status)
 app.command("signoff")(check_cmd.signoff)
+app.command("context")(context_cmd.context)
 app.command("serve")(serve_cmd.serve)
 app.command("snapshot")(snapshot_cmd.snapshot)
 app.command("discard")(snapshot_cmd.discard)

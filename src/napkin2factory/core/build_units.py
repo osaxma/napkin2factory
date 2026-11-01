@@ -109,6 +109,20 @@ class BuildUnits:
         """The build units, children before parents: the order of the build steps."""
         return [a for a in self.tree.order() if self.is_unit(a)]
 
+    def unit_of(self, aid: str | None) -> str | None:
+        """The build unit ``aid`` is built in: itself, or the lowest unit a phantom folds into.
+
+        ``None`` for ``None``, an unknown id, or a phantom shared by two units (no single one).
+        The module of a check row (P12) and the position of a reader (P5) both use it.
+        """
+        if aid is None or aid not in self.product.assemblies:
+            return None
+        if self.is_unit(aid):
+            return aid
+        cands = [u for u in self.order() if aid in self.tree.below(u)]
+        low = [u for u in cands if not any(v != u and v in self.tree.below(u) for v in cands)]
+        return low[0] if len(low) == 1 else None
+
     def folded(self, uid: str) -> list[tuple[str, int]]:
         """``(assembly, how many per one unit)``: the unit itself, then the phantoms in it.
 

@@ -63,6 +63,7 @@ class RunResult:
     outputs: list[Path]  # absolute paths written
     output_hash: str  # what downstream depends on (geometry/content, not timing)
     payload: Any = None  # in-memory object (BuiltPart, rollups…) for later rules in this run
+    iface_reads: list[str] = field(default_factory=list)  # reads only through an interface (P5)
 
 
 @dataclass
@@ -287,8 +288,16 @@ def build_rules(product: Product, render: bool = True) -> list[Rule]:
     return rules
 
 
-def rules_for_target(rules: list[Rule], target: str, only_part: str | None = None) -> list[Rule]:
-    """Filter the ordered list to a ``--target`` (and optionally one part)."""
+def rules_for_target(
+    rules: list[Rule], target: str, only_part: str | None = None, only_asm: str | None = None
+) -> list[Rule]:
+    """Filter the ordered list to a ``--target`` (and optionally one part or one assembly).
+
+    ``only_asm`` (``n2f build --asm``, P6) keeps what that assembly needs, through the DAG:
+    ``validate``, its rule and every part and assembly rule it depends on, transitively, plus
+    those parts' drawings when the target makes drawings.  The BOM, assembly sheets, manuals,
+    checks, report and site are the whole product's and are left out.
+    """
     kinds = TARGET_KINDS[target]
     selected = [r for r in rules if r.kind in kinds]
     if only_part:
@@ -296,5 +305,20 @@ def rules_for_target(rules: list[Rule], target: str, only_part: str | None = Non
             r
             for r in selected
             if r.kind == "validate" or r.id in (f"part:{only_part}", f"drawing:{only_part}")
+        ]
+    if only_asm:
+        by_id = {r.id: r for r in rules}
+        need: set[str] = set()
+        todo = [f"asm:{only_asm}"] if f"asm:{only_asm}" in by_id else []
+        while todo:
+            rid = todo.pop()
+            if rid in need:
+                continue
+            need.add(rid)
+            todo += [d for d in by_id[rid].depends_on if d in by_id]
+        selected = [
+            r
+            for r in selected
+            if r.id in need or (r.kind == "drawing" and set(r.depends_on) <= need)
         ]
     return selected

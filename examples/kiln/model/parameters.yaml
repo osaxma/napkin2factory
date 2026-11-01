@@ -67,39 +67,42 @@ parameters:
   thermocouple-offset-x: {value: 40, unit: mm, description: "Control and limit thermocouples sit either side of the back wall centre"}
   thermocouple-neg-offset-x: {expr: "(0 - 1) * thermocouple-offset-x", unit: mm, description: "Mirror of thermocouple-offset-x"}
   # --- door (a plug door: tray, fiber plug, brick slab; guard tray in front) ---
-  door-skin-thickness: {value: 1.5, unit: mm, description: "Door tray sheet"}
-  door-tray-depth:     {value: 60, unit: mm, description: "Door tray walls wrap around the guard's front lip"}
+  # the door's own sizes are scoped to it (P5, S-114); the kiln clears the door by four of them,
+  # exported: door-guard-width (the hinge post's reach), door-guard-depth and door-guard-offset
+  # (the stand's inset) and hinge-pin-depth (where the hinge post sits)
+  door-skin-thickness: {value: 1.5, unit: mm, scope: asm://door, description: "Door tray sheet"}
+  door-tray-depth:     {value: 60, unit: mm, scope: asm://door, description: "Door tray walls wrap around the guard's front lip"}
   door-gap:            {value: 2, unit: mm, description: "Clearance between the plug front and the guard lip plane"}
-  door-fiber-thickness: {expr: "fiber-thickness + guard-gap + guard-thickness + door-gap", unit: mm, description: "Door fiber plug depth: from the tray's inner face to the brick line (125 + 25 + 1 + 2 mm, three boards plus a strip)"}
-  door-plug-depth:     {expr: "door-fiber-thickness + brick-thickness", unit: mm, description: "Total plug depth (fiber plus brick slab)"}
-  door-plug-clearance: {value: 5, unit: mm, description: "Clearance between the plug and the fiber opening on each side at the front"}
-  door-plug-width:     {expr: "fiber-inner-width - 2 * door-plug-clearance", unit: mm, description: "Plug width at the front face"}
-  door-plug-height:    {expr: "fiber-inner-height - 2 * door-plug-clearance", unit: mm, description: "Plug height at the front face"}
-  door-plug-taper:     {value: 6, unit: degree, description: "Plug sides taper inwards towards the chamber so the latch-side corner clears the opening on the swing (calc://swing.plug_clearance)"}
-  door-face-spread:    {value: 1.5, unit: "", description: "Heat spreading in the door tray's steel face [verify]"}
-  door-overlap:        {value: 10, unit: mm, description: "Door tray inside edge clears the guard's lip edge by this much on each side"}
-  door-width:          {expr: "guard-outer-width + 2 * shell-flange + 2 * door-overlap", unit: mm, description: "Door tray outside width"}
-  door-height:         {expr: "guard-outer-height + 2 * shell-flange + 2 * door-overlap", unit: mm, description: "Door tray outside height"}
-  door-guard-gap:      {value: 4, unit: mm, description: "Clearance between the door tray walls and the door guard walls"}
-  door-guard-thickness: {value: 1.0, unit: mm, description: "Door guard sheet"}
-  door-guard-width:    {expr: "door-width + 2 * door-guard-gap + 2 * door-guard-thickness", unit: mm, description: "Door guard outside width"}
-  door-guard-height:   {expr: "door-height + 2 * door-guard-gap + 2 * door-guard-thickness", unit: mm, description: "Door guard outside height"}
-  door-guard-overrun:  {value: 2, unit: mm, description: "Door guard walls end this far past the door tray walls"}
-  door-guard-depth:    {expr: "door-skin-thickness + guard-gap + door-guard-thickness + door-tray-depth + door-guard-overrun", unit: mm, description: "Door guard depth: wraps the tray and ends 2 mm past the tray walls"}
-  door-guard-offset:   {expr: "door-skin-thickness + guard-gap + door-guard-thickness", unit: mm, description: "Door guard base sits this far in front of the plug face"}
-  door-guard-vent-v:   {value: -31, unit: mm, description: "Vent slot position in the door guard's top and bottom walls (tray coordinates: over the air gap)"}
+  door-fiber-thickness: {expr: "fiber-thickness + guard-gap + guard-thickness + door-gap", unit: mm, scope: asm://door, description: "Door fiber plug depth: from the tray's inner face to the brick line (125 + 25 + 1 + 2 mm, three boards plus a strip)"}
+  door-plug-depth:     {expr: "door-fiber-thickness + brick-thickness", unit: mm, scope: asm://door, description: "Total plug depth (fiber plus brick slab)"}
+  door-plug-clearance: {value: 5, unit: mm, scope: asm://door, description: "Clearance between the plug and the fiber opening on each side at the front"}
+  door-plug-width:     {expr: "fiber-inner-width - 2 * door-plug-clearance", unit: mm, scope: asm://door, description: "Plug width at the front face"}
+  door-plug-height:    {expr: "fiber-inner-height - 2 * door-plug-clearance", unit: mm, scope: asm://door, description: "Plug height at the front face"}
+  door-plug-taper:     {value: 6, unit: degree, scope: asm://door, description: "Plug sides taper inwards towards the chamber so the latch-side corner clears the opening on the swing (calc://swing.plug_clearance)"}
+  door-face-spread:    {value: 1.5, unit: "", scope: asm://door, description: "Heat spreading in the door tray's steel face [verify]"}
+  door-overlap:        {value: 10, unit: mm, scope: asm://door, description: "Door tray inside edge clears the guard's lip edge by this much on each side"}
+  door-width:          {expr: "guard-outer-width + 2 * shell-flange + 2 * door-overlap", unit: mm, scope: asm://door, description: "Door tray outside width"}
+  door-height:         {expr: "guard-outer-height + 2 * shell-flange + 2 * door-overlap", unit: mm, scope: asm://door, description: "Door tray outside height"}
+  door-guard-gap:      {value: 4, unit: mm, scope: asm://door, description: "Clearance between the door tray walls and the door guard walls"}
+  door-guard-thickness: {value: 1.0, unit: mm, scope: asm://door, description: "Door guard sheet"}
+  door-guard-width:    {expr: "door-width + 2 * door-guard-gap + 2 * door-guard-thickness", unit: mm, scope: asm://door, export: true, description: "Door guard outside width"}
+  door-guard-height:   {expr: "door-height + 2 * door-guard-gap + 2 * door-guard-thickness", unit: mm, scope: asm://door, description: "Door guard outside height"}
+  door-guard-overrun:  {value: 2, unit: mm, scope: asm://door, description: "Door guard walls end this far past the door tray walls"}
+  door-guard-depth:    {expr: "door-skin-thickness + guard-gap + door-guard-thickness + door-tray-depth + door-guard-overrun", unit: mm, scope: asm://door, export: true, description: "Door guard depth: wraps the tray and ends 2 mm past the tray walls"}
+  door-guard-offset:   {expr: "door-skin-thickness + guard-gap + door-guard-thickness", unit: mm, scope: asm://door, export: true, description: "Door guard base sits this far in front of the plug face"}
+  door-guard-vent-v:   {value: -31, unit: mm, scope: asm://door, description: "Vent slot position in the door guard's top and bottom walls (tray coordinates: over the air gap)"}
   # door frame (door.py): the hinges and the latch are placed from the door's own sizes; the door
   # hangs on the hinge post by its hinge joints (ports), so no kiln position is read here (DEC-019)
-  hinge-pin-past-guard: {value: 2, unit: mm, description: "Hinge pin axis sits this far behind the door guard's wall ends (door frame)"}
-  hinge-pin-depth:     {expr: "door-guard-depth - door-guard-offset + hinge-pin-past-guard", unit: mm, description: "Hinge pin axis behind the door's plug face (door frame)"}
-  hinge-length:        {value: 60, unit: mm, description: "Weld-on hinge length (part hinge, McMaster 1635A21; modelled as a square block)"}
-  latch-length:        {value: 60, unit: mm, description: "Draw latch body length along the door's depth (part latch, modelled as a block)"}
-  latch-width:         {value: 15, unit: mm, description: "Draw latch body width, out from the door guard's right wall (part latch, modelled as a block)"}
-  latch-height:        {value: 25, unit: mm, description: "Draw latch body height (part latch, modelled as a block)"}
-  latch-setback:       {value: 10, unit: mm, description: "Latch body's rear end sits this far in front of the door guard's wall ends (door frame)"}
-  door-standoff-inset: {value: 120, unit: mm, description: "Door standoffs sit this far in from the tray edges (outside the plug)"}
-  door-standoff-spacing-x: {expr: "door-width - 2 * door-standoff-inset", unit: mm, description: "Door standoff pitch (X), outside the plug"}
-  door-standoff-spacing-z: {expr: "door-height - 2 * door-standoff-inset", unit: mm, description: "Door standoff pitch (Z)"}
+  hinge-pin-past-guard: {value: 2, unit: mm, scope: asm://door, description: "Hinge pin axis sits this far behind the door guard's wall ends (door frame)"}
+  hinge-pin-depth:     {expr: "door-guard-depth - door-guard-offset + hinge-pin-past-guard", unit: mm, scope: asm://door, export: true, description: "Hinge pin axis behind the door's plug face (door frame)"}
+  hinge-length:        {value: 60, unit: mm, scope: asm://door, description: "Weld-on hinge length (part hinge, McMaster 1635A21; modelled as a square block)"}
+  latch-length:        {value: 60, unit: mm, scope: asm://door, description: "Draw latch body length along the door's depth (part latch, modelled as a block)"}
+  latch-width:         {value: 15, unit: mm, scope: asm://door, description: "Draw latch body width, out from the door guard's right wall (part latch, modelled as a block)"}
+  latch-height:        {value: 25, unit: mm, scope: asm://door, description: "Draw latch body height (part latch, modelled as a block)"}
+  latch-setback:       {value: 10, unit: mm, scope: asm://door, description: "Latch body's rear end sits this far in front of the door guard's wall ends (door frame)"}
+  door-standoff-inset: {value: 120, unit: mm, scope: asm://door, description: "Door standoffs sit this far in from the tray edges (outside the plug)"}
+  door-standoff-spacing-x: {expr: "door-width - 2 * door-standoff-inset", unit: mm, scope: asm://door, description: "Door standoff pitch (X), outside the plug"}
+  door-standoff-spacing-z: {expr: "door-height - 2 * door-standoff-inset", unit: mm, scope: asm://door, description: "Door standoff pitch (Z)"}
   door-swing:          {value: 110, unit: degree, description: "Door opening angle (hinge on the left)"}
   door-clearance:      {value: 300, unit: mm, description: "Space beside the hinge side for the door at full swing: door width × |cos 110°| ≈ 240 mm plus hand room [verify]"}
   swing-clearance-min: {value: 3, unit: mm, description: "Minimum clearance between the plug's latch-side corner and the opening during the swing (REQ-020)"}
@@ -111,8 +114,8 @@ parameters:
   hinge-post-thickness: {value: 3, unit: mm, description: "Hinge post angle thickness"}
   hinge-post-leg:      {value: 40, unit: mm, description: "Hinge post leg against the guard wall"}
   hinge-post-bolt-spacing: {value: 140, unit: mm, description: "Pitch of the four M6 bolts holding the hinge post to the guard"}
-  hinge-barrel:        {value: 12, unit: mm, description: "Weld-on hinge barrel diameter (modelled as a square proxy)"}
-  hinge-pin-x:         {expr: "(0 - 1) * (door-guard-width / 2 + door-guard-thickness + hinge-barrel / 2)", unit: mm, description: "Hinge pin axis, X (just outside the door guard's left wall)"}
+  hinge-barrel:        {value: 12, unit: mm, scope: asm://door, description: "Weld-on hinge barrel diameter (modelled as a square proxy)"}
+  hinge-pin-x:         {expr: "(0 - 1) * (door-guard-width / 2 + door-guard-thickness + hinge-barrel / 2)", unit: mm, scope: asm://door, description: "Hinge pin axis, X (just outside the door guard's left wall)"}
   hinge-pin-y:         {expr: "hinge-post-y - hinge-pin-setback", unit: mm, description: "Hinge pin axis, Y from the guard lip plane (between the door guard's wall end and the post web)"}
   hinge-spacing:       {value: 400, unit: mm, description: "Vertical distance between the two hinges"}
   # --- element ---
@@ -129,15 +132,16 @@ parameters:
   element-pitch-factor-min: {value: 2, unit: "", description: "Coil pitch at least this many wire diameters when stretched into the grooves"}
   heat-up-time:        {value: 7, unit: hour, description: "Time to reach max-temperature from cold (DEC-004)"}
   # --- controller box ---
-  controller-box-width:  {value: 260, unit: mm, description: "Controller enclosure (X)"}
-  controller-box-depth:  {value: 120, unit: mm, description: "Controller enclosure (Y)"}
-  controller-box-height: {value: 160, unit: mm, description: "Controller enclosure (Z)"}
-  controller-sheet:      {value: 1.0, unit: mm, description: "Controller enclosure sheet"}
-  controller-cutout:     {value: 45, unit: mm, description: "Panel cutout for 48 × 48 DIN instruments (45 +0.6/0)"}
+  # the box's own sizes are scoped to the controls (P5); the joint with the guard carries the rest
+  controller-box-width:  {value: 260, unit: mm, scope: asm://controls, description: "Controller enclosure (X)"}
+  controller-box-depth:  {value: 120, unit: mm, scope: asm://controls, description: "Controller enclosure (Y)"}
+  controller-box-height: {value: 160, unit: mm, scope: asm://controls, description: "Controller enclosure (Z)"}
+  controller-sheet:      {value: 1.0, unit: mm, scope: asm://controls, description: "Controller enclosure sheet"}
+  controller-cutout:     {value: 45, unit: mm, scope: asm://controls, description: "Panel cutout for 48 × 48 DIN instruments (45 +0.6/0)"}
   controller-standoff:   {value: 40, unit: mm, description: "Air gap between the guard and the controller box"}
   controller-mount-spacing-y: {value: 60, unit: mm, description: "Controller mount pitch along the depth"}
   controller-mount-spacing-z: {value: 100, unit: mm, description: "Controller mount pitch up the wall"}
-  gland-hole:            {value: 20.5, unit: mm, description: "M20 cable gland clearance"}
+  gland-hole:            {value: 20.5, unit: mm, scope: asm://controls, description: "M20 cable gland clearance"}
   footprint-limit:       {value: 1000, unit: mm, description: "Alcove width available including the controller box (DEC-011)"}
   over-temperature-limit: {value: 1250, unit: degC, description: "Independent limit device trips here, below the lining's 1260 degC class (REQ-018)"}
   # --- stand ---

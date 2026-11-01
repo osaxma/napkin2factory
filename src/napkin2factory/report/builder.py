@@ -265,6 +265,44 @@ def _build_steps(
     return steps
 
 
+def _by_module(
+    checks: dict[str, Any], other_rows: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    """The check matrix grouped by module (P12), when the product has two units or more.
+
+    Returns the module overview (title and counts per module, build order, the whole product
+    last), the findings in groups (one untitled group when there is a single module), and the
+    rules × parts matrix with its parts ordered by module plus ``groups`` for a header row.
+    """
+    matrix = checks.get("matrix", {})
+    rules = dict(matrix.get("rules", {"parts": [], "rules": {}, "cells": {}}))
+    groups = list(matrix.get("modules", []))
+    if sum(1 for g in groups if g["id"] is not None) < 2:  # one unit: the matrix as before
+        return [], [{"title": "", "rows": other_rows}], {**rules, "groups": []}
+    order = {g["id"]: i for i, g in enumerate(groups)}
+    other_groups = [
+        {"title": g["title"], "rows": [r for r in other_rows if r.get("module") == g["id"]]}
+        for g in groups
+    ]
+    part_module: dict[str, Any] = {}
+    for r in checks.get("results", []):
+        if r.get("kind") == "rule" and str(r.get("subject", "")).startswith("part://"):
+            part_module[str(r["subject"]).removeprefix("part://")] = r.get("module")
+    parts = sorted(rules.get("parts", []), key=lambda p: (order.get(part_module.get(p), 99), p))
+    header: list[dict[str, Any]] = []
+    for p in parts:
+        title = next((g["title"] for g in groups if g["id"] == part_module.get(p)), "")
+        if header and header[-1]["title"] == title:
+            header[-1]["span"] += 1
+        else:
+            header.append({"title": title, "span": 1})
+    return (
+        groups,
+        [g for g in other_groups if g["rows"]],
+        {**rules, "parts": parts, "groups": header},
+    )
+
+
 def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, Any]:
     """Collect everything the template needs from ``build/`` and the model."""
     from napkin2factory.bom.rollups import top_assemblies
@@ -419,6 +457,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     ]
     rule_results = [r for r in checks.get("results", []) if r["kind"] != "requirement"]
     rule_summary = {k: sum(1 for r in rule_results if r["status"] == k) for k in SUMMARY_KEYS}
+    module_groups, other_groups, rule_matrix = _by_module(checks, other_rows)
 
     docs = []
     safety_docs = []
@@ -560,9 +599,9 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "safety_reqs": safety_reqs,
         "other_rows": other_rows,
         "rule_summary": rule_summary,
-        "rule_matrix": checks.get("matrix", {}).get(
-            "rules", {"parts": [], "rules": {}, "cells": {}}
-        ),
+        "rule_matrix": rule_matrix,
+        "module_groups": module_groups,
+        "other_groups": other_groups,
         "interfaces": interfaces,
         "build_steps": build_steps,
         "params": params,

@@ -13,6 +13,7 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -112,6 +113,77 @@ def test_kiln_interfaces_meet_and_a_moved_box_fails(kiln: tuple[Path, float]) ->
     assert rep.status == "fail"
     assert "part://guard-shell#1 and part://controller-box#1" in rep.message
     assert "10.0 mm apart" in rep.message
+
+
+#: The door's working context (P6, S-114): the key set an agent's tools may rely on.
+DOOR_CONTEXT_KEYS = {
+    "": [
+        "assemblies", "build", "commands", "files", "inside", "joints_inside", "module",
+        "name", "parameters", "parts", "ports", "requirements", "shared_parts",
+        "sub_assemblies", "title", "why",
+    ],
+    "parameters": ["built", "note", "outside", "own"],
+    "parameters.own": ["description", "export", "expr", "param", "unit", "value"],
+    "parameters.outside": ["export", "param", "read_by", "scope", "value"],
+    "parts": ["file", "geometry", "id", "kind", "name", "qty", "yaml"],
+    "ports": [
+        "closes_in", "description", "file", "hardware", "iface", "kind", "offset", "parties",
+    ],
+    "ports.parties": ["frame", "home", "inside", "name", "part"],
+    "requirements": [
+        "allocated", "checked_here", "id", "safety", "statement", "target", "title", "verify",
+    ],
+    "commands": ["build", "check"],
+}  # fmt: skip
+
+
+def _keys(data: dict[str, Any]) -> dict[str, list[str]]:
+    out = {"": sorted(data)}
+    for path in DOOR_CONTEXT_KEYS:
+        if not path:
+            continue
+        cur: Any = data
+        for part in path.split("."):
+            cur = cur[part] if isinstance(cur, dict) else cur[0][part]
+        out[path] = sorted(cur if isinstance(cur, dict) else cur[0])
+    return out
+
+
+def test_kiln_modules_stay_within_reach_and_check_alone(kiln: tuple[Path, float]) -> None:
+    """DoD 3, 5 (P5, P6, P12, S-114): no read across units; the door checks and reads alone."""
+    root, _ = kiln
+    data = json.loads((root / "build/checks/checks.json").read_text())
+    reach = {r["id"]: r["status"] for r in data["results"] if r["kind"] == "reach"}
+    assert reach == dict.fromkeys(("reach://controls", "reach://door", "reach://kiln"), "pass")
+    assert [g["id"] for g in data["matrix"]["modules"]] == ["controls", "door", "kiln", None]
+    before = (root / "build/checks/checks.json").read_bytes()
+    scoped = n2f("check", "--scope", "asm://door", "--json", cwd=root)
+    assert scoped.returncode == 0, scoped.stderr
+    door = json.loads(scoped.stdout)
+    assert door["summary"]["fail"] == 0 and door["scope"] == "asm://door"
+    assert {"iface://door-guard-standoff", "hardware://door", "reach://door"} <= {
+        r["id"] for r in door["results"]
+    }
+    assert (root / "build/checks/checks.json").read_bytes() == before
+    res = n2f("context", "asm://door", "--json", cwd=root)
+    assert res.returncode == 0, res.stderr
+    ctx = json.loads(res.stdout)
+    assert _keys(ctx) == DOOR_CONTEXT_KEYS
+    assert [p["iface"] for p in ctx["ports"]] == [
+        "iface://hinge-lower",
+        "iface://hinge-upper",
+        "iface://latch-catch",
+    ]
+    exported = {p["param"] for p in ctx["parameters"]["own"] if p["export"]}
+    assert exported == {
+        "door-guard-width",
+        "door-guard-depth",
+        "door-guard-offset",
+        "hinge-pin-depth",
+    }
+    assert ctx["parameters"]["built"] and "hinge-spacing" in {
+        p["param"] for p in ctx["parameters"]["outside"]
+    }
 
 
 def test_kiln_golden_props(kiln: tuple[Path, float]) -> None:

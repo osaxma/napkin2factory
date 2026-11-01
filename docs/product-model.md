@@ -31,6 +31,13 @@ an allocation, and `safety: true` requirements need verify.
 **parameters.yaml** — `parameters: {slug: {value, unit, description} | {expr, unit}}`.
 Expressions are arithmetic over other parameter slugs (write `a - b` with spaces, since
 slugs contain hyphens) plus `min/max/abs/sqrt/ceil/floor/round`.
+Optional (P5, S-114): `scope: asm://<id>` makes the parameter a size of that module (a
+sub-assembly built as a unit, or the top; a phantom owns none), and `export: true` lets the
+module's parents read it. Unscoped parameters are the whole product's, as before. A part or
+assembly rule may read its own module's parameters, its ancestors' and unscoped ones, and a
+descendant's only when exported; siblings never read each other's. Reads made while resolving
+an interface (frames, offset, spec) are the joint's and exempt; doc, BOM, drawing, calc and
+check rules are exempt. Out-of-reach reads are `reach://` rows in `n2f check` (`warn`).
 
 **parts/<id>.yaml** — `id, rev, name, kind: custom|cots|reference (owner-supplied or existing, not quoted), process, material: {name, spec,
 density?}, finish, tolerance_class: ISO2768-f|m|c|v (custom only), geometry: {kit, args} |

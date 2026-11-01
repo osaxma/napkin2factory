@@ -60,13 +60,23 @@ def check(
     dir: Path | None = DirOption,
     format: str = typer.Option("table", "--format", "-f", help="table | json | md"),
     all_rows: bool = typer.Option(False, "--all", help="Show passing rule-pack rows too."),
+    scope: str | None = typer.Option(
+        None,
+        "--scope",
+        help="Check one module only, e.g. asm://door (written to build/checks/scope/<id>/).",
+    ),
     json_out: bool = JsonOption,
 ) -> None:
     """Check every requirement and rule, and show what needs attention."""
     root = product_root(dir)
     warn_if_pin_excludes(root, json_out or format == "json")
     product = load_product(root)
-    data = _ensure_checks(product)
+    if scope is not None:
+        from napkin2factory.cli.check_scope import scoped_checks
+
+        data = scoped_checks(product, scope)
+    else:
+        data = _ensure_checks(product)
     if json_out or format == "json":
         emit_json(data)
     elif format == "md":
@@ -78,7 +88,17 @@ def check(
 
 
 def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ignore[type-arg]
-    """Rich table of the check matrix; the owner reads URIs without their ``scheme://``."""
+    """Rich table of the check matrix; the owner reads URIs without their ``scheme://``.
+
+    With more than one module (P12) the second table says which module each row belongs to;
+    a module's own checks (``--scope``) say which module they are.
+    """
+    if data.get("scope"):
+        where = escape(display_uri(data["scope"], persona))
+        console.print(f"[bold]Checks of one module: {where}[/bold]")
+    groups = data["matrix"].get("modules", [])
+    titles = {g["id"]: g["title"] for g in groups}
+    by_module = sum(1 for g in groups if g["id"] is not None) > 1  # two units or more
     t = Table(title="Requirements", show_lines=False)
     t.add_column("id")
     t.add_column("title")
@@ -110,12 +130,17 @@ def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ign
             title="Rules, interfaces, assemblies, documents, sourcing"
             + ("" if all_rows else " (non-passing)")
         )
+        if by_module:
+            t2.add_column("module")
+            order = {g["id"]: i for i, g in enumerate(groups)}
+            others.sort(key=lambda r: order.get(r.get("module"), len(order)))
         t2.add_column("check")
         t2.add_column("subject")
         t2.add_column("status")
         t2.add_column("detail")
         for r in others:
             t2.add_row(
+                *([escape(titles.get(r.get("module"), ""))] if by_module else []),
                 escape(display_uri(r["id"], persona)),
                 escape(display_uri(r["subject"], persona)),
                 f"[{STATUS_STYLE[r['status']]}]{_word(r['status'], persona)}[/]",

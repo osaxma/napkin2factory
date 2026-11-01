@@ -122,7 +122,9 @@ def make_part_run(part_id: str) -> Any:
         built = build_part(ctx.product, part_id, ctx.build_dir, render=ctx.render)
         ctx.built_parts[part_id] = built
         outputs = sorted(p for p in built.out_dir.rglob("*") if p.is_file())
-        return _result(built.reads, outputs, part_output_hash(built.out_dir), built)
+        res = _result(built.reads, outputs, part_output_hash(built.out_dir), built)
+        res.iface_reads = list(built.iface_reads)
+        return res
 
     return run
 
@@ -158,9 +160,11 @@ def make_asm_run(asm_id: str) -> Any:
         props = dict(built.props)
         props.pop("reads", None)
         placements = sha256_file(built.out_dir / "instances.json")
-        return _result(
+        res = _result(
             built.reads, outputs, sha256_json({"props": props, "placements": placements}), built
         )
+        res.iface_reads = list(built.iface_reads)
+        return res
 
     return run
 
