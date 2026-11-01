@@ -28,6 +28,8 @@ from napkin2factory.core.model.parts import ModuleGeometry
 if TYPE_CHECKING:
     from napkin2factory.core.errors import Problems
     from napkin2factory.core.loader import Product
+    from napkin2factory.core.model.interfaces import Interface
+    from napkin2factory.core.tree import AssemblyTree
 
 
 def _asm_geometry(v: Any) -> Any:
@@ -119,7 +121,7 @@ class Assembly(Model):
     ``build`` and ``driver`` (P7) say how a sub-assembly is built and why: a ``unit`` is a
     step of the build plan of its own, a ``phantom`` only groups lines and folds into its
     parent's step, an ``external`` one is a stub for work done elsewhere (F11): supplied,
-    not built here, with its ``ports:`` and no children (:func:`validate_refs`).  The top
+    not built here, with its ``ports:`` and no children (:func:`_validate_stubs`).  The top
     assembly is always built and needs neither.
     """
 
@@ -151,7 +153,7 @@ def _fix(aid: str) -> str:
     return f"model/assemblies/{aid}.yaml"
 
 
-def validate_refs(product: Product, problems: Problems) -> set[str]:
+def _validate_stubs(product: Product, problems: Problems) -> set[str]:
     """Check every external stub and every ``external`` scope entry (F11); return the stubs.
 
     A stub (``build: external``) is a sub-assembly with no children and at least one port.
@@ -159,7 +161,7 @@ def validate_refs(product: Product, problems: Problems) -> set[str]:
     inside it, since it holds no parts: each listed interface joins the stub to a part
     outside it, and every interface naming the stub is listed.  A domain whose scope is
     ``external`` needs a stub (the one its ``stub:`` names, else any): the error names
-    the file to add or fix.  Interfaces naming a stub are left out of the loader's own
+    the file to add or fix.  Interfaces naming a stub are left out of the general
     port rules, which this replaces for them.
     """
     from napkin2factory.core.tree import AssemblyTree
@@ -284,3 +286,141 @@ def _validate_external_scope(product: Product, problems: Problems, stubs: set[st
                 "and name it here as `stub: asm://<id>`",
                 rule="external",
             )
+
+
+def validate_refs(product: Product, problems: Problems) -> None:
+    """Geometry modules exist, the tree is acyclic, stubs and ports are right (F15, P4).
+
+    The checks run in the order they were written in the loader before the split (S-131),
+    so ``n2f validate`` lists problems as it did.
+    """
+    from napkin2factory.core.uris import slug_to_module
+
+    paths = product.paths
+    for asm in product.assemblies.values():
+        ag = asm.geometry
+        if isinstance(ag, ModuleGeometry):
+            mod = paths.model / ag.module
+            if not mod.is_file():
+                problems.add(
+                    product.files[asm.uri],
+                    asm.uri,
+                    f"geometry module {ag.module} not found",
+                    f"create model/{ag.module} exposing build(P, I, parts)",
+                    rule="geometry",
+                )
+        expected = paths.geometry / f"{slug_to_module(asm.id)}.py"
+        if ag == "none" and expected.is_file():
+            problems.add(
+                product.files[asm.uri],
+                asm.uri,
+                f"{expected.name} exists but geometry is 'none'",
+                "set geometry: {module: geometry/%s}" % expected.name,
+                severity="warn",
+                rule="geometry",
+            )
+    for asm in product.assemblies.values():
+        _check_asm_cycle(product, asm, (), problems)
+    _validate_ports(product, problems)
+
+
+def _check_asm_cycle(
+    product: Product, asm: Assembly, stack: tuple[str, ...], problems: Problems
+) -> None:
+    if asm.id in stack:
+        problems.add(
+            product.files[asm.uri],
+            asm.uri,
+            f"assembly cycle: {' -> '.join((*stack, asm.id))}",
+            "an assembly cannot contain itself",
+            rule="assembly",
+        )
+        return
+    for child in asm.children:
+        if child.asm is not None and child.asm.id in product.assemblies:
+            _check_asm_cycle(product, product.assemblies[child.asm.id], (*stack, asm.id), problems)
+
+
+def _validate_ports(product: Product, problems: Problems) -> None:
+    """Interfaces join parts; a joint crossing a sub-assembly is one of its ports (P4).
+
+    An ``asm://`` party is refused (closes B-0005): the holes live on the part that carries
+    them, and the assembly lists the joint under ``ports:``.  For a joint between two parts
+    with different homes (P5), every assembly from each home up to, not including, the
+    lowest assembly containing both must list it; listing a joint that does not cross the
+    assembly's boundary is an error too.  Skipped when an assembly file did not load, since
+    the tree would be incomplete (cascade suppression, S-009).
+    """
+    from napkin2factory.core.tree import AssemblyTree
+
+    # F11, S-124: a stub for work done elsewhere has ports, no parts; its own rules check it
+    stubs = _validate_stubs(product, problems)
+    refused: set[str] = set()  # interfaces with an asm:// party: their port rules wait (C1)
+    for iface in product.interfaces.values():
+        for party in iface.parties:
+            if party.scheme == "asm" and party.id not in stubs:
+                refused.add(iface.uri)
+                problems.add(
+                    product.files[iface.uri],
+                    iface.uri,
+                    f"names {party} as a party, but an interface joins two parts",
+                    f"name the part inside {party} that carries the joint, and list "
+                    f"{iface.uri} under `ports:` in model/assemblies/{party.id}.yaml",
+                    rule="port",
+                )
+    if any(u.startswith("asm://") for u in product.broken):
+        return
+    tree = AssemblyTree(product.assemblies)
+    needed: dict[str, dict[str, tuple[str, str]]] = {}  # asm id -> iface uri -> (in, out)
+    for iface in product.interfaces.values():
+        a, b = (str(p) for p in iface.parties)
+        if not (a.startswith("part://") and b.startswith("part://")):
+            continue
+        for aid in tree.port_crossings(a, b):
+            a_in = tree.home(a) in tree.below(aid)
+            needed.setdefault(aid, {})[iface.uri] = (a, b) if a_in else (b, a)
+    for aid, asm in sorted(product.assemblies.items()):
+        if aid in stubs:
+            continue
+        file = product.files[asm.uri]
+        listed = {str(u) for u in asm.ports}
+        for iuri, (inside, outside) in sorted(needed.get(aid, {}).items()):
+            if iuri not in listed:
+                problems.add(
+                    file,
+                    asm.uri,
+                    f"{iuri} joins {inside}, inside this assembly, to {outside}, outside it, "
+                    "but is not listed under `ports:`",
+                    f"add {iuri} to `ports:` in model/assemblies/{aid}.yaml: a joint that "
+                    "crosses an assembly's boundary is one of its ports",
+                    rule="port",
+                )
+        for iuri in sorted(listed - set(needed.get(aid, {}))):
+            iid = iuri.removeprefix("iface://")
+            if iid not in product.interfaces:
+                continue  # the unresolved reference is already reported
+            if iuri in refused:
+                # gate C, C1: the party error already says to list it here; "remove it"
+                # would contradict it in the same run (S-117)
+                continue
+            problems.add(
+                file,
+                asm.uri,
+                f"lists {iuri} under `ports:`, but that joint does not cross this assembly's "
+                f"boundary ({_port_where(tree, aid, product.interfaces[iid])})",
+                f"remove {iuri} from `ports:` in model/assemblies/{aid}.yaml",
+                rule="port",
+            )
+
+
+def _port_where(tree: AssemblyTree, aid: str, iface: Interface) -> str:
+    """Why a listed port is not one: in plain words, where its parties are."""
+    a, b = (str(p) for p in iface.parties)
+    if not (a.startswith("part://") and b.startswith("part://")):
+        return "it does not join two parts"
+    inside = [p for p in (a, b) if p in tree.parts_under(aid)]
+    if len(inside) == 2:
+        return "both parts are inside it"
+    if not inside:
+        return "neither part is inside it"
+    return f"{inside[0]} is also used outside it"

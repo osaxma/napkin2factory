@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import (
     ConfigDict,
@@ -25,6 +25,10 @@ from napkin2factory.core.model.base import (
     Slug,
     table_check,
 )
+
+if TYPE_CHECKING:
+    from napkin2factory.core.errors import Problems
+    from napkin2factory.core.loader import Product
 
 
 class FrameExpr(Model):
@@ -351,3 +355,47 @@ class Interface(Model):
     def uri(self) -> str:
         """``iface://<id>``."""
         return f"iface://{self.id}"
+
+
+def validate_refs(product: Product, problems: Problems) -> None:
+    """Parts and interfaces agree about each other; a bolt pattern's fastener is a part (F15).
+
+    A part listing an interface must be one of its parties, and an interface naming a part
+    as a party must be listed by that part.  Frame expressions are checked with the
+    parameters they read (:func:`napkin2factory.core.model.parameters.validate_refs`).
+    """
+    for part in product.parts.values():
+        for iu in part.interfaces:
+            iface = product.interfaces.get(iu.id)
+            if iface and all(pp.id != part.id for pp in iface.parties):
+                problems.add(
+                    product.files[part.uri],
+                    part.uri,
+                    f"lists {iu} but that interface's parties are "
+                    f"{[str(p) for p in iface.parties]}",
+                    f"add part://{part.id} to the interface's parties or remove it here",
+                    rule="interface",
+                )
+    for iface in product.interfaces.values():
+        for party in iface.parties:
+            if party.scheme == "part":
+                party_part = product.parts.get(party.id)
+                if party_part and all(i.id != iface.id for i in party_part.interfaces):
+                    problems.add(
+                        product.files[iface.uri],
+                        iface.uri,
+                        f"names {party} as a party but that part does not list iface://{iface.id}",
+                        f"add iface://{iface.id} to the part's `interfaces:`",
+                        rule="interface",
+                    )
+        if iface.kind == "bolt-pattern":
+            spec = iface.spec
+            fastener = getattr(spec, "fastener", None)
+            if fastener is not None and fastener.id not in product.parts:
+                problems.add(
+                    product.files[iface.uri],
+                    iface.uri,
+                    f"fastener {fastener} is not a part",
+                    "add the fastener as a COTS part",
+                    rule="interface",
+                )
