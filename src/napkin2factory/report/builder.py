@@ -45,6 +45,7 @@ SECTIONS: tuple[tuple[str, str, str], ...] = (
     ("drawings", "Drawings", "Product"),
     ("interfaces", "Interfaces", "Product"),
     ("build", "Build plan", "Product"),
+    ("joints", "Joints between units", "Product"),
     ("requirements", "Requirements", "Verification"),
     ("rules", "Rule checks", "Verification"),
     ("signoffs", "Sign-offs", "Verification"),
@@ -132,6 +133,9 @@ def report_reads(ctx: RunContext) -> list[str]:
     reads.append(STYLE_LOOK_KEY)  # the palette the viewer paints parts with
     # P8: the build plan section and each unit's assembly sheet
     reads += ["bom://build-plan#order", "bom://build-plan#units"]
+    # P13: the joints between units, and the decisions that note them (a merge candidate)
+    reads.append("bom://build-plan#between_units")
+    reads += [f"dec://{d}#links" for d in product.decisions]
     from napkin2factory.core.build_units import BuildUnits
 
     reads += [f"rule:asmsheet:{a}" for a in BuildUnits(product).order()]
@@ -263,6 +267,37 @@ def _build_steps(
         step["check_summary"] = " · ".join(f"{n} {words.get(k, k)}" for k, n in counts.items() if n)
         steps.append(step)
     return steps
+
+
+def _between_units(
+    build_dir: Path, product: Product, results: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Every joint between units (P13) from the build plan, with its check's verdict.
+
+    The verdict is the interface's own row (the hole pattern or mating face, then where the
+    parts meet once placed, P3); the review notes are the product's decisions that link the
+    joint (a candidate to combine two parts is logged that way, P13).  No verdict is made here
+    on whether the two parts should be one: that is the verifier's judgment.
+    """
+    from napkin2factory.bom.build_plan import PLAN_FILE
+
+    plan = _read_json(build_dir / "bom" / PLAN_FILE) or {}
+    out = []
+    for j in plan.get("between_units", []):
+        r = results.get(j["interface"])
+        out.append(
+            {
+                **j,
+                "status": r["status"] if r else "skip",
+                "message": r.get("message", "") if r else "not checked yet",
+                "notes": [
+                    {"id": d.id, "uri": f"dec://{d.id}", "title": d.title}
+                    for d in product.decisions.values()
+                    if j["interface"] in {str(x) for x in d.links}
+                ],
+            }
+        )
+    return out
 
 
 def _by_module(
@@ -478,6 +513,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         (safety_docs if doc.meta.safety else docs).append(entry)
 
     build_steps = _build_steps(build_dir, results, VOCAB[persona])
+    between_units = _between_units(build_dir, product, results)
 
     interfaces = [
         {
@@ -604,6 +640,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "other_groups": other_groups,
         "interfaces": interfaces,
         "build_steps": build_steps,
+        "between_units": between_units,
         "params": params,
         "decisions": decisions,
         "ecrs": ecrs,

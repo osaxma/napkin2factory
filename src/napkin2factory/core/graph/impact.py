@@ -4,8 +4,8 @@ Given edits (from a change request or ``--set``), compute: rules whose recorded 
 intersect the edited keys, transitively through the DAG; requirements whose verify targets
 are affected, with hypothetical verdicts where they can be evaluated from declared values;
 parts touched (revision bumps implied); docs with affected reads; interfaces whose parties
-are affected; sign-offs that would be invalidated; and a cost delta from declared costs.
-Nothing in the model changes.
+are affected, and which of them are ports (a joint between modules, P4, P12); sign-offs that
+would be invalidated; and a cost delta from declared costs.  Nothing in the model changes.
 """
 
 from __future__ import annotations
@@ -56,6 +56,7 @@ class ImpactReport:
     kind: str = "parametric"
     tasks: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    ports: list[dict[str, Any]] = field(default_factory=list)  # P12: the ports it crosses
 
     def to_dict(self) -> dict[str, Any]:
         """JSON form."""
@@ -224,6 +225,7 @@ def compute_impact(
         or any(f"param://{u.id}" in affected_params for u in Uri_refs(i))
         or any(f"param://{s}" in affected_params for s in i.expression_slugs())
     )
+    ports = crossed_ports(product, interfaces)
     hyp = _hypothetical_params(product, overrides) if affected_params else {}
     reqs: list[ReqImpact] = []
     for r in product.requirements.values():
@@ -274,7 +276,49 @@ def compute_impact(
         kind=kind,
         tasks=list(tasks or []),
         notes=notes,
+        ports=ports,
     )
+
+
+def crossed_ports(product: Product, iface_ids: list[str]) -> list[dict[str, Any]]:
+    """The ports among ``iface_ids`` (P12): joints some assembly lists under ``ports:``.
+
+    Each names the modules listing it and, per party, the build unit it is built into;
+    ``between_units`` is true when the two sides are built in different units, so a change
+    there is an interface change touching both.
+    """
+    from napkin2factory.core.build_units import BuildUnits
+
+    listed: dict[str, list[str]] = {}
+    for a in product.assemblies.values():
+        for u in a.ports:
+            listed.setdefault(u.id, []).append(a.uri)
+    if not listed:
+        return []
+    units = BuildUnits(product)
+    out = []
+    for iid in iface_ids:
+        if iid not in listed:
+            continue
+        sides = []
+        for party in product.interfaces[iid].parties:
+            uid = units.unit_of(units.tree.home(str(party)))
+            sides.append(
+                {
+                    "part": str(party),
+                    "unit": f"asm://{uid}" if uid else None,
+                    "unit_name": product.assemblies[uid].name if uid else None,
+                }
+            )
+        out.append(
+            {
+                "interface": f"iface://{iid}",
+                "port_of": sorted(listed[iid]),
+                "sides": sides,
+                "between_units": len({s["unit"] for s in sides}) > 1,
+            }
+        )
+    return out
 
 
 def Uri_base(key: str) -> str:  # noqa: N802 - reads like the Uri API
@@ -512,6 +556,17 @@ def summarize(report: ImpactReport, product: Product) -> str:
         lines.append(
             f"- {len(report.interfaces)} interface(s) to re-verify: "
             + ", ".join(f"`{i}`" for i in report.interfaces)
+        )
+    between = [p for p in report.ports if p["between_units"]]
+    if between:
+        lines.append(
+            f"- {len(between)} joint(s) between units, so both sides are checked again: "
+            + "; ".join(
+                f"`{display_uri(p['interface'], persona)}` ("
+                + " and ".join(s["unit_name"] or "no unit" for s in p["sides"])
+                + ")"
+                for p in between
+            )
         )
     if "bom" in report.rules:
         lines.append("- the bill of materials")

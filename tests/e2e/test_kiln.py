@@ -212,6 +212,39 @@ def test_kiln_report_budget(kiln: tuple[Path, float]) -> None:
     assert size <= 20 * 1024 * 1024, f"report is {size / 1e6:.1f} MB (D13 budget 20 MB)"
 
 
+def test_kiln_report_lists_the_joints_between_units(kiln: tuple[Path, float]) -> None:
+    """P13 (M6): the four ports, each with its units, parts, kind, hardware and verdict."""
+    import re
+
+    from selectolax.lexbor import LexborHTMLParser
+
+    root, _ = kiln
+    html = (root / "build/report/index.html").read_text(encoding="utf-8")
+    assert not re.search(r"\b(?:src|href)\s*=\s*['\"]?(?:https?:)?//", html)  # D13
+    section = LexborHTMLParser(html).css_first("#joints")
+    assert section is not None
+    rows = {r.attributes["id"]: r for r in section.css("tbody tr")}
+    assert set(rows) == {
+        "joint-controller-mount",
+        "joint-hinge-lower",
+        "joint-hinge-upper",
+        "joint-latch-catch",
+    }
+    for rid, row in rows.items():
+        text = " ".join(row.text().split())
+        unit = "Controls" if rid == "joint-controller-mount" else "Door"
+        assert f"Mini electric test kiln and {unit}" in text, text
+        assert row.css_first(".badge.pass") is not None, text  # placed, the parts meet
+        assert "meet in asm://kiln" in text, text
+        assert "DEC-019" in text, text  # the decision that made the door and controls units
+    mount = " ".join(rows["joint-controller-mount"].text().split())
+    assert "bolted, 4 holes" in mount
+    assert "4 × M6 female-female hex standoff, 40 mm" in mount and "8 × M6 x 16" in mount
+    hinge = " ".join(rows["joint-hinge-lower"].text().split())
+    assert "Hinge post (steel angle)" in hinge and "faces that meet (welded" in hinge
+    assert "none" in hinge  # no loose hardware on a welded hinge
+
+
 @pytest.mark.timing
 @pytest.mark.skipif(not TIMING, reason="timing assertions run only under N2F_TIMING=1 (D30)")
 def test_kiln_clean_build_under_ten_minutes(kiln: tuple[Path, float]) -> None:

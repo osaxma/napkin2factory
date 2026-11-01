@@ -144,6 +144,9 @@ in two places.
 Every material, thickness, process or sizing choice is a `DEC-xxx` with `links:` to the
 requirements and parameters it affects and `sources:` for any number taken from a
 datasheet or standard. Numbers you could not confirm get `verify: true`.
+A candidate to combine two parts, from the verifier's review of a joint between units, is
+logged the same way when you or the owner take it up: `links:` to the joint (`iface://…`)
+and both parts, so the report shows it beside that joint.
 
 ## Calcs
 `model/calcs/<topic>.py` functions take `P` (and optionally `I`) and return pint

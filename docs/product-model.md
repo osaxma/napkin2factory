@@ -80,7 +80,8 @@ step and needs neither field. The `bom` rule derives the plan from the tree,
 `build/bom/build-plan.json`: one step per unit, children first, each with its items (numbered;
 the same numbers on the unit's assembly sheet and in `build_step()`), the joints it closes (an
 interface closes in the lowest assembly containing both parties' homes, folded up to its unit)
-with their hardware, and the ids of the checks that cover it. The plan is also a "Build plan"
+with their hardware and each party's unit (`sides`), and the ids of the checks that cover it;
+`between_units` lists the joints where two units meet (P13). The plan is also a "Build plan"
 sheet in `bom.xlsx`, a report section, and one A3 sheet per unit
 (`build/drawings/assemblies/<id>.svg`: the unit assembled and pulled apart, the item table, the
 joints). On a child line, `spare: "<reason>"` says why the line holds more joint hardware than

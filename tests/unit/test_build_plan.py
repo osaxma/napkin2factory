@@ -364,6 +364,15 @@ def test_report_build_plan_section(built: Path) -> None:
     assert "a joint between units" in text
     assert tree.css_first("#step-pod svg") is not None  # the sheet, inlined
     assert "Built on its own because it is built as one unit, tested as one unit." in text
+    # P13 (M6): the joints between units, each with its units, parts, hardware and verdict
+    joints = tree.css_first("#joints")
+    assert joints is not None and tree.css_first('nav a[data-sec="joints"]') is not None
+    (row,) = joints.css("tbody tr")
+    words = " ".join(row.text().split())
+    assert row.attributes["id"] == "joint-pod-mount"
+    assert "Top and Pod" in words and "fitted in step 2" in words and "bolted, 4 holes" in words
+    assert "4 × M6 standoff 25" in words and "8 × M6 x 16 bolt" in words
+    assert row.css_first(".badge") is not None
 
 
 def test_build_plan_is_rebuilt_when_hardware_changes(built: Path) -> None:
