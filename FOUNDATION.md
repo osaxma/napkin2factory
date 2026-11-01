@@ -33,17 +33,18 @@ what adding a step costs today (§0) and found that the seams the brief needs do
 - **Any model, any client, measured.** A seam is done when a fresh-context agent, given only the
   contract document, adds a domain without touching the core, and a test counts the files.
 
-### 0.2 What adding a step costs today (measured 2026-11-01 on `main` at 1e52083, S-107)
+### 0.2 What adding a step costs today (measured 2026-11-01 on `main` at 1e52083, S-107; re-read at a9bea31, S-119, after v0.4 closed)
 A new rule family, verify kind, check stage, report section and doc helper, which is what any
 domain brings, has to edit these:
 
 | seam | today | a new step edits |
 |---|---|---|
-| build rule families | one function, nine kinds in a fixed order, a fixed `--target` table | `core/graph/rules.py`, `core/graph/runs.py` |
+| build rule families | one function, ten kinds in a fixed order (v0.4 added `asmsheet`), a fixed `--target` table, `also_produces` per rule (S-117) | `core/graph/rules.py`, `core/graph/runs.py` |
 | verify kinds | an if/elif chain over nine kinds | `core/checks/evaluators.py` |
 | check stages (interference, interface, count, hardware) | called one by one | `core/checks/engine.py` |
 | pipeline stages | a fixed tuple: intake, design, verify, released | `core/checks/stage.py` |
-| report sections | a fixed tuple plus a template with 33 branches | `report/builder.py`, `report/templates/report.html.j2` |
+| report sections | a fixed tuple of 15 (v0.4 added the build plan and the joints between units) plus a template with 33 branches | `report/builder.py`, `report/templates/report.html.j2` |
+| a module's context (`n2f context`, v0.4 P6) | one function that knows parts, parameters, ports and requirements | `core/context.py` |
 | doc helpers | hardcoded names | `docs/engine.py` |
 | impact's static read set | per rule kind | `core/graph/impact.py` |
 | interface kinds, processes, style roles, finishes, requirement categories, verify kinds | closed `Literal`s | `core/model/*.py` |
@@ -62,15 +63,26 @@ Three more findings:
 - **The schema version is written and never read.** `n2f.yaml` carries `schema: 1`; every model
   forbids unknown fields (`core/model/base.py`). Strict is right, but it means every new field
   is a breaking change for every product folder, and there is no migration path (B-0042).
-- **Five files are where parallel agents will collide:** `concepts/promote.py` (1,299 lines),
-  `core/loader.py` (999), `concepts/screening.py` (866), `rulepacks/concept_checks.py` (710),
-  `geometry/build.py` (702). The loader holds every family's cross-reference validation, so
-  every new family edits it.
+- **Five files are where parallel agents will collide:** `concepts/promote.py` (1,299 lines at
+  S-107, 1,647 after v0.4's M5), `core/loader.py` (999, now 1,060), `concepts/screening.py` (866),
+  `rulepacks/concept_checks.py` (710), `geometry/build.py` (702, now 728). The loader holds every
+  family's cross-reference validation, so every new family edits it. v0.4 grew the first two by
+  a third in one release, which is the trend this plan stops.
+- **A sign-off recorded on one machine is void on another.** The first nightly `check-full` on
+  Linux (2026-11-01, run on S-105) failed `tests/e2e/test_kiln.py`: four kiln example sign-offs
+  read "evidence changed since signing". A part's evidence key (`core/checks/evidence.py`)
+  hashes its tessellation, and the kernel's mesher triangulates bent sheet differently on Linux
+  than on macOS. B-0073 holds it; it is fixed before M0 (§5), because every example sign-off
+  v0.5 touches would otherwise be re-keyed on one platform again.
 
 What is already right, and what this release builds on: one module per CLI verb, `--json` on
 every verb, recorded reads (D5), code hashes per package subtree (S-031), goldens with a
 regeneration log, product-local calcs in `model/calcs/`, the stage ladder computed from state
-(D10), decisions delegated and never deleted, and the task-worktree landing flow (S-097).
+(D10), decisions delegated and never deleted, the task-worktree landing flow (S-097), and from
+v0.4: ports and build units (P4, P7), scoped parameters and `n2f context` (P5, P6), checks per
+module (P12), valued reads for every output (S-117) and a fresh agent proven to change one
+module from its context alone (S-116). Scope as data (F11) and the toy domain's module view
+stand on those.
 
 The scope in one sentence: **v0.5 adds no owner-facing feature except scope and choices; it
 turns every hardcoded list a domain would edit into a registry behind one contract, and proves
@@ -141,8 +153,10 @@ The bracket, the enclosure and the kiln must build to the same outputs, plus the
    ports exists, and the error names the file. Requirements allocated to a `later` domain are
    excluded from the Verify gate with a visible note, never silently.
 6. **Choices.** A rule-pack check can return `choice`. The kiln has at least one real choice
-   produced by a rule (the bottom-corner fastening found by S-105: a through bolt or a threaded
-   standoff, each with its hardware count), `n2f status` lists it under "waiting on you",
+   produced by a rule. v0.4 already decided the bottom-corner fastening (DEC-021), so M5 picks
+   from what the kiln still leaves open with both options valid: DEC-022's bolt length against
+   the 25 mm standoffs (shorter bolts, or a standoff tapped right through), or B-0065's rivets.
+   `n2f status` lists it under "waiting on you",
    `n2f decide` resolves it into a `DEC-` entry, and the row reads `pass` with the decision
    afterwards. A changed evidence key reopens it, exactly like a sign-off (D25). The
    project-manager role names when to raise one. A scripted simulation (M7) shows the choice
@@ -155,7 +169,8 @@ The bracket, the enclosure and the kiln must build to the same outputs, plus the
    and is under 400 lines. `concepts/promote.py` is split into one seeder per family and
    `concepts/screening.py` into the screen runner plus the generic screens; none of the five
    files named in §0.2 exceeds 500 lines. Record the before and after in the decision entry.
-9. **Check time.** `make check` ≤ 10 min on the host; `make check-fast` (lint, types, the unit
+9. **Check time.** `make check` no slower than v0.4's close-out figure (10 min 8 s on the host,
+   S-119; 870 tests) after everything this release adds; `make check-fast` (lint, types, the unit
    and smoke tests, no end-to-end, no examples) exists, runs in ≤ 3 min, and is the default
    `make land` gate. Record both times.
 10. **Review gates.** Gate E (architecture and honesty: can a domain reach core state it should
@@ -180,17 +195,17 @@ The bracket, the enclosure and the kiln must build to the same outputs, plus the
 
 | # | Decision | Why |
 |---|---|---|
-| F1 | **One domain contract.** A domain is a package under `src/napkin2factory/domains/<name>/` exposing one object, `DOMAIN = Domain(...)`, that declares everything it brings: model families (`model/<name>/*.yaml`, their schemas and their `validate_refs`), build rule families (each with the families it runs after and the URI scheme it produces), verify kinds, check stages, gate rows, report sections, doc helpers, vocabulary words, interface kinds, processes, screens and calc packs. `core/registry.py` holds one registry per kind and `domains/__init__.py` lists the installed domains in order. The core never imports a domain by name. The contract is documented once, in `docs/domains.md`, with the toy domain as its worked example | A step is a folder. The core knows the contract, never the domain |
+| F1 | **One domain contract.** A domain is a package under `src/napkin2factory/domains/<name>/` exposing one object, `DOMAIN = Domain(...)`, that declares everything it brings: model families (`model/<name>/*.yaml`, their schemas and their `validate_refs`), build rule families (each with the families it runs after, the URI scheme it produces and what else it produces, S-117's `also_produces`), verify kinds, check stages, gate rows, report sections, doc helpers, vocabulary words, interface kinds, processes, screens, calc packs, and a *context contribution*: what the domain adds to `n2f context asm://<id>` for a module (v0.4 P6), so an agent working on the controls sees that unit's circuits beside its parts. `core/registry.py` holds one registry per kind and `domains/__init__.py` lists the installed domains in order. The core never imports a domain by name. The contract is documented once, in `docs/domains.md`, with the toy domain as its worked example | A step is a folder. The core knows the contract, never the domain |
 | F2 | **The mechanical code registers in place.** `geometry/`, `drawings/`, `bom/`, `docs/`, `report/` and `rulepacks/` stay where they are and register through the same contract from a thin `domains/mechanical/__init__.py`. No file moves in v0.5. The toy domain, not a rearranged mechanical package, is the proof | Moving files moves goldens and buys nothing; the registries are the seam |
 | F3 | **Registries replace lists.** `build_rules` walks the rule-family registry in dependency order instead of nine hardcoded blocks; `TARGET_KINDS` is derived from the families (the existing target names are kept as aliases). Verify kinds, check stages, gate rows, report sections, doc helpers and vocabulary are each a registry with a stable iteration order (installation order, then name). A family's code hash (S-031) comes from the package that registered it, so a domain's rules rebuild when the domain's code changes and nothing else does | Each registry removes one of the eight edits in §0.2 |
 | F4 | **The stage ladder is the core's; domains add rows, not rungs.** `intake → design → verify → released` stays (D10, S-090). A domain registers *gate rows*: contributions to the Design or Verify gate (blockers, caveats) that exist only when the domain has content in the product or scope says `in`. `n2f status` shows a domain as a row under its gate ("Wiring: 3 checks OK, 1 needs attention"). An empty domain shows nothing | The owner sees one ladder; a domain is a row on it, present only when it applies (the founding "auto-pass only when empty" rule, made explicit) |
 | F5 | **Report sections and doc helpers register.** `report/builder.py::SECTIONS` becomes the registry's view; the template becomes a page shell plus one fragment per section under `report/sections/`. A domain contributes a fragment and the data it renders. Doc helpers (`part()`, `req()`, `bom`, `build_step()`, …) are looked up in a registry; every helper call is still a recorded read (D5). The page stays self-contained and ≤ 20 MB (D13) | The report is the owner's one page; a domain must be able to add to it without editing it |
-| F6 | **Open sets are tables; closed sets stay `Literal`.** Processes, finishes, style roles, interface kinds, requirement categories and verify kinds move to `core/data/*.yaml` plus domain additions, validated against the registry at load time with an error that lists the known values. Statuses, severities, labels (`given` / `computed` / `estimate`), concept statuses and ECR states stay `Literal`: they are the system's own words, not a product's | A product that is 3D-printed or anodised must not need a schema change; a status must |
+| F6 | **Open sets are tables; closed sets stay `Literal`.** Processes, finishes, style roles, interface kinds, requirement categories, verify kinds and the build-unit drivers (v0.4's free-text words with their owner phrases, `core/build_units.py`) move to `core/data/*.yaml` plus domain additions, validated against the registry at load time with an error that lists the known values. Statuses, severities, labels (`given` / `computed` / `estimate`), concept statuses and ECR states stay `Literal`: they are the system's own words, not a product's | A product that is 3D-printed or anodised must not need a schema change; a status must |
 | F7 | **Schema policy.** Additive optional fields with defaults that reproduce the old behaviour do not bump `schema`. A rename, a removal or a changed meaning bumps it, ships a migration function registered in `core/model/migrate.py` by (from, to), and a fixture product of the old version under `tests/fixtures/schema/v<n>/`. `n2f init .` applies pending migrations after a snapshot, prints what changed in owner words, and refuses nothing. Reading a product of a newer schema than the installed system says so plainly and stops. The policy is written once in `docs/schema-policy.md` and `AGENTS.md` points at it | Before the maintainer's own products exist, breaking the schema is free; afterwards it costs real folders (B-0042) |
 | F8 | **Card fields are free-form; screens declare what they read.** A concept card's `envelope` and `site` accept any named quantity (the N-series said so; the code did not). The table of known fields with their units and examples (`core/concepts.py`) moves to the screens: each screen declares the fields it reads, their unit kind and an example, and `n2f concept new` writes the skeleton from the installed screens. The generic site fields are renamed `site.width`, `site.depth`, `site.height` ("the space it must fit"); `alcove_*` is read as an alias for one version and the lint says so. Generic screens stay in the system: fits-the-space (with the door-swing term when a massing call is named `door`), mass-vs-lift, blank-vs-stock-sheet, cost band, walls-fit-envelope. The thermal, supply, skin-vs-touch, chamber-volume and controls-vs-hot-face screens move to `examples/kiln/model/screens/` as a product-local pack (F10) | The example stops being the schema; the calc kit stays reusable |
 | F9 | **The package never names an example.** Three guards, none of them an English word list (a word like "element" or "door" is generic; a grep for it would be noise). (1) `tests/unit/test_no_example_identifiers.py` derives the forbidden set from the examples themselves: every part id, parameter slug, interface id, assembly id, requirement id, decision id, doc id, calc name and card field name that exists in `examples/*` and not in the templates, and fails on any of them appearing as a literal in `src/napkin2factory/` (docstrings and comments included; `templates/` and `report/vendor/` excluded), plus the example products' names (`kiln`). (2) `AGENTS.md` gains a non-negotiable with its reason: the examples are users of the package, never its vocabulary; a screen, rule, field or default that only an example needs lives in that example's folder (F10). (3) `docs/reviews/TEMPLATE.md`'s architecture set gains a standing question: does any change in this diff teach the package a product's noun, field or default? The style roles become a table (F6) seeded with neutral words (`body`, `opening`, `support`, `controls`, `trim`, `lining`, `fastener`); `door` and `stand` are read as aliases for one version | A folder boundary forbids nothing; a word list cries wolf; identifiers are exact, a rule says why, and a reviewer catches what a grep cannot |
 | F10 | **Products carry packs.** A product may hold `model/screens/*.py` (screens for the napkin stage) and `model/rulepacks/*.yaml` with their checks in `model/rulepacks/*.py`, loaded exactly like `model/calcs/` (fresh import per product root, hashed into the `checks` rule's inputs and into the concept build). A pack uses the same contract as an in-tree domain's screens and rule packs; it cannot register rule families, verify kinds, report sections or gate rows (those are the system's). `n2f init --template` may ship packs | The kiln's screens need a home that is the kiln's; a third party's product needs the same seam |
-| F11 | **Scope is data.** `n2f.yaml` gains `scope: {<domain>: {state: in \| external \| later, decision: DEC-xxx, note: "…"}}`. Default: a domain with content is `in`; one without content is absent (no row). `external`: the work is done elsewhere; the product must hold a stub module for it — a sub-assembly with `build: external` (extends P7), its `ports:` declared and no children — or validation fails naming the file; the stub's ports are checked like any port. `later`: the domain's requirements and gate rows are excluded from the Design and Verify gates with a visible note ("electrical: later, DEC-021"), never silently; a `later` domain with content is a lint warning ("content exists; set scope to in or remove it"). The release records the scope in the Revision's `release.json` and prints it on the package cover and the report overview. Changing a state is a decision. Also reserved here: a requirement may cite a `load://<id>` (a load case: where, how much, on which faces) under `model/loads/`; v0.5 defines the family and its validation, no solver reads it | The founding "auto-pass only when empty" rule made explicit; the owner's flexibility recorded once and read by every role; the release is the one place scope must not be fudged |
+| F11 | **Scope is data.** `n2f.yaml` gains `scope: {<domain>: {state: in \| external \| later, decision: DEC-xxx, note: "…"}}`. Default: a domain with content is `in`; one without content is absent (no row). `external`: the work is done elsewhere; the product must hold a stub module for it — a sub-assembly with `build: external` (a third value beside v0.4's `unit` and `phantom`, `core/build_units.py`), its `ports:` declared and no children — or validation fails naming the file; the stub's ports are checked like any port, and the build plan lists the unit as "supplied, not built here" with the joints that fit it. `later`: the domain's requirements and gate rows are excluded from the Design and Verify gates with a visible note ("electrical: later, DEC-021"), never silently; a `later` domain with content is a lint warning ("content exists; set scope to in or remove it"). The release records the scope in the Revision's `release.json` and prints it on the package cover and the report overview. Changing a state is a decision. Also reserved here: a requirement may cite a `load://<id>` (a load case: where, how much, on which faces) under `model/loads/`; v0.5 defines the family and its validation, no solver reads it | The founding "auto-pass only when empty" rule made explicit; the owner's flexibility recorded once and read by every role; the release is the one place scope must not be fudged |
 | F12 | **Choices.** `CheckResult.status` gains `choice` (never blocking by itself). A check returning a choice carries `detail.options: [{id, summary, what_it_takes, cost_delta?}]` and `detail.blocks: design \| verify \| release \| none`, the gate it blocks until decided. Choices are written to `build/checks/choices.json` and listed by `n2f status` under "waiting on you", after sign-offs. `n2f decide <check-id> --pick <option> --by "<name>" [--note "…"]` writes a `DEC-` entry naming the check, the option and the evidence keys at that moment, and the row reads `pass` with the decision from then on; when an evidence key changes the choice reopens (D25). `n2f check` never decides. Owner text calls it "a choice" and "waiting on you"; `choice` stays in `--json` and files | The system hands the agent the moment and the words; a weaker model asks as well as a strong one |
 | F13 | **When to raise a choice is a rule, not a trait.** The project-manager role gets one rule: never in the interview (the facts do not exist yet); raise an open choice when the owner next touches that area, or before the gate it blocks, one at a time, in the owner's words, with each option's cost and what it takes. Low-consequence choices (`blocks: none`) follow the existing delegation rule: decide conservatively, log, say so in a line. The verifier role classes a choice as inside a module or at a joint, like a failure (P12) | Proactive without bombarding; timing from when the facts first exist |
 | F14 | **Verify methods are discoverable and offered by consequence.** `n2f doctor` lists installed domains with their verify kinds, check stages and screens (`--json` too). A requirement's verify kind must be installed. The roles say: offer the stronger method when the consequence is high or the owner's expertise in `operator.yaml` for that domain is `expert`; the method is the requirement's `verify.kind`, chosen once and logged | The tinkerer and the engineer share the requirement; the method is the requirement's, not the persona's |
@@ -281,6 +296,11 @@ Budgets are guesses; record the actual times in the decision entries. Every mile
 files it owns. A task edits only its owned files plus the three journals and the docs it names;
 if it must touch another milestone's file, it stops and says so in its WIP commit.
 
+**Prerequisite:** B-0073 (platform-stable evidence keys) is fixed and the nightly `check-full`
+is green on Linux before M0 starts. It is its own task, outside the waves: `evidence.py` keys a
+part on tolerance-compared invariants (volume, area, bounding box, the feature list; D14) instead
+of the mesh, and the three examples' sign-offs are re-keyed once.
+
 **Waves (see §8):** M0 alone → M1 alone → wave 2 = {M2, M3, M4} in parallel → wave 3 = {M5, M6}
 in parallel → M7 alone.
 
@@ -306,8 +326,9 @@ in the entry:
   hash. `core/graph/impact.py::_static_reads` per registered family.
 - `core/checks/evaluators.py`, `engine.py`, `stage.py`: the verify-kind, check-stage and
   gate-row registries (F3, F4).
-- `report/builder.py` and the template: sections as fragments (F5). `docs/engine.py`: helpers
-  from the registry.
+- `report/builder.py` and the template: the 15 sections as fragments (F5), the build plan and
+  the joints between units included. `docs/engine.py`: helpers from the registry (`build_step()`
+  among them). `core/context.py`: the context-contribution registry (F1).
 - `core/model/`: the `Literal`s of F6 become table-validated strings (`core/data/*.yaml`).
 - The toy domain and the toy product (`tests/fixtures/domains/toy/`,
   `tests/fixtures/products/toy/`), and `tests/unit/test_domain_contract.py` (DoD 2).
@@ -391,7 +412,7 @@ lands first), `core/checks/hardware.py` (the one rule), `cli/decide.py`, `cli/ch
 function and rebase), `templates/_common/roles/pm.md`, `templates/_common/roles/verifier.md`,
 `examples/kiln/model/interfaces/guard-standoff-bottom.yaml`, `tests/unit/test_choices.py`.
 
-### M6 — Splits and the fast gate (budget 6 h)
+### M6 — Splits and the fast gate (budget 8 h; `promote.py` grew to 1,647 lines in v0.4)
 **Build:** `validate_refs` beside each schema and the loader as orchestrator (F15; the loader
 under 400 lines); `concepts/promote/` one seeder per family; `geometry/build_part.py` and
 `build_asm.py`; `make check-fast` and `make land` using it; the `-m "not full"` markers
