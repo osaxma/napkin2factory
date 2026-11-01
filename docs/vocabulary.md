@@ -63,6 +63,24 @@ manuals and the assembly sheets, the field names stay in the files and in `--jso
 | **read from outside its module** | a part or size reading another unit's size it may not; "worth a look" | the `reach://` check rows |
 | **the checks of one unit** | a unit checked alone: its parts, its inside joints, its requirements | `n2f check --scope asm://<id>`; the report's "By module" table |
 
+## Scope and choices (FOUNDATION F11–F14, v0.5)
+
+The owner's flexibility and the trade-offs the system hands them. No version-control
+counterpart; the owner reads the left column in `n2f status`, the report and the release
+package, the fields stay in the files and in `--json`.
+
+| say | meaning | field, where you meet it |
+|---|---|---|
+| **domain** ("the electrical side", "the wiring") | one step of making a product, such as mechanical or electrical; with the owner, name the step itself rather than the word "domain" | `scope:` keys in `n2f.yaml`; `n2f doctor` lists the installed ones |
+| **scope** ("what this product covers") | which steps this product does here, which are done elsewhere, which come later; changing it is a decision | `scope: {<domain>: {state, decision, note}}` in `n2f.yaml`; a row under its gate in `n2f status`, a line in the report overview and on the package cover |
+| **in** | the step is done here, in this product | `state: in` (the default for a step with content) |
+| **done elsewhere** | another person or company does it; a stand-in unit with its joints shows where it fits ("supplied, not built here") | `state: external`; a sub-assembly with `build: external` and `ports:` |
+| **later** | left for a later stage; its checks and requirements wait, except safety ones, and each gate says so ("Electrical: later (DEC-024) — not checked at this stage") | `state: later` |
+| **a choice** | a trade-off a check found once the facts existed, with two or more valid designs, each with what it takes and what it costs; never a failure by itself | a `choice` row in `n2f check`; `build/checks/choices.json` |
+| **waiting on you** | the open choices, listed after the gates, each with the gate it holds ("it holds the release") | `n2f status`; `waiting_on_you` in `--json` |
+| **decided** ("decided in DEC-0xx: shorter bolts at both ends (chosen by <name>)") | the owner picked an option; the row reads OK with the decision until what it was decided on changes, then the choice opens again | `n2f decide <check> --pick <option> --by "<name>"`, a `DEC-` entry |
+| **how it is checked** (a verify method) | the way a requirement is checked, chosen once and logged; the stronger one is offered when a mistake would cost much or the owner knows the area well | `verify.kind` on a requirement; `n2f doctor` lists the installed kinds |
+
 ## Sheet and report labels (gate D)
 
 | say | not | where |
@@ -81,6 +99,7 @@ manuals and the assembly sheets, the field names stay in the files and in `--jso
 | skip | not checked | the artifact it needs was not built |
 | needs-human | needs your sign-off | a human must review and `n2f signoff` |
 | signed | signed off | a valid sign-off exists for a safety requirement (D25) |
+| choice | a choice waiting on you | a trade-off with two or more valid designs; never blocks by itself, holds the gate its `blocks` names until `n2f decide` records the pick, then reads OK with the decision |
 | example (summary counter, not a row status) | example sign-offs — not reviews | the sign-off is flagged `example: true`; the row stays `signed` and labelled, but it is counted apart, the Verify gate stays open, and `n2f release` refuses it without `--allow-example-signoffs` |
 
 ## Stages (computed by `n2f status`, never stored — D10)

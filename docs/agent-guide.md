@@ -58,6 +58,10 @@ environment. The PyPI name `n2f` is an alias for the same package. Then:
 n2f doctor         # is this machine ready? It says what to fix if not.
 ```
 
+`n2f doctor` also lists what is installed: each domain (a step of making a product, such as
+the mechanical one) with its verify kinds (the ways a requirement can be checked), its check
+stages and its napkin screens; inside a product folder, the product's own screens too.
+
 Everything runs offline after installation and needs no account. Set `N2F_OFFLINE=1` (or
 pass `--offline` to `n2f build`) when there is no network. Builds otherwise check that each
 bought part's vendor link still resolves.
@@ -183,12 +187,15 @@ massing:
   - {kit: block, as: gusset, material: mild steel, args: {length: 40 mm, width: 4 mm, height: 40 mm}, at: {x: 24 mm, z: 4 mm}}
 ```
 
-When the owner has said them, three optional card fields sharpen screening: under `envelope`,
-`door_swing: 110 degree` (how far a hinged door opens; without it the door counts swung fully
-back, the widest case) and `target_volume: 8 L` (the useful volume asked for); under `site`,
-`touch_limit: 60 degC` (the hottest outside surface allowed; without it, a burn threshold on
-file). The door angle narrows the alcove check to what the door really needs; the volume and
-the touch limit add rows "worth a look", never a red verdict.
+The card fields screening reads come from the installed screens (`n2f doctor` lists them):
+`n2f concept new` writes each into a new card's skeleton with an example, and
+`n2f concept lint` says when a number is the wrong kind. The space the product must fit is
+`site.width`, `site.depth` and `site.height` (`alcove_width` and the like, from before v0.5,
+are still read and the lint says so). `envelope.door_swing: 110 degree` (how far a hinged
+door opens; without it the door counts swung fully back, the widest case) narrows the fit
+check to what the door really needs. A product can bring screens of its own in
+`model/screens/` (the kiln's heated-box screens read a power, a supply circuit, a touch
+limit); `docs/napkin.md` explains the stage and its packs.
 
 A card may also name the units the product is built from, when a reason applies (built,
 tested or serviced as one unit, made by another process or supplier): `modules: {door:
@@ -212,6 +219,17 @@ n2f build --target geometry --part <id>   # after a geometry edit; look at build
 n2f build                           # everything: 3D, drawings, BOM, manuals, checks, report
 n2f check                           # the gate: every requirement and rule
 ```
+
+A requirement says how it is checked in `verify.kind`, which must be an installed kind
+(`n2f doctor` lists them, with what each targets; an unknown one is an error that lists
+them). The roles say which to offer: the stronger method when the consequence is high or the
+owner is an expert in that area (`operator.yaml`), chosen once and logged.
+
+A product calc (`model/calcs/<name>.py`) carries its reference cases in
+`model/calcs/<name>.cases.yaml`: inputs, the expected result with its unit, a tolerance and
+a source (a hand computation written out, or a handbook example). `n2f check` runs them as
+`calc-case` rows; a missing case is "worth a look", a wrong one fails naming the calc
+(`docs/calckit.md`).
 
 `n2f build` also writes the build plan, derived from the assemblies: one step per unit
 (`build/bom/build-plan.json`, a "Build plan" sheet in `bom.xlsx`, the report's Build plan, and
@@ -343,5 +361,6 @@ refuses and changes nothing: bring them in (`git pull`) and publish again.
 ## What napkin2factory does not do (yet)
 
 Mechanical parts and the bill of materials are covered. Electrical design, FEA and hosted
-services are not. Say so when the owner's product needs them, and say what the tool can still
-do for the mechanical side.
+services are not. Say so when the owner's product needs them, say what the tool can still do
+for the mechanical side, and record the step as scope (`later`, or `external` when someone
+else does it) so `n2f status` and the release say so.

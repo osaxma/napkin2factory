@@ -15,7 +15,8 @@ Rules every function follows:
 - its docstring states the method and cites the source of every correlation; material
   constants are the caller's (from datasheets) and are tagged `[verify]`;
 - it is covered by a hand-checked test in `tests/unit/test_calckit.py` (the hand
-  computation is in the test's comment).
+  computation is in the test's comment) and by at least one reference case in its pack's
+  `CASES` (below).
 
 Results from the kit are **estimates**: screening labels them `estimate`, never
 `computed`.
@@ -84,6 +85,39 @@ fabricator's, supplier's) to confirm. DECISIONS.md lists each table as `[verify]
 does not know returns a verdict instead of raising: `CircuitVerdict.status ==
 "unknown_region"`, `CostEstimate.known is False`, `StockVerdict.known is False`. Callers
 (the screening rules) turn these into a `warn` with the message, never a red verdict.
+
+## Reference cases: every calc proves itself (F17)
+
+A calc's reference case is an input, the expected result with its unit, a tolerance and the
+source of the expectation. The build runs them: `n2f check` writes `calc-case` rows, so a
+change to a formula that breaks a case fails the checks, naming the calc, the expected and
+the computed value. A case passes when |computed − expected| ≤ max(`abs`, `rel` ·
+|expected|) in the expected unit (default `rel` 1e-6, six significant figures).
+
+- **The kit's own.** Each pack lists `CASES` (a list of `Case(fn, inputs, expect, source,
+  rel=…, abs=…, pick=…, external=…)`), at least one per public function, and at least one
+  marked `external=True`: a worked example from a handbook or datasheet, not the author's own
+  arithmetic, so the formula is checked against a source and not against itself. Each pack a
+  product's calcs use gets one `calc-case` row in that product's checks.
+- **A product's.** `model/calcs/<module>.cases.yaml` beside `model/calcs/<module>.py`:
+
+  ```yaml
+  inputs:                 # parameter values every case below reads, unless it overrides them
+    element-power: 2500 W
+    mains-voltage: 230 V
+  cases:
+    current:              # the calc function's name
+      - expect: 10.87 A
+        rel: 0.001        # or abs: 0.01 (in the expected unit)
+        source: "hand computation: 2500 W / 230 V = 10.87 A"
+  ```
+  A case runs the calc on its own inputs, never on the product's parameters: it checks the
+  formula, not the design. A parameter the calc reads that the case does not give fails the
+  case, naming it. A calc with no case is a `warn` row ("no reference case; add one so a
+  change to this formula is caught") and lint `L16-calc-case`.
+- **Write the case with the calc**, in the same edit: the source is a hand computation
+  written out (the formula with its numbers) or a published worked example with its page.
+  The kiln's three calc files carry 21 cases (`examples/kiln/model/calcs/*.cases.yaml`).
 
 ## Using the kit from a product calc
 
