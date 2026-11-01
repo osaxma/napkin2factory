@@ -149,6 +149,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-124 | v0.5 M4: scope as data (`scope:` in `n2f.yaml`, `build: external` stubs, `model/loads/`); `later` domains leave the gates with a note, never a safety requirement | in force |
 | S-125 | v0.5 M2: schema policy and migrations (`core/model/migrate.py`, `n2f init .`), calc reference cases (`calc-case` rows, L16) | in force |
 | S-126 | v0.5 M2b: the checks rule hashes the calc kit (closes B-0078) | in force |
+| S-127 | v0.5 M4b: scope is a recorded value (`manifest://scope`, read by the report of a product that declares one); external stubs in the build plan | in force |
 
 ---
 
@@ -687,3 +688,13 @@ the fix moves every part key). `test_domain_contract.py`: the checks pin moved d
 (a kit `.py` edit in a package copy moves only `checks`' inputs) failed before the change. No golden
 pins a rule key: none moved. `test_domain_contract.py` 30 passed, 24.1 s; `make check` green, 969 passed,
 141 goldens, 19 min 6 s (other tasks alongside).
+## S-127 — v0.5 M4b: scope is a recorded value; external stubs in the build plan (2026-11-01)
+Closes B-0076, B-0077. `core/graph/values.py` values `manifest://scope` (the block, `n2f.yaml` order) and
+`manifest://scope#<domain>[.<field>]`; the report reads them only when `scope:` is declared, so no other
+product's key moves: bracket and enclosure built on `main` (34f2c4a) and here have the same reads, values,
+report and plan in all 11 / 15 rules, only code hashes differ. Cost: a first `scope:` reruns the report only
+through its new `DEC-` (B-0081) [revisit]. No check row reads scope. A rig scope edit reruns validate, report,
+site; impact names those three. Stubs: a step's `supplied` (only when non-empty) in the plan, the manual step
+and the report ("Supplied, not built here" with the joints that fit it); joint words name the stub;
+`module-has-parts` passes it (B-0082). B-0083. `test_scope.py` 27 passed, 54.7 s; touched tests 285 passed,
+3 min 37 s; `make check` green, 975 passed, 141 goldens, 11 min 38 s.
