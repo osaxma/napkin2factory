@@ -22,6 +22,7 @@ from napkin2factory.core.reach import REACH_KEY
 from napkin2factory.core.style import STYLE_FORM_KEY
 
 if TYPE_CHECKING:
+    from napkin2factory.core.domain import StageContext
     from napkin2factory.core.graph.rules import RunContext, RunResult
 
 
@@ -33,10 +34,10 @@ def checks_reads(product: Product) -> list[str]:
         reads.append(f"req://{r.id}#safety")
         if r.verify is not None and r.verify.target is not None:
             t = r.verify.target
-            if t.scheme in ("part", "asm", "iface", "calc", "param"):
-                reads.append(str(t.base))
             if t.scheme == "bom":
                 reads.append(str(t))
+            elif t.scheme != "rule":  # a rule's rows are the checks' own (no value to read)
+                reads.append(str(t.base))
     for p in product.parts_with_geometry():
         reads.append(p.uri)
     for p in product.parts.values():
@@ -64,6 +65,11 @@ def checks_reads(product: Product) -> list[str]:
         "set://signoffs",
         "set://ifaces",
     ]
+    from napkin2factory.core.registry import registry
+
+    for stage in registry().check_stages():  # what each registered stage's rows depend on
+        if stage.reads is not None:
+            reads += stage.reads(product)
     seen: dict[str, None] = {}
     for k in reads:
         seen.setdefault(k, None)
@@ -285,8 +291,8 @@ def collect_results(
     whole product's and are left out.  The costly checks are skipped outside the scope.
     """
     from napkin2factory.core.checks.modules import RowModules
-    from napkin2factory.core.graph.manifest import Manifest
-    from napkin2factory.core.reach import reach_checks
+    from napkin2factory.core.domain import StageContext
+    from napkin2factory.core.registry import registry
 
     modules = RowModules(product)
     below = modules.tree.below(within) if within is not None else None
@@ -295,9 +301,27 @@ def collect_results(
         return below is None or (home is not None and home in below)
 
     ectx = EvalContext(product, build_dir)
+    sctx = StageContext(product, build_dir, ectx, keep, within, modules)
+    results: list[CheckResult] = []
+    for stage in registry().check_stages():  # F3: each stage's rows, in stage order
+        if stage.whole_product and within is not None:
+            continue  # documents and sourcing are the whole product's
+        results += stage.run(sctx)
+    modules.annotate(results)
+    if within is not None:
+        results = [r for r in results if modules.inside(r, within)]
+    return results, ectx
+
+
+# ---- the mechanical check stages (registered in place by domains/mechanical, F2) ----------
+
+
+def interface_stage(sctx: StageContext) -> list[CheckResult]:
+    """Each joint: holes line up or faces are recorded, then placement (P1, P3)."""
+    product, build_dir, ectx = sctx.product, sctx.build_dir, sctx.ectx
     results: list[CheckResult] = []
     for iface in product.interfaces.values():
-        if not keep(modules.closing.get(iface.id)):
+        if not sctx.keep(sctx.modules.closing.get(iface.id)):
             continue
         rep = check_interface(product, iface, build_dir)
         ectx.interfaces[iface.id] = rep.to_dict()
@@ -317,8 +341,15 @@ def collect_results(
             )
         )
     results += coordinate_placement_warnings(product, build_dir)  # P1
+    return results
+
+
+def interference_stage(sctx: StageContext) -> list[CheckResult]:
+    """Parts of each assembly do not overlap (declared mating faces may touch, D29)."""
+    product, build_dir, ectx = sctx.product, sctx.build_dir, sctx.ectx
+    results: list[CheckResult] = []
     for aid in product.assemblies:
-        if not keep(aid):
+        if not sctx.keep(aid):
             continue
         irep = check_interference(product, aid, build_dir)
         ectx.interference[aid] = irep.to_dict()
@@ -351,25 +382,50 @@ def collect_results(
                 evidence={"allowed-contact": irep.allowed_contacts},
             )
         )
+    return results
+
+
+def requirements_stage(sctx: StageContext) -> list[CheckResult]:
+    """Every requirement, then the rule-pack rows (``rule`` requirements read them first)."""
     from napkin2factory.rulepacks.runner import run_rulepacks
 
-    # rule-pack rows first: `rule` requirements (form requirements) read them
-    rule_rows = run_rulepacks(product, build_dir)
+    product, ectx = sctx.product, sctx.ectx
+    rule_rows = run_rulepacks(product, sctx.build_dir)
     ectx.rule_results = rule_rows
-    for req in product.requirements.values():
-        if within is None or modules.requirement_in(req, within):
-            results.append(evaluate_requirement(ectx, req))
-    results += rule_rows
-    results += instance_count_checks(product, build_dir)
-    results += hardware_checks(product, modules.units)  # P9: joint hardware per build unit
-    results += reach_checks(product, Manifest.load(build_dir))  # P5
-    if within is None:
-        results += doc_staleness(product, build_dir)
-        results += bom_validation_checks(build_dir)
-    modules.annotate(results)
-    if within is not None:
-        results = [r for r in results if modules.inside(r, within)]
-    return results, ectx
+    results = [
+        evaluate_requirement(ectx, req)
+        for req in product.requirements.values()
+        if sctx.within is None or sctx.modules.requirement_in(req, sctx.within)
+    ]
+    return results + rule_rows
+
+
+def count_stage(sctx: StageContext) -> list[CheckResult]:
+    """Instance counts equal the declared quantities (D18)."""
+    return instance_count_checks(sctx.product, sctx.build_dir)
+
+
+def hardware_stage(sctx: StageContext) -> list[CheckResult]:
+    """Joint hardware per build unit (P9)."""
+    return hardware_checks(sctx.product, sctx.modules.units)
+
+
+def reach_stage(sctx: StageContext) -> list[CheckResult]:
+    """Scoped parameters are read only where they may be (P5)."""
+    from napkin2factory.core.graph.manifest import Manifest
+    from napkin2factory.core.reach import reach_checks
+
+    return reach_checks(sctx.product, Manifest.load(sctx.build_dir))
+
+
+def docs_stage(sctx: StageContext) -> list[CheckResult]:
+    """Manual pages are current (no recorded read changed since rendering)."""
+    return doc_staleness(sctx.product, sctx.build_dir)
+
+
+def sourcing_stage(sctx: StageContext) -> list[CheckResult]:
+    """Bought parts' sourcing, from the BOM validation."""
+    return bom_validation_checks(sctx.build_dir)
 
 
 def run_all_checks(ctx: RunContext) -> RunResult:

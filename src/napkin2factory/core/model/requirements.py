@@ -2,51 +2,49 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import Field, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
 from napkin2factory.core.model.base import Model, Quantity, ReqId, UriField
 
-Category = Literal[
-    "performance",
-    "geometry",
-    "cost",
-    "mass",
-    "safety",
-    "manufacturing",
-    "usability",
-    "interface",
-]
-VerifyKind = Literal[
-    "param_bound",
-    "geometry_prop",
-    "bom_rollup",
-    "calc",
-    "interference",
-    "count",
-    "interface",
-    "manual",
-    "rule",
-]
 Op = Literal["<", "<=", "==", "!=", ">=", ">"]
 
-#: Which URI schemes each verify kind may target.
-VERIFY_TARGET_SCHEMES: dict[str, tuple[str, ...]] = {
-    "param_bound": ("param",),
-    "geometry_prop": ("part", "asm"),
-    "bom_rollup": ("bom",),
-    "calc": ("calc",),
-    "interference": ("asm",),
-    "count": ("asm", "part"),
-    "interface": ("iface",),
-    "manual": (),
-    "rule": ("rule",),
-}
-#: Kinds whose verdict comes from comparing a value with ``op``/``value``.
-COMPARING_KINDS: frozenset[str] = frozenset(
-    {"param_bound", "geometry_prop", "bom_rollup", "calc", "count"}
-)
+
+def __getattr__(name: str) -> Any:
+    """``VERIFY_TARGET_SCHEMES`` and ``COMPARING_KINDS`` read the verify-kind registry (F3)."""
+    from napkin2factory.core.registry import registry
+
+    kinds = registry().verify_kinds()
+    if name == "VERIFY_TARGET_SCHEMES":
+        return {k: v.target_schemes for k, v in kinds.items()}
+    if name == "COMPARING_KINDS":
+        return frozenset(k for k, v in kinds.items() if v.compares)
+    raise AttributeError(name)
+
+
+def _verify_kind(v: Any) -> Any:
+    """A verify kind must be installed: the error lists the installed ones (F14, DoD 7)."""
+    from napkin2factory.core.registry import registry
+
+    if isinstance(v, str):
+        registry().verify_kind(v)
+    return v
+
+
+def _category(v: Any) -> Any:
+    """A requirement category from the table (``core/data``) or a domain (F6)."""
+    from napkin2factory.core.registry import check_known, registry
+
+    return (
+        check_known("requirement category", v, registry().categories()) if isinstance(v, str) else v
+    )
+
+
+#: A verify kind's name, checked against the verify-kind registry (F6: a table, not a Literal).
+VerifyKind = Annotated[str, BeforeValidator(_verify_kind)]
+#: A requirement category, checked against ``core/data/requirement_categories.yaml`` (F6).
+Category = Annotated[str, BeforeValidator(_category)]
 
 
 class Verify(Model):
@@ -64,9 +62,12 @@ class Verify(Model):
 
     @model_validator(mode="after")
     def _consistent(self) -> Verify:
-        schemes = VERIFY_TARGET_SCHEMES[self.kind]
-        if self.kind == "manual":
-            return self
+        from napkin2factory.core.registry import registry
+
+        kind = registry().verify_kind(self.kind)
+        schemes = kind.target_schemes
+        if not schemes:
+            return self  # a kind without a target (manual)
         if self.target is None:
             raise ValueError(f"verify.kind {self.kind} needs a target ({'/'.join(schemes)}://…)")
         if self.target.scheme not in schemes:
@@ -74,16 +75,10 @@ class Verify(Model):
                 f"verify.kind {self.kind} targets {', '.join(s + '://' for s in schemes)}, "
                 f"not {self.target}"
             )
-        if self.kind in COMPARING_KINDS and (self.op is None or self.value is None):
+        if kind.compares and (self.op is None or self.value is None):
             raise ValueError(f"verify.kind {self.kind} needs 'op' and 'value'")
-        if self.kind == "geometry_prop" and (
-            not self.target.selector or self.target.selector[0] != "props"
-        ):
-            raise ValueError("geometry_prop targets select a property: part://x#props.mass")
-        if self.kind == "rule" and (self.op is not None or self.value is not None):
-            raise ValueError("verify.kind rule takes a target only (rule://<pack>/<rule-id>)")
-        if self.kind == "bom_rollup" and not self.target.selector:
-            raise ValueError("bom_rollup targets select a rollup: bom://rollups#total_cost")
+        if kind.check is not None:
+            kind.check(self)
         return self
 
 

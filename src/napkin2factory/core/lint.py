@@ -13,8 +13,6 @@ from napkin2factory.core.errors import Problems
 from napkin2factory.core.loader import Product
 from napkin2factory.core.units import UnitError, parse_quantity
 
-#: Kinds whose statement need not carry a number (binary checks).
-_BINARY_KINDS = frozenset({"manual", "interference", "interface", "rule"})
 _NUMBER_WITH_UNIT = re.compile(
     r"(?<![\w-])[-+]?\d+(?:\.\d+)?\s*(?:[A-Za-z°µ]+(?:/[A-Za-z]+)?|%)(?![\w-])"
 )
@@ -30,15 +28,19 @@ _WEAK_WORDS = (
 
 def lint(product: Product) -> Problems:
     """Run every lint rule; errors fail ``n2f lint``, warnings do not."""
+    from napkin2factory.core.registry import registry
+
     problems = Problems()
     paths = product.paths
     rf = paths.requirements
+    # kinds whose statement need not carry a number: the verify kinds that say so (F3)
+    binary = [k for k, v in registry().verify_kinds().items() if v.binary]
 
     for r in product.requirements.values():
         subject = f"req://{r.id}"
         # L1: measurable statement with a unit, unless a binary check.
         kind = r.verify.kind if r.verify else None
-        if kind not in _BINARY_KINDS:
+        if kind not in binary:
             parsed = []
             for n in _NUMBER_WITH_UNIT.findall(r.statement):
                 try:
@@ -52,7 +54,7 @@ def lint(product: Product) -> Problems:
                     subject,
                     "statement has no measurable value with a unit",
                     "write the limit into the statement, e.g. 'stays below 60 degC', "
-                    "or use a binary verify kind (manual/interference/interface/rule)",
+                    f"or use a binary verify kind ({'/'.join(binary)})",
                     rule="L1-measurable",
                 )
         if any(w in r.statement.lower() for w in _WEAK_WORDS):
