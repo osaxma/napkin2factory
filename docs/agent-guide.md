@@ -280,13 +280,16 @@ Ask the owner when `roles/pm.md` says to (never in the interview), then record t
 
 ```bash
 n2f decide fastening://m6-standoff-25/m6x16-bolt --pick shorter-bolts --by "<owner's name>" \
-  --note "<their reason>"           # writes a DEC- entry; the check then reads OK with it
+  --note "<their reason>"           # writes a DEC- entry; --pick 1 (the option's number) works too
 ```
 
-The `DEC-` entry names the check, the option and what it was decided on (its `sources`); the
-designer then makes the change the option takes. `n2f check` never decides. A decided choice
-reopens by itself when what it was decided on changes, like a sign-off. `--agent` records an
-agent's pick, allowed only for a choice that holds nothing.
+The `DEC-` entry names the check, the option and what it was decided on (its `sources`). A
+pick is not yet a design: you then make the change the option takes (as the designer; before
+a first release by editing the model, after one through a change request), build and check.
+Until the check passes on the model itself, the Design gate stays open and a choice that holds
+a gate holds the release (`n2f release` says so, with the pick). `n2f check` never decides. A
+decided choice reopens by itself when what it was decided on changes, like a sign-off.
+`--agent` records an agent's pick, allowed only for a choice that holds nothing.
 
 **Changes after a release** go through a change request, and the owner approves after
 reading the impact:
