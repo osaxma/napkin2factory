@@ -30,7 +30,7 @@ catalog:
     mpn: A1-1.6mm
     name: Kanthal A1 resistance heating wire, 1.6 mm diameter (sold by the kg/spool)
     url: https://www.kanthal.com/en/products/material-datasheets/wire/resistance-heating-wire-and-resistance-wire/kanthal-a-1/
-    category: heating-element
+    category: heater-wire
     verified: false
   - vendor: Morgan Thermal Ceramics
     mpn: K-23

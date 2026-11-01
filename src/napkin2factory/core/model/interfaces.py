@@ -30,7 +30,7 @@ from napkin2factory.core.model.base import (
 class FrameExpr(Model):
     """A frame coordinate or an offset written as an expression over parameter slugs (P2).
 
-    ``{expr: "guard-gap + guard-thickness", unit: mm}`` is evaluated exactly like a parameter
+    ``{expr: "lip-width + lid-overhang", unit: mm}`` is evaluated exactly like a parameter
     ``expr`` (same grammar, result converted to ``unit``) when the interface is read through
     ``I``; every slug it names is a recorded read (D5).  It replaces helper parameters that
     existed only to write a frame coordinate (S-106).
@@ -107,7 +107,7 @@ class Frame(Model):
 class HardwareItem(Model):
     """One kind of loose hardware a joint takes (P9): ``per_hole`` or ``per_joint``, not both.
 
-    ``{part: part://m6x16-bolt, per_hole: 2}`` is two bolts in every hole of the pattern;
+    ``{part: part://m4x10-screw, per_hole: 2}`` is two screws in every hole of the pattern;
     ``{part: part://gasket, per_joint: 1}`` is one per occurrence of the joint, holes or not
     (the only form a mating face takes, having no holes).
     """

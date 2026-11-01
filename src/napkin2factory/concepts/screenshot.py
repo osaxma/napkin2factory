@@ -206,7 +206,7 @@ def layout_marks(card: ConceptCard, style: StyleFile) -> dict[str, Any]:
     door_words = _words(layout.get("door"))
     if door_words and not _NONE_WORDS.intersection(door_words):
         face = _face_named(_direction(_words(layout.get("load"))))
-        doors = uris("door")
+        doors = uris("opening")  # a call named or roled door reads as opening
         hinge_dir = (
             _direction(door_words) if any(w.startswith("hinge") for w in door_words) else None
         )
@@ -214,7 +214,7 @@ def layout_marks(card: ConceptCard, style: StyleFile) -> dict[str, Any]:
             "nodes": doors,
             "face": _face_spec(face),
             "hinge": _edge(hinge_dir, face),
-            "ink": ink_for(colour("door" if doors else "body")),
+            "ink": ink_for(colour("opening" if doors else "body")),
         }
 
     ctl_words = _words(layout.get("controls"))

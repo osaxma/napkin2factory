@@ -216,7 +216,7 @@ def _status_word(card: ConceptCard) -> str:
 
 
 def _decision_line(card: ConceptCard) -> str | None:
-    """``set aside when C-003 was chosen (DEC-018) — 2026-10-31``: the date, never the time."""
+    """``set aside when C-003 was chosen (DEC-001) — 2026-10-31``: the date, never the time."""
     d = card.decision
     if d is None or card.status == "exploring":
         return None

@@ -1,3 +1,3 @@
 id: C-001
 title: Names a site key screening does not know
-site: {alcove_width: 800 mm, ceiling_colour: white}
+site: {width: 800 mm, ceiling_colour: white}

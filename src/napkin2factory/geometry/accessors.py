@@ -1,8 +1,8 @@
 """Recording accessors (decisions D5, D21).
 
-``P["wall-thickness"]`` returns a pint quantity and logs ``param://wall-thickness``;
-``I["shell-frame-mount"]`` returns the :class:`Interface` model and logs
-``iface://shell-frame-mount``.  Every kit generator and geometry module reads through
+``P["sheet-thickness"]`` returns a pint quantity and logs ``param://sheet-thickness``;
+``I["lid-base-mount"]`` returns the :class:`Interface` model and logs
+``iface://lid-base-mount``.  Every kit generator and geometry module reads through
 these, so the build graph learns exactly what each rule depended on.  ``mm()`` is the
 boundary helper that turns a quantity into a float millimetre value for build123d.
 """

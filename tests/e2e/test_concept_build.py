@@ -36,6 +36,8 @@ def _run(*args: str, cwd: Path, code: int = 0):  # type: ignore[no-untyped-def]
 def product(tmp_path: Path) -> Path:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "bracket", git=True)
     shutil.copytree(CONCEPTS, root / "concepts")
+    # the kiln-like cards are screened with the kiln's own heated-box screens (F8, F10)
+    shutil.copytree(EXAMPLES / "kiln" / "model" / "screens", root / "model" / "screens")
     return root
 
 

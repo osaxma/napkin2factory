@@ -8,7 +8,7 @@ status: exploring
 refs: []
 layout: {load: front, door: hinged-left}
 envelope: {}
-site: {alcove_width: 300 mm}
+site: {width: 300 mm}
 style: {}
 massing:
   - {kit: enclosure, as: body, material: mild steel, args: {length: 250 mm, width: 250 mm, height: 250 mm, thickness: 1.5 mm}}

@@ -9,7 +9,7 @@ envelope:                     # free-form named quantities; these seed parameter
   chamber: [200 mm, 200 mm, 200 mm]
   insulation: 170 mm
 site:                         # constraints screening checks against; become requirements at promote
-  alcove_width: 800 mm
+  width: 800 mm
   circuit: 240V-13A
   region: SA                  # circuit-class table key [verify]
 style: {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}

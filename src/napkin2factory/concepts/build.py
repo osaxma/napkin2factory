@@ -15,10 +15,12 @@ from typing import Any
 from napkin2factory.concepts.massing import MassingResult, compose, concept_build_dir
 from napkin2factory.concepts.screening import (
     keep_unchanged_at,
+    recorded_screens_key,
     screen,
     write_screening_json,
     write_screening_to_card,
 )
+from napkin2factory.concepts.screens import screens_key
 from napkin2factory.concepts.screenshot import (
     ScreenshotResult,
     ScreenshotSession,
@@ -123,9 +125,12 @@ def build_concept(
         for note in [*notes, *card_notes, *shots.notes]:
             if note not in screening.notes:
                 screening.notes.append(note)
-    write_screening_json(out_dir, card, screening)
+    # the product's own screens changed since the last build: its screening is void (F10)
+    key, before = screens_key(root), recorded_screens_key(out_dir)
+    changed = before is not None and key != before
+    write_screening_json(out_dir, card, screening, key)
     # the card file changes only when the screening says something new (S-086)
-    if not keep_unchanged_at(card.screening, screening):
+    if not keep_unchanged_at(card.screening, screening, screens_changed=changed):
         write_screening_to_card(root, card.id, screening)
     updated = cm.load_card(root, card.id)
     return ConceptBuild(

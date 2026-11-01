@@ -114,7 +114,7 @@ def _name(product: Product, uri: str) -> str:
 
 
 def lower_name(name: str) -> str:
-    """A name inside a sentence: "Mini electric test kiln" → "mini electric test kiln".
+    """A name inside a sentence: "Sheet-metal enclosure" → "sheet-metal enclosure".
 
     An acronym or a mixed-case word ("PID controller") keeps its capitals.
     """
@@ -129,7 +129,7 @@ def _joint_at(iface: Interface) -> str:
 
 
 def _assembled(product: Product, aids: list[str]) -> str:
-    """Say "the assembled mini electric test kiln" (several: joined with "and")."""
+    """Say "the assembled sheet-metal enclosure" (several: joined with "and")."""
     names = [lower_name(_name(product, f"asm://{a}")) for a in aids]
     return "the assembled " + (
         names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
@@ -269,8 +269,8 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
 def lowest_common_assemblies(product: Product, a: str, b: str) -> list[str]:
     """Assemblies containing both parts with no sub-assembly that also contains both (P3).
 
-    Across levels too: a part of the kiln and a part inside its door meet in the kiln, whose
-    ``instances.json`` holds the door's leaves in the kiln's frame (S-107).
+    Across levels too: a part of the top assembly and a part inside its door meet in the top
+    assembly, whose ``instances.json`` holds the door's leaves in its frame (S-107).
     """
     return AssemblyTree(product.assemblies).lowest_containing(a, b)
 

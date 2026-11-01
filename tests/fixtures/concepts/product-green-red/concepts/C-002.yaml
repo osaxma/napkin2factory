@@ -9,7 +9,7 @@ based_on: C-001  # the card this one started from
 refs: []
 layout: {load: front, door: hinged-right, controls: front-below}
 envelope: {chamber: [150 mm, 150 mm, 150 mm], insulation: 100 mm, power: 1.5 kW}
-site: {alcove_width: 800 mm, region: EU}
+site: {width: 800 mm, region: EU}
 style: {}
 massing:
   - {kit: enclosure, as: body, material: mild steel, args: {length: 400 mm, width: 400 mm, height: 400 mm, thickness: 1.5 mm}}

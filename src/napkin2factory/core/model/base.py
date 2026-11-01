@@ -90,7 +90,7 @@ UriField = Annotated[
     Uri,
     BeforeValidator(_to_uri),
     PlainSerializer(str, return_type=str),
-    WithJsonSchema({"type": "string", "examples": ["part://outer-shell", "req://REQ-001"]}),
+    WithJsonSchema({"type": "string", "examples": ["part://lid", "req://REQ-001"]}),
 ]
 
 

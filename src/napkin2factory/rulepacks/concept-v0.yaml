@@ -5,7 +5,9 @@
 # its severity, thresholds and wording. `fail` reddens the card; `warn` never does.
 # Messages are formatted with the values the check returns and are read by the owner:
 # plain words, no jargon. Thresholds are screening filters, not verified limits; every one
-# is tagged [verify] in DECISIONS.md.
+# is tagged [verify] in DECISIONS.md. These are the generic screens' rules (F8, S-128); a
+# rule only one product needs is that product's (`model/screens/`, F10), and its rows follow
+# these.
 pack: concept-v0
 title: Concept screening (v0)
 applies_to: {scope: concept}
@@ -15,7 +17,8 @@ rules:
     severity: fail
     check: fits_site_width
     # an open hinged door reaches leaf × max(0, −cos θ) past the hinge side for the card's
-    # opening angle θ (envelope.door_swing: nothing up to 90°, the whole leaf at 180°); a card
+    # opening angle θ (envelope.door_swing: nothing up to 90°, the whole leaf at 180°) against
+    # site.width (the space it must fit; alcove_width read as an alias for one version); a card
     # with no angle counts door_swing_factor × its leaf (1.0 = the leaf swung fully back
     # against the wall: the conservative case) [verify]
     params: {door_swing_factor: 1.0}
@@ -25,26 +28,16 @@ rules:
     title: Fits the alcove depth
     severity: fail
     check: fits_site_extent
-    params: {axis: depth, site_key: alcove_depth}
+    params: {axis: depth}
     message: "it is {size} deep but the alcove is {limit} deep"
     pass_message: "{size} deep fits the {limit} alcove"
   - id: fits-site-height
     title: Fits the alcove height
     severity: fail
     check: fits_site_extent
-    params: {axis: height, site_key: alcove_height}
+    params: {axis: height}
     message: "it is {size} tall but the alcove is {limit} tall"
     pass_message: "{size} tall fits the {limit} alcove"
-  - id: circuit-available
-    title: The supply on site carries it
-    severity: fail
-    check: circuit_available
-    # rating ≥ headroom × current (calckit CIRCUIT_HEADROOM_MIN, the kiln's REQ-006 margin;
-    # NEC 210.20 uses 1.25) [verify]
-    params: {headroom: 1.2}
-    message: "{power} draws {current}; with {margin} headroom it needs {needed}, more than {circuit}"
-    pass_message: "{power} draws {current}: {circuit}"
-    warn_message: "no circuit table for region {region} — confirm the supply"
   - id: mass-vs-lift-class
     title: How it can be lifted and moved
     severity: warn
@@ -66,28 +59,6 @@ rules:
     severity: fail
     check: walls_fit_envelope
     params: {}
+    # the inner size and the wall come from a product's screen (shared as inner_size, wall)
     message: "the {axis} needs {needed} (chamber {chamber} + 2 × {wall} of insulation) but {call} is only {outer}"
     pass_message: "chamber plus 2 × {wall} of insulation ({needed}) fits inside {call} ({outer})"
-  - id: controls-not-adjacent-hot-face
-    title: Controls away from the hot air path
-    severity: warn
-    check: controls_not_adjacent_hot_face
-    params: {}
-    message: "controls {where} the door sit in the hot air path — consider the side or below"
-    pass_message: "controls ({controls}) are away from the door ({door})"
-  - id: skin-vs-touch-limit
-    title: The outside is safe to touch
-    severity: warn
-    check: skin_vs_touch_limit
-    # the card's site.touch_limit; without one, the burn threshold for this contact time from
-    # calckit/data/touch_limits.yaml (ISO 13732-1) [verify]
-    params: {contact: 1 min}
-    message: "the outside skin is about {skin} (estimate), above the {limit} touch limit ({where}) — more insulation or a guard would bring it down"
-    pass_message: "the outside skin is about {skin} (estimate), under the {limit} touch limit ({where})"
-  - id: chamber-volume-vs-target
-    title: The chamber holds the target volume
-    severity: warn
-    check: chamber_volume_vs_target
-    params: {}
-    message: "the {size} chamber holds {volume}, less than the {target} the card aims for"
-    pass_message: "the {size} chamber holds {volume}, at least the {target} the card aims for"

@@ -44,10 +44,15 @@ MODEL_FILES = {
 }
 
 
+#: The heated-box screens the fixture cards are screened with: the kiln's own (F8, F10).
+HEATED_SCREENS = EXAMPLES / "kiln" / "model" / "screens"
+
+
 def overlay_cards(root: Path) -> None:
-    """Copy both fixture card sets into ``root/concepts``."""
+    """Copy both fixture card sets into ``root/concepts`` and the kiln's screens beside."""
     for cards in CARD_SETS:
         shutil.copytree(cards, root / "concepts", dirs_exist_ok=True)
+    shutil.copytree(HEATED_SCREENS, root / "model" / "screens", dirs_exist_ok=True)
 
 
 @pytest.fixture(scope="module")

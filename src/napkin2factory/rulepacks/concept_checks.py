@@ -1,11 +1,13 @@
 """Named checks behind ``concept-v0.yaml`` and their runner (NAPKIN_STAGE N5, S-022 pattern).
 
 Concept rules screen a *card*, not a part: each check reads a :class:`ConceptFacts` (the
-card, the screening's raw ``computed`` and ``estimate`` values, the composed massing) plus
-the rule's YAML ``params`` and returns an :class:`Outcome`. :func:`run_concept_rules` turns
-outcomes into :class:`~napkin2factory.core.model.concepts.RuleRow` rows with the pack's
-wording. ``rulepacks.runner.run_rulepacks`` never runs this pack: it iterates product
-parts, and no part has ``scope: concept``.
+card, the screening's raw ``computed`` and ``estimate`` values, the composed massing, what
+screens shared) plus the rule's YAML ``params`` and returns an :class:`Outcome`.
+:func:`rule_rows` turns outcomes into :class:`~napkin2factory.core.model.concepts.RuleRow`
+rows with the rule's wording; a product's own screen (``model/screens/``, F10) uses it for
+its rules too. ``rulepacks.runner.run_rulepacks`` never runs this pack: it iterates
+product parts, and no part has ``scope: concept``. The checks here are the generic
+screens' (F8): the space, the lift, the sheets, the walls.
 
 Values in ``computed`` and ``estimates`` are pint quantities (or words); a rule row records
 which of the two labels it relied on, so a reader can tell geometry from estimate.
@@ -49,7 +51,8 @@ class ConceptFacts:
     computed: dict[str, Any] = field(default_factory=dict)
     estimates: dict[str, Any] = field(default_factory=dict)
     massing: MassingResult | None = None
-    extra: dict[str, Any] = field(default_factory=dict)
+    #: Raw values screens hand each other (``ScreenValues.shared``).
+    shared: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -81,17 +84,6 @@ def kg_text(kg: float) -> str:
 
 def _q_mm(q: Qty) -> float:
     return float(q.to("mm").magnitude)
-
-
-def _site_length(card: ConceptCard, key: str) -> Qty | None:
-    v: Any = card.site.get(key)
-    if is_quantity(v):
-        try:
-            v.to("mm")
-        except Exception:  # pint DimensionalityError: not a length
-            return None
-        return v
-    return None
 
 
 def parse_circuit(text: str) -> tuple[Qty, Qty] | None:
@@ -191,13 +183,15 @@ def _skip(message: str) -> Outcome:
 
 
 def fits_site_width(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
-    """Footprint width plus the door-swing term fits ``site.alcove_width``.
+    """Footprint width plus the door-swing term fits ``site.width`` (the space's width).
 
-    ``width + door leaf × max(0, −cos θ) ≤ alcove_width`` for a hinged door opening to θ,
+    ``width + door leaf × max(0, −cos θ) ≤ site.width`` for a hinged door opening to θ,
     ``width + door_swing_factor × door leaf`` when the card gives no angle (see
     :func:`door_swing_term`); other doors add nothing.
     """
-    limit = _site_length(facts.card, "alcove_width")
+    from napkin2factory.concepts.screens.generic import SITE_WIDTH
+
+    limit = SITE_WIDTH.quantity(facts.card)
     if limit is None:
         return _skip("no alcove width on the card")
     width = facts.computed.get("width")
@@ -223,73 +217,19 @@ def fits_site_width(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
 
 
 def fits_site_extent(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
-    """The massing's depth or height fits ``site.alcove_depth`` / ``site.alcove_height``."""
+    """The massing's depth or height fits ``site.depth`` / ``site.height``."""
+    from napkin2factory.concepts.screens.generic import SITE_DEPTH, SITE_HEIGHT
+
     axis = str(params.get("axis", "depth"))
-    key = str(params.get("site_key", f"alcove_{axis}"))
-    limit = _site_length(facts.card, key)
+    limit = (SITE_HEIGHT if axis == "height" else SITE_DEPTH).quantity(facts.card)
     if limit is None:
-        return _skip(f"no {key.replace('_', ' ')} on the card")
+        return _skip(f"no alcove {axis} on the card")
     size = facts.computed.get(axis)
     if size is None:
         return _skip("no rough shapes to measure")
     values = {"size": mm_text(_q_mm(size)), "limit": mm_text(_q_mm(limit))}
     ok = _q_mm(size) <= _q_mm(limit) + 1e-6
     return Outcome("pass" if ok else "violated", values, [] if ok else [values], ["computed"])
-
-
-def circuit_available(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
-    """The element current, with headroom, fits the site's circuit.
-
-    An explicit ``site.circuit`` (``240V-13A``) is checked directly; otherwise the region
-    table picks the smallest class (``calckit.power.circuit_for_power``). An unknown region
-    is a warning, never a failure.
-    """
-    from napkin2factory.calckit import power as pw
-
-    power = facts.extra.get("power")
-    if power is None:
-        return _skip(
-            "no power to check: give the card a power, or a heat-up time with the chamber "
-            "and insulation"
-        )
-    headroom = float(params.get("headroom", pw.CIRCUIT_HEADROOM_MIN))
-    circuit = facts.card.site.get("circuit")
-    region = facts.card.site.get("region")
-    parsed = parse_circuit(circuit) if isinstance(circuit, str) else None
-    # the current is an estimate; the card's own power and circuit are given (gate A, C1)
-    relies = ["estimate"]
-    if parsed is not None or facts.extra.get("power_label") == "card":
-        relies.append("given")
-    values: dict[str, Any] = {
-        "power": _power_text(power),
-        "margin": f"{(headroom - 1) * 100:.0f} %",
-        "region": region,
-    }
-    if parsed is not None:
-        volts, amps = parsed
-        current = pw.element_current(power, volts)
-        needed = headroom * float(current.to("A").magnitude)
-        values.update(
-            current=f"{float(current.to('A').magnitude):.1f} A at {volts.magnitude:g} V",
-            needed=f"{needed:.1f} A",
-            circuit=f"the {circuit} circuit on site",
-        )
-        if needed <= float(amps.to("A").magnitude) + 1e-9:
-            values["circuit"] = f"fits the {circuit} circuit on site"
-            return Outcome("pass", values, [], relies)
-        return Outcome("violated", values, [values], relies)
-    if not isinstance(region, str) or not region.strip():
-        return _skip("no supply on the card (a circuit like 240V-13A, or a region)")
-    verdict = pw.circuit_for_power(region, power, headroom=headroom)
-    if verdict.status == "unknown_region":
-        return Outcome("warn", values, [], relies)
-    amps_now = float(verdict.current.to("A").magnitude)
-    values.update(current=f"{amps_now:.1f} A", needed=f"{headroom * amps_now:.1f} A")
-    if verdict.status == "ok":
-        values["circuit"] = f"needs {_article(verdict.label)} {verdict.label}"
-        return Outcome("pass", values, [], relies)
-    values["circuit"] = f"any circuit on file for {region}"
-    return Outcome("violated", values, [values], relies)
 
 
 def mass_vs_lift_class(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
@@ -421,13 +361,14 @@ def blank_vs_stock_sheet(facts: ConceptFacts, params: dict[str, Any]) -> Outcome
 
 
 def walls_fit_envelope(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
-    """``chamber + 2 × insulation ≤ body`` on each axis.
+    """``inner size + 2 × wall ≤ body`` on each axis.
 
-    The body is the massing call named ``body``, else the call with the largest bounding
-    box; the insulation is every layer's clearance plus thickness, per side.
+    The inner size (three lengths) and the wall (per side) are what a screen of the product
+    shares as ``inner_size`` and ``wall``; without them the rule skips. The body is the
+    massing call named ``body``, else the call with the largest bounding box.
     """
-    chamber = facts.extra.get("chamber")
-    wall = facts.extra.get("wall")
+    chamber = facts.shared.get("inner_size")
+    wall = facts.shared.get("wall")
     if chamber is None or wall is None:
         return _skip("no chamber and insulation on the card")
     if facts.massing is None or not facts.massing.pieces:
@@ -459,144 +400,13 @@ def walls_fit_envelope(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
     return Outcome("pass", values, [], ["computed"])
 
 
-def _face(text: str, default: str = "") -> str:
-    words = set(re.split(r"[\s\-_/]+", text.strip().lower()))
-    for face in (
-        "top",
-        "above",
-        "below",
-        "under",
-        "bottom",
-        "front",
-        "back",
-        "rear",
-        "left",
-        "right",
-    ):
-        if face in words:
-            return {"above": "top", "under": "below", "bottom": "below", "rear": "back"}.get(
-                face, face
-            )
-    return default
-
-
-def controls_not_adjacent_hot_face(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
-    """Controls not on the top, nor on the door's face beside or above it.
-
-    The door's face is ``layout.load`` (default front) for a hinged or front door, the top
-    for a lid. Controls below the door are fine.
-    """
-    controls = str(facts.card.layout.get("controls", "")).strip()
-    door = str(facts.card.layout.get("door", "")).strip()
-    if not controls or not door:
-        return _skip("no controls and door placement on the card to compare")
-    door_face = (
-        "top"
-        if _face(door) == "top" or "lid" in door.lower()
-        else _face(str(facts.card.layout.get("load", "")), "front")
-    )
-    where = _face(controls)
-    values = {"controls": controls, "door": door, "where": ""}
-    if where == "top":
-        values["where"] = "above"
-    elif where == door_face and where != "below":
-        values["where"] = "beside"
-    if values["where"]:
-        return Outcome("violated", values, [values], [])
-    return Outcome("pass", values, [], [])
-
-
-def _temperature_text(q: Qty) -> str:
-    return f"{float(q.to('degC').magnitude):.0f} degC"
-
-
-def touch_limit_default(contact: str) -> tuple[Qty, str] | None:
-    """The burn threshold for one contact time from ``calckit/data/touch_limits.yaml``."""
-    from napkin2factory.calckit import load_table
-
-    row = next((r for r in load_table("touch_limits") if r["contact"] == contact), None)
-    if row is None:
-        return None
-    return Quantity(float(row["limit_degC"]), "degC"), str(row["words"])
-
-
-def skin_vs_touch_limit(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
-    """The outer skin estimate stays under a touch limit (advisory).
-
-    The limit is the card's ``site.touch_limit`` (given); without one, the burn threshold
-    for the rule's ``contact`` time from ``calckit/data/touch_limits.yaml`` (ISO 13732-1,
-    to be checked).
-    """
-    skin = facts.estimates.get("skin_temperature")
-    if skin is None:
-        return _skip("no outer skin estimate (it needs the chamber size and the insulation)")
-    relies = ["estimate"]
-    limit: Any = facts.card.site.get("touch_limit")
-    try:
-        limit_c = float(limit.to("degC").magnitude) if is_quantity(limit) else None
-    except Exception:  # pint DimensionalityError: not a temperature
-        limit_c = None
-    if limit_c is not None:
-        where = "on the card"
-        relies.append("given")
-    else:
-        found = touch_limit_default(str(params.get("contact", "1 min")))
-        if found is None:
-            return _skip("no touch limit on the card and none on file for this contact time")
-        limit, where = found
-        limit_c = float(limit.to("degC").magnitude)
-    values = {
-        "skin": _temperature_text(skin),
-        "limit": f"{limit_c:.0f} degC",
-        "where": where,
-    }
-    ok = float(skin.to("degC").magnitude) <= limit_c + 1e-9
-    return Outcome("pass" if ok else "violated", values, [] if ok else [values], relies)
-
-
-def chamber_volume_vs_target(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
-    """The chamber holds at least the card's ``envelope.target_volume`` (advisory)."""
-    target: Any = facts.card.envelope.get("target_volume")
-    try:
-        target_l = float(target.to("L").magnitude) if is_quantity(target) else None
-    except Exception:  # pint DimensionalityError: not a volume
-        target_l = None
-    if target_l is None:
-        return _skip("no target volume on the card")
-    chamber = facts.extra.get("chamber")
-    if chamber is None:
-        return _skip("no chamber size on the card to compare with the target volume")
-    vol = chamber[0] * chamber[1] * chamber[2]
-    vol_l = float(vol.to("L").magnitude)
-    values = {
-        "volume": f"{vol_l:.3g} L",
-        "target": f"{target_l:.3g} L",
-        "size": " × ".join(f"{_q_mm(c):.0f}" for c in chamber) + " mm",
-    }
-    ok = vol_l >= target_l - 1e-9
-    return Outcome("pass" if ok else "violated", values, [] if ok else [values], ["given"])
-
-
 CONCEPT_CHECKS: dict[str, CheckFn] = {
     "fits_site_width": fits_site_width,
     "fits_site_extent": fits_site_extent,
-    "circuit_available": circuit_available,
     "mass_vs_lift_class": mass_vs_lift_class,
     "blank_vs_stock_sheet": blank_vs_stock_sheet,
     "walls_fit_envelope": walls_fit_envelope,
-    "controls_not_adjacent_hot_face": controls_not_adjacent_hot_face,
-    "skin_vs_touch_limit": skin_vs_touch_limit,
-    "chamber_volume_vs_target": chamber_volume_vs_target,
 }
-
-
-def _power_text(power: Qty) -> str:
-    w = float(power.to("W").magnitude)
-    return f"{w / 1000:.3g} kW" if w >= 1000 else f"{w:.0f} W"
-
-
-def _article(label: str | None) -> str:
-    return "an" if (label or "x")[0] in "8aeiouAEIOU" or (label or "").startswith("11") else "a"
 
 
 def concept_packs(packs: list[RulePack] | None = None) -> list[RulePack]:
@@ -618,12 +428,13 @@ def rule_params(rule_id: str, packs: list[RulePack] | None = None) -> dict[str, 
 
 
 def circuit_headroom(packs: list[RulePack] | None = None) -> float:
-    """``headroom`` of rule ``circuit-available`` (``rating ≥ headroom × current``).
+    """``headroom`` of a concept rule ``circuit-available`` (``rating ≥ headroom × current``).
 
-    The one supply margin of the napkin stage: screening checks it and promotion writes the
-    supply requirement as ``element-power ≤ V·I / headroom`` from the same number (review
-    gate A, B1). Falls back to :data:`calckit.power.CIRCUIT_HEADROOM_MIN` when the pack has
-    no value.
+    The one supply margin of the napkin stage: a product's supply screen checks it and
+    promotion writes the supply requirement as ``power ≤ V·I / headroom`` from the same
+    number (review gate A, B1). No shipped pack has the rule (it is a product's, F10), so this
+    is :data:`calckit.power.CIRCUIT_HEADROOM_MIN`, the constant a product's screen should
+    read too, unless a concept pack passed in says otherwise.
     """
     from napkin2factory.calckit import power as pw
 
@@ -631,64 +442,81 @@ def circuit_headroom(packs: list[RulePack] | None = None) -> float:
     return float(params.get("headroom", pw.CIRCUIT_HEADROOM_MIN))
 
 
-def run_concept_rules(
-    card: ConceptCard,
-    computed: dict[str, Any],
-    estimates: dict[str, Any],
-    massing: MassingResult | None = None,
-    extra: dict[str, Any] | None = None,
-    packs: list[RulePack] | None = None,
+def rule_rows(
+    rules: list[dict[str, Any]],
+    checks: dict[str, CheckFn],
+    facts: ConceptFacts,
+    source: str = "the pack",
 ) -> list[RuleRow]:
-    """Evaluate every concept rule on one card; one :class:`RuleRow` per rule."""
-    facts = ConceptFacts(card, computed, estimates, massing, dict(extra or {}))
+    """One :class:`RuleRow` per rule, each evaluated by its named check in ``checks``.
+
+    ``rules`` are pack-shaped dicts (id, title, severity, check, params, message,
+    pass_message, warn_message). A product's own screen (F10) states its rules the same way
+    and calls this.
+    """
     rows: list[RuleRow] = []
-    for pack in concept_packs(packs):
-        for rule in pack.rules:
-            rid = str(rule["id"])
-            title = str(rule.get("title", rid))
-            severity: Literal["fail", "warn"] = (
-                "warn" if str(rule.get("severity", "fail")) == "warn" else "fail"
-            )
-            fn = CONCEPT_CHECKS.get(str(rule.get("check")))
-            if fn is None:
-                rows.append(
-                    RuleRow(
-                        id=rid,
-                        title=title,
-                        severity=severity,
-                        status="skip",
-                        message=f"unknown check {rule.get('check')!r} in {pack.path.name}",
-                    )
-                )
-                continue
-            out = fn(facts, dict(rule.get("params") or {}))
-            if out.status == "skip":
-                status, message = "skip", out.message or "not checked"
-            elif out.status == "violated":
-                template = str(rule.get("message", rid))
-                status = severity
-                message = "; ".join(_fmt(template, v) for v in out.violations) or _fmt(
-                    template, out.values
-                )
-            elif out.status == "warn":
-                status = "warn"
-                message = out.message or _fmt(
-                    str(rule.get("warn_message", rule.get("message", rid))), out.values
-                )
-            else:
-                status = "pass"
-                message = out.message or _fmt(str(rule.get("pass_message", "ok")), out.values)
-            relies = sorted({r for r in out.relies_on if r in ("computed", "estimate", "given")})
+    for rule in rules:
+        rid = str(rule["id"])
+        title = str(rule.get("title", rid))
+        severity: Literal["fail", "warn"] = (
+            "warn" if str(rule.get("severity", "fail")) == "warn" else "fail"
+        )
+        fn = checks.get(str(rule.get("check")))
+        if fn is None:
             rows.append(
                 RuleRow(
                     id=rid,
                     title=title,
                     severity=severity,
-                    status=status,  # type: ignore[arg-type]
-                    message=message,
-                    relies_on=relies,  # type: ignore[arg-type]
+                    status="skip",
+                    message=f"unknown check {rule.get('check')!r} in {source}",
                 )
             )
+            continue
+        out = fn(facts, dict(rule.get("params") or {}))
+        if out.status == "skip":
+            status, message = "skip", out.message or "not checked"
+        elif out.status == "violated":
+            template = str(rule.get("message", rid))
+            status = severity
+            message = "; ".join(_fmt(template, v) for v in out.violations) or _fmt(
+                template, out.values
+            )
+        elif out.status == "warn":
+            status = "warn"
+            message = out.message or _fmt(
+                str(rule.get("warn_message", rule.get("message", rid))), out.values
+            )
+        else:
+            status = "pass"
+            message = out.message or _fmt(str(rule.get("pass_message", "ok")), out.values)
+        relies = sorted({r for r in out.relies_on if r in ("computed", "estimate", "given")})
+        rows.append(
+            RuleRow(
+                id=rid,
+                title=title,
+                severity=severity,
+                status=status,  # type: ignore[arg-type]
+                message=message,
+                relies_on=relies,  # type: ignore[arg-type]
+            )
+        )
+    return rows
+
+
+def run_concept_rules(
+    card: ConceptCard,
+    computed: dict[str, Any],
+    estimates: dict[str, Any],
+    massing: MassingResult | None = None,
+    shared: dict[str, Any] | None = None,
+    packs: list[RulePack] | None = None,
+) -> list[RuleRow]:
+    """Evaluate every concept pack's rules on one card; one :class:`RuleRow` per rule."""
+    facts = ConceptFacts(card, computed, estimates, massing, dict(shared or {}))
+    rows: list[RuleRow] = []
+    for pack in concept_packs(packs):
+        rows += rule_rows(pack.rules, CONCEPT_CHECKS, facts, pack.path.name)
     return rows
 
 
@@ -703,8 +531,8 @@ __all__ = [
     "kg_text",
     "parse_circuit",
     "rule_params",
+    "rule_rows",
     "run_concept_rules",
     "sheet_blank",
     "swing_factor",
-    "touch_limit_default",
 ]

@@ -17,46 +17,14 @@ from pydantic import ValidationError
 
 from napkin2factory.core.errors import N2FError, Problems
 from napkin2factory.core.model.concepts import CONCEPT_STATUSES, ConceptCard
-from napkin2factory.core.units import is_quantity
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip, read_yaml
 
 CONCEPTS_DIR = "concepts"
 REFS_DIR = "refs"
 ID_RE = re.compile(r"C-(\d{3})")
-#: Site keys concept screening knows; any other key is kept but draws a warning (C5).
-SITE_KEYS: frozenset[str] = frozenset(
-    {
-        "alcove_width",
-        "alcove_depth",
-        "alcove_height",
-        "floor_load",
-        "circuit",
-        "region",
-        "lift_class",
-        "mass_limit",
-        "door_clearance",
-        "ambient_max",
-        "outdoor",
-        "touch_limit",
-    }
-)
-#: The kind of number screening reads from a card key: a unit it must convert to, the
-#: kind in words and an example (C8, S-096). A number of another kind (``power: 3 kg``) is a lint
-#: error, and screening leaves it out with a note instead of failing on it.
-QUANTITY_KINDS: dict[tuple[str, str], tuple[str, str, str]] = {
-    ("envelope", "power"): ("W", "a power", "2.5 kW"),
-    ("envelope", "heat_up_time"): ("hour", "a time", "4 h"),
-    ("envelope", "max_temperature"): ("degC", "a temperature", "1200 degC"),
-    ("envelope", "door_swing"): ("degree", "an angle", "110 degree"),
-    ("envelope", "door_width"): ("mm", "a length", "600 mm"),
-    ("envelope", "target_volume"): ("L", "a volume", "8 L"),
-    ("site", "alcove_width"): ("mm", "a length", "800 mm"),
-    ("site", "alcove_depth"): ("mm", "a length", "600 mm"),
-    ("site", "alcove_height"): ("mm", "a length", "1400 mm"),
-    ("site", "mass_limit"): ("kg", "a mass", "40 kg"),
-    ("site", "touch_limit"): ("degC", "a temperature", "60 degC"),
-    ("site", "ambient_max"): ("degC", "a temperature", "40 degC"),
-}
+#: Card fields are free-form (F8): ``envelope`` and ``site`` accept any named quantity. The
+#: fields screening reads, with their kind of number and an example, are declared by the
+#: installed screens (:func:`napkin2factory.concepts.screens.card_fields`), never listed here.
 #: Sections ``n2f concept new --from`` copies from the card it starts from.
 COPIED_SECTIONS: tuple[str, ...] = (
     "layout",
@@ -70,31 +38,30 @@ COPIED_SECTIONS: tuple[str, ...] = (
 SCHEMA_RULE = "C0-schema"
 
 
-def wrong_kind(section: str, key: str, value: Any) -> tuple[str, str, str] | None:
-    """Why a card number is not the kind screening reads, else ``None``.
+def screen_fields(root: Path | None = None) -> list[Any]:
+    """The card fields the screens installed for ``root`` read (generic, domains', product's)."""
+    from napkin2factory.concepts.screens import card_fields
 
-    Returns ``(the value as written, the kind it should be, an example)``. Only the keys in
-    :data:`QUANTITY_KINDS` are checked; a missing value is not a problem.
+    return card_fields(root)
+
+
+def param_names(root: Path | None = None) -> dict[str, str]:
+    """Envelope keys that seed a parameter under another name, as their screens declare."""
+    return {f.key: f.param for f in screen_fields(root) if f.section == "envelope" and f.param}
+
+
+def wrong_kind(
+    section: str, key: str, value: Any, fields: list[Any] | None = None
+) -> tuple[str, str, str] | None:
+    """Why a card number is not the kind its screen reads, else ``None``.
+
+    Returns ``(the value as written, the kind it should be, an example)``. Only fields a
+    screen declares are checked (``key`` may be an alias); a missing value is not a problem.
     """
-    spec = QUANTITY_KINDS.get((section, key))
-    if spec is None or value is None:
-        return None
-    unit, kind, example = spec
-    if is_quantity(value):
-        try:
-            value.to(unit)
-        except Exception:  # pint DimensionalityError: another kind of quantity
-            return f"{value.magnitude:g} {value.units:~}", kind, example
-        return None
-    return str(value), kind, example
-
-
-def card_quantity(card: ConceptCard, section: str, key: str) -> Any | None:
-    """The card's ``section.key`` number when it is the kind screening reads, else ``None``."""
-    value = getattr(card, section).get(key)
-    if not is_quantity(value) or wrong_kind(section, key, value) is not None:
-        return None
-    return value
+    for f in fields if fields is not None else screen_fields():
+        if f.section == section and key in (f.key, *f.aliases):
+            return f.wrong_kind(value)  # type: ignore[no-any-return]
+    return None
 
 
 def concepts_dir(root: Path) -> Path:
@@ -239,12 +206,34 @@ def _scalar(key: str, value: Any) -> str:
     )
 
 
-def render_card(data: dict[str, Any]) -> str:
+def _reads_lines(section: str, fields: list[Any]) -> list[str]:
+    """``#   screens read: width (a length, like 800 mm), …`` wrapped as comment lines."""
+    items = [
+        f"{f.key} ({f.kind}, like {f.example})" if f.unit else f"{f.key} (like {f.example})"
+        for f in fields
+        if f.section == section
+    ]
+    if not items:
+        return ["#   (no installed screen reads this section)"]
+    lines, line = [], "#   screens read:"
+    for i, item in enumerate(items):
+        piece = f" {item}" + ("," if i < len(items) - 1 else "")
+        if len(line) + len(piece) > 92:
+            lines.append(line)
+            line = "#    "
+        line += piece
+    return [*lines, line]
+
+
+def render_card(data: dict[str, Any], fields: list[Any] | None = None) -> str:
     """A card as commented YAML, every §3 section present, in the canonical order.
 
     ``data`` holds plain values (strings, lists, dicts) as read from YAML or dumped from a
-    :class:`ConceptCard` in JSON mode with aliases.
+    :class:`ConceptCard` in JSON mode with aliases. The comments name the fields the
+    installed screens read (``fields``, default the system's and the domains'), so the
+    skeleton follows the screens (F8).
     """
+    fields = fields if fields is not None else screen_fields()
     cid = data["id"]
     lines = [
         f"# Concept card {cid}: one possible direction for the product.",
@@ -261,14 +250,15 @@ def render_card(data: dict[str, Any]) -> str:
         "# refs: images under concepts/refs/ that informed this card (never geometry),",
         "#   e.g. [refs/sketch-01.jpg]",
         f"refs: {_flow(data.get('refs') or [])}",
-        "# layout: where things go, in words,",
-        "#   e.g. {load: front, door: hinged-left, controls: side-right, stand: four-leg}",
+        "# layout: where things go, in words",
+        *_reads_lines("layout", fields),
         f"layout: {_flow(data.get('layout') or {})}",
-        "# envelope: named rough sizes; they seed parameters when this card is chosen,",
-        "#   e.g. {chamber: [200 mm, 200 mm, 200 mm], insulation: 170 mm}",
+        "# envelope: named rough sizes, any name; they seed parameters when this card is chosen",
+        *_reads_lines("envelope", fields),
         f"envelope: {_flow(data.get('envelope') or {})}",
-        "# site: where it must fit and plug in, e.g. {alcove_width: 800 mm, circuit: 240V-13A,",
-        "#   region: SA}; screening checks these, and they become requirements when chosen",
+        "# site: the space it must fit and what it plugs into; screening checks what its",
+        "#   screens read, and these become requirements when chosen",
+        *_reads_lines("site", fields),
         f"site: {_flow(data.get('site') or {})}",
         "# style: look and feel,",
         "#   e.g. {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}",
@@ -328,7 +318,7 @@ def new_card(root: Path, title: str, based_on: str | None = None) -> ConceptCard
     card = ConceptCard.model_validate(data)
     path = card_path(root, cid)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_card(data), encoding="utf-8")
+    path.write_text(render_card(data, screen_fields(root)), encoding="utf-8")
     return card
 
 
@@ -344,7 +334,7 @@ def write_card(root: Path, card: ConceptCard) -> Path:
     doc = load_roundtrip(path) if path.is_file() else None
     if not isinstance(doc, dict):
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(render_card(data), encoding="utf-8")
+        path.write_text(render_card(data, screen_fields(root)), encoding="utf-8")
         return path
     try:
         old: ConceptCard | None = ConceptCard.model_validate(read_yaml(path))
@@ -429,7 +419,7 @@ _NOT_CHOSEN = re.compile(r"^not chosen: (C-\d{3}) promoted \((DEC-\d+)\)$")
 
 
 def chosen_instead(chosen: str, dec: str) -> str:
-    """The reason promotion records on a sibling: ``set aside when C-003 was chosen (DEC-018)``."""
+    """The reason promotion records on a sibling: ``set aside when C-003 was chosen (DEC-001)``."""
     return f"set aside when {chosen} was chosen ({dec})"
 
 
@@ -437,7 +427,7 @@ def set_aside_words(reason: str | None) -> str:
     """Why a card was set aside, in one phrase starting ``set aside`` (review gate B, C12).
 
     Promotion's own reason reads as is; the wording cards carried before (``not chosen: C-003
-    promoted (DEC-018)``) is read the same way; an owner's reason follows ``set aside:``.
+    promoted (DEC-001)``) is read the same way; an owner's reason follows ``set aside:``.
     """
     text = (reason or "").strip()
     m = _NOT_CHOSEN.match(text)
@@ -529,10 +519,64 @@ def _lint_modules(card: ConceptCard, path: Path, problems: Problems) -> None:
             )
 
 
+RENAMED_RULE = "C10-renamed-keys"
+
+
+def _lint_fields(card: ConceptCard, path: Path, fields: list[Any], problems: Problems) -> None:
+    """Rules C8, C5 and C10 on one card's fields (F8, F16).
+
+    C8: a number of the wrong kind; C5 (a warning): a site key no screen reads; C10 (a
+    warning): a key read under an earlier name for this version only.
+    """
+    for f in fields:
+        key = f.written(card)
+        if key is None:
+            continue
+        wrong = f.wrong_kind(f.raw(card))
+        if wrong is not None:
+            shown, kind, example = wrong
+            problems.add(
+                path,
+                card.id,
+                f"{f.section}.{key} is {shown}, which is not {kind}",
+                f"give it as {kind} with its unit, like {example}",
+                rule="C8-number-kinds",
+            )
+        if key != f.key:
+            problems.add(
+                path,
+                card.id,
+                f"{f.section}.{key} is read as {f.name} for this version only",
+                f"rename it to {f.key} (same value); the old name stops being read in the "
+                "next version",
+                severity="warn",
+                rule=RENAMED_RULE,
+            )
+    site = [f for f in fields if f.section == "site"]
+    known = sorted({f.key for f in site})
+    old = sorted({a for f in site for a in f.aliases})
+    for key in card.site:
+        if key not in known and key not in old:
+            problems.add(
+                path,
+                card.id,
+                f"site key {key!r} is not one any screen reads; it is kept but not checked",
+                f"known keys: {', '.join(known)}"
+                + (f"; read for this version only: {', '.join(old)}" if old else ""),
+                severity="warn",
+                rule="C5-site-keys",
+            )
+
+
 def lint_concepts(root: Path) -> Problems:
-    """``n2f concept lint``: schema plus rules C1–C9; C5 (site keys) and C9 are warnings."""
+    """``n2f concept lint``: schema plus rules C1–C10; C5, C9 and C10 are warnings.
+
+    The fields checked are those the screens installed for ``root`` declare: the system's,
+    the domains' and the product's own (``model/screens/``, F8, F10).
+    """
     problems = Problems()
     cards = load_concepts(root, problems)
+    fields = screen_fields(root)
     files = {p.stem: p for p in card_files(root)}
     cdir = concepts_dir(root).resolve()
     generators = kit_generators()
@@ -601,28 +645,8 @@ def lint_concepts(root: Path) -> Problems:
                     f"name an existing card ({known}) or remove based_on",
                     rule="C4-based-on-exists",
                 )
-        for section, key in QUANTITY_KINDS:
-            wrong = wrong_kind(section, key, getattr(card, section).get(key))
-            if wrong is not None:
-                shown, kind, example = wrong
-                problems.add(
-                    path,
-                    card.id,
-                    f"{section}.{key} is {shown}, which is not {kind}",
-                    f"give it as {kind} with its unit, like {example}",
-                    rule="C8-number-kinds",
-                )
+        _lint_fields(card, path, fields, problems)
         _lint_modules(card, path, problems)
-        for key in card.site:
-            if key not in SITE_KEYS:
-                problems.add(
-                    path,
-                    card.id,
-                    f"site key {key!r} is not one screening knows; it is kept but not checked",
-                    f"known keys: {', '.join(sorted(SITE_KEYS))}",
-                    severity="warn",
-                    rule="C5-site-keys",
-                )
     dec_ids = decision_ids(root)
     for cid, card in cards.items():
         why = promotion_problem(card, dec_ids)
