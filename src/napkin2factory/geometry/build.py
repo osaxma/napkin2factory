@@ -350,7 +350,10 @@ def _auto_layout(
     """Assemblies without a module: lay children out in a row along X (a placeholder, flagged)."""
     from napkin2factory.geometry.assembly import place
 
-    res = AssemblyResult(notes=["auto-layout: no geometry module; children placed in a row"])
+    # an empty module stub has nothing to lay out: the "module has parts" rule speaks for
+    # it instead of a layout warning (P10, S-112)
+    notes = ["auto-layout: no geometry module; children placed in a row"] if asm.children else []
+    res = AssemblyResult(notes=notes)
     x = 0.0
     for child in asm.children:
         key = child.part.id if child.part is not None else (child.asm.id if child.asm else "")

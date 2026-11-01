@@ -1,0 +1,9 @@
+# Seeded from concept C-001 by `n2f concept promote`: the whole product, one
+# sub-assembly per module the concept sketched. Parts that belong to no module go
+# straight under `children:` here.
+id: module-kiln
+name: Module kiln
+children:
+  - {asm: asm://door}
+  - {asm: asm://controls}
+  - {asm: asm://stand}

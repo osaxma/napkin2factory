@@ -32,6 +32,11 @@ envelope:
 site: {alcove_width: 1750 mm, circuit: 230V-16A, touch_limit: 60 degC}
 # the appliance look; corner radius and fasteners as the kiln is built (see the notes)
 style: {preset: appliance, corner_radius: 1 mm, fastener_visibility: visible}
+# modules (v0.4): the units the kiln is built from and why. The door is built as one unit
+# (assembly.md section 5); the controls are fitted and wired by an electrician, another trade
+# (installation.md). Shell, lining, guard and the one-piece welded stand are fitted in
+# sequence in the final assembly, so they belong to no module: start flat, split for a reason.
+modules: {door: {driver: [built-as-unit]}, controls: {driver: [separate-process-or-supplier]}}
 # The as-built silhouette in mm, from the parameters, placed as model/geometry/kiln.py places
 # the parts (origin on the floor under the stand's centre line, y = 0 at the guard's front lip).
 massing:
@@ -47,11 +52,11 @@ massing:
   - {kit: block, as: guard-back, role: body, material: mild steel, process_class: sheet-metal, args: {length: 640.4 mm, width: 1 mm, height: 640.4 mm}, at: {y: 636.7 mm, z: 701 mm}}
   # door: the door guard's outer box (door-guard-width/-height/-depth), 29.5 mm proud of the
   # lip and wrapping 60 mm back over it; the plug sits inside the body (DEC-013)
-  - {kit: block, as: door, args: {length: 702.4 mm, width: 89.5 mm, height: 702.4 mm}, at: {y: 15.25 mm, z: 668 mm}}
+  - {kit: block, as: door, module: door, args: {length: 702.4 mm, width: 89.5 mm, height: 702.4 mm}, at: {y: 15.25 mm, z: 668 mm}}
   # hinge: the 12 mm barrel (hinge-barrel) along the 500 mm hinge post, at hinge-pin-x/-y
   - {kit: block, as: hinge, role: trim, material: mild steel, process_class: machining, args: {length: 12 mm, width: 12 mm, height: 500 mm}, at: {x: -358.2 mm, y: 62 mm, z: 771.2 mm}}
   # controls: the controller box with its 10 mm lips (controller-box-*), on 40 mm standoffs
-  - {kit: block, as: controls, material: abs, process_class: cots-controls, args: {length: 280 mm, width: 140 mm, height: 160 mm}, at: {x: 491.2 mm, y: 318.6 mm, z: 1182.4 mm}}
+  - {kit: block, as: controls, module: controls, material: abs, process_class: cots-controls, args: {length: 280 mm, width: 140 mm, height: 160 mm}, at: {x: 491.2 mm, y: 318.6 mm, z: 1182.4 mm}}
   # stand: stand-width/-depth/-height, 25 × 1.5 square tube (stand-tube, stand-tube-wall)
   - {kit: frame, as: stand, material: mild steel, args: {length: 512.4 mm, width: 507.2 mm, height: 700 mm, member: {profile: square-tube, size: 25 mm, wall: 1.5 mm}, top_rails: true, bottom_rails: true, bottom_rail_height: 150 mm}, at: {y: 318.6 mm}}
 notes: >-

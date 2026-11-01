@@ -49,6 +49,8 @@ manuals and the assembly sheets, the field names stay in the files and in `--jso
 | **the final assembly** | the top assembly, always the last step | the report's Build plan |
 | **a grouping, not built separately** (a phantom) | lines grouped for the model's sake; its parts are fitted in the step of the unit that contains it | `build: phantom` |
 | **why it is built on its own** (driver) | built as one unit, tested as one unit, serviced or replaced as one unit, made by another process or supplier, comes in variants, worked on as one module | `driver: [built-as-unit, tested-as-unit, serviced-as-unit, separate-process-or-supplier, varies, agent-context]`; `n2f lint` asks for one (`L13-assembly-driver`) |
+| **module** ("door (built as one unit)" on the concept board) | a unit a concept sketches, with its reason; promotion makes it an empty sub-assembly with three size limits (P10) | `modules:` on a concept card, `module:` on a massing line; the `general-v0/module-has-parts` row while it is empty |
+| **the size the concept gave it** (a size budget) | the most a module may measure along each axis, computed from its rough shapes; changing one is a decision | a `geometry_prop` requirement on `asm://<module>#props.bbox.x`, `.y`, `.z` |
 | **a joint between units** (a port) | where two units built separately meet; closed in the step that joins them | `ports:` (P4); the report's Build plan |
 | **joint hardware** | the bolts, nuts, standoffs a joint takes, counted from the joint | `spec.hardware` on an interface; the `hardware://<unit>` check row |
 | **spare** | more hardware than the joints need, on purpose, with the reason | `spare: "<reason>"` on a child line |

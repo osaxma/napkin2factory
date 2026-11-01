@@ -203,6 +203,13 @@ def evaluate_requirement(ctx: EvalContext, req: Requirement) -> CheckResult:
             props = ctx.props(str(v.target.base))
             if props is None:
                 computed, res.message = "skip", f"{v.target.base} has not been built"
+            elif props.get("instances") == 0:
+                # an empty module stub (P10, S-112): a size of 0 mm would pass every budget
+                # and say nothing, so the row waits until the assembly has parts
+                computed, res.message = (
+                    "skip",
+                    "it has no parts yet, so there is nothing to measure",
+                )
             else:
                 value = prop_quantity(props, v.target.selector)
                 ok, txt = _compare(value, v.op, v.value)

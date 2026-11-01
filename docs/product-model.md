@@ -115,7 +115,8 @@ recorded; a stale page blocks release.
 **concepts/C-xxx.yaml** — a concept card: one cheap, disposable direction for the product,
 written before (or beside) the design. `id: C-001, title, status, based_on?, refs: [paths
 under concepts/], layout: {word: word}, envelope: {name: quantity | [quantities]}, site:
-{key: quantity | word}, style: {…}, massing: [{kit, as, args, at?}], notes, screening,
+{key: quantity | word}, style: {…}, modules?: {name: {driver: [...], build: unit | phantom}},
+massing: [{kit, as, args, at?, module?}], notes, screening,
 decision` (schema: `core/model/concepts.py`; the full example is in `NAPKIN_STAGE.md` §3).
 Optional fields screening reads: `envelope.door_swing` (a hinged door's opening angle,
 `110 degree`; without it the door counts swung fully back), `envelope.door_width` (the leaf
@@ -145,7 +146,9 @@ touch_limit`; an unknown key only warns), C6 at most one card is promoted, C7 a 
 card carries a screening and `decision.dec` naming an entry in `model/decisions.yaml` (what
 `n2f concept promote` writes) and a `rejected` card a `decision.reason`, C8 every number
 screening reads is the right kind (`envelope.power` a power, `site.alcove_width` a length;
-`QUANTITY_KINDS` in `core/concepts.py`). While `concepts/` holds a card, `n2f status` shows
+`QUANTITY_KINDS` in `core/concepts.py`), C9 (warnings only) the modules use the
+assemblies' reason words and every module has a massing line and every line's module an
+entry (P10). While `concepts/` holds a card, `n2f status` shows
 an optional **Napkin** stage before Intake, complete once a card is promoted by
 `n2f concept promote` — a status typed by hand is a blocker, not a pass (N11, review gate A).
 

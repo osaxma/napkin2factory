@@ -27,3 +27,12 @@ rules:
     check: cots_source_verified
     params: {}
     message: "{uri}: the vendor link is marked unverified"
+  # P10 (S-112): promotion seeds one empty sub-assembly per module the concept sketched;
+  # this row keeps each one in view until it has parts. One row per assembly.
+  - id: module-has-parts
+    title: Every module has parts
+    subject: assembly
+    severity: warn
+    check: module_has_parts
+    params: {}
+    message: "{name} has no parts yet: give it its parts, or fold it into the assembly above it"

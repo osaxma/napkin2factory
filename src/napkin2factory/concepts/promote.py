@@ -16,6 +16,12 @@ validated before the first byte is written; a refusal writes nothing):
 3. **Site constraints → requirements** — the alcove (width with the door-swing term,
    depth, height), the supply circuit and a mass limit become ordinary ``req://`` rows
    allocated to the top assembly, so DEC-011 cannot happen again.
+   3b. **Modules** (P10) — when the product has no assembly yet and the card names modules
+   (``modules:``, ``module:`` on massing lines): the top assembly ``<product id>``, one empty
+   stub per module and three size budgets per module (``asm://<m>#props.bbox.x|y|z``, from
+   the module's rough shapes, labelled computed); the site and form requirements then go to
+   that top assembly. When assemblies exist, the modules are only suggested (printed and
+   recorded in the decision). A card without modules promotes as before (P14).
 4. **Form requirements** — style and layout choices become requirements verified by the
    ``form-v0`` rule pack (``verify: {kind: rule, target: rule://form-v0/<rule>}``).
 5. **style.yaml** — the card's ``style`` keys (and its ``layout``) override the product's.
@@ -98,7 +104,7 @@ class NewRequirement:
 
     id: str
     title: str
-    about: str  # alcove | supply | weight | form
+    about: str  # alcove | supply | weight | form | budget (a module size, P10)
     data: dict[str, Any] = field(default_factory=dict)
 
 
@@ -119,6 +125,12 @@ class PromotionResult:
     notes: list[str] = field(default_factory=list)
     snapshot: str | None = None
     files: list[str] = field(default_factory=list)
+    #: the top assembly and the module stubs written (P10); empty when none were
+    assemblies: list[SeededAssembly] = field(default_factory=list)
+    #: the card's modules in plain words (``door (built as one unit)``)
+    modules: list[str] = field(default_factory=list)
+    #: the modules as a suggestion, when the product already had its assemblies
+    suggestion: str | None = None
 
     def summary(self) -> str:
         """The owner's line: what changed, what was kept, what to do next."""
@@ -136,7 +148,7 @@ class PromotionResult:
         abouts: dict[str, int] = {}
         for r in self.requirements:
             abouts[r.about] = abouts.get(r.about, 0) + 1
-        order = ("form", "alcove", "supply", "weight")
+        order = ("form", "alcove", "supply", "weight", "budget")
         parts = [f"{abouts[a]} about {_ABOUT_WORDS[a]}" for a in order if a in abouts]
         reqs = _count(len(self.requirements), "requirement") + (
             f" ({', '.join(parts)})" if parts else ""
@@ -150,6 +162,12 @@ class PromotionResult:
             )
         else:
             line = f"{head} {params}, {reqs}, {style}."
+        stubs = [a.id.replace("-", " ") for a in self.assemblies if not a.top]
+        if stubs:
+            line += (
+                f" The product's structure starts from its {_count(len(stubs), 'module')}: "
+                f"{_and(stubs)}, each still empty, inside the top assembly."
+            )
         if self.rejected:
             names = _and(self.rejected)
             verb = "is" if len(self.rejected) == 1 else "are"
@@ -188,6 +206,21 @@ class PromotionResult:
             "already_rejected": self.already_rejected,
             "snapshot": self.snapshot,
             "files": self.files,
+            "assemblies": [
+                {
+                    "uri": f"asm://{a.id}",
+                    "file": a.file,
+                    "top": a.top,
+                    "build": a.build,
+                    "driver": a.driver,
+                    "budget": dict(zip(("x", "y", "z"), a.budget, strict=True))
+                    if a.budget is not None
+                    else None,
+                }
+                for a in self.assemblies
+            ],
+            "modules": self.modules,
+            "suggestion": self.suggestion,
             "notes": self.notes,
             "summary": self.summary(),
         }
@@ -198,6 +231,7 @@ _ABOUT_WORDS = {
     "alcove": "the alcove",
     "supply": "the supply",
     "weight": "the weight",
+    "budget": "module sizes",
 }
 
 
@@ -771,6 +805,247 @@ def site_requirements(
     return out
 
 
+# --- step 3b: modules (P10) ---------------------------------------------------------------
+
+
+#: Each budget's axis, the word for "at most so much along it" and the dimension's name.
+BUDGET_AXES: tuple[tuple[str, str, str], ...] = (
+    ("x", "wide", "width"),
+    ("y", "deep", "depth"),
+    ("z", "tall", "height"),
+)
+MODULE_HEADER = (
+    "# Seeded from concept {cid} by `n2f concept promote`: the {words} module, still empty.\n"
+    "# Give it its parts under `children:` (design it flat inside; split it further only for\n"
+    "# a reason). The size it must keep to is three requirements taken from {cid}'s rough\n"
+    "# shapes; changing one is a decision.\n"
+)
+TOP_HEADER = (
+    "# Seeded from concept {cid} by `n2f concept promote`: the whole product, one\n"
+    "# sub-assembly per module the concept sketched. Parts that belong to no module go\n"
+    "# straight under `children:` here.\n"
+)
+
+
+@dataclass
+class SeededAssembly:
+    """One assembly file promotion wrote: the top assembly or a module stub (P10)."""
+
+    id: str
+    name: str
+    file: str  # relative to the product folder
+    top: bool = False
+    build: str = "unit"
+    driver: list[str] = field(default_factory=list)
+    #: the three budgets (width, depth, height) as written, ``None`` without rough shapes
+    budget: tuple[str, str, str] | None = None
+
+
+@dataclass
+class ModulePlan:
+    """What promotion does with the card's modules (P10)."""
+
+    names: list[str] = field(default_factory=list)
+    #: owner words, one per module: ``door (built as one unit)``
+    words: list[str] = field(default_factory=list)
+    seeded: list[SeededAssembly] = field(default_factory=list)
+    texts: dict[str, str] = field(default_factory=dict)  # file (relative) → YAML text
+    budgets: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+    #: the modules said in plain words when the product already has assemblies
+    suggestion: str | None = None
+
+    @property
+    def top(self) -> str | None:
+        """The seeded top assembly's id, if one was seeded."""
+        return next((a.id for a in self.seeded if a.top), None)
+
+
+def _module_title(name: str) -> str:
+    return name.replace("-", " ").capitalize()
+
+
+def _round_up(mm: float) -> Any:
+    """A length rounded *up* to 0.1 mm once, so the rough shapes themselves keep to it."""
+    from napkin2factory.core.units import Quantity
+
+    return Quantity(math.ceil(round(mm * 10, 6)) / 10, "mm")
+
+
+def module_boxes(card: ConceptCard) -> dict[str, tuple[float, float, float]]:
+    """Each module's box (x, y, z extent in mm) over the massing lines that name it.
+
+    The massing is composed again, in memory, from the card as it is now (no files, no
+    pictures): the same measurement screening makes of the whole card.
+    """
+    from napkin2factory.concepts.massing import compose
+
+    if not any(call.module for call in card.massing):
+        return {}
+    result = compose(card, write=False, render=False)
+    boxes: dict[str, tuple[float, float, float]] = {}
+    for name in card.module_names():
+        pieces = [p for p in result.pieces if p.call.module == name]
+        if not pieces:
+            continue
+        lo = [min(p.bbox_min[i] for p in pieces) for i in range(3)]
+        hi = [max(p.bbox_max[i] for p in pieces) for i in range(3)]
+        boxes[name] = (hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2])
+    return boxes
+
+
+def _budget_rows(card: ConceptCard, name: str, size: tuple[Any, Any, Any]) -> list[dict[str, Any]]:
+    words = name.replace("-", " ")
+    rows = []
+    for (axis, adjective, dimension), limit in zip(BUDGET_AXES, size, strict=True):
+        rows.append(
+            {
+                "title": f"The {words} module fits the {dimension} the concept gave it",
+                "statement": f"The {words} module is at most {_q_text(limit)} {adjective} "
+                f"(computed from the rough shapes on {card.id}).",
+                "category": "geometry",
+                "verify": {
+                    "kind": "geometry_prop",
+                    "target": f"asm://{name}#props.bbox.{axis}",
+                    "op": "<=",
+                    "value": _q_text(limit),
+                },
+                "allocation": [f"asm://{name}"],
+                "source": f"concept {card.id} massing",
+                "rationale": f"Size budget from concept {card.id}: the rough shapes of the "
+                f"{words} measure {_q_text(limit)} along {axis} (computed from the massing, "
+                "rounded up to 0.1 mm). The module is designed within it; changing a budget "
+                "is a decision.",
+            }
+        )
+    return rows
+
+
+def plan_modules(card: ConceptCard, product: Any, notes: list[str]) -> ModulePlan:
+    """The card's modules: seeded structure and budgets, or a suggestion (P10).
+
+    With no assembly in the product: the top assembly (``<product id>``) with one child per
+    module, one empty stub per module (its ``build``/``driver`` from the card) and three size
+    budgets per module that has rough shapes. With assemblies already there: nothing is
+    written; the modules come back as a suggestion in plain words. A card without modules
+    gives an empty plan (promotion as before, P14).
+
+    Raises:
+        GateBlocked: a module is named like the product itself, or its file already exists.
+    """
+    from napkin2factory.core.concepts import module_words
+    from napkin2factory.core.model.assemblies import DRIVERS, Assembly
+
+    plan = ModulePlan(names=card.module_names(), words=module_words(card))
+    if not plan.names:
+        return plan
+    if product.assemblies:
+        there = [n.replace("-", " ") for n in plan.names if n in product.assemblies]
+        missing = [n.replace("-", " ") for n in plan.names if n not in product.assemblies]
+        state = []
+        if there:
+            state.append(
+                f"{_and(there)} {'is' if len(there) == 1 else 'are'} already a sub-assembly"
+            )
+        if missing:
+            verb = "is" if len(missing) == 1 else "are"
+            state.append(
+                f"{_and(missing)} {verb} not: split {'it' if len(missing) == 1 else 'one'} "
+                "off only where its reason applies"
+            )
+        plan.suggestion = (
+            f"{card.id} sketches these modules: {_and(plan.words)}. The product already has "
+            f"its assemblies, so nothing was changed; {'; '.join(state)}."
+        )
+        return plan
+    top_id = str(product.id)
+    if top_id in plan.names:
+        raise GateBlocked(
+            f"{card.id} names a module {top_id!r}, the product's own name, which the whole "
+            "product's assembly takes; rename the module on the card and promote again"
+        )
+    rel_dir = _rel(product.root, product.paths.assemblies)
+    for aid in [top_id, *plan.names]:
+        if (product.paths.assemblies / f"{aid}.yaml").exists():
+            raise GateBlocked(
+                f"{rel_dir}/{aid}.yaml already exists; promotion never overwrites a file — "
+                "move it away or rename the module on the card, then promote again"
+            )
+    boxes = module_boxes(card)
+    seeded: list[SeededAssembly] = []
+    for name in plan.names:
+        entry = card.module_entry(name)
+        driver = [d for d in entry.driver if d in DRIVERS]
+        dropped = [d for d in entry.driver if d not in DRIVERS]
+        if dropped:
+            notes.append(
+                f"module {name}: {_and(dropped)} left out of its assembly file (not a reason "
+                "the model knows; `n2f concept lint` lists the words)"
+            )
+        build = entry.build
+        if build not in ("unit", "phantom"):
+            notes.append(f"module {name}: build {build!r} read as unit (built as one unit)")
+            build = "unit"
+        box = boxes.get(name)
+        budget: tuple[str, str, str] | None = None
+        if box is None:
+            notes.append(f"module {name}: no rough shape belongs to it, so it has no size budget")
+        else:
+            size = (_round_up(box[0]), _round_up(box[1]), _round_up(box[2]))
+            plan.budgets += [("budget", row) for row in _budget_rows(card, name, size)]
+            budget = (_q_text(size[0]), _q_text(size[1]), _q_text(size[2]))
+        seeded.append(
+            SeededAssembly(
+                id=name,
+                name=_module_title(name),
+                file=f"{rel_dir}/{name}.yaml",
+                build=build,
+                driver=driver,
+                budget=budget,
+            )
+        )
+    loose = [call.as_ for call in card.massing if call.module is None]
+    if loose:
+        one = len(loose) == 1
+        notes.append(
+            f"{_and(loose)} belong{'s' if one else ''} to no module: "
+            f"{'its' if one else 'their'} parts go straight into the top assembly"
+        )
+    top = SeededAssembly(
+        id=top_id,
+        name=str(product.manifest.product.name),
+        file=f"{rel_dir}/{top_id}.yaml",
+        top=True,
+    )
+    plan.seeded = [top, *seeded]
+    texts: dict[str, str] = {}
+    lines = [f"id: {top_id}", f"name: {_yaml_scalar(top.name)}", "children:"]
+    lines += [f"  - {{asm: asm://{a.id}}}" for a in seeded]
+    texts[top.file] = TOP_HEADER.format(cid=card.id) + "\n".join(lines) + "\n"
+    for a in seeded:
+        lines = [f"id: {a.id}", f"name: {_yaml_scalar(a.name)}"]
+        if a.build == "phantom":
+            lines.append("build: phantom")
+        if a.driver:
+            lines.append(f"driver: [{', '.join(a.driver)}]")
+        lines.append("children: []")
+        header = MODULE_HEADER.format(cid=card.id, words=a.id.replace("-", " "))
+        texts[a.file] = header + "\n".join(lines) + "\n"
+    for file, text in texts.items():
+        try:
+            Assembly.model_validate(yaml.safe_load(text))
+        except Exception as exc:
+            raise N2FError(
+                f"promotion could not write {file} cleanly ({exc}); nothing was written"
+            ) from exc
+    plan.texts = texts
+    return plan
+
+
+def _yaml_scalar(text: str) -> str:
+    """A name as one YAML scalar (quoted only when YAML would read it otherwise)."""
+    return yaml.safe_dump(text, allow_unicode=True, width=10**6).strip().removesuffix("\n...")
+
+
 # --- step 4: form requirements ----------------------------------------------------------
 
 
@@ -1086,10 +1361,14 @@ def promote(
         )
     # 5. style (before the form requirements: they read the merged style)
     style_text, style, style_created = plan_style(card, root, notes)
-    # 3 + 4. requirements
-    top = _top_assembly(product, notes)
-    planned = site_requirements(card, seeded, top, notes) + form_requirements(
-        card, style, top, notes
+    # 3b. modules (P10): the structure and its budgets, or only a suggestion
+    modules = plan_modules(card, product, notes)
+    # 3 + 4. requirements: at the seeded top assembly when there was none before
+    top = _top_assembly(product, notes) or modules.top
+    planned = (
+        site_requirements(card, seeded, top, notes)
+        + form_requirements(card, style, top, notes)
+        + modules.budgets
     )
     req_ids: list[str] = []
     existing_reqs = list(product.requirements)
@@ -1152,12 +1431,28 @@ def promote(
         f"{_count(n_new, 'parameter')}, its site constraints and style choices become "
         f"{_count(len(new_reqs), 'requirement')}, and style.yaml takes its look."
     )
+    stubs = [a for a in modules.seeded if not a.top]
+    if stubs:
+        decision_text += (
+            f" The product starts from the modules it sketched: the top assembly {top} "
+            f"holds {_and(modules.words)}, each an empty sub-assembly with "
+            f"{_count(len(modules.budgets), 'size budget')} in all from the rough shapes."
+        )
+    elif modules.suggestion is not None:
+        context.append(
+            f"{cid} sketches the modules {_and(modules.words)}; the product already had its "
+            "assemblies, so they were suggested, not written."
+        )
     rationale = (
         f"Screening of {cid} ({card.verdict}): " + "; ".join(_labelled(card)) + "."
         if _labelled(card)
         else f"Screening of {cid} ({card.verdict})."
     )
-    links = [f"req://{r.id}" for r in new_reqs] + [f"param://{p.name}" for p in seeded]
+    links = (
+        [f"req://{r.id}" for r in new_reqs]
+        + [f"param://{p.name}" for p in seeded]
+        + [f"asm://{a.id}" for a in modules.seeded]
+    )
     assert card.screening is not None
     title = f"Design direction: {card.title}" + (", despite screening" if red_override else "")
     dec_entry = {
@@ -1205,6 +1500,7 @@ def promote(
         paths.decisions: dec_text,
         style_path(root): style_text,
         **{cm.card_path(root, k): v for k, v in card_texts.items()},
+        **{root / rel: text for rel, text in modules.texts.items()},
     }
     _write_all(root, writes, validate)
     result = PromotionResult(
@@ -1219,6 +1515,9 @@ def promote(
         already_rejected=already,
         notes=notes,
         files=sorted(_rel(root, p) for p in writes),
+        assemblies=modules.seeded,
+        modules=modules.words,
+        suggestion=modules.suggestion,
     )
     # 8. snapshot
     if snapshot:
@@ -1286,11 +1585,15 @@ def _write_all(root: Path, writes: dict[Path, str], validate: Any) -> None:
 
 
 __all__ = [
+    "ModulePlan",
     "NewRequirement",
     "PromotionResult",
+    "SeededAssembly",
     "SeededParam",
     "door_swing_term",
     "form_requirements",
+    "module_boxes",
+    "plan_modules",
     "plan_parameters",
     "plan_style",
     "promote",

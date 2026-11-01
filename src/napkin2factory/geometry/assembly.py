@@ -498,12 +498,16 @@ def exploded_scene(
 def assembly_props(leaves: list[FlatInstance]) -> dict[str, Any]:
     """bbox, mass, volume, centroid and instance counts over all leaves."""
     if not leaves:
+        # an empty stub seeded by promotion (P10, S-112) builds with the same keys as any
+        # other assembly; `instances: 0` is what the checks read as "nothing to measure yet"
         return {
             "bbox": {"x": 0, "y": 0, "z": 0, "min": [0, 0, 0], "max": [0, 0, 0]},
             "mass": 0.0,
             "volume": 0.0,
+            "centroid": {"x": 0.0, "y": 0.0, "z": 0.0},
             "instance_counts": {},
             "instances": 0,
+            "units": {"length": "mm", "volume": "mm**3", "mass": "kg"},
         }
     pts = np.vstack([transform_points(leaf.built.tess[0], leaf.location) for leaf in leaves])
     lo, hi = pts.min(axis=0), pts.max(axis=0)

@@ -11,7 +11,7 @@ deleting `concepts/` changes no build output).
 
 `n2f concept new "<title>"` writes `concepts/C-00x.yaml` as a commented skeleton;
 `--from C-00x` starts a variant with the other card's `layout`, `envelope`, `site`, `style`,
-`massing` and `notes` (not its `refs`). A filled card, the one the project manager role (`roles/pm.md`) quotes:
+`modules`, `massing` and `notes` (not its `refs`). A filled card, the one the project manager role (`roles/pm.md`) quotes:
 
 ```yaml
 id: C-001
@@ -25,11 +25,14 @@ envelope:                           # rough named sizes; they seed parameters at
   power: 1.8 kW
 site: {alcove_width: 800 mm, circuit: 240V-13A, region: SA}
 style: {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}
+modules:                            # what is built, bought or serviced as one unit, and why
+  door: {driver: [built-as-unit]}
+  controls: {driver: [separate-process-or-supplier]}
 massing:                            # rough shapes, one kit call per line, numbers only
   - {kit: enclosure, as: body, material: mild steel, args: {length: 420 mm, width: 440 mm, height: 418 mm, thickness: 1.2 mm}, at: {z: 760 mm}}
   - {kit: plate, as: lid, role: body, material: mild steel, args: {width: 420 mm, depth: 440 mm, thickness: 2 mm}, at: {z: 1178 mm}}
-  - {kit: block, as: door, material: mild steel, process_class: sheet-metal, args: {length: 340 mm, width: 3 mm, height: 340 mm}, at: {y: -221.5 mm, z: 800 mm}}
-  - {kit: block, as: controls, material: abs, process_class: cots-controls, args: {length: 300 mm, width: 160 mm, height: 100 mm}, at: {z: 1180 mm}}
+  - {kit: block, as: door, module: door, material: mild steel, process_class: sheet-metal, args: {length: 340 mm, width: 3 mm, height: 340 mm}, at: {y: -221.5 mm, z: 800 mm}}
+  - {kit: block, as: controls, module: controls, material: abs, process_class: cots-controls, args: {length: 300 mm, width: 160 mm, height: 100 mm}, at: {z: 1180 mm}}
   - {kit: frame, as: stand, material: mild steel, args: {length: 380 mm, width: 400 mm, height: 760 mm, member: {size: 25 mm, wall: 1.5 mm}}}
 notes: Budget about 1500 USD. Small chamber so the door can swing inside the alcove.
 screening: null                     # written by `n2f concept build`
@@ -41,6 +44,17 @@ decision: null                      # written by promote or reject
 the door open in the 800 mm alcove, 7.5 A on the 13 A circuit, about 2.7 h to temperature
 and 888–1741 USD (estimates); it warns that the controls sit above the door and that about
 64 kg needs more than a two-person lift.
+
+**Modules** (optional, v0.4, P10): `modules: {<name>: {driver: [...], build: unit|phantom}}`
+names the units the product is built from and why, with the assemblies' reasons
+(`built-as-unit`, `tested-as-unit`, `serviced-as-unit`, `separate-process-or-supplier`,
+`varies`, `agent-context`; `docs/vocabulary.md`), and `module: <name>` on a massing line
+says which unit a rough shape belongs to. A line without one belongs to the product as a
+whole. Screening ignores modules; the board lists them ("door (built as one unit)") and
+promotion turns them into the product's first structure (below). Name a module only when a
+reason applies: start flat, split for a reason (P11). Lint warns (never fails) about an
+unknown reason word, a line naming a module that has no entry (allowed: it promotes with no
+reason) and an entry no line belongs to (it gets no size budget).
 
 Conventions for `massing`:
 
@@ -237,6 +251,20 @@ computed and validated first; a refusal writes nothing):
    recorded (the controls rule reads it). When the card names another preset, values that
    still equal the old preset's take the new one's (the product then looks like the board);
    hand-edited values are kept and listed.
+   - **Modules** (P10), when the card names any and the product has **no assembly yet**:
+     `model/assemblies/<product id>.yaml`, the top assembly, with one `asm://<module>` child
+     per module, and one stub `model/assemblies/<module>.yaml` per module (`children: []`,
+     `build`/`driver` from the card; an unknown reason word is left out and noted). Each
+     module with rough shapes gets three size budgets, "The door module fits the width the
+     concept gave it" and its depth and height: `asm://<module>#props.bbox.x|y|z ≤` the
+     extent of its massing lines' box, rounded up to 0.1 mm and labelled computed. The site
+     and form rows above then go to the new top assembly instead of `unallocated`. Lines
+     without a module seed nothing: their parts go into the top assembly. A module named
+     like the product, or an assembly file already on disk, refuses the promotion (nothing
+     is ever overwritten). An empty stub builds; `n2f check` shows it as worth a look
+     (`general-v0` "module has parts") and its budgets as not checked until it has parts.
+     When the product **already has assemblies**, nothing is written: the output prints the
+     modules as a suggestion, and the decision records them.
 6. **The decision**: one `DEC-` ("Design direction: <title>", plus ", despite screening" for
    an overridden red card) whose context lists every other card with its verdict and
    one-line reasons as the alternatives (and the override reason and failing rules),

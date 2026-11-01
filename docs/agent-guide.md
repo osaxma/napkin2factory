@@ -188,6 +188,16 @@ back, the widest case) and `target_volume: 8 L` (the useful volume asked for); u
 file). The door angle narrows the alcove check to what the door really needs; the volume and
 the touch limit add rows "worth a look", never a red verdict.
 
+A card may also name the units the product is built from, when a reason applies (built,
+tested or serviced as one unit, made by another process or supplier): `modules: {door:
+{driver: [built-as-unit]}}`, and `module: door` on the massing lines that make it up.
+Promotion then seeds the structure when the product has no assembly yet: the top assembly
+`model/assemblies/<product id>.yaml`, one empty `model/assemblies/<module>.yaml` per module
+and three size budgets per module (requirements on `asm://<module>#props.bbox.x`, `.y`,
+`.z`, from its rough shapes); `n2f build && n2f check` stays green, each empty module worth
+a look until the designer gives it parts. On a product that already has assemblies it only
+prints the modules as a suggestion.
+
 The kit list is in the product's `AGENTS.md`; `docs/napkin.md` explains the stage.
 
 **Design and check: the factory.**

@@ -19,11 +19,17 @@ import yaml
 from napkin2factory.core.checks.results import CheckResult
 from napkin2factory.core.loader import Product
 from napkin2factory.rulepacks import RULEPACKS_DIR
-from napkin2factory.rulepacks.checks import CHECKS, RuleNotApplicable, RuleSkip
+from napkin2factory.rulepacks.checks import ASSEMBLY_CHECKS, CHECKS, RuleNotApplicable, RuleSkip
 from napkin2factory.rulepacks.form_checks import FORM_CHECKS
 
-#: Every named check a pack may use.
+#: Every named check a pack may use on a part.
 ALL_CHECKS = {**CHECKS, **FORM_CHECKS}
+#: A rule's ``subject``: ``part`` (the default, one row per part) or ``assembly``.
+ASSEMBLY_SUBJECT = "assembly"
+
+
+def _on_assemblies(rule: dict[str, Any]) -> bool:
+    return str(rule.get("subject", "part")) == ASSEMBLY_SUBJECT
 
 
 @dataclass
@@ -83,6 +89,8 @@ def run_rulepacks(
             if not pack_applies(pack, part):
                 continue
             for rule in pack.rules:
+                if _on_assemblies(rule):
+                    continue  # run once per assembly below
                 rid = f"rule://{pack.id}/{rule['id']}"
                 fn = ALL_CHECKS.get(str(rule.get("check")))
                 if fn is None:
@@ -154,7 +162,61 @@ def run_rulepacks(
                             detail={"pack": pack.id, "rule": rule["id"]},
                         )
                     )
+    results += _assembly_rows(product, packs)
     return results
+
+
+def _assembly_rows(product: Product, packs: list[RulePack]) -> list[CheckResult]:
+    """One row per (``subject: assembly`` rule, assembly), from packs with no ``applies_to``.
+
+    The row id is ``rule://<pack>/<rule>@<assembly id>`` and its subject ``asm://<id>``
+    (P10, S-112: the "module has parts" rule).
+    """
+    rows: list[CheckResult] = []
+    for pack in packs:
+        if pack.applies_to:  # part properties (process, …) say nothing about an assembly
+            continue
+        for rule in pack.rules:
+            if not _on_assemblies(rule):
+                continue
+            rid = f"rule://{pack.id}/{rule['id']}"
+            title = str(rule.get("title", rule["id"]))
+            fn = ASSEMBLY_CHECKS.get(str(rule.get("check")))
+            for asm in product.assemblies.values():
+                if fn is None:
+                    rows.append(
+                        CheckResult(
+                            id=f"{rid}@{asm.id}",
+                            subject=asm.uri,
+                            status="skip",
+                            kind="rule",
+                            title=title,
+                            message=f"unknown check {rule.get('check')!r} in {pack.path.name}",
+                        )
+                    )
+                    continue
+                violations = fn(asm, dict(rule.get("params") or {}), product)
+                status = str(rule.get("severity", "fail")) if violations else "pass"
+                message = (
+                    "; ".join(_fmt(str(rule.get("message", rule["id"])), v) for v in violations)
+                    if violations
+                    else "ok"
+                )
+                detail: dict[str, Any] = {"pack": pack.id, "rule": rule["id"]}
+                if violations:
+                    detail["violations"] = violations
+                rows.append(
+                    CheckResult(
+                        id=f"{rid}@{asm.id}",
+                        subject=asm.uri,
+                        status=status,
+                        kind="rule",
+                        title=title,
+                        message=message,
+                        detail=detail,
+                    )
+                )
+    return rows
 
 
 def _fmt(template: str, values: dict[str, Any]) -> str:

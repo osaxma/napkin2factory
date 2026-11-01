@@ -19,7 +19,7 @@ from pydantic import (
     model_serializer,
 )
 
-from napkin2factory.core.model.base import DecId, Model, _id, _to_quantity
+from napkin2factory.core.model.base import DecId, Model, Slug, _id, _to_quantity
 from napkin2factory.core.model.style import StyleRole
 from napkin2factory.core.units import UnitError, format_quantity, parse_quantity
 
@@ -121,6 +121,38 @@ class MassingCall(Model):
     process_class: str | None = None
     #: Styling role for the picture's palette; defaults to ``as`` when that is a role word.
     role: StyleRole | None = None
+    #: The module (a future sub-assembly) this rough shape belongs to (P10); a line without
+    #: one belongs to the product as a whole.
+    module: Slug | None = None
+
+    @model_serializer(mode="wrap")
+    def _compact(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if data.get("module") is None:  # a v0.3 card dumps as before (P14)
+            data.pop("module", None)
+        return data
+
+
+def _to_module(v: Any) -> Any:
+    """``door:`` with nothing after it reads as a module with no reason given yet."""
+    return {} if v is None else v
+
+
+class ConceptModule(Model):
+    """One module the concept sketches (P10): why it is its own unit, and how it is built.
+
+    The words are not checked here: a card stays readable with a typo, and ``n2f concept
+    lint`` warns about a driver or a build word it does not know (concepts are
+    under-validated on purpose, N1). The vocabulary is the assemblies' (P7, ``DRIVERS``).
+    """
+
+    #: Why it is built on its own: words from ``core.model.assemblies.DRIVERS``.
+    driver: list[str] = Field(default_factory=list)
+    #: ``unit`` (built as one unit, the default) or ``phantom`` (a grouping only).
+    build: str = "unit"
+
+
+ModuleEntry = Annotated[ConceptModule, BeforeValidator(_to_module)]
 
 
 #: ``given``: copied from the card itself (its ``envelope.power``, its ``site.circuit``) —
@@ -234,10 +266,31 @@ class ConceptCard(Model):
     envelope: dict[str, EnvelopeValue] = Field(default_factory=dict)
     site: dict[str, SiteValue] = Field(default_factory=dict)
     style: dict[str, Any] = Field(default_factory=dict)
+    #: The modules the product is built from, by name (P10): ``{door: {driver: [...]}}``.
+    modules: dict[Slug, ModuleEntry] = Field(default_factory=dict)
     massing: list[MassingCall] = Field(default_factory=list)
     notes: str | None = None
     screening: Screening | None = None
     decision: ConceptDecision | None = None
+
+    @model_serializer(mode="wrap")
+    def _compact(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if not data.get("modules"):  # a v0.3 card dumps as before (P14)
+            data.pop("modules", None)
+        return data
+
+    def module_names(self) -> list[str]:
+        """Every module the card names: ``modules:`` in order, then those only a line names."""
+        names = list(self.modules)
+        for call in self.massing:
+            if call.module is not None and call.module not in names:
+                names.append(call.module)
+        return names
+
+    def module_entry(self, name: str) -> ConceptModule:
+        """The module's entry, or an empty one when only a massing line names it."""
+        return self.modules.get(name) or ConceptModule()
 
     @property
     def verdict(self) -> str | None:

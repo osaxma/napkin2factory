@@ -347,8 +347,12 @@ def promote(
         emit_json(result.to_dict())
         return
     console.print(f"[green]✓[/green] {escape(result.summary())}", soft_wrap=True)
+    for a in result.assemblies:  # P10: the structure seeded from the card's modules
+        console.print(f"  + {escape(a.file)}", soft_wrap=True, highlight=False)
     for r in result.requirements:
         console.print(f"  + {r.id} {escape(r.title)}", soft_wrap=True, highlight=False)
+    if result.suggestion:
+        console.print(f"  suggestion: {escape(result.suggestion)}", soft_wrap=True)
     for note in result.notes:
         console.print(f"  [dim]note: {escape(note)}[/dim]", soft_wrap=True)
     if result.snapshot:

@@ -24,13 +24,18 @@ envelope:
 # touch-limit: 60 degC on any surface a user can touch (REQ-003)
 site: {alcove_width: 800 mm, circuit: 230V-16A, touch_limit: 60 degC}
 style: {preset: industrial}
+# modules (v0.4): the units the kiln is built from and why. The door is built as one unit
+# (assembly.md section 5); the controls are fitted and wired by an electrician, another trade
+# (installation.md). Shell, lining, guard and the one-piece welded stand are fitted in
+# sequence in the final assembly, so they belong to no module: start flat, split for a reason.
+modules: {door: {driver: [built-as-unit]}, controls: {driver: [separate-process-or-supplier]}}
 # body = chamber + 2 × (64 + 50 + 1.2) mm = 380.4 mm a side; a flush 30 mm door; the as-built
 # hinge, controller box (260 × 120 × 160 mm) and 25 mm tube stand
 massing:
   - {kit: block, as: body, args: {length: 380.4 mm, width: 380.4 mm, height: 380.4 mm}, at: {y: 190.2 mm, z: 700 mm}}
-  - {kit: block, as: door, args: {length: 380.4 mm, width: 30 mm, height: 380.4 mm}, at: {y: -15 mm, z: 700 mm}}
+  - {kit: block, as: door, module: door, args: {length: 380.4 mm, width: 30 mm, height: 380.4 mm}, at: {y: -15 mm, z: 700 mm}}
   - {kit: block, as: hinge, role: trim, material: mild steel, process_class: machining, args: {length: 12 mm, width: 12 mm, height: 300 mm}, at: {x: -196.2 mm, y: -15 mm, z: 740.2 mm}}
-  - {kit: block, as: controls, material: abs, process_class: cots-controls, args: {length: 260 mm, width: 120 mm, height: 160 mm}, at: {y: 190.2 mm, z: 500 mm}}
+  - {kit: block, as: controls, module: controls, material: abs, process_class: cots-controls, args: {length: 260 mm, width: 120 mm, height: 160 mm}, at: {y: 190.2 mm, z: 500 mm}}
   - {kit: frame, as: stand, material: mild steel, args: {length: 380.4 mm, width: 380.4 mm, height: 700 mm, member: {profile: square-tube, size: 25 mm, wall: 1.5 mm}, top_rails: true, bottom_rails: true, bottom_rail_height: 150 mm}, at: {y: 190.2 mm}}
 notes: >-
   Worked back from screening's alcove rule: the closed width plus the door leaf swung fully back

@@ -58,6 +58,7 @@ details summary{cursor:pointer;font-size:.85rem;color:var(--muted)}
 .refs figure{margin:0;width:96px}.refs img{width:96px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
 .refs figcaption{font-size:.7rem;color:var(--muted);word-break:break-all}
 .cardnotes{font-size:.9rem;white-space:pre-wrap}
+.modules{font-size:.9rem;margin:.2rem 0 0}
 .small{font-size:.8rem;color:var(--muted)}
 .small ul{margin:.2rem 0 0;padding-left:1.1rem}
 footer{max-width:1600px;margin:0 auto;padding:0 1.2rem 2rem;font-size:.78rem;color:var(--muted)}
@@ -91,6 +92,7 @@ footer{max-width:1600px;margin:0 auto;padding:0 1.2rem 2rem;font-size:.78rem;col
     {% if c.front_src %}<img class="front" src="{{ c.front_src }}" alt="{{ c.id }} styled picture (front)"><p class="front-cap">from the front</p>{% endif %}
     {% if c.given %}<div><h3>From the card</h3><dl class="vals">{% for v in c.given %}{{ lv(v) }}{% endfor %}</dl></div>{% endif %}
     {% if c.dims %}<div><h3>Size and weight</h3><dl class="vals">{% for v in c.dims %}{{ lv(v) }}{% endfor %}</dl></div>{% endif %}
+    {% if c.modules %}<div><h3>Modules</h3><p class="modules">{{ c.modules | join('; ') }}</p></div>{% endif %}
     {% if c.strip %}<div><h3>Estimates</h3><dl class="vals">{% for v in c.strip %}{{ lv(v) }}{% endfor %}</dl></div>{% endif %}
     {% if c.more %}<details><summary>more numbers ({{ c.more | length }})</summary><dl class="vals">{% for v in c.more %}{{ lv(v) }}{% endfor %}</dl></details>{% endif %}
     {% if c.built %}

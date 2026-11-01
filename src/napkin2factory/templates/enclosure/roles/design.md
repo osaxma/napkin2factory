@@ -51,6 +51,16 @@ closes (the lowest one holding both parts). Where two joints share holes, list e
 on the joint it closes. `n2f check` fails a shortfall and warns a surplus unless the line says
 `spare: "<reason>"`; `loose: true` marks a line packed loose for the installer.
 
+## Start flat; split for a reason
+A product starts as one assembly. Make a sub-assembly only when one of the reasons above
+applies (it is built, tested or serviced as one unit, made by another process or supplier,
+or comes in variants), or when the module's working context would be more than one agent
+can hold (`agent-context`). That size threshold has not been set yet; until it is, split for
+the other reasons only. Splitting later is cheap, because every joint is already an explicit
+interface: move the parts into the new assembly file, list the joints that now cross its
+edge under `ports:`, and place it by one of them. A sub-assembly with no reason is handling
+overhead: fold it back into its parent, or mark it `build: phantom`.
+
 ## After the napkin stage
 When a concept card has been promoted (`n2f concept list` shows it `promoted`; its
 decision is in `model/decisions.yaml`), the owner has already chosen the form. Start from it:
@@ -60,6 +70,18 @@ decision is in `model/decisions.yaml`), the owner has already chosen the form. S
   over an `enclosure` becomes the real shell panels, a solid `block` of controls becomes
   the control box, the stand a real `frame`), and point the arguments at the parameters
   promotion seeded (`param://chamber-width`, `param://insulation`, …), never at raw numbers.
+- **The modules the card named are already there, empty.** When the card had `modules:`
+  and the product had no assembly yet, promotion wrote the top assembly
+  (`model/assemblies/<product>.yaml`, one `asm://` child per module) and one stub per
+  module (`children: []`, its `build`/`driver` from the card). Fill each stub with the
+  parts of its massing lines (lines without a module go in the top assembly), give it its
+  geometry module, list its `ports:` and place it in the top assembly by one of them.
+  `n2f check` shows an empty stub as worth a look ("has no parts yet") until it has parts.
+  Each module also got three size budgets (`asm://<module>#props.bbox.x`, `.y`, `.z`, at
+  most the size of its rough shapes, computed): design the module within them; changing
+  one is a decision (`DEC-xxx`), never a quiet edit. When the product already had its
+  assemblies, promotion only printed the modules as a suggestion: split one off only
+  where its reason holds (above).
 - **Read `style.yaml` and respect it.** Give every visible part its `role:` (`body`,
   `door`, `stand`, `controls`, `trim`; `lining`, `fastener` for the rest): the role picks
   its colour and finish, and only `body`/`door`/`stand`/`controls`/`trim` parts take the

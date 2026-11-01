@@ -1,0 +1,20 @@
+# A card with modules for a fresh product (P10, v0.4 M5): the door and the controls have
+# entries, the stand is named only by its massing line, the body belongs to no module.
+id: C-001
+title: Compact kiln built from modules
+status: exploring
+layout: {load: front, door: hinged-right, controls: side-right}
+envelope: {chamber: [150 mm, 150 mm, 150 mm], power: 1.5 kW}
+site: {alcove_width: 800 mm, circuit: 230V-16A}
+style: {preset: appliance, corner_radius: 8 mm}
+modules:
+  door: {driver: [built-as-unit, serviced-as-unit]}
+  controls: {driver: [separate-process-or-supplier, tested-as-unit]}
+massing:
+  - {kit: enclosure, as: body, material: mild steel, args: {length: 400 mm, width: 400 mm, height: 400 mm, thickness: 1.5 mm}, at: {z: 300 mm}}
+  - {kit: block, as: door, module: door, material: mild steel, process_class: sheet-metal, args: {length: 300 mm, width: 3 mm, height: 300 mm}, at: {y: -201.5 mm, z: 350 mm}}
+  - {kit: block, as: controls, module: controls, material: abs, process_class: cots-controls, args: {length: 60 mm, width: 120 mm, height: 160 mm}, at: {x: 230 mm, z: 420 mm}}
+  - {kit: frame, as: stand, module: stand, material: mild steel, args: {length: 400 mm, width: 400 mm, height: 300 mm, member: {profile: square-tube, size: 25 mm, wall: 1.5 mm}, top_rails: true}}
+notes: null
+screening: null
+decision: null

@@ -284,6 +284,8 @@ def gather_card(root: Path, card: ConceptCard, style: Any) -> dict[str, Any]:
         "built": sc is not None,
         "verdict": card.verdict,
         "based_on": card.based_on,
+        # P10: the units the direction is built from, in plain words (S-112)
+        "modules": cm.module_words(card),
         "given": given,
         "dims": dims,
         "strip": strip,

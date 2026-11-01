@@ -58,7 +58,15 @@ QUANTITY_KINDS: dict[tuple[str, str], tuple[str, str, str]] = {
     ("site", "ambient_max"): ("degC", "a temperature", "40 degC"),
 }
 #: Sections ``n2f concept new --from`` copies from the card it starts from.
-COPIED_SECTIONS: tuple[str, ...] = ("layout", "envelope", "site", "style", "massing", "notes")
+COPIED_SECTIONS: tuple[str, ...] = (
+    "layout",
+    "envelope",
+    "site",
+    "style",
+    "modules",
+    "massing",
+    "notes",
+)
 SCHEMA_RULE = "C0-schema"
 
 
@@ -265,9 +273,13 @@ def render_card(data: dict[str, Any]) -> str:
         "# style: look and feel,",
         "#   e.g. {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}",
         f"style: {_flow(data.get('style') or {})}",
+        "# modules: the units it is built from and why, when a reason applies (else leave it",
+        "#   empty), e.g. {door: {driver: [built-as-unit, serviced-as-unit]}};",
+        "#   a massing line joins one with `module: door`",
+        f"modules: {_flow(data.get('modules') or {})}",
         "# massing: rough shapes from the kit, one line each, e.g.",
         "#   - {kit: enclosure, as: body, args: {length: 540 mm, width: 540 mm, height: 620 mm}}",
-        "#   - {kit: block, as: door, args: {…}, at: {…}}",
+        "#   - {kit: block, as: door, module: door, args: {…}, at: {…}}",
     ]
     massing = data.get("massing") or []
     if massing:
@@ -300,6 +312,7 @@ def new_card(root: Path, title: str, based_on: str | None = None) -> ConceptCard
         "envelope": {},
         "site": {},
         "style": {},
+        "modules": {},
         "massing": [],
         "notes": None,
         "screening": None,
@@ -437,8 +450,87 @@ def set_aside_words(reason: str | None) -> str:
     return f"set aside: {text}"
 
 
+MODULES_RULE = "C9-modules"
+#: A module whose card gives no reason it is built on its own (shown on the board).
+NO_REASON_WORDS = "no reason given yet"
+
+
+def module_words(card: ConceptCard) -> list[str]:
+    """Each module the card names, in plain words: ``door (built as one unit)`` (P10).
+
+    The reasons are the assemblies' owner words (``core.build_units.DRIVER_WORDS``,
+    ``docs/vocabulary.md``); a word outside the vocabulary is left out (lint names it).
+    """
+    from napkin2factory.core.build_units import DRIVER_WORDS, PHANTOM_WORDS
+
+    out = []
+    for name in card.module_names():
+        entry = card.module_entry(name)
+        if entry.build == "phantom":
+            why = [PHANTOM_WORDS]
+        else:
+            why = [DRIVER_WORDS[d] for d in entry.driver if d in DRIVER_WORDS] or [NO_REASON_WORDS]
+        out.append(f"{name.replace('-', ' ')} ({', '.join(why)})")
+    return out
+
+
+def _lint_modules(card: ConceptCard, path: Path, problems: Problems) -> None:
+    """C9 (warnings only, P10): the card's modules use the assemblies' words (P7).
+
+    A driver or build word outside the vocabulary, a massing line naming a module with no
+    entry under ``modules:`` (allowed: it promotes with no reason given), and an entry no
+    massing line belongs to (it promotes without a size budget).
+    """
+    from napkin2factory.core.model.assemblies import DRIVERS
+
+    for name, entry in card.modules.items():
+        unknown = [d for d in entry.driver if d not in DRIVERS]
+        if unknown:
+            problems.add(
+                path,
+                card.id,
+                f"module {name}: {', '.join(repr(d) for d in unknown)} is not a reason a "
+                "module is built on its own",
+                f"use one of: {', '.join(DRIVERS)}",
+                severity="warn",
+                rule=MODULES_RULE,
+            )
+        if entry.build not in ("unit", "phantom"):
+            problems.add(
+                path,
+                card.id,
+                f"module {name}: build {entry.build!r} is neither unit nor phantom",
+                "use `build: unit` (built as one unit, the default) or `build: phantom` "
+                "(a grouping only)",
+                severity="warn",
+                rule=MODULES_RULE,
+            )
+        if not any(call.module == name for call in card.massing):
+            problems.add(
+                path,
+                card.id,
+                f"module {name}: no rough shape belongs to it, so promotion gives it no "
+                "size budget",
+                f"add `module: {name}` to the massing lines that make it up",
+                severity="warn",
+                rule=MODULES_RULE,
+            )
+    for i, call in enumerate(card.massing):
+        if call.module is not None and call.module not in card.modules:
+            problems.add(
+                path,
+                card.id,
+                f"massing[{i}] ({call.as_}): module {call.module} has no entry under "
+                "modules:, so nothing says why it is built on its own",
+                f"add `{call.module}: {{driver: [built-as-unit]}}` (or another reason) under "
+                "`modules:`",
+                severity="warn",
+                rule=MODULES_RULE,
+            )
+
+
 def lint_concepts(root: Path) -> Problems:
-    """``n2f concept lint``: schema plus rules C1–C8; only C5 (site keys) is a warning."""
+    """``n2f concept lint``: schema plus rules C1–C9; C5 (site keys) and C9 are warnings."""
     problems = Problems()
     cards = load_concepts(root, problems)
     files = {p.stem: p for p in card_files(root)}
@@ -520,6 +612,7 @@ def lint_concepts(root: Path) -> Problems:
                     f"give it as {kind} with its unit, like {example}",
                     rule="C8-number-kinds",
                 )
+        _lint_modules(card, path, problems)
         for key in card.site:
             if key not in SITE_KEYS:
                 problems.add(
