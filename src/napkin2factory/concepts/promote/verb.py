@@ -161,7 +161,7 @@ def promote(
     # 6. the decision
     siblings = [c for c in cards.values() if c.id != cid]
     alternatives = [
-        f'{c.id} "{c.title}" ({_one_line(c)})'
+        f'{c.id} "{c.title}" ({_one_line(c, root)})'
         + (
             f" — {cm.set_aside_words(c.decision.reason)}"
             if c.status == "rejected" and c.decision is not None and c.decision.reason

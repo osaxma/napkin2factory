@@ -81,9 +81,24 @@ with installed(toy.DOMAIN):
   `load`, `set`, plus every other domain's. Interface kinds, processes, finishes, categories,
   drivers, style roles and vocabulary terms do not error: the first one registered wins, so
   pick new words.
+- **Card fields are not checked for clashes either.** A `CardField` is known by
+  `<section>.<key>` (`envelope.toys`). Two screens may read the same field, and both get the
+  card's one value; the skeleton (`n2f concept new`) and `n2f concept lint` use the first
+  declaration's unit, kind and example (the system's generic screens first, then the domains
+  in installation order, then the product's own). So reuse a key only when you mean the same
+  number in the same unit; otherwise pick a new key (§3.11).
 - **Do not assert the whole domain list.** The toy test asserts
   `[d.name for d in registry().domains] == ["mechanical", "toy"]`; yours should assert
   `"<name>" in [d.name for d in registry().domains]`, so both pass in any order.
+- **Nor any other exact list or position.** Several toy assertions hold only because the toy
+  is the one extra domain installed: `[r.title for r in reg.gate_rows("verify")] == ["Toy
+  things"]`, `[s.name for s in reg.screens()] == ["toy"]`, `reg.screens()[0]`,
+  `ctx["domains"][0]`, the toy's row being the last screen row (`[...][-1] == "toy-count"`)
+  and `STYLE_ROLES[-1] == "toy-shell"`. Each registry lists every installed domain's entries
+  in installation order, so write the membership form instead:
+  `"Gadget things" in [r.title for r in reg.gate_rows("verify")]`,
+  `gadget_screen = next(s for s in reg.screens() if s.name == "gadget")`,
+  `any(d["lines"] == [...] for d in ctx["domains"])`, `"gadget-count" in [r.id for r in rows]`.
 
 **What a domain may import** (the public API; anything else is the core's business and may
 change). Each name is described in §3 and §4.
@@ -109,7 +124,8 @@ change). Each name is described in §3 and §4.
   `napkin2factory.core.context` (`module_context`, `render_text`),
   `napkin2factory.concepts.screening.screen`, `napkin2factory.core.concepts.render_card`,
   `napkin2factory.core.model.style` (`STYLE_ROLES`, `STYLED_ROLES`, `ROLE_ALIASES`,
-  `canonical_role`, `StyleFile`), `napkin2factory.cli.app.app`. Signatures in §8.
+  `canonical_role`, `StyleFile`), `napkin2factory.cli.app.app`,
+  `napkin2factory.cli.build.targets` (every `--target` name). Signatures in §8.
 
 ## 2. The toy, end to end
 
@@ -302,6 +318,14 @@ def evaluate_glow(ctx, req, res, evidence) -> str | None:
   leave it `None` and impact says "known after the rebuild").
 - A requirement naming a kind that is not installed is a validation error listing the
   installed kinds. `n2f doctor` lists every installed kind with its targets (F14).
+- **Unless the kind is `binary`, its requirements' `statement` must carry a number with a
+  unit** (lint L1, "statement has no measurable value with a unit"; an error that holds the
+  Intake gate). This applies to every non-binary kind, comparing or not. A unit counts when
+  `parse_quantity` reads it: any unit the system's unit registry knows (`mm`, `N`, `kg`,
+  `degC`, `deg`, `rpm`, `W`, `h`, …) or `%`; a made-up word does not ("4 clicks" fails,
+  "360 deg" and the toy's "2 % of full glow" pass). Only the system's `count` kind accepts a
+  bare number. The binary kinds today: `interference`, `interface`, `manual`, `rule`
+  (`[k for k, v in registry().verify_kinds().items() if v.binary]`).
 
 ### 3.4 Check stages — `check_stages=(CheckStage(...),)`
 Rows of `n2f check` (`build/checks/checks.json`).
@@ -371,7 +395,12 @@ ReportSection("toy", "Toy things", group="Product", fragment="toy.html.j2",
   ```
   Keep it self-contained: no external file, no script source (D13, the page is `file://` safe).
 - `group` is one of `""`, `"Product"`, `"Verification"`, `"Design record"`; the section goes
-  at the end of its group in the side index. `show(product)` false leaves it off.
+  at the end of its group in the side index. `show(product)` false leaves it off. The
+  system's sections in order: `overview`, `safety` (no group); `model`, `parts`, `drawings`,
+  `interfaces`, `build`, `joints` (Product); `requirements`, `rules`, `signoffs`
+  (Verification); `parameters`, `decisions`, `changes` (Design record); `manuals`. None of
+  them has a `show`, so each is in the side index of every report (`joints` included, with or
+  without interfaces), and a Product section of yours follows `data-sec="joints"`.
 - `reads(product)`: the keys it shows, added to the report rule's reads.
 
 ### 3.7 Doc helpers — `doc_helpers={"toy": factory}`
@@ -422,7 +451,11 @@ InterfaceKind("toy-joint", "Toy snap joint", spec=ToySpec, check=check_toy_joint
   tolerance class passes the general pack's `custom-part-complete` row.
 - `finishes=("toy-glitter",)` — values of `style.yaml`'s `finish:` entries (how a role's
   surface renders; yours render with neutral factors). A part's own `finish:` is free text.
-- `categories=("fun",)` — requirement categories.
+- `categories=("fun",)` — requirement categories. The system's own
+  (`core/data/requirement_categories.yaml`): `performance`, `geometry`, `cost`, `mass`,
+  `safety`, `manufacturing`, `usability`, `interface`. A domain that registers none gives its
+  requirements one of these. A category named like your domain also makes a requirement yours
+  for scope (§5).
 - `drivers={"toy-swapped": "swapped between toys"}` — why a sub-assembly is built on its
   own (`driver: [toy-swapped]` in an assembly file), with its owner words.
 - `style_roles=(StyleRoleSpec("toy-shell", "a toy's shell", styled=True, aliases=("casing",)),)`
@@ -468,7 +501,8 @@ Screen("toy", toy_screen, title="Toy count", fields=(TOYS,), phase="estimate")
   and what it plugs into) or `layout` (words: where things go). `unit` is the unit the screen
   converts to (`"mm"`, `"W"`; `None` for words or a bare count); `aliases` are earlier keys
   still read; `param` names the parameter an envelope field seeds at promotion when that is
-  not the key with hyphens.
+  not the key with hyphens. `section` and `key` together name the field; see §1 for a key
+  another screen also declares.
 - `phase`: `measure` and `total` are the system's own steps (sizes and mass of the rough
   shapes; total mass, cost band, lift class). Take `estimate` when the totals read your
   numbers (append `(kg quantity, words, ref)` to `values.mass_items`, or `(name, process
@@ -638,6 +672,14 @@ kinds, report sections or gate rows (those are a domain's).
     must fit and before its weight.
   - `PROMOTE_RATIONALE = ("key", ...)`: screening value keys the promotion decision quotes,
     after the size and mass.
+
+  And one hook for the concept build's one-line summary (`n2f concept build` and
+  the promotion decision's line per card):
+  - `SUMMARY_PHRASES(card, screening) -> [phrase, ...]`: owner phrases about values only
+    these screens produce, each saying its label ("2.5 kW (on the card) on the 240V-13A
+    circuit — fits with a fifth to spare (estimate)"). They follow the size and mass and come
+    before the cost; `napkin2factory.concepts.build.screening_text(screening, section, name)`
+    reads a value's text (`section` is `given`, `computed` or `estimates`).
 - **`model/rulepacks/*.yaml`** with their checks in **`model/rulepacks/*.py`**: a pack file
   in the shipped packs' format (`pack`, `title`, `applies_to`, `rules:` each with `id`,
   `title`, `severity`, `check`, `params`, `message`), and a module exposing
@@ -687,7 +729,32 @@ tests, with your names: `test_every_registry_sees_the_toy`,
 `test_screen_runs_on_a_card`, `test_screen_declares_its_fields_and_phase`,
 `test_style_role_is_a_role_while_the_domain_is_installed`, `test_context_contribution`,
 `test_impact_is_a_superset_of_the_rebuild`, `test_a_domain_code_change_reruns_its_rules_only`.
-The rest of that file tests the core, not a domain. The fixture:
+The rest of that file tests the core, not a domain.
+
+**A field you leave out takes its tests with it.** Each test proves one field; keep the ones
+for what your domain brings, and in `test_every_registry_sees_…` assert only those registries:
+- `families` — the model-family lines of `test_every_registry_sees_…`;
+- `rule_families` — `test_rule_family_runs_…`, `test_the_rule_family_is_a_build_target_…`,
+  `test_impact_is_a_superset_of_the_rebuild`;
+- `verify_kinds` — `test_verify_kind_evaluates`; `check_stages` — `test_check_stage_reports`;
+  `gate_rows` — `test_gate_row_shows_in_status`; `report_sections` —
+  `test_report_section_renders`; `doc_helpers` — `test_doc_helper_records_a_read`;
+  `vocabulary` — `test_vocabulary_word_in_the_owner_view`; `interface_kinds` —
+  `test_interface_kind_validates`; `processes` — `test_process_passes_the_general_rule_pack`;
+  `screens` — `test_screen_runs_on_a_card`, `test_screen_declares_its_fields_and_phase`;
+  `style_roles` — `test_style_role_is_a_role_while_the_domain_is_installed`; `context` —
+  `test_context_contribution`;
+- keep `test_a_domain_code_change_reruns_its_rules_only` whenever a rule reads your code hash
+  (§7), and drop from it the rules your domain does not touch.
+
+**Two setup facts the toy's tests rely on.** The tests share one built product (the module
+fixture), and the CLI tests run `n2f check`, which builds with renders. Whether renders are
+made is an input of every part and assembly rule (`render` / `no-render`), so the impact test
+first rebuilds with `render=False`: otherwise the comparison would see parts rerun for that
+flag alone, not for the edit. Keep that line (`run_build(product, render=False, quiet=True)`)
+before `compute_impact` in any test that follows a CLI build.
+
+The fixture:
 
 ```python
 @pytest.fixture(scope="module")
@@ -719,6 +786,8 @@ The calls the tests make, with their signatures:
   `card_fields()`, `fields_of(screen)`, `phase_of(screen)` (`napkin2factory.concepts.screens`).
 - `napkin2factory.core.model.style`: `STYLE_ROLES` (the role ids, yours last), `STYLED_ROLES`,
   `ROLE_ALIASES` (alias → role), `canonical_role(word)`, `StyleFile.model_validate({...}).colour(role)`.
+- `targets() -> tuple[str, ...]` (`napkin2factory.cli.build`): every name `n2f build
+  --target` accepts; a rule family is one by its own name.
 - The CLI, in-process: `CliRunner().invoke(app, ["status", "-C", str(root)], env={"COLUMNS": "200"}).output`
   (also `["status", "-C", root, "--json"]`, `["check", "-C", root, "--all"]`,
   `["build", "-C", root, "--target", "<family>", "--explain", "--json"]`).

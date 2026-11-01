@@ -499,7 +499,7 @@ def test_summary_line_keeps_inputs_given_and_collapses_one_source_cost(kiln: Scr
     from napkin2factory.concepts.build import summary_line
     from napkin2factory.core.model.concepts import LabelledValue
 
-    line = summary_line(_card(KILN), kiln)
+    line = summary_line(_card(KILN), kiln, KILN_ROOT)
     assert (
         "2.5 kW (on the card) on the 240V-13A circuit — fits with a fifth to spare (estimate)"
         in line
@@ -508,8 +508,22 @@ def test_summary_line_keeps_inputs_given_and_collapses_one_source_cost(kiln: Scr
     flat = kiln.model_copy(
         update={"estimates": {**kiln.estimates, "cost_low": one, "cost_high": one}}
     )
-    line = summary_line(_card(KILN), flat)
+    line = summary_line(_card(KILN), flat, KILN_ROOT)
     assert "43 USD (estimate, one source)" in line and "43–43" not in line
+
+
+def test_the_summary_says_only_generic_values_without_the_products_screens(
+    kiln: Screening,
+) -> None:
+    """B-0097 (S-135): the supply and heat-up phrases are the kiln's screens', not the system's."""
+    from napkin2factory.concepts.build import summary_line
+
+    own = summary_line(_card(KILN), kiln, KILN_ROOT)
+    plain = summary_line(_card(KILN), kiln)
+    assert "to temperature (estimate)" in own and "circuit" in own
+    assert "circuit" not in plain and "to temperature" not in plain and "kW" not in plain
+    assert plain.split(", ")[:2] == own.split(", ")[:2]  # size and mass
+    assert plain.split(", ")[-1] == own.split(", ")[-1]  # the cost
 
 
 # --- review gate B: owner words ------------------------------------------------------------

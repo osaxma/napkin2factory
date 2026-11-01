@@ -157,6 +157,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-132 | v0.5 M7a: docs, doctor, simulation protocols (`docs/domains.md` final, `n2f doctor` lists the domains, the gadget and kiln-choice protocols) | in force |
 | S-133 | v0.5 M5b: the gaps wave 3 left: a release held by an open choice, the report's "waiting on you", decided-not-applied as a Design caveat, the scope always read, `manifest://` links resolve, neutral walls words; B-0097 waits in a separate task | in force |
 | S-134 | v0.5 DoD 2: a fresh agent added the gadget domain from `docs/domains.md` alone; 0 core files changed or opened | in force |
+| S-135 | v0.5 M5b follow-up: the concept summary line says only generic values; a product's screens add their own phrases (`SUMMARY_PHRASES`; closes B-0097); `docs/domains.md` fixed where the gadget run found it short (S-134) | in force |
 
 ---
 
@@ -769,7 +770,6 @@ not held [revisit]); B-0081 (`manifest://scope` always read; every report key mo
 `inner_words`/`wall_words`; the kiln's says "chamber"/"insulation": cards, board golden unchanged). Open: B-0097, done in
 task `v05-m5b-summary` (WIP): it needs `cli/concept.py`, `promote/decision.py`, `verb.py`, outside this task's files.
 `demo-design.sh` (with `demo.sh`) green, 13 min 45 s beside other tests; `make check` green, 1034 passed, 141 goldens, 11 min 44 s.
-
 ## S-134 — v0.5 DoD 2: the gadget simulation, 0 core files (2026-11-02)
 Run by the overseer per `tests/e2e/domain-transcripts/README.md` on a detached copy of `main` at f18c2c5: a fresh subagent with no
 history got the scripted request and the contract (`docs/domains.md`, 47,952 bytes, read from the copy). In 224 s and 14 tool calls
@@ -780,3 +780,13 @@ in seven places (L1 needs a value with a unit for a comparing kind; the categori
 toy assertions that assume one extra domain; card-field key uniqueness; two test-setup facts; `cli.build.targets` not in the import
 list): fixed in `docs/domains.md` by the next task. The gadget itself is not kept in the repository: the transcript is the record.
 
+## S-135 — v0.5 M5b follow-up: the build summary's product phrases; the contract where the gadget found it short (2026-11-02)
+Closes B-0097 (the rest of B-0086). `concepts/build.py::summary_line(card, screening, root)` says size, mass and cost; a product's
+screens module may expose `SUMMARY_PHRASES` (`fn(card, screening) -> [phrase]`, read like `PROMOTE_REQUIREMENTS`), after the mass,
+before the cost; the kiln's screens carry the supply and heat-up phrases, moved verbatim. `cli/concept.py`, `promote/decision.py`
+and `verb.py` pass the product root (given to this task by the overseer after S-133). Without a root the line names nothing
+heated. Promote goldens and the kiln board unchanged. `docs/domains.md`: `SUMMARY_PHRASES` beside the promotion hooks, and the
+seven places S-134's gadget run found short, each checked in the code: L1 for every non-binary kind (units `parse_quantity`
+reads, `%`; bare numbers for `count` only); the eight system categories; which test goes with a field left out; membership, not
+exact lists; card-field keys (first declaration wins); the section order (`joints` always listed) and why the impact test
+rebuilds with `render=False`; `cli.build.targets` in the import list and §8. Touched tests (promote, concept e2e, screening, F9, transcript, agent docs) 3 min 26 s, green.

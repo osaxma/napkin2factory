@@ -63,7 +63,7 @@ class ConceptBuild:
             "id": self.card.id,
             "title": self.card.title,
             "verdict": self.screening.verdict,
-            "summary": summary_line(self.card, self.screening),
+            "summary": summary_line(self.card, self.screening, root),
             "dir": self.rel(root, self.out_dir),
             "renders": {
                 k.removeprefix("render_"): self.rel(root, v)
@@ -208,49 +208,38 @@ def status_tail(card: ConceptCard) -> str:
     return ""
 
 
-def _supply_phrase(screening: Screening) -> str | None:
-    """``2.5 kW (on the card) on the 240V-13A circuit — fits with a fifth to spare (estimate)``.
+def screening_text(screening: Screening, section: str, name: str) -> str | None:
+    """A labelled value's text from ``given``, ``computed`` or ``estimates`` (None if absent).
 
-    The card's own power and circuit are given; only the fit is an estimate (gate A, C1).
+    For a product's ``SUMMARY_PHRASES`` (:func:`pack_summary_phrases`).
     """
-    from napkin2factory.rulepacks.concept_checks import circuit_headroom
-
-    given_power = _value(screening, "given", "power")
-    power = (
-        f"{given_power} (on the card)"
-        if given_power
-        else (
-            f"{_value(screening, 'estimates', 'required_power')} (estimate)"
-            if _value(screening, "estimates", "required_power")
-            else None
-        )
-    )
-    if power is None:
-        return None
-    on_card = _value(screening, "given", "circuit_class")
-    if on_card:
-        row = screening.rule("circuit-available")
-        spare = spare_words(circuit_headroom())
-        if row is not None and row.status == "pass":
-            fit = f"fits with {spare} to spare (estimate)"
-        elif row is not None and row.status == "fail":
-            fit = f"does not fit with {spare} to spare (estimate)"
-        else:
-            fit = "fit not checked"
-        return f"{power} on {on_card} — {fit}"
-    table = _value(screening, "estimates", "circuit_class")
-    if table:
-        return f"{power} on a {table} (estimate)"
-    return f"{power}, supply not checked"
+    return _value(screening, section, name)
 
 
-def summary_line(card: ConceptCard, screening: Screening) -> str:
-    """One owner line: size (computed), mass, power on its circuit, heat-up, cost.
+def pack_summary_phrases(root: Path | None, card: ConceptCard, screening: Screening) -> list[str]:
+    """What the product's own screens add to the summary line (S-135, B-0097).
 
-    Every number says which label it carries.
+    A screens module in ``model/screens/`` (the one exposing ``SCREENS``) may expose
+    ``SUMMARY_PHRASES``, ``fn(card, screening) -> [phrase, ...]``: owner phrases about values
+    only its screens produce (a heated box's supply and heat-up), each saying its label.
+    They follow the size and mass and come before the cost. None without ``root``.
     """
-    from napkin2factory.core.units import is_quantity
+    from napkin2factory.concepts.promote.packs import pack_modules
 
+    out: list[str] = []
+    for mod in pack_modules(root):
+        phrases = getattr(mod, "SUMMARY_PHRASES", None)
+        if phrases is not None:
+            out += [p for p in phrases(card, screening) if p]
+    return out
+
+
+def summary_line(card: ConceptCard, screening: Screening, root: Path | None = None) -> str:
+    """One owner line: size (computed), mass, the product's own phrases, cost.
+
+    Every number says which label it carries. ``root`` (the product folder) lets the
+    product's screens add their phrases (:func:`pack_summary_phrases`).
+    """
     parts: list[str] = []
     dims = [_value(screening, "computed", k) for k in ("width", "depth", "height")]
     if all(dims):
@@ -261,18 +250,7 @@ def summary_line(card: ConceptCard, screening: Screening) -> str:
         parts.append(f"about {mass} (estimate)")
     elif _value(screening, "computed", "mass"):
         parts.append(f"about {_value(screening, 'computed', 'mass')} (computed)")
-    supply = _supply_phrase(screening)
-    if supply:
-        parts.append(supply)
-    heat = _value(screening, "estimates", "heat_up_time")
-    if heat:
-        parts.append(f"{heat} to temperature (estimate)")
-    elif _value(screening, "estimates", "required_power") and is_quantity(
-        card.envelope.get("heat_up_time")
-    ):
-        parts.append(
-            f"{_value(screening, 'estimates', 'required_power')} for the planned heat-up (estimate)"
-        )
+    parts += pack_summary_phrases(root, card, screening)
     lo, hi = _value(screening, "estimates", "cost_low"), _value(screening, "estimates", "cost_high")
     if lo and hi and lo == hi:
         parts.append(f"{hi} (estimate, one source)")  # a single-source band (C9, B-0022)
@@ -285,7 +263,9 @@ __all__ = [
     "ConceptBuild",
     "build_concept",
     "build_concepts",
+    "pack_summary_phrases",
     "product_style",
+    "screening_text",
     "select_cards",
     "spare_words",
     "status_tail",
