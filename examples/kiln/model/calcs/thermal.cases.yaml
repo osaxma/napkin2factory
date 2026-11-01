@@ -1,0 +1,77 @@
+# Reference cases of thermal.py (F17): `n2f check` runs each calc on these inputs, never on the
+# current parameters, and compares with the expected value (a `calc-case` row per calc).
+# The inputs are the kiln's parameter values on 2026-11-01 (derived ones written as values);
+# the expected values are the hand computations of model/tests/test_calcs.py, whose comments
+# show the arithmetic. A change to a formula that moves a result past its tolerance fails.
+inputs:
+  ambient-temperature: 25 degC
+  brick-conductivity: 0.25 W/(m*K)
+  brick-density: 480 kg/m**3
+  brick-specific-heat: 1000 J/(kg*K)
+  brick-thickness: 64 mm
+  chamber-depth: 200 mm
+  chamber-height: 200 mm
+  chamber-width: 200 mm
+  convection-coefficient: 5 W/(m**2*K)
+  door-face-spread: 1.5
+  door-fiber-thickness: 153 mm
+  door-plug-height: 324 mm
+  door-plug-width: 324 mm
+  fiber-box-depth: 583 mm
+  fiber-box-height: 584 mm
+  fiber-box-width: 584 mm
+  fiber-clearance: 2 mm
+  fiber-conductivity: 0.15 W/(m*K)
+  fiber-density: 260 kg/m**3
+  fiber-inner-height: 334 mm
+  fiber-inner-width: 334 mm
+  fiber-specific-heat: 1050 J/(kg*K)
+  fiber-thickness: 125 mm
+  gap-air-temperature: 50 degC
+  guard-emissivity: 0.9
+  guard-gap: 25 mm
+  heat-up-time: 7 hour
+  liner-outer-depth: 264 mm
+  liner-outer-height: 328 mm
+  liner-outer-width: 328 mm
+  lining-clearance: 3 mm
+  max-temperature: 1200 degC
+  shell-emissivity: 0.9
+  shell-thickness: 1.2 mm
+cases:
+  heat_loss:
+    - expect: 897.9 W
+      rel: 0.01
+      source: "hand computation (test_body_balance_by_hand): body ≈ 815 W from the solved balance plus door ≈ 83 W"
+  shell_temperature:
+    - expect: 78.75 degC
+      abs: 0.1
+      source: "hand iteration (test_body_balance_by_hand): conduction (1473.15 − T_s)/(0.6504 + 0.7251) equals convection to 50 degC gap air plus radiation to the guard"
+  guard_temperature:
+    - expect: 44.04 degC
+      abs: 0.1
+      source: "hand iteration (test_body_balance_by_hand): what the guard receives from the shell equals its convection and radiation to the 25 degC room"
+  interface_temperature:
+    - expect: 669.8 degC
+      abs: 0.5
+      source: "hand computation (test_body_balance_by_hand): 1473.15 K − q_body × R_brick (0.6504 K/W)"
+  door_skin_temperature:
+    - expect: 69.7 degC
+      abs: 0.2
+      source: "hand iteration (test_door_by_hand): (1473.15 − T_d)/13.667 K/W equals the tray face's convection and radiation over 1.5 × 0.324²"
+  door_guard_temperature:
+    - expect: 41.9 degC
+      abs: 0.2
+      source: "hand iteration (test_door_by_hand): equal areas, ε_eff = 1/(1/0.9 + 1/0.9 − 1)"
+  max_touch_temperature:
+    - expect: 44.04 degC
+      abs: 0.1
+      source: "hand computation (test_door_by_hand): the hotter guard, the body's 44.04 degC over the door's 41.9 degC"
+  stored_heat:
+    - expect: 27.46e6 J
+      rel: 0.01
+      source: "hand computation (test_stored_heat_and_power_by_hand): brick 0.02712 m³ and fiber 0.1638 m³, each at the mean of its face temperatures"
+  required_power:
+    - expect: 1987.6 W
+      rel: 0.01
+      source: "hand computation (test_stored_heat_and_power_by_hand): 897.9 W + 27.46 MJ / 25 200 s"

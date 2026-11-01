@@ -44,6 +44,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from napkin2factory.calckit._cases import Case
 from napkin2factory.core.units import Quantity, UnitError
 
 #: A pint quantity from the shared registry (pint is untyped for mypy).
@@ -505,7 +506,171 @@ def heat_up_time(stored: Qty, loss: Qty, power: Qty) -> Qty:
     return (stored / surplus).to("hour")
 
 
+# --- reference cases (F17) -------------------------------------------------------------
+
+_CUBE = (Quantity(1, "m"), Quantity(1, "m"), Quantity(1, "m"))
+_SLAB = Layer(Quantity(0.1, "m"), Quantity(1, "W/(m*K)"), "slab")
+_HAND = "hand computation: "
+
+#: The worked example's plane wall, reproduced on a box so large (1 km a side) that the mean
+#: areas equal the face area to 0.03 % — the plane-wall limit of the mean-area method.
+_KM = (Quantity(1000, "m"), Quantity(1000, "m"), Quantity(1000, "m"))
+
+#: Every public function's reference cases; ``external`` ones come from a published source.
+CASES: list[Case] = [
+    Case(
+        "steady_loss",
+        Quantity(50, "degC"),
+        "Incropera, DeWitt, Bergman & Lavine, Fundamentals of Heat and Mass Transfer, 6th ed. "
+        "(Wiley, 2007), Example 3.1, the composite oven window: L_A = 2 L_B, k_A = 0.15 and "
+        "k_B = 0.08 W/(m K), oven at 400 degC with h_i + h_r = 50 W/(m2 K), room at 25 degC "
+        "with h_o = 25 W/(m2 K); the minimum thickness L = 0.0627 m (L_A = 0.0418 m) holds the "
+        "outer surface at 50 degC",
+        args=(
+            _KM,
+            [
+                Layer(Quantity(1, "mm"), Quantity(0.05, "W/(m*K)"), "inside film, 1/50 m2K/W"),
+                Layer(Quantity(41.8, "mm"), Quantity(0.15, "W/(m*K)"), "plastic A"),
+                Layer(Quantity(20.9, "mm"), Quantity(0.08, "W/(m*K)"), "plastic B"),
+            ],
+            Quantity(400, "degC"),
+            Quantity(25, "degC"),
+            Quantity(25, "W/(m**2*K)"),
+            Quantity(0, ""),
+        ),
+        pick="outer_skin_temperature",
+        abs=0.1,
+        external=True,
+        verify=True,
+        note="the inside film (convection plus radiation, 50 W/(m2 K)) is a 1 mm layer of "
+        "k = 0.05 W/(m K), the same 0.02 m2K/W; the outside is convection only (emissivity 0)",
+    ),
+    Case(
+        "steady_loss",
+        Quantity(1000 * 72 * 86.4 / 158.4, "W"),
+        _HAND + "1 m cube, one 0.1 m layer of k = 1 W/(m K), no radiation: R_wall = "
+        "0.1/(1 x sqrt(6 x 8.64)) = 1/72 K/W, R_film = 1/(10 x 8.64) = 1/86.4 K/W; "
+        "q = 1000 K / (1/72 + 1/86.4) = 39 272.7 W",
+        args=(
+            _CUBE,
+            [_SLAB],
+            Quantity(1025, "degC"),
+            Quantity(25, "degC"),
+            Quantity(10, "W/(m**2*K)"),
+            Quantity(0, ""),
+        ),
+        pick="loss",
+        rel=1e-8,
+    ),
+    Case(
+        "box_areas",
+        Quantity(13.5, "m**2"),
+        _HAND + "1 m cube + a 0.1 m layer = 1.2 m cube; + 0.05 m clearance and 0.1 m layer "
+        "= 1.5 m cube: 6 x 1.5^2 = 13.5 m2",
+        args=(
+            _CUBE,
+            [
+                Layer(Quantity(100, "mm"), Quantity(1, "W/(m*K)"), "a"),
+                Layer(Quantity(0.1, "m"), None, "b", Quantity(50, "mm")),
+            ],
+        ),
+        pick="2",
+        rel=1e-12,
+    ),
+    Case(
+        "layer_resistances",
+        Quantity(0.1 / 7.8, "K/W"),
+        _HAND + "a 0.1 m layer (k = 1) behind 0.05 m clearance on a 1 m cube: A_in = 6, "
+        "A_out = 6 x 1.3^2 = 10.14 m2, A_mean = sqrt(60.84) = 7.8 m2, R = 0.1/7.8 K/W",
+        args=(_CUBE, [Layer(Quantity(0.1, "m"), Quantity(1, "W/(m*K)"), "s", Quantity(0.05, "m"))]),
+        pick="0",
+        rel=1e-12,
+    ),
+    Case(
+        "wall_resistance",
+        Quantity(0.1 / 7.2, "K/W"),
+        _HAND + "a 0.1 m layer (k = 1) on a 1 m cube: A_mean = sqrt(6 x 8.64) = 7.2 m2, "
+        "R = 0.1/7.2 = 0.013889 K/W",
+        args=(_CUBE, [_SLAB]),
+        rel=1e-12,
+    ),
+    Case(
+        "bisect_root",
+        2**0.5,
+        _HAND + "the root of x^2 - 2 on [0, 2] is sqrt(2)",
+        args=(lambda x: x * x - 2, 0.0, 2.0),
+        kwargs={"tol": 1e-12},
+        rel=1e-10,
+    ),
+    Case(
+        "guard_temperature",
+        Quantity(((400**4 + 300**4) / 2) ** 0.25, "K"),
+        _HAND + "a black radiation shield between equal black areas at 400 K and a 300 K "
+        "room, no convection: T_g^4 = (400^4 + 300^4)/2, T_g = 360.288 K",
+        args=(
+            Quantity(400, "K"),
+            Quantity(1, "m**2"),
+            Quantity(1, "m**2"),
+            Quantity(1.0, ""),
+            Quantity(1.0, ""),
+        ),
+        kwargs={"h_outer": Quantity(0, "W/(m**2*K)"), "t_ambient": Quantity(300, "K")},
+        rel=1e-9,
+    ),
+    Case(
+        "guarded_loss",
+        Quantity(975 * 72 * 86.4 / 158.4, "W"),
+        _HAND + "the steady_loss slab with a guard and no radiation: the skin loses to 50 degC "
+        "gap air only, q = 975 K / (1/72 + 1/86.4) = 38 290.9 W",
+        args=(
+            _CUBE,
+            [_SLAB, Layer(Quantity(0, "m"), None, "skin")],
+            Quantity(25, "mm"),
+            Quantity(1025, "degC"),
+            Quantity(25, "degC"),
+            Quantity(50, "degC"),
+            Quantity(10, "W/(m**2*K)"),
+            Quantity(1e-12, ""),
+            Quantity(1e-12, ""),
+        ),
+        pick="loss",
+        rel=1e-8,
+    ),
+    Case(
+        "stored_heat",
+        Quantity(3.5e9, "J"),
+        _HAND + "a 0.5 m layer around a 1 m cube: V = 2^3 - 1 = 7 m3, rho c = 1 MJ/(m3 K), "
+        "faces at +1000 K and +0 K, mean rise 500 K: E = 7 x 1e6 x 500 = 3.5 GJ",
+        args=(
+            _CUBE,
+            [Layer(Quantity(0.5, "m"), Quantity(1, "W/(m*K)"), "block")],
+            [Quantity(1000, "kg/m**3")],
+            [Quantity(1000, "J/(kg*K)")],
+            Quantity(1025, "degC"),
+            Quantity(25, "degC"),
+            [Quantity(25, "degC")],
+        ),
+        rel=1e-12,
+    ),
+    Case(
+        "heat_up_power",
+        Quantity(3000, "W"),
+        _HAND + "1 kW loss + 36 MJ over 5 h (18 000 s) = 1000 + 2000 W",
+        args=(Quantity(36, "MJ"), Quantity(1, "kW"), Quantity(5, "hour")),
+        rel=1e-12,
+    ),
+    Case(
+        "heat_up_time",
+        Quantity(5, "hour"),
+        _HAND + "36 MJ stored with 3 kW in and 1 kW lost: 36 MJ / 2 kW = 18 000 s = 5 h",
+        args=(Quantity(36, "MJ"), Quantity(1, "kW"), Quantity(3, "kW")),
+        rel=1e-12,
+    ),
+]
+
+
 __all__ = [
+    "CASES",
     "SIGMA",
     "Layer",
     "ThermalResult",

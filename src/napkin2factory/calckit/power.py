@@ -24,6 +24,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
+from napkin2factory.calckit._cases import Case
 from napkin2factory.calckit._tables import load_table
 from napkin2factory.core.units import Quantity
 
@@ -218,7 +219,105 @@ def circuit_for_power(
     return min(ok, key=rank)
 
 
+# --- reference cases (F17) -------------------------------------------------------------
+
+#: Kanthal's direct-calculation example for a wire element (the wire maker's handbook).
+_KANTHAL = (
+    "Kanthal, 'Design of wire elements', in Design calculations and standard tolerances "
+    "(Kanthal heating-material handbook, p. 51), direct calculation method, example: "
+    "20 kW at 220 V, Kanthal AF, resistivity 1.39 ohm mm2/m, Ct = 1.06 at 1200 degC"
+)
+_HAND = "hand computation: "
+
+#: Every public function's reference cases; ``external`` ones come from a published source.
+CASES: list[Case] = [
+    Case(
+        "element_current",
+        Quantity(90.9, "A"),
+        _KANTHAL + ": I = P/U = 20 000/220 = 90.9 A",
+        args=(Quantity(20, "kW"), Quantity(220, "V")),
+        abs=0.05,
+        external=True,
+    ),
+    Case(
+        "surface_load",
+        Quantity(3.95, "W/cm**2"),
+        _KANTHAL + ": with the nearest standard wire, 5.0 mm, the actual surface load is "
+        "3.95 W/cm2",
+        args=(Quantity(20, "kW"), Quantity(5.0, "mm"), Quantity(32.2496, "m")),
+        abs=0.005,
+        external=True,
+        note="the wire length is the example's own data carried through: cold resistance "
+        "U^2/(P Ct) = 220^2/(20 000 x 1.06) = 2.28302 ohm, L = R A / rho = 2.28302 x "
+        "19.63495 / 1.39 = 32.2496 m",
+    ),
+    Case(
+        "element_current",
+        Quantity(2500 / 230, "A"),
+        _HAND + "2500 W on 230 V: I = 10.8696 A",
+        args=(Quantity(2500, "W"), Quantity(230, "V")),
+        rel=1e-12,
+    ),
+    Case(
+        "cold_resistance",
+        Quantity(21.16, "ohm"),
+        _HAND + "2500 W on 230 V: R = 230^2 / 2500 = 21.16 ohm",
+        args=(Quantity(2500, "W"), Quantity(230, "V")),
+        rel=1e-12,
+    ),
+    Case(
+        "wire_cross_section",
+        Quantity(math.pi / 4 * 1.6**2, "mm**2"),
+        _HAND + "1.6 mm wire: A = pi/4 x 1.6^2 = 2.010619 mm2",
+        args=(Quantity(1.6, "mm"),),
+        rel=1e-12,
+    ),
+    Case(
+        "wire_length",
+        Quantity(32.2496, "m"),
+        _HAND + "the handbook example's cold resistance 2.28302 ohm in 5.0 mm wire at 1.39 "
+        "ohm mm2/m: L = 2.28302 x 19.63495 / 1.39 = 32.2496 m",
+        args=(Quantity(2.28302, "ohm"), Quantity(1.39, "ohm*mm**2/m"), Quantity(5.0, "mm")),
+        rel=1e-5,
+    ),
+    Case(
+        "surface_load",
+        Quantity(1.6950895, "W/cm**2"),
+        _HAND + "2500 W in 29.3412 m of 1.6 mm wire: q = 2500 / (pi x 0.16 cm x 2934.12 cm) "
+        "= 1.69509 W/cm2",
+        args=(Quantity(2500, "W"), Quantity(1.6, "mm"), Quantity(29.341175415, "m")),
+        rel=1e-6,
+    ),
+    Case(
+        "circuit_rows",
+        "SA",
+        "calckit/data/circuits.yaml: the region code matches whatever its case",
+        args=("sa",),
+        pick="0.region",
+    ),
+    Case(
+        "circuit_class",
+        Quantity(16, "A"),
+        "calckit/data/circuits.yaml, region SA: 10.87 A over the 13 A socket is 13/10.87 = "
+        "1.196 < 1.2 headroom, so the 16 A dedicated circuit (16/10.87 = 1.472)",
+        args=("SA", Quantity(10.87, "A")),
+        pick="rating",
+        rel=1e-12,
+    ),
+    Case(
+        "circuit_for_power",
+        Quantity(30, "A"),
+        "calckit/data/circuits.yaml, region US: 2500 W is 20.8 A at 120 V (no 120 V class "
+        "reaches 1.2 x 20.8 = 25 A) and 10.4 A at 240 V, so the 30 A 240 V circuit",
+        args=("US", Quantity(2500, "W")),
+        pick="rating",
+        rel=1e-12,
+    ),
+]
+
+
 __all__ = [
+    "CASES",
     "CIRCUIT_HEADROOM_MIN",
     "KANTHAL_GROOVE_SURFACE_LOAD_LIMIT",
     "CircuitVerdict",

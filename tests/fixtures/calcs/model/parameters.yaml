@@ -1,0 +1,4 @@
+parameters:
+  plate-width:  {value: 200, unit: mm, description: Plate width}
+  plate-height: {value: 100, unit: mm, description: Plate height}
+  plate-thickness: {value: 2, unit: mm, description: Plate thickness}

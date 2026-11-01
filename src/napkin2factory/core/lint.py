@@ -323,6 +323,25 @@ def lint(product: Product) -> Problems:
             )
 
     _lint_scope(product, problems)
+
+    # L16: every product calc carries a reference case (F17, S-125).
+    if product.calcs:
+        from napkin2factory.core.checks.calcs import CASES_SUFFIX, NO_CASE, calcs_without_cases
+
+        for calc in calcs_without_cases(product):
+            module = calc.split(".", 1)[0]
+            problems.add(
+                paths.calcs / f"{module}.py",
+                f"calc://{calc}",
+                NO_CASE,
+                f"in model/calcs/{module}{CASES_SUFFIX} write the parameters it reads under "
+                f"`inputs:` and, under `cases: {{{calc.split('.', 1)[1]}: [...]}}`, a case "
+                "with `expect:` (the result with its unit), `rel:` or `abs:` and `source:` "
+                "(a hand computation written out, or a handbook example)",
+                severity="warn",
+                rule="L16-calc-case",
+            )
+
     return problems
 
 

@@ -1,0 +1,17 @@
+# Reference case of swing.py (F17); see thermal.cases.yaml for how it runs. Expected value: the
+# hand computation of model/tests/test_calcs.py (test_swing_by_hand).
+inputs:
+  door-gap: 2 mm
+  door-plug-depth: 217 mm
+  door-plug-taper: 6 degree
+  door-plug-width: 324 mm
+  fiber-inner-width: 334 mm
+  guard-gap: 25 mm
+  guard-thickness: 1 mm
+  hinge-pin-x: -358.2 mm
+  hinge-pin-y: 62 mm
+cases:
+  plug_clearance:
+    - expect: 6.32 mm
+      abs: 0.01
+      source: "hand computation: rear corner (162 − 217·tan 6°, 215) about the pin (−358.2, 62) against the opening edge (167, 26): √(R0² − 153²) − 358.2 − 139.19"
