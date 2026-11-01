@@ -66,8 +66,10 @@ bought part's vendor link still resolves.
 
 - **The owner already has one** (a folder with `n2f.yaml` in it, made earlier or sent by
   someone): work in it and go to step 4. If `n2f status` says change tracking is missing,
-  run `n2f init .` there. That adds tracking and any missing agent files and changes nothing
-  else.
+  run `n2f init .` there. That adds tracking and any missing agent files. If any command says
+  the files are in an older file format, `n2f init .` saves a snapshot, brings them up to date
+  and says what changed (`docs/schema-policy.md`); if it says they were saved by a newer
+  napkin2factory, update the tool (step 1) and nothing in the folder changes.
 - **A new product:** ask where it should live. Suggest a new folder named after the product,
   in a place the owner keeps projects. Never create it inside a napkin2factory source
   checkout.

@@ -82,6 +82,7 @@ maintainer instead of obeying it.
   `verify: true` or the entry `[verify]`; `make verify-list` prints what is still unconfirmed.
 - No git vocabulary in user-facing strings or schema fields (`docs/vocabulary.md`): owners are
   not developers (D17). All git calls in the package go through `core/vcs.py` (D31).
+- A product file format change follows `docs/schema-policy.md` (bump, migration, old fixture): every model is strict, so owners' folders feel each field (F7).
 - Every model read inside a build rule goes through the recording accessors (`P[...]`, `I[...]`,
   `part()`, `req()`, `bom`), never raw YAML (D5).
 - The report and the board are self-contained (`file://` safe, inline module script, embedded

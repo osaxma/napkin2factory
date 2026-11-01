@@ -1,0 +1,26 @@
+id: l-bracket
+rev: A
+name: L-bracket, 4 mm steel
+kind: custom
+process: sheet-metal
+material: {name: mild steel, spec: "4 mm CR4 (DC01)"}
+finish: powder coat, black
+tolerance_class: ISO2768-m
+geometry:
+  kit: bracket_l
+  args:
+    length: param://bracket-length
+    height: param://bracket-height
+    width: param://bracket-width
+    thickness: param://bracket-thickness
+    bend_radius: param://bend-radius
+    holes:
+      diameter: param://hole-diameter
+      spacing: param://hole-spacing
+      inset: param://hole-inset
+      count: 2
+interfaces: []
+satisfies: [req://REQ-001, req://REQ-002, req://REQ-003]
+cost: {unit: 12 USD, basis: estimate, note: "laser cut + one bend + powder coat, quantity 10"}
+lead_time: 5 d
+manufacturer_notes: Deburr all edges. Holes may be laser cut; no tapping.

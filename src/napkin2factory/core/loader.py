@@ -458,7 +458,9 @@ def _load(root: Path) -> tuple[Product, Problems]:
             "run `n2f init <dir>` to start one, or cd into a product folder",
         )
         raise ModelError(problems, "not a product folder")
+    from napkin2factory.core.model.migrate import refuse_unreadable
 
+    refuse_unreadable(paths.manifest, problems)  # F7: a newer or not-yet-updated schema stops
     manifest = _load_one(
         problems, paths.manifest, "n2f.yaml", Manifest, _safe_read(problems, paths.manifest)
     )

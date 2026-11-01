@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 
 import typer
+from rich.markup import escape
 
 from napkin2factory.cli.common import JsonOption, console, emit_json, handle_errors
 from napkin2factory.cli.kernel import kernel_loaded, warm_kernel_in_background
@@ -104,6 +105,76 @@ def write_skeleton(
     return sorted(p for p in dest.rglob("*") if p.is_file())
 
 
+def upgrade_existing(dest: Path, json_out: bool = False) -> None:
+    """``n2f init .`` on an existing product: tracking, file updates, missing agent files.
+
+    The upgrade path (S-057, F7): a folder from a newer system stops before anything is
+    touched (:class:`~napkin2factory.core.model.migrate.NewerSchema`, a plain message); a
+    folder with migrations pending gets a snapshot of how it is, then the migrations, and the
+    owner reads what changed in plain words.  Nothing else in the folder changes.
+    """
+    from napkin2factory.core.model import migrate
+
+    steps = migrate.pending(dest)  # raises NewerSchema before anything is touched
+    vcs = Vcs(dest)
+    was_tracked = vcs.is_tracked() and vcs.is_repo_root()
+    vcs.init()
+    before = None
+    upgrade = None
+    if steps:
+        before = vcs.snapshot(f"Before updating the files to format {steps[-1].to_version}")
+        upgrade = migrate.apply(dest)
+    added = []
+    common = TEMPLATES_DIR / "_common"
+    for src in sorted(p for p in common.rglob("*") if p.is_file()):
+        target = dest / src.relative_to(common)
+        if not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(src.read_bytes())
+            added.append(str(target.relative_to(dest)))
+    if upgrade is not None:
+        message = f"Update the files to format {upgrade.to_version}"
+    else:
+        message = "Start change tracking" if not was_tracked else "Add agent files"
+    sha = vcs.snapshot(message)
+    warming = start_kernel_warmup()
+    if json_out:
+        emit_json(
+            {
+                "dir": str(dest),
+                "tracking": True,
+                "snapshot": sha,
+                "added": added,
+                "kernel_warmup": warming,
+                "updated": None
+                if upgrade is None
+                else {**upgrade.to_dict(), "snapshot_before": before},
+            }
+        )
+        return
+    if upgrade is not None:
+        console.print(
+            f"[green]✓[/green] brought this product's files up to date (file format "
+            f"{upgrade.from_version} → {upgrade.to_version}); a snapshot of how they were was "
+            "saved first, so nothing is lost"
+        )
+        for step in upgrade.steps:
+            console.print(f"  {escape(step.title)}")
+        for line in upgrade.changes:
+            console.print(f"  - {escape(line)}")
+        if added:
+            console.print(f"  added {len(added)} agent file(s)")
+    elif was_tracked and not added:
+        console.print("this product folder already has change tracking; nothing to do")
+    else:
+        console.print(
+            f"[green]✓[/green] change tracking set up for {dest}"
+            + (f"; added {len(added)} agent file(s)" if added else "")
+        )
+    if warming:
+        console.print("  the CAD kernel is warming up in the background for your next `n2f build`")
+
+
 @handle_errors
 def init(
     directory: Path = typer.Argument(
@@ -124,41 +195,7 @@ def init(
     """Start a new product folder from a template."""
     dest = Path(directory).resolve()
     if (dest / "n2f.yaml").is_file():
-        # an existing product: only set up change tracking (and add missing agent files)
-        added = []
-        common = TEMPLATES_DIR / "_common"
-        for src in sorted(p for p in common.rglob("*") if p.is_file()):
-            target = dest / src.relative_to(common)
-            if not target.exists():
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(src.read_bytes())
-                added.append(str(target.relative_to(dest)))
-        vcs = Vcs(dest)
-        was_tracked = vcs.is_tracked() and vcs.is_repo_root()
-        vcs.init()
-        sha = vcs.snapshot("Start change tracking" if not was_tracked else "Add agent files")
-        warming = start_kernel_warmup()
-        if json_out:
-            emit_json(
-                {
-                    "dir": str(dest),
-                    "tracking": True,
-                    "snapshot": sha,
-                    "added": added,
-                    "kernel_warmup": warming,
-                }
-            )
-        elif was_tracked and not added:
-            console.print("this product folder already has change tracking; nothing to do")
-        else:
-            console.print(
-                f"[green]✓[/green] change tracking set up for {dest}"
-                + (f"; added {len(added)} agent file(s)" if added else "")
-            )
-        if warming and not json_out:
-            console.print(
-                "  the CAD kernel is warming up in the background for your next `n2f build`"
-            )
+        upgrade_existing(dest, json_out)
         return
     product_id = slugify(dest.name)
     display = name or dest.name.replace("-", " ").replace("_", " ").strip().capitalize()
