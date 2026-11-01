@@ -114,6 +114,7 @@ should confirm before relying on them.
 | S-095 | `release --dry-run` on an existing Revision re-packages it from its own snapshot | in force |
 | S-096 | A card number of the wrong kind is a lint error, not a crash | in force |
 | S-097 | One trunk, a worktree per task, ids at landing: built for successive agents of any provider | in force |
+| S-NEW1 | Task folders hardlink uv's cache so macOS scans native libraries once | in force |
 
 ---
 
@@ -1121,3 +1122,11 @@ the repo, not in any one model's memory (one maintainer's personal preferences s
 `AGENTS.md`'s "start here" no longer runs `make check`. Considered and not taken: Jujutsu (another tool every agent must know), test-impact
 selection with pytest-testmon (unreliable with xdist and the build-hash e2e tests).
 
+## S-NEW1 — Task folders hardlink uv's cache so macOS scans native libraries once (2026-11-01)
+Measured on the host (macOS 26.7): a task folder's first `import build123d` took 117–190 s with
+7 s of CPU; `syspolicyd` was busy meanwhile, and `-X importtime` put 65 s on `OCP.OCP` (143 MB)
+and the rest over the environment's other 347 native libraries. macOS registers and scans each
+newly written executable file on first load; uv's macOS default installs clones, so every task
+folder had all-new files. With `UV_LINK_MODE=hardlink` the files are the cache's own: the first
+hardlinked folder still took 179 s, the next 10.2 s. `make task` now syncs with hardlinks (an
+explicit `UV_LINK_MODE` wins). Nothing writes into installed files, so the shared cache is safe.
