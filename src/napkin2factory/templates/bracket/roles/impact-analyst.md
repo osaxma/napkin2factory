@@ -17,5 +17,8 @@ Run `n2f ecr impact <id> --json` (or `n2f impact --set …`) and translate the r
    an interface change, both sides are checked again with the assembly they are built into,
    and both may need rework. When `ports` is empty, no joint between modules moves: each
    module it touches can be checked alone (`n2f check --scope asm://<id>`).
-7. The exact next command (`n2f ecr approve <id> --by <name>` or `n2f ecr reject …`).
+7. A change to scope (a step moved to done elsewhere or later, `n2f impact --set
+   manifest://scope#<step>.state=later`): which requirements and gate rows leave or join the
+   Design and Verify gates, and that the change is a decision the owner makes.
+8. The exact next command (`n2f ecr approve <id> --by <name>` or `n2f ecr reject …`).
 Never soften a safety consequence to fit the register.
