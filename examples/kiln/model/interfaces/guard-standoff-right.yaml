@@ -1,6 +1,7 @@
 id: guard-standoff-right
 kind: bolt-pattern
 parties: [part://outer-shell, part://guard-shell]
+name: Shell to guard, right wall
 description: Four M6 standoffs (25 mm) between the shell's right wall and the guard's right wall; holes in both.
 frame: {origin: [0, 0, 0], normal: [1, 0, 0]}
 frames:

@@ -235,13 +235,32 @@ def _build_steps(
     The plan holds static check ids (``bom`` runs before ``checks``); here they meet the
     verdicts of this run.  An id with no row yet reads "not checked".
     """
-    from napkin2factory.bom.build_plan import PLAN_FILE
+    from napkin2factory.bom.build_plan import (
+        PLAN_FILE,
+        folded_sentence,
+        hardware_words,
+        item_notes,
+        joint_status_words,
+    )
+    from napkin2factory.core.build_units import driver_sentence
     from napkin2factory.drawings.assembly_sheet import sheet_path
 
     plan = _read_json(build_dir / "bom" / PLAN_FILE) or {"order": [], "units": {}}
     steps = []
     for uid in plan.get("order", []):
         step = dict(plan["units"][uid])
+        # owner words for the template (gate D): the same helpers as the manual's steps
+        step["why"] = step.get("driver_sentence") or driver_sentence(step.get("driver", []))
+        step["folded_words"] = [folded_sentence(f) for f in step.get("folded", [])]
+        # a unit's line links its step in the part column already
+        step["items"] = [
+            {**it, "notes": [n for n in item_notes(it) if not n.startswith("built ")]}
+            for it in step.get("items", [])
+        ]
+        step["joints"] = [
+            {**j, "hardware_words": hardware_words(j), "status_words": joint_status_words(j)}
+            for j in step.get("joints", [])
+        ]
         svg_path = sheet_path(build_dir, uid)
         svg = svg_path.read_text(encoding="utf-8") if svg_path.is_file() else ""
         step["id"] = uid
@@ -284,10 +303,13 @@ def _between_units(
     plan = _read_json(build_dir / "bom" / PLAN_FILE) or {}
     out = []
     for j in plan.get("between_units", []):
+        from napkin2factory.bom.build_plan import hardware_words
+
         r = results.get(j["interface"])
         out.append(
             {
                 **j,
+                "hardware_words": hardware_words(j),
                 "status": r["status"] if r else "skip",
                 "message": r.get("message", "") if r else "not checked yet",
                 "notes": [

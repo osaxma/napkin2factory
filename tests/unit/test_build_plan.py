@@ -63,7 +63,8 @@ def test_plan_order_children_first_phantoms_folded() -> None:
             "asm": "asm://frame",
             "name": "Cover group",
             "qty": 1,
-            "words": "a grouping, not built separately",
+            "words": "not put together on its own",
+            "items": [5, 6, 7],  # gate D: which lines are the grouping's
         }
     ]
     items = [(it["item"], it["uri"], it["qty"], it["via"]) for it in top["items"]]
@@ -163,6 +164,11 @@ def test_a_missing_bolt_fails_naming_joints_and_number(tmp_path: Path) -> None:
     status, message, detail = _rows(product)["hardware://top"]
     assert status == "fail"
     assert "M6 x 16 bolt: 1 missing, 9 listed where its joints need 10" in message
+    # gate D: the owner reads what to do, not only what is wrong
+    assert (
+        "Add 1 to its line in the parts of Top, or correct the joint's hardware if fewer are "
+        "needed" in message
+    )
     assert "base to cover" in message and "base to plate" in message
     assert detail["parts"]["part://bolt"]["missing"] == 1
     assert detail["parts"]["part://bolt"]["interfaces"] == ["cover-base", "pod-mount"]
@@ -361,10 +367,20 @@ def test_report_build_plan_section(built: Path) -> None:
     assert section is not None
     text = section.text()
     assert "Step 1: Pod, built as one unit" in text and "Step 2: Top, the final assembly" in text
-    assert "Includes Cover group: a grouping, not built separately." in text
+    # gate D: the grouping explained, its lines marked; the reason said with "and"
+    assert (
+        "The cover group (items 5–7) is not put together on its own: lay it in place during "
+        "this step." in text
+    )
     assert "a joint between units" in text
     assert tree.css_first("#step-pod svg") is not None  # the sheet, inlined
-    assert "Built on its own because it is built as one unit, tested as one unit." in text
+    assert (
+        "Built on its own because it is put together and fitted as one piece and tested as "
+        "one unit." in text
+    )
+    assert "Fitted in step 2 (Top, the final assembly)." in " ".join(text.split())
+    notes = [" ".join(r.text().split()) for r in tree.css("#step-top tbody tr")]
+    assert sum("cover group" in n for n in notes) == 3
     # P13 (M6): the joints between units, each with its units, parts, hardware and verdict
     joints = tree.css_first("#joints")
     assert joints is not None and tree.css_first('nav a[data-sec="joints"]') is not None
@@ -470,3 +486,116 @@ def test_the_hardware_verdict_follows_spare_without_a_forced_rerun(tmp_path: Pat
     _edit(root, "assemblies/top.yaml", ', spare: "two for the cover"}', "}")
     status, message = row()
     assert status == "warn" and "two for the cover" not in message
+
+
+# ---- gate D (S-118): joint names, build order, a joint closed later, the sheet's text --
+
+
+def test_kiln_joints_are_named_and_in_build_order() -> None:
+    plan = derive_build_plan(load_product(EXAMPLES / "kiln"))
+    words = [j["words"] for j in plan["units"]["kiln"]["joints"]]
+    assert words == [
+        "Shell to guard, bottom wall (the stand's bolts pass through)",
+        "Shell to guard, left wall",
+        "Shell to guard, right wall",
+        "Shell to guard, top wall",
+        "Body onto the stand",
+        "Hinge post onto the guard",
+        "Latch keeper onto the guard",
+        "Door to kiln, lower hinge (welded)",
+        "Door to kiln, upper hinge (welded)",
+        "Door to kiln, draw latch",
+        "Controls onto the guard's right wall",
+        "Lid onto the controller box",  # closed later, carried from step 1
+    ]
+    assert len(set(words)) == len(words)  # every joint can be told apart
+
+
+def test_unnamed_joint_reads_as_its_two_parts() -> None:
+    plan = derive_build_plan(load_product(UNITS))
+    assert {j["words"] for j in plan["units"]["top"]["joints"]} >= {"base to cover"}
+
+
+def test_lid_joint_is_closed_later_in_the_final_assembly() -> None:
+    """Gate D, concern 13: the controls' lid goes on after the wiring, as the manual says."""
+    product = load_product(EXAMPLES / "kiln")
+    assert BuildUnits(product).closed_later("controller-lid-seat") == "kiln"
+    plan = derive_build_plan(product)
+    (lid,) = plan["units"]["controls"]["joints"]
+    assert lid["closed_later_in"] == "asm://kiln" and lid["closed_later_step"] == 3
+    carried = plan["units"]["kiln"]["joints"][-1]
+    assert carried["interface"] == "iface://controller-lid-seat" and carried["from_step"] == 1
+    assert "closed_later_in" not in carried
+    assert carried not in plan["between_units"]
+    controls = step_markdown(plan, "controls")
+    assert "- Lid onto the controller box (closed later, in step 3): 4 × Self-tapping" in controls
+    kiln = step_markdown(plan, "kiln")
+    assert "Lid onto the controller box (left open in step 1): 4 × Self-tapping" in kiln
+    assert "(listed in step 1)" in kiln
+    # its hardware is counted once, where the screws are listed
+    rows = _rows(product)
+    assert rows["hardware://controls"][0] == rows["hardware://kiln"][0] == "pass"
+    assert "part://lid-screw" not in rows["hardware://kiln"][2]["parts"]
+
+
+def test_closed_in_naming_no_later_unit_is_ignored_and_linted(tmp_path: Path) -> None:
+    root = _copy(tmp_path)
+    product = _edit(
+        root,
+        "interfaces/rail-plate.yaml",
+        "kind: bolt-pattern\n",
+        "kind: bolt-pattern\nclosed_in: asm://frame\n",
+    )
+    assert BuildUnits(product).closed_later("rail-plate") is None  # a phantom: not a step
+    (finding,) = [p for p in lint_mod.lint(product).items if p.rule == "L14-closed-in"]
+    assert finding.severity == "warn" and finding.subject == "iface://rail-plate"
+    product = _edit(root, "interfaces/rail-plate.yaml", "asm://frame", "asm://top")
+    assert BuildUnits(product).closed_later("rail-plate") == "top"
+    assert not [p for p in lint_mod.lint(product).items if p.rule == "L14-closed-in"]
+
+
+def test_interface_name_is_a_label_not_evidence(tmp_path: Path) -> None:
+    from napkin2factory.core.checks.evidence import evidence_key
+
+    root = _copy(tmp_path)
+    before = evidence_key(load_product(root), root / "build", "iface://rail-plate")
+    product = _edit(
+        root,
+        "interfaces/rail-plate.yaml",
+        "kind: bolt-pattern\n",
+        "kind: bolt-pattern\nname: Rails onto the plate\n",
+    )
+    assert evidence_key(product, root / "build", "iface://rail-plate") == before
+    # unset, the new fields do not dump: v0.3 interfaces hash as before
+    dumped = product.interfaces["cover-base"].model_dump()
+    assert "name" not in dumped and "closed_in" not in dumped
+
+
+def test_sheet_wraps_long_cells_instead_of_shrinking_below_2_2_mm() -> None:
+    import re
+
+    from napkin2factory.drawings.assembly_sheet import MIN_TEXT, compose_sheet
+
+    plan = derive_build_plan(load_product(EXAMPLES / "kiln"))
+    step = plan["units"]["kiln"]
+    long = " ".join(["A very long joint name"] * 4)  # far wider than its column
+    step["joints"][0]["words"] = long
+    svg, _stable, _meta = compose_sheet(step, 3, [], "unsnapshotted")
+    tables = svg.split('<g id="tables">', 1)[1].split("</g>", 1)[0]
+    sizes = [float(x) for x in re.findall(r'font-size="([0-9.]+)"', tables)]
+    assert min(sizes) >= MIN_TEXT
+    assert f">{long}<" not in tables and ">A very long joint name A very" in tables
+    assert "not yet saved" in svg and "unsnapshotted" not in svg
+    assert "PARTS FOR THIS STEP" in svg and "BOM LINE" not in svg and "EXPLODE" not in svg
+    assert "not numbered" in svg and "and the BOM" not in svg
+
+
+def test_each_sheet_records_the_plans_order(built: Path) -> None:
+    """Gate C's B-0068: "STEP n of N" reads the order, so a unit added redraws every sheet."""
+    from napkin2factory.core.graph.manifest import Manifest
+
+    entries = Manifest.load(built / "build").entries
+    for uid in ("pod", "top"):
+        entry = entries[f"asmsheet:{uid}"]
+        assert "bom://build-plan#order" in entry.reads
+        assert not entry.values["bom://build-plan#order"].startswith("unknown:")

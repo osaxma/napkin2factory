@@ -33,6 +33,8 @@ STATUS_STYLE = {
     "signed": "cyan",
     "example": "yellow",  # summary-only key: example sign-offs are not reviews
 }
+#: The order of the non-requirement rows: what blocks first (gate D).
+STATUS_ORDER = {"fail": 0, "needs-human": 1, "warn": 2, "skip": 3, "signed": 4, "pass": 5}
 OWNER_WORDS = {
     "pass": "OK",
     "fail": "needs attention",
@@ -96,6 +98,11 @@ def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ign
     if data.get("scope"):
         where = escape(display_uri(data["scope"], persona))
         console.print(f"[bold]Checks of one module: {where}[/bold]")
+        # gate D: say what these rows count, so they are not read against the report's
+        console.print(
+            "[dim]its parts' rules, its joints, counts and requirements; the documents and "
+            "the sourcing are the whole product's and are left out[/dim]"
+        )
     groups = data["matrix"].get("modules", [])
     titles = {g["id"]: g["title"] for g in groups}
     by_module = sum(1 for g in groups if g["id"] is not None) > 1  # two units or more
@@ -130,10 +137,16 @@ def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ign
             title="Rules, interfaces, assemblies, documents, sourcing"
             + ("" if all_rows else " (non-passing)")
         )
+        # gate D: what needs attention first, then by module in build order
+        order = {g["id"]: i for i, g in enumerate(groups)}
+        others.sort(
+            key=lambda r: (
+                STATUS_ORDER.get(r["status"], len(STATUS_ORDER)),
+                order.get(r.get("module"), len(order)) if by_module else 0,
+            )
+        )
         if by_module:
             t2.add_column("module")
-            order = {g["id"]: i for i, g in enumerate(groups)}
-            others.sort(key=lambda r: order.get(r.get("module"), len(order)))
         t2.add_column("check")
         t2.add_column("subject")
         t2.add_column("status")

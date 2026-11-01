@@ -2,6 +2,7 @@ id: controller-mount
 kind: bolt-pattern
 # The guard (already placed) first, so the offset reads from it to the box (S-106).
 parties: [part://guard-shell, part://controller-box]
+name: Controls onto the guard's right wall
 description: The controller box hangs on four 40 mm standoffs against the guard's right wall; holes in the box's left wall and the guard.
 frame: {origin: [0, 0, 0], normal: [1, 0, 0]}
 frames:

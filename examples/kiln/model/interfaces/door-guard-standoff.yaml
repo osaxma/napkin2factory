@@ -1,6 +1,7 @@
 id: door-guard-standoff
 kind: bolt-pattern
 parties: [part://door-tray, part://door-guard]
+name: Door guard onto the door tray
 description: Four M6 standoffs (25 mm) between the door tray's face and the door guard's face, outside the plug.
 frame: {origin: [0, 0, 0], normal: [0, 0, 1]}
 frames:

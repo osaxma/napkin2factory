@@ -80,7 +80,10 @@ def test_kiln_plan_lists_its_four_joints_between_units() -> None:
     }
     how = {j["interface"]: j["how"] for j in plan["between_units"]}
     assert how["iface://controller-mount"] == "bolted, 4 holes"
-    assert how["iface://hinge-lower"].startswith("faces that meet (welded")
+    assert (
+        how["iface://hinge-lower"]
+        == "faces that meet, no loose fixings (welded, riveted or clamped)"
+    )
     # every joint between units is a port of the unit it hangs (P4) and nothing else is
     ports = {str(u) for a in load_product(KILN).assemblies.values() for u in a.ports}
     assert set(rows) <= ports

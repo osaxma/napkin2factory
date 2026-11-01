@@ -64,7 +64,7 @@ modules:                            # what is built, bought or serviced as one u
 massing:                            # rough shapes, one kit call per line, numbers only
   - {kit: enclosure, as: body, material: mild steel, args: {length: 420 mm, width: 440 mm, height: 418 mm, thickness: 1.2 mm}, at: {z: 760 mm}}
   - {kit: plate, as: lid, role: body, material: mild steel, args: {width: 420 mm, depth: 440 mm, thickness: 2 mm}, at: {z: 1178 mm}}
-  - {kit: block, as: door, module: door, material: mild steel, process_class: sheet-metal, args: {length: 340 mm, width: 3 mm, height: 340 mm}, at: {y: -221.5 mm, z: 800 mm}}
+  - {kit: enclosure, as: door, module: door, material: mild steel, process_class: sheet-metal, args: {length: 340 mm, width: 60 mm, height: 340 mm, thickness: 1.2 mm}, at: {y: -250 mm, z: 800 mm}}
   - {kit: block, as: controls, module: controls, material: abs, process_class: cots-controls, args: {length: 300 mm, width: 160 mm, height: 100 mm}, at: {z: 1180 mm}}
   - {kit: frame, as: stand, material: mild steel, args: {length: 380 mm, width: 400 mm, height: 760 mm, member: {size: 25 mm, wall: 1.5 mm}}}
 notes: Budget about 1500 USD. Small chamber so the door can swing inside the alcove.
@@ -95,8 +95,10 @@ under the card's `modules:` with its reason (`built-as-unit`, `tested-as-unit`,
 the massing lines that make it up. No reason, no module: the rest belongs to the product
 as a whole (start flat). `n2f concept lint` warns about a reason word it does not know, a
 line naming a module with no entry, and an entry with no line. The board lists each card's
-modules ("door (built as one unit)"), and promotion turns them into the product's first
-structure.
+modules ("door (put together and fitted as one piece)"), and promotion turns them into the
+product's first structure, with each module's rough shape as its size budget: draw a module
+at its real outside size (a door with its insulation is tens of millimetres deep, never a
+plate). Promotion warns about a budget under 10 mm.
 
 ### Screen, then talk limitations from the data
 ```

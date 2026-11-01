@@ -36,3 +36,4 @@ rules:
     check: module_has_parts
     params: {}
     message: "{name} has no parts yet: give it its parts, or fold it into the assembly above it"
+    pass_message: "{name} has its parts"

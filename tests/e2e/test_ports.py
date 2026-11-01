@@ -39,7 +39,7 @@ def test_port_places_the_sub_assembly_and_the_joints_meet(tmp_path: Path) -> Non
         rep = _check(root, iface_id)
         assert rep.status == "pass", (iface_id, rep.message)
         assert rep.alignment["status"] == "pass"
-        assert "meet in asm://top" in rep.alignment["message"]
+        assert rep.alignment["message"].startswith("the assembled top (within ")
     assert _z(root, "plate", "part://plate") == [10.0]  # on the base's top face
     assert sorted(_z(root, "left", "part://clip") + _z(root, "right", "part://clip")) == [
         25.0,
@@ -61,8 +61,9 @@ def test_a_shifted_sub_assembly_fails_naming_the_occurrences(tmp_path: Path) -> 
     _build(root)
     rep = _check(root, "pod-mount")
     assert rep.status == "fail"
-    assert "part://base#1 and part://plate#1 do not meet in asm://top" in rep.message
-    assert "5.0 mm apart" in rep.message
+    assert "base and plate do not line up at their joint" in rep.message
+    assert "5.0 mm apart (0.5 mm allowed)" in rep.message
+    assert rep.alignment["failures"][0]["occurrences"] == ["part://base#1", "part://plate#1"]
     assert _check(root, "clip-rail").status == "pass"  # the clips followed the rails
 
 

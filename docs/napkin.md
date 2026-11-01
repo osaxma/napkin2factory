@@ -31,7 +31,7 @@ modules:                            # what is built, bought or serviced as one u
 massing:                            # rough shapes, one kit call per line, numbers only
   - {kit: enclosure, as: body, material: mild steel, args: {length: 420 mm, width: 440 mm, height: 418 mm, thickness: 1.2 mm}, at: {z: 760 mm}}
   - {kit: plate, as: lid, role: body, material: mild steel, args: {width: 420 mm, depth: 440 mm, thickness: 2 mm}, at: {z: 1178 mm}}
-  - {kit: block, as: door, module: door, material: mild steel, process_class: sheet-metal, args: {length: 340 mm, width: 3 mm, height: 340 mm}, at: {y: -221.5 mm, z: 800 mm}}
+  - {kit: enclosure, as: door, module: door, material: mild steel, process_class: sheet-metal, args: {length: 340 mm, width: 60 mm, height: 340 mm, thickness: 1.2 mm}, at: {y: -250 mm, z: 800 mm}}
   - {kit: block, as: controls, module: controls, material: abs, process_class: cots-controls, args: {length: 300 mm, width: 160 mm, height: 100 mm}, at: {z: 1180 mm}}
   - {kit: frame, as: stand, material: mild steel, args: {length: 380 mm, width: 400 mm, height: 760 mm, member: {size: 25 mm, wall: 1.5 mm}}}
 notes: Budget about 1500 USD. Small chamber so the door can swing inside the alcove.
@@ -50,7 +50,7 @@ names the units the product is built from and why, with the assemblies' reasons
 (`built-as-unit`, `tested-as-unit`, `serviced-as-unit`, `separate-process-or-supplier`,
 `varies`, `agent-context`; `docs/vocabulary.md`), and `module: <name>` on a massing line
 says which unit a rough shape belongs to. A line without one belongs to the product as a
-whole. Screening ignores modules; the board lists them ("door (built as one unit)") and
+whole. Screening ignores modules; the board lists them ("door (put together and fitted as one piece)") and
 promotion turns them into the product's first structure (below). Name a module only when a
 reason applies: start flat, split for a reason (P11). Lint warns (never fails) about an
 unknown reason word, a line naming a module that has no entry (allowed: it promotes with no

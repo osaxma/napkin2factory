@@ -28,8 +28,9 @@ from napkin2factory.core.loader import Product
 from napkin2factory.core.tree import AssemblyTree
 
 #: Owner words for each driver (P7): why a sub-assembly is built on its own (docs/vocabulary.md).
+#: "built-as-unit" is not "built as one unit", which the step's title already says (gate D).
 DRIVER_WORDS: dict[str, str] = {
-    "built-as-unit": "built as one unit",
+    "built-as-unit": "put together and fitted as one piece",
     "tested-as-unit": "tested as one unit",
     "serviced-as-unit": "serviced or replaced as one unit",
     "separate-process-or-supplier": "made by another process or supplier",
@@ -37,8 +38,21 @@ DRIVER_WORDS: dict[str, str] = {
     "agent-context": "worked on as one module",
 }
 #: Owner words for a phantom and for a port (docs/vocabulary.md).
-PHANTOM_WORDS = "a grouping, not built separately"
+PHANTOM_WORDS = "not put together on its own"
 BETWEEN_UNITS_WORDS = "a joint between units"
+
+
+def and_words(words: list[str]) -> str:
+    """Say "a", "a and b", "a, b and c": a list said as a sentence (gate D)."""
+    if len(words) <= 1:
+        return "".join(words)
+    return ", ".join(words[:-1]) + " and " + words[-1]
+
+
+def driver_sentence(driver: list[str]) -> str:
+    """Say "Built on its own because it is … and …." (empty without a driver)."""
+    words = [DRIVER_WORDS.get(d, d) for d in driver]
+    return f"Built on its own because it is {and_words(words)}." if words else ""
 
 
 def unit_title(name: str, top: bool) -> str:
@@ -180,6 +194,23 @@ class BuildUnits:
                 out[iid] = lowest[0] if len(lowest) == 1 else None
             self._closing = out
         return self._closing
+
+    def closed_later(self, iface_id: str) -> str | None:
+        """The unit whose step closes the joint when its ``closed_in`` says a later one.
+
+        ``None`` when the field is absent or does not name a build unit above the unit the
+        joint closes in (``n2f lint`` reports that, L14); the joint then closes where its
+        parts meet.  The joint and its hardware stay in that earlier step (S-118).
+        """
+        iface = self.product.interfaces[iface_id]
+        target = iface.closed_in.id if iface.closed_in is not None else None
+        where = self.closing().get(iface_id)
+        if target is None or where is None or target not in self.product.assemblies:
+            return None
+        here = self.unit_of(where)
+        if not self.is_unit(target) or here is None or here == target:
+            return None
+        return target if here in self.tree.below(target) else None
 
     def unplaced_joints(self) -> list[str]:
         """Interfaces whose joint closes in no assembly (a party in no assembly, say)."""

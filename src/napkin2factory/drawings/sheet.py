@@ -125,6 +125,15 @@ class _Req:
     overall: bool = False
 
 
+#: The snapshot date when the product has no saved snapshot yet (the build runner's value).
+UNSAVED = "unsnapshotted"
+
+
+def date_words(date: str) -> str:
+    """A title block's date in owner words: "not yet saved" for an unsaved product (gate D)."""
+    return "not yet saved" if date == UNSAVED else date
+
+
 def _classify(a: Pt, b: Pt, value: float) -> str | None:
     du, dv = abs(b[0] - a[0]), abs(b[1] - a[1])
     tol = 1e-3
@@ -553,7 +562,7 @@ def title_block(t: TitleFields, scale: str) -> list[Prim]:
     yy += 9
     prims += _cell(x, yy, 30, 12, "SCALE", scale)
     prims += _cell(x + 30, yy, 40, 12, "SHEET", SHEET)
-    prims += _cell(x + 70, yy, 40, 12, "DATE", t.date)
+    prims += _cell(x + 70, yy, 40, 12, "DATE", date_words(t.date))
     prims += _cell(x + 110, yy, 30, 12, "UNITS", "mm")
     prims += _third_angle_symbol(x + 140, yy, 40, 12)
     yy += 12

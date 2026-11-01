@@ -139,6 +139,8 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-116 | v0.4 DoD 5: a fresh agent changed the door from its context alone; all four criteria met | in force |
 | S-117 | The build plan is a valued read; the checks record the assembly fields the hardware stage reads | in force |
 | Gate C | Review gate C (architecture and honesty) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
+| S-118 | Joints in owner words: an optional `name:` and `closed_in:` on interfaces, joints in build order, sheet text never below 2.2 mm | in force |
+| Gate D | Review gate D (UX, owner persona) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 
 ---
 
@@ -566,3 +568,24 @@ checks record each assembly's fields — `test_the_hardware_verdict_follows_spar
 and kiln; it found the report's `drawing://` reads); C1 fixed (a refused `asm://` party skips the
 "remove from ports" rule, `test_loader.py`); C3–C6 fixed by the gate D task; C2 → B-0067; the
 sheet's unrecorded step total → B-0068.
+
+## S-118 — Joints in owner words: `name:`, `closed_in:`, build order, no sheet text below 2.2 mm (2026-11-01)
+Gate D found joints unreadable to the owner. An interface gets two optional fields: `name:` (the
+joint in owner words; plan, sheets and check messages fall back to "<part> to <part>"; a label,
+left out of sign-off evidence like a part's `role`) and `closed_in: asm://<unit>` (closed in a later
+step: listed where its parts meet, "closed later, in step N", and again in that step; hardware
+counted once; `L14-closed-in` warns on a unit not built after). Both dump only when set, so v0.3
+files hash as before. A step's joints follow its child lines (a joint comes with the later part).
+Joint messages name parts and the joint; ids, offsets and frames move to `failures`/`fix` in
+`--json`. A sheet cell wraps (up to three lines) instead of shrinking below 2.2 mm. Closes B-0066, B-0068.
+
+## Review gate D (UX, owner persona) — outcome (2026-11-01)
+Reviewed at 016689b (`docs/reviews/v0.4-gate-d.md`): NOT READY on two blockers, both joint messages.
+**Fixed (S-118):** (1) a misaligned joint reads "Inner sheet-metal shell and Ventilated touch guard
+do not line up at their joint "Shell to guard, top wall": their holes are 5.0 mm apart (0.5 mm
+allowed). Move the holes or the parts so they meet."; (2) a passing one "the 4 holes line up on both
+parts, and in the assembled mini electric test kiln (within 0.01 mm)", welded "the faces touch by
+design (no loose fixings); they meet in …"; gate C's C3–C6 too. **Concerns fixed:** 3–7, 9, 10, 13
+(the kiln's lid joint `closed_in: asm://kiln`, the manual's prose to match), 14–17; 8 by dropping the
+footer's claim; 12 by labelling each count. **To BACKLOG:** 11 → B-0069, balloons (8) → B-0070, one
+count per unit (12) → B-0071. Screenshots judged by the agent only; not yet by the maintainer.

@@ -295,7 +295,7 @@ def reach_checks(product: Product, manifest: Manifest) -> list[CheckResult]:
                 title=f"{name}: sizes read within reach",
                 message=(
                     f"{name}: its parts and their placement read only its own sizes, sizes "
-                    f"above it and shared ones ({n} built rule(s) looked at)"
+                    f"above it and shared ones ({n} parts and placements checked)"
                     if n
                     else "the reads are recorded by a build: run `n2f build` first"
                 ),

@@ -2,6 +2,7 @@ id: latch-catch
 kind: mating-face
 # The keeper (placed in the kiln) first, so the offset reads from it to the door's latch (S-106).
 parties: [part://latch-keeper, part://latch]
+name: Door to kiln, draw latch
 description: The draw latch. Its body is welded to the door guard's right wall and its keeper plate riveted to the latch keeper's web; closed, the latch's hook spans the gap between the two and draws the door onto the gasket (a joint between the door and the kiln).
 frames:
   # keeper coordinates: x out from the guard's wall face, y back from the web's front face, z up

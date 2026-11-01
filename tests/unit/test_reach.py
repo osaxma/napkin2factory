@@ -93,7 +93,7 @@ def test_an_ancestor_and_an_unscoped_read_are_clean(tmp_path: Path) -> None:
         "reach://bay": "skip",
         "reach://top": "skip",
     }
-    assert "2 built rule(s)" in str(rows["reach://pod"]["message"])
+    assert "2 parts and placements checked" in str(rows["reach://pod"]["message"])
 
 
 def test_an_unexported_child_read_warns_and_an_exported_one_is_clean(tmp_path: Path) -> None:

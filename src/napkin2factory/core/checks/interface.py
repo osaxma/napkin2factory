@@ -98,6 +98,49 @@ def _match(a: list[tuple[float, float]], b: list[tuple[float, float]], tol: floa
     return True
 
 
+# ---- owner words (N5, D17; gate D, S-118) ----------------------------------------------
+# The message is what an owner reads in `n2f check`, `n2f status` and the report: parts by
+# name, the joint by its name, distances with what is allowed and what to do.  Ids, angles,
+# offsets and coordinates stay in the row's detail (``--json``).
+
+
+def _name(product: Product, uri: str) -> str:
+    """A part or assembly by name (the uri when unknown)."""
+    if uri.startswith("asm://"):
+        asm = product.assemblies.get(uri.removeprefix("asm://"))
+        return asm.name if asm is not None else uri
+    part = product.parts.get(uri.removeprefix("part://").split("#", 1)[0])
+    return part.name if part is not None else uri
+
+
+def lower_name(name: str) -> str:
+    """A name inside a sentence: "Mini electric test kiln" → "mini electric test kiln".
+
+    An acronym or a mixed-case word ("PID controller") keeps its capitals.
+    """
+    if len(name) > 1 and name[0].isupper() and not name[1].isupper():
+        return name[0].lower() + name[1:]
+    return name
+
+
+def _joint_at(iface: Interface) -> str:
+    """Where two parts meet, said: 'at their joint "Shell to guard, top wall"'."""
+    return f'at their joint "{iface.name}"' if iface.name else "at their joint"
+
+
+def _assembled(product: Product, aids: list[str]) -> str:
+    """Say "the assembled mini electric test kiln" (several: joined with "and")."""
+    names = [lower_name(_name(product, f"asm://{a}")) for a in aids]
+    return "the assembled " + (
+        names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    )
+
+
+def _within(worst: float) -> str:
+    """The worst miss rounded up to 0.01 mm, never below it: "within 0.01 mm"."""
+    return f"within {max(math.ceil(round(worst * 100, 6)) / 100, 0.01):.2f} mm"
+
+
 def check_interface(product: Product, iface: Interface, build_dir: Path) -> InterfaceReport:
     """Compare the parties' recorded patterns (bolt-pattern) or face records (mating-face)."""
     from napkin2factory.geometry.accessors import resolve_interface
@@ -120,7 +163,7 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
             continue
         feats_path = build_dir / "parts" / pid / "features.json"
         if not feats_path.is_file():
-            rep.status, rep.message = "skip", f"{party} has not been built"
+            rep.status, rep.message = "skip", f"{part.name} has not been built yet"
             return rep
         feats = json.loads(feats_path.read_text(encoding="utf-8"))
         frame = iface.frame_for(str(party))
@@ -129,7 +172,8 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
             if not pats:
                 rep.status, rep.message = (
                     "fail",
-                    f"{party} did not place the pattern for iface://{iface.id}",
+                    f"{part.name} does not cut the holes {_joint_at(iface)}: its geometry "
+                    "must place them from the joint",
                 )
                 rep.parties[str(party)] = {"status": "fail", "why": "no pattern recorded"}
                 continue
@@ -149,7 +193,8 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
             if not faces:
                 rep.status, rep.message = (
                     "fail",
-                    f"{party} did not record the mating face for iface://{iface.id}",
+                    f"{part.name} does not record its face {_joint_at(iface)}: its geometry "
+                    "must place it from the joint",
                 )
                 rep.parties[str(party)] = {"status": "fail", "why": "no mating face recorded"}
             else:
@@ -158,23 +203,29 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
         return rep
     if iface.kind == "bolt-pattern" and len(patterns) == 2:
         (ua, a), (ub, b) = patterns.items()
+        na, nb = _name(product, ua), _name(product, ub)
         if not _match(a["local"], b["local"], TOLERANCE_MM):
+            # the hole positions of each party are in ``parties`` (``--json``)
             rep.status = "fail"
             rep.message = (
-                f"hole patterns differ between {ua} and {ub} (tolerance {TOLERANCE_MM} mm): "
-                f"{a['local']} vs {b['local']}"
+                f"the holes on {na} and {nb} do not match {_joint_at(iface)} "
+                f"({TOLERANCE_MM:g} mm allowed): cut both from the joint's pattern"
             )
         elif abs(float(a["diameter"]) - float(b["diameter"])) > TOLERANCE_MM:
             rep.status = "fail"
-            rep.message = f"hole diameters differ: {a['diameter']} vs {b['diameter']}"
+            rep.message = (
+                f"the holes on {na} ({float(a['diameter']):g} mm) and {nb} "
+                f"({float(b['diameter']):g} mm) are not the same size {_joint_at(iface)}: "
+                "cut both from the joint's pattern"
+            )
         else:
             spec = iface.spec
             n = spec.count if isinstance(spec, BoltPatternSpec) else len(a["local"])
-            rep.message = f"{n} holes agree within {TOLERANCE_MM} mm on both parties"
+            rep.message = f"the {n} holes line up on both parts"
     elif iface.kind == "mating-face":
-        rep.message = (
-            "both parties record the mating face; contact is allowed in the interference "
-            "check (D29)"
+        # contact between the two is allowed in the interference check (D29)
+        rep.message = "the faces touch by design" + (
+            "" if iface.hardware_items() else " (no loose fixings)"
         )
     if rep.status == "pass":
         rep.alignment = check_alignment(product, iface, build_dir)
@@ -182,7 +233,8 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
             rep.status = "fail"
             rep.message = rep.alignment["message"]
         elif rep.alignment["status"] == "pass":
-            rep.message += "; " + rep.alignment["message"]
+            joiner = ", and in " if iface.kind == "bolt-pattern" else "; they meet in "
+            rep.message += joiner + rep.alignment["message"]
     return rep
 
 
@@ -220,15 +272,32 @@ def _ok(m: dict[str, float]) -> bool:
     )
 
 
-def _miss_words(m: dict[str, float]) -> str:
+def _miss_words(m: dict[str, float], kind: str) -> str:
+    """How far off, in owner words, each with what is allowed."""
+    what = "holes" if kind == "bolt-pattern" else "faces"
     parts = []
     if m["distance_mm"] > ALIGN_MM:
-        parts.append(f"their frames are {m['distance_mm']:.1f} mm apart")
+        parts.append(f"their {what} are {m['distance_mm']:.1f} mm apart ({ALIGN_MM:g} mm allowed)")
     if m["normal_deg"] > ALIGN_DEG:
-        parts.append(f"their faces are turned {m['normal_deg']:.1f}° from each other")
+        parts.append(
+            f"their faces are turned {m['normal_deg']:.1f}° from each other "
+            f"({ALIGN_DEG:g}° allowed)"
+        )
     if m["x_axis_deg"] > ALIGN_DEG:
-        parts.append(f"their patterns are rotated {m['x_axis_deg']:.1f}° from each other")
+        parts.append(
+            f"one is turned {m['x_axis_deg']:.1f}° against the other on the face "
+            f"({ALIGN_DEG:g}° allowed)"
+        )
     return " and ".join(parts) or "they meet"
+
+
+def _occurrence_name(product: Product, node: str, instances: list[dict[str, Any]]) -> str:
+    """A placed part by name; "no. 2" only when the part is placed more than once there."""
+    uri = node.split("#", 1)[0]
+    name = _name(product, uri)
+    if "#" in node and len(_occurrences(instances, uri)) > 1:
+        name += f" no. {node.split('#', 1)[1]}"
+    return name
 
 
 def _siblings(product: Product, iface: Interface) -> list[Interface]:
@@ -341,7 +410,21 @@ def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict
                 worst = max(worst, p["distance_mm"])
         for p in lonely:
             na, nb = p["occurrences"]
-            failures.append(f"{na} and {nb} do not meet in asm://{aid}: {_miss_words(p)}")
+            where = f" in {_assembled(product, [aid])}" if len(asms) > 1 else ""
+            failures.append(
+                f"{_occurrence_name(product, na, instances)} and "
+                f"{_occurrence_name(product, nb, instances)} do not line up "
+                f"{_joint_at(iface)}{where}: {_miss_words(p, iface.kind)}"
+            )
+            out.setdefault("failures", []).append(
+                {
+                    "assembly": f"asm://{aid}",
+                    "occurrences": [na, nb],
+                    "distance_mm": p["distance_mm"],
+                    "normal_deg": p["normal_deg"],
+                    "x_axis_deg": p["x_axis_deg"],
+                }
+            )
         out["assemblies"][aid] = {
             "status": "fail" if lonely else "pass",
             "pairs": pairs,
@@ -349,16 +432,19 @@ def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict
     checked = [v for v in out["assemblies"].values() if v["status"] != "skip"]
     if failures:
         out["status"] = "fail"
-        out["message"] = (
-            "; ".join(failures)
-            + f" (allowed: {ALIGN_MM} mm and {ALIGN_DEG}°, offset {float(iface.offset):g} mm)"
+        what = "holes" if iface.kind == "bolt-pattern" else "faces"
+        out["message"] = "; ".join(failures) + f". Move the {what} or the parts so they meet."
+        # the offset, the ids and the world frames are evidence, not owner text (gate D)
+        out["fix"] = (
+            f"the second party's frame must sit {float(iface.offset):g} mm along the first "
+            f"party's normal from it; correct the frames of {iface.uri} or the placement code"
         )
     elif not checked:
         out["status"] = "skip"
         out["message"] = "where the parts meet is not checked: the assembly is not built"
     else:
-        where = ", ".join(f"asm://{aid}" for aid in asms)
-        out["message"] = f"placed, the parts meet in {where} (worst {worst:.2f} mm)"
+        out["worst_mm"] = worst
+        out["message"] = f"{_assembled(product, asms)} ({_within(worst)})"
     return out
 
 

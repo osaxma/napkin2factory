@@ -30,8 +30,14 @@ def _part_name(product: Product, uri: str) -> str:
 
 
 def joint_words(product: Product, iface_id: str) -> str:
-    """A joint in plain words: the two parties by name ("guard shell to stand")."""
+    """A joint in plain words: its ``name``, else the two parties by name ("Guard to Stand").
+
+    The ``name`` tells apart joints between the same two parts (four standoff walls, two
+    hinges), which the part names alone cannot (gate D, S-118).
+    """
     iface = product.interfaces[iface_id]
+    if iface.name:
+        return iface.name
     a, b = (_part_name(product, str(p)) for p in iface.parties)
     return f"{a} to {b}"
 
@@ -67,9 +73,11 @@ def hardware_checks(product: Product, units: BuildUnits | None = None) -> list[C
             joints = joints_words(product, ifaces)
             row: dict[str, Any] = {"declared": have, "demand": need, "interfaces": ifaces}
             if have < need:
+                # gate D: the owner reads what to do, not only what is wrong
                 short.append(
                     f"{name}: {need - have} missing, {have} listed where its joints need "
-                    f"{need} ({joints})"
+                    f"{need} ({joints}). Add {need - have} to its line in the parts of "
+                    f"{asm.name}, or correct the joint's hardware if fewer are needed"
                 )
                 row["missing"] = need - have
             elif have > need:

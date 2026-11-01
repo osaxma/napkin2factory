@@ -47,18 +47,29 @@ manuals and the assembly sheets, the field names stay in the files and in `--jso
 |---|---|---|
 | **unit** ("the door, built as one unit") | a sub-assembly put together on its own, then fitted as a whole; one step of the build plan and one assembly sheet | `build: unit` (the default) in `assemblies/<id>.yaml`; the report's Build plan, `build/drawings/assemblies/` |
 | **the final assembly** | the top assembly, always the last step | the report's Build plan |
-| **a grouping, not built separately** (a phantom) | lines grouped for the model's sake; its parts are fitted in the step of the unit that contains it | `build: phantom` |
-| **why it is built on its own** (driver) | built as one unit, tested as one unit, serviced or replaced as one unit, made by another process or supplier, comes in variants, worked on as one module | `driver: [built-as-unit, tested-as-unit, serviced-as-unit, separate-process-or-supplier, varies, agent-context]`; `n2f lint` asks for one (`L13-assembly-driver`) |
-| **module** ("door (built as one unit)" on the concept board) | a unit a concept sketches, with its reason; promotion makes it an empty sub-assembly with three size limits (P10) | `modules:` on a concept card, `module:` on a massing line; the `general-v0/module-has-parts` row while it is empty |
+| **not put together on its own** (a phantom, "the lining (items 18–26) … lay it in place during this step") | lines grouped for the model's sake; its parts are laid in place in the step of the unit that contains it, and marked with its name in the note column | `build: phantom` |
+| **why it is built on its own** (driver) | put together and fitted as one piece, tested as one unit, serviced or replaced as one unit, made by another process or supplier, comes in variants, worked on as one module | `driver: [built-as-unit, tested-as-unit, serviced-as-unit, separate-process-or-supplier, varies, agent-context]`; `n2f lint` asks for one (`L13-assembly-driver`) |
+| **module** ("door (put together and fitted as one piece)" on the concept board) | a unit a concept sketches, with its reason; promotion makes it an empty sub-assembly with three size limits (P10) | `modules:` on a concept card, `module:` on a massing line; the `general-v0/module-has-parts` row while it is empty |
 | **the size the concept gave it** (a size budget) | the most a module may measure along each axis, computed from its rough shapes; changing one is a decision | a `geometry_prop` requirement on `asm://<module>#props.bbox.x`, `.y`, `.z` |
 | **a joint between units** (a port) | where two units built separately meet; closed in the step that joins them | `ports:` (P4); the report's Build plan |
-| **joint hardware** | the bolts, nuts, standoffs a joint takes, counted from the joint | `spec.hardware` on an interface; the `hardware://<unit>` check row |
+| **joint hardware** | the bolts, nuts, standoffs a joint takes, counted from the joint; "no loose fixings" when it takes none (welded, riveted, clamped) | `spec.hardware` on an interface; the `hardware://<unit>` check row |
+| **the joint's name** ("Shell to guard, top wall") | what the owner reads for a joint wherever two joints join the same two parts; otherwise "<part> to <part>" | `name:` on an interface |
+| **closed later, in step N** | a joint whose parts meet in one step and that is closed in a later one (a lid after the wiring) | `closed_in: asm://<unit>` on an interface |
+| **line up** ("the 4 holes line up on both parts, and in the assembled kiln") | both parts cut the joint's holes alike, and placed, their frames meet within 0.5 mm and 0.5° | the interface's check row; frames, offsets and ids in `--json` |
 | **spare** | more hardware than the joints need, on purpose, with the reason | `spare: "<reason>"` on a child line |
 | **packed loose for the installer** | shipped with the product, fitted on site, not in the build step | `loose: true` on a child line |
 | **a size of the door** (a scoped parameter) | a size that belongs to one unit; the unit and what it sits in may read it | `scope: asm://door` in `parameters.yaml` (P5) |
 | **shared** (an exported size) | a unit's size its parent may read, e.g. the door's outside width the hinge post must reach | `export: true` |
 | **read from outside its module** | a part or size reading another unit's size it may not; "worth a look" | the `reach://` check rows |
 | **the checks of one unit** | a unit checked alone: its parts, its inside joints, its requirements | `n2f check --scope asm://<id>`; the report's "By module" table |
+
+## Sheet and report labels (gate D)
+
+| say | not | where |
+|---|---|---|
+| **parts for this step**, **part no.** | BOM lines, BOM line | assembly sheets |
+| **pulled apart** | explode axis | assembly sheets, the report |
+| **not yet saved** | unsnapshotted | title blocks' date |
 
 ## Check statuses
 

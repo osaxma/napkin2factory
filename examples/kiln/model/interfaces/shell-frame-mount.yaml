@@ -1,6 +1,7 @@
 id: shell-frame-mount
 kind: bolt-pattern
 parties: [part://guard-shell, part://stand]
+name: Body onto the stand
 description: Four M6 × 50 bolts, one per corner, from inside the inner shell through the bottom standoffs and the guard's bottom wall into rivet nuts in the stand's top rails (DEC-021); the holes are shared with guard-standoff-bottom, which lists the standoffs.
 frame: {origin: [0, 0, 0], normal: [0, 0, 1]}
 frames:

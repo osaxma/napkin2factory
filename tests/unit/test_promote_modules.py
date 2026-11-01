@@ -107,7 +107,10 @@ def test_promotion_seeds_the_top_assembly_stubs_and_budgets(promoted: tuple[Path
     assert not any("no assembly yet" in n for n in result.notes)
     # the decision names the structure and links every seeded assembly
     dec = model.decisions[result.dec_id]
-    assert "the top assembly module-kiln holds door (built as one unit" in dec.decision
+    assert (
+        "the top assembly module-kiln holds door (put together and fitted as one piece"
+        in dec.decision
+    )
     assert {f"asm://{a}" for a in (PRODUCT, "door", "controls", "stand")} <= {
         str(u) for u in dec.links
     }
@@ -180,6 +183,34 @@ def test_a_card_without_modules_seeds_no_structure(fresh: Path, tmp_path: Path) 
     assert any("no assembly yet" in n for n in result.notes)  # as in v0.3 (P14)
 
 
+def test_a_card_seeding_no_requirement_promotes(fresh: Path, tmp_path: Path) -> None:
+    """Gate C, C4: no site, style, layout or modules: ``requirements: []`` stays a list."""
+    root = tmp_path / PRODUCT
+    shutil.copytree(fresh, root, ignore=shutil.ignore_patterns("build"))
+    path = cm.card_path(root, "C-001")
+    data = yaml.safe_load(path.read_text())
+    for key in ("modules", "site", "style", "layout"):
+        data.pop(key, None)
+    for call in data["massing"]:
+        call.pop("module", None)
+    path.write_text(yaml.safe_dump(data, sort_keys=False))
+    result = promote(root, "C-001", now=NOW, snapshot=False)
+    assert result.requirements == []
+    assert yaml.safe_load((root / "model" / "requirements.yaml").read_text()) == {
+        "requirements": []
+    }
+    assert load_product(root).requirements == {}
+
+
+def test_a_thin_plate_budget_is_flagged(promoted: tuple[Path, Any]) -> None:
+    """Gate D, concern 14: the card's door is a 3 mm plate, so its budget is flagged."""
+    _root, result = promoted
+    (note,) = [n for n in result.notes if "thin plate" in n]
+    assert note.startswith("module door: the sketch drew it as a thin plate (3 mm deep)")
+    assert "set its real size" in note
+    assert not [n for n in result.notes if "module controls: the sketch" in n]
+
+
 def test_a_module_named_like_the_product_is_refused(fresh: Path, tmp_path: Path) -> None:
     root = tmp_path / PRODUCT
     shutil.copytree(fresh, root, ignore=shutil.ignore_patterns("build"))
@@ -218,8 +249,9 @@ def test_promotion_on_the_kiln_only_suggests_modules(tmp_path: Path) -> None:
     assert not any(r.about == "budget" for r in result.requirements)
     assert result.suggestion is not None
     assert result.suggestion.startswith(
-        "C-003 sketches these modules: door (built as one unit) and controls (made by another "
-        "process or supplier). The product already has its assemblies, so nothing was changed"
+        "C-003 sketches these modules: door (put together and fitted as one piece) and "
+        "controls (made by another process or supplier). The product already has its "
+        "assemblies, so nothing was changed"
     )
     # both are sub-assemblies of the kiln since M3b (S-113)
     assert result.suggestion.endswith("door and controls are already sub-assemblies.")
@@ -283,7 +315,7 @@ def test_card_schema_reads_modules_and_dumps_a_v03_card_unchanged() -> None:
     assert card.module_names() == ["door", "trim", "stand"]
     assert card.module_entry("trim").driver == [] and card.module_entry("stand").build == "unit"
     assert cm.module_words(card) == [
-        "door (built as one unit)",
+        "door (put together and fitted as one piece)",
         "trim (no reason given yet)",
         "stand (no reason given yet)",
     ]
@@ -298,11 +330,11 @@ def test_board_lists_each_cards_modules() -> None:
     data = gather(EXAMPLES / "kiln")
     words = {c["id"]: c["modules"] for c in data["cards"]}
     assert words["C-003"] == [
-        "door (built as one unit)",
+        "door (put together and fitted as one piece)",
         "controls (made by another process or supplier)",
     ]
     page = render_board(data)
     assert (
-        '<h3>Modules</h3><p class="modules">door (built as one unit); controls (made by '
-        "another process or supplier)</p>" in page
+        '<h3>Modules</h3><p class="modules">door (put together and fitted as one piece); '
+        "controls (made by another process or supplier)</p>" in page
     )

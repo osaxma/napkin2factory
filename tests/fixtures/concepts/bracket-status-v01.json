@@ -13,8 +13,8 @@
       "name": "design",
       "ok": false,
       "blockers": [
-        "part://l-bracket has not been built \u2014 run `n2f build`",
-        "asm://bracket has not been built \u2014 run `n2f build`"
+        "L-bracket, 4 mm steel: not built yet \u2014 run `n2f build`",
+        "Wall bracket: not built yet \u2014 run `n2f build`"
       ],
       "detail": {},
       "caveats": []
@@ -44,5 +44,5 @@
       "caveats": []
     }
   ],
-  "next_step": "part://l-bracket has not been built \u2014 run `n2f build`"
+  "next_step": "L-bracket, 4 mm steel: not built yet \u2014 run `n2f build`"
 }
