@@ -127,6 +127,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-104 | Closed versions' decision entries live in `docs/decisions/` | in force |
 | S-105 | v0.4 M0 baseline: kiln frames meet, one to rewrite; hardware reconciled, shared-hole rule (`docs/v04-baseline.md`) | in force |
 | S-106 | v0.4 M1: interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly | in force |
+| S-107 | v0.4 M2: sub-assemblies have ports; a part's home; `place_by` places sub-assemblies | in force |
 
 ---
 
@@ -432,3 +433,13 @@ Enclosure base frame z is `param://box-height`. Kiln: 5 joints and the door guar
 (stand the anchor); 18 helpers gone (159 → 141 parameters). Lines 180 → 175 (kiln), 47 → 43 (door);
 `place()` calls 22 → 17, 6 → 5. Goldens unchanged, misses 0.00 mm; example sign-offs REQ-007/008/019
 re-keyed (box frame). 21 new tests; `make check` 8 min 51 s green, `make kiln` 2 min 42 s green.
+## S-107 — v0.4 M2: sub-assemblies have ports; `place_by` places sub-assemblies (2026-11-01)
+P4 as planned, with P5's home, in `core/tree.py`. Two "lowest" assemblies, kept apart: alignment
+(P3) runs where both parts occur; ports start from homes, so a joint naming a part used at two
+levels (a bolt) is a port of the lower module. `n2f validate` (rule `port`) refuses a missing
+port and a listed one that crosses nothing, naming the assembly file, and an `asm://` party in
+the loader, where the message can say the fix (closes B-0005). `place_by(…, "asm://x", …,
+inner=…)` moves the sub-assembly by its party's leaf; `onto` also finds leaves of placed
+sub-assemblies (two modules, a port each side). Labels survive reload since M1 (S-106). Kiln: all
+nine joints inside one assembly, no ports, unchanged. Port joints escape P1's warning (B-0064).
+17 new tests; `make check` 9 min 32 s green (784 tests), goldens unchanged; `make kiln` 3 min 1 s green.

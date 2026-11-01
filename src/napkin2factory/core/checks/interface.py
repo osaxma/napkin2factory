@@ -21,6 +21,7 @@ from napkin2factory.core.checks.results import CheckResult
 from napkin2factory.core.frames import WorldFrame, add_scaled, angle_deg, length, sub, world_frame
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import BoltPatternSpec, Interface
+from napkin2factory.core.tree import AssemblyTree
 
 TOLERANCE_MM = 0.5
 # P3 alignment tolerances: a design choice (PRODUCT_STRUCTURE.md P3, S-106), not a measured
@@ -107,9 +108,10 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
     for party in iface.parties:
         pid = party.id
         if party.scheme != "part":
+            # the loader refuses an asm:// party (P4, S-107); kept for a partial load
             rep.parties[str(party)] = {
                 "status": "skip",
-                "why": "assemblies are not checked as parties in v0.1",
+                "why": "an assembly is not a party: its joints are ports",
             }
             continue
         part = product.parts.get(pid)
@@ -187,29 +189,13 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
 # ---- stage 2: alignment in the assembly (P3) ---------------------------------------------
 
 
-def _part_uris(product: Product, aid: str, memo: dict[str, frozenset[str]]) -> frozenset[str]:
-    """Every part URI under assembly ``aid``, through its sub-assemblies."""
-    if aid not in memo:
-        memo[aid] = frozenset()  # cycle guard; the loader reports cycles
-        out: set[str] = set()
-        for c in product.assemblies[aid].children:
-            if c.part is not None:
-                out.add(f"part://{c.part.id}")
-            elif c.asm is not None and c.asm.id in product.assemblies:
-                out |= _part_uris(product, c.asm.id, memo)
-        memo[aid] = frozenset(out)
-    return memo[aid]
-
-
 def lowest_common_assemblies(product: Product, a: str, b: str) -> list[str]:
-    """Assemblies containing both parts with no sub-assembly that also contains both (P3)."""
-    memo: dict[str, frozenset[str]] = {}
-    both = {aid for aid in product.assemblies if {a, b} <= _part_uris(product, aid, memo)}
-    return sorted(
-        aid
-        for aid in both
-        if not any(c.asm is not None and c.asm.id in both for c in product.assemblies[aid].children)
-    )
+    """Assemblies containing both parts with no sub-assembly that also contains both (P3).
+
+    Across levels too: a part of the kiln and a part inside its door meet in the kiln, whose
+    ``instances.json`` holds the door's leaves in the kiln's frame (S-107).
+    """
+    return AssemblyTree(product.assemblies).lowest_containing(a, b)
 
 
 def _occurrences(instances: list[dict[str, Any]], uri: str) -> list[dict[str, Any]]:
@@ -258,7 +244,7 @@ def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict
     """
     a, b = (str(p) for p in iface.parties)
     if not (a.startswith("part://") and b.startswith("part://")):
-        return {"status": "skip", "message": "assemblies are not placed as parties"}
+        return {"status": "skip", "message": "an assembly is not a party: its joints are ports"}
     if a not in iface.frames or b not in iface.frames:
         return {
             "status": "skip",
@@ -347,8 +333,9 @@ def coordinate_placement_warnings(product: Product, build_dir: Path) -> list[Che
     positions were typed in and can drift apart: one ``warn`` row per such joint, suggesting
     ``place_by``.  When one side was placed by the joint (the guard onto the stand), the other
     side's coordinates are the anchor and nothing is said.  The rule needs no placement
-    order, so reordering the placement code changes nothing (S-030, S-106).  Parties inside
-    sub-assemblies are left to ports (v0.4 M2).  A product built before v0.4 has no ``via``
+    order, so reordering the placement code changes nothing (S-030, S-106).  Joints through
+    ports (P4) are not looked at yet: a sub-assembly's own placement is not in
+    ``instances.json`` (B-0064).  A product built before v0.4 has no ``via``
     in ``instances.json`` and never warns.
     """
     out: list[CheckResult] = []

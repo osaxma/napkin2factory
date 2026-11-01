@@ -1,0 +1,8 @@
+id: pod
+rev: A
+name: Pod
+geometry: {module: geometry/pod.py}
+ports: [iface://pod-mount]
+children:
+  - {part: part://plate, qty: 1}
+  - {part: part://rail, qty: 2}

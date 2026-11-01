@@ -67,10 +67,12 @@ face) in their own frames. **Alignment** (P3, S-106): in each lowest assembly co
 parties, every occurrence of each party has a partner whose frame, read from
 `instances.json`, meets its own: the second party's origin `offset` along the first party's
 normal, the same normal, the same `x_axis`, within 0.5 mm and 0.5° (a design choice, not a
-measured fit). A miss fails and names both occurrences and the distance; the evidence holds
-every pair's world frames. Interfaces without a frame per party (`frames:`) skip it.
+measured fit). Across levels too: a joint through a port (P4) is checked in the parent,
+whose `instances.json` holds the sub-assembly's leaves in the parent's frame. A miss fails
+and names both occurrences and the distance; the evidence holds every pair's world frames. Interfaces without a frame per party (`frames:`) skip it.
 `placement://asm@a+b` (`warn`, P1): two parts of one assembly that an interface joins are
-both placed by coordinates; `place_by` on that interface closes the joint instead.
+both placed by coordinates; `place_by` on that interface closes the joint instead. Joints
+through ports are not looked at yet (B-0064).
 
 ## Stage and gates (`n2f status`)
 

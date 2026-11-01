@@ -8,7 +8,13 @@ import pytest
 
 from napkin2factory.core.frames import WorldFrame, world_frame
 from napkin2factory.core.model import Frame, Interface
-from napkin2factory.geometry.assembly import AssemblyResult, location_to_trs, place, place_by
+from napkin2factory.geometry.assembly import (
+    AssemblyResult,
+    flatten,
+    location_to_trs,
+    place,
+    place_by,
+)
 from napkin2factory.geometry.build import GeometryError
 
 
@@ -110,11 +116,88 @@ def test_absent_party_and_wrong_party_are_errors() -> None:
         place_by({"ab": iface}, res, "ab", "part://c", None)
 
 
-def test_assembly_parties_wait_for_ports() -> None:
+def test_an_assembly_party_points_to_ports() -> None:
     iface = _iface({"part://b": FRAMES["part://b"]}, parties=("asm://a", "part://b"))
     res = AssemblyResult()
     with pytest.raises(GeometryError, match="ports"):
         place_by({"ab": iface}, res, "ab", "part://b", None)
+
+
+# ---- sub-assemblies placed by a port (P4, S-107) ----------------------------------------
+
+
+class _Sub:
+    """A built sub-assembly stand-in: its leaves, in its own frame (``BuiltAssembly.leaves``)."""
+
+    def __init__(self, *leaves: tuple[str, tuple[float, float, float], str | None]) -> None:
+        self.result = AssemblyResult()
+        for uri, t, lab in leaves:
+            self.result.add(place(uri, None, translate=t, rotate=(0.0, 0.0, 90.0), label=lab))
+        self.leaves = flatten(self.result, "asm://sub")[0]
+
+
+def _leaf_world(sub: Any, placement: Any, label: str) -> Any:
+    """The world location of the sub-assembly's leaf labelled ``label``."""
+    leaf = next(lf for lf in sub.leaves if lf.label == label)
+    return placement.location * leaf.location
+
+
+def test_a_sub_assembly_is_placed_by_its_port() -> None:
+    """The leaf inside moves to where the part would go; the sub-assembly carries it there."""
+    iface = _iface(FRAMES, offset=4.0)
+    sub = _Sub(("part://b", (5.0, 6.0, 7.0), "b"), ("part://c", (0.0, 0.0, 0.0), None))
+    res = AssemblyResult()
+    res.add(place("part://a", None, translate=(100.0, 0.0, 0.0), rotate=(0.0, 0.0, 90.0)))
+    placed = place_by({"ab": iface}, res, "ab", "asm://sub", sub, label="sub")
+    assert placed.via == "iface://ab" and placed.is_assembly
+    alone = place_by({"ab": iface}, res, "ab", "part://b", None)
+    t_sub, q_sub = location_to_trs(_leaf_world(sub, placed, "b"))
+    t_alone, q_alone = location_to_trs(alone.location)
+    assert _close(t_sub, t_alone)
+    # the same rotation: unit quaternions q and -q, so |q_sub · q_alone| = 1
+    assert abs(sum(x * y for x, y in zip(q_sub, q_alone, strict=True))) == pytest.approx(1.0)
+
+
+def test_inner_picks_the_leaf_and_ambiguity_is_an_error() -> None:
+    iface = _iface(FRAMES)
+    sub = _Sub(("part://b", (0.0, 0.0, 0.0), "left"), ("part://b", (0.0, 50.0, 0.0), "right"))
+    res = AssemblyResult()
+    res.add(place("part://a", None))
+    with pytest.raises(
+        GeometryError, match=r"placed 2 times inside asm://sub; pick one with inner="
+    ):
+        place_by({"ab": iface}, res, "ab", "asm://sub", sub)
+    placed = place_by({"ab": iface}, res, "ab", "asm://sub", sub, inner="right")
+    alone = place_by({"ab": iface}, res, "ab", "part://b", None)
+    assert _close(
+        location_to_trs(_leaf_world(sub, placed, "right"))[0], location_to_trs(alone.location)[0]
+    )
+
+
+def test_a_sub_assembly_holding_both_or_neither_party_is_refused() -> None:
+    iface = _iface(FRAMES)
+    res = AssemblyResult()
+    res.add(place("part://a", None))
+    both = _Sub(("part://a", (0.0, 0.0, 0.0), None), ("part://b", (0.0, 0.0, 0.0), None))
+    with pytest.raises(GeometryError, match="both of its parties are inside it"):
+        place_by({"ab": iface}, res, "ab", "asm://sub", both)
+    with pytest.raises(GeometryError, match="neither of its parties is inside it"):
+        place_by({"ab": iface}, res, "ab", "asm://sub", _Sub(("part://c", (0, 0, 0), None)))
+
+
+def test_onto_a_leaf_of_a_placed_sub_assembly() -> None:
+    """Two modules joined by a port each side: the anchor is a leaf of a placed sub-assembly."""
+    iface = _iface(FRAMES, offset=2.0)
+    sub = _Sub(("part://a", (0.0, 0.0, 0.0), "left"), ("part://a", (0.0, 40.0, 0.0), "right"))
+    res = AssemblyResult()
+    outer = res.add(place("asm://sub", sub, translate=(0.0, 0.0, 30.0), label="pod"))
+    with pytest.raises(GeometryError, match=r"'pod/left', 'pod/right'"):
+        place_by({"ab": iface}, res, "ab", "part://b", None)
+    b = place_by({"ab": iface}, res, "ab", "part://b", None, onto="right")
+    alone = AssemblyResult()
+    alone.add(place("part://a", None, _leaf_world(sub, outer, "right")))
+    expect = place_by({"ab": iface}, alone, "ab", "part://b", None)
+    assert _close(location_to_trs(b.location)[0], location_to_trs(expect.location)[0])
 
 
 def test_place_records_coordinates() -> None:

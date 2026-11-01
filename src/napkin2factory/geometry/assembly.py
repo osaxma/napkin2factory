@@ -110,6 +110,56 @@ def grid(
     return out
 
 
+@dataclass
+class _Occurrence:
+    """A party's occurrence that ``place_by`` can use: its location and the labels naming it."""
+
+    location: Any  # in the frame of the assembly being built (or of the sub-assembly moved)
+    labels: tuple[str | None, ...]  # the placement's label, then the leaf's inside a sub-assembly
+
+    @property
+    def name(self) -> str:
+        """The labels joined for an error message (``'door/left'``)."""
+        return "/".join(lab for lab in self.labels if lab is not None) or "no label"
+
+
+def _leaf_occurrences(
+    built: Any, uri: str, outer: Any = None, label: str | None = None
+) -> list[_Occurrence]:
+    """Occurrences of part ``uri`` among a built sub-assembly's leaves (its own frame).
+
+    ``outer`` (the sub-assembly's placement location) moves them into the parent's frame.
+    A stand-in without ``leaves`` has none.
+    """
+    out = []
+    for leaf in getattr(built, "leaves", None) or []:
+        if leaf.uri == uri:
+            loc = outer * leaf.location if outer is not None else leaf.location
+            labels = (label, leaf.label) if outer is not None else (leaf.label,)
+            out.append(_Occurrence(loc, labels))
+    return out
+
+
+def _pick(
+    found: list[_Occurrence], label: str | None, what: str, keyword: str, where: str
+) -> _Occurrence:
+    """The one occurrence named by ``label`` (any of its labels), or a ``GeometryError``."""
+    from napkin2factory.geometry.build import GeometryError
+
+    chosen = [o for o in found if label in o.labels] if label is not None else found
+    names = ", ".join(repr(o.name) for o in found) or "none"
+    if not chosen:
+        raise GeometryError(
+            f"place_by: no occurrence of {what} is labelled {label!r}; its labels: {names}"
+        )
+    if len(chosen) > 1:
+        raise GeometryError(
+            f"place_by: {what} is placed {len(chosen)} times{where}; pick one with "
+            f"{keyword}=<label> (its labels: {names})"
+        )
+    return chosen[0]
+
+
 def place_by(
     I: Any,  # noqa: N803 — the recording interface accessor of the assembly module
     res: AssemblyResult,
@@ -119,33 +169,42 @@ def place_by(
     *,
     onto: str | None = None,
     label: str | None = None,
+    inner: str | None = None,
 ) -> Placement:
-    """Place part ``uri`` so that its frame of ``iface_id`` meets the other party's (P1).
+    """Place a part, or a sub-assembly by one of its ports, so the interface's frames meet (P1, P4).
 
-    The other party must already be placed in ``res``.  The child is rotated so its frame's
-    normal and ``x_axis`` point the same way as the placed party's frame, and moved so its
-    frame origin sits ``offset`` along that normal from the placed party's origin: ``+offset``
-    when the placed party is the interface's first party, ``-offset`` when the child is
-    (``offset`` runs from the first party to the second, P2).  The basis is
-    :func:`napkin2factory.core.frames.frame_basis`, the one the holes are cut with.
+    The other party must already be placed in ``res``, directly or as a leaf of a
+    sub-assembly placed in ``res`` (two modules joined by a port each side).  The child is
+    rotated so its frame's normal and ``x_axis`` point the same way as the placed party's
+    frame, and moved so its frame origin sits ``offset`` along that normal from the placed
+    party's origin: ``+offset`` when the placed party is the interface's first party,
+    ``-offset`` when the child is (``offset`` runs from the first party to the second, P2).
+    The basis is :func:`napkin2factory.core.frames.frame_basis`, the one the holes are cut
+    with.
+
+    When ``uri`` is a sub-assembly (``"asm://door"``), the party being placed is the
+    interface's party found among its leaves (``built.leaves``, in the sub-assembly's own
+    frame, also when it was reloaded from disk, S-049); the whole sub-assembly moves with it.
 
     Args:
         I: the ``I`` accessor passed to ``build(P, I, parts)`` (records the interface read).
         res: the assembly result holding the placed party.
         iface_id: the interface id (without ``iface://``).
-        uri: the part to place, e.g. ``"part://hinge-post"``; one of the parties.
-        built: the built part (``parts["hinge-post"]``).
+        uri: the part to place (one of the parties), or the sub-assembly holding one.
+        built: the built part or sub-assembly (``parts["hinge-post"]``, ``parts["door"]``).
         onto: the label of the occurrence to place onto, when the other party is placed
-            more than once.
+            more than once; inside a placed sub-assembly, either its label or the leaf's.
         label: this occurrence's label.
+        inner: for a sub-assembly, the label of the party's leaf inside it, when the party
+            occurs there more than once.
 
     Returns:
         The placement (not yet added: wrap it in ``res.add(...)``).
 
     Raises:
-        GeometryError: when ``uri`` is not a party, the other party is absent or ambiguous
-            in ``res``, a party is an assembly (ports come in v0.4 M2), or a frame used has
-            no ``x_axis``; each message says the fix.
+        GeometryError: when ``uri`` is not a party (nor holds exactly one), the other party
+            is absent or ambiguous in ``res``, or a frame used has no ``x_axis``; each
+            message says the fix.
     """
     from napkin2factory.core.frames import frame_basis
     from napkin2factory.geometry.build import GeometryError
@@ -153,55 +212,60 @@ def place_by(
     iface = I[iface_id]
     where = f"iface://{iface_id}"
     parties = [str(p) for p in iface.parties]
-    if uri not in parties:
+    for party in parties:
+        if not party.startswith("part://"):
+            raise GeometryError(
+                f"place_by: {where} names {party}; an interface joins two parts, and a "
+                "sub-assembly exports a joint of one of its parts under `ports:`"
+            )
+    inner_loc: Any = None
+    if uri.startswith("asm://"):
+        inside = [p for p in parties if _leaf_occurrences(built, p)]
+        if len(inside) != 1:
+            why = "both of its parties are" if inside else "neither of its parties is"
+            raise GeometryError(
+                f"place_by: {uri} cannot be placed by {where}: {why} inside it; place a "
+                "sub-assembly by a port, a joint between one of its parts and a part outside it"
+            )
+        party = inside[0]
+        leaf = _pick(_leaf_occurrences(built, party), inner, party, "inner", f" inside {uri}")
+        inner_loc = leaf.location
+    elif uri in parties:
+        party = uri
+    else:
         raise GeometryError(
             f"place_by: {uri} is not a party of {where} (its parties are {', '.join(parties)}); "
             "place it with the interface that joins it, or with place(...)"
         )
-    other = parties[1] if parties[0] == uri else parties[0]
-    for party in (uri, other):
-        if not party.startswith("part://"):
-            raise GeometryError(
-                f"place_by: {where} names {party}; place_by places parts, and joins to "
-                "sub-assemblies go through ports (v0.4 M2)"
-            )
-    candidates = [p for p in res.instances if p.uri == other]
-    if onto is not None:
-        chosen = [p for p in candidates if p.label == onto]
-    else:
-        chosen = candidates
-    labels = ", ".join(repr(p.label) for p in candidates) or "none"
-    if not candidates:
+    other = parties[1] if parties[0] == party else parties[0]
+    found: list[_Occurrence] = []
+    for p in res.instances:
+        if p.uri == other:
+            found.append(_Occurrence(p.location, (p.label,)))
+        elif p.is_assembly:
+            found.extend(_leaf_occurrences(p.built, other, p.location, p.label))
+    if not found:
         raise GeometryError(
-            f"place_by: {uri} joins {other} through {where}, but {other} is not placed yet; "
+            f"place_by: {party} joins {other} through {where}, but {other} is not placed yet; "
             f"place {other} first (placement order matters)"
         )
-    if not chosen:
-        raise GeometryError(
-            f"place_by: no occurrence of {other} is labelled {onto!r}; its labels: {labels}"
-        )
-    if len(chosen) > 1:
-        raise GeometryError(
-            f"place_by: {other} is placed {len(chosen)} times; pick one with onto=<label> "
-            f"(its labels: {labels})"
-        )
-    anchor = chosen[0]
+    anchor = _pick(found, onto, other, "onto", "")
     frames = {}
-    for party in (uri, other):
-        frame = iface.frame_for(party)
+    for pty in (party, other):
+        frame = iface.frame_for(pty)
         if frame.x_axis is None:
             _, x, _, _ = frame_basis(frame)
             hint = [round(c, 6) + 0.0 for c in x]
             raise GeometryError(
-                f"place_by: the frame of {party} in {where} has no x_axis, so its rotation "
+                f"place_by: the frame of {pty} in {where} has no x_axis, so its rotation "
                 f"about the normal is undefined; add `x_axis: {hint}` to that frame in "
                 f"model/interfaces/{iface_id}.yaml (the axis its holes are cut along today)"
             )
-        frames[party] = frame_basis(frame)
+        frames[pty] = frame_basis(frame)
     sign = 1.0 if parties[0] == other else -1.0
     offset = sign * float(iface.offset)
     o_a, x_a, y_a, z_a = frames[other]
-    o_b, x_b, y_b, z_b = frames[uri]
+    o_b, x_b, y_b, z_b = frames[party]
     m_anchor = _matrix(anchor.location)
     r_anchor, t_anchor = m_anchor[:3, :3], m_anchor[:3, 3]
     basis_a = r_anchor @ np.column_stack([x_a, y_a, z_a])  # the placed frame, assembly coords
@@ -209,6 +273,13 @@ def place_by(
     rot = basis_a @ np.column_stack([x_b, y_b, z_b]).T
     target = origin_a + offset * basis_a[:, 2]
     trans = target - rot @ np.asarray(o_b)
+    if inner_loc is not None:
+        # the party's leaf sits at inner_loc in the sub-assembly: place the sub-assembly so
+        # that leaf lands where the party must go (sub = party · inner⁻¹)
+        m = np.eye(4)
+        m[:3, :3], m[:3, 3] = rot, trans
+        m = m @ np.linalg.inv(_matrix(inner_loc))
+        rot, trans = m[:3, :3], m[:3, 3]
     return Placement(
         uri=uri, built=built, location=_from_matrix(rot, trans), label=label, via=where
     )

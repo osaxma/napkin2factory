@@ -39,10 +39,24 @@ source: {vendor, mpn, url, verified} (COTS), manufacturer_notes`. Kit args may r
 `param://` and `iface://`; quantities are strings like `15 mm`.
 
 **assemblies/<id>.yaml** — `id, rev, name, geometry: {module} | none, children: [{part|asm,
-qty}], exploded: {axis, spacing}, satisfies`. The YAML is the BOM structure; the module
-places instances, by interface with `place_by` or by coordinates with `place`; the checker
-verifies instance counts equal quantities (D18). `build/assemblies/<id>/instances.json`
-records each occurrence's `via` (`coordinates` or `iface://<id>`) and `label`.
+qty}], ports: [iface uris], exploded: {axis, spacing}, satisfies`. The YAML is the BOM
+structure; the module places instances, by interface with `place_by` or by coordinates with
+`place`; the checker verifies instance counts equal quantities (D18).
+`build/assemblies/<id>/instances.json` records each occurrence's `via` (`coordinates` or
+`iface://<id>`) and `label`.
+
+**Ports** (P4, S-107): a part's *home* is the lowest assembly containing all its
+occurrences (a bolt used in the door and the kiln lives in the kiln). An interface whose two
+parts have different homes crosses the boundary of every assembly from each home up to, not
+including, the lowest assembly containing both; each of those lists it under `ports:`.
+`n2f validate` refuses a missing port (naming the assembly file to edit) and a listed port
+that crosses nothing. An interface's parties are parts, never `asm://`: the holes live on
+the part that carries them, and the sub-assembly exports the joint as a port. The parent
+places the sub-assembly by it: `place_by(I, res, "<iface-id>", "asm://door", parts["door"],
+onto=…, inner=…, label=…)` moves the whole sub-assembly so its party's frame (found among
+its leaves; `inner` names the leaf by label when the party occurs there more than once)
+meets the placed party's. The placed party may itself be a leaf of a sub-assembly already
+placed (`onto` then matches that sub-assembly's label or the leaf's).
 
 **interfaces/<id>.yaml** — `id, kind: bolt-pattern|mating-face, parties: [two uris],
 frame: {origin, normal, x_axis?}, frames: {party uri: frame} (per-party copies),
@@ -121,6 +135,7 @@ dimension so costs cannot be added to lengths. Geometry code converts at its bou
 ## Validation layers
 
 `n2f validate` loads every file against its schema and checks every URI resolves, parts
-and interfaces agree, assembly graphs are acyclic, expressions parse and have no cycles,
+and interfaces agree, assembly graphs are acyclic, ports are listed exactly where joints
+cross an assembly's boundary, expressions parse and have no cycles,
 geometry modules and kit names exist, calc functions exist. `n2f lint` is stricter and
 is the Intake gate. `n2f check` evaluates the built product.

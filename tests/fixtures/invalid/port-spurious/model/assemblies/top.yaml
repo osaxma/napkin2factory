@@ -1,0 +1,9 @@
+id: top
+rev: A
+name: Top
+geometry: {module: geometry/top.py}
+ports: [iface://pod-mount]
+children:
+  - {part: part://base, qty: 1}
+  - {asm: asm://pod, qty: 1}
+  - {part: part://clip, qty: 2}

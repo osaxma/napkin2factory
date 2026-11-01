@@ -1,0 +1,3 @@
+validate
+lists iface://pod-mount under `ports:`, but that joint does not cross this assembly's boundary (both parts are inside it)
+model/assemblies/top.yaml

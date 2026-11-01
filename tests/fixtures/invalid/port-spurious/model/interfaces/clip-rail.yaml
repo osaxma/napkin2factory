@@ -1,0 +1,9 @@
+id: clip-rail
+kind: mating-face
+parties: [part://rail, part://clip]
+description: A clip sits on top of each rail of the pod; a port of the pod.
+frames:
+  part://rail: {origin: [0, 0, 10], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://clip: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+offset: 0
+spec: {width: 20 mm, depth: 10 mm}
