@@ -20,6 +20,11 @@ https://raw.githubusercontent.com/osaxma/napkin2factory/main/docs/agent-guide.md
   **screening** marks it **green** (holds up) or **red** (has problems — information, never
   hidden); the **board** shows every direction side by side; **promote** makes one the
   design direction
+- **a choice** — a trade-off a check found after a build, with two or more valid designs;
+  `n2f status` lists the open ones under **waiting on you**, and `n2f decide` records the
+  owner's pick (`roles/pm.md` says when to raise one: never in the interview)
+- **in / done elsewhere / later** — where a step of the product (the wiring, say) stands:
+  done here, done by someone else, or left for later (`scope:` in `n2f.yaml`, a decision)
 
 ## Rules for any agent working here
 1. Run `n2f validate` after every model edit. Run `n2f build --target geometry --part <id>`
@@ -27,7 +32,8 @@ https://raw.githubusercontent.com/osaxma/napkin2factory/main/docs/agent-guide.md
    Run `n2f check` before claiming anything is done. `n2f status` tells you what blocks the
    next gate.
 2. Never write numbers you invented. Cite the source in the calc file or the decision,
-   and mark numbers that need human confirmation with `verify: true` on the decision.
+   and mark numbers that need human confirmation with `verify: true` on the decision. Every
+   calc carries a reference case (`model/calcs/<topic>.cases.yaml`, `roles/design.md`).
 3. Log every choice made on the owner's behalf as a `DEC-xxx` in `model/decisions.yaml`
    with rationale and links. Decisions are delegated, never deleted.
 4. Changes to a released product go through a change request: `n2f ecr new`, then
@@ -48,10 +54,14 @@ https://raw.githubusercontent.com/osaxma/napkin2factory/main/docs/agent-guide.md
    online through the product's GitHub project (see `roles/pm.md`, "Sharing the pages").
 
 ## Where things are
-- `n2f.yaml` manifest · `operator.yaml` who the owner is and how to talk to them
+- `n2f.yaml` manifest (and `scope:`, what this product covers) · `operator.yaml` who the
+  owner is and how to talk to them
 - `model/requirements.yaml`, `model/parameters.yaml`, `model/decisions.yaml`, `model/intake.md`
 - `model/parts/*.yaml`, `model/assemblies/*.yaml`, `model/interfaces/*.yaml`
-- `model/geometry/*.py` custom geometry (`build(P, I, kit)` / `build(P, I, parts)`), `model/calcs/*.py`
+- `model/geometry/*.py` custom geometry (`build(P, I, kit)` / `build(P, I, parts)`),
+  `model/calcs/*.py` with their cases `model/calcs/*.cases.yaml`
+- `model/screens/*.py`, `model/rulepacks/` this product's own napkin screens and rule checks
+  (optional) · `n2f doctor` lists what is installed: verify kinds, check stages, screens
 - `model/docs/*.md` manuals (templated Markdown; `safety.md` is mandatory), `model/signoffs/*.yaml`
 - `changes/` change requests · `reports/` verifier reviews · `build/` generated (ignored)
 - `concepts/C-*.yaml` concept cards (napkin stage; outside the build, never read by it),
