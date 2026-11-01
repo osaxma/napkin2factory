@@ -136,6 +136,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-113 | v0.4 M3b: the kiln built from units, door and controls hung by their ports, lining a phantom | in force |
 | S-114 | v0.4 M4: parameters have a scope, a module's context is a command, checks per module | in force |
 | S-115 | v0.4 M6: joints between units in the plan and the report, two-level review roles, the DoD 5 simulation protocol (run pending) | in force |
+| S-116 | v0.4 DoD 5: a fresh agent changed the door from its context alone; all four criteria met | in force |
 
 ---
 
@@ -530,3 +531,13 @@ joint, never a verdict. Scripted change (`tests/e2e/module-transcripts/`): the d
 rectangle 10 mm wider and taller (inset 120 to 115 mm, pitch 452.4 to 462.4 mm), door-only;
 tried by hand: no fail, scoped check 8.7 s. Bundle 34,259 B; report 3,792,417 B. 11 new tests;
 `make kiln` 3 min 21 s, `make check` 11 min 8 s green (853 + 141 passed). Simulation not run.
+
+## S-116 — v0.4 DoD 5: a fresh agent changed the door from its context alone (2026-11-01)
+Run per S-115's protocol (`tests/e2e/module-transcripts/README.md`) on a built kiln copy at 016689b:
+a fresh-context subagent got the 34,259-byte door bundle (design role, `n2f context asm://door`,
+the door's geometry code), the folder and the owner's request (spacers 10 mm further apart). It
+read the bundle, the spacer interface and the `door-standoff` lines of `parameters.yaml`, set
+`door-standoff-inset` 120 → 115 mm (pitch 452.4 → 462.4 mm), ran validate, `build --asm door`,
+`check --scope`, `build`, `check`: no failure, nothing signed; `--verify`: only `parameters.yaml`
+changed, in the context. Seven tool calls, about 1 min 43 s. The bundle went by file, not pasted;
+the client exported only its final message (`door-2026-11-01.md`). One run, one easy change.
