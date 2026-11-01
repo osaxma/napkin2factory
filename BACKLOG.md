@@ -26,7 +26,6 @@ entry that closed them. Ids are never reused.
 | B-0039 | Tolerance stack-up over chains of interface frames as a verify kind | GRAND_PLAN §1.2; HANDOFF-REPORT §6 |
 | B-0040 | FEA / simulation gates | GRAND_PLAN §1.2 non-goal |
 | B-0041 | Hosted service, orchestrator process, multi-agent runtime | GRAND_PLAN §1.2 non-goal |
-| B-0042 | Upgrade migrations between schema versions (schema 1 unchanged so far, S-056) | GRAND_PLAN §1.2 non-goal |
 | B-0043 | Manufacturer quote APIs and electronics distributor APIs | GRAND_PLAN §1.2 non-goal |
 | B-0044 | GD&T-grade drawings and Class-A surfacing | GRAND_PLAN §1.2 non-goal |
 | B-0045 | Tauri wrapper and npm shim | GRAND_PLAN §1.2 non-goal |
@@ -50,6 +49,8 @@ entry that closed them. Ids are never reused.
 | B-0075 | URIs in prose (`core/uris.py::find_uris`, used by lint and manual pages) know only the core's schemes: a domain's `<scheme>://id` in text is not found or checked | S-123; build the pattern from the registered schemes |
 | B-0076 | A scope-only edit of `n2f.yaml` reruns neither the checks nor the report: no recorded read values the manifest's `scope:` (`manifest://product` reads only the product block), so the report's scope line stays as it was until something else it reads changes (a new `DEC-` does) | S-124; `n2f status` and `n2f release` compute scope live and are right. Value a `manifest://scope` key in `core/graph/values.py` and add it to the report's reads (`report/builder.py`) |
 | B-0077 | An external stub (`build: external`) is not yet said in the build plan: its joints close in the step that fits it, but the step lists no "supplied, not built here" line, the joint words name the stub by its URI, and `general-v0/module-has-parts` warns that the stub has no parts | S-124; `BuildUnits.supplied(uid)` and `EXTERNAL_WORDS` hold the data; render them in `bom/build_plan.py` and the report's build fragment, name an asm party in `joint_words`, skip stubs in the rule pack |
+| B-0078 | The `checks` rule does not hash `calckit/`: a calc-kit formula change reruns neither the `calc-case` rows nor `calc` requirements (since v0.2) | S-125; add `calckit` to the mechanical `checks` family `code` and update the pinned hash in `tests/unit/test_domain_contract.py` |
+| B-0079 | The `cases:` format is documented only in the `core/checks/calcs.py` docstring and the lint hint: no using-agent doc or role says to write a case with each calc | S-125; docs/checks.md, docs/calckit.md, the design and verifier roles |
 
 ## Closed
 
@@ -91,3 +92,4 @@ entry that closed them. Ids are never reused.
 | B-0066 | Joint words name only the two parts: the kiln's two hinge joints read the same in the build plan, and long part names shrink a joint's row on the assembly sheet | Closed 2026-11-01 (S-118): an optional `name:` on the interface, joints in build order, sheet cells wrap instead of shrinking below 2.2 mm |
 | B-0068 | An assembly sheet's "STEP n of N" reads the plan's `order` without recording it: a unit added elsewhere leaves N stale on the other sheets | Closed 2026-11-01 (S-118): the sheet's reads include `bom://build-plan#order` |
 | B-0073 | A sign-off recorded on one machine is void on another (the first Linux nightly failed four kiln example sign-offs: a part's evidence key hashed the mesh) | Closed 2026-11-01 (S-121): parts and assemblies key on tolerance-compared invariants; the kiln's six sign-offs re-keyed with `scripts/rekey_signoffs.py`; the next Linux nightly is the proof |
+| B-0042 | Upgrade migrations between schema versions (schema 1 unchanged so far, S-056) | Closed 2026-11-01 (S-125): `core/model/migrate.py`, the upgrade path in `n2f init .`, `docs/schema-policy.md`, `tests/fixtures/schema/v1` |
