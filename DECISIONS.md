@@ -128,6 +128,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-105 | v0.4 M0 baseline: kiln frames meet, one to rewrite; hardware reconciled, shared-hole rule (`docs/v04-baseline.md`) | in force |
 | S-106 | v0.4 M1: interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly | in force |
 | S-107 | v0.4 M2: sub-assemblies have ports; a part's home; `place_by` places sub-assemblies | in force |
+| S-111 | v0.5 is the foundation (the seams), v0.6 the first domain (electrical) as its proof; an independent trial brief after v0.6 | in force |
 | S-108 | A styled screenshot whose shader fails under load is rendered once more | in force |
 | S-109 | A landing that stops after giving out ids puts the task's own commits back | in force |
 | S-110 | v0.4 M3a: build units and phantoms, the build plan derived from the tree, joint hardware counted | in force |
@@ -473,3 +474,13 @@ in `build/drawings/assemblies/`; `bom`'s output hash stays the rollups' (P14), p
 `bom://build-plan#units.<id>`; lint `L13-assembly-driver`. Kiln (alias only): `hardware://door`,
 `://kiln` warn (8 vs 4, 50 vs 30 bolts), no fail; report 3,614,355 → 3,714,969 bytes. 18 new tests;
 `make check` 9 min 24 s green (803 passed), goldens unchanged; `make kiln` 2 min 55 s green.
+## S-111 — v0.5 is the foundation, v0.6 the first domain as its proof (2026-11-01)
+A review after v0.4 M2, at the maintainer's request: a foundation that agents of any model can
+develop continuously; steps (electrical, analysis) added only when a product needs them; real
+testing later. Measured: a new rule family, verify kind, check stage, report section and doc
+helper edits eight core files (`FOUNDATION.md` §0.2); 23 package files carry the kiln's words;
+`schema: 1` is never read; five files over 700 lines are where parallel agents collide. v0.5
+(`FOUNDATION.md`, F1–F16) adds registries behind one domain contract, a toy domain, the kiln out
+of the package, a schema policy, scope as data, and choices; v0.6 (`ELECTRICAL_STAGE.md`, E1–E12)
+builds the electrical domain through that contract with a count of core edits as its headline.
+`docs/reviews/v0.6-independent-trial.md` briefs an outside model to use and review both.
