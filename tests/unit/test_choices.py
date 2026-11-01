@@ -99,7 +99,8 @@ def _row(rows: list[CheckResult], rid: str) -> CheckResult:
 def _checked(root: Path) -> list[CheckResult]:
     """The hardware stage's rows with the engine's choice handling (no build needed)."""
     product = load_product(root)
-    rows = hardware_checks(product, BuildUnits(product))
+    units = BuildUnits(product)
+    rows = hardware_checks(product, units) + spacer_bolt_checks(product, units)
     resolve(product, root / "build", rows)
     return rows
 
@@ -126,8 +127,8 @@ def test_kiln_offers_the_bolt_length_choice() -> None:
     assert opts["through-bolt"]["cost_delta"].startswith("about 4.80 USD less (estimate")
     # the controller's 40 mm standoffs take the same bolts and are fine (DEC-022)
     assert _row(rows, "fastening://m6-standoff-40/m6x16-bolt").status == "pass"
-    # the four hardware counts are untouched (kind "hardware" stays three rows)
-    counts = [r for r in hardware_checks(product) if r.kind == "hardware"]
+    # the hardware counts are untouched (still three rows, all of kind "hardware")
+    counts = hardware_checks(product)
     assert {r.id: r.status for r in counts} == dict.fromkeys(
         ("hardware://controls", "hardware://door", "hardware://kiln"), "pass"
     )

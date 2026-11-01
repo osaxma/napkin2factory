@@ -414,8 +414,11 @@ def count_stage(sctx: StageContext) -> list[CheckResult]:
 
 
 def hardware_stage(sctx: StageContext) -> list[CheckResult]:
-    """Joint hardware per build unit (P9)."""
-    return hardware_checks(sctx.product, sctx.modules.units)
+    """Joint hardware per build unit (P9), then bolts into both ends of a spacer (F12)."""
+    from napkin2factory.core.checks.hardware import spacer_bolt_checks
+
+    units = sctx.modules.units
+    return hardware_checks(sctx.product, units) + spacer_bolt_checks(sctx.product, units)
 
 
 def reach_stage(sctx: StageContext) -> list[CheckResult]:
@@ -448,7 +451,7 @@ def run_all_checks(ctx: RunContext) -> RunResult:
     calcs_out = _write(out_dir / "calcs.json", payload["calcs"])
     from napkin2factory.core.checks.choices import write_choices
 
-    choices_out = write_choices(build_dir, payload["results"])
+    choices_out = write_choices(build_dir, payload["results"])  # None: no choice (F16)
     reads = checks_reads(product)
     for rec in ectx.calc_records.values():
         reads += rec.reads
@@ -459,7 +462,7 @@ def run_all_checks(ctx: RunContext) -> RunResult:
         seen.setdefault(k, None)
     return RunResult(
         reads=list(seen),
-        outputs=[out, calcs_out, choices_out],
+        outputs=[out, calcs_out] + ([choices_out] if choices_out else []),
         output_hash=sha256_json(
             {
                 "summary": payload["summary"],
