@@ -58,11 +58,17 @@ entry that closed them. Ids are never reused.
 | B-0094 | Choices ride on what the v0.5 schema has: the bolts-into-a-spacer rule reads sizes from part names ("M6 x 16", "25 mm"), and a decided choice's check, option, name and evidence keys are `sources` lines of its `DEC-` (`made_by` is only agent or human) | S-130; a size on bought parts and a `choice:` block on a decision at the next schema bump (F7) |
 | B-0095 | A decided choice reads `pass` from `n2f decide` until the designer applies the pick, so the model still lists the old hardware meanwhile (F12 as written) | S-130; say "decided, not yet in the model" (`warn`) while the rule's facts are those it was decided on |
 | B-0096 | `docs/vocabulary.md`, `docs/cli.md` and `docs/checks.md` do not yet say "a choice", "waiting on you", `n2f decide` or the `fastening://` row | S-130; DoD 11 (the close-out's docs; only the agent guide and the roles were this task's) |
+| B-0087 | The generic walls-fit-envelope rule's wording says "chamber" and "insulation" (kept so the kiln's screening reads as before) | S-128; let the screen that shares `inner_size` and `wall` name them |
+| B-0088 | The aliases `alcove_*` (cards), `door` and `stand` (style roles; `examples/kiln/style.yaml`, the kiln's part roles) are read for v0.5 only | S-128, F16; remove them with a migration at the next schema bump (F7) and rename the kiln's style keys and roles |
+| B-0097 | `concepts/build.py::summary_line` still says the supply and heat-up of a heated box (the rest of B-0086) | S-131; give screens a summary phrase (the build summary was not M6's file) |
+| B-0098 | The promotion hooks of a product's screens (`PROMOTE_REQUIREMENTS`, `PROMOTE_RATIONALE`) are documented only in `concepts/promote/packs.py` | S-131; describe them in `docs/domains.md` and `core/packs.py`, or fold them into the `Screen` contract with B-0089 |
+| B-0089 | `core/domain.py::Screen` carries no fields or phase (a `reads` decorator on `run` declares them) and a domain cannot add style roles (F6) | S-128; add both to the contract when the core is next opened |
 
 ## Closed
 
 | id | item | closed by |
 |---|---|---|
+| B-0086 | Promotion and the build summary still know heated-box values (supply requirement, rationale keys, summary phrases) | Closed 2026-11-01 (S-131): the supply requirement and the heated-box rationale keys are seeded by the kiln's screens (`PROMOTE_REQUIREMENTS`, `PROMOTE_RATIONALE`); the summary phrase continues as B-0097 |
 | B-0005 | Interface check for assembly-level parties (`asm://` as a party) | Closed 2026-11-01 (S-107): `asm://` parties are refused by `n2f validate` with a pointer to ports; a sub-assembly exports a part's joint under `ports:` and is placed by it |
 | B-0006 | `validate.json` embeds absolute paths | Closed 2026-11-01 (S-082): paths relative to the product root |
 | B-0008 | Hide URI prefixes in owner-view tables and captions | Closed 2026-10-31 (S-061): `core.uris.display_uri`; report, `n2f check`, impact summary; engineer view and files keep them |
