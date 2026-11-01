@@ -643,10 +643,10 @@ concept_checks 710, geometry/build 728. `make check` in a task folder: 10 min 14
 `core/domain.py` holds F1's types, `core/registry.py` 15 registries (rule families, verify kinds,
 check stages, gate rows, report sections, doc helpers, vocabulary, model families, context, screens;
 processes, finishes, interface kinds, categories, drivers as `core/data/*.yaml` plus domains');
-`domains/mechanical` registers v0.4 in place (F2). Bracket, enclosure, kiln: rule keys, reports,
-pages, checks, stage, contexts byte-identical to `main`; goldens unchanged. [revisit] `reads_all`
-families (checks, report, site) run after every producer; a non-mechanical domain's hash is a
-`domain:<name>` input of its rules and of validate/doc/checks/report. Hooks: `core/loader.py`,
-`core/uris.py`, `cli/check.py`, `bom/build_plan.py`, `rulepacks/checks.py`, `concepts/screening.py`,
-`geometry/build.py`. `tests/unit/test_domain_contract.py` (29): the toy domain edits 0 core files
-(S-122: 7). `make check`: CHECK_TIME, green, CHECK_COUNT, 141 goldens.
+`domains/mechanical` is v0.4 in place (F2). Bracket, enclosure, kiln: keys, reports, pages, checks,
+stages byte-identical to `main`. [revisit] `reads_all` families (checks, report, site) run after
+every producer; a non-mechanical domain's hash is a `domain:<name>` input of its rules and of
+validate/doc/checks/report. Hooks: `core/loader.py`, `core/uris.py`, `cli/check.py`,
+`bom/build_plan.py`, `rulepacks/checks.py`, `concepts/screening.py`, `geometry/build.py`.
+`tests/unit/test_domain_contract.py` (29): the toy domain edits 0 core files (S-122: 7). `make
+check`: 11 min 7 s (S-122: 10 min 14 s), green, 907 passed, 141 goldens.
