@@ -44,7 +44,7 @@ cmd_new() {
   if [ -z "${N2F_TASK_NO_SYNC:-}" ]; then
     # Hardlinks, not uv's macOS default of clones: macOS scans every new native library on its
     # first load (~3 min for this environment); hardlinked files are the cache's own, so the scan
-    # happens once per package version, not once per task folder (S-NEW1).
+    # happens once per package version, not once per task folder (S-098).
     (cd "$top/.worktrees/$slug" && UV_LINK_MODE=${UV_LINK_MODE:-hardlink} "${UV:-uv}" sync -q)
     # The first CAD-kernel import still takes a few seconds (S-057); start it now, detached, so
     # it is done by the time the task first builds. N2F_NO_WARMUP=1 skips it.

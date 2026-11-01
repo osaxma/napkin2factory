@@ -26,7 +26,7 @@ and a worktree per task (S-097). Releasing a version: bump the three version fil
 - Tasks (S-097), measured 2026-11-01: `make task` takes ≈ 2 s (worktree + `uv sync` from the shared
   cache). macOS scans each newly written native library on first load (`syspolicyd`): 117–190 s
   for the first `import build123d` in a cloned environment. `make task` installs with hardlinks,
-  so later task folders reuse the scanned files: 10 s (S-NEW1); the import is also warmed detached.
+  so later task folders reuse the scanned files: 10 s (S-098); the import is also warmed detached.
 - `make check` ≈ 7 min (tests in parallel, S-070; long files split, S-080, S-084);
   `make check-full` ≈ 21 min (2026-11-01: `check` 7 min 27 s, then kiln, demos side by side
   and timing 13 min 27 s; was ≈ 28 min, S-079); the first `import build123d` on a machine takes
