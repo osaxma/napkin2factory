@@ -42,6 +42,8 @@ if TYPE_CHECKING:
 CHOICES_JSON = Path("checks") / "choices.json"
 #: The gate a choice holds when its check does not say (the conservative one).
 DEFAULT_BLOCKS = "release"
+#: How a gate blocker for an open choice starts (``n2f release`` reads it too).
+WAITING = "a choice is waiting on you"
 #: What ``n2f status`` and the gates call a gate a choice holds, in owner words.
 HOLDS_WORDS = {
     "design": "it holds the Design gate",
@@ -327,7 +329,7 @@ def choice_blockers(build_dir: Path) -> dict[str, list[str]]:
         if gate == "none":
             continue
         out.setdefault("released" if gate == "release" else gate, []).append(
-            f"a choice is waiting on you: {c.get('title') or c['id']} — {decide_command(c)}"
+            f"{WAITING}: {c.get('title') or c['id']} — {decide_command(c)}"
         )
     return out
 
