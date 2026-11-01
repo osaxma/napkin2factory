@@ -131,12 +131,14 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-111 | v0.5 is the foundation (the seams), v0.6 the first domain (electrical) as its proof; an independent trial brief after v0.6 | in force |
 | S-108 | A styled screenshot whose shader fails under load is rendered once more | in force |
 | S-109 | A landing that stops after giving out ids puts the task's own commits back | in force |
-| S-110 | v0.4 M3a: build units and phantoms, the build plan derived from the tree, joint hardware counted | in force |
+| S-110 | v0.4 M3a: build units and phantoms, the build plan derived from the tree, joint hardware counted | in force; its plan reads have values since S-117 (gate C, B1) |
 | S-112 | v0.4 M5: promotion keeps the napkin's modules (stubs, size budgets) or suggests them; start flat | in force |
 | S-113 | v0.4 M3b: the kiln built from units, door and controls hung by their ports, lining a phantom | in force |
 | S-114 | v0.4 M4: parameters have a scope, a module's context is a command, checks per module | in force |
 | S-115 | v0.4 M6: joints between units in the plan and the report, two-level review roles, the DoD 5 simulation protocol (run pending) | in force |
 | S-116 | v0.4 DoD 5: a fresh agent changed the door from its context alone; all four criteria met | in force |
+| S-117 | The build plan is a valued read; the checks record the assembly fields the hardware stage reads | in force |
+| Gate C | Review gate C (architecture and honesty) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 
 ---
 
@@ -541,3 +543,26 @@ read the bundle, the spacer interface and the `door-standoff` lines of `paramete
 `check --scope`, `build`, `check`: no failure, nothing signed; `--verify`: only `parameters.yaml`
 changed, in the context. Seven tool calls, about 1 min 43 s. The bundle went by file, not pasted;
 the client exported only its final message (`door-2026-11-01.md`). One run, one easy change.
+
+## S-117 — The build plan is a valued read; the checks record what the hardware stage reads (2026-11-01)
+Gate C found S-110's plan reads were constants: `bom://build-plan#…` did not parse, so `value_of`
+gave `unknown:<key>` and a plan-only change (a `driver:`, a part's name) left the assembly sheet,
+the manual and the report stale. `build-plan` is now a `bom` id (`core/uris.py`; a later selector
+segment may start with a digit, for a unit named `2-stage`); its value is the plan file's field,
+bare `bom://build-plan` the whole plan, while `bom://rollups` keeps the bom rule's hash (P14). The
+bom rule declares `also_produces: bom://build-plan`, so `--explain`, impact and `n2f graph` see
+it. The checks rule records `#name #children #build #driver #ports` per assembly and `#name` per
+part (`spare:`, `loose:` live in `children`). `drawing://` reads are valued too (the report's
+were constants). `values.unvalued_reads` lists any constant read; tests assert `{}` on the kiln.
+
+## Review gate C (architecture and honesty) — outcome (2026-11-01)
+Reviewed at 016689b (report: `docs/reviews/v0.4-gate-c.md`): NOT READY on two D5 blockers; placement,
+ports, hardware counts, scope, context and v0.3 compatibility held. **Blockers fixed (S-117):**
+(B1) plan reads valued — `test_a_plan_only_change_rebuilds_the_sheet_the_page_and_the_report`
+(the driver change rebuilds `asmsheet:pod`, `doc:assembly`, `report`, nothing geometric;
+`doc_staleness` flags the page first), `test_a_renamed_part_reaches_its_units_sheet`. (B2) the
+checks record each assembly's fields — `test_the_hardware_verdict_follows_spare_without_a_forced_rerun`
+(warn, pass, warn). **Concerns:** C7 fixed (`test_every_recorded_read_has_a_value`, units fixture
+and kiln; it found the report's `drawing://` reads); C1 fixed (a refused `asm://` party skips the
+"remove from ports" rule, `test_loader.py`); C3–C6 fixed by the gate D task; C2 → B-0067; the
+sheet's unrecorded step total → B-0068.

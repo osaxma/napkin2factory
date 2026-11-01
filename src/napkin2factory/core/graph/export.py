@@ -18,7 +18,7 @@ def graph_data(
     build_dir = build_dir or product.paths.build
     manifest = Manifest.load(build_dir)
     rules = build_rules(product)
-    producer = {r.produces: r.id for r in rules if r.produces}
+    producer = {key: r.id for r in rules for key in r.produced}
     nodes = []
     edges: list[dict[str, str]] = []
     for r in rules:

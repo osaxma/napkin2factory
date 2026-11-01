@@ -95,6 +95,8 @@ def evidence_key(
     if u.scheme in ("doc", "drawing"):
         entry = manifest.entries.get(f"{u.scheme}:{u.id}")
         return entry.output_hash if entry else "missing"
+    if u.scheme == "bom" and u.id == "build-plan":  # the plan, not the rollups (S-117)
+        return sha256_file(build_dir / "bom" / "build-plan.json")
     if u.scheme == "bom":
         entry = manifest.entries.get("bom")
         return entry.output_hash if entry else "missing"

@@ -87,3 +87,19 @@ def test_broken_file_does_not_cascade():
 def test_bracket_lint_is_clean():
     p = load_product(EXAMPLES / "bracket")
     assert not lint_mod.lint(p).errors
+
+
+def test_an_asm_party_listed_as_a_port_gets_one_piece_of_advice(tmp_path: Path) -> None:
+    """Gate C, C1: the party error says "list it under ports"; no second error says "remove it"."""
+    import shutil
+
+    root = tmp_path / "p"
+    shutil.copytree(FIXTURES / "invalid" / "iface-asm-party", root)
+    pod = root / "model/assemblies/pod.yaml"
+    pod.write_text(
+        pod.read_text().replace("[iface://clip-rail]", "[iface://clip-rail, iface://pod-mount]")
+    )
+    _, problems = validate(root)
+    text = "\n".join(p.format() for p in problems.errors)
+    assert "names asm://pod as a party" in text
+    assert "remove iface://pod-mount" not in text, text

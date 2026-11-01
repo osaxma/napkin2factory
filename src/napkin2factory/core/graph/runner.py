@@ -323,7 +323,7 @@ def explain_build(
             ]
             if upstream:
                 run, why = True, "upstream rebuilt: " + ", ".join(upstream[:3])
-        if run and rule.produces:
-            changed_outputs.add(rule.produces)
+        if run:
+            changed_outputs.update(rule.produced)
         out.append((rule.id, run, why))
     return out
