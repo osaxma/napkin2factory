@@ -1,0 +1,14 @@
+id: controller-lid-seat
+kind: mating-face
+parties: [part://controller-box, part://controller-lid]
+description: The lid sits on the controller box's 10 mm lips and is held by four self-tapping screws drilled on assembly (DEC-023).
+frames:
+  part://controller-box:
+    origin: [0, 0, param://controller-box-height]
+    normal: [0, 0, 1]
+    x_axis: [1, 0, 0]
+  part://controller-lid:
+    origin: [0, 0, 0]
+    normal: [0, 0, 1]
+    x_axis: [1, 0, 0]
+spec: {width: param://controller-box-width, depth: param://controller-box-depth, hardware: [{part: part://lid-screw, per_joint: 4}]}

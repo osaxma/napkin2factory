@@ -1,0 +1,12 @@
+id: m6x50-bolt
+rev: A
+name: M6 x 50 socket-head cap screw
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic fastener wholesaler, mpn: ISO4762-M6X50-8.8, url: "https://www.mcmaster.com/socket-head-screws/", verified: false}
+cost: {unit: 0.60 USD, basis: estimate}
+lead_time: 5 d
+mass: 15 g
+satisfies: [req://REQ-011]
+notes: One per bottom corner, from inside the inner shell through the bottom standoff and the guard into the stand's rivet nut (DEC-021). The length is the guard-standoff-bottom description's [verify] (stack and rivet-nut engagement not measured).

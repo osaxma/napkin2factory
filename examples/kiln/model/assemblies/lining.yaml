@@ -1,0 +1,18 @@
+id: lining
+rev: A
+name: Lining
+# A grouping only: laid brick by brick inside the shell in the final assembly, never put
+# together or tested apart from it (DEC-020).
+build: phantom
+geometry: {module: geometry/lining.py}
+children:
+  - {part: part://fiber-slab, qty: 2}
+  - {part: part://fiber-side, qty: 2}
+  - {part: part://fiber-back, qty: 1}
+  - {part: part://liner-slab, qty: 2}
+  - {part: part://liner-side, qty: 2}
+  - {part: part://liner-back, qty: 1}
+  - {part: part://refractory-mortar, qty: 1}
+  - {part: part://heating-element, qty: 1}
+  - {part: part://ceramic-bush, qty: 2}
+exploded: {axis: y, spacing: 80 mm}

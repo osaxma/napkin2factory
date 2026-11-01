@@ -17,4 +17,4 @@ frames:
     x_axis: [0, -1, 0]
 # P2: the box's left wall sits one standoff length out from the guard's right wall
 offset: param://controller-standoff
-spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://controller-mount-spacing-y, param://controller-mount-spacing-z], fastener: part://m6x16-bolt, depth: 10 mm}
+spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://controller-mount-spacing-y, param://controller-mount-spacing-z], hardware: [{part: part://m6-standoff-40, per_hole: 1}, {part: part://m6x16-bolt, per_hole: 2}], depth: 10 mm}

@@ -22,7 +22,7 @@ geometry:
       - {face: base, center: [-80, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-mains}
       - {face: base, center: [0, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-element}
       - {face: base, center: [80, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-thermocouples}
-interfaces: [iface://controller-mount]
+interfaces: [iface://controller-mount, iface://controller-lid-seat]
 satisfies: [req://REQ-007, req://REQ-008]
 cost: {unit: 80 USD, basis: estimate}
 lead_time: 15 d

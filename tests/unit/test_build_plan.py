@@ -234,9 +234,13 @@ def test_hardware_schema() -> None:
     assert face.holes == 0 and face.hardware_items()[0].per_joint == 4
 
 
-def test_v03_files_dump_as_before() -> None:
-    """P14: no new key appears in a dump (sign-off evidence keys hash these dumps)."""
-    product = load_product(EXAMPLES / "kiln")
+@pytest.mark.parametrize("name", ["bracket", "enclosure"])
+def test_v03_files_dump_as_before(name: str) -> None:
+    """P14: no new key appears in a dump (sign-off evidence keys hash these dumps).
+
+    The two flat examples have the v0.3 shape; the kiln uses the new fields since M3b.
+    """
+    product = load_product(EXAMPLES / name)
     for iface in product.interfaces.values():
         assert "hardware" not in iface.model_dump(mode="json")["spec"]
     for asm in product.assemblies.values():
@@ -245,13 +249,36 @@ def test_v03_files_dump_as_before() -> None:
         assert all(set(c) <= {"part", "asm", "qty"} for c in data["children"])
 
 
-def test_kiln_hardware_warns_until_m3b() -> None:
-    """The kiln has `fastener:` only (the alias): surplus bolts warn, nothing fails."""
-    rows = _rows(load_product(EXAMPLES / "kiln"))
+def test_kiln_hardware_is_all_accounted_for() -> None:
+    """M3b (S-105 option A): every unit's joint hardware matches its lines exactly."""
+    product = load_product(EXAMPLES / "kiln")
+    rows = _rows(product)
     assert {k: v[0] for k, v in rows.items()} == {
-        "hardware://door": "warn",
-        "hardware://kiln": "warn",
+        "hardware://controls": "pass",
+        "hardware://door": "pass",
+        "hardware://kiln": "pass",
     }
+    kiln = rows["hardware://kiln"][2]["parts"]
+    want = {
+        "part://m6x16-bolt": 38,  # 24 standoff walls + 4 post + 2 keeper + 8 controls
+        "part://m6x50-bolt": 4,  # one through bolt per bottom corner
+        "part://m6-standoff-25": 16,  # the bottom four listed once (shared holes)
+        "part://m6-standoff-40": 4,
+        "part://m6-nut": 6,
+        "part://m6-rivnut": 4,
+    }
+    assert {k: (v["declared"], v["demand"]) for k, v in kiln.items()} == {
+        k: (n, n) for k, n in want.items()
+    }
+    assert rows["hardware://controls"][2]["parts"]["part://lid-screw"]["demand"] == 4
+    # the lining is folded into the final assembly; two hinges on one post share their count
+    units = BuildUnits(product)
+    assert units.order() == ["controls", "door", "kiln"]
+    assert units.folded_ids("kiln") == ["kiln", "lining"]
+    joints = {j.iface: j for j in units.joints("kiln")}
+    assert joints["hinge-lower"].occurrences == joints["hinge-upper"].occurrences == 1
+    assert joints["hinge-lower"].between_units and joints["controller-mount"].between_units
+    assert not joints["guard-hinge-post"].between_units
 
 
 # ---- lint (P7) -------------------------------------------------------------------------

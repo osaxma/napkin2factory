@@ -133,6 +133,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-109 | A landing that stops after giving out ids puts the task's own commits back | in force |
 | S-110 | v0.4 M3a: build units and phantoms, the build plan derived from the tree, joint hardware counted | in force |
 | S-112 | v0.4 M5: promotion keeps the napkin's modules (stubs, size budgets) or suggests them; start flat | in force |
+| S-113 | v0.4 M3b: the kiln built from units, door and controls hung by their ports, lining a phantom | in force |
 
 ---
 
@@ -495,3 +496,14 @@ there. Empty stubs: `assembly_props` gets a centroid, no layout row, `geometry_p
 §5; an electrician wires the box); body, guard, lining, the one-part stand fit in sequence, no module.
 `cli/concept.py` prints seeded files and the suggestion. Measured: blank promote 8.5 s, kiln 2.5 s; 10
 new tests 32 s; kiln cards rebuild unchanged; only `kiln-board.json` moved; `make check` 12 min 38 s.
+## S-113 — v0.4 M3b: the kiln built from units; door and controls hung by their ports (2026-11-01)
+Door (built-as-unit, serviced-as-unit) hangs by new welded mating face `hinge-lower`; `hinge-upper`,
+`latch-catch` checked; controls (tested-as-unit, separate-process-or-supplier) by `controller-mount`,
+lid by `controller-lid-seat`; lining a phantom on coordinates. Product DEC-019–023: S-105 option A
+(38 M6×16, 4 M6×50), all `hardware://` rows pass; bolt lengths, lid screw [verify]; rivets B-0065.
+Beyond the plan: interfaces joining the same two parts (two hinges, one post) excuse each other's
+occurrences in alignment (each still needs a pair that meets) and share occurrences in the plan.
+`door.py` reads door sizes only; still crossing (M4): `hinge-post-y`, `-reach`, `stand-inset`. place()
+kiln.py 17 → 2 (door 5, controls 5, lining 10), literal offsets 13 → 0; props identical, goldens kept.
+ECR-002 patch re-made (B-0063); REQ-007/008/009/018/019 re-signed. Report 3,783,308 B. `check-full`
+23 min 24 s green; rebased on S-112: `make check` 8 min 42 s, `kiln` 2 min 45 s, `demos` 9 min 7 s green.

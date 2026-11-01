@@ -88,6 +88,15 @@ parameters:
   door-guard-depth:    {expr: "door-skin-thickness + guard-gap + door-guard-thickness + door-tray-depth + door-guard-overrun", unit: mm, description: "Door guard depth: wraps the tray and ends 2 mm past the tray walls"}
   door-guard-offset:   {expr: "door-skin-thickness + guard-gap + door-guard-thickness", unit: mm, description: "Door guard base sits this far in front of the plug face"}
   door-guard-vent-v:   {value: -31, unit: mm, description: "Vent slot position in the door guard's top and bottom walls (tray coordinates: over the air gap)"}
+  # door frame (door.py): the hinges and the latch are placed from the door's own sizes; the door
+  # hangs on the hinge post by its hinge joints (ports), so no kiln position is read here (DEC-019)
+  hinge-pin-past-guard: {value: 2, unit: mm, description: "Hinge pin axis sits this far behind the door guard's wall ends (door frame)"}
+  hinge-pin-depth:     {expr: "door-guard-depth - door-guard-offset + hinge-pin-past-guard", unit: mm, description: "Hinge pin axis behind the door's plug face (door frame)"}
+  hinge-length:        {value: 60, unit: mm, description: "Weld-on hinge length (part hinge, McMaster 1635A21; modelled as a square block)"}
+  latch-length:        {value: 60, unit: mm, description: "Draw latch body length along the door's depth (part latch, modelled as a block)"}
+  latch-width:         {value: 15, unit: mm, description: "Draw latch body width, out from the door guard's right wall (part latch, modelled as a block)"}
+  latch-height:        {value: 25, unit: mm, description: "Draw latch body height (part latch, modelled as a block)"}
+  latch-setback:       {value: 10, unit: mm, description: "Latch body's rear end sits this far in front of the door guard's wall ends (door frame)"}
   door-standoff-inset: {value: 120, unit: mm, description: "Door standoffs sit this far in from the tray edges (outside the plug)"}
   door-standoff-spacing-x: {expr: "door-width - 2 * door-standoff-inset", unit: mm, description: "Door standoff pitch (X), outside the plug"}
   door-standoff-spacing-z: {expr: "door-height - 2 * door-standoff-inset", unit: mm, description: "Door standoff pitch (Z)"}
@@ -95,9 +104,8 @@ parameters:
   door-clearance:      {value: 300, unit: mm, description: "Space beside the hinge side for the door at full swing: door width × |cos 110°| ≈ 240 mm plus hand room [verify]"}
   swing-clearance-min: {value: 3, unit: mm, description: "Minimum clearance between the plug's latch-side corner and the opening during the swing (REQ-020)"}
   # --- hinge post and latch keeper (on the guard's side walls) ---
-  hinge-post-setback:  {value: 4, unit: mm, description: "Hinge post web sits this far behind the door guard's wall ends"}
   hinge-pin-setback:   {value: 2, unit: mm, description: "Hinge pin axis sits this far in front of the hinge post web"}
-  hinge-post-y:        {expr: "door-tray-depth + hinge-post-setback", unit: mm, description: "Hinge post web sits 4 mm behind the door guard's wall ends"}
+  hinge-post-y:        {expr: "hinge-pin-depth - door-gap + hinge-pin-setback", unit: mm, description: "Hinge post web, measured back from the guard lip plane: hinge-pin-setback behind the pin of the door hung door-gap in front of the lip"}
   hinge-post-reach:    {expr: "door-guard-width / 2 - guard-outer-width / 2", unit: mm, description: "Hinge post web reaches from the guard wall out to the door guard's wall plane"}
   hinge-post-length:   {value: 500, unit: mm, description: "Hinge post (angle) length"}
   hinge-post-thickness: {value: 3, unit: mm, description: "Hinge post angle thickness"}

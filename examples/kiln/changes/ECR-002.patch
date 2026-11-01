@@ -1,17 +1,17 @@
 diff --git a/model/assemblies/door.yaml b/model/assemblies/door.yaml
-index 692bc48..139ccdd 100644
+index c750a43..d67fb77 100644
 --- a/model/assemblies/door.yaml
 +++ b/model/assemblies/door.yaml
-@@ -9,6 +9,7 @@ children:
+@@ -14,6 +14,7 @@ children:
    - {part: part://door-brick, qty: 1}
    - {part: part://hinge, qty: 2}
    - {part: part://latch, qty: 1}
 +  - {part: part://peephole-plug, qty: 1}
    - {part: part://m6-standoff-25, qty: 4}
    - {part: part://m6x16-bolt, qty: 8}
- exploded: {axis: y, spacing: 60 mm}
+   - {part: part://fiber-anchor, qty: 4}
 diff --git a/model/docs/manufacturer-notes.md b/model/docs/manufacturer-notes.md
-index b6b0f17..f386cd1 100644
+index f203e81..bb9c323 100644
 --- a/model/docs/manufacturer-notes.md
 +++ b/model/docs/manufacturer-notes.md
 @@ -85,6 +85,13 @@ Mask threads and the bare-metal spots under the earth studs.
@@ -46,19 +46,26 @@ index fcab958..2757ffd 100644
  
  Let the kiln cool to room temperature before unloading. The guards may be touched; the
 diff --git a/model/geometry/door.py b/model/geometry/door.py
-index dc88d4f..c0c91e9 100644
+index a267fc0..40d658c 100644
 --- a/model/geometry/door.py
 +++ b/model/geometry/door.py
-@@ -35,5 +35,7 @@ def build(P, I, parts):  # noqa: N803
-     for i, zc in enumerate((-spacing / 2, spacing / 2)):
-         res.add(place("part://hinge", parts["hinge"], translate=(pin_x, pin_y + door_gap, zc - 30.0), label=f"hinge-{i + 1}"))
-     # latch (block 60 × 15 × 25) turned to run along Y, against the door guard's right wall
+@@ -77,4 +77,14 @@ def build(P, I, parts):  # noqa: N803
+             label="latch",
+         )
+     )
 +    # peephole plug (ECR-002): a rod along the door's depth through guard, tray, fiber and brick
-+    res.add(place("part://peephole-plug", parts["peephole-plug"], translate=(60.0, -40.0, 0.0), rotate=rot, label="peephole-plug"))
-     res.add(place("part://latch", parts["latch"], translate=(dg_w / 2 + 7.5, 22.0, -12.5), rotate=(0.0, 0.0, 90.0), label="latch"))
++    res.add(
++        place(
++            "part://peephole-plug",
++            parts["peephole-plug"],
++            translate=(60.0, -40.0, 0.0),
++            rotate=rot,
++            label="peephole-plug",
++        )
++    )
      return res
 diff --git a/model/geometry/door_brick.py b/model/geometry/door_brick.py
-index 7d0897a..83b5350 100644
+index 268e7fe..2f2aad6 100644
 --- a/model/geometry/door_brick.py
 +++ b/model/geometry/door_brick.py
 @@ -9,9 +9,9 @@ def build(P, I, kit):  # noqa: N803
@@ -84,11 +91,11 @@ index 7d0897a..83b5350 100644
      result.shape = shape
      result.features.process = "cut-block"
 diff --git a/model/geometry/door_fiber.py b/model/geometry/door_fiber.py
-index 3c76fda..e993958 100644
+index 82e38cd..835cc28 100644
 --- a/model/geometry/door_fiber.py
 +++ b/model/geometry/door_fiber.py
 @@ -9,9 +9,9 @@ def build(P, I, kit):  # noqa: N803
-     """Frustum: ``door-plug-width`` × ``door-plug-height`` at the front, sides drawn in by the taper."""
+     """Frustum: ``door-plug-width`` × ``door-plug-height`` at the front, sides drawn in by taper."""
      import math
  
 -    from build123d import Rectangle, extrude
@@ -130,10 +137,10 @@ index f893f7d..fcf5c48 100644
 -manufacturer_notes: Sides taper 6° towards the chamber (see the drawing); the three boards and the paper strip are bonded into one plug with rigidizer before the taper is cut.
 +manufacturer_notes: Ø25 mm peephole 60 mm right of centre (ECR-002). Sides taper 6° towards the chamber (see the drawing); the three boards and the paper strip are bonded into one plug with rigidizer before the taper is cut.
 diff --git a/model/parts/door-guard.yaml b/model/parts/door-guard.yaml
-index 533a9f1..bb46b76 100644
+index 2bf3a0b..4629a2a 100644
 --- a/model/parts/door-guard.yaml
 +++ b/model/parts/door-guard.yaml
-@@ -21,6 +21,7 @@ geometry:
+@@ -22,6 +22,7 @@ geometry:
        # inlet along the bottom, outlet along the top, both over the air gap
        - {face: back, center: [0, param://door-guard-vent-v], width: 300 mm, height: 14 mm, corner_radius: 5 mm, label: door-vent-inlet}
        - {face: front, center: [0, param://door-guard-vent-v], width: 300 mm, height: 14 mm, corner_radius: 5 mm, label: door-vent-outlet}

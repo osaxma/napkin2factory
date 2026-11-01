@@ -3,7 +3,8 @@ rev: A
 name: Draw latch, stainless
 kind: cots
 process: none
-geometry: {kit: block, args: {length: 60 mm, width: 15 mm, height: 25 mm}}
+geometry: {kit: block, args: {length: param://latch-length, width: param://latch-width, height: param://latch-height}}
+interfaces: [iface://latch-catch]
 source: {vendor: Southco, mpn: E6-10-401-10, url: "https://www.southco.com/en_us/e6-10-401-10", verified: false}
 cost: {unit: 18 USD, basis: catalog}
 lead_time: 5 d

@@ -1,0 +1,21 @@
+id: latch-catch
+kind: mating-face
+# The keeper (placed in the kiln) first, so the offset reads from it to the door's latch (S-106).
+parties: [part://latch-keeper, part://latch]
+description: The draw latch. Its body is welded to the door guard's right wall and its keeper plate riveted to the latch keeper's web; closed, the latch's hook spans the gap between the two and draws the door onto the gasket (a joint between the door and the kiln).
+frames:
+  # keeper coordinates: x out from the guard's wall face, y back from the web's front face, z up
+  # from the keeper's centre (the guard's mid-height); the frame is on the web, in line with the latch
+  part://latch-keeper:
+    origin: [{expr: "hinge-post-reach + latch-width / 2", unit: mm}, 0, {expr: "-fiber-clearance", unit: mm}]
+    normal: [0, 1, 0]
+    x_axis: [0, 0, 1]
+  # latch coordinates: the block's length runs along x; the frame is at the centre of its rear end
+  part://latch:
+    origin: [{expr: "latch-length / 2", unit: mm}, 0, {expr: "latch-height / 2", unit: mm}]
+    normal: [1, 0, 0]
+    x_axis: [0, 0, 1]
+# P2: the latch body ends in front of the keeper's web (negative: towards the door); the gap is
+# the door guard's wall end less the latch setback, the door gap and the web's position
+offset: {expr: "door-guard-depth - door-guard-offset - latch-setback - door-gap - hinge-post-y", unit: mm}
+spec: {width: param://latch-width, depth: param://latch-height, hardware: []}

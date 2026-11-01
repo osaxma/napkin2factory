@@ -14,4 +14,4 @@ frames:
     x_axis: [1, 0, 0]
 # P2: the guard's wall sits one air gap and one guard sheet outside the shell's (M0 measured 26 mm)
 offset: {expr: "guard-gap + guard-thickness", unit: mm}
-spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://standoff-spacing-width, param://standoff-spacing-depth], fastener: part://m6x16-bolt, depth: 20 mm}
+spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://standoff-spacing-width, param://standoff-spacing-depth], hardware: [{part: part://m6-standoff-25, per_hole: 1}, {part: part://m6x16-bolt, per_hole: 2}], depth: 20 mm}

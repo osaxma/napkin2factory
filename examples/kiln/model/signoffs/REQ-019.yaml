@@ -12,10 +12,10 @@ evidence:
 - part://stand
 - part://controller-box
 evidence_keys:
-  part://earth-stud: sha256:31a65ee6a9b85a82db9f605291083674abbf42a99b889c42c2e159ec4b6f59b6
+  part://earth-stud: sha256:133c6f7b85406a01834a18a9e7d6e642025a25ea67b8f12d8d1f7e61ef3d12ed
   part://outer-shell: sha256:c8137269db5eab297a821458d34a948069d54ad70757f7b70231866b778bf2b8
   part://guard-shell: sha256:f11ec696d047b4d95b309416c0f3fe8ca8e649743a7bb7d2a57d07c60f9dd46c
   part://door-guard: sha256:092488736f8003ee855a2e4596e7fee98e9b17c25748845bfd921ea8a718e234
   part://stand: sha256:4dfc6b6c478b926ca4de79b5137577046616da6f196a65a87ac07e7d2e76e510
-  part://controller-box: sha256:1ccf4784582a6ba32fb1f7d574a6ad8af8cf96ea5fbbc559bf570aaf9b5717c3
+  part://controller-box: sha256:ceeb74f601ca6ebe12070fc63f1b86b8e24a2983c5b73e0215c542238d4fc5ad
 example: true

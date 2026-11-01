@@ -1,0 +1,23 @@
+id: controls
+rev: A
+name: Controls
+# Fitted out and wired on the bench, tested before it is hung, and bought or made apart from
+# the kiln body (DEC-019).
+build: unit
+driver: [tested-as-unit, separate-process-or-supplier]
+geometry: {module: geometry/controls.py}
+# The joint between the controls and the kiln: the box hangs on the guard's right wall (P4).
+ports: [iface://controller-mount]
+children:
+  - {part: part://controller-box, qty: 1}
+  - {part: part://controller-lid, qty: 1}
+  - {part: part://pid-controller, qty: 1}
+  - {part: part://limit-controller, qty: 1}
+  - {part: part://ssr, qty: 1}
+  - {part: part://contactor, qty: 1}
+  - {part: part://m20-gland, qty: 3}
+  - {part: part://lid-screw, qty: 4}
+  - {part: part://earth-stud, qty: 1}
+  - {part: part://rating-label, qty: 1}
+exploded: {axis: z, spacing: 60 mm}
+satisfies: [req://REQ-007, req://REQ-008, req://REQ-018]

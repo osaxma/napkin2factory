@@ -55,6 +55,11 @@ def test_kiln_checks_green_with_example_signoffs(kiln: tuple[Path, float]) -> No
     assert inter["detail"]["interferences"] == []
     counts = next(r for r in data["results"] if r["id"] == "count://kiln")
     assert counts["status"] == "pass"
+    # M3b: every unit's joint hardware is listed exactly (S-105 option A)
+    hardware = {r["id"]: r["status"] for r in data["results"] if r["kind"] == "hardware"}
+    assert hardware == dict.fromkeys(
+        ("hardware://controls", "hardware://door", "hardware://kiln"), "pass"
+    )
 
 
 def test_kiln_promoted_direction_holds_on_the_kiln_as_built(kiln: tuple[Path, float]) -> None:
@@ -91,7 +96,8 @@ def test_kiln_interfaces_meet_and_a_moved_box_fails(kiln: tuple[Path, float]) ->
     root, _ = kiln
     data = json.loads((root / "build/checks/checks.json").read_text())
     rows = [r for r in data["results"] if r["id"].startswith("iface://")]
-    assert len(rows) == 9 and all(r["status"] == "pass" for r in rows), rows
+    # nine joints, the door's two hinges and latch and the controls' lid since M3b (S-113)
+    assert len(rows) == 13 and all(r["status"] == "pass" for r in rows), rows
     assert all("meet in asm://" in r["message"] for r in rows)
     assert not [r for r in data["results"] if r["id"].startswith("placement://")]
     moved = root.parent / "moved-build"

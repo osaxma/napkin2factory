@@ -3,39 +3,23 @@ rev: A
 name: Mini electric test kiln
 geometry: {module: geometry/kiln.py}
 children:
-  - {part: part://outer-shell, qty: 1}
+  - {part: part://stand, qty: 1}
   - {part: part://guard-shell, qty: 1}
-  - {part: part://liner-slab, qty: 2}
-  - {part: part://liner-side, qty: 2}
-  - {part: part://liner-back, qty: 1}
-  - {part: part://fiber-slab, qty: 2}
-  - {part: part://fiber-side, qty: 2}
-  - {part: part://fiber-back, qty: 1}
-  - {asm: asm://door, qty: 1}
-  - {part: part://heating-element, qty: 1}
-  - {part: part://controller-box, qty: 1}
-  - {part: part://controller-lid, qty: 1}
-  - {part: part://pid-controller, qty: 1}
-  - {part: part://limit-controller, qty: 1}
-  - {part: part://ssr, qty: 1}
-  - {part: part://contactor, qty: 1}
-  - {part: part://thermocouple, qty: 2}
-  - {part: part://door-switch, qty: 1}
+  - {part: part://outer-shell, qty: 1}
+  - {asm: asm://lining, qty: 1}
   - {part: part://hinge-post, qty: 1}
   - {part: part://latch-keeper, qty: 1}
-  - {part: part://stand, qty: 1}
+  - {asm: asm://door, qty: 1}
+  - {asm: asm://controls, qty: 1}
+  - {part: part://thermocouple, qty: 2}
+  - {part: part://door-switch, qty: 1, loose: true}
   - {part: part://m6-standoff-25, qty: 16}
   - {part: part://m6-standoff-40, qty: 4}
-  - {part: part://m6x16-bolt, qty: 50}
+  - {part: part://m6x16-bolt, qty: 38}
+  - {part: part://m6x50-bolt, qty: 4}
   - {part: part://m6-nut, qty: 6}
   - {part: part://m6-rivnut, qty: 4}
-  - {part: part://earth-stud, qty: 5}
-  - {part: part://m20-gland, qty: 3}
-  - {part: part://ceramic-bush, qty: 2}
-  - {part: part://fiber-anchor, qty: 4}
-  - {part: part://fiber-gasket, qty: 1}
-  - {part: part://refractory-mortar, qty: 1}
-  - {part: part://rating-label, qty: 1}
+  - {part: part://earth-stud, qty: 3}
   - {part: part://kiln-shelf-set, qty: 1}
 exploded: {axis: z, spacing: 120 mm}
 satisfies: [req://REQ-002, req://REQ-004, req://REQ-010, req://REQ-013]

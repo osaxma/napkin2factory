@@ -7,7 +7,7 @@ material: {name: mild steel, spec: "40 x 30 x 3 angle, S235, cut to length"}
 finish: powder coat, black
 tolerance_class: ISO2768-m
 geometry: {module: geometry/latch_keeper.py}
-interfaces: [iface://guard-latch-keeper]
+interfaces: [iface://guard-latch-keeper, iface://latch-catch]
 satisfies: [req://REQ-009]
 cost: {unit: 12 USD, basis: estimate}
 lead_time: 10 d

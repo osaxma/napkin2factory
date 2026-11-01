@@ -7,6 +7,7 @@ stand-ins; ``place_by`` needs only frames), so its ``instances.json`` is the rea
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -26,22 +27,39 @@ from tests.conftest import EXAMPLES
 
 
 class _StandIn:
-    """A built part or sub-assembly with no geometry (the door is an empty sub-assembly)."""
+    """A built part with no geometry (``place_by`` needs only frames)."""
 
     result = AssemblyResult()
+    leaves: list[Any] = []
 
 
-class _Parts(dict[str, Any]):
-    def __missing__(self, key: str) -> _StandIn:
-        return _StandIn()
+@dataclass
+class _Built:
+    """A sub-assembly placed with stand-ins: its placements and leaves (its own frame)."""
+
+    result: AssemblyResult
+    leaves: list[Any]
 
 
-def _place(product: Product, asm_id: str, build_dir: Path) -> list[dict[str, Any]]:
-    """Run the product's assembly module and write its ``instances.json`` like the build."""
+def _place(
+    product: Product, asm_id: str, build_dir: Path, built: dict[str, _Built] | None = None
+) -> list[dict[str, Any]]:
+    """Run the product's assembly modules, units first, and write each ``instances.json``."""
+    built = {} if built is None else built
     asm = product.assemblies[asm_id]
+    for c in asm.children:
+        if c.asm is not None and c.asm.id not in built:
+            _place(product, c.asm.id, build_dir, built)
+
+    class _Parts(dict[str, Any]):
+        def __missing__(self, key: str) -> Any:
+            return built.get(key.removeprefix("asm://")) or _StandIn()
+
     module = _load_module(product.paths.model / asm.geometry.module, f"n2f_test_{asm_id}")
     P, I, _log = make_accessors(product)
-    leaves, _groups = flatten(module.build(P, I, _Parts()), asm.uri)
+    res = module.build(P, I, _Parts())
+    leaves, _groups = flatten(res, asm.uri)
+    built[asm_id] = _Built(res, leaves)
     rows = instance_records(leaves)
     write_json(build_dir / "assemblies" / asm_id / "instances.json", rows)
     return json.loads((build_dir / "assemblies" / asm_id / "instances.json").read_text())
@@ -51,8 +69,7 @@ def _place(product: Product, asm_id: str, build_dir: Path) -> list[dict[str, Any
 def kiln(tmp_path_factory: pytest.TempPathFactory) -> tuple[Product, Path]:
     product = load_product(EXAMPLES / "kiln")
     build_dir = tmp_path_factory.mktemp("kiln-build")
-    _place(product, "kiln", build_dir)
-    _place(product, "door", build_dir)
+    _place(product, "kiln", build_dir)  # the door, the controls and the lining first
     return product, build_dir
 
 
@@ -76,6 +93,43 @@ def test_every_kiln_interface_meets_in_its_assembly(kiln: tuple[Product, Path]) 
     assert offsets["shell-frame-mount"] == 0.0
     assert offsets["door-guard-standoff"] == pytest.approx(-26.5)
     assert lowest_common_assemblies(product, "part://door-tray", "part://door-guard") == ["door"]
+    # M3b: the door's ports meet in the kiln, the latch body 14 mm short of the keeper's web
+    assert offsets["latch-catch"] == pytest.approx(-14.0)
+    assert lowest_common_assemblies(product, "part://hinge-post", "part://hinge") == ["kiln"]
+    assert len(product.interfaces) == 13
+
+
+def _moved(rows: list[dict[str, Any]], node: str, dz: float) -> list[dict[str, Any]]:
+    out = json.loads(json.dumps(rows))
+    for r in out:
+        if r["node"] == node:
+            r["translation"][2] += dz
+    return out
+
+
+def test_two_hinges_on_one_post_each_meet_their_own_joint(
+    kiln: tuple[Product, Path], tmp_path: Path
+) -> None:
+    """Two interfaces join the hinge and the post (S-113): each hinge meets one of them."""
+    product, build_dir = kiln
+    upper = _check(product, "hinge-upper", build_dir)
+    assert upper["status"] == "pass" and upper["shared_with"] == ["iface://hinge-lower"]
+    # the lower hinge never meets hinge-upper's frame; that is hinge-lower's business
+    pairs = upper["assemblies"]["kiln"]["pairs"]
+    assert [p["meets"] for p in pairs] == [False, True]
+    rows = json.loads((build_dir / "assemblies/kiln/instances.json").read_text())
+    write_json(tmp_path / "assemblies/kiln/instances.json", _moved(rows, "part://hinge#2", 10.0))
+    for iface_id in ("hinge-upper", "hinge-lower"):  # a moved hinge meets neither joint
+        out = _check(product, iface_id, tmp_path)
+        assert out["status"] == "fail", iface_id
+        assert "part://hinge#2 do not meet in asm://kiln" in out["message"]
+    # a missing upper hinge leaves hinge-upper with no pair that meets
+    write_json(
+        tmp_path / "assemblies/kiln/instances.json",
+        [r for r in rows if r["node"] != "part://hinge#2"],
+    )
+    assert _check(product, "hinge-upper", tmp_path)["status"] == "fail"
+    assert _check(product, "hinge-lower", tmp_path)["status"] == "pass"
 
 
 def _shifted(rows: list[dict[str, Any]], uri: str, dx: float) -> list[dict[str, Any]]:
