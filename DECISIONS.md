@@ -117,6 +117,7 @@ should confirm before relying on them.
 | S-098 | Task folders hardlink uv's cache so macOS scans native libraries once | in force |
 | S-099 | Landing gives placeholders their ids in every task commit, messages included | in force |
 | S-100 | The why sits where the thing happens: code cites its decision | in force |
+| S-101 | Owners need no uv link-mode setting: one environment, kept across upgrades | in force |
 
 ---
 
@@ -1149,3 +1150,12 @@ comment naming the decision with the full reason. Today's fixes cited closed bac
 (`B-0019` …), one hop short of the reason; they now cite their decisions (S-085–S-099), and the
 task script, id assignment, `.gitattributes`, CI's trigger, the release dry run and the card
 number lint gained the pointer they lacked. Earlier code is left as it is until next touched.
+
+## S-101 — Owners need no uv link-mode setting: one environment, kept across upgrades (2026-11-01)
+Follows S-098 (hardlinked task folders). Asked whether owners need the same: no, measured in a
+throwaway tool folder. `uv tool install napkin2factory==0.2.0` made one environment whose first
+`import build123d` took 125 s (the macOS scan, once); `uv tool install napkin2factory@latest`
+(0.2.0 → 0.3.0) kept that environment, the CAD library the same file, and the first import after
+it took 7.6 s. Product folders get no environment of their own (`n2f init` makes none), and
+`n2f init` already warms the first import (S-057). A dependency upgrade brings new native files
+whichever link mode is used, so the agent guide's install step stays as it is.
