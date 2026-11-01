@@ -164,6 +164,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-139 | v0.5 gate fixes 2: a decided pick not yet in the model holds the release; the package holds the released report; choice words, runnable pick commands, one release refusal, the demonstration cover | in force |
 | Gate E | Review gate E (architecture and honesty, v0.5) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | Gate F | Review gate F (UX, owner persona, v0.5) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG; the maintainer's visual judgment pending |
+| S-140 | v0.5 close-out: version 0.5.0, product pins `>=0.5,<0.6` | in force |
 
 ---
 
@@ -854,3 +855,13 @@ BACKLOG: 6–10, 15, 16, 18, 20, 21 (19 joins gate E C10) (B-0115 … B-0124). V
 kiln's choice and the report's scope line, `docs/reviews/v0.5-status-choice.png` and `v0.5-report-scope.png`, retaken after
 S-139 — judged by the agent (readable; the spacer's catalogue name stays in brackets); the maintainer's judgment pending.
 
+## S-140 — v0.5 close-out: version 0.5.0, product pins `>=0.5,<0.6` (2026-11-02)
+As S-119 did for 0.4: `pyproject.toml`, `packaging/n2f/pyproject.toml` (and its `napkin2factory==`) and
+`src/napkin2factory/__init__.py` read 0.5.0 (S-054); the pin moves to `>=0.5,<0.6` wherever S-083 put it:
+the manifest default and its error example (`core/model/manifest.py`), the template sources and
+`examples/{bracket,enclosure}` `n2f.yaml` and product CI workflows (synced with `make templates`), the kiln's
+`n2f.yaml` (its `scope:` kept) and workflows, every `tests/fixtures/**/n2f.yaml`, `tests/unit/test_version_pin.py`
+and the layout line in `docs/product-model.md`; `uv.lock` follows. Dated transcripts under `tests/e2e/` keep
+the pin they ran with. No schema change (F16), so a 0.4 product loads with the pin notice. `docs/domains.md` §6
+now names S-137's `WORDS = {"space": …}` hook beside the promotion hooks. `make check` in the task folder:
+12 min 6 s green (1087 passed, 5 skipped; goldens 141 passed), no other pytest running.

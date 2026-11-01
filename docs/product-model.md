@@ -4,7 +4,7 @@ A product repository (what `n2f init` writes; `examples/*` follow it exactly):
 
 ```
 <product>/                  # its own tracked project (D23)
-  n2f.yaml                  # schema: 1, system: ">=0.4,<0.5", product: {id, name}, units: metric, scope?
+  n2f.yaml                  # schema: 1, system: ">=0.5,<0.6", product: {id, name}, units: metric, scope?
   operator.yaml             # persona, per-domain expertise, verbosity, delegation, language
   AGENTS.md                 # what this folder is, vocabulary, rules for agents
   roles/                    # pm.md, design.md, verifier.md, impact-analyst.md: plain Markdown, any agent
