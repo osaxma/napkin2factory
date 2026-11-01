@@ -1,8 +1,14 @@
 """``CheckResult`` and status semantics (GRAND_PLAN M4).
 
-Statuses: ``pass`` | ``fail`` | ``warn`` | ``skip`` | ``needs-human`` | ``signed``.
+Statuses: ``pass`` | ``fail`` | ``warn`` | ``skip`` | ``needs-human`` | ``signed`` | ``choice``.
 Only ``fail`` blocks (``warn`` never does, D10); ``needs-human`` blocks release until a
 valid sign-off turns it into ``signed`` (D9/D25).
+
+``choice`` (F12) is a trade-off the owner decides: never blocking by itself, it carries
+``detail.options`` (two or more valid designs) and ``detail.blocks``, the gate it holds until
+decided (:data:`CHOICE_BLOCKS`). ``n2f decide`` records the pick as a ``DEC-`` entry and the
+row reads ``pass`` with its decision until an evidence key changes
+(:mod:`napkin2factory.core.checks.choices`). Owner text says "a choice" and "waiting on you".
 
 A sign-off flagged ``example: true`` (shipped with the example products) keeps the row
 ``signed`` and labelled, but the summary counts it under ``example`` rather than
@@ -14,12 +20,25 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-Status = Literal["pass", "fail", "warn", "skip", "needs-human", "signed"]
+Status = Literal["pass", "fail", "warn", "skip", "needs-human", "signed", "choice"]
 BLOCKING: frozenset[str] = frozenset({"fail"})
 HUMAN: frozenset[str] = frozenset({"needs-human"})
+#: The status of a trade-off the owner decides (F12): never blocking by itself.
+CHOICE = "choice"
+#: What a choice can hold until decided (F12): a gate of the stage ladder, or nothing.
+CHOICE_BLOCKS: tuple[str, ...] = ("design", "verify", "release", "none")
 #: Keys of the summary, in display order.  ``example`` is not a row status: it counts the
 #: ``signed`` rows whose sign-off is an example (not a review).
-SUMMARY_KEYS: tuple[str, ...] = ("pass", "fail", "warn", "skip", "needs-human", "signed", "example")
+SUMMARY_KEYS: tuple[str, ...] = (
+    "pass",
+    "fail",
+    "warn",
+    "skip",
+    "needs-human",
+    "signed",
+    "choice",
+    "example",
+)
 
 
 @dataclass
@@ -32,7 +51,7 @@ class CheckResult:
     message: str
     persona_message: str = ""
     # requirement | rule | interface | interference | count | hardware | bom | doc | signoff
-    # | reach (P5)
+    # | reach (P5) | fastening (bolts into a spacer, F12's first choice)
     kind: str = "requirement"
     evidence: dict[str, Any] = field(default_factory=dict)
     evidence_keys: dict[str, str] = field(default_factory=dict)
@@ -67,6 +86,7 @@ OWNER_WORDS: dict[str, str] = {
     "skip": "not checked",
     "needs-human": "needs your sign-off",
     "signed": "signed off",
+    "choice": "a choice waiting on you",
 }
 
 

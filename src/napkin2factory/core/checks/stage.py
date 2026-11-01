@@ -14,6 +14,10 @@ is ``later`` are left out of the Design and Verify gates, each gate saying so in
 own ("Electrical: later (DEC-xxx) — …"), never silently.  A safety requirement is never left
 out: it still needs its sign-off and still blocks a release.
 
+Choices (F12): an open choice never blocks by itself; it blocks the gate its ``blocks`` names
+(``design``, ``verify`` or ``release``; ``none`` holds nothing) until ``n2f decide`` records
+the pick, one blocker per choice in owner words ("a choice is waiting on you: …").
+
 Example sign-offs (``example: true``) are *caveats*, not blockers: they keep the Verify gate
 open and the stage at ``verify``, but they do not stop a demonstration release
 (``n2f release --allow-example-signoffs``), which reads ``Gate.blockers`` only.
@@ -405,6 +409,10 @@ def compute_stage(
             design_blockers.append(f"{asm.name}: not built yet — run `n2f build`")
     if not product.parts:
         design_blockers.append("no parts yet — next, the designer gives each module its parts")
+    from napkin2factory.core.checks.choices import choice_blockers
+
+    held = choice_blockers(build_dir)  # F12: an open choice holds the gate it names
+    design_blockers += held.get("design", [])
     design_rows, design_caveats = _domain_rows(product, build_dir, "design", design_blockers)
     waiting = later_requirements(product)
     for domain in waiting:  # F11: a later domain's design rows are left out, and said so
@@ -464,6 +472,7 @@ def compute_stage(
                 example_ids.append(r["id"].split("://")[-1])
         if data.get("status") == "placeholder":
             verify_blockers.append("checks are placeholders in this build")
+        verify_blockers += held.get("verify", [])
     verify_caveats = [example_signoff_hint(example_ids)] if example_ids else []
     verify_rows, row_caveats = _domain_rows(product, build_dir, "verify", verify_blockers)
     verify_rows += [_scope_note(product, d, rids, "verify") for d, rids in waiting.items()]
@@ -505,6 +514,7 @@ def compute_stage(
                 )
     except Exception as exc:  # never crash status on a tracking problem
         released_blockers.append(f"change tracking unavailable: {exc}")
+    released_blockers += held.get("released", [])
     # a Revision made with --allow-example-signoffs is still a Revision: caveats do not undo it
     verify_gate = gates[later + 2]
     verified_enough = verify_gate.ok or verify_gate.open_only_by_caveats

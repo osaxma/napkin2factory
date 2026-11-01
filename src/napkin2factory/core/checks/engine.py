@@ -1,8 +1,10 @@
 """``checks`` run: evaluators, rule packs, interfaces, interference, counts, hardware, docs, BOM.
 
-Writes ``build/checks/checks.json`` (results, matrix, summary) and ``calcs.json``.  The
-read set is everything a verdict depends on (parts, assemblies, docs, BOM, requirements,
-sign-offs, calcs) so a change to any of them re-runs the checks.
+Writes ``build/checks/checks.json`` (results, matrix, summary), ``calcs.json`` and
+``choices.json`` (F12: the rows that are or were a choice; a decided one reads ``pass`` with
+its decision, :mod:`napkin2factory.core.checks.choices`).  The read set is everything a
+verdict depends on (parts, assemblies, docs, BOM, requirements, sign-offs, calcs, the decisions
+that resolve choices) so a change to any of them re-runs the checks.
 """
 
 from __future__ import annotations
@@ -65,8 +67,10 @@ def checks_reads(product: Product) -> list[str]:
         "set://signoffs",
         "set://ifaces",
     ]
+    from napkin2factory.core.checks.choices import decision_reads
     from napkin2factory.core.registry import registry
 
+    reads += decision_reads(product)  # F12: a new decision may resolve a choice
     for stage in registry().check_stages():  # what each registered stage's rows depend on
         if stage.reads is not None:
             reads += stage.reads(product)
@@ -308,6 +312,10 @@ def collect_results(
             continue  # documents and sourcing are the whole product's
         results += stage.run(sctx)
     modules.annotate(results)
+    from napkin2factory.core.checks.choices import resolve
+
+    # F12: a choice is keyed on its evidence now and reads `pass` once decided (S-130)
+    resolve(product, build_dir, results, {k: v.to_dict() for k, v in ectx.calc_records.items()})
     if within is not None:
         results = [r for r in results if modules.inside(r, within)]
     return results, ectx
@@ -438,6 +446,9 @@ def run_all_checks(ctx: RunContext) -> RunResult:
     out_dir = build_dir / "checks"
     out = _write(out_dir / "checks.json", payload)
     calcs_out = _write(out_dir / "calcs.json", payload["calcs"])
+    from napkin2factory.core.checks.choices import write_choices
+
+    choices_out = write_choices(build_dir, payload["results"])
     reads = checks_reads(product)
     for rec in ectx.calc_records.values():
         reads += rec.reads
@@ -448,7 +459,7 @@ def run_all_checks(ctx: RunContext) -> RunResult:
         seen.setdefault(k, None)
     return RunResult(
         reads=list(seen),
-        outputs=[out, calcs_out],
+        outputs=[out, calcs_out, choices_out],
         output_hash=sha256_json(
             {
                 "summary": payload["summary"],
