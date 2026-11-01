@@ -14,6 +14,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
+from napkin2factory.core.errors import N2FError
 from napkin2factory.core.expr import referenced_names
 from napkin2factory.core.graph.manifest import Manifest
 from napkin2factory.core.graph.rules import Rule, build_rules
@@ -82,12 +85,28 @@ def next_rev(rev: str) -> str:
     return "A" + "".join(chars)
 
 
+class EditError(N2FError, ValueError):
+    """A ``--set`` that is not an edit; the message names it and says what is wrong (C7)."""
+
+
 def parse_set(text: str) -> Edit:
-    """``param://x=50mm`` or ``req://REQ-001#verify.value=250 mm`` → Edit."""
+    """``param://x=50mm`` or ``req://REQ-001#verify.value=250 mm`` → Edit.
+
+    Anything else raises :class:`EditError` with the reason in plain words (gate E C7): the
+    command prints it instead of a traceback.
+    """
     if "=" not in text:
-        raise ValueError(f"--set expects <uri>=<value>, got {text!r}")
+        raise EditError(
+            f"--set expects <uri>=<value>, e.g. param://wall-thickness=2 mm; got {text!r}"
+        )
     target, value = text.split("=", 1)
-    return Edit(set=Uri.parse(target.strip()), to=value.strip())
+    try:
+        return Edit(set=Uri.parse(target.strip()), to=value.strip())
+    except ValidationError as exc:
+        reasons = "; ".join(str(e["msg"]).removeprefix("Value error, ") for e in exc.errors())
+        raise EditError(f"--set {text!r}: {reasons}") from exc
+    except ValueError as exc:  # UriError: not a URI the model knows
+        raise EditError(f"--set {text!r}: {exc}") from exc
 
 
 def dependent_params(product: Product, slug: str) -> list[str]:
@@ -193,6 +212,7 @@ def compute_impact(
             "the product has never been built here, so the rebuild set is the full build; "
             "run `n2f build` once for an exact list"
         )
+    touches = _edit_matcher(edited_keys, {p for r in rules for p in r.produced})
     for rule in rules:
         entry = manifest.entries.get(rule.id)
         if rule.kind == "validate":
@@ -202,10 +222,7 @@ def compute_impact(
         hits = [
             k
             for k in reads
-            if k in edited
-            or Uri_base(k) in edited
-            or k in produced_affected
-            or Uri_base(k) in produced_affected
+            if touches(k) or k in produced_affected or Uri_base(k) in produced_affected
         ]
         if hits:
             affected[rule.id] = ", ".join(hits[:4]) + (" …" if len(hits) > 4 else "")
@@ -319,6 +336,39 @@ def crossed_ports(product: Product, iface_ids: list[str]) -> list[dict[str, Any]
             }
         )
     return out
+
+
+def _edit_matcher(edited_keys: list[str], outputs: set[str]) -> Any:
+    """``touches(read)``: does a recorded read see one of the edited keys (gate E B1, S-138)?
+
+    A read and an edit of the same object touch when one's field path starts with the
+    other's: an edit of ``iface://x#spec.depth`` touches the reads ``iface://x#spec.depth``,
+    ``iface://x#spec`` and ``iface://x`` (the object read whole, as the parts read their
+    interfaces and the checks a decided choice's ``dec://``), never ``iface://x#name``.  A
+    bare key that a rule produces (``part://x``, a domain family's ``<scheme>://x``) is that
+    rule's output hash, not the object: it is reached through the rules the edit reruns, not
+    matched here.
+    """
+    by_base: dict[str, list[tuple[str, ...]]] = {}
+    for key in edited_keys:
+        base, _, sel = key.partition("#")
+        by_base.setdefault(base, []).append(tuple(sel.split(".")) if sel else ())
+
+    def touches(read: str) -> bool:
+        base, _, sel = read.partition("#")
+        edits = by_base.get(base)
+        if not edits:
+            return False
+        path = tuple(sel.split(".")) if sel else ()
+        for edit in edits:
+            if not path and edit and base in outputs:
+                continue
+            n = min(len(path), len(edit))
+            if path[:n] == edit[:n]:
+                return True
+        return False
+
+    return touches
 
 
 def Uri_base(key: str) -> str:  # noqa: N802 - reads like the Uri API

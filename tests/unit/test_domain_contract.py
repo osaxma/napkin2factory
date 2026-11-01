@@ -24,6 +24,7 @@ from typer.testing import CliRunner
 
 from napkin2factory.cli.app import app
 from napkin2factory.core import registry as registry_mod
+from napkin2factory.core.graph.hashing import sha256_file
 from napkin2factory.core.graph.impact import compute_impact, parse_set
 from napkin2factory.core.graph.rules import build_rules
 from napkin2factory.core.graph.runner import explain_build, run_build
@@ -273,26 +274,73 @@ def test_context_contribution(toy_built: tuple[Path, Any, Any]) -> None:
     assert "## Toy things on its parts" in render_text(ctx)
 
 
-def test_impact_is_a_superset_of_the_rebuild(toy_built: tuple[Path, Any, Any]) -> None:
-    """Gate E: impact still covers what the build reruns, with a registered family."""
+#: An edit of every field of the toy thing (``widget.yaml``: the line before, the line after,
+#: the value ``--set`` gives) and of the toy interface.  The toy rule must rerun for each field
+#: and its output change (D5, gate E B2); impact must name every rule the rebuild runs (gate E
+#: B1, C14).  ``test_every_toy_field_is_edited`` fails when the schema gains a field this table
+#: does not edit.
+TOY_EDITS: dict[str, tuple[str, str, str, str]] = {
+    "glow": ("model/toy/widget.yaml", "glow: 3", "glow: 5", "5"),
+    "name": ("model/toy/widget.yaml", "name: Widget", "name: Gadget", "Gadget"),
+    "part": ("model/toy/widget.yaml", "part: part://plate", "part: part://peg", "part://peg"),
+}
+IFACE_EDIT = ("model/interfaces/plate-peg.yaml", "snap: firm", "snap: loose", "loose")
+
+
+def test_every_toy_field_is_edited() -> None:
+    assert set(TOY_EDITS) == set(toy.ToyThing.model_fields) - {"id"}
+
+
+@pytest.mark.parametrize(
+    ("uri", "edit"),
+    [*((f"toy://widget#{f}", e) for f, e in sorted(TOY_EDITS.items()))]
+    + [("iface://plate-peg#spec.snap", IFACE_EDIT)],
+)
+def test_impact_is_a_superset_of_the_rebuild(
+    toy_built: tuple[Path, Any, Any], uri: str, edit: tuple[str, str, str, str]
+) -> None:
+    """Gate E: impact covers what the build reruns, for every field a domain's object has."""
     root, _, _ = toy_built
+    rel, old, new, value = edit
     product = load_product(root)
     run_build(product, render=False, quiet=True)  # `n2f check` above built with renders
-    report = compute_impact(product, [parse_set("toy://widget#glow=5")])
-    assert "toy:widget" in report.rules and "part:plate" not in report.rules
-    thing = root / "model/toy/widget.yaml"
-    text = thing.read_text()
+    report = compute_impact(product, [parse_set(f"{uri}={value}")])
+    file = root / rel
+    text = file.read_text()
     try:
-        thing.write_text(text.replace("glow: 3", "glow: 5"))
+        assert text.count(old) == 1
+        file.write_text(text.replace(old, new))
         product = load_product(root)
         will = {rid for rid, run, _ in explain_build(product, render=False) if run}
         ran = set(run_build(product, render=False, quiet=True)["ran"])
-        assert "toy:widget" in ran and "part:plate" not in ran
-        assert ran <= set(report.rules), (ran, report.rules)
+        assert ran <= set(report.rules), sorted(ran - set(report.rules))
         assert ran <= will
+        if uri.startswith("toy://"):
+            # the toy rule read the field through its recording accessor, so it reran (B2)
+            field = uri.split("#", 1)[1]
+            assert "toy:widget" in ran and "part:plate" not in ran
+            record = json.loads((root / "build/toy/widget.json").read_text())
+            assert str(record[field]) == value
+        else:
+            assert "part:plate" in ran  # the joint's party reads the interface
     finally:
-        thing.write_text(text)
+        file.write_text(text)
         run_build(load_product(root), render=False, quiet=True)
+
+
+def test_a_stage_and_a_section_record_the_fields_they_read(
+    toy_built: tuple[Path, Any, Any],
+) -> None:
+    """B2: a check stage and a report section read through their context's recording accessor."""
+    root, _, _ = toy_built
+    entries = json.loads((root / "build/.n2f/manifest.json").read_text())["entries"]
+    assert {"toy://widget#name", "toy://widget#part", "toy://widget#glow"} <= set(
+        entries["checks"]["reads"]
+    )
+    assert {"toy://widget#name", "toy://widget#glow"} <= set(entries["report"]["reads"])
+    assert {"toy://widget#name", "toy://widget#part", "toy://widget#glow"} <= set(
+        entries["toy:widget"]["reads"]
+    )
 
 
 def test_a_domain_code_change_reruns_its_rules_only(
@@ -311,9 +359,10 @@ def test_a_domain_code_change_reruns_its_rules_only(
         (copy / "toy.html.j2").write_text((copy / "toy.html.j2").read_text() + "\n")
         registry_mod._tree_hash.cache_clear()
         rerun = {rid for rid, run, _ in explain_build(product, render=False) if run}
-        # its own rule, and every rule reading a registry it adds to (gate E)
-        assert {"toy:widget", "validate", "doc:guide", "checks", "report"} <= rerun
-        assert not {r for r in rerun if r.startswith(("part:", "asm:", "drawing:", "bom"))}
+        # its own rule, and every rule reading a registry it adds to (gate E): the bom too,
+        # since its build plan prints the toy's driver words and interface-kind title (S-138)
+        assert {"toy:widget", "validate", "bom", "doc:guide", "checks", "report"} <= rerun
+        assert not {r for r in rerun if r.startswith(("part:", "asm:", "drawing:"))}
     finally:
         registry_mod.unregister("toy")
         registry_mod.register(toy.DOMAIN)
@@ -439,8 +488,22 @@ def test_mechanical_family_hashes_equal_the_old_subtree_hashes(mechanical_only: 
         assert reg.family_hash(reg.rule_family(name)) == _old_package_hash(*subdirs), name
     product = load_product(EXAMPLES / "bracket")
     rules = {r.id: r for r in build_rules(product)}
-    assert set(rules["validate"].inputs) == {"model", "manifest", "operator", "changes"}
-    assert rules["bom"].inputs == {"code": _old_package_hash("bom", "catalog")}
+    # moved on purpose, once: the core's open-set tables are inputs of the rules that read
+    # them since gate E B4 (S-138); the family code hashes above did not move
+    tables = {
+        "table:interface_kinds",
+        "table:processes",
+        "table:finishes",
+        "table:requirement_categories",
+        "table:drivers",
+        "table:style_roles",
+    }
+    assert set(rules["validate"].inputs) == {"model", "manifest", "operator", "changes"} | tables
+    assert rules["bom"].inputs == {
+        "code": _old_package_hash("bom", "catalog"),
+        "table:drivers": sha256_file(registry_mod.DATA / "drivers.yaml"),
+        "table:interface_kinds": sha256_file(registry_mod.DATA / "interface_kinds.yaml"),
+    }
     assert [r.kind for r in build_rules(product)] == [
         "validate",
         "part",

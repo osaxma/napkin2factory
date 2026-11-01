@@ -74,9 +74,21 @@ class Rule:
         return ((self.produces,) if self.produces else ()) + self.also_produces
 
 
+def _new_log() -> Any:
+    from napkin2factory.geometry.accessors import ReadLog
+
+    return ReadLog()
+
+
 @dataclass
 class RunContext:
-    """Shared state during one build."""
+    """Shared state during one build.
+
+    ``log`` is the running rule's read log: the runner gives each rule a fresh one and adds
+    what it recorded to the rule's ``RunResult.reads``.  ``proxy(obj, uri)`` reads the model
+    through it (D5): a domain's rule records every field it uses without listing them (gate
+    E B2, S-138).
+    """
 
     product: Product
     build_dir: Path
@@ -85,6 +97,13 @@ class RunContext:
     built_asms: dict[str, Any] = field(default_factory=dict)
     payloads: dict[str, Any] = field(default_factory=dict)
     snapshot_date: str = "unsnapshotted"
+    log: Any = field(default_factory=_new_log)
+
+    def proxy(self, obj: Any, uri: str) -> Any:
+        """``obj`` (named ``uri``) through the recording accessor: each field used is a read."""
+        from napkin2factory.core.graph.recording import Recorded
+
+        return Recorded(obj, uri, self.log)
 
 
 SYSTEM_ROOT = Path(__file__).resolve().parents[2]  # src/napkin2factory
@@ -169,13 +188,43 @@ def build_rules(product: Product, render: bool = True) -> list[Rule]:
         for rule in made:
             if "code" not in rule.inputs and not in_place:  # validate has none (F2: unchanged)
                 rule.inputs["code"] = reg.family_hash(family)
-            rule.inputs.update(reg.domain_inputs(*_REGISTRIES_READ.get(rule.kind, ())))
+            kinds = _REGISTRIES_READ.get(rule.kind, ())
+            rule.inputs.update(reg.domain_inputs(*kinds))
+            rule.inputs.update(table_inputs(*kinds))
         rules += made
     return rules
 
 
-#: The domain registries each mechanical rule kind reads (their contributors' code hashes
-#: are inputs of its rules, gate E); a domain's own families read their own code.
+#: The open sets of F6 whose core half is a table, ``core/data/<file>.yaml`` (registry kind →
+#: file name).  A rule reading the registry reads the table too: its hash is an input
+#: (``table:<file>``), so editing a table's words or flags reruns exactly those rules (gate E
+#: B4, S-138), as a domain's additions rerun them through ``domain:<name>``.
+TABLES: dict[str, str] = {
+    "interface_kinds": "interface_kinds",
+    "processes": "processes",
+    "finishes": "finishes",
+    "categories": "requirement_categories",
+    "drivers": "drivers",
+    "style_roles": "style_roles",
+}
+
+
+def table_inputs(*kinds: str) -> dict[str, str]:
+    """``{"table:<file>": hash}`` for each of ``kinds`` with a core table (:data:`TABLES`)."""
+    from napkin2factory.core import registry as registry_mod
+
+    return {
+        f"table:{TABLES[k]}": sha256_file(registry_mod.DATA / f"{TABLES[k]}.yaml")
+        for k in kinds
+        if k in TABLES
+    }
+
+
+#: The registries each mechanical rule kind reads: their contributors' code hashes (gate E)
+#: and their core tables (B4) are inputs of its rules; a domain's own families read their own
+#: code.  The bom's build plan prints the drivers' words and the interface kinds' titles; the
+#: report's viewer paints parts by style role and finish (S-138).  A part reads the style
+#: roles only when it names one (``_role_inputs``).
 _REGISTRIES_READ: dict[str, tuple[str, ...]] = {
     "validate": (
         "families",
@@ -186,6 +235,7 @@ _REGISTRIES_READ: dict[str, tuple[str, ...]] = {
         "drivers",
         "style_roles",
     ),
+    "bom": ("drivers", "interface_kinds"),
     "doc": ("doc_helpers",),
     "checks": (
         "verify_kinds",
@@ -195,7 +245,7 @@ _REGISTRIES_READ: dict[str, tuple[str, ...]] = {
         "categories",
         "style_roles",  # the form pack's styled-role rows
     ),
-    "report": ("report_sections", "gate_rows", "vocabulary"),
+    "report": ("report_sections", "gate_rows", "vocabulary", "finishes", "style_roles"),
 }
 
 
@@ -252,10 +302,11 @@ def part_rules(b: RuleBuild) -> list[Rule]:
 
 
 def _role_inputs(product: Product, pid: str) -> dict[str, str]:
-    """A part whose ``role`` a domain registers reads that domain's declaration (gate E).
+    """A part that names a ``role`` reads the style-role table, and the declaring domain's code.
 
-    Whether the role is styled decides whether the style's shape cues apply, so the
-    domain's code hash is an input of exactly the parts that name one of its roles (S-129).
+    Whether the role is styled decides whether the style's shape cues apply, so the table's
+    hash (gate E B4) and, for a role a domain registers, that domain's code hash (S-129) are
+    inputs of exactly the parts that name a role.
     """
     from napkin2factory.core.registry import registry
 
@@ -263,10 +314,13 @@ def _role_inputs(product: Product, pid: str) -> dict[str, str]:
     if not role:
         return {}
     reg = registry()
+    # the core's table says whether a role is styled (gate E B4)
+    out = table_inputs("style_roles")
     for d in reg.contributors("style_roles"):
         if any(role == r.id or role in r.aliases for r in d.style_roles):
-            return {f"domain:{d.name}": reg.domain_hash(d)}
-    return {}
+            out[f"domain:{d.name}"] = reg.domain_hash(d)
+            break
+    return out
 
 
 def asm_rules(b: RuleBuild) -> list[Rule]:

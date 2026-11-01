@@ -18,7 +18,13 @@ from typing import Any
 from napkin2factory.core.errors import N2FError
 from napkin2factory.core.graph.hashing import combine, sha256_file
 from napkin2factory.core.graph.manifest import Entry, Manifest
-from napkin2factory.core.graph.rules import Rule, RunContext, build_rules, rules_for_target
+from napkin2factory.core.graph.rules import (
+    Rule,
+    RunContext,
+    _new_log,
+    build_rules,
+    rules_for_target,
+)
 from napkin2factory.core.graph.values import value_of
 from napkin2factory.core.loader import Product
 
@@ -52,6 +58,16 @@ class BuildSummary:
         if self.only_asm is not None:
             out["asm"] = f"asm://{self.only_asm}"
         return out
+
+
+def _merged(reads: list[str], recorded: list[str]) -> list[str]:
+    """The rule's own reads, then what it recorded through its context, each once."""
+    if not recorded:
+        return reads
+    seen: dict[str, None] = dict.fromkeys(reads)
+    for key in recorded:
+        seen.setdefault(key, None)
+    return list(seen)
 
 
 def read_values(
@@ -194,6 +210,7 @@ def run_build(
             summary.skipped.append(rule.id)
             continue
         t0 = time.perf_counter()
+        ctx.log = _new_log()  # this rule's reads through ctx.proxy / ctx.log (D5, S-138)
         try:
             result = rule.run(ctx)
         except N2FError:
@@ -201,6 +218,7 @@ def run_build(
         except Exception as exc:
             raise BuildError(f"{rule.id} failed: {type(exc).__name__}: {exc}") from exc
         dt = time.perf_counter() - t0
+        result.reads = _merged(result.reads, ctx.log.keys)
         if result.payload is not None:
             ctx.payloads[rule.id] = result.payload
         outputs = {str(p.relative_to(build_dir)): sha256_file(p) for p in result.outputs}
