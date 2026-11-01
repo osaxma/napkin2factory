@@ -16,6 +16,17 @@ rm -rf "$WORK/build"
 cd "$WORK"
 $N2F init . >/dev/null
 
+# A change that moves what the bolts choice was decided on reopens it (it holds the release):
+# the owner decides it again, the same way.
+BOLTS=fastening://m6-standoff-25/m6x16-bolt
+redecide_bolts() {
+  if $N2F status --json | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if any(c['id']=='$BOLTS' for c in d.get('waiting_on_you', [])) else 1)"; then
+    echo "== the change reopened the choice: the owner decides it again"
+    $N2F decide "$BOLTS" --pick shorter-bolts --by "demo owner" \
+      --note "Keeps the standoffs and panels as they are; no nut to reach once fitted."
+  fi
+}
+
 # Re-sign every safety requirement whose EXAMPLE sign-off the change invalidated (labelled).
 resign_invalidated() {
   local reason="$1"
@@ -32,7 +43,7 @@ $N2F check
 # standoffs). The demo plays the owner and picks what a careful owner would: shorter bolts
 # keep every part where it is and need no nut reached behind a fitted panel.
 echo "== a choice is waiting on the owner: decide it"
-$N2F decide fastening://m6-standoff-25/m6x16-bolt --pick shorter-bolts --by "demo owner" \
+$N2F decide "$BOLTS" --pick shorter-bolts --by "demo owner" \
   --note "Keeps the standoffs and panels as they are; no nut to reach once fitted."
 $N2F release v1.0.0 --no-render --allow-example-signoffs
 echo "== ECR-001: impact → approve → apply → rebuild → check"
@@ -44,6 +55,7 @@ $N2F check || true   # safety sign-offs whose evidence changed are now needs-hum
 resign_invalidated "ECR-001"
 $N2F ecr close ECR-001
 echo "== v1.1.0: release and diff"
+redecide_bolts
 $N2F release v1.1.0 --no-render --allow-example-signoffs
 $N2F diff v1.0.0 v1.1.0
 echo
