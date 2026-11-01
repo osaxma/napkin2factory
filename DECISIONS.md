@@ -148,6 +148,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-123 | v0.5 M1: one domain contract (`core/domain.py`), fifteen registries (`core/registry.py`), the mechanical domain registered in place, the toy domain; a new step edits 0 core files | in force |
 | S-124 | v0.5 M4: scope as data (`scope:` in `n2f.yaml`, `build: external` stubs, `model/loads/`); `later` domains leave the gates with a note, never a safety requirement | in force |
 | S-125 | v0.5 M2: schema policy and migrations (`core/model/migrate.py`, `n2f init .`), calc reference cases (`calc-case` rows, L16) | in force |
+| S-126 | v0.5 M2b: the checks rule hashes the calc kit (closes B-0078) | in force |
 
 ---
 
@@ -674,3 +675,15 @@ cases from `test_calcs.py`; kiln `n2f check`: 23 `calc-case` rows, all pass. Ext
 elements" p. 51 (90.9 A, 3.95 W/cm², read in the PDF); Incropera 6th ed. Ex. 3.1, oven window, 50 °C [verify];
 EN 1993-1-1 §3.2.6, steel 7850 kg/m³ [verify]. Hypothesis found the critical-thickness effect (k 1, h 2).
 Times: test_migrate 6.5 s, test_calckit_cases 5.3 s, properties 3.8 s; `make check` 13 min 4 s, 948 passed.
+
+## S-126 — v0.5 M2b: the checks rule hashes the calc kit (2026-11-01)
+Closes B-0078. The mechanical `checks` family's `code` is now `core/checks`, `rulepacks`, `bom`,
+`catalog`, `calckit` (`domains/mechanical/__init__.py`), so a kit formula or data-table edit reruns
+the checks: calc requirements and the `calc-case` rows run kit code there. Looked for other runners:
+the report and site read `checks.json` and rerun through it; impact's `hyp_calc` runs no calc; the
+concept screens and rule packs import the kit outside the build graph (no rule key). Found: part
+masses read `calckit/data/materials.yaml` while part keys hash only `geometry/` (B-0080, left open:
+the fix moves every part key). `test_domain_contract.py`: the checks pin moved deliberately; new test
+(a kit `.py` edit in a package copy moves only `checks`' inputs) failed before the change. No golden
+pins a rule key: none moved. `test_domain_contract.py` 30 passed, 24.1 s; `make check` green, 969 passed,
+141 goldens, 19 min 6 s (other tasks alongside).
