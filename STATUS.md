@@ -44,7 +44,10 @@ its prerequisite B-0073 (platform-stable sign-off evidence keys) is fixed in S-1
 yet (the latest, 10:28 on 2026-11-01, predates it), and `main` is not pushed during v0.5.
 Wave times on the host (measured): M0 14 min; M1 65 min; wave 2 (M2, M3, M4 at once, then the
 M2b and M4b follow-ups) 21:06–22:25, 79 min. `make check` on `main`: 9 min 7 s at 29e7d4b
-(after M1, 908 passed), 9 min 14 s at 895df01 (after wave 2, 998 passed).
+(after M1, 908 passed), 9 min 14 s at 895df01 (after wave 2, 998 passed). Wave 3 (M5, M6 and the gaps task
+at once) 22:37–23:50, 73 min; `make check` at 5e1a100 9 min 10 s on an idle host, 1029 passed. M7: docs and
+M5b at once 23:52–00:40; the two simulations 00:45–01:30; gates E and F at once on baecb90, 28 min; their
+fixes, three tasks at once, 01:40–02:50.
 - M0 baseline (the before numbers: files a new step edits, product words, file sizes, check time) — S-122.
 - M1 the domain contract and its registries (`core/domain.py`, `core/registry.py`, `domains/`), the toy domain, `docs/domains.md` — S-123.
 - M2 schema policy (`docs/schema-policy.md`, migrations, `n2f init .` upgrades) and calc reference cases (`calc-case` rows) — S-125; the checks rule hashes the calc kit (M2b) — S-126.
@@ -55,7 +58,12 @@ M2b and M4b follow-ups) 21:06–22:25, 79 min. `make check` on `main`: 9 min 7 s
 - M5 choices (`choice` rows, `build/checks/choices.json`, "waiting on you" in `n2f status`, `n2f decide`; the kiln's bolts-into-a-spacer choice) — S-130.
 - M6 splits (`validate_refs` beside each schema; `concepts/promote/`; `build_part`/`build_asm`) and `make check-fast`, the land gate — S-131.
 - M7a docs (`docs/domains.md` final, the guide, the roles), `n2f doctor` listing the domains, the two simulation protocols (gadget domain, kiln choice) — S-132.
-- M5b gaps after wave 3 (a release held by an open choice, the report's "waiting on you", decided-not-applied, scope always read, `manifest://` links, neutral walls words; B-0097 waits in task `v05-m5b-summary`) — S-133.
+- M5b gaps after wave 3 (a release held by an open choice, the report's "waiting on you", decided-not-applied, scope always read, `manifest://` links, neutral walls words; B-0097 closed in S-135 with the contract's seven gaps from the gadget run) — S-133, S-135.
+- DoD 2, the count: a fresh agent added the gadget domain from `docs/domains.md` alone, 0 core files — S-134.
+- DoD 6: the kiln choice simulation, raised after the first build and decided by the owner — S-136.
+- Gate E (architecture and honesty) — "Review gate E — outcome"; blockers fixed in S-138 (impact, a recording accessor for
+  domains, the tables hashed) and S-139. Gate F (UX, owner persona) — "Review gate F — outcome"; blockers fixed in S-137
+  (the napkin stage for any product) and S-139 (the release and choices). The maintainer's visual judgment is pending.
 
 v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
 `HANDOFF-REPORT-v0.4.md`:

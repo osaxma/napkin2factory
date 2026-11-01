@@ -162,6 +162,8 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-137 | v0.5 gate fixes 3: the napkin stage for any product ("the space", no door unless the card names one; the kiln's "alcove" from its pack's `WORDS`); a failing product screen or rule check is one plain line; lint L17 names the `door`/`stand` role aliases | in force |
 | S-138 | v0.5 gate E fixes, the build graph: impact sees whole-object reads (B1), domains read through a recording accessor (B2), the core tables are rule inputs (B4), a bad `--set` is a plain error (C7), the impact test covers every toy field (C14) | in force |
 | S-139 | v0.5 gate fixes 2: a decided pick not yet in the model holds the release; the package holds the released report; choice words, runnable pick commands, one release refusal, the demonstration cover | in force |
+| Gate E | Review gate E (architecture and honesty, v0.5) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
+| Gate F | Review gate F (UX, owner persona, v0.5) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG; the maintainer's visual judgment pending |
 
 ---
 
@@ -831,3 +833,24 @@ Gate E B3 = gate F blocker 1: `choice_blockers` adds, under `released`, every de
 Gate F blocker 2: `release` re-renders the report after the Revision exists, writes it into the package folder and re-zips (`zip_stage`); the zip is still built before the snapshot, so a failure leaves no Revision. Tests: `test_release_package_and_site`, `test_the_pick_made_releases_with_the_released_report`.
 Gate F concerns: 11 (`hardware.py`: "each spacer (<name>)" in the title, "each bolt goes … into the spacer", the sums explained, "threaded all the way through", and whether the listed spacer says so in its name or notes); 12 (one runnable `n2f decide … --pick <id>` per option in status and report; `--pick 1` accepted, `pick_option`); 13 (`n2f decide` prints "Next: your agent makes the change …"; owner text says "your agent"); 14 (one refusal with every reason; "Next:" names a choice holding a later gate while the first open gate has only caveats); 17 (the cover: DEMONSTRATION with the example requirements and titles, "Choices made"; `release.json` gains `choices` and `example_signoffs`). Each test above failed on `main` and passes now.
 Demos: `demo.sh` decides, sees the dry-run release refused, makes the pick by editing the model (a first release: no change request yet), builds, re-signs, saves, releases; `demo-design.sh` brings ECR-002's patch context (the door's bolt line) up to date before applying it [revisit: a pre-authored patch that the model outgrew]. The kiln model keeps its choice open. Measured on the host: both demos side by side 16 min 56 s, green; `test_choices.py` + `test_signoffs.py` 4 min 6 s; `test_release_diff.py` 3 min 2 s.
+
+## Review gate E (architecture and honesty) — outcome (2026-11-02)
+Reviewed at baecb90 (report: `docs/reviews/v0.5-gate-e.md`): NOT READY on four blockers; the seams held (core imports no domain,
+goldens unchanged since a9bea31, scope never hides a safety requirement, an open choice stops the release, `n2f check` never
+decides, splits and `check-fast` within budget). **Blockers fixed:** B1 impact missed rules reading an object whole when one of
+its fields was edited (older than v0.5 for interfaces) and B2 domain rules read the model raw (a recording accessor for rules,
+stages and report data; the contract's section `data(sctx)` changed) and B4 the `core/data` tables hashed into no rule — S-138,
+`tests/unit/test_impact_honest.py`, the toy contract tests; B3 a decided pick not yet in the model could be released — S-139,
+`test_the_kiln_release_waits_for_the_pick_to_be_made`. Concerns fixed: C7, C14 (S-138), C8, C13 (S-137). Open in BACKLOG:
+C1–C6, C9–C12 (B-0105 … B-0114).
+
+## Review gate F (UX in the owner persona) — outcome (2026-11-02)
+Reviewed at baecb90 (report: `docs/reviews/v0.5-gate-f.md`): NOT READY on four blockers; the scope block, "waiting on you" with
+costs, the plain `n2f decide` refusals and the newer-format message read well. **Blockers fixed:** 1 a decided pick released
+unapplied (= gate E B3) and 2 the package's report was the pre-release draft — S-139 (`test_release_package_and_site`); 3 a
+shelf's board and promoted requirement said "open door" and "alcove" and 4 a failing product screen printed a traceback — S-137
+(`test_screening_any_product.py`, `test_concept_any_product.py`). Concerns fixed: 5 (S-137), 11–14 and 17 (S-139). Open in
+BACKLOG: 6–10, 15, 16, 18, 20, 21 (19 joins gate E C10) (B-0115 … B-0124). Visual exit (S-078): the status output with the
+kiln's choice and the report's scope line, `docs/reviews/v0.5-status-choice.png` and `v0.5-report-scope.png`, retaken after
+S-139 — judged by the agent (readable; the spacer's catalogue name stays in brackets); the maintainer's judgment pending.
+
