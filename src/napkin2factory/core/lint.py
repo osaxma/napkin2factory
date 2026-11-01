@@ -322,7 +322,50 @@ def lint(product: Product) -> Problems:
                 rule="L14-closed-in",
             )
 
+    _lint_scope(product, problems)
     return problems
+
+
+def _lint_scope(product: Product, problems: Problems) -> None:
+    """L15: a ``later`` domain holds no content; every scope state names its decision (F11).
+
+    Changing a state is a decision, so an entry without one is a warning; content under a
+    ``later`` domain is left out of the checks, so it is a warning too.
+    """
+    from napkin2factory.core.registry import registry
+
+    installed = {d.name: d for d in registry().domains}
+    for domain, entry in product.manifest.scope.items():
+        subject = f"scope.{domain}"
+        if entry.decision is None:
+            problems.add(
+                product.paths.manifest,
+                subject,
+                f"{domain} is `{entry.state}`, but no decision says why",
+                "record the decision in model/decisions.yaml and name it here as "
+                "`decision: DEC-xxx`",
+                severity="warn",
+                rule="L15-scope",
+            )
+        d = installed.get(domain)
+        if entry.state != "later" or d is None:
+            continue
+        held = [
+            f"{f.uri_scheme}://{oid}"
+            for f in d.families
+            for oid in sorted(product.families.get(f.name, {}))
+        ]
+        if held:
+            problems.add(
+                product.paths.manifest,
+                subject,
+                f"{domain} is `later`, but content exists for it ({', '.join(held[:3])}"
+                + (f" and {len(held) - 3} more" if len(held) > 3 else "")
+                + "); it is left out of the checks while it stays `later`",
+                f"set scope to in or remove it (`{domain}: {{state: in, decision: DEC-xxx}}`)",
+                severity="warn",
+                rule="L15-scope",
+            )
 
 
 def _any_styled_part(product: Product) -> bool:

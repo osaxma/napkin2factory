@@ -1,0 +1,9 @@
+decisions:
+  - id: DEC-001
+    date: 2026-11-01
+    title: The controls are bought wired
+    decision: The supplier wires and tests the controls; this product holds a stub with its one mounting joint.
+  - id: DEC-002
+    date: 2026-11-01
+    title: Wiring comes later
+    decision: The harness is designed after the frame.

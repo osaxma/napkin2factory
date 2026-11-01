@@ -212,10 +212,21 @@ n2f check                           # the gate: every requirement and rule
 `n2f build` also writes the build plan, derived from the assemblies: one step per unit
 (`build/bom/build-plan.json`, a "Build plan" sheet in `bom.xlsx`, the report's Build plan, and
 an A3 assembly sheet per unit in `build/drawings/assemblies/`). A sub-assembly is a unit
-(`build: unit`, the default, with `driver: [...]` saying why) or a grouping (`build: phantom`);
-joint hardware is counted from each interface's `spec.hardware` (or its `fastener:`) by the
+(`build: unit`, the default, with `driver: [...]` saying why) or a grouping (`build: phantom`),
+or a stub for work done elsewhere (`build: external`: no children, its `ports:` the joints it
+fits by, each an interface naming the stub and the part it fits to; it is supplied, not built
+here); joint hardware is counted from each interface's `spec.hardware` (or its `fastener:`) by the
 `hardware://<unit>` check. The fields are in `docs/product-model.md`; the design role says
 how to use them.
+
+**Scope: what this product covers.** When the owner says a step is done elsewhere or comes
+later ("the electrician wires it"), record it once in `n2f.yaml` with the decision behind it:
+`scope: {electrical: {state: later, decision: DEC-xxx, note: "…"}}` (`in`, `external` with
+`stub: asm://<id>`, or `later`). A `later` domain's requirements (tagged with its name, or of
+its category or verify kind) and gate rows are left out of the Design and Verify gates with a
+note, never a safety requirement; `n2f status`, the report overview and the release package
+say the scope. A load case is `model/loads/<id>.yaml` (`kind`, `value`, `acts_on`, `faces`),
+cited by a requirement as `load://<id>` in its allocation; nothing computes with it yet.
 
 **One module at a time.** A unit (a sub-assembly built as one) can be worked on alone:
 

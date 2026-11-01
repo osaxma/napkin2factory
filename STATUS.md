@@ -43,6 +43,7 @@ its prerequisite B-0073 (platform-stable sign-off evidence keys) is fixed in S-1
 Linux nightly on a pushed `main` is the proof.
 - M0 baseline (the before numbers: files a new step edits, product words, file sizes, check time) — S-122.
 - M1 the domain contract and its registries (`core/domain.py`, `core/registry.py`, `domains/`), the toy domain, `docs/domains.md` — S-123.
+- M4 scope as data (`scope:` in `n2f.yaml`: in / done elsewhere / later; external stubs; load cases) — S-124.
 
 v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
 `HANDOFF-REPORT-v0.4.md`:

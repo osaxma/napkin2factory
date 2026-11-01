@@ -146,6 +146,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-121 | Sign-off evidence keys are tolerance-compared invariants, not the mesh (closes B-0073) | in force |
 | S-122 | v0.5 M0 baseline: a new step edits 10 files (7 in `core/`), 32 package files name the kiln's words, the five big files, `make check` 10 min 14 s | in force |
 | S-123 | v0.5 M1: one domain contract (`core/domain.py`), fifteen registries (`core/registry.py`), the mechanical domain registered in place, the toy domain; a new step edits 0 core files | in force |
+| S-124 | v0.5 M4: scope as data (`scope:` in `n2f.yaml`, `build: external` stubs, `model/loads/`); `later` domains leave the gates with a note, never a safety requirement | in force |
 
 ---
 
@@ -650,3 +651,14 @@ validate/doc/checks/report. Hooks: `core/loader.py`, `core/uris.py`, `cli/check.
 `bom/build_plan.py`, `rulepacks/checks.py`, `concepts/screening.py`, `geometry/build.py`.
 `tests/unit/test_domain_contract.py` (29): the toy domain edits 0 core files (S-122: 7). `make
 check`: 11 min 7 s (S-122: 10 min 14 s), green, 907 passed, 141 goldens.
+
+## S-124 — v0.5 M4: scope as data (2026-11-01)
+`n2f.yaml` `scope: {<domain>: {state, decision, note, stub}}` (`stub:` beyond F11 [revisit]); a
+requirement is a domain's by tag, category, or its verify kind or schemes [revisit]. `later` drops
+non-safety requirements and gate rows from Design and Verify with a row; safety still blocks. L15
+lints both. `build: external` stubs (`assemblies.validate_refs`; loader: the call plus two guards
+[revisit]); `model/loads/` (`acts_on`). Kiln DEC-024. Status: "Electrical: later — the electrician
+wires it; the box keeps its cable entries (DEC-024)"; Verify row "Electrical: later (DEC-024) — not
+checked at this stage; no requirement waits for it"; report "Scope. <line>."; cover "Scope: <line>"
+plus `release.json`. B-0076, B-0077. `test_scope.py` 20 passed, 15.2 s; `make check` green, 927
+passed, 141 goldens, 14 min 42 s (other tasks alongside).

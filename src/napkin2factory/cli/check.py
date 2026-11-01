@@ -205,6 +205,7 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
         f"[bold]{escape(product.manifest.product.name)}[/bold] — "
         f"stage: [bold]{rep.current_words}[/bold]"
     )
+    print_scope_rows(rep.scope)
     for g in rep.gates:
         mark = "[green]✓[/green]" if g.ok else "[yellow]○[/yellow]"
         console.print(f"  {mark} {STAGE_WORDS[g.name]}")
@@ -222,6 +223,18 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
                 )
             break
     console.print(f"next: {escape(rep.next_step)}")
+
+
+def print_scope_rows(scope: list[dict[str, str]]) -> None:
+    """The scope rows of ``n2f status`` (F11): one line per declared domain, owner words.
+
+    Nothing when ``n2f.yaml`` declares no scope, so such a product reads as before.
+    """
+    if not scope:
+        return
+    console.print("  Scope [dim](what this product covers)[/dim]")
+    for entry in scope:
+        console.print(f"      {escape(entry['line'])}")
 
 
 @handle_errors

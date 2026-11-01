@@ -1,0 +1,10 @@
+schema: 1
+system: '>=0.4,<0.5'
+product:
+  id: rig
+  name: Scope fixture rig
+  description: A frame whose controls are made elsewhere (tests/unit/test_scope.py, F11).
+units: metric
+scope:
+  electrical: {state: external, decision: DEC-001, stub: asm://controls, note: "the controls come wired from the supplier"}
+  wiring: {state: later, decision: DEC-002}

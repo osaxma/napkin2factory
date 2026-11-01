@@ -1,0 +1,10 @@
+id: frame
+rev: A
+name: Frame
+kind: custom
+process: cut-block
+material: {name: aluminium, spec: "6082"}
+tolerance_class: ISO2768-m
+geometry: {kit: block, args: {length: 200 mm, width: 100 mm, height: 10 mm}}
+cost: {unit: 1 USD, basis: estimate}
+lead_time: 1 d

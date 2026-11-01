@@ -16,6 +16,7 @@ from pathlib import Path
 from napkin2factory.core.domain import (
     CheckStage,
     Domain,
+    ModelFamily,
     ReportSection,
     RuleFamily,
     VerifyKind,
@@ -226,6 +227,25 @@ DOC_HELPERS = {
     for name in ("P", "part", "asm", "req", "iface", "dec", "build_step", "bom", "product")
 }
 
+
+#: Load cases (F11, the reserved slot): ``model/loads/*.yaml`` as ``load://<id>``; no solver
+#: reads them in v0.5.
+def _load_schema() -> type:
+    from napkin2factory.core.model.loads import Load
+
+    return Load
+
+
+FAMILIES = (
+    ModelFamily(
+        "loads",
+        schema=_load_schema(),
+        folder="model/loads",
+        validate_refs=lazy("napkin2factory.core.model.loads:validate_refs"),
+        scheme="load",
+    ),
+)
+
 DOMAIN = Domain(
     name="mechanical",
     title="Parts, assemblies, drawings, the parts list, manuals and the report",
@@ -236,4 +256,5 @@ DOMAIN = Domain(
     report_sections=REPORT_SECTIONS,
     doc_helpers=DOC_HELPERS,
     in_place=True,
+    families=FAMILIES,
 )

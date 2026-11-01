@@ -9,6 +9,11 @@ Napkin (NAPKIN_STAGE N11) is an optional first gate, present only when ``concept
 card: complete when one card is ``promoted``.  Products without concepts see exactly the
 four v0.1 gates.  Concepts never gate a release; the gate only names where the product is.
 
+Scope (F11, ``n2f.yaml`` ``scope:``): the requirements and gate rows of a domain whose scope
+is ``later`` are left out of the Design and Verify gates, each gate saying so in a row of its
+own ("Electrical: later (DEC-xxx) — …"), never silently.  A safety requirement is never left
+out: it still needs its sign-off and still blocks a release.
+
 Example sign-offs (``example: true``) are *caveats*, not blockers: they keep the Verify gate
 open and the stage at ``verify``, but they do not stop a demonstration release
 (``n2f release --allow-example-signoffs``), which reads ``Gate.blockers`` only.
@@ -31,7 +36,8 @@ from napkin2factory.core.loader import Product
 from napkin2factory.core.model.concepts import CONCEPT_STATUSES as CARD_STATUSES
 
 if TYPE_CHECKING:
-    from napkin2factory.core.domain import GateRowState
+    from napkin2factory.core.domain import Domain, GateRowState
+    from napkin2factory.core.model.requirements import Requirement
 
 STAGES = ("intake", "design", "verify", "released")
 #: The optional stage before Intake (N11); present only when ``concepts/`` holds a card.
@@ -81,6 +87,9 @@ class StageReport:
     stage: str
     gates: list[Gate]
     next_step: str
+    #: The declared scope (F11), one dict per domain: ``domain``, ``state``, ``decision``,
+    #: ``note`` and ``line`` (owner words); empty when ``n2f.yaml`` has no ``scope:``.
+    scope: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def current(self) -> str:
@@ -110,12 +119,103 @@ class StageReport:
 
     def to_dict(self) -> dict[str, Any]:
         """JSON form: ``stage`` (last gate passed) and ``current_stage`` (being worked in)."""
-        return {
+        out = {
             "stage": self.stage,
             "current_stage": self.current,
             "gates": [g.__dict__ for g in self.gates],
             "next_step": self.next_step,
         }
+        if self.scope:  # only when declared: a product without scope reads as before (F16)
+            out["scope"] = self.scope
+        return out
+
+
+# ---- scope (F11) ----------------------------------------------------------------------------
+
+
+def scope_entries(product: Product) -> list[dict[str, Any]]:
+    """The declared scope in ``n2f.yaml`` order, each with its owner line (F11)."""
+    from napkin2factory.core.model.manifest import scope_line
+
+    out: list[dict[str, Any]] = []
+    for domain, entry in product.manifest.scope.items():
+        dec = product.decisions.get(entry.decision) if entry.decision else None
+        out.append(
+            {
+                "domain": domain,
+                "state": entry.state,
+                "decision": entry.decision,
+                "note": entry.note,
+                **({"stub": str(entry.stub)} if entry.stub is not None else {}),
+                "line": scope_line(domain, entry, dec.title if dec is not None else None),
+            }
+        )
+    return out
+
+
+def later_domains(product: Product) -> list[str]:
+    """Domains whose scope is ``later``, in ``n2f.yaml`` order."""
+    return [d for d, e in product.manifest.scope.items() if e.state == "later"]
+
+
+def _installed(name: str) -> Domain | None:
+    from napkin2factory.core.registry import registry
+
+    return next((d for d in registry().domains if d.name == name), None)
+
+
+def requirement_in_domain(req: Requirement, domain: str) -> bool:
+    """True when ``req`` belongs to ``domain`` (F11).
+
+    By any of these, in order: a tag naming the domain (``tags: [electrical]``, which works
+    before the domain is installed), a category of that name, and, for an installed domain,
+    a category, verify kind or URI scheme (verify target, allocation) the domain registers.
+    """
+    if domain in req.tags or req.category == domain:
+        return True
+    d = _installed(domain)
+    if d is None:
+        return False
+    if req.category in d.categories:
+        return True
+    if req.verify is not None and req.verify.kind in {v.name for v in d.verify_kinds}:
+        return True
+    schemes = {f.uri_scheme for f in d.families}
+    schemes |= {f.produces.removesuffix("://") for f in d.rule_families if f.produces}
+    named = [req.verify.target] if req.verify is not None and req.verify.target else []
+    named += list(req.allocation) if isinstance(req.allocation, list) else []
+    return any(u.scheme in schemes for u in named)
+
+
+def later_requirements(product: Product) -> dict[str, list[str]]:
+    """``later`` domain → the requirement ids that belong to it (safety ones included)."""
+    return {
+        d: sorted(r.id for r in product.requirements.values() if requirement_in_domain(r, d))
+        for d in later_domains(product)
+    }
+
+
+def _scope_note(product: Product, domain: str, waiting: list[str], gate: str) -> dict[str, str]:
+    """The row a ``later`` domain leaves under a gate: what is left out, never silently."""
+    entry = product.manifest.scope[domain]
+    head = "later" + (f" ({entry.decision})" if entry.decision else "")
+    safety = [r for r in waiting if product.requirements[r].safety]
+    left = [r for r in waiting if r not in safety]
+    what = "checked" if gate == "verify" else "designed"
+    if gate == "verify" and left:
+        noun = "requirement waits" if len(left) == 1 else "requirements wait"
+        tail = f"{len(left)} {noun} for it: {', '.join(left)}"
+    elif gate == "verify":
+        tail = "no requirement waits for it"
+    else:
+        tail = "its rows wait for it"
+    text = f"{head} — not {what} at this stage; {tail}"
+    if safety:
+        text += (
+            f"; {', '.join(safety)} {'is' if len(safety) == 1 else 'are'} about safety and "
+            "still need" + ("s" if len(safety) == 1 else "") + " a sign-off"
+        )
+    return {"title": domain.capitalize(), "summary": text, "scope": "later"}
 
 
 def example_signoff_hint(requirement_ids: list[str]) -> str:
@@ -221,7 +321,11 @@ def _domain_rows(
 
     rows: list[dict[str, str]] = []
     caveats: list[str] = []
+    later = set(later_domains(product))
+    owner = {id(r): d.name for d in registry().domains for r in d.gate_rows}
     for gate_row in registry().gate_rows(gate):
+        if owner.get(id(gate_row)) in later:
+            continue  # F11: left out; the domain's scope row under this gate says so
         state = gate_row.row(product, build_dir)
         if state is None:
             continue
@@ -302,6 +406,11 @@ def compute_stage(
     if not product.parts:
         design_blockers.append("no parts yet — next, the designer gives each module its parts")
     design_rows, design_caveats = _domain_rows(product, build_dir, "design", design_blockers)
+    waiting = later_requirements(product)
+    for domain in waiting:  # F11: a later domain's design rows are left out, and said so
+        d = _installed(domain)
+        if d is not None and any(r.gate == "design" for r in d.gate_rows):
+            design_rows.append(_scope_note(product, domain, [], "design"))
     gates.append(
         Gate(
             "design",
@@ -324,7 +433,17 @@ def compute_stage(
     else:
         data = json.loads(checks_path.read_text(encoding="utf-8"))
         counts = data.get("summary", {})
+        # F11: a later domain's requirements are left out (its row below says which);
+        # a safety requirement never is
+        excluded = {
+            f"req://{rid}"
+            for rids in waiting.values()
+            for rid in rids
+            if not product.requirements[rid].safety
+        }
         for r in data.get("results", []):
+            if r["id"] in excluded:
+                continue
             if r["status"] == "fail":
                 # a requirement keeps its REQ id (the owner's table shows it); other rows
                 # are said by their message alone for the owner (gate D, N5)
@@ -347,6 +466,7 @@ def compute_stage(
             verify_blockers.append("checks are placeholders in this build")
     verify_caveats = [example_signoff_hint(example_ids)] if example_ids else []
     verify_rows, row_caveats = _domain_rows(product, build_dir, "verify", verify_blockers)
+    verify_rows += [_scope_note(product, d, rids, "verify") for d, rids in waiting.items()]
     verify_caveats += row_caveats
     gates.append(
         Gate(
@@ -414,4 +534,4 @@ def compute_stage(
         next_step = first_open.caveats[0]
     else:
         next_step = first_open.name
-    return StageReport(stage=stage, gates=gates, next_step=next_step)
+    return StageReport(stage=stage, gates=gates, next_step=next_step, scope=scope_entries(product))

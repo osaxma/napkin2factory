@@ -6,3 +6,5 @@ product:
   description: Front-loading 200 × 200 × 200 mm test kiln, 1200 °C class, single-phase 230 V. The complete napkin2factory showcase.
 units: metric
 manufacturer_profile: null
+scope:
+  electrical: {state: later, decision: DEC-024, note: "the electrician wires it; the box keeps its cable entries"}

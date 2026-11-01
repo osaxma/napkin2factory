@@ -944,10 +944,14 @@ def _validate_ports(product: Product, problems: Problems) -> None:
     assembly's boundary is an error too.  Skipped when an assembly file did not load, since
     the tree would be incomplete (cascade suppression, S-009).
     """
+    from napkin2factory.core.model import assemblies
+
+    # F11, S-124: a stub for work done elsewhere has ports, no parts; its own rules check it
+    stubs = assemblies.validate_refs(product, problems)
     refused: set[str] = set()  # interfaces with an asm:// party: their port rules wait (C1)
     for iface in product.interfaces.values():
         for party in iface.parties:
-            if party.scheme == "asm":
+            if party.scheme == "asm" and party.id not in stubs:
                 refused.add(iface.uri)
                 problems.add(
                     product.files[iface.uri],
@@ -969,6 +973,8 @@ def _validate_ports(product: Product, problems: Problems) -> None:
             a_in = tree.home(a) in tree.below(aid)
             needed.setdefault(aid, {})[iface.uri] = (a, b) if a_in else (b, a)
     for aid, asm in sorted(product.assemblies.items()):
+        if aid in stubs:
+            continue
         file = product.files[asm.uri]
         listed = {str(u) for u in asm.ports}
         for iuri, (inside, outside) in sorted(needed.get(aid, {}).items()):

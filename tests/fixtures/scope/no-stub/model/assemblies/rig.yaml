@@ -1,0 +1,5 @@
+id: rig
+rev: A
+name: Rig
+children:
+  - {part: part://frame, qty: 1}

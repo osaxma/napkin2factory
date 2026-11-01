@@ -15,5 +15,6 @@
   <div class="kv" id="stage">
     {% for g in stage.gates %}{% set reasons = g.blockers + g.caveats %}<div><span class="badge {{ 'ok' if g.ok else 'warn' if g.open_only_by_caveats else 'skip' }}">{{ g.name }}</span></div><div>{% if g.ok %}done{% else %}{% if g.detail.get('why') %}<span class="example">{{ g.detail.why }}</span> · {% endif %}{{ (reasons[:3] | join('; ')) | replace('`', '') }}{% if reasons | length > 3 %} … ({{ reasons | length }} items){% endif %}{% endif %}</div>{% endfor %}
   </div>
+  {% if stage.scope %}<p class="scope" id="scope"><strong>Scope.</strong> {% for s in stage.scope %}{{ s.line }}{% if not loop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
   <p class="next">Next: {{ stage.next_step | replace('`', '') }}</p>
 </section>
