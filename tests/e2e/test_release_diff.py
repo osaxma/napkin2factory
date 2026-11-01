@@ -85,6 +85,12 @@ def test_release_package_and_site(released: Path) -> None:
     assert any(n.endswith("bom/bom.xlsx") for n in names)
     assert any(n.endswith("manuals/safety.pdf") for n in names)
     assert any(n.endswith("report.html") for n in names)
+    # gate F, blocker 2 (S-139): the package holds the released report, not the draft
+    report = zf.read("v1.0.0/report.html").decode("utf-8")
+    assert "Released v1.0.0" in report and "no Revision for the current snapshot" not in report
+    # gate F, concern 17: the cover says the Revision is a demonstration, naming the sign-off
+    cover = zf.read("v1.0.0/README.txt").decode("utf-8")
+    assert "DEMONSTRATION" in cover and "REQ-004 (" in cover
     site = root / "build/site"
     assert (site / "v1.0.0/index.html").is_file() and (site / "v1.0.0/data/model.json").is_file()
     assert (site / "index.html").is_file() and (site / "versions.html").is_file()

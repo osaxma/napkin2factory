@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The design ECO loop, unattended: demo.sh, then ECR-002 (peephole with plug) applied from its
-# pre-authored patch (D7) → v1.2.0.
+# pre-authored patch (D7), brought up to date with the bolts pick demo.sh made → v1.2.0.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SYSTEM="$(cd "$HERE/../.." && pwd)"
@@ -29,6 +29,20 @@ resign_invalidated() {
     $N2F signoff "$req" --by "Example Reviewer (not a real review)" --statement "Demo re-sign after $reason; a real reviewer must repeat this check." --example
   done
 }
+
+# ECR-002's patch was written against the shipped kiln, before demo.sh made the bolts pick:
+# one line of its context (the door's bolts) moved since. The agent brings the patch up to date
+# with the model, as it would for any change request written before another change (S-139).
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("changes/ECR-002.patch")
+text = p.read_text(encoding="utf-8")
+old = "   - {part: part://m6x16-bolt, qty: 8}\n"
+assert text.count(old) == 1, old
+p.write_text(text.replace(old, "   - {part: part://m6x12-bolt, qty: 8}\n"), encoding="utf-8")
+PY
+$N2F snapshot -m "ECR-002's patch follows the bolts pick"
 
 echo "== ECR-002 (design): impact → approve → apply patch → rebuild → check"
 $N2F ecr impact ECR-002

@@ -444,7 +444,7 @@ def next_decision_id(product: Product) -> str:
 
 def pick_option(row: dict[str, Any], pick: str) -> str:
     """The option id ``pick`` names: its id, or its number as `n2f status` lists it (gate F 12)."""
-    ids = [o["id"] for o in (row.get("detail") or {}).get("options", [])]
+    ids = [str(o["id"]) for o in (row.get("detail") or {}).get("options", [])]
     if pick in ids:
         return pick
     if pick.isdigit() and 1 <= int(pick) <= len(ids):

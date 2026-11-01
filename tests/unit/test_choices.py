@@ -546,7 +546,8 @@ def test_the_pick_made_releases_with_the_released_report(built: Path) -> None:
     model = built / "model"
     (model / "parts/m4-nut.yaml").write_text(
         "id: m4-nut\nrev: A\nname: M4 hex nut\nkind: cots\nprocess: none\ngeometry: none\n"
-        'source: {vendor: Example, mpn: NUT-4, url: "https://example.com/nut-4"}\ncost: {unit: 0.05 USD, basis: estimate}\n',
+        'source: {vendor: Example, mpn: NUT-4, url: "https://example.com/nut-4"}\n'
+        "cost: {unit: 0.05 USD, basis: estimate}\n",
         encoding="utf-8",
     )
     _swap(model / "parts/m4x10-screw.yaml", "M4 x 10 pan", "M4 x 20 pan")
