@@ -128,6 +128,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-105 | v0.4 M0 baseline: kiln frames meet, one to rewrite; hardware reconciled, shared-hole rule (`docs/v04-baseline.md`) | in force |
 | S-106 | v0.4 M1: interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly | in force |
 | S-107 | v0.4 M2: sub-assemblies have ports; a part's home; `place_by` places sub-assemblies | in force |
+| S-108 | A styled screenshot whose shader fails under load is rendered once more | in force |
 
 ---
 
@@ -443,3 +444,12 @@ inner=…)` moves the sub-assembly by its party's leaf; `onto` also finds leaves
 sub-assemblies (two modules, a port each side). Labels survive reload since M1 (S-106). Kiln: all
 nine joints inside one assembly, no ports, unchanged. Port joints escape P1's warning (B-0064).
 17 new tests; `make check` 9 min 32 s green (784 tests), goldens unchanged; `make kiln` 3 min 1 s green.
+
+## S-108 — A styled screenshot whose shader fails under load is rendered once more (2026-11-01)
+Follows S-093 (blank captures are retried). `make check` failed twice in five runs on `main` today
+with `THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false` in
+`test_grey_palette_reads_as_grey`, while other test workers loaded the machine; the test passed three
+times out of three alone. Headless GL (SwiftShader) raises it under load as it hands back blank
+frames, and a reload clears it, so `styled_screenshots` now treats that page error like a blank:
+one more render, then the correctness renders with a note. Any other viewer error still falls back
+at once. How often the shader fails under load: two in five `make check` runs, not otherwise measured.

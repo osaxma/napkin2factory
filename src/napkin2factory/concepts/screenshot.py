@@ -20,7 +20,8 @@ designed geometry and nothing is measured from them.
 
 A blank capture (headless GL occasionally hands back an empty frame under load, S-093) is
 detected and the card is rendered once more; a second blank falls back to the correctness
-renders with a note, like any other viewer failure.
+renders with a note, like any other viewer failure.  A shader that fails to compile under the
+same load (``THREE.WebGLProgram: Shader Error``) is retried the same way (S-108).
 """
 
 from __future__ import annotations
@@ -85,6 +86,8 @@ INK_THRESHOLD = 0.18
 BLANK_SHARE = 0.003
 #: …by more than this (0..255 on any channel): lighting gradients on the backdrop stay under.
 BLANK_TOLERANCE = 12
+#: Page errors that headless GL raises under load and a reload clears (S-108).
+TRANSIENT_GL_ERRORS = ("THREE.WebGLProgram: Shader Error", "CONTEXT_LOST_WEBGL")
 
 
 @dataclass
@@ -94,7 +97,8 @@ class ScreenshotResult:
     paths: dict[str, Path] = field(default_factory=dict)
     method: Method = "viewer"
     notes: list[str] = field(default_factory=list)
-    #: The first capture came back blank and the card was rendered once more (S-093).
+    #: The first capture came back blank, or its shader failed under load, and the card was
+    #: rendered once more (S-093, S-108).
     retried: bool = False
 
     def to_dict(self, root: Path | None = None) -> dict[str, Any]:
@@ -552,6 +556,9 @@ def styled_screenshots(
         for attempt in (1, 2):
             got = _capture(browser_page, page_file, session)
             if isinstance(got, str):
+                if attempt == 1 and transient_gl_error(got):
+                    retried = True  # a shader that failed under load compiles on reload (S-108)
+                    continue
                 return _fallback(out_dir, f"the viewer failed: {got}", session)
             shots = got
             blank = [v for v, png in shots.items() if blank_capture(png)]
@@ -591,6 +598,11 @@ def _capture(
     return shots
 
 
+def transient_gl_error(message: str) -> bool:
+    """True when a page error is one headless GL raises under load and a reload clears."""
+    return any(marker in message for marker in TRANSIENT_GL_ERRORS)
+
+
 def blank_capture(png: bytes) -> bool:
     """True when a snapshot shows nothing but its backdrop (S-093).
 
@@ -625,6 +637,7 @@ __all__ = [
     "ScreenshotResult",
     "ScreenshotSession",
     "blank_capture",
+    "transient_gl_error",
     "card_materials",
     "fallback_note",
     "ink_for",
