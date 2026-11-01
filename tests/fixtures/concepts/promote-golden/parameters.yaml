@@ -16,3 +16,5 @@ parameters:
   chamber-height: {value: 150, unit: mm, description: from concept C-003, owner: napkin}
   insulation: {value: 100, unit: mm, description: from concept C-003, owner: napkin}
   element-power: {value: 1.5, unit: kW, description: from concept C-003, owner: napkin}
+  door-leaf-width: {value: 300, unit: mm, description: 'from concept C-003: the width of the door that swings open; write it as an expression over the door''s own parameters so the alcove requirements follow the designed door', owner: napkin}
+  door-swing-clearance: {expr: door-leaf-width, unit: mm, description: 'from concept C-003: the room the open door takes beside the hinge', owner: napkin}

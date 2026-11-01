@@ -13,6 +13,7 @@ SIGMA = 5.670374419e-8
 
 @pytest.fixture(scope="module")
 def P():  # noqa: N802
+    """The kiln's parameter accessor, loaded from this product folder."""
     from napkin2factory.core.loader import load_product
     from napkin2factory.geometry.accessors import make_accessors
 
@@ -21,13 +22,16 @@ def P():  # noqa: N802
 
 
 def test_box_areas_and_resistances_by_hand(P):  # noqa: N803
+    """Box face areas and the brick and fiber wall resistances match the hand values."""
     import thermal
 
     # chamber 0.2 m cube; brick outer 0.328; fiber outer 0.328 + 2·(0.003 + 0.125) = 0.584;
-    # shell outer 0.584 + 2·(0.002 + 0.0012) = 0.5904; guard 0.5904 + 2·0.025 = 0.6404 (all cubes: A = 6·s²)
+    # shell outer 0.584 + 2·(0.002 + 0.0012) = 0.5904; guard 0.5904 + 2·0.025 = 0.6404
+    # (all cubes: A = 6·s²)
     expect = [6 * s**2 for s in (0.2, 0.328, 0.584, 0.5904, 0.6404)]
     assert thermal._areas(P) == pytest.approx(expect, rel=1e-9)
-    # R_b = 0.064 / (0.25·√(0.24·0.645504)) = 0.6504 K/W; R_f = 0.125 / (0.15·√(0.645504·2.046336)) = 0.7251 K/W
+    # R_b = 0.064 / (0.25·√(0.24·0.645504)) = 0.6504 K/W;
+    # R_f = 0.125 / (0.15·√(0.645504·2.046336)) = 0.7251 K/W
     r_b, r_f = thermal._body_resistances(P)
     assert r_b == pytest.approx(0.064 / (0.25 * math.sqrt(0.24 * 0.645504)), rel=1e-9)
     assert r_b == pytest.approx(0.6504, rel=1e-3)
@@ -35,6 +39,7 @@ def test_box_areas_and_resistances_by_hand(P):  # noqa: N803
 
 
 def test_body_balance_by_hand(P):  # noqa: N803
+    """The solved shell, guard and interface temperatures close both heat balances."""
     import thermal
 
     q = thermal.heat_loss(P).to("W").magnitude
@@ -50,7 +55,9 @@ def test_body_balance_by_hand(P):  # noqa: N803
     q_body = (1473.15 - ts) / (0.6504065 + 0.7250715)
     q_rad = SIGMA * a_s * (ts**4 - tg**4) / (1 / 0.9 + (a_s / a_g) * (1 / 0.9 - 1))
     assert q_body == pytest.approx(a_s * 5 * (ts - 323.15) + q_rad, rel=1e-4)
-    assert q_rad == pytest.approx(a_g * (5 * (tg - 298.15) + SIGMA * 0.9 * (tg**4 - 298.15**4)), rel=1e-4)
+    assert q_rad == pytest.approx(
+        a_g * (5 * (tg - 298.15) + SIGMA * 0.9 * (tg**4 - 298.15**4)), rel=1e-4
+    )
     assert 1473.15 - q_body * 0.6504065 == pytest.approx(ti, rel=1e-5)
     # body ≈ 815 W plus door ≈ 83 W
     assert q_body == pytest.approx(815.2, rel=1e-2)
@@ -58,43 +65,56 @@ def test_body_balance_by_hand(P):  # noqa: N803
 
 
 def test_door_by_hand(P):  # noqa: N803
+    """The door skin and door guard temperatures close the door's heat balance."""
     import thermal
 
-    # plug 0.324 × 0.324 m; R_db = 0.064/(0.25·√(0.04·0.104976)) = 3.951 K/W; R_df = 0.153/(0.15·0.104976) = 9.717 K/W
+    # plug 0.324 × 0.324 m; R_db = 0.064/(0.25·√(0.04·0.104976)) = 3.951 K/W;
+    # R_df = 0.153/(0.15·0.104976) = 9.717 K/W
     a_plug = 0.324 * 0.324
     r = 0.064 / (0.25 * math.sqrt(0.04 * a_plug)) + 0.153 / (0.15 * a_plug)
     assert r == pytest.approx(13.667, rel=1e-3)
     td = thermal.door_skin_temperature(P).to("kelvin").magnitude
     tdg = thermal.door_guard_temperature(P).to("kelvin").magnitude
     a_face = 1.5 * a_plug
-    assert (1473.15 - td) / r == pytest.approx(a_face * (5 * (td - 298.15) + SIGMA * 0.9 * (td**4 - 298.15**4)), rel=1e-4)
+    assert (1473.15 - td) / r == pytest.approx(
+        a_face * (5 * (td - 298.15) + SIGMA * 0.9 * (td**4 - 298.15**4)), rel=1e-4
+    )
     assert td - 273.15 == pytest.approx(69.7, abs=0.2)
     # door guard: equal areas → ε_eff = 1/(1/0.9 + 1/0.9 − 1)
     e_eff = 1 / (1 / 0.9 + 1 / 0.9 - 1)
-    assert SIGMA * e_eff * (td**4 - tdg**4) == pytest.approx(5 * (tdg - 298.15) + SIGMA * 0.9 * (tdg**4 - 298.15**4), rel=1e-4)
+    assert SIGMA * e_eff * (td**4 - tdg**4) == pytest.approx(
+        5 * (tdg - 298.15) + SIGMA * 0.9 * (tdg**4 - 298.15**4), rel=1e-4
+    )
     assert tdg - 273.15 == pytest.approx(41.9, abs=0.2)
     # the touch requirement looks at the hotter guard (the body guard here)
-    assert thermal.max_touch_temperature(P).magnitude == pytest.approx(thermal.guard_temperature(P).magnitude)
+    assert thermal.max_touch_temperature(P).magnitude == pytest.approx(
+        thermal.guard_temperature(P).magnitude
+    )
 
 
 def test_stored_heat_and_power_by_hand(P):  # noqa: N803
+    """Stored heat in the brick and fiber, and the power needed to reach temperature."""
     import thermal
 
     ti = thermal.interface_temperature(P).magnitude  # degC
     ts = thermal.shell_temperature(P).magnitude
     plug = 0.324 * 0.324
     v_brick = 0.328 * 0.264 * 0.328 - 0.2**3 + plug * 0.064  # 0.02040 + 0.00672 = 0.02712 m³
-    v_fiber = 0.584 * 0.583 * 0.584 - 0.334 * 0.334 * (0.583 - 0.125) + plug * 0.153  # 0.14775 + 0.01606 = 0.1638 m³
+    # fiber: 0.14775 + 0.01606 = 0.1638 m³
+    v_fiber = 0.584 * 0.583 * 0.584 - 0.334 * 0.334 * (0.583 - 0.125) + plug * 0.153
     assert v_brick == pytest.approx(0.02712, rel=1e-3)
     assert v_fiber == pytest.approx(0.1638, rel=1e-3)
     e = 480 * 1000 * v_brick * ((1200 + ti) / 2 - 25) + 260 * 1050 * v_fiber * ((ti + ts) / 2 - 25)
     assert thermal.stored_heat(P).to("J").magnitude == pytest.approx(e, rel=1e-6)
     assert e == pytest.approx(27.46e6, rel=1e-2)
     # 0.898 kW + 27.46 MJ / 25200 s = 1.99 kW; 2.5 kW gives a margin of 1.26
-    assert thermal.required_power(P).to("W").magnitude == pytest.approx(897.9 + 27.46e6 / 25200, rel=1e-2)
+    assert thermal.required_power(P).to("W").magnitude == pytest.approx(
+        897.9 + 27.46e6 / 25200, rel=1e-2
+    )
 
 
 def test_element_by_hand(P):  # noqa: N803
+    """Element current, resistance, wire length, coil turns, pitch and surface load."""
     import element
 
     assert element.current(P).magnitude == pytest.approx(2500 / 230, rel=1e-6)  # 10.87 A on 16 A
@@ -113,12 +133,15 @@ def test_element_by_hand(P):  # noqa: N803
     assert element.pitch_factor(P).magnitude == pytest.approx(3000 / turns / 1.6, rel=1e-6)
     assert element.pitch_factor(P).magnitude == pytest.approx(2.09, abs=0.01)
     # surface load 2500 W / (π × 0.16 cm × 2934 cm) = 1.70 W/cm²
-    assert element.surface_load(P).to("W/cm**2").magnitude == pytest.approx(2500 / (math.pi * 0.16 * length * 100), rel=1e-6)
+    assert element.surface_load(P).to("W/cm**2").magnitude == pytest.approx(
+        2500 / (math.pi * 0.16 * length * 100), rel=1e-6
+    )
     assert element.surface_load(P).to("W/cm**2").magnitude == pytest.approx(1.70, abs=0.01)
     assert element.power_margin(P).magnitude == pytest.approx(1.26, abs=0.02)
 
 
 def test_swing_by_hand(P):  # noqa: N803
+    """The plug clears the brick opening as the door swings on its hinge pin."""
     import swing
 
     # pin x = −(door-guard-width/2 + 1 + 6) = −(702.4/2 + 7) = −358.2, y 62; opening edge (167, 26);

@@ -12,8 +12,8 @@ EXAMPLES_FAST := examples/bracket examples/enclosure
 check: lint types unit golden examples-fast todo-grep
 
 lint:
-	$(PY) ruff check src tests scripts
-	$(PY) ruff format --check src tests scripts
+	$(PY) ruff check src tests scripts examples
+	$(PY) ruff format --check src tests scripts examples
 
 types:
 	$(PY) mypy src/napkin2factory/core src/napkin2factory/calckit
@@ -43,9 +43,12 @@ examples-fast:
 check-full: check kiln demos
 	N2F_TIMING=1 $(PY) pytest tests/e2e/test_timing.py tests/e2e/test_concept_build.py -q
 
-# The kiln's concept cards are rebuilt in a scratch copy (build/kiln-napkin): a concept build
-# rewrites each card's screening timestamp, and the shipped cards must not change under `make`.
-# Every card is built, rejected ones too, so the board shows the whole story with pictures.
+# The kiln's concept cards are rebuilt in a scratch copy (build/kiln-napkin). An unchanged card
+# no longer changes on a rebuild (its screening time moves only with its content, B-0031), but a
+# card whose screening is stale would be rewritten in place: `make` would leave the tree dirty
+# and test_kiln.py would then compare the rebuilt cards with themselves. In the copy, a stale
+# shipped card fails that test instead. Every card is built, rejected ones too, so the board
+# shows the whole story with pictures.
 KILN_NAPKIN := build/kiln-napkin
 
 kiln:

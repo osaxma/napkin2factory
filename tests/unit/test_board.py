@@ -83,7 +83,9 @@ def test_every_label_is_a_badge_next_to_its_value(page: str, built: Path) -> Non
         if card.screening is None:
             continue
         art = _article(page, card.id)
-        values = card.screening.values  # given, computed and estimates
+        values = {  # given, computed and estimates; the door leaf is for promotion only
+            k: v for k, v in card.screening.values.items() if k not in board_mod.HIDDEN
+        }
         shown += len(values)
         for lv in values.values():
             assert f'{html.escape(lv.value)}<span class="lbl {lv.label}"' in art, (card.id, lv)

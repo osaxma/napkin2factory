@@ -42,7 +42,13 @@ from napkin2factory.geometry.assembly import (
     flatten,
     scene_for_assembly,
 )
-from napkin2factory.geometry.exporters import export_part, render_views, tessellate, write_json
+from napkin2factory.geometry.exporters import (
+    export_part,
+    read_render_notes,
+    render_views,
+    tessellate,
+    write_json,
+)
 from napkin2factory.geometry.features import PartResult
 
 
@@ -572,6 +578,60 @@ def load_props(build_dir: Path, uri: str) -> dict[str, Any]:
         raise FileNotFoundError(f"{uri} has not been built (missing {path})")
     data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     return data
+
+
+def render_notes(product: Product, build_dir: Path | None = None) -> dict[str, dict[str, Any]]:
+    """What the renders of every built part and assembly had to remark, by URI (B-0019).
+
+    Read from each ``renders/notes.json`` (written by
+    :func:`~napkin2factory.geometry.exporters.render_views`), so a part that was up to date
+    and not rebuilt still reports its notes. Parts and assemblies without notes are left out.
+    """
+    build_dir = build_dir or product.paths.build
+    out: dict[str, dict[str, Any]] = {}
+    for sub, ids, scheme in (
+        ("parts", sorted(product.parts), "part"),
+        ("assemblies", sorted(product.assemblies), "asm"),
+    ):
+        for ident in ids:
+            notes = read_render_notes(build_dir / sub / ident / "renders")
+            if notes["notes"]:
+                out[f"{scheme}://{ident}"] = notes
+    return out
+
+
+def _owner_name(product: Product, uri: str) -> str:
+    """A part or assembly's name for an owner, from a URI or GLB node (``part://x#2``)."""
+    scheme, _, ident = uri.partition("://")
+    ident = ident.split("#")[0].split("/")[0]
+    if scheme == "part" and ident in product.parts:
+        return product.parts[ident].name
+    if scheme == "asm" and ident in product.assemblies:
+        return product.assemblies[ident].name
+    return ident or uri
+
+
+def render_note_lines(product: Product, notes: dict[str, dict[str, Any]]) -> list[str]:
+    """:func:`render_notes` in plain owner words: one line per picture that has a remark."""
+    lines: list[str] = []
+    for uri, entry in notes.items():
+        where = _owner_name(product, uri)
+        names = list(dict.fromkeys(_owner_name(product, u) for u in entry.get("uncapped", [])))
+        if names == [where]:
+            lines.append(
+                f"Cut-away picture of {where}: its 3D surface has a gap, so the cut is drawn "
+                "open instead of filled in. Check the shape if it should be solid."
+            )
+        elif names:
+            many = len(names) > 1
+            lines.append(
+                f"Cut-away picture of {where}: {', '.join(names)} {'have' if many else 'has'} "
+                f"a gap in {'their' if many else 'its'} 3D surface, so the cut is drawn open "
+                "instead of filled in. Check the shape if it should be solid."
+            )
+        else:  # a remark of a kind this wording does not know yet: point at the file
+            lines.append(f"Pictures of {where}: the renderer left a remark in renders/notes.json.")
+    return lines
 
 
 def load_built_assembly(

@@ -147,7 +147,7 @@ n2f build && n2f check     # the full package and the report
 ```
 
 Never build inside the clone's `examples/` folder; always copy first. The story to tell: C-001
-needs 1698 mm of width with its door open, and the owner's alcove is about 800 mm. Without the
+needs 1236 mm of width with its door open, and the owner's alcove is about 800 mm. Without the
 napkin stage that came up at hour forty; the board shows it in minute five. C-003 is the
 promoted direction. The kiln is the largest example, so its first build takes noticeably longer
 than a small product's.
@@ -157,7 +157,10 @@ than a small product's.
 This is the order a product usually goes through, so an agent (or a curious person) can see
 the whole path. `n2f <command> --help` is the authority, `docs/cli.md` is the full map, and
 commands that work on a product take `--json`. `n2f status` always says where the
-product stands and what to do next. Run it whenever you are unsure.
+product stands and what to do next. Run it whenever you are unsure. Its "stage" is the stage
+being worked in, the first one not complete (`ready` when only the release is left); in
+`--json` that is `current_stage`, and the report and `n2f ecr close` name the same one.
+`--json` `stage` is the last stage passed, kept for older scripts.
 
 **Napkin stage: rough directions before any design.** The project manager role (`roles/pm.md`) decides when.
 
@@ -177,6 +180,13 @@ massing:
   - {kit: bracket_l, as: body, material: mild steel, args: {length: 120 mm, height: 80 mm, width: 60 mm, thickness: 4 mm}}
   - {kit: block, as: gusset, material: mild steel, args: {length: 40 mm, width: 4 mm, height: 40 mm}, at: {x: 24 mm, z: 4 mm}}
 ```
+
+When the owner has said them, three optional card fields sharpen screening: under `envelope`,
+`door_swing: 110 degree` (how far a hinged door opens; without it the door counts swung fully
+back, the widest case) and `target_volume: 8 L` (the useful volume asked for); under `site`,
+`touch_limit: 60 degC` (the hottest outside surface allowed; without it, a burn threshold on
+file). The door angle narrows the alcove check to what the door really needs; the volume and
+the touch limit add rows "worth a look", never a red verdict.
 
 The kit list is in the product's `AGENTS.md`; `docs/napkin.md` explains the stage.
 
@@ -212,6 +222,39 @@ n2f diff v1.0.0 v1.1.0              # → build/site/diff/v1.0.0..v1.1.0/index.h
 ```
 
 A sign-off stays valid until the evidence it was bound to changes.
+
+**Sharing** (only when the owner asks; rule 7):
+
+```bash
+n2f publish                         # → build/publish/: one folder with every page to share
+n2f publish --online                # also send it to the product's online copy on GitHub
+n2f publish --since v1.2.0          # leave out older Revisions (the folder holds ≤ 20 MB)
+```
+
+## Sharing the pages
+
+`n2f publish` puts what already exists into `build/publish/`: an index page, the latest
+report, every released Revision with its package to download, the change pages between
+Revisions and the concept board. It builds nothing; anything missing is listed with the
+command that makes it (`n2f build`, `n2f diff <a> <b>`, `n2f concept board`). The folder opens
+from disk and can be zipped and sent, or put on any web host as it is.
+
+`--online` sends the snapshots, the Revisions and that folder to the product's **online
+copy**, a GitHub project the owner already has; GitHub then shows the pages at
+`https://<account>.github.io/<project>/`. Before you run it, tell the owner that anyone with
+that address can open the pages, and that the online copy must exist first. napkin2factory
+never creates accounts or online projects and never changes their settings, so the owner
+does these once, on the GitHub website:
+
+1. Create an empty project (no README) for the product. A private project can show pages only
+   on a paid GitHub plan.
+2. Link the product folder to it: `git remote add origin <the project's address>`. Sending
+   uses the computer's existing GitHub sign-in (for example `gh auth login`).
+3. After the first `n2f publish --online`: in the project's Settings, under Pages, choose
+   `gh-pages` as the source.
+
+If the online copy holds snapshots this folder lacks (saved on another computer), sending
+refuses and changes nothing: bring them in (`git pull`) and publish again.
 
 ## Timing and trouble
 

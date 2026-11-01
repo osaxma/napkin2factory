@@ -19,6 +19,7 @@ templates for the right-hand words.
 | **unsaved changes** | dirty working tree | release refusal wording |
 | **change tracking** | the repository | `n2f init` sets it up |
 | **scratch copy of a Revision** | a worktree | `n2f diff` builds older Revisions in one |
+| **online copy** (send to it) | the GitHub remote (push), plus its `gh-pages` branch that GitHub Pages serves | `n2f publish --online` |
 
 ## Napkin words (the concept stage, NAPKIN_STAGE.md)
 
@@ -54,6 +55,11 @@ words with the owner.
 Intake → Design → Verify → Released. A stage is complete when its gate passes; nothing
 can mark a stage complete by hand. While `concepts/` holds concept cards an optional
 **Napkin** stage comes first; it is complete once a card is promoted.
+
+The stage a product **is in** is the first one not complete: a product whose intake is
+done is "in Design". When only the release is left it is **ready to release**. `n2f status`,
+the report badge and `n2f ecr close` all say it this way; `--json` carries it as
+`current_stage`, next to the older `stage` (the last stage passed).
 
 ## Persona
 

@@ -33,6 +33,14 @@ UNSAVED = (
     "`n2f discard` drops them, or `n2f ecr new …` files them as a change request"
 )
 NO_GIT = "git is not installed or not on PATH; install git (https://git-scm.com) and try again"
+NO_ONLINE_COPY = (
+    "this product has no online copy yet. Make an empty project for it on GitHub (on the "
+    "website, signed in to your account), then have your agent link this folder to it; "
+    "napkin2factory never creates accounts or online projects itself"
+)
+# The line of the online copy that GitHub serves as web pages (share mode, B-0037). It holds
+# nothing but the shared pages, is rewritten on every send, and is never shown to the owner.
+PAGES_LINE = "gh-pages"
 
 
 class VcsError(EnvironmentProblem):
@@ -201,6 +209,11 @@ class Vcs:
         proc = self._git("describe", "--tags", "--exact-match", "HEAD", check=False)
         return proc.stdout.strip() if proc.returncode == 0 else None
 
+    def revision_snapshot(self, name: str) -> str | None:
+        """The snapshot id a released Revision (tag) marks, or None when there is no such one."""
+        proc = self._git("rev-parse", "--verify", "--quiet", f"{name}^{{commit}}", check=False)
+        return proc.stdout.strip() if proc.returncode == 0 and proc.stdout.strip() else None
+
     def commit_date(self, ref: str = "HEAD") -> str:
         """ISO date of a snapshot (used for title blocks, D14)."""
         proc = self._git("log", "-1", "--format=%cs", ref, check=False)
@@ -269,6 +282,96 @@ class Vcs:
         """Files that differ between two Revisions."""
         proc = self._git("diff", "--name-only", ref_a, ref_b)
         return [ln for ln in proc.stdout.splitlines() if ln.strip()]
+
+    # ---- the online copy (share mode, `n2f publish --online`) ----------------
+
+    def online_copy(self) -> str | None:
+        """The name of the linked online copy: ``origin``, else the only one, else None."""
+        proc = self._git("remote", check=False)
+        names = [n for n in proc.stdout.split() if n] if proc.returncode == 0 else []
+        if "origin" in names:
+            return "origin"
+        return names[0] if len(names) == 1 else None
+
+    def online_address(self, name: str) -> str:
+        """Where the online copy ``name`` lives (its fetch address)."""
+        return self._git("remote", "get-url", name).stdout.strip()
+
+    def current_line(self) -> str | None:
+        """Name of the draft line being worked on (None when detached from any line)."""
+        proc = self._git("symbolic-ref", "--short", "-q", "HEAD", check=False)
+        if proc.returncode != 0:
+            return None
+        return proc.stdout.strip() or None
+
+    def snapshot_of_folder(self, folder: Path, message: str) -> str:
+        """Record ``folder``'s files as a stand-alone snapshot with no history; returns its id.
+
+        The working tree, the index and every named line stay untouched: a scratch index
+        file is used and nothing points at the result until :meth:`send_online` sends it.
+        """
+        folder = Path(folder).resolve()
+        git_dir = self._git("rev-parse", "--absolute-git-dir").stdout.strip()
+        index = Path(git_dir) / "n2f-publish.index"
+        index.unlink(missing_ok=True)
+        env = {"GIT_INDEX_FILE": str(index)}
+        where = (f"--git-dir={git_dir}", f"--work-tree={folder}")
+        try:
+            for args in (
+                (*where, "-C", str(folder), "add", "--all", "--force", "."),
+                (*where, "write-tree"),
+            ):
+                proc = self._git(*args, check=False, env=env)
+                if proc.returncode != 0:
+                    raise VcsError(
+                        "could not prepare the pages for sending; run with --json to see the "
+                        "detail",
+                        detail=(proc.stderr or proc.stdout).strip(),
+                        code="pages",
+                    )
+            tree = proc.stdout.strip()
+            return self._git("commit-tree", tree, "-m", message).stdout.strip()
+        finally:
+            index.unlink(missing_ok=True)
+
+    def send_online(self, name: str, line: str, pages: str | None = None) -> None:
+        """Send ``line``, every Revision and (optionally) the pages snapshot to ``name``.
+
+        All or nothing (``--atomic``): the online copy never ends up half updated. The pages
+        line is replaced each time (it is generated, nobody builds on it); the draft line and
+        the Revisions are only ever added to, never overwritten.
+        """
+        refspecs = [f"refs/heads/{line}:refs/heads/{line}", "refs/tags/*:refs/tags/*"]
+        if pages:
+            refspecs.append(f"+{pages}:refs/heads/{PAGES_LINE}")
+        # Never wait for a password or a host-key question nobody is there to answer.
+        env = {"GIT_SSH_COMMAND": os.environ.get("GIT_SSH_COMMAND", "ssh -o BatchMode=yes")}
+        proc = self._git("push", "--atomic", "--porcelain", name, *refspecs, check=False, env=env)
+        if proc.returncode == 0:
+            return
+        text = f"{proc.stdout}\n{proc.stderr}".lower()
+        detail = (proc.stderr or proc.stdout).strip()
+        if "fetch first" in text or "non-fast-forward" in text:
+            raise VcsError(
+                "the online copy has snapshots this folder does not have (saved from another "
+                "computer?), so nothing was sent; bring them into this folder first, then "
+                "publish again",
+                detail=detail,
+                code="online-newer",
+            )
+        if "already exists" in text:
+            raise VcsError(
+                "the online copy already holds a Revision with the same name but different "
+                "content, so nothing was sent; released Revisions are never replaced",
+                detail=detail,
+                code="online-revision-differs",
+            )
+        raise VcsError(
+            "could not reach the online copy (no network, a wrong address, or this computer "
+            "is not signed in to it), so nothing was sent; run with --json to see the detail",
+            detail=detail,
+            code="online-unreachable",
+        )
 
     def apply_patch(self, patch_path: Path) -> None:
         """Apply a unified diff over the working tree (design change requests, D7)."""

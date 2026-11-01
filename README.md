@@ -56,7 +56,7 @@ type commands or open files.
   https://raw.githubusercontent.com/osaxma/napkin2factory/main/docs/agent-guide.md
   ```
 
-  The example is a 1200 °C test kiln. Its first direction is shown in red: it needs 1698 mm
+  The example is a 1200 °C test kiln. Its first direction is shown in red: it needs 1236 mm
   of width with the door open, and the alcove it was meant for is about 800 mm. Without the
   napkin stage that problem turned up at hour forty. The board shows it in minute five.
 - **You already have a product folder** (one you made earlier, or one someone sent you).
@@ -79,7 +79,9 @@ type commands or open files.
 - **Safe changes.** Each change shows its impact first, waits for your yes, rebuilds only
   what it affects, and ends in a page comparing the two versions.
 - **Named versions** (v1.0.0, v1.1.0 …) you can send to a manufacturer, frozen only when
-  every check passes and every safety requirement has a person's sign-off.
+  every check passes and every safety requirement has a person's sign-off. When you want a
+  manufacturer to see them, ask your agent to share the pages: you get one folder to send,
+  or, if you have a GitHub project for it, a web address.
 
 It runs on your computer, works offline once installed, and needs no account.
 

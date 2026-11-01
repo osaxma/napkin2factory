@@ -12,6 +12,7 @@ from napkin2factory.cli import doctor as doctor_cmd
 from napkin2factory.cli import ecr as ecr_cmd
 from napkin2factory.cli import graph as graph_cmd
 from napkin2factory.cli import init as init_cmd
+from napkin2factory.cli import publish as publish_cmd
 from napkin2factory.cli import release as release_cmd
 from napkin2factory.cli import serve as serve_cmd
 from napkin2factory.cli import snapshot as snapshot_cmd
@@ -56,6 +57,7 @@ app.add_typer(ecr_cmd.ecr_app, name="ecr")
 app.add_typer(concept_cmd.concept_app, name="concept")
 app.command("release")(release_cmd.release)
 app.command("diff")(release_cmd.diff)
+app.command("publish")(publish_cmd.publish)
 app.command("impact")(graph_cmd.impact)
 
 

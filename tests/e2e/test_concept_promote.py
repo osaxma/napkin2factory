@@ -76,7 +76,7 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
 
     out = _run("concept", "promote", "C-003", cwd=root).stdout
     assert "C-003 is now the design direction (DEC-002)." in out
-    assert "Seeded 5 parameters, 5 requirements (3 about form, 1 about the alcove" in out
+    assert "Seeded 7 parameters, 6 requirements (3 about form, 2 about the alcove" in out
     assert "C-001, C-002 and C-004 are kept as alternatives" in out
     assert "\n  snapshot saved\n" in out
     assert "Next: `n2f build && n2f check`." in out
@@ -91,9 +91,11 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
     rows = {r["id"]: r for r in data["matrix"]["requirements"]}
     assert rows["REQ-004"]["title"] == "Fits the alcove with the door open"
     assert rows["REQ-004"]["status"] == "pass" and rows["REQ-004"]["kind"] == "geometry_prop"
-    assert rows["REQ-005"]["status"] == "pass"
+    # the open door's room is a parameter held by its own row (B-0023)
+    assert rows["REQ-005"]["status"] == "pass" and rows["REQ-005"]["kind"] == "param_bound"
+    assert rows["REQ-006"]["status"] == "pass"
     # with the parts built and none styled, form rows ask a person instead of skipping
-    for rid in ("REQ-006", "REQ-007", "REQ-008"):
+    for rid in ("REQ-007", "REQ-008", "REQ-009"):
         assert rows[rid]["kind"] == "rule" and rows[rid]["status"] == "needs-human", rows[rid]
         assert rows[rid]["message"].startswith("no part declares a style role yet")
     st = json.loads(_run("status", "--json", cwd=root).stdout)
@@ -108,12 +110,12 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
     lint = _run("lint", cwd=root)
     assert "L12-form-needs-roles" not in lint.stdout + lint.stderr
     data = _check(root)
-    assert _req(data, "REQ-006")["status"] == "pass"
     assert _req(data, "REQ-007")["status"] == "pass"
+    assert _req(data, "REQ-008")["status"] == "pass"
     # … and fails a 6 mm one (gate A: the threshold flipped, the requirement fails)
     _set_style(root, "corner_radius: 4 mm", "corner_radius: 6 mm")
     data = _check(root, code=2)
-    row = _req(data, "REQ-006")
+    row = _req(data, "REQ-007")
     assert row["status"] == "fail"
     assert "bend B1 is 4 mm, below the 6 mm corner radius chosen in style.yaml" in row["message"]
     _set_style(root, "corner_radius: 6 mm", "corner_radius: 4 mm")
@@ -127,6 +129,18 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
     )
     _run("build", "--no-render", cwd=root)
     data = _check(root, code=2)
-    row = _req(data, "REQ-007")
+    row = _req(data, "REQ-008")
     assert row["status"] == "fail" and "is on the front" in row["message"]
-    assert _req(data, "REQ-006")["status"] == "pass"
+    assert _req(data, "REQ-007")["status"] == "pass"
+
+    # a wider door fails its row: the door is a parameter, not a number in a bound (B-0023)
+    params = root / "model" / "parameters.yaml"
+    text = params.read_text()
+    assert "door-leaf-width: {value: 300, unit: mm" in text
+    params.write_text(
+        text.replace("door-leaf-width: {value: 300,", "door-leaf-width: {value: 360,")
+    )
+    _run("build", "--no-render", cwd=root)
+    data = _check(root, code=2)
+    row = _req(data, "REQ-005")
+    assert row["status"] == "fail" and row["message"] == "360 mm <= 300 mm"

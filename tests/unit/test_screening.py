@@ -169,7 +169,11 @@ def test_kiln_like_card_screens_red_on_the_alcove_with_door_swing(kiln: Screenin
     assert width.status == "fail" and width.relies_on == ["computed"]
     # the message names the door-swing term, not just the body width
     assert "995 mm for the body plus 250 mm for the open door" in width.message
-    assert "hinged-left" in width.message and "alcove is 800 mm" in width.message
+    assert "the 250 mm door leaf swung fully back" in width.message
+    assert "alcove is 800 mm" in width.message
+    # no opening angle on the card: the widest case, and a note says so (B-0029)
+    assert any("does not say how far the door opens" in n for n in kiln.notes)
+    assert kiln.computed["door_leaf"].value == "250.0 mm"
     assert _q(kiln, "computed", "width", "mm") == pytest.approx(995)
     assert _q(kiln, "computed", "footprint_with_door_swing", "mm") == pytest.approx(1245)
 
@@ -220,7 +224,8 @@ def test_door_swing_term_sources() -> None:
     assert "not counted" in s.computed["footprint_with_door_swing"].source
     declared = _card(no_door, envelope={**KILN["envelope"], "door_width": "300 mm"})
     s = _screen(declared)
-    assert "envelope.door_width 300 mm" in _rule(s, "fits-site-width").message
+    assert "the 300 mm door (its width on the card)" in _rule(s, "fits-site-width").message
+    assert s.computed["door_leaf"].ref == "envelope.door_width"
     sliding = _screen(_card(KILN, layout={"door": "sliding"}, site={"alcove_width": "1000 mm"}))
     assert _rule(sliding, "fits-site-width").status == "pass"
 
@@ -260,7 +265,7 @@ def test_unknown_region_warns_not_fails() -> None:
     assert row.status == "warn"
     assert row.message == "no circuit table for region XX — confirm the supply"
     assert "circuit_class" not in s.estimates
-    assert any("region XX" in n for n in s.notes)
+    assert any("usual circuits in XX" in n for n in s.notes)
     assert "circuit-available" not in {r.id for r in s.failing}, "a warning never reddens"
 
 
@@ -357,7 +362,7 @@ def test_controls_not_adjacent_hot_face(kiln: Screening) -> None:
 def test_missing_envelope_omits_estimates_with_a_note() -> None:
     s = _screen(_card(SMALL).model_copy(update={"envelope": {}}))
     assert not {"heat_loss", "stored_heat", "heat_up_time", "current"} & set(s.estimates)
-    assert any("envelope.chamber" in n for n in s.notes)
+    assert any("no chamber size and no insulation" in n for n in s.notes)
     assert any("no power on the card" in n for n in s.notes)
     assert _rule(s, "walls-fit-envelope").status == "skip"
     assert _rule(s, "circuit-available").status == "skip"
@@ -370,8 +375,8 @@ def test_no_material_means_no_mass_and_a_note() -> None:
         call.pop("material")
     s = _screen(_card(bare))
     assert "mass" not in s.computed and "total_mass" not in s.estimates
-    assert any("give these shapes a material: body, door" in n for n in s.notes)
-    assert any("cost leaves out body (no material, so no mass)" in n for n in s.notes)
+    assert any(n.startswith("the body and the door have no material yet") for n in s.notes)
+    assert "the cost leaves out the body and the door: no material, so no mass to price" in s.notes
     assert _rule(s, "mass-vs-lift-class").status == "skip"
 
 
@@ -381,7 +386,7 @@ def test_insulation_inputs_that_cannot_be_used_are_noted() -> None:
     layer = {"name": "mystery", "thickness": "100 mm"}
     s = _screen(_card(SMALL, envelope={**SMALL["envelope"], "insulation": [layer]}))
     assert "heat_loss" not in s.estimates
-    assert any("mystery: give a conductivity" in n for n in s.notes)
+    assert any("how well the mystery insulation layer conducts heat" in n for n in s.notes)
     assert _rule(s, "walls-fit-envelope").status == "pass", "thicknesses alone still screen"
     weak = _screen(_card(SMALL, envelope={**SMALL["envelope"], "power": "100 W"}))
     assert any("never reach temperature" in n for n in weak.notes)
@@ -523,5 +528,5 @@ def test_cost_source_names_what_is_priced_and_what_is_not(kiln: Screening) -> No
     assert "cots-controls" not in cost.source and "cots-controls" in (cost.ref or "")
     assert kiln.computed["width"].source == "measured across the rough shapes"
     assert kiln.computed["footprint_with_door_swing"].source == (
-        "the body plus the door leaf swung open beside the hinge"
+        "the body plus the door leaf swung fully back beside the hinge"
     )

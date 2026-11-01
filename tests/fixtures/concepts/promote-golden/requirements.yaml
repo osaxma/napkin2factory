@@ -27,15 +27,28 @@ requirements:
     source: intake
   - id: REQ-004
     title: Fits the alcove with the door open
-    statement: The closed width plus the door swing of 300 mm stays within the 800 mm alcove.
+    statement: The closed width plus the 300 mm the open door takes beside the hinge stays within the 800
+      mm alcove.
     category: geometry
     priority: must
     verify: {kind: geometry_prop, target: 'asm://bracket#props.bbox.x', op: <=, value: 500 mm}
-    allocation: ['asm://bracket']
-    rationale: 'Door-swing term 300 mm (computed by screening: hinged-right: the 300 mm door leaf swung
-      open beside the hinge); 800 mm − 300 mm = 500 mm for the closed width.'
+    allocation: ['asm://bracket', 'param://door-swing-clearance']
+    rationale: '800 mm − 300 mm = 500 mm for the closed width. The open door''s room is door-swing-clearance:
+      300 mm, the leaf swung fully back (the card gives no opening angle), held to 300 mm by the requirement
+      "The open door keeps to its room beside the hinge".'
     source: concept C-003 site constraint
   - id: REQ-005
+    title: The open door keeps to its room beside the hinge
+    statement: The open door takes at most 300 mm beside the hinge, the room the alcove leaves it.
+    category: geometry
+    priority: must
+    verify: {kind: param_bound, target: 'param://door-swing-clearance', op: <=, value: 300 mm}
+    allocation: ['param://door-swing-clearance', 'param://door-leaf-width']
+    rationale: door-swing-clearance is the expression door-leaf-width, so a wider door (door-leaf-width)
+      or a wider opening fails here instead of passing unseen; write door-leaf-width as an expression over
+      the designed door's parameters so the check follows it.
+    source: concept C-003 site constraint
+  - id: REQ-006
     title: Runs on the site circuit
     statement: The element power is at most 3066.7 W, so the 230V-16A site circuit keeps a 1.2 headroom.
     category: performance
@@ -45,7 +58,7 @@ requirements:
     rationale: '230 V × 16 A / 1.2: the same 1.2 headroom screening used (rule circuit-available); the NEC
       210.20 continuous-load factor 1.25 is stricter [verify].'
     source: concept C-003 site constraint
-  - id: REQ-006
+  - id: REQ-007
     title: Rounded exposed corners
     statement: Exposed bends and corners of the body, door, stand, controls and trim have a radius of at
       least 8 mm.
@@ -55,7 +68,7 @@ requirements:
     allocation: ['asm://bracket']
     rationale: Chosen with C-003 (style corner_radius 8 mm); the threshold lives in style.yaml.
     source: concept C-003 style
-  - id: REQ-007
+  - id: REQ-008
     title: No visible fasteners on the front
     statement: No fastener holes show on the front face of the body or the door.
     category: usability
@@ -64,7 +77,7 @@ requirements:
     allocation: ['asm://bracket']
     rationale: Chosen with C-003 (style fastener_visibility hidden-front).
     source: concept C-003 style
-  - id: REQ-008
+  - id: REQ-009
     title: Controls where they were sketched
     statement: The controls sit side right on the product, as on C-003.
     category: usability

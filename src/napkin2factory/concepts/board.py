@@ -64,6 +64,9 @@ STRIP: tuple[str, ...] = (
     "circuit_class",
     "lift_class",
 )
+#: Values kept for promotion and ``--json`` but not printed on the board: the door leaf is
+#: already inside "width with the door open" (B-0027).
+HIDDEN: tuple[str, ...] = ("door_leaf",)
 #: Owner words for value names; anything else shows its name with spaces.
 NAMES: dict[str, str] = {
     "width": "width",
@@ -81,6 +84,7 @@ NAMES: dict[str, str] = {
     "circuit_class": "supply",
     "power": "power",
     "lift_class": "lifting",
+    "door_leaf": "door width",
     "heat_loss": "heat loss",
     "skin_temperature": "outside skin",
     "stored_heat": "stored heat",
@@ -242,7 +246,7 @@ def gather_card(root: Path, card: ConceptCard, style: Any) -> dict[str, Any]:
     dims = [_value(k, values[k]) for k in KEY_DIMS if k in values]
     strip = [_value(k, values[k]) for k in STRIP if k in values]
     _cost_rows(strip)
-    shown = set(KEY_DIMS) | set(STRIP)
+    shown = set(KEY_DIMS) | set(STRIP) | set(HIDDEN)
     more = [_value(k, lv) for k, lv in values.items() if k not in shown]
     rules = sc.rules if sc is not None else []
     files: dict[str, str | None] = {}

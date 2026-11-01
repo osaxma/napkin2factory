@@ -4,7 +4,9 @@ Refuses unless the folder is its own tracked project root, the tree has no unsav
 changes, and the gates pass (no failing check, every safety requirement signed).  Then it
 marks closed change requests as released, snapshots, tags the Revision, builds the
 manufacturer ZIP, and freezes ``build/site/<version>/`` (report plus the data the diff
-needs).  ``--dry-run`` does everything except the model edits, the snapshot and the tag.
+needs).  ``--dry-run`` does everything except the model edits, the snapshot and the tag;
+for a Revision that already exists it re-packages it, but only from that Revision's own
+snapshot (what a product's ``release.yml`` does on the Revision's tag in CI).
 """
 
 from __future__ import annotations
@@ -214,8 +216,14 @@ def release(
     version = check_version(version)
     vcs = Vcs(product.root)
     vcs.require_repo_root()
-    if version in vcs.tags():
+    existing = version in vcs.tags()
+    if existing and not dry_run:
         raise ReleaseError(f"Revision {version} already exists; pick the next version number")
+    if existing and vcs.revision_snapshot(version) != vcs.head():
+        raise ReleaseError(
+            f"Revision {version} already exists and the model has changed since; a dry run "
+            "re-packages a Revision only from its own snapshot. Pick the next version number."
+        )
     if not dry_run:
         vcs.require_clean()
     run_build(product, quiet=True, render=render)
@@ -266,9 +274,11 @@ def release(
         html = render_report(load_product(product.root), build_dir, vcs.commit_date())
         (frozen / "index.html").write_text(html, encoding="utf-8")
         (build_dir / "report" / "index.html").write_text(html, encoding="utf-8")
-    write_site_index(product, site, latest=version, dry_run=dry_run)
+    # re-packaging a released Revision is the Revision itself, not a preview
+    write_site_index(product, site, latest=version, dry_run=dry_run and not existing)
     return {
         "version": version,
+        "repackaged": existing,
         "zip": str(zip_path),
         "site": str(frozen),
         "snapshot": snapshot,

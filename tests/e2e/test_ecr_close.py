@@ -54,7 +54,12 @@ def test_close_refused_while_signoff_needed(tmp_path: Path) -> None:
     assert data["status"] == "applied"
     _run("signoff", "REQ-004", "--by", "x", "--statement", "inspected", cwd=root)
     r = _run("ecr", "close", "ECR-001", "--json", cwd=root)
-    assert json.loads(r.stdout)["stage"] in ("verify", "released")
+    out = json.loads(r.stdout)
+    assert out["stage"] in ("verify", "released")
+    # B-0033: the stage being worked in, as `n2f status` names it; the release is next
+    status = json.loads(_run("status", "--json", cwd=root).stdout)
+    assert out["current_stage"] == status["current_stage"] == "ready", out
+    assert out["next_step"] == "`n2f release vX.Y.Z`"
     data = yaml.safe_load((root / "changes/ECR-001.yaml").read_text())
     assert data["status"] == "closed"
 

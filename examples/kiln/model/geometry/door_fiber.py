@@ -6,7 +6,7 @@ Frame: front face (bonded to the door tray) at z = 0, the plug grows along +Z in
 
 
 def build(P, I, kit):  # noqa: N803
-    """Frustum: ``door-plug-width`` × ``door-plug-height`` at the front, sides drawn in by the taper."""
+    """Frustum: ``door-plug-width`` × ``door-plug-height`` at the front, sides drawn in by taper."""
     import math
 
     from build123d import Rectangle, extrude
@@ -24,7 +24,9 @@ def build(P, I, kit):  # noqa: N803
     result.shape = shape
     result.features.process = "cut-sheet"
     rear_w = w - 2 * d * math.tan(math.radians(taper))
-    result.dims.append(Dim("rear width", rear_w, (-rear_w / 2, -h / 2, d), (rear_w / 2, -h / 2, d), view="top"))
+    result.dims.append(
+        Dim("rear width", rear_w, (-rear_w / 2, -h / 2, d), (rear_w / 2, -h / 2, d), view="top")
+    )
     result.props["taper_deg"] = taper
     result.props["rear_width"] = rear_w
     return result

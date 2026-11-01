@@ -28,7 +28,9 @@ def build(P, I, kit):  # noqa: N803
     shape.label = result.shape.label
     result.shape = shape
     result.features.process = "cut-block"
-    result.dims.append(Dim("rear width", rear_w, (-rear_w / 2, -h / 2, d), (rear_w / 2, -h / 2, d), view="top"))
+    result.dims.append(
+        Dim("rear width", rear_w, (-rear_w / 2, -h / 2, d), (rear_w / 2, -h / 2, d), view="top")
+    )
     result.props["taper_deg"] = taper
     result.props["rear_width"] = rear_w
     return result

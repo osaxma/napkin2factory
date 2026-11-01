@@ -67,8 +67,8 @@ heat, power = est["heat_up_time"]["value"], given["power"]["value"]
 print("   C-001 tells two more stories, both in the numbers above:")
 print(
     f"     cost (DEC-012): the owner hoped for about 1500 USD; screening's band is {low}–{high}"
-    " (estimate), and it counts only the parts it can price, so the wish sits at the bottom"
-    " of a band that is not even complete"
+    " (estimate), and it counts only the parts it can price, so the wish already sits inside"
+    " a band that is not even complete"
 )
 print(
     f'     heat-up (DEC-004): the owner asked for "about four hours"; screening says {heat} at'

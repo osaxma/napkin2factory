@@ -284,15 +284,24 @@ def massing(a: Args, ctx: KitContext) -> PartResult:
     Members are not hollow and angles are not L sections; rail ends run
     :data:`JOIN_OVERLAP` into the (solid) legs so the fuse is robust and the volume exact.
     No member features and no cut list.
+
+    The silhouette overstates the metal several times over, so the props carry what the
+    stock really holds (B-0021): ``section_area`` × ``total_member_length`` =
+    ``material_volume``, the same volume the full build's fused weldment has (see the module
+    docstring). The massing composer weighs a frame by ``material_volume``, not the boxes.
     """
     hb = validate(a)
     s = a.member.size
+    layout = pieces(a, hb)
     boxes = []
-    for p in pieces(a, hb):
+    for p in layout:
         ext, center = _solid_span(p)
         boxes.append(_box(p.axis, ext, s, s, center))
     shape = boxes[0].fuse(*boxes[1:]).clean()
-    return massing_result(shape, a.process, _overall_dims(a), ctx)
+    area = section_area(a.member)
+    total = sum(p.length for p in layout)
+    props = {"section_area": area, "total_member_length": total, "material_volume": area * total}
+    return massing_result(shape, a.process, _overall_dims(a), ctx, props)
 
 
 def generate(a: Args, ctx: KitContext) -> PartResult:

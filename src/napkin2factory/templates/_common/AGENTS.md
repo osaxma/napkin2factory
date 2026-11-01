@@ -43,6 +43,9 @@ https://raw.githubusercontent.com/osaxma/napkin2factory/main/docs/agent-guide.md
    system and has not been reviewed by a licensed engineer.
 8. Every requirement is atomic and testable: a measurable statement with a unit, a
    `verify` method, a category and an allocation. `n2f lint` enforces this.
+9. Nothing leaves this folder unless the owner asks. When they want to share the pages,
+   `n2f publish` makes `build/publish/`, one folder to send; `n2f publish --online` puts it
+   online through the product's GitHub project (see `roles/pm.md`, "Sharing the pages").
 
 ## Where things are
 - `n2f.yaml` manifest · `operator.yaml` who the owner is and how to talk to them

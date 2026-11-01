@@ -67,6 +67,11 @@ written before (or beside) the design. `id: C-001, title, status, based_on?, ref
 under concepts/], layout: {word: word}, envelope: {name: quantity | [quantities]}, site:
 {key: quantity | word}, style: {…}, massing: [{kit, as, args, at?}], notes, screening,
 decision` (schema: `core/model/concepts.py`; the full example is in `NAPKIN_STAGE.md` §3).
+Optional fields screening reads: `envelope.door_swing` (a hinged door's opening angle,
+`110 degree`; without it the door counts swung fully back), `envelope.door_width` (the leaf
+when no massing call is named `door`), `envelope.target_volume` (`8 L`, the chamber volume
+aimed for) and `site.touch_limit` (`60 degC`, the hottest outside surface allowed); see
+[napkin.md](napkin.md).
 `n2f concept new` writes a commented card with every section; `--from C-00x` copies the
 content of an earlier card and records `based_on`.
 
@@ -85,10 +90,12 @@ written by hand. `n2f concept lint` is the only validator and is deliberately li
 schema plus C1 id matches the file name, C2 every `refs` file exists under `concepts/`,
 C3 every `massing[].kit` is a kit generator, C4 `based_on` names an existing card, C5 `site`
 keys come from the known list (`alcove_width, alcove_depth, alcove_height, floor_load,
-circuit, region, lift_class, door_clearance, ambient_max, outdoor`; an unknown key only
-warns), C6 at most one card is promoted, C7 a `promoted` card carries a screening and
-`decision.dec` naming an entry in `model/decisions.yaml` (what `n2f concept promote` writes)
-and a `rejected` card a `decision.reason`. While `concepts/` holds a card, `n2f status` shows
+circuit, region, lift_class, mass_limit, door_clearance, ambient_max, outdoor,
+touch_limit`; an unknown key only warns), C6 at most one card is promoted, C7 a `promoted`
+card carries a screening and `decision.dec` naming an entry in `model/decisions.yaml` (what
+`n2f concept promote` writes) and a `rejected` card a `decision.reason`, C8 every number
+screening reads is the right kind (`envelope.power` a power, `site.alcove_width` a length;
+`QUANTITY_KINDS` in `core/concepts.py`). While `concepts/` holds a card, `n2f status` shows
 an optional **Napkin** stage before Intake, complete once a card is promoted by
 `n2f concept promote` — a status typed by hand is a blocker, not a pass (N11, review gate A).
 

@@ -13,6 +13,7 @@ which of the two labels it relied on, so a reader can tell geometry from estimat
 
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -101,32 +102,75 @@ def parse_circuit(text: str) -> tuple[Qty, Qty] | None:
     return Quantity(float(m.group(1)), "V"), Quantity(float(m.group(2)), "A")
 
 
+def door_swing_angle(card: ConceptCard) -> float | None:
+    """The card's door opening angle in degrees (``envelope.door_swing``), else ``None``.
+
+    Only an angle above 0° counts; a missing, unreadable or non-angle value is ``None``, and
+    the screen then counts the leaf swung fully back (the widest case).
+    """
+    v: Any = card.envelope.get("door_swing")
+    if not is_quantity(v):
+        return None
+    try:
+        deg = float(v.to("degree").magnitude)
+    except Exception:  # pint DimensionalityError: not an angle
+        return None
+    return deg if deg > 0 else None
+
+
+def swing_factor(angle_deg: float | None, default: float = 1.0) -> float:
+    """Share of the leaf that stands beside the hinge when the door is open.
+
+    A leaf opened by θ about a vertical hinge on the body's edge reaches ``leaf × −cos θ``
+    past the hinge side: nothing up to 90°, the whole leaf at 180°. On its way to an angle
+    beyond 180° the leaf passes 180°, so the largest reach is counted:
+    ``max(0, −cos(min(θ, 180°)))``. With no angle the ``default`` applies (1.0: the leaf
+    swung fully back, the conservative case).
+    """
+    if angle_deg is None:
+        return default
+    return max(0.0, -math.cos(math.radians(min(angle_deg, 180.0))))
+
+
+def door_leaf(card: ConceptCard, massing: MassingResult | None) -> tuple[float, str] | None:
+    """The width of the leaf that swings (mm) and its words, else ``None``.
+
+    The world x-extent of the massing call named ``door``, else ``envelope.door_width``.
+    """
+    piece = massing.piece("door") if massing is not None else None
+    if piece is not None:
+        return piece.size[0], f"the {mm_text(piece.size[0])} door leaf"
+    if is_quantity(card.envelope.get("door_width")):
+        width = _q_mm(card.envelope["door_width"])
+        return width, f"the {mm_text(width)} door (its width on the card)"
+    return None
+
+
 def door_swing_term(
     card: ConceptCard, massing: MassingResult | None, factor: float = 1.0
 ) -> tuple[float, str]:
     """Width an open hinged door adds beside its hinge side (mm) and how it was found.
 
-    For ``layout.door`` ``hinged-left`` or ``hinged-right`` the open leaf stands beside the
-    body on the hinge side, so the footprint grows by ``factor × door width`` (1.0 = the
-    leaf swung right back, the conservative case). The door width is the world x-extent of
-    the massing call named ``door``, else ``envelope.door_width``, else nothing is added
-    and the basis says so. Any other door (none, sliding, lift-off, top lid) adds 0.
+    For ``layout.door`` ``hinged-left`` or ``hinged-right`` the open leaf reaches past the
+    body on the hinge side by ``leaf × max(0, −cos θ)`` for the card's opening angle θ
+    (``envelope.door_swing``, :func:`swing_factor`); a card with no angle counts
+    ``factor × leaf`` (1.0 = the leaf swung right back, the conservative case). The leaf
+    is the world x-extent of the massing call named ``door``, else ``envelope.door_width``,
+    else nothing is added and the basis says so. Any other door (none, sliding, lift-off,
+    top lid) adds 0. The basis is in the owner's words (it ends up in rule messages).
     """
     door = str(card.layout.get("door", "")).strip().lower()
     if door not in HINGED:
-        return 0.0, f"door {door or 'not given'}: nothing swings beside the body"
-    piece = massing.piece("door") if massing is not None else None
-    if piece is not None:
-        width = piece.size[0]
-        basis = f"{door}: the {mm_text(width)} door leaf swung open beside the hinge"
-    elif is_quantity(card.envelope.get("door_width")):
-        width = _q_mm(card.envelope["door_width"])
-        basis = f"{door}: envelope.door_width {mm_text(width)} swung open beside the hinge"
-    else:
-        return 0.0, (
-            f"{door}, but no `door` massing call or envelope.door_width: the open door is "
-            "not counted"
-        )
+        return 0.0, f"a {door.replace('-', ' ') or 'missing'} door: nothing swings beside the body"
+    found = door_leaf(card, massing)
+    if found is None:
+        return 0.0, ("the card gives no door shape or door width, so the open door is not counted")
+    width, leaf = found
+    angle = door_swing_angle(card)
+    if angle is not None:
+        basis = f"{leaf} opened to {angle:g}°"
+        return swing_factor(angle) * width, basis
+    basis = f"{leaf} swung fully back; the card does not say how far it opens"
     if factor != 1.0:
         basis += f", × {factor:g}"
     return factor * width, basis
@@ -149,7 +193,8 @@ def _skip(message: str) -> Outcome:
 def fits_site_width(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
     """Footprint width plus the door-swing term fits ``site.alcove_width``.
 
-    ``width + door_swing_factor × door_width ≤ alcove_width`` for a hinged door (see
+    ``width + door leaf × max(0, −cos θ) ≤ alcove_width`` for a hinged door opening to θ,
+    ``width + door_swing_factor × door leaf`` when the card gives no angle (see
     :func:`door_swing_term`); other doors add nothing.
     """
     limit = _site_length(facts.card, "alcove_width")
@@ -461,6 +506,77 @@ def controls_not_adjacent_hot_face(facts: ConceptFacts, params: dict[str, Any]) 
     return Outcome("pass", values, [], [])
 
 
+def _temperature_text(q: Qty) -> str:
+    return f"{float(q.to('degC').magnitude):.0f} degC"
+
+
+def touch_limit_default(contact: str) -> tuple[Qty, str] | None:
+    """The burn threshold for one contact time from ``calckit/data/touch_limits.yaml``."""
+    from napkin2factory.calckit import load_table
+
+    row = next((r for r in load_table("touch_limits") if r["contact"] == contact), None)
+    if row is None:
+        return None
+    return Quantity(float(row["limit_degC"]), "degC"), str(row["words"])
+
+
+def skin_vs_touch_limit(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
+    """The outer skin estimate stays under a touch limit (advisory).
+
+    The limit is the card's ``site.touch_limit`` (given); without one, the burn threshold
+    for the rule's ``contact`` time from ``calckit/data/touch_limits.yaml`` (ISO 13732-1,
+    to be checked).
+    """
+    skin = facts.estimates.get("skin_temperature")
+    if skin is None:
+        return _skip("no outer skin estimate (it needs the chamber size and the insulation)")
+    relies = ["estimate"]
+    limit: Any = facts.card.site.get("touch_limit")
+    try:
+        limit_c = float(limit.to("degC").magnitude) if is_quantity(limit) else None
+    except Exception:  # pint DimensionalityError: not a temperature
+        limit_c = None
+    if limit_c is not None:
+        where = "on the card"
+        relies.append("given")
+    else:
+        found = touch_limit_default(str(params.get("contact", "1 min")))
+        if found is None:
+            return _skip("no touch limit on the card and none on file for this contact time")
+        limit, where = found
+        limit_c = float(limit.to("degC").magnitude)
+    values = {
+        "skin": _temperature_text(skin),
+        "limit": f"{limit_c:.0f} degC",
+        "where": where,
+    }
+    ok = float(skin.to("degC").magnitude) <= limit_c + 1e-9
+    return Outcome("pass" if ok else "violated", values, [] if ok else [values], relies)
+
+
+def chamber_volume_vs_target(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
+    """The chamber holds at least the card's ``envelope.target_volume`` (advisory)."""
+    target: Any = facts.card.envelope.get("target_volume")
+    try:
+        target_l = float(target.to("L").magnitude) if is_quantity(target) else None
+    except Exception:  # pint DimensionalityError: not a volume
+        target_l = None
+    if target_l is None:
+        return _skip("no target volume on the card")
+    chamber = facts.extra.get("chamber")
+    if chamber is None:
+        return _skip("no chamber size on the card to compare with the target volume")
+    vol = chamber[0] * chamber[1] * chamber[2]
+    vol_l = float(vol.to("L").magnitude)
+    values = {
+        "volume": f"{vol_l:.3g} L",
+        "target": f"{target_l:.3g} L",
+        "size": " × ".join(f"{_q_mm(c):.0f}" for c in chamber) + " mm",
+    }
+    ok = vol_l >= target_l - 1e-9
+    return Outcome("pass" if ok else "violated", values, [] if ok else [values], ["given"])
+
+
 CONCEPT_CHECKS: dict[str, CheckFn] = {
     "fits_site_width": fits_site_width,
     "fits_site_extent": fits_site_extent,
@@ -469,6 +585,8 @@ CONCEPT_CHECKS: dict[str, CheckFn] = {
     "blank_vs_stock_sheet": blank_vs_stock_sheet,
     "walls_fit_envelope": walls_fit_envelope,
     "controls_not_adjacent_hot_face": controls_not_adjacent_hot_face,
+    "skin_vs_touch_limit": skin_vs_touch_limit,
+    "chamber_volume_vs_target": chamber_volume_vs_target,
 }
 
 
@@ -579,10 +697,14 @@ __all__ = [
     "ConceptFacts",
     "Outcome",
     "concept_packs",
+    "door_leaf",
+    "door_swing_angle",
     "door_swing_term",
     "kg_text",
     "parse_circuit",
     "rule_params",
     "run_concept_rules",
     "sheet_blank",
+    "swing_factor",
+    "touch_limit_default",
 ]

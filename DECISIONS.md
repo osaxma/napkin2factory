@@ -46,7 +46,7 @@ should confirm before relying on them.
 | S-033 | `n2f serve` is a plain `http.server` | in force |
 | S-034 | Interface holes reach the flat pattern through `PartResult.flat_map` | in force |
 | S-035 | Parameter edits are line-targeted; other YAML edits round-trip | in force |
-| S-036 | Revision bump rule (D7/M6) | in force |
+| S-036 | Revision bump rule (D7/M6) | in force; compared from before the change request since S-089 |
 | S-037 | "Unused parameter → nothing rebuilds" holds for artifacts, not for the report | in force |
 | S-038 | Release bundle and frozen site data | in force |
 | S-039 | Diff overlays rescale to the newer drawing | in force |
@@ -73,14 +73,14 @@ should confirm before relying on them.
 | S-056 | Version pin across 0.1 → 0.2 (D20): warn, never refuse `[revisit]` | in force [revisit]: strict pin mode; pins now `>=0.3,<0.4` (S-083) |
 | S-057 | `n2f init` warms the CAD kernel in the background | in force |
 | S-058 | `validate` reports expression errors alongside reference errors | in force |
-| S-059 | True plane section render (amends D12) | in force |
+| S-059 | True plane section render (amends D12) | in force; notes surfaced (S-088) |
 | S-060 | Closing a change request waits for human sign-offs | in force |
 | S-061 | Owners read model URIs without the scheme prefix | in force |
 | S-062 | Concept cards, loader and the optional Napkin stage (M1) | in force [revisit]: released product with a new card reads Napkin |
-| S-063 | Massing fidelity in the kit (N3) | in force |
+| S-063 | Massing fidelity in the kit (N3) | in force; frames weighed by members (S-087) |
 | S-064 | The calc kit (N4) | in force; fiber k 0.15 / ρ 260 per gate A C4 (materials.yaml) |
-| S-065 | Concept screening: computed vs estimate, the concept rule pack, red is information (N5) | in force; door-swing factor 1.0 → B-0029 |
-| S-066 | Styled viewer screenshots, style.yaml presets and six kit aesthetic parameters (N6, N7) | in force [revisit]: z-buffer fallback picture |
+| S-065 | Concept screening: computed vs estimate, the concept rule pack, red is information (N5) | in force; door swing by its angle since S-085 |
+| S-066 | Styled viewer screenshots, style.yaml presets and six kit aesthetic parameters (N6, N7) | in force [revisit]: z-buffer fallback picture; layout marks and blank retry (S-093) |
 | S-067 | The board, promotion and form requirements (N8, N10): the `rule` verify kind and the form pack | in force; supply bound is V·I / 1.2 since gate A B1 (the 0.8·V·I in the entry is superseded) |
 | S-068 | The napkin protocol in the PM skill; interpretation cards (N9) | in force |
 | Gate A | Review gate A (honesty + architecture) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
@@ -101,6 +101,18 @@ should confirm before relying on them.
 | S-082 | `validate.json` names files relative to the product | in force |
 | S-083 | 0.3.0: version and the product pin move to `>=0.3,<0.4` | in force |
 | S-084 | Second round of test splits: the step is now bound by total work | in force |
+| S-085 | Door swing by its angle; the alcove follows the designed door | in force |
+| S-086 | Napkin polish: two advisory rules, owner words in notes, `at` only on change | in force |
+| S-087 | Frames and tubes are weighed by their material, not their silhouette | in force |
+| S-088 | Section-render notes reach the build output | in force |
+| S-089 | Revision bumps compare from before the change request was applied | in force |
+| S-090 | One meaning of "stage" for people: the stage being worked in | in force |
+| S-091 | The flat-area identity is exact once the bend term is counted | in force |
+| S-092 | `make lint` covers `examples/` | in force |
+| S-093 | Concept pictures draw the layout words; blank captures are retried | in force |
+| S-094 | Share mode: `n2f publish` and the online copy | in force |
+| S-095 | `release --dry-run` on an existing Revision re-packages it from its own snapshot | in force |
+| S-096 | A card number of the wrong kind is a lint error, not a crash | in force |
 
 ---
 
@@ -995,3 +1007,103 @@ Measured with all three: slowest file 177 s, test step 322 s, total test time 18
 workers: no single file sets the pace any more, so more splits cannot help; less work can (fewer
 cold builds, renders). Final `make check` test step 310 s (4 min 49 s after S-080: run-to-run
 noise is this large). A styled-screenshot test rendered blank once under load (B-0051).
+
+## S-085 — Door swing by its angle; the alcove follows the designed door (2026-11-01)
+Closes B-0029, B-0027, B-0023; amends S-065. Screening counts the room beside the hinge as
+leaf × max(0, −cos θ) from the card's `envelope.door_swing`; no angle → the leaf fully back, and a
+note says so. Kiln C-003, measured: 1698 → 1236 mm (240 mm for the 110° door instead of 702 mm).
+Promotion works from the unrounded leaf (702.4 mm, not 703) and rounds once. A requirement's bound
+is a plain quantity, so instead of an expression in the bound promotion seeds `door-leaf-width`
+and `door-swing-clearance` (an expression on it) and writes two rows: the closed width ≤ alcove −
+allowance, and `door-swing-clearance` ≤ allowance; widening the door fails the second (e2e test).
+A one-row form needs `param://` bounds in the requirement schema and evaluator: not done.
+
+## S-086 — Napkin polish: two advisory rules, owner words in notes, `at` only on change (2026-11-01)
+Closes B-0025, B-0034, B-0031. `concept-v0` gains two warn rules: outer skin vs a touch limit
+(the card's `site.touch_limit`, else `calckit/data/touch_limits.yaml`, ISO 13732-1 contact
+thresholds, every row `verify: true`) and chamber volume vs the card's `envelope.target_volume`.
+The kiln's compact C-002 now lists 91 °C skin and 3.38 L against 8 L instead of "no limitations".
+Every screening note is in owner words; a test scans them for field names. A re-screen with the
+same content keeps the card's `at` and leaves the file alone. `make kiln` keeps its scratch copy:
+building in place would rewrite a stale card and leave the tree with unsaved changes.
+
+## S-087 — Frames and tubes are weighed by their material, not their silhouette (2026-11-01)
+Closes B-0021; amends S-063. The frame kit's massing also reports `material_volume` (member
+section × cut length, equal to the full weldment's volume), and the tube kit likewise (bore and
+rounded corners included); the massing composer weighs a piece
+by it when present and by its silhouette otherwise. The shape and its `volume` are unchanged, so
+screening reads the same fields. Measured: kiln stand 31.8 → 7.2 kg; C-001's cost band 1130–2747 →
+650–2267 USD (estimate). Cost bands themselves stay wide (B-0022, waits on real quotes).
+
+## S-088 — Section-render notes reach the build output (2026-11-01)
+Closes B-0019. `Scene.notes` and a new `Scene.uncapped` are written to `renders/notes.json` next
+to the pictures, only when there are notes and kept out of `props.json`, so a part's output hash
+does not depend on rendering. `n2f build` prints them in owner words with the part's name ("its 3D
+surface has a gap, so the cut is drawn open"); `--json` carries `render_notes`. Tested by forcing
+an open face through `n2f build`.
+
+## S-089 — Revision bumps compare from before the change request was applied (2026-11-01)
+Closes B-0020; amends S-036. `ecr close` diffs declared fields from the snapshot before "Apply
+ECR-x" to the latest one; before, it saw only the last snapshot, so `apply`'s own record snapshot
+or a sign-off hid a part YAML edit with no geometry change. `apply` always takes its "Apply"
+snapshot so that point is exact. `applied.before` holds output hashes, not a snapshot, so the
+parent of `applied.snapshot` is used. Open: edits never saved before close are not seen;
+overlapping change requests can bump extra parts, never too few. Test: `test_ecr_declared.py`.
+
+## S-090 — One meaning of "stage" for people: the stage being worked in (2026-11-01)
+Closes B-0033 (gate B, B5). The status headline, the report badge and `n2f ecr close` all name the
+first gate not complete ("ready to release" when only the Revision is missing; "released" once
+the snapshot is a Revision, demonstration ones included). `--json` keeps `stage` (last gate
+passed, used by scripts and tests) and adds `current_stage`, so no field changes meaning; the
+v0.1 status fixture gains that one line. `ecr close` no longer says "stage: verify" or offers
+`n2f release` while example sign-offs still block it.
+
+## S-091 — The flat-area identity is exact once the bend term is counted (2026-11-01)
+Closes B-0026. The flat pattern was right. The bend solid keeps full thickness (mid-plane at
+k = 0.5) while the flat uses the neutral axis, so per 90° bend of length L the solid holds exactly
+(π/2)(0.5 − k)·t²·L more than area × t. Measured worst gaps 3.66 % (enclosure t = 3, r = 1,
+h = 25) and 3.26 % (bracket t = 4, r = 1); with the term the residual is ≤ 1.4e-14.
+`test_kit_sheet.py` compares against the exact value at 1e-6; the 4 % tolerance is gone. No kit
+code or golden changed.
+
+## S-092 — `make lint` covers `examples/` (2026-11-01)
+Closes B-0028. The kiln's Python is ruff-clean by formatting, wrapping and docstrings. E741 on `I`
+is ignored under `examples/*/model/geometry/**` as under `src/…/geometry/**`: `I` is the D5
+accessor. Only `examples/*/build` is excluded. No behaviour change: the same AST with docstrings
+removed, and a before/after kiln build gave byte-identical part, assembly and check outputs and
+equal manifest output hashes.
+
+## S-093 — Concept pictures draw the layout words; blank captures are retried (2026-11-01)
+Closes B-0032 (gate B, C16) and B-0051. The styled pictures draw flat, unlit, neutral ink on the
+silhouette: a door outline, a heavy hinge edge with knuckles, a handle opposite, and a controls
+panel on the face `layout` names; words naming no place draw nothing. Code lives on the
+screenshot page only (board, report and shared viewer unchanged); fallback pictures carry no
+marks. A capture with < 0.3 % of pixels off the border colour counts as blank and is rendered once
+more; a second blank falls back with a note. How often SwiftShader blanks under load: not measured.
+
+## S-094 — Share mode: `n2f publish` and the online copy (2026-11-01)
+Closes B-0037 (scope chosen by the maintainer: a folder plus an optional send, no account or
+project creation). `n2f publish` copies what exists (latest report, released Revisions with
+packages, change pages between them, the board) into `build/publish/` with a branded index; it
+builds nothing, names the command for anything missing, refuses over 20 MiB (`--since` trims).
+`--online` asks first, then sends the draft line, the Revisions and the folder as a parentless
+`gh-pages` snapshot to the existing remote in one atomic send (`core/vcs.py`, D31). Pages come
+from `gh-pages`, not CI: `build/` is untracked, a tag job rebuilds only its own Revision and a
+deploy replaces the whole site, so the product `release.yml` no longer deploys Pages. Tested
+against a local bare repository only; not yet run against GitHub.
+
+## S-095 — `release --dry-run` on an existing Revision re-packages it from its own snapshot (2026-11-01)
+Found while building S-094. A product's `release.yml` runs `n2f release <tag> --dry-run` on the
+tag it was started by, so the Revision always existed and the step always refused: every
+product's release workflow failed before attaching its package. A dry run for an existing
+Revision now re-packages it (ZIP and frozen site, not marked as a preview) only when the current
+snapshot is that Revision (`Vcs.revision_snapshot`); at any other snapshot, and without
+`--dry-run`, it still refuses. Test: `test_release_diff.py::test_dry_run_repackages_…`.
+
+## S-096 — A card number of the wrong kind is a lint error, not a crash (2026-11-01)
+Found while closing B-0025. `power: 3 kg` on a card crashed screening with a unit error.
+`QUANTITY_KINDS` in `core/concepts.py` names the kind of the 12 card numbers screening reads;
+`n2f concept lint` rule C8 makes a mismatch an error with an example ("envelope.power is 3 kg,
+which is not a power"); screening leaves such a number out with one note and the rules needing it
+skip. The napkin demo now reports 13 parameters already declared: the shipped kiln declares the
+door numbers (S-085), its `door-leaf-width` an expression on `door-guard-width`.

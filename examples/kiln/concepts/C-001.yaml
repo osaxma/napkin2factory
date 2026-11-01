@@ -13,7 +13,7 @@ refs: []
 layout: {load: front, door: hinged-left, controls: side-right, stand: four-leg}
 # model/parameters.yaml: chamber-width/-depth/-height; brick-thickness at brick-conductivity;
 # fiber-thickness at fiber-conductivity; shell-thickness; lining-clearance; fiber-clearance;
-# max-temperature; element-power (DEC-004)
+# max-temperature; element-power (DEC-004); door-swing, the door's 110 degree opening (DEC-013)
 envelope:
   chamber: [200 mm, 200 mm, 200 mm]
   insulation:
@@ -24,8 +24,10 @@ envelope:
   fiber_clearance: 2 mm
   max_temperature: 1200 degC
   power: 2500 W
+  door_swing: 110 degree
 # intake.md: a bench alcove "about 800 mm" wide; 230 V on a dedicated 16 A circuit (DEC-006)
-site: {alcove_width: 800 mm, circuit: 230V-16A}
+# touch-limit: 60 degC on any surface a user can touch (REQ-003)
+site: {alcove_width: 800 mm, circuit: 230V-16A, touch_limit: 60 degC}
 style: {preset: industrial}
 # The as-built silhouette in mm, from the parameters, placed as model/geometry/kiln.py places
 # the parts (origin on the floor under the stand's centre line, y = 0 at the guard's front lip).
@@ -52,11 +54,12 @@ massing:
 notes: >-
   The v0.1 kiln as it was built, sketched after the fact. Overall 995 × 667 × 1370 mm, the v0.1
   report's own bounding box. What screening would have said in minute five: (DEC-011) 995 mm
-  closed plus the 702 mm door leaf swung open beside its hinge is 1698 mm, against the owner's
-  alcove of about 800 mm, so this direction is red; (DEC-012) 1130–2747 USD (estimate) for the
-  parts screening can price (the guard sheets, the stand, the hinge, one control box, the brick
-  and the fiber; the inner shell, the door sheets and most bought-in parts are left out), so the
-  1500 USD wish sits at the bottom of a band that is not even complete; (DEC-004) 4.4 h to
+  closed plus the 240 mm its 702 mm door leaf reaches past the hinge at the 110 degree opening
+  is 1236 mm, against the owner's alcove of about 800 mm, so this direction is red; (DEC-012)
+  650–2267 USD (estimate) for the parts screening can price (the guard sheets, the stand, the
+  hinge, one control box, the brick and the fiber; the inner shell, the door sheets and most
+  bought-in parts are left out), so the 1500 USD wish already sits inside a band that is not
+  even complete; (DEC-004) 4.4 h to
   1200 degC at 2.5 kW (estimate). DEC-004's 7 h is the planned margin on top of that: 2.5 kW is
   1.28 times the 1.95 kW a 7 h heat-up needs (calc://element.power_margin). The intake did not
   state a region (230 V assumed, DEC-006), so the card names the circuit and no region. Two
@@ -64,7 +67,7 @@ notes: >-
   recorded for promotion but left out of screening's wall layers (a layer's clearance would be
   seeded under the layer's own name, which means a different gap in this model); and the 61 degC
   skin estimate is the bare shell, without the ventilated guard that keeps touch surfaces below
-  60 degC (REQ-003).
+  60 degC (REQ-003), so screening's touch-limit row is worth a look, not a problem.
 # written for you: screening by `n2f concept build`, decision by reject or promote
 screening:
   given:
@@ -75,7 +78,8 @@ screening:
     depth: {value: 667 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (y)}
     height: {value: 1370 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (z)}
     volume: {value: 261 L, label: computed, source: the space the rough shapes fill, ref: sum of the massing silhouettes}
-    footprint_with_door_swing: {value: 1698 mm, label: computed, source: the body plus the door leaf swung open beside the hinge, ref: 'width + open door (hinged-left: the 702 mm door leaf swung open beside the hinge)'}
+    footprint_with_door_swing: {value: 1236 mm, label: computed, source: 'the body plus what the door leaf, opened to 110°, reaches past the hinge', ref: width + open door (the 702 mm door leaf opened to 110°)}
+    door_leaf: {value: 702.4 mm, label: computed, source: the width of the door that swings open, ref: 'massing call `door`, x-extent'}
   estimates:
     insulation_mass: {value: 54.1 kg, label: estimate, source: from the wall layers' sizes and their materials; to be checked, ref: layer volumes × density (K-23 insulating firebrick; ceramic fiber board (Kaowool 1260); sheet shell)}
     heat_loss: {value: 824 W, label: estimate, source: from the wall layers at the hot-face temperature in a 25 °C room; to be checked, ref: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
@@ -83,10 +87,10 @@ screening:
     stored_heat: {value: 26.4 MJ, label: estimate, source: 'the heat the walls hold at temperature, from their materials', ref: thermal_enclosure.stored_heat}
     heat_up_time: {value: 4.4 h, label: estimate, source: from the walls' stored heat and the element power, ref: thermal_enclosure.heat_up_time}
     current: {value: 10.9 A, label: estimate, source: from the power and the circuit's voltage, ref: power.element_current at 230 V}
-    cost_low: {value: 1130 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from cost bands per process; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
-    cost_high: {value: 2747 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from cost bands per process; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
+    cost_low: {value: 650 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from cost bands per process; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
+    cost_high: {value: 2267 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from cost bands per process; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
   rules:
-    - {id: fits-site-width, title: Fits the alcove with the door open, severity: fail, status: fail, message: 'it needs 1698 mm of width — 995 mm for the body plus 702 mm for the open door (hinged-left: the 702 mm door leaf swung open beside the hinge) — but the alcove is 800 mm', relies_on: [computed]}
+    - {id: fits-site-width, title: Fits the alcove with the door open, severity: fail, status: fail, message: it needs 1236 mm of width — 995 mm for the body plus 240 mm for the open door (the 702 mm door leaf opened to 110°) — but the alcove is 800 mm, relies_on: [computed]}
     - {id: fits-site-depth, title: Fits the alcove depth, severity: fail, status: skip, message: no alcove depth on the card, relies_on: []}
     - {id: fits-site-height, title: Fits the alcove height, severity: fail, status: skip, message: no alcove height on the card, relies_on: []}
     - {id: circuit-available, title: The supply on site carries it, severity: fail, status: pass, message: '2.5 kW draws 10.9 A at 230 V: fits the 230V-16A circuit on site', relies_on: [estimate, given]}
@@ -94,9 +98,11 @@ screening:
     - {id: blank-vs-stock-sheet, title: Every sheet fits a stock size, severity: fail, status: skip, message: no folded sheet-metal shapes on the card, relies_on: []}
     - {id: walls-fit-envelope, title: The walls fit inside the body, severity: fail, status: pass, message: chamber plus 2 × 190 mm of insulation (580 × 580 × 580 mm) fits inside body (590 × 586 × 590 mm), relies_on: [computed]}
     - {id: controls-not-adjacent-hot-face, title: Controls away from the hot air path, severity: warn, status: pass, message: controls (side-right) are away from the door (hinged-left), relies_on: []}
+    - {id: skin-vs-touch-limit, title: The outside is safe to touch, severity: warn, status: warn, message: 'the outside skin is about 61 degC (estimate), above the 60 degC touch limit (on the card) — more insulation or a guard would bring it down', relies_on: [estimate, given]}
+    - {id: chamber-volume-vs-target, title: The chamber holds the target volume, severity: warn, status: skip, message: no target volume on the card, relies_on: []}
   verdict: red
-  at: '2026-10-31T19:26:23'
+  at: '2026-11-01T08:07:08'
   notes:
-    - 'the rough shapes have no mass yet: give these shapes a material: body, door'
-    - cost leaves out body (no material, so no mass), door (no material, so no mass)
+    - 'the body and the door have no material yet, so the rough shapes have no mass: give them a material to weigh them'
+    - 'the cost leaves out the body and the door: no material, so no mass to price'
 decision: {reason: 'set aside when C-003 was chosen (DEC-018)', at: '2026-10-31T19:26:39'}

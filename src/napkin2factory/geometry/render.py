@@ -79,11 +79,14 @@ class Scene:
     """A list of meshes to rasterize together.
 
     ``notes`` collects render-time remarks (e.g. a mesh that could not be capped in a
-    section) for the caller to log; :func:`rasterize` appends to it.
+    section) for the caller to log; :func:`rasterize` appends to it. ``uncapped`` lists the
+    labels of the meshes behind those notes, so a caller can name the part in its own words
+    (B-0019).
     """
 
     meshes: list[Mesh] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    uncapped: list[str] = field(default_factory=list)
 
     def bounds(self) -> tuple[Float, Float]:
         """Return (min, max) corners over all meshes."""
@@ -287,6 +290,7 @@ def rasterize(
                     note = f"{m.label or 'mesh'}: not a closed solid; section drawn without caps"
                     if note not in scene.notes:
                         scene.notes.append(note)
+                        scene.uncapped.append(m.label or "mesh")
             verts, tris = clip_below(verts, tris, section_z)
         if len(tris) == 0:
             continue

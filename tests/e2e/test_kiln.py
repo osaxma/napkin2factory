@@ -70,6 +70,12 @@ def test_kiln_promoted_direction_holds_on_the_kiln_as_built(kiln: tuple[Path, fl
     alcove = next(r for r in from_card.values() if r.title == "Fits the alcove with the door open")
     assert alcove.verify.kind == "geometry_prop"
     assert "995.4 mm" in by_id[f"req://{alcove.id}"]["message"]
+    # the door is a parameter on the designed door, not a number frozen in the bound (B-0023)
+    assert "1509.7 mm" in by_id[f"req://{alcove.id}"]["message"]
+    door = next(r for r in from_card.values() if r.title.startswith("The open door keeps"))
+    assert door.verify.kind == "param_bound" and door.id == "REQ-027"
+    assert by_id[f"req://{door.id}"]["message"] == "240.235 mm <= 240.3 mm"
+    assert load_product(root).parameters["door-leaf-width"].expr == "door-guard-width"
     form = [r for r in from_card.values() if r.verify.kind == "rule"]
     assert len(form) >= 2
     rows = [r for r in data["results"] if r["id"].startswith("rule://form-v0/")]
@@ -153,7 +159,7 @@ def test_kiln_cards_rebuild_exactly_as_shipped(kiln_concepts: Path) -> None:
     assert c1 is not None and c1.verdict == "red"
     assert [r.id for r in c1.failing] == ["fits-site-width"]
     reason = c1.failing[0].message
-    assert "995 mm for the body plus 702 mm for the open door" in reason
+    assert "995 mm for the body plus 240 mm for the open door" in reason  # 110° door (B-0029)
     assert "alcove is 800 mm" in reason
     assert c1.estimates["heat_up_time"].value == "4.4 h"  # not DEC-004's planned 7 h
     assert rebuilt["C-003"].verdict == "green"

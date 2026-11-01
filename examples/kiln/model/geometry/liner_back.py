@@ -1,6 +1,8 @@
-"""Back liner: a K23 slab with horizontal element grooves on the chamber face (−Y), drilled
-through along Y for the two element tails (at the lowest groove) and the two thermocouples
-(at chamber mid-height)."""
+"""Back liner: a K23 slab with element grooves, drilled for the element tails and thermocouples.
+
+The horizontal grooves are on the chamber face (−Y); the slab is drilled through along Y for
+the two element tails (at the lowest groove) and the two thermocouples (at chamber mid-height).
+"""
 
 
 def build(P, I, kit):  # noqa: N803
@@ -37,7 +39,9 @@ def build(P, I, kit):  # noqa: N803
     ]
     for x, z, d, label in holes:
         shape = shape - Cylinder(d / 2, 2 * t, rotation=(90, 0, 0)).moved(Location((x, 0.0, z)))
-        result.features.holes.append(Hole(center=(x, 0.0, z), diameter=d, axis=(0.0, 1.0, 0.0), label=label))
+        result.features.holes.append(
+            Hole(center=(x, 0.0, z), diameter=d, axis=(0.0, 1.0, 0.0), label=label)
+        )
     shape.label = result.shape.label
     result.shape = shape
     result.features.process = "cut-block"

@@ -11,7 +11,7 @@ built along +Z grows into it.
 
 
 def build(P, I, parts):  # noqa: N803
-    """Place tray, door guard, fiber plug, brick slab, two hinges on the left, latch on the right."""
+    """Place tray, door guard, fiber plug, brick slab, two hinges (left) and the latch (right)."""
     from napkin2factory.geometry.assembly import AssemblyResult, place
 
     skin_t = P.mm("door-skin-thickness")
@@ -25,15 +25,54 @@ def build(P, I, parts):  # noqa: N803
     res = AssemblyResult()
     rot = (-90.0, 0.0, 0.0)
     # enclosure kit: tray base at z ∈ [0, t]; −90° about X puts the base at y ∈ [0, t]
-    res.add(place("part://door-tray", parts["door-tray"], translate=(0.0, -skin_t, 0.0), rotate=rot, label="tray"))
-    res.add(place("part://door-guard", parts["door-guard"], translate=(0.0, -dg_off, 0.0), rotate=rot, label="guard"))
+    res.add(
+        place(
+            "part://door-tray",
+            parts["door-tray"],
+            translate=(0.0, -skin_t, 0.0),
+            rotate=rot,
+            label="tray",
+        )
+    )
+    res.add(
+        place(
+            "part://door-guard",
+            parts["door-guard"],
+            translate=(0.0, -dg_off, 0.0),
+            rotate=rot,
+            label="guard",
+        )
+    )
     # plug: extruded along +Z from z = 0 → y ∈ [0, dft]; brick slab behind it
     res.add(place("part://door-fiber", parts["door-fiber"], rotate=rot, label="fiber"))
-    res.add(place("part://door-brick", parts["door-brick"], translate=(0.0, dft, 0.0), rotate=rot, label="brick"))
+    res.add(
+        place(
+            "part://door-brick",
+            parts["door-brick"],
+            translate=(0.0, dft, 0.0),
+            rotate=rot,
+            label="brick",
+        )
+    )
     # hinge barrels (block 12 × 12 × 60, base centre at the origin) on the pin axis; the pin
     # axis is given from the guard lip plane, the door frame sits door-gap in front of it
     for i, zc in enumerate((-spacing / 2, spacing / 2)):
-        res.add(place("part://hinge", parts["hinge"], translate=(pin_x, pin_y + door_gap, zc - 30.0), label=f"hinge-{i + 1}"))
+        res.add(
+            place(
+                "part://hinge",
+                parts["hinge"],
+                translate=(pin_x, pin_y + door_gap, zc - 30.0),
+                label=f"hinge-{i + 1}",
+            )
+        )
     # latch (block 60 × 15 × 25) turned to run along Y, against the door guard's right wall
-    res.add(place("part://latch", parts["latch"], translate=(dg_w / 2 + 7.5, 22.0, -12.5), rotate=(0.0, 0.0, 90.0), label="latch"))
+    res.add(
+        place(
+            "part://latch",
+            parts["latch"],
+            translate=(dg_w / 2 + 7.5, 22.0, -12.5),
+            rotate=(0.0, 0.0, 90.0),
+            label="latch",
+        )
+    )
     return res

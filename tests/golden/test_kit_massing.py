@@ -118,11 +118,72 @@ def test_frame_silhouette_volume_is_solid_members():
     assert r.shape.volume == pytest.approx(s * s * (legs + rails_x + rails_y), rel=1e-6)
 
 
+@pytest.mark.parametrize(
+    "member",
+    [
+        {"profile": "square-tube", "size": 25, "wall": 2},
+        {"profile": "angle", "size": 25, "wall": 3},
+    ],
+    ids=["square-tube", "angle"],
+)
+def test_frame_massing_carries_the_member_material(member):
+    """B-0021: the silhouette is solid, the props say how much metal the stock holds."""
+    args = {**BASIC["frame"], "member": member}
+    r = _massing("frame", args)
+    full = run("frame", args, KitContext("m"))
+    assert r.props["material_volume"] == pytest.approx(full.shape.volume, rel=1e-9)
+    assert r.props["material_volume"] == pytest.approx(
+        r.props["section_area"] * r.props["total_member_length"]
+    )
+    assert r.props["total_member_length"] == pytest.approx(full.props["total_member_length"])
+    assert r.shape.volume > 3 * r.props["material_volume"]
+
+
 def test_tube_silhouette_has_no_bore():
     r = _massing("tube", {**BASIC["tube"], "axis": "y"})
     full = run("tube", {**BASIC["tube"], "axis": "y"}, KitContext("m"))
     assert r.shape.volume > full.shape.volume
     assert _bounds(r) == pytest.approx(_bounds(full), abs=0.05)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        BASIC["tube"],
+        {"shape": "square", "size": 30, "wall": 2, "length": 250, "corner_radius": 4},
+        {"shape": "square", "size": 30, "wall": 3, "length": 250, "corner_radius": 2},
+        {"size": 20, "length": 100},  # a solid bar
+    ],
+    ids=["round", "square-rounded", "square-sharp-bore", "solid-bar"],
+)
+def test_tube_massing_carries_the_material(args):
+    """A hollow tube is weighed hollow: the props hold section × length, the full volume."""
+    r = _massing("tube", args)
+    full = run("tube", args, KitContext("m"))
+    assert r.props["material_volume"] == pytest.approx(full.shape.volume, rel=1e-6)
+    assert r.props["material_volume"] == pytest.approx(r.props["section_area"] * args["length"])
+    assert r.shape.volume >= r.props["material_volume"] - 1e-6  # the silhouette is unchanged
+
+
+def test_tube_is_weighed_hollow_in_a_concept():
+    """The massing composer weighs a tube call by its material volume (B-0021)."""
+    from napkin2factory.concepts.massing import compose
+    from napkin2factory.core.model import ConceptCard
+
+    card = ConceptCard.model_validate(
+        {
+            "id": "C-001",
+            "title": "a pole",
+            "massing": [
+                {"kit": "tube", "as": "pole", "material": "mild steel", "args": BASIC["tube"]}
+            ],
+        }
+    )
+    piece = compose(card, write=False).piece("pole")
+    assert piece is not None and piece.density is not None and piece.mass is not None
+    full = run("tube", BASIC["tube"], KitContext("m"))
+    assert piece.mass == pytest.approx(full.shape.volume * 1e-9 * piece.density, rel=1e-6)
+    assert piece.volume > 2 * (piece.material_volume or 0)
 
 
 def test_silhouette_has_far_fewer_faces():

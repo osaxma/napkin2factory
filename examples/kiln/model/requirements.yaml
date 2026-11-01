@@ -200,13 +200,15 @@ requirements:
     source: review gate 3
   - id: REQ-023
     title: Fits the alcove with the door open
-    statement: The closed width plus the door swing of 703 mm stays within the 1750 mm alcove.
+    statement: The closed width plus the 240.3 mm the open door takes beside the hinge stays within the
+      1750 mm alcove.
     category: geometry
     priority: must
-    verify: {kind: geometry_prop, target: 'asm://kiln#props.bbox.x', op: <=, value: 1047 mm}
-    allocation: ['asm://kiln']
-    rationale: 'Door-swing term 703 mm (computed by screening: hinged-left: the 702 mm door leaf swung open
-      beside the hinge); 1750 mm − 703 mm = 1047 mm for the closed width.'
+    verify: {kind: geometry_prop, target: 'asm://kiln#props.bbox.x', op: <=, value: 1509.7 mm}
+    allocation: ['asm://kiln', 'param://door-swing-clearance']
+    rationale: '1750 mm − 240.3 mm = 1509.7 mm for the closed width. The open door''s room is door-swing-clearance:
+      702.4 mm × max(0, −cos 110°) = 240.235 mm, held to 240.3 mm by the requirement "The open door keeps
+      to its room beside the hinge" (REQ-027).'
     source: concept C-003 site constraint
   - id: REQ-024
     title: Runs on the site circuit
@@ -238,3 +240,14 @@ requirements:
     rationale: Layout chosen with C-003 (layout.controls side-right); a misplaced control is a warning,
       never a failure.
     source: concept C-003 style
+  - id: REQ-027
+    title: The open door keeps to its room beside the hinge
+    statement: The open door takes at most 240.3 mm beside the hinge, the room the alcove leaves it.
+    category: geometry
+    priority: must
+    verify: {kind: param_bound, target: 'param://door-swing-clearance', op: <=, value: 240.3 mm}
+    allocation: ['param://door-swing-clearance', 'param://door-leaf-width']
+    rationale: door-swing-clearance is the expression door-leaf-width * 0.34202, and door-leaf-width is the
+      door guard's outside width (door-guard-width), so a wider door or a wider opening fails here instead
+      of passing unseen.
+    source: concept C-003 site constraint

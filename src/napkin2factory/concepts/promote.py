@@ -335,7 +335,12 @@ def plan_parameters(
     seeded: list[SeededParam] = []
     conflicts: list[str] = []
     new_lines: list[str] = []
-    for name, q, source in seed_plan(card, notes):
+    plan: list[tuple[str, Any, str, str | None]] = [
+        (name, q, source, None) for name, q, source in seed_plan(card, notes)
+    ]
+    planned_names = {item[0] for item in plan}
+    plan += [item for item in door_seeds(card) if item[0] not in planned_names]
+    for name, q, source, expr in plan:
         value_text = _q_text(q)
         if name in product.parameters:
             declared = product.parameters[name]
@@ -351,7 +356,7 @@ def plan_parameters(
             if not override:
                 conflicts.append(f"{name} is {was} in the model but {value_text} on {card.id}")
                 continue
-            if declared.expr is not None:
+            if declared.expr is not None or expr is not None:
                 conflicts.append(
                     f"{name} is computed by an expression ({declared.expr}), so it cannot be "
                     "overwritten; change the card or the expression by hand"
@@ -370,11 +375,12 @@ def plan_parameters(
             seeded.append(SeededParam(name, value_text, "overwritten", was=was, source=source))
             continue
         mag, unit = _split(q)
+        fields: dict[str, Any] = {"expr": expr} if expr is not None else {"value": mag}
         entry = {
             name: {
-                "value": mag,
+                **fields,
                 "unit": unit,
-                "description": f"from concept {card.id}",
+                "description": f"from concept {card.id}" + _SEED_WORDS.get(name, ""),
                 "owner": SEED_OWNER,
             }
         }
@@ -407,17 +413,135 @@ def _site_length(card: ConceptCard, key: str) -> Any:
     return None
 
 
-def door_swing_term(card: ConceptCard) -> tuple[Any, str]:
-    """The screening's computed door-swing term (mm) and its basis.
+#: Parameters promotion seeds for the alcove requirements (B-0023): the leaf that swings
+#: (unless the card gives ``envelope.door_width``, seeded as ``door-width``) and the room it
+#: takes beside the hinge, an expression over the leaf.
+DOOR_LEAF_PARAM = "door-leaf-width"
+DOOR_ROOM_PARAM = "door-swing-clearance"
+DOOR_ROW_TITLE = "The open door keeps to its room beside the hinge"
+_SEED_WORDS = {
+    DOOR_LEAF_PARAM: ": the width of the door that swings open; write it as an expression "
+    "over the door's own parameters so the alcove requirements follow the designed door",
+    DOOR_ROOM_PARAM: ": the room the open door takes beside the hinge",
+}
 
-    ``footprint_with_door_swing − width`` from the card's computed values (0 when the door
-    is not hinged); the basis is the footprint's engineering ``ref`` (its ``source`` on
-    cards screened before review gate B).
+
+@dataclass
+class DoorSwing:
+    """The open door beside the hinge, from the raw screening value and the card's angle."""
+
+    leaf: Any  # the leaf width (mm), as screening measured it
+    factor: float  # max(0, −cos θ), or the rule's factor when the card gives no angle
+    angle: float | None  # degrees
+    leaf_param: str  # the parameter the room is an expression over
+    basis: str  # the screening's own words for it
+
+    @property
+    def factor_text(self) -> str:
+        """The factor as written in the expression (6 significant digits)."""
+        return f"{self.factor:.6g}"
+
+    @property
+    def expr(self) -> str:
+        """``door-leaf-width * 0.34202`` (or the leaf alone when the factor is 1)."""
+        if self.factor_text == "1":
+            return self.leaf_param
+        return f"{self.leaf_param} * {self.factor_text}"
+
+    @property
+    def term(self) -> Any:
+        """The room beside the hinge, unrounded: what the expression evaluates to."""
+        return (self.leaf * float(self.factor_text)).to("mm")
+
+    @property
+    def allowance(self) -> Any:
+        """The room rounded *up* to 0.1 mm once, so the expression never exceeds it."""
+        from napkin2factory.core.units import Quantity
+
+        raw = float(self.term.magnitude)
+        return Quantity(math.ceil(round(raw * 10, 6)) / 10, "mm")
+
+    def words(self) -> str:
+        """``702.4 mm × max(0, −cos 110°) = 240.235 mm``, for the rationale."""
+        leaf, term = _q_text(self.leaf), _q_text(self.term)
+        if self.angle is not None:
+            return f"{leaf} × max(0, −cos {self.angle:g}°) = {term}"
+        if self.factor_text == "1":
+            return f"{leaf}, the leaf swung fully back (the card gives no opening angle)"
+        return f"{leaf} × {self.factor_text} = {term} (the card gives no opening angle)"
+
+
+def door_swing(card: ConceptCard) -> DoorSwing | None:
+    """The hinged door's leaf (raw) and factor, ``None`` when there is nothing to seed.
+
+    The leaf is the screening's ``door_leaf`` value (0.1 mm, the massing's precision), or
+    the card's ``envelope.door_width``; cards screened before it was recorded have neither
+    and fall back to :func:`door_swing_term`'s difference.
+    """
+    from napkin2factory.rulepacks.concept_checks import (
+        HINGED,
+        door_swing_angle,
+        rule_params,
+        swing_factor,
+    )
+
+    sc = card.screening
+    door = str(card.layout.get("door", "") or "").strip().lower()
+    if sc is None or door not in HINGED:
+        return None
+    leaf_param = DOOR_LEAF_PARAM
+    leaf = _lv_quantity(sc.computed.get("door_leaf"))
+    on_card = card.envelope.get("door_width")
+    if is_quantity(on_card) and "door_width" in card.envelope:
+        leaf, leaf_param = on_card, "door-width"
+    if leaf is None:
+        return None
+    try:
+        leaf = leaf.to("mm")
+    except Exception:  # pint DimensionalityError: not a length
+        return None
+    angle = door_swing_angle(card)
+    default = float(rule_params("fits-site-width").get("door_swing_factor", 1.0))
+    foot = sc.computed.get("footprint_with_door_swing")
+    basis = (
+        (foot.ref or foot.source).removeprefix("width + open door (").removesuffix(")")
+        if foot is not None
+        else "the door leaf"
+    )
+    return DoorSwing(leaf, swing_factor(angle, default), angle, leaf_param, basis)
+
+
+def door_seeds(card: ConceptCard) -> list[tuple[str, Any, str, str | None]]:
+    """``(name, quantity, source, expr)`` for the door parameters the alcove rows read.
+
+    Only for a card with an alcove width and a hinged door that reaches past the hinge.
+    """
+    ds = door_swing(card)
+    if ds is None or ds.factor <= 0 or _site_length(card, "alcove_width") is None:
+        return []
+    out: list[tuple[str, Any, str, str | None]] = []
+    if ds.leaf_param == DOOR_LEAF_PARAM:
+        out.append((DOOR_LEAF_PARAM, ds.leaf, "screening: the door that swings open", None))
+    out.append((DOOR_ROOM_PARAM, ds.term, f"screening: {ds.words()}", ds.expr))
+    return out
+
+
+def door_swing_term(card: ConceptCard) -> tuple[Any, str]:
+    """The screening's door-swing term (mm) and its basis.
+
+    From the raw leaf and the card's angle (:func:`door_swing`) when the screening recorded
+    the leaf (B-0027: never the difference of two rounded values); otherwise, for cards
+    screened before, ``footprint_with_door_swing − width`` from the card's computed values
+    (0 when the door is not hinged). The basis is the footprint's engineering ``ref`` (its
+    ``source`` on cards screened before review gate B).
     """
     from napkin2factory.core.units import Quantity
 
     sc = card.screening
     assert sc is not None
+    ds = door_swing(card)
+    if ds is not None:
+        return ds.term, ds.basis
     foot = sc.computed.get("footprint_with_door_swing")
     width = _lv_quantity(sc.computed.get("width"))
     footq = _lv_quantity(foot)
@@ -459,8 +583,64 @@ def site_requirements(
         }
 
     width = _site_length(card, "alcove_width")
-    if width is not None:
+    seeded_names = {p.name for p in seeded}
+    ds = door_swing(card)
+    if width is not None and ds is not None and DOOR_ROOM_PARAM in seeded_names:
+        # the door is a parameter, not a number frozen in the bound (review gate A, C8;
+        # B-0023): the closed width gets the alcove less the door's allowance, and a second
+        # row holds the door to that allowance, so a wider or further-opening door fails
+        allowance = ds.allowance
+        limit = (width - allowance).to("mm")
+        room = f"param://{DOOR_ROOM_PARAM}"
+        leaf_uri = f"param://{ds.leaf_param}"
+        out.append(
+            (
+                "alcove",
+                {
+                    "title": "Fits the alcove with the door open",
+                    "statement": f"The closed width plus the {_q_text(allowance)} the open door "
+                    f"takes beside the hinge stays within the {_q_text(width)} alcove.",
+                    "category": "geometry",
+                    "verify": geometry("bbox.x", "<=", limit),
+                    "allocation": [f"asm://{top}", room] if top else "unallocated",
+                    "rationale": f"{_q_text(width)} − {_q_text(allowance)} = {_q_text(limit)} "
+                    f"for the closed width. The open door's room is {DOOR_ROOM_PARAM}: "
+                    f"{ds.words()}, held to {_q_text(allowance)} by the requirement "
+                    f'"{DOOR_ROW_TITLE}".',
+                },
+            )
+        )
+        out.append(
+            (
+                "alcove",
+                {
+                    "title": DOOR_ROW_TITLE,
+                    "statement": f"The open door takes at most {_q_text(allowance)} beside the "
+                    "hinge, the room the alcove leaves it.",
+                    "category": "geometry",
+                    "verify": {
+                        "kind": "param_bound",
+                        "target": room,
+                        "op": "<=",
+                        "value": _q_text(allowance),
+                    },
+                    "allocation": [room, leaf_uri],
+                    "rationale": f"{DOOR_ROOM_PARAM} is the expression {ds.expr}, so a wider "
+                    f"door ({ds.leaf_param}) or a wider opening fails here instead of "
+                    "passing unseen; write "
+                    f"{ds.leaf_param} as an expression over the designed door's parameters "
+                    "so the check follows it.",
+                },
+            )
+        )
+    elif width is not None:
         term, basis = door_swing_term(card)
+        if ds is None and float(term.magnitude) > 0:
+            notes.append(
+                "the screening does not record the door's width (it predates that): the "
+                "alcove bound holds the door swing as a number — rebuild the card "
+                f"(`n2f concept build {card.id}`) and promote again to make it a parameter"
+            )
         limit = (width - term).to("mm")
         term_mm = float(term.magnitude)
         swing = (

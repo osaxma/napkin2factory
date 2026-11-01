@@ -18,6 +18,8 @@ from napkin2factory.geometry.render import Mesh, Scene, color_for, rasterize, wr
 #: Fixed deflection for the reproducibility hash (D14) and the embedded GLBs.
 TESS_TOLERANCE = 0.1
 TESS_ANGULAR = 0.3
+#: Render-time remarks (``Scene.notes``) land in this file next to the PNGs (B-0019).
+RENDER_NOTES = "notes.json"
 
 
 def tessellate(
@@ -114,7 +116,13 @@ def render_views(
     size: tuple[int, int] = (800, 600),
     section_z: float | None = None,
 ) -> dict[str, Path]:
-    """Front, top, right, iso and (optionally) a section render (D12)."""
+    """Front, top, right, iso and (optionally) a section render (D12).
+
+    What the rasterizer had to remark (``scene.notes``, e.g. an open mesh drawn clipped but
+    not capped in the section) is written to ``notes.json`` beside the PNGs, only when there
+    is something to say (B-0019); :func:`read_render_notes` reads it back. The returned map
+    holds the images only.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     paths: dict[str, Path] = {}
     for view in ("front", "top", "right", "iso"):
@@ -123,7 +131,24 @@ def render_views(
         paths["section"] = write_png(
             out_dir / "section.png", rasterize(scene, "iso", size, section_z=section_z)
         )
+    notes_path = out_dir / RENDER_NOTES
+    if scene.notes:
+        write_json(notes_path, {"notes": list(scene.notes), "uncapped": list(scene.uncapped)})
+    elif notes_path.exists():
+        notes_path.unlink()
     return paths
+
+
+def read_render_notes(renders_dir: Path) -> dict[str, list[str]]:
+    """``notes.json`` of a renders folder: ``{"notes": [...], "uncapped": [...]}``, or empty."""
+    path = renders_dir / RENDER_NOTES
+    if not path.is_file():
+        return {"notes": [], "uncapped": []}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        "notes": [str(n) for n in data.get("notes", [])],
+        "uncapped": [str(u) for u in data.get("uncapped", [])],
+    }
 
 
 def scene_for_part(uri: str, vertices: NDArray[np.float64], triangles: NDArray[np.int64]) -> Scene:

@@ -124,3 +124,39 @@ def test_bad_cards_are_actionable(massing: list[dict[str, Any]], match: str) -> 
 def test_write_needs_a_folder() -> None:
     with pytest.raises(N2FError, match="needs the product folder"):
         compose(_card([BODY]), None)
+
+
+STAND: dict[str, Any] = {
+    "kit": "frame",
+    "as": "stand",
+    "material": "mild steel",
+    "args": {
+        "length": "512.4 mm",
+        "width": "507.2 mm",
+        "height": "700 mm",
+        "member": {"profile": "square-tube", "size": "25 mm", "wall": "1.5 mm"},
+        "bottom_rail_height": "150 mm",
+    },
+}
+
+
+def test_frame_is_weighed_by_its_tube_not_its_solid_silhouette() -> None:
+    """B-0021: the kiln stand's solid boxes overstated its mass about 4.4 times."""
+    from napkin2factory.geometry.kit import KitContext, run
+
+    result = compose(_card([STAND, BODY]), write=False)
+    stand = result.piece("stand")
+    assert stand is not None and stand.density is not None
+    full = run("frame", STAND["args"], KitContext("s"))  # the full build's hollow weldment
+    assert stand.material_volume == pytest.approx(full.shape.volume, rel=1e-9)
+    assert stand.mass == pytest.approx(full.shape.volume * 1e-9 * stand.density, rel=1e-9)
+    assert stand.volume > 4 * (stand.material_volume or 0)  # the silhouette is unchanged
+    piece = result.props["pieces"]["stand"]
+    assert piece["mass"] == pytest.approx(stand.mass, abs=1e-6)
+    assert piece["material_volume"] == pytest.approx(stand.material_volume, abs=1e-3)
+    assert result.props["mass"] == pytest.approx(result.mass, rel=1e-6)
+    assert "frames and tubes: member section" in result.props["mass_source"]
+    # the body is still weighed by its silhouette, and says nothing about member sections
+    body = result.piece("body")
+    assert body is not None and body.material_volume is None
+    assert "material_volume" not in result.props["pieces"]["body"]

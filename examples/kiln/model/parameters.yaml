@@ -169,3 +169,6 @@ parameters:
   target-unit-cost:    {value: 2500, unit: USD, description: "Target cost at quantity 1 (DEC-012; the intake said about 1500 USD)", owner: intake}
   mass-limit:          {value: 120, unit: kg, description: "Complete kiln with stand; the body is lifted onto the stand by two people with the door and bricks out (DEC-008)"}
   chamber-volume:      {expr: "chamber-width * chamber-depth * chamber-height", unit: liter, description: "Gross interior volume of the chamber"}
+  # --- from concept C-003 (n2f concept promote); the leaf follows the designed door ---
+  door-leaf-width:     {expr: "door-guard-width", unit: mm, description: "from concept C-003: the width of the door that swings open, the door guard's outside width (702.4 mm, as screening measured it)", owner: napkin}
+  door-swing-clearance: {expr: "door-leaf-width * 0.34202", unit: mm, description: "from concept C-003: the room the open door takes beside the hinge (the leaf × −cos 110°, the door-swing angle)", owner: napkin}

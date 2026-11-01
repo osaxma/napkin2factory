@@ -279,7 +279,13 @@ def apply(product: Product, ecr_id: str, snapshot: bool = True) -> list[str]:
             lines.append(f"task for the designer: {t}")
     # validate the result before snapshotting
     fresh = load_product(product.root)
-    sha = vcs.snapshot(f"Apply {ecr.id}: {ecr.title}") if snapshot else (vcs.head() or "")
+    # always a snapshot of its own (empty for a tasks-only design change), so the one before
+    # it is the model as it stood before this change request (B-0020, `_snapshot_before`)
+    sha = (
+        vcs.snapshot(f"Apply {ecr.id}: {ecr.title}", allow_empty=True)
+        if snapshot
+        else (vcs.head() or "")
+    )
     _transition(
         fresh,
         fresh.ecrs[ecr.id],
@@ -306,17 +312,24 @@ def _output_hashes(product: Product) -> dict[str, str]:
 # ---- close ---------------------------------------------------------------------------
 
 
-def bump_revisions(product: Product, before: dict[str, str]) -> dict[str, tuple[str, str]]:
+def bump_revisions(
+    product: Product, before: dict[str, str], since: str | None = None
+) -> dict[str, tuple[str, str]]:
     """Bump revs of changed parts, then of assemblies whose children changed.
 
-    Returns ``{uri: (old, new)}``.
+    A part changed when its output hash moved (``before`` → now) or its YAML differs
+    between the snapshot ``since`` and the latest one (declared fields: finish, material,
+    cost... that leave the geometry alone).  ``since`` is the snapshot before the change
+    request was applied (:func:`_snapshot_before`); without it only the latest snapshot
+    is diffed.  Returns ``{uri: (old, new)}``.
     """
     after = _output_hashes(product)
+    declared = _changed_files(product, since)
     bumped: dict[str, tuple[str, str]] = {}
     for part in product.parts.values():
         rid = f"part:{part.id}"
         changed = before.get(rid) != after.get(rid) if (rid in before or rid in after) else False
-        if changed or _declared_changed(product, part.uri):
+        if changed or _part_rel(product, part.id) in declared:
             path = product.paths.parts / f"{part.id}.yaml"
             data = load_roundtrip(path)
             old = str(data.get("rev", "A"))
@@ -344,10 +357,38 @@ def _asm_order(product: Product) -> list[str]:
     return assembly_order(product)
 
 
-def _declared_changed(product: Product, uri: str) -> bool:
-    """Did this part's YAML change since the applied snapshot's parent? (vcs diff)."""
-    rel = f"model/parts/{uri.split('://')[1]}.yaml"
-    return rel in Vcs(product.root).changed_in_last_snapshot()
+#: git's empty tree: what a change request applied in the very first snapshot diffs against.
+_EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+
+def _snapshot_before(product: Product, ecr: Ecr) -> str | None:
+    """The snapshot just before ``ecr`` was applied (B-0020).
+
+    ``apply`` records the snapshot that holds the change; its parent is the model as it
+    stood before.  Later snapshots (a sign-off, the designer's own work) are all inside
+    the span from there to the latest snapshot.
+    """
+    snap = ecr.applied.snapshot if ecr.applied else ""
+    if not snap:
+        return None
+    vcs = Vcs(product.root)
+    if not vcs.ref_exists(snap):
+        return None
+    parent = f"{snap}~1"
+    return parent if vcs.ref_exists(parent) else _EMPTY_TREE
+
+
+def _changed_files(product: Product, since: str | None) -> set[str]:
+    """Files that differ between ``since`` and the latest snapshot (or in the latest one)."""
+    vcs = Vcs(product.root)
+    if since is None:
+        return set(vcs.changed_in_last_snapshot())
+    return set(vcs.diff_names(since, vcs.head() or since))
+
+
+def _part_rel(product: Product, part_id: str) -> str:
+    """A part's YAML path as the vcs diff names it (relative to the product root)."""
+    return (product.paths.parts / f"{part_id}.yaml").relative_to(product.paths.root).as_posix()
 
 
 def _close_gate(ecr_id: str, results: list[dict[str, Any]]) -> None:
@@ -398,7 +439,7 @@ def close(product: Product, ecr_id: str) -> dict[str, Any]:
     )
     _close_gate(ecr.id, checks["results"])
     before = (ecr.applied.model_dump() if ecr.applied else {}).get("before") or {}
-    bumped = bump_revisions(product, dict(before))
+    bumped = bump_revisions(product, dict(before), since=_snapshot_before(product, ecr))
     if bumped:
         run_build(load_product(product.root), target="checks", quiet=True)
     _append_changelog(product, ecr, bumped)
@@ -407,11 +448,14 @@ def close(product: Product, ecr_id: str) -> dict[str, Any]:
     vcs.snapshot(f"Close {ecr.id}: {ecr.title}")
     # unpromoted concept cards never gate a release (N11), so the Napkin gate stays out of
     # the next step here (review gate A, C11)
+    # ``stage`` keeps its v0.1 meaning (last gate passed) for scripts; ``current_stage`` is
+    # the stage being worked in, the one `n2f status` and the report name (B-0033)
     stage = compute_stage(load_product(product.root), napkin=False)
-    next_step = "`n2f release vX.Y.Z`" if stage.stage == "verify" else stage.next_step
+    next_step = "`n2f release vX.Y.Z`" if stage.current == "ready" else stage.next_step
     return {
         "bumped": {k: list(v) for k, v in bumped.items()},
         "stage": stage.stage,
+        "current_stage": stage.current,
         "next_step": next_step,
     }
 

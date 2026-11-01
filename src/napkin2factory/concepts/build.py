@@ -14,6 +14,7 @@ from typing import Any
 
 from napkin2factory.concepts.massing import MassingResult, compose, concept_build_dir
 from napkin2factory.concepts.screening import (
+    keep_unchanged_at,
     screen,
     write_screening_json,
     write_screening_to_card,
@@ -123,7 +124,9 @@ def build_concept(
             if note not in screening.notes:
                 screening.notes.append(note)
     write_screening_json(out_dir, card, screening)
-    write_screening_to_card(root, card.id, screening)
+    # the card file changes only when the screening says something new (B-0031)
+    if not keep_unchanged_at(card.screening, screening):
+        write_screening_to_card(root, card.id, screening)
     updated = cm.load_card(root, card.id)
     return ConceptBuild(
         updated, massing, screening, out_dir, time.perf_counter() - t0, screenshots=shots

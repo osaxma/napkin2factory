@@ -35,9 +35,33 @@ def build(P, I, kit):  # noqa: N803 — P and I are the recording accessors
     shape.label = result.shape.label
     result.shape = shape
     result.features.process = "cut-block"
-    result.dims.append(Dim("groove pitch", pitch, (t / 2, -depth / 2, pitch), (t / 2, -depth / 2, 2 * pitch), view="front"))
-    result.dims.append(Dim("groove depth", gd, (t / 2 - gd, -depth / 2, pitch), (t / 2, -depth / 2, pitch), view="top"))
-    result.dims.append(Dim("groove length", cd, (t / 2, -depth / 2, pitch), (t / 2, -depth / 2 + cd, pitch), view="top"))
+    result.dims.append(
+        Dim(
+            "groove pitch",
+            pitch,
+            (t / 2, -depth / 2, pitch),
+            (t / 2, -depth / 2, 2 * pitch),
+            view="front",
+        )
+    )
+    result.dims.append(
+        Dim(
+            "groove depth",
+            gd,
+            (t / 2 - gd, -depth / 2, pitch),
+            (t / 2, -depth / 2, pitch),
+            view="top",
+        )
+    )
+    result.dims.append(
+        Dim(
+            "groove length",
+            cd,
+            (t / 2, -depth / 2, pitch),
+            (t / 2, -depth / 2 + cd, pitch),
+            view="top",
+        )
+    )
     result.props["groove_count"] = n
     result.props["groove_length_total"] = n * cd
     return result
