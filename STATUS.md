@@ -40,7 +40,8 @@ outside model's brief for after it lands.
 v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
 package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120: planned;
 its prerequisite B-0073 (platform-stable sign-off evidence keys) is fixed in S-121, and the next
-Linux nightly on a pushed `main` is the proof. Ready to start at M0.
+Linux nightly on a pushed `main` is the proof.
+- M0 baseline (the before numbers: files a new step edits, product words, file sizes, check time) — S-122.
 
 v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
 `HANDOFF-REPORT-v0.4.md`:

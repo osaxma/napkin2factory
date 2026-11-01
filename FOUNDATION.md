@@ -40,7 +40,7 @@ domain brings, has to edit these:
 | seam | today | a new step edits |
 |---|---|---|
 | build rule families | one function, ten kinds in a fixed order (v0.4 added `asmsheet`), a fixed `--target` table, `also_produces` per rule (S-117) | `core/graph/rules.py`, `core/graph/runs.py` |
-| verify kinds | an if/elif chain over nine kinds | `core/checks/evaluators.py` |
+| verify kinds | an if/elif chain over nine kinds; target schemes and the targetless case in the schema; binary kinds in the lint (found by the M0 dry run, S-122) | `core/checks/evaluators.py`, `core/model/requirements.py`, `core/lint.py` |
 | check stages (interference, interface, count, hardware) | called one by one | `core/checks/engine.py` |
 | pipeline stages | a fixed tuple: intake, design, verify, released | `core/checks/stage.py` |
 | report sections | a fixed tuple of 15 (v0.4 added the build plan and the joints between units) plus a template with 33 branches | `report/builder.py`, `report/templates/report.html.j2` |
@@ -325,7 +325,9 @@ in the entry:
 - `core/graph/rules.py`: walk the rule-family registry; derive the targets; the family's package
   hash. `core/graph/impact.py::_static_reads` per registered family.
 - `core/checks/evaluators.py`, `engine.py`, `stage.py`: the verify-kind, check-stage and
-  gate-row registries (F3, F4).
+  gate-row registries (F3, F4). A verify kind declares its target schemes, whether it compares
+  (`op`/`value`) and whether it is binary; `core/model/requirements.py` and `core/lint.py`'s L1
+  read those from the registry (the M0 dry run had to edit both, S-122).
 - `report/builder.py` and the template: the 15 sections as fragments (F5), the build plan and
   the joints between units included. `docs/engine.py`: helpers from the registry (`build_step()`
   among them). `core/context.py`: the context-contribution registry (F1).
@@ -336,7 +338,8 @@ in the entry:
 **Tests:** DoD 2; every existing test green; goldens unchanged (the proof that registering in
 place changed nothing); a registry lookup error names the known values.
 **Owns:** `core/registry.py`, `core/domain.py`, `domains/`, `core/graph/`, `core/checks/`,
-`core/model/` (the `Literal` → table change only), `core/data/`, `report/`, `docs/engine.py`,
+`core/model/` (the `Literal` → table change only), `core/lint.py` (L1's binary kinds only),
+`core/data/`, `report/`, `docs/engine.py`,
 `tests/fixtures/domains/`, `tests/fixtures/products/toy/`, `docs/domains.md`.
 
 ### M2 — Schema policy, the migration hook, and calc reference cases (budget 7 h)
