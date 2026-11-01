@@ -2,7 +2,8 @@
 
 ``req://REQ-001``, ``param://sheet-thickness``, ``part://lid``, ``asm://enclosure``,
 ``iface://lid-base-mount``, ``dec://DEC-031``, ``ecr://ECR-019``, ``doc://installation``,
-``calc://strength.max_stress``, ``rule://sheet-metal/min-bend-radius``, ``bom://rollups``.
+``calc://strength.max_stress``, ``rule://sheet-metal/min-bend-radius``, ``bom://rollups``,
+``manifest://scope#electrical.state`` (a field of ``n2f.yaml``).
 
 Selector: ``<uri>#dotted.path`` selects a field or computed property.  For parts inside an
 assembly, ``part://m4x10-screw#3`` selects the third instance; the grammar distinguishes
@@ -30,8 +31,15 @@ _ID_PATTERNS: dict[str, str] = {
     "rule": rf"{SLUG}/{SLUG}",
     # build-plan: the plan the bom rule writes (P8); pages and sheets read its steps (B1, S-117)
     "bom": r"rollups|validation|build-plan",
+    # the product's n2f.yaml: its name and its scope (F11), recorded reads of the report, so
+    # `n2f impact --set manifest://scope#<domain>.state=later` can ask what a scope edit
+    # reruns (S-127, S-129)
+    "manifest": r"product|scope",
 }
 SCHEMES: tuple[str, ...] = tuple(_ID_PATTERNS)
+#: Schemes a model's prose never cites: ``manifest://`` names the product file, not a model
+#: object, so free text that mentions one is no reference for the lint to check (S-129).
+_NOT_IN_PROSE: frozenset[str] = frozenset({"manifest"})
 #: Schemes of the model families domains register (F1), set by ``core.registry``, and the
 #: owner's word for each (a domain's vocabulary), which :func:`display_uri` puts first.
 _DOMAIN_PATTERNS: dict[str, str] = {}
@@ -147,13 +155,27 @@ def is_uri(text: object) -> bool:
     return True
 
 
-_FIND_RE = re.compile(r"\b(?:" + "|".join(SCHEMES) + r")://[^\s\"'`,;)\]}>]+")
+_FIND_TAIL = r")://[^\s\"'`,;)\]}>]+"
+_FIND_CACHE: dict[tuple[str, ...], re.Pattern[str]] = {}
+
+
+def _find_re() -> re.Pattern[str]:
+    """The prose pattern over the core's schemes and every registered domain's (S-129)."""
+    importlib.import_module("napkin2factory.core.registry").REGISTRY.ensure()
+    schemes = tuple(s for s in (*SCHEMES, *_DOMAIN_PATTERNS) if s not in _NOT_IN_PROSE)
+    if schemes not in _FIND_CACHE:
+        _FIND_CACHE[schemes] = re.compile(r"\b(?:" + "|".join(schemes) + _FIND_TAIL)
+    return _FIND_CACHE[schemes]
 
 
 def find_uris(text: str) -> list[Uri]:
-    """Every parseable URI mentioned in free text (used by lint and docs)."""
+    """Every parseable URI mentioned in free text (used by lint and docs).
+
+    The core's schemes and every registered domain's (``toy://widget``), so a domain's
+    reference in prose is found and checked like a part's.
+    """
     out: list[Uri] = []
-    for m in _FIND_RE.finditer(text):
+    for m in _find_re().finditer(text):
         candidate = m.group(0).rstrip(".:")
         try:
             out.append(Uri.parse(candidate))
