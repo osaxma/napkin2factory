@@ -66,7 +66,8 @@ def swap(path, old, new):
 Path("model/parts/m6x12-bolt.yaml").write_text(
     "id: m6x12-bolt\nrev: A\nname: M6 x 12 socket-head cap screw\nkind: cots\n"
     "process: none\ngeometry: none\n"
-    "source: {vendor: McMaster-Carr, mpn: ISO 4762 M6 x 12, verified: false}\n"
+    "source: {vendor: McMaster-Carr, mpn: ISO 4762 M6 x 12, verified: false,\n"
+    "  url: 'https://www.mcmaster.com/91290A/', note: the M6 x 16 family page}\n"
     "cost: {unit: 0.40 USD, basis: estimate, note: priced like the M6 x 16}\n",
     encoding="utf-8",
 )
