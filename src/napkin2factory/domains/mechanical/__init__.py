@@ -6,7 +6,8 @@ site stay where they are (``geometry/``, ``drawings/``, ``bom/``, ``docs/``, ``r
 contract (``core/domain.py``), so the registries list them and the core no longer does.
 Every function is named by its import path (:func:`~napkin2factory.core.domain.lazy`) and
 imported on first use.  The families' ``code`` folders are the subtrees each rule hashed
-before the registry, so no rule key moved (FOUNDATION §7 risk 1).
+before the registry, so no rule key moved (FOUNDATION §7 risk 1); since then the ``checks``
+family also hashes the calc kit (S-126).
 """
 
 from __future__ import annotations
@@ -90,7 +91,8 @@ RULE_FAMILIES = (
         "checks",
         lazy(f"{_RULES}:checks_rules"),
         produces="rule:checks",
-        code=("core/checks", "rulepacks", "bom", "catalog"),
+        # the calc kit too: calc requirements and the calc-case rows run its code (S-126)
+        code=("core/checks", "rulepacks", "bom", "catalog", "calckit"),
         reads_all=True,
     ),
     RuleFamily(
