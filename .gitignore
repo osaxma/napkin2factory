@@ -14,5 +14,8 @@ htmlcov/
 examples/*/build/
 .DS_Store
 
+# task folders (make task), one per open task
+.worktrees/
+
 # owner-only checklist (account chores), never committed
 OWNER-TODO.md

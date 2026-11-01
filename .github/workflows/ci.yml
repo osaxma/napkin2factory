@@ -1,13 +1,13 @@
 name: ci
 on:
   push:
-    branches: [main, "v*-build"]   # every release branch, without an edit per version
+    branches: [main]   # the one trunk; tasks land on it locally, tags go to publish.yml
   pull_request:
   schedule:
     - cron: "17 3 * * *"   # nightly: make check-full with timing assertions
 jobs:
-  # A commit that already passed this workflow (for example the branch tip that was just
-  # fast-forwarded onto main) is not tested again: the gate looks for an earlier successful
+  # A commit that already passed this workflow (for example a push of main that only added a
+  # tag, or a re-run of the same tip) is not tested again: the gate looks for an earlier successful
   # run of the same commit and the check matrix is skipped when it finds one.
   gate:
     runs-on: ubuntu-latest

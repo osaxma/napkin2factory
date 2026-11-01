@@ -1,0 +1,4 @@
+# Append-mostly journal tables: two tasks that each add rows or entries rebase without a
+# conflict. Union can duplicate a line both sides touched; tests/unit/test_journals.py catches it.
+DECISIONS.md merge=union
+BACKLOG.md merge=union

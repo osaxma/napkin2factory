@@ -1,7 +1,7 @@
 # STATUS — napkin2factory
 
-**Version:** 0.3.0, released 2026-11-01 (`v0.3.0` on the tip of `v0.3-build`, which `main`
-matches) · **Release branch:** `v0.3-build` until the next version is opened ·
+**Version:** 0.3.0, released 2026-11-01 (tag `v0.3.0`) · **Trunk:** `main`; work happens in task
+worktrees (`make task`, `make land`; S-097); the old `v*-build` branches are closed ·
 **Open work:** `BACKLOG.md` · **Why things are the way they are:** `DECISIONS.md` (index at the top) ·
 **What shipped:** `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
 
@@ -12,10 +12,12 @@ v0.3 is released: journal consolidation (S-073), README for people and the agent
 the icon and the wordmark on generated pages (S-075, S-081), `AGENTS.md` only (S-076), generic
 roles in `roles/` (S-077), gate reports kept and visual exits judged by the maintainer (S-078),
 faster checks (S-079, S-080, S-084), relative paths in `validate.json` (S-082), product pin
-`>=0.3,<0.4` (S-083). Since 0.3.0, unreleased on `v0.3-build`: the v0.2 leftovers (S-085–S-096),
+`>=0.3,<0.4` (S-083). Since 0.3.0, unreleased on `main`: the v0.2 leftovers (S-085–S-096),
 including share mode `n2f publish` (S-094) and the product release workflow's dry-run fix (S-095);
-B-0022 (cost bands), B-0036 (MCP server) and B-0047–B-0049 left open by the maintainer. Releasing a version: bump the three version files and the pins (S-054,
-S-083), push, wait for CI, fast-forward `main`, tag `v<version>` on that green commit (S-072).
+B-0022 (cost bands), B-0036 (MCP server) and B-0047–B-0049 left open by the maintainer; one trunk
+and a worktree per task (S-097). Releasing a version: bump the three version files and the pins
+(S-054, S-083), `make check` on `main`, push, wait for CI, tag `v<version>` on that green commit
+(S-072).
 
 ## Environment (host facts a cold reader needs)
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via
