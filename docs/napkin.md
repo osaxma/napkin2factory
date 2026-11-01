@@ -23,7 +23,7 @@ envelope:                           # rough named sizes; they seed parameters at
   chamber: [180 mm, 200 mm, 180 mm] # width, depth, height
   insulation: 115 mm
   power: 1.8 kW
-site: {alcove_width: 800 mm, circuit: 240V-13A, region: SA}
+site: {width: 800 mm, circuit: 240V-13A, region: SA}  # width: the space it must fit
 style: {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}
 modules:                            # what is built, bought or serviced as one unit, and why
   door: {driver: [built-as-unit]}
@@ -133,7 +133,7 @@ the box without resistance or stored heat. All of these are `[verify]`.
 
 | rule | fails when |
 |---|---|
-| `fits-site-width` | width + the open door > `site.alcove_width`. A hinged door (`layout.door: hinged-left/right`) adds what its leaf (the `door` massing call, else `envelope.door_width`) reaches past the hinge: leaf × max(0, −cos `envelope.door_swing`), the whole leaf when the card gives no angle |
+| `fits-site-width` | width + the open door > `site.width` (`alcove_width` before v0.5, still read). A hinged door (`layout.door: hinged-left/right`) adds what its leaf (the `door` massing call, else `envelope.door_width`) reaches past the hinge: leaf × max(0, −cos `envelope.door_swing`), the whole leaf when the card gives no angle |
 | `fits-site-depth`, `fits-site-height` | depth/height exceed `site.alcove_depth`/`alcove_height` |
 | `circuit-available` | the current × 1.2 headroom ("a fifth to spare" in the owner's line) exceeds `site.circuit` (e.g. `240V-13A`) or every class on file for `site.region`; an unknown region only warns |
 | `mass-vs-lift-class` (warning) | the mass needs more than a two-person lift, or more than `site.lift_class` |
@@ -225,7 +225,7 @@ computed and validated first; a refusal writes nothing):
    overwritten in place and listed in the decision).
 3. **Site constraints become requirements**, allocated to the top assembly
    (`unallocated` and checked by a person when there is no assembly yet):
-   - `alcove_width` → "Fits the alcove with the door open": `asm://<top>#props.bbox.x ≤
+   - `width` (`alcove_width` before v0.5) → "Fits the alcove with the door open": `asm://<top>#props.bbox.x ≤
      alcove_width − allowance`, the allowance being the room the open door takes beside
      the hinge (screening's door-swing term rounded up to 0.1 mm; 0 for a door that does
      not swing sideways), stated in the rationale. For a hinged door promotion also seeds

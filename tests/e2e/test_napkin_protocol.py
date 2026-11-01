@@ -9,6 +9,7 @@ that the card the skill quotes is lint-clean, and that no git words reach the ow
 from __future__ import annotations
 
 import re
+import shutil
 from pathlib import Path
 
 import pytest
@@ -144,6 +145,8 @@ def test_quoted_card_is_lint_clean(tmp_path: Path):
     (tmp_path / "concepts" / "refs").mkdir(parents=True)
     (tmp_path / "concepts" / "refs" / "sketch-01.jpg").write_bytes(b"\xff\xd8\xff\xd9")
     (tmp_path / "concepts" / "C-001.yaml").write_text(card, encoding="utf-8")
+    # a heated box: its circuit and region are read by the kiln's own screens (F8, F10)
+    shutil.copytree(EXAMPLES / "kiln" / "model" / "screens", tmp_path / "model" / "screens")
     problems = lint_concepts(tmp_path)
     assert not problems.errors, [p.format() for p in problems.errors]
     assert not problems.warnings, [p.format() for p in problems.warnings]
