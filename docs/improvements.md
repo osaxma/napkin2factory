@@ -6,6 +6,8 @@ the evidence and where to look, so an agent can start without re-deriving it. Me
 from the v0.2 build-out on the reference macOS host (16 cores) on 2026-10-31/11-01 unless stated.
 Do them in the order below if nothing else decides; the first two are about an hour each, the
 third about half a day of change, the fourth is a habit, the fifth a small task of its own.
+Section 6, added later, is a review of what the package is built on (Python and the
+dependencies), with its own backlog row (B-0072); the maintainer set it aside for later.
 
 ## 1. Keep review-gate reports in the repo (B-0053)
 
@@ -143,3 +145,67 @@ safer across filesystems and zip packaging). `AGENTS.md` lists the neutral path 
 examples, `docs/agent-layer.md`, `docs/product-model.md`, and the two tests above (they hard-code
 `COMMON / ".claude" / "skills"`). Check how other clients discover skills before choosing the
 neutral path name, so it is not just a second private convention.
+
+## 6. Python version and dependency review (B-0072)
+
+**Not done; set aside by the maintainer (2026-11-01) as not important for now.** A read-only
+review on 2026-11-01 (`main` at 6f1c096; `pyproject.toml` and `uv.lock` unchanged at e1fc18e).
+Versions and wheel tags were read from the PyPI JSON API that day; re-check them before starting,
+they move. Estimates are guesses, not measurements; most of each is waiting on `make check`
+(≈ 7 min) and `make check-full` (≈ 21 min).
+
+**Why Python 3.13 and not 3.15.** The CAD kernel decides. build123d (0.12, and 0.13) declares
+`requires-python >=3.11,<3.15`; our `<3.15` copies it. The OCP wheels (`cadquery-ocp-novtk`
+7.9.3.1.1 and 8.0.1.1.0) exist for cp311–cp314 only, no cp315. Also without cp315 wheels:
+PyYAML 6.0.3 (would build from source) and `py-lib3mf` 2.5.0 (Linux aarch64 only). 3.13 itself
+comes from D2 (`GRAND_PLAN.md`, OCP wheel maturity) and S-002 ("3.14 not tried"). **Python 3.14
+is possible now:** every package in `uv.lock` has cp314 wheels for macOS x86_64 and arm64, Linux
+and Windows. 3.15's draw for us is PEP 810 lazy imports (CLI start-up; the code defers imports
+by hand today); wait for cp315 OCP wheels and build123d lifting its cap.
+
+**What the review found.** Everything direct is the latest on PyPI except build123d (0.12.0
+locked, 0.13.0 out).
+- Unused dev dependencies: `twine` (`publish.yml` runs `uvx twine`, its own copy; dropping it
+  removes ≈ 15 packages: keyring, cryptography, docutils …) and `actionlint-py` (no Makefile
+  target or test calls it).
+- Undeclared runtime import: `concepts/screenshot.py` imports Pillow (`from PIL import Image`),
+  listed only in the dev group; owners get it only through build123d → bd-materials →
+  threejs-materials.
+- Playwright is a dev dependency but a runtime feature (styled screenshots, `n2f doctor`); an
+  owner's install never has it, so screenshots always fall back, and `docs/agent-guide.md` does
+  not say how to get them.
+- `httpx` serves one HEAD/GET (the BOM link check, `bom/validation.py` `_url_ok`); `requests`
+  is already installed through build123d, and `urllib` would do. Dropping it removes httpx,
+  httpcore, h11, anyio.
+- PyYAML reads go through the pure-Python `yaml.safe_load` (17 call sites) although libyaml is
+  installed (`yaml.__with_libyaml__` is True); `CSafeLoader` is usually several times faster.
+  Not measured here.
+- Kept, with reasons: pint, pydantic, numpy, jinja2, ezdxf (the only serious DXF library), typst
+  (PDFs with no LaTeX or browser), openpyxl (XlsxWriter is faster but the BOM is tiny), PyYAML
+  plus ruamel.yaml (fast reads, comment-keeping edits: two jobs), lxml plus selectolax in tests
+  (SVG and HTML: two jobs). rich, markdown-it-py, packaging and pygltflib are also pulled in by
+  other dependencies, so they cost nothing. mypy stays until Astral's `ty` reaches 1.0 (0.0.93
+  on 2026-10-28, still beta).
+- build123d 0.12 brings materials, mass and glTF export with materials; compare with the
+  in-house GLB writer (S-004) when upgrading. Its heavy transitive dependencies (IPython, SciPy,
+  scikit-learn, SymPy) are upstream's choice.
+
+**Do**, in this order (1 and 4 can run side by side; 2 lands before 3, so a failure has one cause):
+1. Clean-up (≈ 30–45 min): drop `twine`; wire `actionlint` into `make lint` for
+   `.github/workflows/` or drop it; move `pillow` to the runtime dependencies; replace `httpx` in
+   `bom/validation.py` (keep the 405 → GET fallback and the User-Agent); optionally `CSafeLoader`
+   in `core/yamlio.py`, measured before and after.
+2. build123d 0.13 (≈ 1–2 h if clean, up to a day if not): its release notes say it is 0.12 on
+   OCP 8.0.1 (OCCT 8.0, 500+ changes since 7.9). Bump the pin, `uv sync`, `make check`,
+   `make goldens REASON="..."` with each golden change explained; watch drawings (HLR),
+   interference and tessellation; `tests/smoke/test_toolchain.py` asserts the novtk wheel
+   (S-002, revisit that entry). `make check-full`; send the maintainer renders if they changed.
+3. Python 3.14 (≈ 1–2 h, closes B-0003, Python 3.14 support): `.python-version`, ruff
+   `target-version`, mypy `python_version`, the classifiers, the agent guide's "uv fetches Python
+   3.13"; a fresh environment pays the macOS first-load scan again (S-098); `make check`,
+   `make check-full`, then CI on Linux and macOS. Measure `import build123d` and `make check`
+   before and after.
+4. Screenshots for owners (≈ 30–60 min): an optional extra (for example
+   `napkin2factory[screenshots]` with playwright), the Chromium download (≈ 150 MB) and the
+   `n2f doctor` hint in the agent guide. Ask the maintainer first whether owners should get
+   screenshots this way.

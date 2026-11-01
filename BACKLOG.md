@@ -45,6 +45,7 @@ entry that closed them. Ids are never reused.
 | B-0069 | The check's "worth a look" list repeats itself: each bought part's vendor link is flagged twice (`cots-source-verified` and the `validation@` row), and "BOM-only part" rows flag bolts, nuts and standoffs the joint-hardware check already accounts for (42 of the kiln's 66) | Gate D concern 11 (S-118): merge the two vendor rows into one per part, drop "BOM-only" for hardware parts; touches `core/checks/engine.py` and the rulepack |
 | B-0070 | Assembly sheets carry no item numbers on the pictures (balloons) | Gate D concern 8 (S-118): the footer's claim was dropped instead; a numbered leader on each custom item of the pulled-apart view would let a workshop tie a picture to a line |
 | B-0071 | Check counts differ by what they count: a build step's (its joints, counts, requirements; a shared requirement in each step), the report's By-module table (every row of the unit) and `n2f check --scope` (no documents or sourcing) | Gate D concern 12 (S-118): each is now labelled; one count per unit everywhere would need the engine's module rows and the scope filter to agree |
+| B-0072 | Python and dependency review: drop unused dev tools, declare Pillow, replace httpx, build123d 0.13 (OCCT 8), then Python 3.14, an optional screenshots extra | Review of 2026-11-01, set aside by the maintainer; reasoning, evidence and order in `docs/improvements.md` §6. Python 3.15 waits for cp315 OCP wheels and build123d's `<3.15` cap |
 
 ## Closed
 
