@@ -1,0 +1,7 @@
+requirements:
+  - id: REQ-001
+    title: The widget glows
+    statement: The widget glows at 2 % of full glow or brighter.
+    category: fun
+    verify: {kind: toy_glow, target: "toy://widget", op: ">=", value: 2}
+    allocation: [part://plate]

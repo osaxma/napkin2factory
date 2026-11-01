@@ -79,6 +79,10 @@ def joint_kind_words(kind: str, holes: int, has_hardware: bool) -> str:
     """How a joint is made, in owner words (N5): "bolted, 4 holes", "faces that meet"."""
     if kind == "bolt-pattern":
         return f"bolted, {holes} holes" if holes else "bolted"
+    if kind != "mating-face":  # a domain's interface kind: its own title (F6)
+        from napkin2factory.core.registry import registry
+
+        return registry().interface_kind(kind).title.lower() or kind
     if has_hardware:
         return "faces that meet, with fasteners"
     return f"faces that meet, {NO_FIXINGS} (welded, riveted or clamped)"

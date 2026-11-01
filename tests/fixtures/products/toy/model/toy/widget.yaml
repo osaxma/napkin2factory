@@ -1,0 +1,4 @@
+id: widget
+name: Widget
+part: part://plate
+glow: 3

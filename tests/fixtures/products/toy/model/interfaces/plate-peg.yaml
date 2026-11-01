@@ -1,0 +1,4 @@
+id: plate-peg
+kind: toy-joint
+parties: [part://plate, part://peg]
+spec: {snap: firm}

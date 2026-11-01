@@ -1,0 +1,7 @@
+schema: 1
+system: '>=0.4,<0.5'
+product:
+  id: toy
+  name: Toy box
+  description: The toy domain's product (tests/unit/test_domain_contract.py).
+units: metric
