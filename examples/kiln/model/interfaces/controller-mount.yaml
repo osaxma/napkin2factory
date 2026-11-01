@@ -1,9 +1,20 @@
 id: controller-mount
 kind: bolt-pattern
-parties: [part://controller-box, part://guard-shell]
+# The guard (already placed) first, so the offset reads from it to the box (S-106).
+parties: [part://guard-shell, part://controller-box]
 description: The controller box hangs on four 40 mm standoffs against the guard's right wall; holes in the box's left wall and the guard.
 frame: {origin: [0, 0, 0], normal: [1, 0, 0]}
 frames:
-  part://controller-box: {origin: [param://controller-neg-half-width, 0, param://controller-half-height], normal: [-1, 0, 0], x_axis: [0, 1, 0]}
-  part://guard-shell: {origin: [param://guard-half-width, param://controller-mount-y, param://guard-half-depth], normal: [1, 0, 0], x_axis: [0, 0, 1]}
+  part://guard-shell:
+    origin: [{expr: "guard-outer-width / 2", unit: mm}, {expr: "guard-outer-height / 2 - controller-box-height / 2", unit: mm}, {expr: "guard-outer-depth / 2", unit: mm}]
+    normal: [1, 0, 0]
+    x_axis: [0, 0, 1]
+  # box coordinates; normal and x axis point the same way as the guard's once placed (P1); the
+  # rect pattern is symmetric and the y axis unchanged, so the holes are where they were (M0)
+  part://controller-box:
+    origin: [{expr: "-controller-box-width / 2", unit: mm}, 0, {expr: "controller-box-height / 2", unit: mm}]
+    normal: [1, 0, 0]
+    x_axis: [0, -1, 0]
+# P2: the box's left wall sits one standoff length out from the guard's right wall
+offset: param://controller-standoff
 spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://controller-mount-spacing-y, param://controller-mount-spacing-z], fastener: part://m6x16-bolt, depth: 10 mm}

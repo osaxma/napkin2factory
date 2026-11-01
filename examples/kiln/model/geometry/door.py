@@ -12,10 +12,9 @@ built along +Z grows into it.
 
 def build(P, I, parts):  # noqa: N803
     """Place tray, door guard, fiber plug, brick slab, two hinges (left) and the latch (right)."""
-    from napkin2factory.geometry.assembly import AssemblyResult, place
+    from napkin2factory.geometry.assembly import AssemblyResult, place, place_by
 
     skin_t = P.mm("door-skin-thickness")
-    dg_off = P.mm("door-guard-offset")
     dft = P.mm("door-fiber-thickness")
     pin_x = P.mm("hinge-pin-x")
     pin_y = P.mm("hinge-pin-y")
@@ -34,13 +33,10 @@ def build(P, I, parts):  # noqa: N803
             label="tray",
         )
     )
+    # the door guard on its four standoffs, placed by its interface with the tray (P1)
     res.add(
-        place(
-            "part://door-guard",
-            parts["door-guard"],
-            translate=(0.0, -dg_off, 0.0),
-            rotate=rot,
-            label="guard",
+        place_by(
+            I, res, "door-guard-standoff", "part://door-guard", parts["door-guard"], label="guard"
         )
     )
     # plug: extruded along +Z from z = 0 → y ∈ [0, dft]; brick slab behind it

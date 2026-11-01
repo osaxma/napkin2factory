@@ -1,7 +1,7 @@
 requirement: req://REQ-008
 by: Example Reviewer (not a real review)
 role: human
-date: '2026-10-30'
+date: '2026-11-01'
 statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
   against the built kiln.
 evidence:
@@ -11,7 +11,7 @@ evidence:
 - param://circuit-rating
 evidence_keys:
   doc://installation: sha256:c721c3c02e670f599c963e0d2b2ff572dd1a09dbe442670db6ff2287a630b819
-  part://controller-box: sha256:ce8cef12148ffcc1dfcbff8871cf39754a8340e3be8ee08b21e11740c088cf51
+  part://controller-box: sha256:1ccf4784582a6ba32fb1f7d574a6ad8af8cf96ea5fbbc559bf570aaf9b5717c3
   part://rating-label: sha256:3c4c00b1d8813341d1a58d17e51725b744b5e2f53f540f3ad86fe05b411c193e
   param://circuit-rating: sha256:95fce4b018f8b504b0102ac1aac59d633f8196c6adfde32e950b66f5654751b8
 example: true

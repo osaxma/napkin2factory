@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from napkin2factory.core.checks.evaluators import EvalContext, evaluate_requirement
-from napkin2factory.core.checks.interface import check_interface
+from napkin2factory.core.checks.interface import check_interface, coordinate_placement_warnings
 from napkin2factory.core.checks.interference import check_interference
 from napkin2factory.core.checks.results import OWNER_WORDS, CheckResult, summarize
 from napkin2factory.core.graph.hashing import sha256_json
@@ -279,8 +279,13 @@ def run_all_checks(ctx: RunContext) -> RunResult:
                 title=f"{iface.kind} between {', '.join(str(p) for p in iface.parties)}",
                 message=rep.message,
                 detail=rep.to_dict(),
+                # P3: the world frames of every occurrence pair, per assembly
+                evidence={"alignment": rep.alignment["assemblies"]}
+                if rep.alignment.get("assemblies")
+                else {},
             )
         )
+    results += coordinate_placement_warnings(product, build_dir)  # P1
     for aid in product.assemblies:
         irep = check_interference(product, aid, build_dir)
         ectx.interference[aid] = irep.to_dict()

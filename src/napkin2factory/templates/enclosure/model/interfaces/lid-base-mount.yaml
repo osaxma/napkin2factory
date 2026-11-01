@@ -5,6 +5,7 @@ description: Four M4 clearance holes through the front and back lips and the lid
 frame: {origin: [0, 0, 0], normal: [0, 0, 1]}
 frames:
   # Each party's copy of the frame in its own coordinates (the lid sits on the lip, z = box height).
-  part://base: {origin: [0, 0, 80], normal: [0, 0, 1]}
-  part://lid: {origin: [0, 0, 0], normal: [0, 0, 1]}
+  # The assembly places the lid by this interface (place_by), so the lid follows the box height.
+  part://base: {origin: [0, 0, param://box-height], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://lid: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
 spec: {pattern: rect, count: 4, diameter: param://screw-clearance, spacing: [160 mm, 162 mm], fastener: part://m4x10-screw}

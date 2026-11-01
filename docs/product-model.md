@@ -40,12 +40,20 @@ source: {vendor, mpn, url, verified} (COTS), manufacturer_notes`. Kit args may r
 
 **assemblies/<id>.yaml** — `id, rev, name, geometry: {module} | none, children: [{part|asm,
 qty}], exploded: {axis, spacing}, satisfies`. The YAML is the BOM structure; the module
-places instances; the checker verifies instance counts equal quantities (D18).
+places instances, by interface with `place_by` or by coordinates with `place`; the checker
+verifies instance counts equal quantities (D18). `build/assemblies/<id>/instances.json`
+records each occurrence's `via` (`coordinates` or `iface://<id>`) and `label`.
 
 **interfaces/<id>.yaml** — `id, kind: bolt-pattern|mating-face, parties: [two uris],
 frame: {origin, normal, x_axis?}, frames: {party uri: frame} (per-party copies),
-spec: {pattern, count, diameter, spacing, pitch_circle, fastener, depth} |
-{width, depth, flatness_note}`. Spec quantities may be `param://` references.
+offset?, spec: {pattern, count, diameter, spacing, pitch_circle, fastener, depth} |
+{width, depth, flatness_note}`. Spec quantities may be `param://` references. A frame
+coordinate and `offset` may be a number (mm), a quantity, a `param://` or
+`{expr: "<expression over parameter slugs>", unit: mm}` (evaluated like a parameter `expr`;
+every slug is a recorded read). `offset` (default 0) is the signed distance along the normal
+from the first party's frame to the second's once placed. The one convention: placed, both
+frames point the same way (same normal, same `x_axis`); `place_by` needs `x_axis` on both
+(P1, P2, S-106).
 
 **decisions.yaml** — `decisions: [{id: DEC-001, date, title, context, decision,
 rationale, links: [uris], made_by, disclosed, verify, sources}]`. Lint requires links.

@@ -4,19 +4,19 @@
 def build(P, I, parts):  # noqa: N803 — P and I are the recording accessors
     """Place base, lid and both brackets.
 
-    Frames: the base plate is centred on XY with its underside at z = 0; the lid lies on
-    the lip at z = box-height; brackets stand behind the back wall (+Y) with their vertical
-    leg flat against it and the horizontal leg pointing away from the box on the floor.
+    Frames: the base plate is centred on XY with its underside at z = 0; the lid is placed
+    by its interface with the base (iface://lid-base-mount), which puts it on the lip at
+    z = box-height; brackets stand behind the back wall (+Y) with their vertical leg flat
+    against it and the horizontal leg pointing away from the box on the floor.
     """
-    from napkin2factory.geometry.assembly import AssemblyResult, place
+    from napkin2factory.geometry.assembly import AssemblyResult, place, place_by
 
-    h = P.mm("box-height")
     w = P.mm("box-width")
     spacing = P.mm("bracket-spacing")
     bw = P.mm("bracket-width")
     res = AssemblyResult()
     res.add(place("part://base", parts["base"]))
-    res.add(place("part://lid", parts["lid"], translate=(0.0, 0.0, h)))
+    res.add(place_by(I, res, "lid-base-mount", "part://lid", parts["lid"]))
     # bracket frame: outer corner at origin, horizontal leg +X, vertical leg +Z; rotate so the
     # horizontal leg points +Y (away from the box) and the vertical leg's outer face is at y=w/2.
     for i, x in enumerate((-spacing / 2, spacing / 2)):

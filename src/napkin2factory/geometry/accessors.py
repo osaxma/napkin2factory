@@ -78,30 +78,40 @@ class ParamAccessor(Mapping[str, Any]):
 
 
 def resolve_interface(product: Product, iface: Interface, log: ReadLog | None = None) -> Interface:
-    """Return a copy of ``iface`` with every ``param://`` in its spec replaced by the value.
+    """Return a copy of ``iface`` with every reference resolved to a value.
 
-    Each parameter read is recorded in ``log`` so a spec that depends on a parameter
-    invalidates both parties when that parameter changes.
+    ``param://`` in the spec become quantities; frame coordinates and the ``offset``
+    (numbers, quantities, ``param://`` or ``{expr, unit}``, P2) become millimetres.  Each
+    parameter read, including every slug an expression names, is recorded in ``log`` (D5), so
+    a frame that depends on a parameter invalidates both parties when that parameter changes.
     """
+    from napkin2factory.core.model import FrameExpr
     from napkin2factory.core.uris import Uri
+
+    def read(slug: str) -> Any:
+        if slug not in product.parameters:
+            raise KeyError(f"param://{slug} does not exist (named in {iface.uri})")
+        if log is not None:
+            log.add(f"param://{slug}")
+        return product.parameter_value(slug)
 
     def sub(v: Any) -> Any:
         if isinstance(v, Uri) and v.scheme == "param":
-            if log is not None:
-                log.add(f"param://{v.id}")
-            return product.parameter_value(v.id)
+            return read(v.id)
+        if isinstance(v, FrameExpr):
+            return product.expr_value(v.expr, v.unit, lookup=read, where=iface.uri)
         if isinstance(v, list):
             return [sub(x) for x in v]
         return v
 
     from napkin2factory.core.units import mm as _mm_
 
+    def to_mm(c: Any) -> float:
+        c = sub(c)
+        return float(c) if isinstance(c, (int, float)) else float(_mm_(c))
+
     def frame_mm(frame: Any) -> Any:
-        origin = []
-        for c in frame.origin:
-            c = sub(c)
-            origin.append(float(c) if isinstance(c, (int, float)) else float(_mm_(c)))
-        return frame.model_copy(update={"origin": origin})
+        return frame.model_copy(update={"origin": [to_mm(c) for c in frame.origin]})
 
     spec = iface.spec
     data = {name: sub(getattr(spec, name)) for name in type(spec).model_fields}
@@ -110,6 +120,7 @@ def resolve_interface(product: Product, iface: Interface, log: ReadLog | None = 
             "spec": type(spec).model_validate(data),
             "frame": frame_mm(iface.frame),
             "frames": {k: frame_mm(f) for k, f in iface.frames.items()},
+            "offset": to_mm(iface.offset),
         }
     )
 

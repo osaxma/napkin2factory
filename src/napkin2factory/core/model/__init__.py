@@ -17,6 +17,7 @@ from napkin2factory.core.model.ecr import TRANSITIONS, Applied, Approval, Ecr, E
 from napkin2factory.core.model.interfaces import (
     BoltPatternSpec,
     Frame,
+    FrameExpr,
     Interface,
     MatingFaceSpec,
 )
@@ -57,6 +58,7 @@ __all__ = [
     "Edit",
     "Exploded",
     "Frame",
+    "FrameExpr",
     "Interface",
     "KitGeometry",
     "Manifest",

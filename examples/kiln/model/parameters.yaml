@@ -52,13 +52,6 @@ parameters:
   standoff-spacing-width:  {expr: "shell-outer-width - 2 * standoff-edge-inset", unit: mm, description: "Standoff hole pitch across the top and bottom walls (X)"}
   standoff-spacing-height: {expr: "shell-outer-height - 2 * standoff-edge-inset", unit: mm, description: "Standoff hole pitch up the side walls (Z)"}
   standoff-spacing-depth:  {expr: "shell-outer-depth - 2 * standoff-edge-inset", unit: mm, description: "Standoff hole pitch along the depth (Y), all four walls"}
-  mount-pattern-z-shell: {expr: "guard-half-depth - guard-gap", unit: mm, description: "The stand bolt pattern centre in the shell tray's depth axis (bottom standoffs sit on the stand bolts)"}
-  standoff-pattern-z-shell: {expr: "shell-outer-depth / 2", unit: mm, description: "Standoff pattern centre along the shell tray's depth axis"}
-  standoff-pattern-z-guard: {expr: "shell-outer-depth / 2 + guard-gap", unit: mm, description: "The same centre in the guard tray's depth axis (the guard's base sits one gap behind the shell's)"}
-  shell-half-width:    {expr: "shell-outer-width / 2", unit: mm, description: "Half the shell width"}
-  shell-half-height:   {expr: "shell-outer-height / 2", unit: mm, description: "Half the shell height"}
-  shell-neg-half-width:  {expr: "(0 - 1) * shell-half-width", unit: mm, description: "Minus half the shell width"}
-  shell-neg-half-height: {expr: "(0 - 1) * shell-half-height", unit: mm, description: "Minus half the shell height"}
   # --- rear penetrations (element tails and thermocouples) ---
   tail-hole-inset:     {value: 30, unit: mm, description: "Element tail exits this far in from the chamber side walls"}
   tail-hole-x:         {expr: "chamber-width / 2 - tail-hole-inset", unit: mm, description: "Element tail exits, either side of the back wall centre"}
@@ -110,12 +103,10 @@ parameters:
   hinge-post-thickness: {value: 3, unit: mm, description: "Hinge post angle thickness"}
   hinge-post-leg:      {value: 40, unit: mm, description: "Hinge post leg against the guard wall"}
   hinge-post-bolt-spacing: {value: 140, unit: mm, description: "Pitch of the four M6 bolts holding the hinge post to the guard"}
-  hinge-post-z-guard:  {expr: "guard-outer-depth - hinge-post-y - hinge-post-leg / 2", unit: mm, description: "Hinge post bolt line in the guard tray's depth axis"}
   hinge-barrel:        {value: 12, unit: mm, description: "Weld-on hinge barrel diameter (modelled as a square proxy)"}
   hinge-pin-x:         {expr: "(0 - 1) * (door-guard-width / 2 + door-guard-thickness + hinge-barrel / 2)", unit: mm, description: "Hinge pin axis, X (just outside the door guard's left wall)"}
   hinge-pin-y:         {expr: "hinge-post-y - hinge-pin-setback", unit: mm, description: "Hinge pin axis, Y from the guard lip plane (between the door guard's wall end and the post web)"}
   hinge-spacing:       {value: 400, unit: mm, description: "Vertical distance between the two hinges"}
-  latch-keeper-z-guard: {expr: "guard-outer-depth - hinge-post-y - hinge-post-leg / 2", unit: mm, description: "Latch keeper bolt line in the guard tray's depth axis"}
   # --- element ---
   mains-voltage:       {value: 230, unit: V, description: "Single-phase mains (EU); see DEC-006"}
   circuit-rating:      {value: 16, unit: A, description: "Dedicated circuit the installer must provide"}
@@ -136,12 +127,8 @@ parameters:
   controller-sheet:      {value: 1.0, unit: mm, description: "Controller enclosure sheet"}
   controller-cutout:     {value: 45, unit: mm, description: "Panel cutout for 48 × 48 DIN instruments (45 +0.6/0)"}
   controller-standoff:   {value: 40, unit: mm, description: "Air gap between the guard and the controller box"}
-  controller-mount-y:    {expr: "guard-outer-height / 2 - controller-box-height / 2", unit: mm, description: "Controller mount pattern centre up the guard's right wall (tray coordinates)"}
   controller-mount-spacing-y: {value: 60, unit: mm, description: "Controller mount pitch along the depth"}
   controller-mount-spacing-z: {value: 100, unit: mm, description: "Controller mount pitch up the wall"}
-  controller-half-width: {expr: "controller-box-width / 2", unit: mm, description: "Half the controller box width"}
-  controller-neg-half-width: {expr: "(0 - 1) * controller-half-width", unit: mm, description: "Minus half the controller box width"}
-  controller-half-height: {expr: "controller-box-height / 2", unit: mm, description: "Half the controller box height"}
   gland-hole:            {value: 20.5, unit: mm, description: "M20 cable gland clearance"}
   footprint-limit:       {value: 1000, unit: mm, description: "Alcove width available including the controller box (DEC-011)"}
   over-temperature-limit: {value: 1250, unit: degC, description: "Independent limit device trips here, below the lining's 1260 degC class (REQ-018)"}
@@ -156,12 +143,7 @@ parameters:
   mount-bolt-inset:     {expr: "stand-inset + stand-tube / 2", unit: mm, description: "Mounting holes this far in from the guard's bottom edges (on the rail centre lines)"}
   mount-bolt-spacing-x: {expr: "guard-outer-width - 2 * mount-bolt-inset", unit: mm, description: "Guard-to-frame bolt pattern (X)"}
   mount-bolt-spacing-y: {expr: "guard-outer-depth - 2 * mount-bolt-inset", unit: mm, description: "Guard-to-frame bolt pattern (Y)"}
-  # frame helpers (interface frames are written in each part's own coordinates)
-  guard-half-width:     {expr: "guard-outer-width / 2", unit: mm, description: "Half the guard width"}
-  guard-neg-half-width: {expr: "(0 - 1) * guard-half-width", unit: mm, description: "Minus half the guard width"}
-  guard-half-height:    {expr: "guard-outer-height / 2", unit: mm, description: "Half the guard height"}
-  guard-neg-half-height: {expr: "(0 - 1) * guard-half-height", unit: mm, description: "Minus half the guard height (tray −Y wall)"}
-  guard-half-depth:     {expr: "guard-outer-depth / 2", unit: mm, description: "Half the guard depth"}
+  # --- guard vents and mounting holes (interface frames are expressions in model/interfaces/, S-106) ---
   guard-vent-low-offset: {value: 60, unit: mm, description: "Inlet slots this far above the guard's bottom edge"}
   guard-vent-low-u:     {expr: "guard-outer-height / 2 - guard-vent-low-offset", unit: mm, description: "Inlet slots this far below the guard's mid-height (tray u axis points down)"}
   mount-bolt-clearance: {value: 6.6, unit: mm, description: "Clearance holes for M6"}

@@ -126,6 +126,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-103 | v0.4 is the product's structure (`PRODUCT_STRUCTURE.md`); electrical, profiles, stack-up move later | in force |
 | S-104 | Closed versions' decision entries live in `docs/decisions/` | in force |
 | S-105 | v0.4 M0 baseline: kiln frames meet, one to rewrite; hardware reconciled, shared-hole rule (`docs/v04-baseline.md`) | in force |
+| S-106 | v0.4 M1: interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly | in force |
 
 ---
 
@@ -421,3 +422,13 @@ literal origins, and the 18 helpers, read only by interface frames. Hardware: 50
 M6 × 16, 4 M6 × 50), moves the door's stud, anchors and gasket into the door, checks bolt length
 [verify]. Amends P9: a shared hole lists each item once, on the joint it closes; non-hardware lines
 need no field. 180 + 47 placement lines, 159 parameters; `make check-full` 19 min 28 s, red (B-0063).
+## S-106 — v0.4 M1: interfaces place parts; alignment checked in the assembly (2026-11-01)
+P1–P3 as planned. `controller-mount` lists the guard first (offset +controller-standoff; box frame
+[1,0,0]/x [0,−1,0], holes unchanged). `frame_basis` moved to `core/frames.py` (holes, `place_by`,
+check). `instances.json` gains `via`, `label`, no order (S-030): the P1 warning is per joint, two
+joined parts both on coordinates. P14: asm evidence keys hash only v0.3 fields, a zero `offset` is
+not dumped. Alignment needs a frame per party; 0.5 mm / 0.5° is a design choice, not measured.
+Enclosure base frame z is `param://box-height`. Kiln: 5 joints and the door guard by `place_by`
+(stand the anchor); 18 helpers gone (159 → 141 parameters). Lines 180 → 175 (kiln), 47 → 43 (door);
+`place()` calls 22 → 17, 6 → 5. Goldens unchanged, misses 0.00 mm; example sign-offs REQ-007/008/019
+re-keyed (box frame). 21 new tests; `make check` 8 min 51 s green, `make kiln` 2 min 42 s green.

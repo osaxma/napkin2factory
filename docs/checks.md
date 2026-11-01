@@ -13,7 +13,7 @@ and prints the matrix. Exit code 2 when any row is `fail`.
 | `calc` | the result of `model/calcs/<m>.py:<f>(P)` (pint) | source + inputs + result hash |
 | `interference` | pairwise boolean common volume > 1 mm³ on an assembly | the assembly |
 | `count` | occurrences of a part across top assemblies | the assemblies |
-| `interface` | both parties' recorded patterns agree within 0.5 mm | both parties |
+| `interface` | both parties' recorded patterns agree within 0.5 mm; placed, their frames meet (below) | both parties |
 | `manual` | always needs a human | — |
 | `rule` | the rule-pack rows of the same run for `rule://<pack>/<rule>`: any `fail` row fails it, a `warn` row makes it `warn` (never a failure), a `pass` row passes it; no applicable part → `skip` "no part this rule applies to yet" while the parts are not built, then `needs-human` once every part with geometry is built ("no part declares a style role yet; add `role:` … or sign off by hand") — a form requirement is never silently skipped; `n2f lint` warns `L12-form-needs-roles` meanwhile | the parts the rows cover |
 
@@ -61,6 +61,16 @@ The checks re-run when `style.yaml`'s form cues or a part's `role` change (`styl
 `iface://x` conformance, `interference://asm`, `count://asm` (instance counts equal YAML
 quantities), `doc://x` staleness (recorded reads vs current values), `bom://validation@part`
 (sourcing tiers: structural → link → curated catalog; unverified stays visible).
+
+`iface://x` has two stages. **Patterns**: both parties recorded the same holes (or mating
+face) in their own frames. **Alignment** (P3, S-106): in each lowest assembly containing both
+parties, every occurrence of each party has a partner whose frame, read from
+`instances.json`, meets its own: the second party's origin `offset` along the first party's
+normal, the same normal, the same `x_axis`, within 0.5 mm and 0.5° (a design choice, not a
+measured fit). A miss fails and names both occurrences and the distance; the evidence holds
+every pair's world frames. Interfaces without a frame per party (`frames:`) skip it.
+`placement://asm@a+b` (`warn`, P1): two parts of one assembly that an interface joins are
+both placed by coordinates; `place_by` on that interface closes the joint instead.
 
 ## Stage and gates (`n2f status`)
 

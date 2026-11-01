@@ -22,6 +22,8 @@ from build123d import (
     extrude,
 )
 
+from napkin2factory.core.frames import frame_basis  # one basis for holes, place_by and checks (P1)
+from napkin2factory.core.frames import norm as _norm
 from napkin2factory.core.model.interfaces import BoltPatternSpec, Frame
 from napkin2factory.core.units import mm
 from napkin2factory.geometry.features import (
@@ -104,54 +106,6 @@ def centers_2d(
     cols = count // 2
     xs = [(i - (cols - 1) / 2) * dx for i in range(cols)]
     return [(x, y) for y in (-dy / 2, dy / 2) for x in xs]
-
-
-def _norm(v: Vec3) -> Vec3:
-    n = math.sqrt(sum(c * c for c in v))
-    if n < 1e-12:
-        raise ValueError(f"cannot normalise the zero vector {v}")
-    return (v[0] / n, v[1] / n, v[2] / n)
-
-
-def _cross(a: Vec3, b: Vec3) -> Vec3:
-    return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
-
-
-def _dot(a: Vec3, b: Vec3) -> float:
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-
-
-def frame_basis(frame: Frame | None = None) -> tuple[Vec3, Vec3, Vec3, Vec3]:
-    """Orthonormal basis of an interface frame.
-
-    ``Ẑ`` is the normalised frame normal; ``X̂`` is ``frame.x_axis`` (made perpendicular to
-    ``Ẑ``) or, when absent, the global axis least aligned with ``Ẑ`` (ties → X, then Y)
-    made perpendicular by Gram–Schmidt; ``Ŷ = Ẑ × X̂``.
-
-    Args:
-        frame: the frame (``None`` → origin with +Z normal).
-
-    Returns:
-        ``(origin, X̂, Ŷ, Ẑ)``.
-
-    Raises:
-        ValueError: on a zero normal or an x_axis parallel to the normal.
-    """
-    frame = frame or Frame()
-    origin: Vec3 = (float(frame.origin[0]), float(frame.origin[1]), float(frame.origin[2]))
-    z = _norm((float(frame.normal[0]), float(frame.normal[1]), float(frame.normal[2])))
-    if frame.x_axis is not None:
-        seed: Vec3 = (float(frame.x_axis[0]), float(frame.x_axis[1]), float(frame.x_axis[2]))
-    else:
-        axes: list[Vec3] = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)]
-        seed = min(axes, key=lambda e: abs(_dot(e, z)))
-    d = _dot(seed, z)
-    x_raw = (seed[0] - d * z[0], seed[1] - d * z[1], seed[2] - d * z[2])
-    if math.sqrt(_dot(x_raw, x_raw)) < 1e-9:
-        raise ValueError(f"frame x_axis {seed} is parallel to the normal {z}")
-    x = _norm(x_raw)
-    y = _cross(z, x)
-    return origin, x, y, z
 
 
 def to_3d(points: list[Vec2], frame: Frame | None = None) -> list[Vec3]:

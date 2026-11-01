@@ -222,6 +222,7 @@ def compute_impact(
         for i in product.interfaces.values()
         if any(str(p) in affected_part_uris for p in i.parties)
         or any(f"param://{u.id}" in affected_params for u in Uri_refs(i))
+        or any(f"param://{s}" in affected_params for s in i.expression_slugs())
     )
     hyp = _hypothetical_params(product, overrides) if affected_params else {}
     reqs: list[ReqImpact] = []
@@ -314,6 +315,12 @@ def _static_reads(product: Product, rule: Rule) -> list[str]:
             for i in part.interfaces
             for u in Uri_refs(product.interfaces[i.id])
             if u.scheme == "param"
+        ]
+        # P2: slugs named inside frame expressions are reads too (S-106)
+        reads += [
+            f"param://{s}"
+            for i in part.interfaces
+            for s in product.interfaces[i.id].expression_slugs()
         ]
         return reads
     if rule.kind == "asm":
