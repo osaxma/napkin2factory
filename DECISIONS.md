@@ -155,6 +155,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-130 | v0.5 M5: choices (`choice` status, `build/checks/choices.json`, `n2f decide` writes a `DEC-`, reopened on evidence); the kiln's bolts-into-a-spacer choice (DEC-022) | in force |
 | S-131 | v0.5 M6: splits and the fast gate (`validate_refs` beside each schema, `concepts/promote/`, `build_part`/`build_asm`, `make check-fast` as the land gate) | in force |
 | S-132 | v0.5 M7a: docs, doctor, simulation protocols (`docs/domains.md` final, `n2f doctor` lists the domains, the gadget and kiln-choice protocols) | in force |
+| S-133 | v0.5 M5b: the gaps wave 3 left: a release held by an open choice, the report's "waiting on you", decided-not-applied as a Design caveat, the scope always read, `manifest://` links resolve, neutral walls words; B-0097 waits in a separate task | in force |
 
 ---
 
@@ -756,3 +757,15 @@ vocabulary; the four roles and the product `AGENTS.md` (scope, method by consequ
 examples (the kiln's copies too: `test_synced_copies_are_byte_identical` needs them) [revisit]. Protocols: `domain-transcripts/
 README.md`, `intake-transcripts/choice-kiln.md` (by hand: build 58 s, check 3 s, `n2f decide` 16 s, DEC-025, nothing waiting);
 their tests skip until a transcript exists. Closes B-0079, B-0085, B-0090, B-0096, B-0098. `make check`: 12 min 7 s, green, 1038 passed, 7 skipped, 141 goldens.
+## S-133 — v0.5 M5b: the gaps wave 3 left, closed or kept open with why (2026-11-02)
+Closed: B-0092 (`gate_blockers` adds open choices holding the release: "cannot release v1.0.0 yet: • a choice is waiting on
+you: … — `n2f decide …`"; `demo.sh` decides the bolts as "demo owner", shorter bolts (no nut to reach), before v1.0.0 and
+again before v1.1.0: ECR-001 moves the guard-standoff joints and reopens it, B-0101); B-0093 (`VOCAB` words, the overview
+lists open choices with options, gate, command); B-0095 (`pass` with its decision, F12, plus a Design caveat "decided in
+DEC-x (…), not yet applied — the designer makes the change: …" until the rule passes on the model: stage Design, release
+not held [revisit]); B-0081 (`manifest://scope` always read; every report key moves once, no golden pins one); B-0091
+(`Product.resolve` maps `manifest://product|scope`); B-0087 ("the inner space"/"wall" unless the sharing screen gives
+`inner_words`/`wall_words`; the kiln's says "chamber"/"insulation": cards, board golden unchanged). Open: B-0097, done in
+task `v05-m5b-summary` (WIP): it needs `cli/concept.py`, `promote/decision.py`, `verb.py`, outside this task's files.
+`demo-design.sh` (with `demo.sh`) green, 13 min 45 s beside other tests; `make check` green, 1034 passed, 141 goldens, 11 min 44 s.
+
