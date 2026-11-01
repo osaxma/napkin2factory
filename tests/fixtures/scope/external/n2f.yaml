@@ -1,5 +1,5 @@
 schema: 1
-system: '>=0.4,<0.5'
+system: '>=0.5,<0.6'
 product:
   id: rig
   name: Scope fixture rig

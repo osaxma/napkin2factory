@@ -713,6 +713,13 @@ kinds, report sections or gate rows (those are a domain's).
     circuit — fits with a fifth to spare (estimate)"). They follow the size and mass and come
     before the cost; `napkin2factory.concepts.build.screening_text(screening, section, name)`
     reads a value's text (`section` is `given`, `computed` or `estimates`).
+
+  And the product's own words for what the system's generic rows name (S-137):
+  - `WORDS = {"space": "recess"}`: the system's screening rows and promotion say "the
+    space" (the space the product must fit) unless a module gives another word; the kiln's
+    is `"alcove"`. `space` is the only key; an unknown key, or a word that is not text, is an
+    error naming the file and the keys there are. Modules are read in name order and a later
+    module's word wins (`core/packs.py::product_words`).
 - **`model/rulepacks/*.yaml`** with their checks in **`model/rulepacks/*.py`**: a pack file
   in the shipped packs' format (`pack`, `title`, `applies_to`, `rules:` each with `id`,
   `title`, `severity`, `check`, `params`, `message`), and a module exposing
