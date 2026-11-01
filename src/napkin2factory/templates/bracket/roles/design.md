@@ -99,20 +99,22 @@ decision is in `model/decisions.yaml`), the owner has already chosen the form. S
   assemblies, promotion only printed the modules as a suggestion: split one off only
   where its reason holds (above).
 - **Read `style.yaml` and respect it.** Give every visible part its `role:` (`body`,
-  `door`, `stand`, `controls`, `trim`; `lining`, `fastener` for the rest): the role picks
-  its colour and finish, and only `body`/`door`/`stand`/`controls`/`trim` parts take the
-  style's shape defaults — corner radius, chamfer, panel reveal, frame overhang, vent
+  `opening` for a door, lid or hatch, `support` for a stand, legs or feet, `controls`,
+  `trim`; `lining`, `fastener` for the rest; `door` and `stand` are still read as `opening`
+  and `support`): the role picks its colour and finish, and only
+  `body`/`opening`/`support`/`controls`/`trim` parts take the style's shape defaults — corner radius, chamfer, panel reveal, frame overhang, vent
   pattern, radius scale. Leave those arguments unset so the style decides. Override one on
   a part only with a logged `DEC-xxx` that says why.
 - **Form requirements are checked like any other.** Before composing, read the rows in
   `model/requirements.yaml` with `verify: {kind: rule, target: rule://form-v0/…}` (rounded
   exposed corners, no visible fasteners on the front, where the controls sit) and the
-  site rows (alcove width with the door swing, the supply); `n2f check` runs them with
+  site rows (the space it must fit with the door swing, the weight, and whatever the
+  product's own screens added, such as a heated box's supply); `n2f check` runs them with
   everything else. If promotion ran before any assembly existed, those rows are
-  `unallocated` (the alcove one `kind: manual`): once the top assembly exists, point them
+  `unallocated` (the width one `kind: manual`): once the top assembly exists, point them
   at it (`asm://<top>#props.bbox.x`, the limit from the requirement's rationale) and log
   the change as a decision. Form rows stay `needs your sign-off` (and `n2f lint` warns
-  L12) until the body, door, stand, controls and trim parts carry `role:` — set the roles
+  L12) until the body, opening, support, controls and trim parts carry `role:` — set the roles
   so the rows are checked, rather than asking the owner to sign them off.
 - **Never edit `concepts/` after promotion** except the status fields that `n2f concept
   reject` and `promote` write; the cards are the record of what was chosen and why. Never
@@ -146,6 +148,19 @@ in two places.
   `{expr: "-shell-outer-width / 2", unit: mm}` (the same grammar as a parameter `expr`).
   Never add a parameter only to write a frame.
 
+## Choices and scope
+- **A choice the owner decided** (`n2f decide`, a `DEC-` naming the check and the option):
+  make the change the option takes (its `what_it_takes`, in `build/checks/choices.json`),
+  rebuild and check. The row reads OK with the decision meanwhile; once the model has
+  changed, the check passes on the model itself. Never pick an option yourself unless the
+  choice holds nothing (`roles/pm.md`).
+- **A step done elsewhere** (`scope:` in `n2f.yaml` says `external`): model it as a stand-in
+  sub-assembly, `build: external`, no children, its `ports:` the joints where the supplied
+  work fits, each an interface naming the stand-in and the part it fits to (`stub:
+  asm://<id>` in the scope line names it). Validation fails, naming the file, until it
+  exists. **A step left for later** (`later`): design nothing for it; keep the room and the
+  openings it will need (a cable entry, a mounting face) and say so in a decision.
+
 ## Decisions
 Every material, thickness, process or sizing choice is a `DEC-xxx` with `links:` to the
 requirements and parameters it affects and `sources:` for any number taken from a
@@ -157,8 +172,32 @@ and both parts, so the report shows it beside that joint.
 ## Calcs
 `model/calcs/<topic>.py` functions take `P` (and optionally `I`) and return pint
 quantities (`from napkin2factory.core.units import Quantity`). Cite the formula and source in
-the docstring; add `model/tests/test_calcs.py` with a value you checked by hand.
-Requirements reference them as `calc://<topic>.<function>`.
+the docstring. Requirements reference them as `calc://<topic>.<function>`.
+
+**Write a reference case with every calc**, in the same edit, in
+`model/calcs/<topic>.cases.yaml`:
+```yaml
+inputs:                       # parameter values the cases read
+  heater-power: 2500 W
+  supply-voltage: 230 V
+cases:
+  current:                    # the function's name
+    - expect: 10.87 A
+      rel: 0.001              # or abs: 0.01, in the expected unit
+      source: "hand computation: 2500 W / 230 V = 10.87 A"
+```
+The source is a hand computation written out (the formula with its numbers) or a worked
+example from a handbook or datasheet with its page; never the calc's own output pasted back.
+A case runs on its own inputs, so it checks the formula, not the design. `n2f check` runs
+every case as a `calc-case` row: a wrong one fails naming the calc, the expected and the
+computed value; a calc with none is "worth a look" (lint `L16-calc-case`). A calc-kit
+function you import carries its own cases already.
+
+**How a requirement is checked is chosen by consequence.** `verify.kind` must be installed
+(`n2f doctor` lists the kinds and what each targets). Where a mistake would be costly or
+dangerous, or `operator.yaml` says the owner is `expert` in that area, offer the stronger
+method (a calc or a measured property over a manual look); the method is the requirement's,
+chosen once and logged in a `DEC-xxx`.
 
 ## Done means
 `n2f check` shows no `fail`; every custom part has renders you looked at; instance counts

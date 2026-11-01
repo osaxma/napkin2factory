@@ -74,17 +74,22 @@ decision: null                      # written by promote or reject
 Massing rules of thumb: each call's bottom centre sits at the origin and `at: {x, y, z, rz}`
 moves it (z up, the front is −y, +x is the owner's right when facing the front). Name the
 parts `body`, `door`, `controls`, `stand` — screening measures the door swing from `door`
-and checks the walls against `body`, and the names pick the colours. A closed body is an
+and checks the walls against `body`, and the names pick the colours (`door` and `stand` read
+as the roles `opening` and `support`; any other name takes `role:`). A closed body is an
 `enclosure` (an open-top shell, so its weight reads right) with a `plate` lid; a solid
 `block` of steel weighs as solid steel. Give every call a `material` or the shapes' mass
 is left out. Write numbers, never `param://`. Budgets and quantities go in `notes` for now.
 Words such as "chest height" or "about a metre" become numbers only as `[verify]` values
 ("chest height — about 1,300 mm [verify]"), and those numbers go in the card's `envelope`
 or `site`, not only in `notes`: promotion seeds them as parameters the owner can correct.
-Three optional fields, when the owner has said them: `envelope.door_swing: 110 degree` (how
-far a hinged door opens; without it screening counts the door swung fully back, the widest
-case), `envelope.target_volume: 8 L` (how much the inside should hold) and
-`site.touch_limit: 60 degC` (the hottest outside surface allowed).
+The skeleton `n2f concept new` writes lists every field the installed screens read, each with
+an example; fill the ones the owner has said and leave the rest. The space it must fit is
+`site.width`, `site.depth`, `site.height`; `envelope.door_swing: 110 degree` (how far a hinged
+door opens; without it screening counts the door swung fully back, the widest case) narrows
+the fit. A product with screens of its own (`model/screens/`, like the kiln's heated-box
+screens: a power, a supply circuit, `envelope.target_volume: 8 L` for how much the inside
+should hold, `site.touch_limit: 60 degC` for the hottest outside surface allowed) adds its
+fields to the skeleton; `n2f doctor` lists every screen installed.
 Run `n2f concept lint` after every edit and fix every error (warnings never fail).
 
 **Modules: what is built, bought or serviced as one unit.** Once the directions take shape,
@@ -229,7 +234,12 @@ Then write, in this order, running `n2f validate` after each file:
   `kind: manual` for things only a person can check), `category`, `priority`, an
   `allocation` (parts/parameters it will be satisfied by, or `unallocated` until design),
   and `safety: true` for anything that can hurt someone. Binary checks (`manual`,
-  `interference`, `interface`) need no number.
+  `interference`, `interface`) need no number. **The method is chosen by consequence**:
+  `verify.kind` must be an installed kind (`n2f doctor` lists them, with what each targets).
+  Offer the stronger method (a computed check over a person's look, a calc over a rule of
+  thumb) when a mistake would be costly or dangerous, or when `operator.yaml` says the owner
+  is `expert` in that area; say in one line what each method takes. The method is the
+  requirement's, chosen once: log the choice in a `DEC-xxx`.
 - `model/decisions.yaml` — one `DEC-xxx` for every choice you made on the owner's behalf,
   with `links:` and `sources:`; `verify: true` for numbers taken from a reference.
 - `model/intake.md` — the conversation summary in eight short paragraphs (the headings above).
@@ -263,6 +273,20 @@ takes and its cost (`build/checks/choices.json`). When to raise one is a rule:
   tell the owner in one line. A choice that holds a gate is always the owner's.
 - **A decided choice reopens by itself** when what it was decided on changes; raise it again
   the same way. `n2f check` never decides, and neither do you for the owner.
+
+## Scope: what this product covers
+When the owner says a step is done by someone else ("the electrician wires it", "the shop
+does the control box") or comes later ("we'll do the electronics next year"), record it once
+in `n2f.yaml`, after a `DEC-xxx` that says why:
+`scope: {electrical: {state: later, decision: DEC-xxx, note: "<their words>"}}`. The states,
+in the owner's words: **in** (done here; the default for a step with content), **done
+elsewhere** (`external`: a stand-in unit with its joints shows where the supplied work fits;
+the designer models it) and **later** (`later`: its checks and requirements wait and each
+gate says so; safety requirements still count). Changing a state is a decision, never a quiet
+edit: log it, then run `n2f status`, which shows the step's line under its gate. Tell the
+owner in one sentence what changes ("the wiring is left out of the checks until you bring it
+in; the box keeps its cable entries"). Never call it a "domain" or a "scope entry" to the
+owner: name the step.
 
 ## Register adaptation
 `persona: owner` → lead with pictures, cost and what to tell the manufacturer; avoid jargon;

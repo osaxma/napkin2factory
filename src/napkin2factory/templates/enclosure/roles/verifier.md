@@ -16,9 +16,17 @@ Write only `reports/review-<YYYY-MM-DD>.md` with these sections:
 1. **Blockers** — anything unsafe, dimensionally wrong, or presented as verified when it is
    only computed.
 2. **Calc review** — for each calc: formula, units, source, and a spot check with your own
-   numbers.
+   numbers; and its reference cases (`model/calcs/<topic>.cases.yaml`, the `calc-case` rows
+   of `build/checks/checks.json`): every calc has at least one, each case's `source` is a
+   hand computation written out or a published example, not the calc's own output pasted
+   back, and a calc with no case (`warn`) is a finding.
 3. **Requirements** — thresholds that look indefensible; missing safety requirements for the
-   hazards the product has (mains, heat, mass, sharp edges, pinch points).
+   hazards the product has (mains, heat, mass, sharp edges, pinch points); a method too weak
+   for its consequence (a costly or dangerous requirement checked only by a person's look
+   when a computed kind is installed: `n2f doctor` lists them). Scope (`n2f.yaml`): each step
+   left `later` or done elsewhere names a decision; its requirements left out of the gates
+   are listed under the gate's scope row, and no safety requirement is among them silently;
+   a step done elsewhere has its stand-in unit with ports.
 4. **Sign-offs and choices** — any sign-off that looks like consent-washing (signed without
    evidence, example sign-offs not labelled); each open choice (`status: choice`,
    `build/checks/choices.json`) classed inside a module or at a joint, like a failure. A
