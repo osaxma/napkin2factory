@@ -51,6 +51,7 @@ M2b and M4b follow-ups) 21:06–22:25, 79 min. `make check` on `main`: 9 min 7 s
 - M4 scope as data (`scope:` in `n2f.yaml`: in / done elsewhere / later; external stubs; load cases) — S-124.
 - M4b scope follow-ups (the scope a recorded read of the report; stubs said in the build plan) — S-127.
 - M3 the kiln out of the package (screens declare their fields; the heated-box screens are the kiln's own `model/screens/`; product rule packs; `site.width`; neutral style roles; the F9 guard) — S-128.
+- Gaps after waves 1–2 (`--target` and prose URIs from the registries, `manifest://` URIs, density in part keys, stub rows, no example ids, screen fields and phase, domain style roles; B-0081, B-0087 open) — S-129.
 
 v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
 `HANDOFF-REPORT-v0.4.md`:

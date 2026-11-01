@@ -151,6 +151,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-126 | v0.5 M2b: the checks rule hashes the calc kit (closes B-0078) | in force |
 | S-127 | v0.5 M4b: scope is a recorded value (`manifest://scope`, read by the report of a product that declares one); external stubs in the build plan | in force |
 | S-128 | v0.5 M3: the kiln out of the package: screens declare their fields, the heated-box screens are the kiln's own pack (`model/screens/`), product rule packs, `site.width`, neutral style roles, the F9 guard | in force |
+| S-129 | v0.5 gaps: `--target` and prose URIs from the registries, `manifest://` URIs, part keys read their density row, stubs get no module row, no example ids, screens declare fields and phase, domain style roles; B-0081, B-0087 kept open | in force |
 
 ---
 
@@ -710,3 +711,14 @@ chamber, controls moved to `examples/kiln/model/screens/heated_enclosure.py`; `c
 screening 894 → 167, concept_checks 710 → 538. F9 guard 154 hits/23 files → 0 (71 in 9 wave-2 files listed,
 B-0084); S-122 union 43/34 → 45/36, kiln 19/13 → 13/7. Guard 0.4 s, packs 14.6 s; `make check` 9 min 13 s,
 green, 997 passed, 141 goldens.
+
+## S-129 — v0.5 gaps: the rows waves 1–2 left, closed or kept open with why (2026-11-01)
+Closed: B-0074 (`--target` reads the rule-family registry; a family is a target by its name, v0.4 names stay aliases);
+B-0075 (`find_uris` matches registered domains' schemes); B-0083 (`manifest://product|scope` is a URI, never matched in
+prose; `n2f impact --set manifest://scope#wiring.state=in` names the report); B-0080 (a part rule's `material` input is
+its shared density row, read from `calckit/data/materials.yaml`: a mild-steel edit reruns the kiln's 9 steel parts, not
+its 4 brick or 10 declared ones; every part key moves once, props do not); B-0082 (a stub gets no `module-has-parts`
+row via `RuleNotApplicable` in `rulepacks/checks.py`, outside the named files; the Build plan sheet lists it); B-0084
+(`ALLOWED` empty, every number kept); B-0089 (`Screen(fields, phase)`, `Domain.style_roles`, the role constants live
+registry views; two YAML-split role `words` quoted). Kept open [revisit]: B-0081 (`report/builder.py`, not this wave's;
+free at the v0.5 upgrade), B-0087 (`concept_checks.py`, M6's). `make check` green, 1006 passed, 141 goldens, 13 min 58 s.
