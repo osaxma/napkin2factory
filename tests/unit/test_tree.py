@@ -70,12 +70,26 @@ def test_lowest_containing_is_where_the_parts_meet() -> None:
     assert tree.lowest_common([]) == []
 
 
-def test_kiln_joints_cross_no_boundary_yet() -> None:
-    """M2 leaves the kiln's tree alone (M3): its nine joints each stay inside one assembly."""
+def test_kiln_ports_are_the_joints_between_units() -> None:
+    """M3b: the door's hinges and latch and the controls' box cross a unit's boundary (P4)."""
     product = load_product(EXAMPLES / "kiln")
     tree = AssemblyTree(product.assemblies)
+    crossings = {}
     for iface in product.interfaces.values():
         a, b = (str(p) for p in iface.parties)
-        assert tree.port_crossings(a, b) == [], iface.id
+        crossings[iface.id] = tree.port_crossings(a, b)
+    assert {k: v for k, v in crossings.items() if v} == {
+        "hinge-lower": ["door"],
+        "hinge-upper": ["door"],
+        "latch-catch": ["door"],
+        "controller-mount": ["controls"],
+    }
+    for aid in ("door", "controls"):
+        listed = sorted(str(u).removeprefix("iface://") for u in product.assemblies[aid].ports)
+        assert listed == sorted(k for k, v in crossings.items() if aid in v), aid
     assert tree.home("part://door-tray") == "door"
+    assert tree.home("part://controller-box") == "controls"
+    assert tree.home("part://fiber-slab") == "lining"
+    # parts listed by several units live at the top (P5)
     assert tree.home("part://m6x16-bolt") == "kiln"
+    assert tree.home("part://earth-stud") == "kiln"

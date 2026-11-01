@@ -6,12 +6,14 @@ statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this c
   against the built kiln.
 evidence:
 - doc://installation
+- asm://controls
 - part://controller-box
 - part://rating-label
 - param://circuit-rating
 evidence_keys:
-  doc://installation: sha256:c721c3c02e670f599c963e0d2b2ff572dd1a09dbe442670db6ff2287a630b819
-  part://controller-box: sha256:1ccf4784582a6ba32fb1f7d574a6ad8af8cf96ea5fbbc559bf570aaf9b5717c3
+  doc://installation: sha256:a22318f896f71cf30a9a30e19ba254f9f3589c8a61ba773971161ab3845e6435
+  asm://controls: sha256:545d12e77e268ec458b9dd19c96d67a5be2294197774fdd9617149001b21d24d
+  part://controller-box: sha256:ceeb74f601ca6ebe12070fc63f1b86b8e24a2983c5b73e0215c542238d4fc5ad
   part://rating-label: sha256:3c4c00b1d8813341d1a58d17e51725b744b5e2f53f540f3ad86fe05b411c193e
   param://circuit-rating: sha256:95fce4b018f8b504b0102ac1aac59d633f8196c6adfde32e950b66f5654751b8
 example: true

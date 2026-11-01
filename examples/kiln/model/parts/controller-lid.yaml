@@ -10,6 +10,7 @@ tolerance_class: ISO2768-m
 geometry:
   kit: panel
   args: {width: param://controller-box-width, height: param://controller-box-depth, thickness: param://controller-sheet, corner_radius: 3 mm}
+interfaces: [iface://controller-lid-seat]
 satisfies: [req://REQ-007]
 cost: {unit: 15 USD, basis: estimate}
 lead_time: 15 d

@@ -30,7 +30,7 @@ holes are in the DXFs. Deburr every edge before coating.
   inside bare.
 - {{ part("guard-shell").name }}: {{ part("guard-shell").material.spec }},
   {{ part("guard-shell").tolerance_class }}. Critical inside opening: the shell plus
-  {{ P["guard-gap"] }} each side. Holes: four stand mounting holes, sixteen standoff holes,
+  {{ P["guard-gap"] }} each side. Holes: sixteen standoff holes (the four in the bottom wall also take the stand bolts),
   four for the hinge post, two for the latch keeper, four for the controller mount, the rear
   tail openings (Ø{{ P["tail-hole-guard"] }}) and thermocouple holes. The vent slots must stay
   open. Finish: {{ part("guard-shell").finish }}.

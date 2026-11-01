@@ -944,7 +944,8 @@ def plan_modules(card: ConceptCard, product: Any, notes: list[str]) -> ModulePla
         state = []
         if there:
             state.append(
-                f"{_and(there)} {'is' if len(there) == 1 else 'are'} already a sub-assembly"
+                f"{_and(there)} "
+                + ("is already a sub-assembly" if len(there) == 1 else "are already sub-assemblies")
             )
         if missing:
             verb = "is" if len(missing) == 1 else "are"

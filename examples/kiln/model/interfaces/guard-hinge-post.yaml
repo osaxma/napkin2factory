@@ -16,4 +16,4 @@ frames:
     x_axis: [0, 0, 1]
 # P2: the post's frame is on the leg's outer face, one angle thickness out from the guard
 offset: param://hinge-post-thickness
-spec: {pattern: line, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://hinge-post-bolt-spacing], fastener: part://m6x16-bolt, depth: 10 mm}
+spec: {pattern: line, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://hinge-post-bolt-spacing], hardware: [{part: part://m6x16-bolt, per_hole: 1}, {part: part://m6-nut, per_hole: 1}], depth: 10 mm}

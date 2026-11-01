@@ -58,6 +58,10 @@ onto=…, inner=…, label=…)` moves the whole sub-assembly so its party's fra
 its leaves; `inner` names the leaf by label when the party occurs there more than once)
 meets the placed party's. The placed party may itself be a leaf of a sub-assembly already
 placed (`onto` then matches that sub-assembly's label or the leaf's).
+A part joined to another at several places (the kiln's two hinges on one hinge post) has one
+interface per place, each naming the same two parts with its own frames: in the alignment
+check an occurrence that meets one of them is not a miss of the others, but each still needs a
+pair that meets; in the build plan they share the occurrences (S-113).
 
 **Build units and the build plan** (P7, P8, S-110): a sub-assembly is a *unit* (`build:
 unit`, the default), put together on its own and fitted as a whole, or a *phantom* (`build:

@@ -3,7 +3,7 @@ id: installation
 title: Installation
 audience: [owner, engineer]
 order: 10
-depends_on: [req://REQ-008, req://REQ-009, req://REQ-018, req://REQ-019, part://stand, part://outer-shell, part://guard-shell, part://controller-box, part://pid-controller, part://limit-controller, part://contactor, part://ssr, part://door-switch, part://earth-stud, part://m20-gland, part://rating-label, param://circuit-rating, param://mains-voltage]
+depends_on: [req://REQ-008, req://REQ-009, req://REQ-018, req://REQ-019, part://stand, part://outer-shell, part://guard-shell, part://m6x50-bolt, part://m6-rivnut, part://controller-box, part://pid-controller, part://limit-controller, part://contactor, part://ssr, part://door-switch, part://earth-stud, part://m20-gland, part://rating-label, param://circuit-rating, param://mains-voltage]
 ---
 
 # Installation
@@ -51,11 +51,12 @@ earth lead from each stud to the earth terminal in the controller box.
 ## Mounting the body
 
 1. Place the {{ part("stand").name | lower }} and check it stands level.
-2. Lift the body onto the stand with two people, with the bricks and the door out: the body
-   alone is still heavy (see the report's mass figure). Bolt the guard to the stand through
-   its four mounting holes into the rivet nuts in the stand's top rails with
-   M6 bolts ({{ part("m6x16-bolt").name }}).
-3. Fit the bricks, the door and the controller box as described in the assembly manual.
+2. Lift the body onto the stand with two people before it is lined: the inner shell with its
+   standoffs inside the guard, without fiber, bricks or door (see the report's mass figure).
+   Bolt it down at the four bottom corners from inside the shell, through the bottom standoffs
+   and the guard into the rivet nuts in the stand's top rails, with M6 × 50 bolts
+   ({{ part("m6x50-bolt").name }}).
+3. Line the body, hang the door and the controls as described in the assembly manual.
 
 ## First firing and checks
 

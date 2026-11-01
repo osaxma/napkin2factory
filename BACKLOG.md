@@ -39,8 +39,9 @@ entry that closed them. Ids are never reused.
 | B-0060 | `ecr close` does not see edits never saved to a snapshot before closing; overlapping change requests can bump extra parts | S-089: `core/vcs.py` has no public diff of a snapshot against unsaved files |
 | B-0061 | The board's live 3D viewer and the fallback pictures do not show the layout marks | S-093: the marks live on the styled screenshot page only |
 | B-0062 | `n2f publish --online` run against a real GitHub project (first send, Pages from `gh-pages`) | S-094: tested against a local bare repository only |
-| B-0063 | `make check-full` fails: the kiln demo's ECR-002 patch (peephole) no longer applies with `git apply` to `door.py` and `door_fiber.py` | Found by S-105 (v0.4 M0); both files last changed in f1d6680 (S-085–S-096). Re-create the patch against the door, after v0.4 M3 (which rewrites `door.py`) |
 | B-0064 | The placement warning (P1) does not look at joints through ports: a sub-assembly placed by coordinates although a port could place it is not flagged | S-107: `instances.json` records leaves only, not a sub-assembly's own `via`; record the group placements (M3, when the kiln's door is placed by its ports) |
+| B-0065 | The kiln's rivets are in no parts list: two for the rating label (its note) and the latch keeper plate's (count stated nowhere) | S-113 (v0.4 M3b), product DEC-023; S-105 §2.2 error 4. Choose the rivets, count them, list them in the controls and the kiln |
+| B-0066 | Joint words name only the two parts: the kiln's two hinge joints read the same in the build plan, and long part names shrink a joint's row on the assembly sheet to an unreadable size | S-113 (v0.4 M3b): name the place (the interface's description or a short `title:`), and wrap long joint text on the sheet |
 
 ## Closed
 
@@ -78,3 +79,4 @@ entry that closed them. Ids are never reused.
 | B-0056 | Visual milestones go to the maintainer as pictures before they are called done | Closed 2026-11-01 (S-078): `AGENTS.md` working-style rule |
 | B-0057 | Client-neutral home for the product role skills | Closed 2026-11-01 (S-077): roles moved to `roles/` with no `.claude/` copy |
 | B-0058 | The README and product `AGENTS.md` link the agent guide on `main` | Closed 2026-11-01 with the 0.3.0 release: `main` fast-forwarded to the release commit, which carries `docs/agent-guide.md` |
+| B-0063 | `make check-full` fails: the kiln demo's ECR-002 patch (peephole) no longer applies | Closed 2026-11-01 (S-113): the patch re-made against the restructured door |

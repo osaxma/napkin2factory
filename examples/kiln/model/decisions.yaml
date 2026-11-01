@@ -205,3 +205,56 @@ decisions:
     disclosed: true
     verify: true
     sources: [concepts/C-003.yaml, concepts/C-001.yaml, concepts/C-002.yaml, concepts/C-004.yaml]
+  - id: DEC-019
+    date: 2026-11-01
+    title: The door and the controls are built as units and hung on the kiln by their joints
+    context: The assembly manual already built the door as one unit and fitted out the controller box on its own, but the model listed nearly everything in one flat assembly, and the door and the instruments were placed by positions typed into the kiln's placement code.
+    decision: The door (asm://door) is a unit, built and hung as one piece and lifted off its hinges as one piece to reline or replace it. It hangs on the hinge post by its lower hinge; the upper hinge and the latch are checked where they meet the post and the latch keeper. The controls (asm://controls) are a unit too - the controller box, its lid and screws, both controllers, the relay, the contactor, the glands, its earth stud and the rating label - fitted out and wired on the bench, tested before they are hung, and makeable by an electrical panel shop apart from the sheet-metal body. The box hangs by its joint with the guard; that joint's standoffs and bolts belong to the final assembly. The door places its hinges and latch from its own sizes (hinge-pin-depth, hinge-pin-past-guard and the latch-* sizes); the hinge post's position (hinge-post-y) now follows from where the door's hinge pin sits.
+    rationale: The joints now hold the door and the controls exactly where the typed-in positions did, so the assembled kiln is unchanged, and each unit can be built, checked and changed on its own. Three kiln sizes still read door sizes - the hinge post's reach (door-guard-width), the stand's inset (door-guard-depth, door-guard-offset) and hinge-post-y (hinge-pin-depth) - because the post and the stand must clear the door.
+    links: [asm://door, asm://controls, iface://hinge-lower, iface://hinge-upper, iface://latch-catch, iface://controller-mount, iface://controller-lid-seat, part://hinge-post, param://hinge-pin-depth, param://hinge-post-y, req://REQ-007, req://REQ-009]
+    made_by: agent
+    disclosed: true
+    sources: ["model/docs/assembly.md before this change: the door 'built as one unit', the controller box fitted out on its own", "model/docs/maintenance.md: the door gasket and the door plug are renewed with the door"]
+  - id: DEC-020
+    date: 2026-11-01
+    title: The lining is a grouping, not a unit
+    context: The fiber boards, the bricks, the mortar, the element and its tail bushes are laid one by one inside the shell. None of them is put together, tested or replaced as a group apart from the kiln - the element and a cracked liner are replaced in place (maintenance manual).
+    decision: The lining (asm://lining) groups those parts for the drawings and the build plan only (build - phantom); its lines are part of the final assembly's step. It has no joint with any other part, so it is set by its position, at the front of the shell's floor, and its parts by positions inside it.
+    rationale: A unit needs a reason to be built on its own; the lining has none, and a separate step for it would only repeat the final assembly's.
+    links: [asm://lining, asm://kiln, part://fiber-slab, part://liner-side, part://heating-element]
+    made_by: agent
+    disclosed: true
+    sources: ["model/docs/maintenance.md: the element and the liners are replaced in place", "model/docs/assembly.md: the lining is laid inside the shell"]
+  - id: DEC-021
+    date: 2026-11-01
+    title: One M6 x 50 through bolt at each bottom corner
+    context: At each bottom corner the guard has one hole for both the shell's standoff and the stand's rivet nut. The parts list counted three M6 x 16 bolts per corner, and the manuals bolted the standoff from both ends and then the guard into the rail through that same hole, which cannot be done.
+    decision: One M6 x 50 bolt per corner (new part m6x50-bolt) runs from inside the shell through the bottom standoff and the guard's bottom wall into the rail's rivet nut. The kiln now lists 4 M6 x 50 and 38 M6 x 16 (it listed 50 M6 x 16). The bottom standoffs must let the bolt pass right through - tapped right through, or a plain spacer in their place [verify]. The bolts go in after the shell and the guard are on the stand and before the fiber floor, so the assembly manual now puts the body on the stand before it is lined, which also makes that lift the lightest it can be.
+    rationale: Only a through bolt fits the shared hole and keeps the lining's load going shell, standoff, guard, rail (DEC-007, DEC-009).
+    links: [part://m6x50-bolt, part://m6-standoff-25, part://m6-rivnut, iface://shell-frame-mount, iface://guard-standoff-bottom, doc://assembly, doc://installation]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["iface://guard-standoff-bottom's description: one M6 x 50 bolt per corner into the rail's rivet nut", "the guard's built hole table: one hole per bottom corner for both interfaces", "the 50 mm length is not checked against the stack (shell 1.2 + standoff 25 + guard 1.0 mm, then the rail and its rivet nut) [verify]"]
+  - id: DEC-022
+    date: 2026-11-01
+    title: The M6 x 16 bolts may be too long for the 25 mm standoffs
+    context: Each 25 mm standoff between the shell and the guard, and between the door tray and the door guard, takes an M6 x 16 bolt from each end. Inside the standoff that leaves 14.8 + 15.0 = 29.8 mm of bolt (door 14.5 + 15.0 = 29.5 mm) in 25 mm.
+    decision: Not changed yet; flagged. If the standoff is tapped right through, the two bolt ends meet and a shorter bolt is needed - M6 x 12 would leave 10.8 + 11.0 = 21.8 mm (door 10.5 + 11.0 = 21.5 mm). If each end is tapped blind, each thread must reach deeper than 15 mm. Confirm the thread depth of the standoff before ordering. The 40 mm controller standoffs (15 + 15 = 30 mm) are fine.
+    rationale: The right fix depends on a catalogue figure nobody has checked yet.
+    links: [part://m6x16-bolt, part://m6-standoff-25, iface://guard-standoff-left, iface://guard-standoff-right, iface://guard-standoff-top, iface://door-guard-standoff]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["computed from the sheet thicknesses (shell 1.2 mm, guard 1.0 mm, door tray 1.5 mm) and the bolt length", "McMaster 93655A135 thread depth not checked [verify]"]
+  - id: DEC-023
+    date: 2026-11-01
+    title: Each fitting is listed in the unit it is fitted in
+    context: The door guard's earth stud, the four fiber anchors and the gasket are fitted while the door is built, and the controller box's earth stud, glands and rating label while the controls are, but all were listed with the kiln. The lid's four screws were in no list. The earth-stud note said the installer fits the studs; the assembly manual fits them during assembly.
+    decision: The door lists its earth stud, the four fiber anchors and the gasket; the controls list their earth stud, the three glands, the rating label and four lid screws (new part lid-screw, an ST4.2 x 9.5 pan-head self-tapping screw, the agent's choice for 1 mm sheet [verify]); the kiln keeps three earth studs (shell, guard, stand). Earth studs are fitted during assembly and the electrician bonds them (the manual's account). The door switch is packed loose for the installer. Still in no list - the rivets for the rating label (two, its note) and for the latch keeper plate (count not stated).
+    rationale: A unit's step lists everything fitted in it, so whoever builds the door or the controls has all their parts.
+    links: [asm://door, asm://controls, asm://kiln, part://earth-stud, part://fiber-anchor, part://fiber-gasket, part://lid-screw, part://door-switch, iface://controller-lid-seat]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["model/docs/assembly.md before this change: steps 1, 3, 5 and 7 fit the earth studs, step 5 the anchors and the gasket, step 7 the glands, the lid screws and the label", "model/parts/controller-lid.yaml: four self-tapping screws drilled on assembly", "ST4.2 x 9.5 screw size not checked against the lid and its lips [verify]"]

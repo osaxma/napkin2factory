@@ -1,0 +1,18 @@
+id: hinge-upper
+kind: mating-face
+# The post (placed in the kiln) first, so the offset reads from it to the door's hinge (S-106).
+parties: [part://hinge-post, part://hinge]
+description: The upper hinge. One barrel half is welded to the hinge post's web, the other to the door guard's left wall, so no holes are cut (a joint between the door and the kiln; the door is hung by the lower one, this one is checked).
+frames:
+  # post coordinates: x out from the guard's wall face, y back from the web's front face, z up
+  # from the post's centre (the guard's mid-height, fiber-clearance above the chamber centre)
+  part://hinge-post:
+    origin: [{expr: "hinge-pin-x + guard-outer-width / 2", unit: mm}, {expr: "-hinge-pin-setback", unit: mm}, {expr: "-fiber-clearance + hinge-spacing / 2", unit: mm}]
+    normal: [0, 0, 1]
+    x_axis: [1, 0, 0]
+  # hinge coordinates: the pin axis is the block's z axis; the frame sits at its mid-length
+  part://hinge:
+    origin: [0, 0, {expr: "hinge-length / 2", unit: mm}]
+    normal: [0, 0, 1]
+    x_axis: [1, 0, 0]
+spec: {width: param://hinge-barrel, depth: param://hinge-length, hardware: []}

@@ -1,7 +1,7 @@
 requirement: req://REQ-009
 by: Example Reviewer (not a real review)
 role: human
-date: '2026-10-30'
+date: '2026-11-01'
 statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
   against the built kiln.
 evidence:
@@ -9,11 +9,13 @@ evidence:
 - part://door-switch
 - part://contactor
 - asm://door
+- iface://latch-catch
 - doc://operation
 evidence_keys:
-  part://latch: sha256:9e4d269b4fcef7a9ccd81d29e5c593db1683b467c980900320d470c2e0119803
+  part://latch: sha256:ab37b19bb654338aec11a38becfabab4ecc0185ea1ad5ba21b6e2fabd758b38f
   part://door-switch: sha256:5692940d6bb4d6987d1268e2606555a638e060d000db188e7586252b26112ef9
   part://contactor: sha256:34aa515ff8296217ce966a773e19be2d299f89ee3d31db6b93d26adf93edce1d
   asm://door: sha256:f55443179dea7e1d4ca7a5a5a26dafe997e5bcbba89a8ed5892cf005101acbca
+  iface://latch-catch: sha256:7f920036d4f6303fd411a008739e78ff98ee13ae31cf3956d1d6134c60392da6
   doc://operation: sha256:71110227e50b366581c4955c4f1c89c29d163aa1ab202b199ef7071b2c3d3350
 example: true

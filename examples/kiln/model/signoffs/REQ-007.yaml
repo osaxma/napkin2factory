@@ -5,15 +5,17 @@ date: '2026-11-01'
 statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
   against the built kiln.
 evidence:
+- asm://controls
 - part://controller-box
 - part://controller-lid
 - part://m6-standoff-40
 - param://controller-standoff
 - iface://controller-mount
 evidence_keys:
-  part://controller-box: sha256:1ccf4784582a6ba32fb1f7d574a6ad8af8cf96ea5fbbc559bf570aaf9b5717c3
-  part://controller-lid: sha256:08f1b3658a1f2ec8bf89ed0cd902b932c1e04c850138b51d5496a929a476f1c6
+  asm://controls: sha256:545d12e77e268ec458b9dd19c96d67a5be2294197774fdd9617149001b21d24d
+  part://controller-box: sha256:ceeb74f601ca6ebe12070fc63f1b86b8e24a2983c5b73e0215c542238d4fc5ad
+  part://controller-lid: sha256:94cba86e88c56e0372c9b83cccd4637ad45ee78d39336c57fe462559f3d3361c
   part://m6-standoff-40: sha256:ed2dddd51f7e9a376fd2b65c2c89c8f7484f517d226b3ac9500f0a65564352f1
   param://controller-standoff: sha256:3b42f8e0cc21010be377985e47dbbd0f4577538fa6efb7a8af4d628be5fa2880
-  iface://controller-mount: sha256:ff228ae317b5ce5f39bfa6fe93aac3618116ce49d4e12b1d8fea29cf560c6265
+  iface://controller-mount: sha256:ce015bd9c17929471bd7784076b9bbfaf8e572cb3598c4686177407ce74b91c2
 example: true

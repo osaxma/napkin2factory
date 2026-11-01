@@ -1,7 +1,7 @@
 id: shell-frame-mount
 kind: bolt-pattern
 parties: [part://guard-shell, part://stand]
-description: Four M6 bolts through the guard's bottom wall into the stand's top rails (the inner shell sits on the guard's standoffs).
+description: Four M6 × 50 bolts, one per corner, from inside the inner shell through the bottom standoffs and the guard's bottom wall into rivet nuts in the stand's top rails (DEC-021); the holes are shared with guard-standoff-bottom, which lists the standoffs.
 frame: {origin: [0, 0, 0], normal: [0, 0, 1]}
 frames:
   # guard tray coordinates: the kiln's bottom wall is the tray's −Y wall at y = −height/2; the
@@ -16,4 +16,4 @@ frames:
     x_axis: [1, 0, 0]
 # P2: the guard's bottom face sits on the stand's top rails, so the frames coincide
 offset: 0 mm
-spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://mount-bolt-spacing-x, param://mount-bolt-spacing-y], fastener: part://m6x16-bolt, depth: 20 mm}
+spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://mount-bolt-spacing-x, param://mount-bolt-spacing-y], hardware: [{part: part://m6x50-bolt, per_hole: 1}, {part: part://m6-rivnut, per_hole: 1}], depth: 20 mm}

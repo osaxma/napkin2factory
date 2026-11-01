@@ -1,0 +1,12 @@
+id: lid-screw
+rev: A
+name: Self-tapping pan-head screw for the controller lid
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic fastener wholesaler, mpn: ISO7049-ST4.2X9.5, url: "https://www.mcmaster.com/sheet-metal-screws/", verified: false}
+cost: {unit: 0.10 USD, basis: estimate}
+lead_time: 5 d
+mass: 2 g
+satisfies: [req://REQ-007]
+notes: Four hold the lid on the box's lips, drilled on assembly (controller lid notes). The size ST4.2 x 9.5 is the agent's choice for 1 mm sheet [verify] (DEC-023).

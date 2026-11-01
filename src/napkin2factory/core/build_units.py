@@ -12,6 +12,7 @@ The assembly YAML stays the one tree (D18); this module reads it as a build plan
   (:meth:`~napkin2factory.core.model.Interface.hardware_items`, the ``fastener`` alias
   included).  A joint occurs, per one closing assembly, as often as the more numerous of its
   two parties occurs there: alignment (P3) gives every occurrence of either party a partner.
+  Several interfaces joining the same two parts (two hinges on one post) share that number.
 - A **hardware part** is a part named in some interface's hardware (P9); lines of any other
   part are not counted, so earth studs or glands need no field (S-105).
 
@@ -175,12 +176,16 @@ class BuildUnits:
         inside = set(self.folded_ids(uid))
         out: list[Joint] = []
         for aid, mult in self.folded(uid):
-            for iid, where in self.closing().items():
-                if where != aid:
-                    continue
+            here = [iid for iid, where in self.closing().items() if where == aid]
+            pairs = [frozenset(str(p) for p in self.product.interfaces[i].parties) for i in here]
+            for iid in here:
                 iface = self.product.interfaces[iid]
                 a, b = (str(p) for p in iface.parties)
-                occ = mult * max(self.tree.count_under(aid, a), self.tree.count_under(aid, b))
+                # k interfaces joining the same two parts (two hinges on one post) share the
+                # occurrences: each is one of the places they meet (S-113)
+                k = pairs.count(frozenset((a, b)))
+                most = max(self.tree.count_under(aid, a), self.tree.count_under(aid, b))
+                occ = mult * -(-most // k)  # rounded up
                 holes = iface.holes
                 needs = tuple(
                     HardwareNeed(

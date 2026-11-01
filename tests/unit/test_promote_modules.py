@@ -221,7 +221,8 @@ def test_promotion_on_the_kiln_only_suggests_modules(tmp_path: Path) -> None:
         "C-003 sketches these modules: door (built as one unit) and controls (made by another "
         "process or supplier). The product already has its assemblies, so nothing was changed"
     )
-    assert "door is already a sub-assembly" in result.suggestion
+    # both are sub-assemblies of the kiln since M3b (S-113)
+    assert result.suggestion.endswith("door and controls are already sub-assemblies.")
     dec = load_product(root).decisions[result.dec_id]
     assert "suggested, not written" in dec.context
     r = n2f("concept", "lint", cwd=root)

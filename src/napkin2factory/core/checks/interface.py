@@ -231,6 +231,48 @@ def _miss_words(m: dict[str, float]) -> str:
     return " and ".join(parts) or "they meet"
 
 
+def _siblings(product: Product, iface: Interface) -> list[Interface]:
+    """Other interfaces joining the same two parts, resolved (two hinges on one post)."""
+    from napkin2factory.geometry.accessors import resolve_interface
+
+    pair = {str(p) for p in iface.parties}
+    return [
+        resolve_interface(product, other)
+        for oid, other in sorted(product.interfaces.items())
+        if oid != iface.id
+        and {str(p) for p in other.parties} == pair
+        and all(str(p) in other.frames for p in other.parties)
+    ]
+
+
+def _pairs(
+    iface: Interface, instances: list[dict[str, Any]], a: str, b: str
+) -> list[dict[str, Any]]:
+    """Every occurrence pair of the two parties, with how far their frames are apart."""
+    fa, fb = iface.frame_for(a), iface.frame_for(b)
+    occ_a = [
+        (i["node"], world_frame(fa, i["translation"], i["rotation"]))
+        for i in _occurrences(instances, a)
+    ]
+    occ_b = [
+        (i["node"], world_frame(fb, i["translation"], i["rotation"]))
+        for i in _occurrences(instances, b)
+    ]
+    pairs: list[dict[str, Any]] = []
+    for na, wa in occ_a:
+        for nb, wb in occ_b:
+            m = _compare(iface, wa, wb)
+            pairs.append(
+                {
+                    "occurrences": [na, nb],
+                    **m,
+                    "meets": _ok(m),
+                    "world": {na: wa.to_dict(), nb: wb.to_dict()},
+                }
+            )
+    return pairs
+
+
 def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict[str, Any]:
     """Stage 2 (P3): every occurrence of each party has a partner whose frame meets its own.
 
@@ -238,6 +280,11 @@ def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict
     contains both parties, from its ``instances.json`` (leaves in that assembly's frame,
     nested ones included).  Only interfaces that give each party its own frame (``frames:``)
     are checked: the shared fallback ``frame`` is in nobody's coordinates in particular.
+
+    A part joined to another at several places (two hinges on one hinge post) has one
+    interface per place, each naming the same two parts (S-113).  Then an occurrence that
+    meets another of those interfaces is that interface's business, not a miss here; but each
+    interface still needs at least one pair that meets, so a missing hinge still fails.
 
     Returns:
         ``{status: pass|fail|skip, message, ...}`` with the world frames as evidence.
@@ -254,13 +301,15 @@ def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict
     asms = lowest_common_assemblies(product, a, b)
     if not asms:
         return {"status": "skip", "message": "the two parts are not in one assembly"}
-    fa, fb = iface.frame_for(a), iface.frame_for(b)
+    siblings = _siblings(product, iface)
     out: dict[str, Any] = {
         "status": "pass",
         "tolerance": {"distance_mm": ALIGN_MM, "angle_deg": ALIGN_DEG},
         "offset_mm": float(iface.offset),
         "assemblies": {},
     }
+    if siblings:
+        out["shared_with"] = [s.uri for s in siblings]
     failures: list[str] = []
     worst = 0.0
     for aid in asms:
@@ -269,33 +318,24 @@ def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict
             out["assemblies"][aid] = {"status": "skip", "why": "not built"}
             continue
         instances: list[dict[str, Any]] = json.loads(path.read_text(encoding="utf-8"))
-        occ_a = [
-            (i["node"], world_frame(fa, i["translation"], i["rotation"]))
-            for i in _occurrences(instances, a)
-        ]
-        occ_b = [
-            (i["node"], world_frame(fb, i["translation"], i["rotation"]))
-            for i in _occurrences(instances, b)
-        ]
-        pairs: list[dict[str, Any]] = []
-        for na, wa in occ_a:
-            for nb, wb in occ_b:
-                m = _compare(iface, wa, wb)
-                pairs.append(
-                    {
-                        "occurrences": [na, nb],
-                        **m,
-                        "meets": _ok(m),
-                        "world": {na: wa.to_dict(), nb: wb.to_dict()},
-                    }
-                )
+        pairs = _pairs(iface, instances, a, b)
+        elsewhere = {
+            node
+            for sib in siblings
+            for p in _pairs(sib, instances, str(sib.parties[0]), str(sib.parties[1]))
+            if p["meets"]
+            for node in p["occurrences"]
+        }
+        nodes = list(dict.fromkeys(n for p in pairs for n in p["occurrences"]))
         lonely: list[dict[str, Any]] = []
-        for node in [n for n, _ in occ_a] + [n for n, _ in occ_b]:
+        for node in nodes:
             mine = [p for p in pairs if node in p["occurrences"]]
-            if mine and not any(p["meets"] for p in mine):
+            if not any(p["meets"] for p in mine) and node not in elsewhere:
                 nearest = min(mine, key=lambda p: (p["distance_mm"], p["normal_deg"]))
                 if nearest not in lonely:
                     lonely.append(nearest)
+        if pairs and not lonely and not any(p["meets"] for p in pairs):
+            lonely.append(min(pairs, key=lambda p: (p["distance_mm"], p["normal_deg"])))
         for p in pairs:
             if p["meets"]:
                 worst = max(worst, p["distance_mm"])

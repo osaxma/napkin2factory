@@ -15,7 +15,7 @@ requirements:
     category: geometry
     priority: must
     verify: {kind: geometry_prop, target: "asm://kiln#props.bbox.x", op: "<=", value: 1000 mm}
-    allocation: [asm://kiln, asm://door, part://guard-shell, part://controller-box]
+    allocation: [asm://kiln, asm://door, asm://controls, part://guard-shell]
     rationale: The owner described an alcove of about 800 mm; with the controller box beside the body and the door guard and hinges outside the guard the kiln needs about 1 m (DEC-011, flagged for the owner).
     source: intake
   - id: REQ-003
@@ -62,7 +62,7 @@ requirements:
     safety: true
     priority: must
     verify: {kind: manual, note: "Check the box hangs on four 40 mm standoffs with the lid screwed on. After one hour with the chamber at 1200 degC, measure the air inside the box (probe through a gland, lid closed); it must read below 50 degC."}
-    allocation: [part://controller-box, part://controller-lid, part://m6-standoff-40, param://controller-standoff, iface://controller-mount]
+    allocation: [asm://controls, part://controller-box, part://controller-lid, part://m6-standoff-40, param://controller-standoff, iface://controller-mount]
     rationale: Controllers and the solid-state relay derate above 50 degC and the relay needs air; the lid keeps fingers and dust off the mains terminals.
     source: design
   - id: REQ-008
@@ -72,7 +72,7 @@ requirements:
     safety: true
     priority: must
     verify: {kind: manual, note: "Read the installation manual's power section and the rating label riveted to the controller box front; both name the dedicated 16 A circuit and the licensed electrician."}
-    allocation: [doc://installation, part://controller-box, part://rating-label, param://circuit-rating]
+    allocation: [doc://installation, asm://controls, part://controller-box, part://rating-label, param://circuit-rating]
     source: design
   - id: REQ-009
     title: Door latch and door switch
@@ -81,7 +81,7 @@ requirements:
     safety: true
     priority: must
     verify: {kind: manual, note: "Pull the closed, latched door outward with 50 N (a luggage scale); it stays shut. With the controller calling for heat, open the door: the contactor must drop out (audible click, element voltage zero at the terminals, measured by the electrician) and stay out until the door is closed."}
-    allocation: [part://latch, part://door-switch, part://contactor, asm://door, doc://operation]
+    allocation: [part://latch, part://door-switch, part://contactor, asm://door, iface://latch-catch, doc://operation]
     rationale: Opening a live kiln exposes the element and the hot chamber; the switch backs up the operating rule (switch off before opening). See DEC-010 and DEC-014.
     source: design
   - id: REQ-010
@@ -124,7 +124,7 @@ requirements:
     category: usability
     priority: should
     verify: {kind: param_bound, target: param://door-swing, op: ">=", value: 100 degree}
-    allocation: [asm://door, param://door-swing, part://hinge]
+    allocation: [asm://door, param://door-swing, part://hinge, iface://hinge-lower, iface://hinge-upper]
     source: intake
   - id: REQ-015
     title: Element wire fits the spool
@@ -158,7 +158,7 @@ requirements:
     safety: true
     priority: must
     verify: {kind: manual, note: "With the electrician: set the limit controller's trip point temporarily below the chamber temperature during a low firing (or warm its thermocouple with a heat gun); the contactor must drop out, the element voltage must fall to zero, and power must stay off after the temperature falls until the reset key is pressed. Restore the trip point afterwards and record it."}
-    allocation: [part://limit-controller, part://contactor, part://thermocouple, param://over-temperature-limit, doc://installation]
+    allocation: [asm://controls, part://limit-controller, part://contactor, part://thermocouple, param://over-temperature-limit, doc://installation]
     rationale: A solid-state relay usually fails closed (on); the limit device and contactor stop a runaway firing before the K23 lining's 1260 degC class is exceeded (DEC-014).
     source: review gate 3
   - id: REQ-019

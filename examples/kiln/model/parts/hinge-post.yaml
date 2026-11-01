@@ -7,7 +7,7 @@ material: {name: mild steel, spec: "40 x 30 x 3 unequal angle, S235, cut to leng
 finish: powder coat, black
 tolerance_class: ISO2768-m
 geometry: {module: geometry/hinge_post.py}
-interfaces: [iface://guard-hinge-post]
+interfaces: [iface://guard-hinge-post, iface://hinge-lower, iface://hinge-upper]
 satisfies: [req://REQ-012]
 cost: {unit: 25 USD, basis: estimate, note: "cut, drill 4 holes, coat"}
 lead_time: 10 d

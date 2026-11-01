@@ -1,7 +1,12 @@
 id: door
 rev: A
 name: Door
+# Built and hung as one piece, and lifted off its hinges as one piece to reline it (DEC-019).
+build: unit
+driver: [built-as-unit, serviced-as-unit]
 geometry: {module: geometry/door.py}
+# The joints between the door and the kiln: the door hangs by the lower hinge (P4).
+ports: [iface://hinge-lower, iface://hinge-upper, iface://latch-catch]
 children:
   - {part: part://door-tray, qty: 1}
   - {part: part://door-guard, qty: 1}
@@ -11,5 +16,8 @@ children:
   - {part: part://latch, qty: 1}
   - {part: part://m6-standoff-25, qty: 4}
   - {part: part://m6x16-bolt, qty: 8}
+  - {part: part://fiber-anchor, qty: 4}
+  - {part: part://fiber-gasket, qty: 1}
+  - {part: part://earth-stud, qty: 1}
 exploded: {axis: y, spacing: 60 mm}
 satisfies: [req://REQ-003, req://REQ-009, req://REQ-014, req://REQ-020]

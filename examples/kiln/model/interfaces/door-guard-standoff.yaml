@@ -14,4 +14,4 @@ frames:
     x_axis: [1, 0, 0]
 # P2: the door guard's frame sits one air gap and one tray sheet in front of the tray's (−26.5 mm, M0)
 offset: {expr: "-(door-skin-thickness + guard-gap)", unit: mm}
-spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://door-standoff-spacing-x, param://door-standoff-spacing-z], fastener: part://m6x16-bolt, depth: 10 mm}
+spec: {pattern: rect, count: 4, diameter: param://mount-bolt-clearance, spacing: [param://door-standoff-spacing-x, param://door-standoff-spacing-z], hardware: [{part: part://m6-standoff-25, per_hole: 1}, {part: part://m6x16-bolt, per_hole: 2}], depth: 10 mm}
