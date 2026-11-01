@@ -109,7 +109,10 @@ Two kinds of agent come here; never mix their documents up.
 - `DECISIONS.md`: why. One entry per decision, ≤ 10 lines, dated, its id in the index table at
   the top with a status (in force / amended by … / superseded by …). An entry that changes an
   earlier one names it; the earlier one's index row is updated, its text never rewritten.
-  Review-gate outcomes are entries too.
+  Review-gate outcomes are entries too. Read the index, not the whole file: entries of closed
+  versions live in `docs/decisions/v<x>.md`. When a version closes, its entries may move there
+  too; move them out of the middle of the file, never the end, where open tasks append, so
+  every task still lands without a conflict (S-104).
 - `BACKLOG.md`: all open work in one table, one line per row; closed rows move to "Closed" with
   the closing entry's id.
 

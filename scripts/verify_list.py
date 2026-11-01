@@ -63,6 +63,7 @@ class TaggedLine:
     heading_id: str
     line_no: int
     text: str
+    source: str = "DECISIONS.md"
 
 
 def _is_verify(entry: Any) -> bool:
@@ -170,14 +171,15 @@ def heading_label(heading: str) -> str:
     return trim(heading.split(" — ", 1)[0], 60)
 
 
-def tagged_lines(markdown: str) -> list[TaggedLine]:
+def tagged_lines(markdown: str, source: str = "DECISIONS.md") -> list[TaggedLine]:
     """Return the lines tagged ``[verify]`` or ``[revisit]``, each with its ``## `` heading id.
 
     Lines before the first ``## `` heading (the preamble that explains the tags) and lines
     of an ``## Index`` section (a summary table repeating the entries below) are skipped.
 
     Args:
-        markdown: The text of ``DECISIONS.md``.
+        markdown: The text of ``DECISIONS.md`` (or an archived version's file).
+        source: The file the text came from, relative to the repo, for the output.
 
     Returns:
         One ``TaggedLine`` per tagged line, in file order.
@@ -189,14 +191,22 @@ def tagged_lines(markdown: str) -> list[TaggedLine]:
         if m:
             heading = None if m.group(1).startswith("Index") else heading_label(m.group(1))
         if heading is not None and any(tag in line for tag in TAGS):
-            out.append(TaggedLine(heading, no, trim(line)))
+            out.append(TaggedLine(heading, no, trim(line), source))
     return out
 
 
 def collect_tagged_lines(root: Path) -> list[TaggedLine]:
-    """Collect the tagged lines of ``DECISIONS.md`` under ``root`` (none if it is missing)."""
-    path = root / DECISIONS_MD
-    return tagged_lines(path.read_text(encoding="utf-8")) if path.is_file() else []
+    """Collect the tagged lines of ``DECISIONS.md`` and the archived versions under ``root``.
+
+    Closed versions' entries live in ``docs/decisions/v*.md`` (S-104); their tags count too.
+    """
+    paths = [*sorted((root / "docs" / "decisions").glob("v*.md")), root / DECISIONS_MD]
+    return [
+        t
+        for p in paths
+        if p.is_file()
+        for t in tagged_lines(p.read_text(encoding="utf-8"), p.relative_to(root).as_posix())
+    ]
 
 
 def _cell(text: str) -> str:
@@ -245,7 +255,8 @@ def render(rows: list[TableRow], decisions: list[ProductDecision], lines: list[T
             out.append(f"### {t.heading_id}")
             out.append("")
             current = t.heading_id
-        out.append(f"- L{t.line_no}: {t.text}")
+        where = "" if t.source == DECISIONS_MD.name else f"{t.source} "
+        out.append(f"- {where}L{t.line_no}: {t.text}")
     return "\n".join(out) + "\n"
 
 
