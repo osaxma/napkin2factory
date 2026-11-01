@@ -12,16 +12,25 @@ leaves out from its preset.  The kit's aesthetic parameters read the shape cues
 from __future__ import annotations
 
 import re
-from typing import Any, Literal, get_args
+from typing import Annotated, Any, Literal, get_args
 
 from pydantic import Field, field_validator, model_validator
 
-from napkin2factory.core.model.base import Model, Quantity
+from napkin2factory.core.model.base import Model, Quantity, table_check
 
 StylePreset = Literal["industrial", "appliance", "lab"]
 FastenerVisibility = Literal["visible", "hidden-front", "hidden"]
 StyleRole = Literal["body", "door", "stand", "controls", "trim", "lining", "fastener", "default"]
-FinishName = Literal["powder-coat", "brushed-steel", "painted", "ceramic", "anodized", "plastic"]
+
+
+def _finishes() -> dict[str, dict[str, float]]:
+    from napkin2factory.core.registry import registry
+
+    return registry().finishes()
+
+
+#: A finish: ``core/data/finishes.yaml`` plus the domains' (F6).
+FinishName = Annotated[str, table_check("finish", _finishes)]
 VentPattern = Literal["slots", "holes"]
 
 #: Every role, in display order.
@@ -30,17 +39,17 @@ STYLE_ROLES: tuple[str, ...] = get_args(StyleRole)
 #: role, or role ``lining``/``fastener``/``default``, builds exactly as without a style.
 STYLED_ROLES: frozenset[str] = frozenset({"body", "door", "stand", "controls", "trim"})
 
-#: Finish name → physically based rendering factors for the viewer (glTF metallic-roughness).
-#: These are rendering parameters chosen by eye for the screenshot rig, not engineering
-#: numbers: nothing is computed or checked from them.
-FINISHES: dict[str, dict[str, float]] = {
-    "powder-coat": {"metallic": 0.1, "roughness": 0.6},
-    "brushed-steel": {"metallic": 0.9, "roughness": 0.35},
-    "painted": {"metallic": 0.0, "roughness": 0.5},
-    "ceramic": {"metallic": 0.0, "roughness": 0.8},
-    "anodized": {"metallic": 0.7, "roughness": 0.4},
-    "plastic": {"metallic": 0.0, "roughness": 0.45},
-}
+
+def __getattr__(name: str) -> Any:
+    """``FINISHES`` is the finishes table (F6), read on each access.
+
+    Finish → glTF metallic-roughness factors, chosen by eye for the screenshot rig, not
+    engineering numbers (``core/data/finishes.yaml``).
+    """
+    if name == "FINISHES":
+        return _finishes()
+    raise AttributeError(name)
+
 
 #: The three presets as data.  ``industrial`` is the neutral one: its shape cues are all
 #: no-ops, so a product without ``style.yaml`` builds the same geometry as before.
@@ -224,7 +233,7 @@ class StyleFile(Model):
         r = self.resolved()
         finishes: dict[str, str] = {str(k): str(v) for k, v in r.finish.items()}
         finish = finishes.get(role) or finishes.get("default") or "painted"
-        return {"color": r.colour(role), **FINISHES[finish]}
+        return {"color": r.colour(role), **_finishes()[finish]}
 
 
 def role_for(obj: Any) -> str:
@@ -241,7 +250,6 @@ def role_for(obj: Any) -> str:
 
 
 __all__ = [
-    "FINISHES",
     "PRESETS",
     "STYLED_ROLES",
     "STYLE_ROLES",

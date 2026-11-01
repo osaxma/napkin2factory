@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import (
+    ConfigDict,
     Field,
+    SerializeAsAny,
     SerializerFunctionWrapHandler,
     field_serializer,
     field_validator,
@@ -21,6 +23,7 @@ from napkin2factory.core.model.base import (
     PartUri,
     QuantityOrParam,
     Slug,
+    table_check,
 )
 
 
@@ -208,18 +211,45 @@ class MatingFaceSpec(Model):
         return list(self.hardware or [])
 
 
+class InterfaceSpec(Model):
+    """The base of a domain's interface-kind spec (F6): it may list hardware per joint."""
+
+    hardware: list[HardwareItem] | None = None
+
+    def hardware_items(self) -> list[HardwareItem]:
+        """The hardware one joint takes (P9)."""
+        return list(self.hardware or [])
+
+
+class OpenSpec(InterfaceSpec):
+    """The spec of a domain's interface kind that declares no schema: any keys, as given."""
+
+    model_config = ConfigDict(extra="allow")
+
+
+def _interface_kinds() -> list[str]:
+    from napkin2factory.core.registry import registry
+
+    return list(registry().interface_kinds())
+
+
+#: An interface kind: ``core/data/interface_kinds.yaml`` plus the domains' (F6).
+InterfaceKindName = Annotated[str, table_check("interface kind", _interface_kinds)]
+
+
 class Interface(Model):
     """A contract both parties' generators consume (D16)."""
 
     id: Slug
-    kind: Literal["bolt-pattern", "mating-face"]
+    kind: InterfaceKindName
     parties: list[ChildUri]
     frame: Frame = Field(default_factory=Frame)
     frames: dict[str, Frame] = Field(default_factory=dict)  # per party, in its own coordinates
     # P2: signed distance along the normal from the first party's frame origin to the
     # second's, once both are placed (mm, a quantity, a param:// or an {expr, unit}).
     offset: Any = 0.0
-    spec: BoltPatternSpec | MatingFaceSpec
+    # a domain's kind validates its spec with its own schema (an InterfaceSpec, F6)
+    spec: BoltPatternSpec | MatingFaceSpec | SerializeAsAny[InterfaceSpec]
     description: str | None = None
     # S-118 (gate D): the joint's short name in owner words ("Shell to guard, top wall"),
     # where the two parts' names alone cannot tell two joints apart; optional, the build
@@ -290,6 +320,15 @@ class Interface(Model):
                 data = {**data, "spec": BoltPatternSpec.model_validate(data["spec"])}
             elif kind == "mating-face":
                 data = {**data, "spec": MatingFaceSpec.model_validate(data["spec"])}
+            elif isinstance(kind, str):
+                from napkin2factory.core.registry import UnknownName, registry
+
+                try:
+                    declared = registry().interface_kind(kind)
+                except UnknownName:
+                    return data  # the kind field reports it, with the known kinds
+                schema = declared.spec or OpenSpec
+                data = {**data, "spec": schema.model_validate(data["spec"])}
         return data
 
     @model_validator(mode="after")

@@ -1,0 +1,6 @@
+<section class="card" id="decisions">
+  {{ h2('decisions', 'Decisions') }}
+  <p class="lead">Why the design is the way it is. <span class="badge warn">verify</span> marks engineering numbers still awaiting human confirmation.</p>
+  {% for d in decisions %}<details id="dec-{{ d.id }}"><summary><span class="mono">{{ d.id }}</span> {{ d.title }} <span class="muted">({{ d.date }}, {{ d.made_by }}{% if d.verify %}, <span class="badge warn">verify</span>{% endif %})</span></summary><p>{{ d.decision }}</p>{% if d.rationale %}<p class="muted">{{ d.rationale }}</p>{% endif %}{% if d.sources %}<ul>{% for s in d.sources %}<li class="muted">{{ s }}</li>{% endfor %}</ul>{% endif %}{% if d.links %}<p class="small">Affects: {% for l in d.links %}{{ l | ref }}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}</details>{% endfor %}
+  {% if not decisions %}<p class="muted">No decisions logged yet.</p>{% endif %}
+</section>

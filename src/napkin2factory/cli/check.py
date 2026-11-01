@@ -208,6 +208,8 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
     for g in rep.gates:
         mark = "[green]✓[/green]" if g.ok else "[yellow]○[/yellow]"
         console.print(f"  {mark} {STAGE_WORDS[g.name]}")
+        for row in g.detail.get("rows", []):  # a domain's row under its gate (F4)
+            console.print(f"      {escape(row['title'])}: {escape(row['summary'])}")
         if not g.ok:
             # blockers first, then caveats (example sign-offs: the gate is open, not blocked)
             reasons = g.blockers + g.caveats

@@ -23,20 +23,29 @@ counts hardware with it, and both agree because they call the same code.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from napkin2factory.core.loader import Product
 from napkin2factory.core.tree import AssemblyTree
 
-#: Owner words for each driver (P7): why a sub-assembly is built on its own (docs/vocabulary.md).
-#: "built-as-unit" is not "built as one unit", which the step's title already says (gate D).
-DRIVER_WORDS: dict[str, str] = {
-    "built-as-unit": "put together and fitted as one piece",
-    "tested-as-unit": "tested as one unit",
-    "serviced-as-unit": "serviced or replaced as one unit",
-    "separate-process-or-supplier": "made by another process or supplier",
-    "varies": "comes in variants",
-    "agent-context": "worked on as one module",
-}
+
+def driver_words() -> dict[str, str]:
+    """Owner words for each driver (P7): why a sub-assembly is built on its own.
+
+    The table is ``core/data/drivers.yaml`` plus the domains' (F6, docs/vocabulary.md).
+    """
+    from napkin2factory.core.registry import registry
+
+    return registry().drivers()
+
+
+def __getattr__(name: str) -> Any:
+    """``DRIVER_WORDS`` is :func:`driver_words`, read on each access (F6)."""
+    if name == "DRIVER_WORDS":
+        return driver_words()
+    raise AttributeError(name)
+
+
 #: Owner words for a phantom and for a port (docs/vocabulary.md).
 PHANTOM_WORDS = "not put together on its own"
 BETWEEN_UNITS_WORDS = "a joint between units"
@@ -51,7 +60,8 @@ def and_words(words: list[str]) -> str:
 
 def driver_sentence(driver: list[str]) -> str:
     """Say "Built on its own because it is … and …." (empty without a driver)."""
-    words = [DRIVER_WORDS.get(d, d) for d in driver]
+    table = driver_words()
+    words = [table.get(d, d) for d in driver]
     return f"Built on its own because it is {and_words(words)}." if words else ""
 
 

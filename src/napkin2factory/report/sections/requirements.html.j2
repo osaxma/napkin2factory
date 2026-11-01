@@ -1,0 +1,8 @@
+<section class="card" id="requirements">
+  {{ h2('requirements', 'Requirements') }}
+  <p class="lead">Every requirement, how it is verified, the verdict, and which parts carry it. ⚠ marks safety requirements.</p>
+  <p class="filter"><label><input type="checkbox" id="req-open-only"> show only what is not {{ w('pass') }}</label></p>
+  <table id="req-table"><thead><tr><th>id</th><th>requirement</th><th>category</th><th>verified by</th><th>status</th><th>finding</th><th>parts</th></tr></thead><tbody>
+  {% for r in req_rows %}<tr id="req-{{ r.id }}" class="st-{{ r.status }}"><td class="mono">{{ r.id }}{% if r.safety %} ⚠{% endif %}</td><td class="req"><strong>{{ r.title }}</strong><br><span class="muted small">{{ r.statement }}</span></td><td>{{ r.category }}{% if r.priority != 'must' %}<br><span class="muted small">{{ r.priority }}</span>{% endif %}</td><td class="mono wrap">{{ r.kind }}{% if r.target %}<br>{{ r.target | ref }}{% endif %}</td><td>{{ badge(r.status) }}</td><td>{{ r.message }}{% if r.signoff_example %} <span class="example">EXAMPLE SIGN-OFF, NOT A REVIEW</span>{% endif %}{% if r.signed %} <a class="small" href="#signoff-{{ r.id }}">sign-off</a>{% endif %}</td><td class="small wrap">{% if r.allocation | reject('equalto', '') | list %}<span class="muted">allocated to</span> {% for a in r.allocation %}{{ a | ref }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}{% if r.satisfied_by %}<br><span class="muted">satisfied by</span> {% for s in r.satisfied_by %}{{ s | ref }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td></tr>{% endfor %}
+  </tbody></table>
+</section>

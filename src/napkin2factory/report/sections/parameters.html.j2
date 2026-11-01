@@ -1,0 +1,7 @@
+<section class="card" id="parameters">
+  {{ h2('parameters', 'Parameters') }}
+  <p class="lead">The named values the geometry, checks and manuals are generated from. A change request edits these.</p>
+  <table><thead><tr><th>name</th><th class="num">value</th><th>description</th></tr></thead><tbody>
+  {% for p in params %}<tr id="param-{{ p.slug }}"><td class="mono">{{ ('param://' ~ p.slug) | disp }}</td><td class="num">{{ p.value }}</td><td>{{ p.description }}{% if p.expr %} <span class="mono muted">= {{ p.expr }}</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table>
+</section>

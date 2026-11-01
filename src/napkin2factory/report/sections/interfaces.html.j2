@@ -1,0 +1,7 @@
+<section class="card" id="interfaces">
+  {{ h2('interfaces', 'Interfaces') }}
+  <p class="lead">Contracts between parts: both parties' geometry is generated from the same definition and a check confirms they agree.</p>
+  {% if interfaces %}<table><thead><tr><th>id</th><th>kind</th><th>spec</th><th>between</th><th>description</th></tr></thead><tbody>
+  {% for i in interfaces %}<tr id="iface-{{ i.id }}"><td class="mono">{{ i.id }}</td><td>{{ i.kind }}</td><td class="mono">{{ i.spec }}</td><td>{% for p in i.parties %}{{ p | ref }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td><td>{{ i.description }}</td></tr>{% endfor %}
+  </tbody></table>{% else %}<p class="muted">No interfaces declared.</p>{% endif %}
+</section>

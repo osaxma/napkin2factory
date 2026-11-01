@@ -1,0 +1,19 @@
+<section class="card" id="overview">
+  {{ h2('overview', 'Overview') }}
+  <div class="disclaimer" id="disclaimer"><strong>Disclaimer.</strong> This design was produced with an AI system and has not been reviewed by a licensed engineer. Calculations and checks are computed, not certified. Have a qualified person review it before building, powering, or using it.</div>
+  <div class="tiles">
+    <a class="tile" href="#parts"><div class="v">{{ rollups.total_cost | round(2) }} USD</div><div class="k">per unit, from declared costs{% if not rollups.cost_complete %} · incomplete{% endif %}</div></a>
+    <a class="tile" href="#parts"><div class="v">{{ rollups.part_count }} parts</div><div class="k">{{ rollups.custom_count }} custom · {{ rollups.total_mass | round(2) }} kg</div></a>
+    <a class="tile" href="#parts"><div class="v">{{ rollups.max_lead_time }} d</div><div class="k">longest lead time</div></a>
+    <a class="tile" href="#requirements"><div class="v">{{ summary.pass + summary.signed }} / {{ req_rows | length }}</div><div class="k">requirements {{ w('pass') }}{% if summary.fail %} · {{ summary.fail }} {{ w('fail') }}{% endif %}{% if summary['needs-human'] %} · {{ summary['needs-human'] }} {{ w('needs-human') }}{% endif %}</div></a>
+    <a class="tile" href="#safety"><div class="v">{{ safety_reqs | selectattr('status', 'in', ['pass', 'signed']) | list | length }} / {{ safety_reqs | length }}</div><div class="k">safety requirements {{ w('pass') }}{% if summary.example %} · {{ summary.example }} example{% endif %}</div></a>
+    <a class="tile" href="#rules"><div class="v">{{ rule_summary.fail + rule_summary.warn }}</div><div class="k">rule findings{% if rule_summary.fail %} · {{ rule_summary.fail }} {{ w('fail') }}{% endif %}{% if rule_summary.warn %} · {{ rule_summary.warn }} {{ w('warn') }}{% endif %}</div></a>
+    <a class="tile" href="#drawings"><div class="v">{{ drawings | length }}</div><div class="k">drawings</div></a>
+    <a class="tile" href="#changes"><div class="v">{{ ecrs | rejectattr('status', 'equalto', 'closed') | list | length }}</div><div class="k">open {{ words.changes | lower }}</div></a>
+  </div>
+  <h3>Where this product stands</h3>
+  <div class="kv" id="stage">
+    {% for g in stage.gates %}{% set reasons = g.blockers + g.caveats %}<div><span class="badge {{ 'ok' if g.ok else 'warn' if g.open_only_by_caveats else 'skip' }}">{{ g.name }}</span></div><div>{% if g.ok %}done{% else %}{% if g.detail.get('why') %}<span class="example">{{ g.detail.why }}</span> · {% endif %}{{ (reasons[:3] | join('; ')) | replace('`', '') }}{% if reasons | length > 3 %} … ({{ reasons | length }} items){% endif %}{% endif %}</div>{% endfor %}
+  </div>
+  <p class="next">Next: {{ stage.next_step | replace('`', '') }}</p>
+</section>

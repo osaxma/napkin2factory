@@ -1,0 +1,15 @@
+<section class="card" id="rules">
+  {{ h2('rules', 'Rule checks') }}
+  <p class="lead">Design rules run against every part (sheet-metal limits, sourcing, completeness) plus assembly-level checks. {{ rule_summary.pass }} {{ w('pass') }}{% if rule_summary.warn %} · {{ rule_summary.warn }} {{ w('warn') }}{% endif %}{% if rule_summary.fail %} · {{ rule_summary.fail }} {{ w('fail') }}{% endif %}{% if rule_summary.skip %} · {{ rule_summary.skip }} {{ w('skip') }}{% endif %}.</p>
+  {% if module_groups %}<h3>By module</h3>
+  <p class="small muted">Each unit is checked on its own; a joint between units is checked with the unit both sides are built into. These counts take every check row of the unit, the rules on each of its parts and its sourcing included, so they are larger than a build step's.</p>
+  <table class="modules"><thead><tr><th>module</th><th class="num">{{ w('pass') }}</th><th class="num">{{ w('warn') }}</th><th class="num">{{ w('fail') }}</th><th class="num">{{ w('skip') }}</th></tr></thead><tbody>{% for g in module_groups %}<tr><td>{{ g.title }}</td><td class="num">{{ g.summary.get('pass', 0) + g.summary.get('signed', 0) }}</td><td class="num">{{ g.summary.get('warn', 0) }}</td><td class="num">{{ g.summary.get('fail', 0) }}</td><td class="num">{{ g.summary.get('skip', 0) + g.summary.get('needs-human', 0) }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+  {% if other_rows %}<h3>Findings ({{ other_rows | length }})</h3>
+  <div class="scroll"><table><thead><tr><th>check</th><th>subject</th><th>status</th><th>detail</th></tr></thead>{% for grp in other_groups %}<tbody>{% if grp.title %}<tr class="module"><th colspan="4">{{ grp.title }}</th></tr>{% endif %}{% for r in grp.rows %}<tr><td class="mono">{{ r.id | replace('rule://', '') }}</td><td>{{ r.subject | ref }}</td><td>{{ badge(r.status) }}</td><td>{{ r.message }}</td></tr>{% endfor %}</tbody>{% endfor %}</table></div>
+  {% else %}<p>Every rule passes.</p>{% endif %}
+  {% if rule_matrix.rules %}<h3>Rules × parts</h3>
+  <div class="legend"><span><i class="dot pass"></i> {{ w('pass') }}</span><span><i class="dot warn"></i> {{ w('warn') }}</span><span><i class="dot fail"></i> {{ w('fail') }}</span><span><i class="dot skip"></i> {{ w('skip') }}</span><span>blank: rule does not apply</span></div>
+  <div class="scroll"><table class="matrix"><thead>{% if rule_matrix.groups %}<tr><th class="rule"></th>{% for g in rule_matrix.groups %}<th class="module" colspan="{{ g.span }}">{{ g.title }}</th>{% endfor %}</tr>{% endif %}<tr><th class="rule">rule</th>{% for p in rule_matrix.parts %}<th class="part"><a href="#part-{{ p }}">{{ p }}</a></th>{% endfor %}</tr></thead><tbody>
+  {% for rid, title in rule_matrix.rules.items() %}<tr><td class="rule" title="{{ rid }}">{{ title }}</td>{% for p in rule_matrix.parts %}{% set st = rule_matrix.cells.get(p, {}).get(rid) %}<td class="cell">{% if st %}<i class="dot {{ st }}" title="{{ p }}: {{ w(st) }}"></i>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+  </tbody></table></div>{% endif %}
+</section>

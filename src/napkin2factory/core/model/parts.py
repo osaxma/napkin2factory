@@ -7,7 +7,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BeforeValidator, Field, model_validator
 
-from napkin2factory.core.model.base import IfaceUri, Model, Quantity, ReqUri, Slug
+from napkin2factory.core.model.base import IfaceUri, Model, Quantity, ReqUri, Slug, table_check
 from napkin2factory.core.model.style import StyleRole
 
 _KIT_RE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -41,9 +41,14 @@ def geometry_spec(v: Any) -> Any:
     raise ValueError(f"geometry must be a mapping or 'none', got {type(v).__name__}")
 
 
-Process = Literal[
-    "sheet-metal", "machining", "welding", "cut-block", "cut-sheet", "3d-print", "none"
-]
+def _processes() -> list[str]:
+    from napkin2factory.core.registry import registry
+
+    return list(registry().processes())
+
+
+#: A manufacturing process: ``core/data/processes.yaml`` plus the domains' (F6).
+Process = Annotated[str, table_check("process", _processes)]
 ToleranceClass = Literal["ISO2768-f", "ISO2768-m", "ISO2768-c", "ISO2768-v"]
 CostBasis = Literal["estimate", "quote", "catalog"]
 
