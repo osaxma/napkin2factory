@@ -150,6 +150,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-125 | v0.5 M2: schema policy and migrations (`core/model/migrate.py`, `n2f init .`), calc reference cases (`calc-case` rows, L16) | in force |
 | S-126 | v0.5 M2b: the checks rule hashes the calc kit (closes B-0078) | in force |
 | S-127 | v0.5 M4b: scope is a recorded value (`manifest://scope`, read by the report of a product that declares one); external stubs in the build plan | in force |
+| S-128 | v0.5 M3: the kiln out of the package: screens declare their fields, the heated-box screens are the kiln's own pack (`model/screens/`), product rule packs, `site.width`, neutral style roles, the F9 guard | in force |
 
 ---
 
@@ -698,3 +699,14 @@ site; impact names those three. Stubs: a step's `supplied` (only when non-empty)
 and the report ("Supplied, not built here" with the joints that fit it); joint words name the stub;
 `module-has-parts` passes it (B-0082). B-0083. `test_scope.py` 27 passed, 54.7 s; touched tests 285 passed,
 3 min 37 s; `make check` green, 975 passed, 141 goldens, 11 min 38 s.
+
+## S-128 — v0.5 M3: the kiln out of the package (2026-11-01)
+DoD 3; F8–F10, F15. `concepts/screens/`: a runner in phases (measure, estimate, total, check) and six generic
+screens declaring their card fields (`@reads(CardField…)`), skeleton and lint from them; thermal, supply, skin,
+chamber, controls moved to `examples/kiln/model/screens/heated_enclosure.py`; `core/packs.py` loads
+`model/screens/` (hashed into the concept build) and `model/rulepacks/*.py` (in `checks` only when present).
+`site.width/depth/height`, `alcove_*` read with lint C10; roles `opening`/`support`, `door`/`stand` read. 4 kiln +
+5 fixture cards: values, notes, verdicts identical; rows now system first, compared by id [revisit]. Lines:
+screening 894 → 167, concept_checks 710 → 538. F9 guard 154 hits/23 files → 0 (71 in 9 wave-2 files listed,
+B-0084); S-122 union 43/34 → 45/36, kiln 19/13 → 13/7. Guard 0.4 s, packs 14.6 s; `make check` 9 min 13 s,
+green, 997 passed, 141 goldens.
