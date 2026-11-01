@@ -156,6 +156,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-131 | v0.5 M6: splits and the fast gate (`validate_refs` beside each schema, `concepts/promote/`, `build_part`/`build_asm`, `make check-fast` as the land gate) | in force |
 | S-132 | v0.5 M7a: docs, doctor, simulation protocols (`docs/domains.md` final, `n2f doctor` lists the domains, the gadget and kiln-choice protocols) | in force |
 | S-133 | v0.5 M5b: the gaps wave 3 left: a release held by an open choice, the report's "waiting on you", decided-not-applied as a Design caveat, the scope always read, `manifest://` links resolve, neutral walls words; B-0097 waits in a separate task | in force |
+| S-134 | v0.5 DoD 2: a fresh agent added the gadget domain from `docs/domains.md` alone; 0 core files changed or opened | in force |
 
 ---
 
@@ -768,4 +769,14 @@ not held [revisit]); B-0081 (`manifest://scope` always read; every report key mo
 `inner_words`/`wall_words`; the kiln's says "chamber"/"insulation": cards, board golden unchanged). Open: B-0097, done in
 task `v05-m5b-summary` (WIP): it needs `cli/concept.py`, `promote/decision.py`, `verb.py`, outside this task's files.
 `demo-design.sh` (with `demo.sh`) green, 13 min 45 s beside other tests; `make check` green, 1034 passed, 141 goldens, 11 min 44 s.
+
+## S-134 — v0.5 DoD 2: the gadget simulation, 0 core files (2026-11-02)
+Run by the overseer per `tests/e2e/domain-transcripts/README.md` on a detached copy of `main` at f18c2c5: a fresh subagent with no
+history got the scripted request and the contract (`docs/domains.md`, 47,952 bytes, read from the copy). In 224 s and 14 tool calls
+it wrote `tests/fixtures/domains/gadget/`, a product and `tests/unit/test_gadget_domain.py` (15 tests, one per registry plus impact
+and the code hash). Judged by the overseer: gadget and toy together 49 passed; files changed under `src/napkin2factory/core/` 0 (both
+counts), under `src/` 0; files opened there: none (every tool call read). Transcript: `gadget-2026-11-02.md`. The contract fell short
+in seven places (L1 needs a value with a unit for a comparing kind; the categories unlisted; optional fields vs mandatory tests;
+toy assertions that assume one extra domain; card-field key uniqueness; two test-setup facts; `cli.build.targets` not in the import
+list): fixed in `docs/domains.md` by the next task. The gadget itself is not kept in the repository: the transcript is the record.
 
