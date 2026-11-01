@@ -18,7 +18,8 @@ lines, ``choice <check>: option <id>, chosen by <name>`` and ``evidence <uri> <k
 :func:`decided_choices` reads back [revisit].
 
 ``build/checks/choices.json`` lists every row that is or was a choice (open ones with
-``decision: null``); ``n2f status`` lists the open ones under "waiting on you".
+``decision: null``; no file when there is none); ``n2f status`` lists the open ones under
+"waiting on you".
 """
 
 from __future__ import annotations
@@ -283,13 +284,18 @@ def choices_payload(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
-def write_choices(build_dir: Path, rows: list[dict[str, Any]]) -> Path:
-    """Write ``build/checks/choices.json`` (always, ``[]`` when there is none)."""
+def write_choices(build_dir: Path, rows: list[dict[str, Any]]) -> Path | None:
+    """Write ``build/checks/choices.json``; with no choice, remove it and return ``None``.
+
+    A product that never had a choice keeps v0.4's ``build/checks/`` (F16).
+    """
     path = build_dir / CHOICES_JSON
+    payload = choices_payload(rows)
+    if not payload:
+        path.unlink(missing_ok=True)
+        return None
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(choices_payload(rows), indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
 
 

@@ -213,7 +213,8 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
     product = load_product(root)
     rep = compute_stage(product)
     if json_out:
-        emit_json({**rep.to_dict(), "waiting_on_you": waiting_on_you(product)})
+        waiting = waiting_on_you(product)  # only when there is one: v0.4's JSON otherwise (F16)
+        emit_json({**rep.to_dict(), **({"waiting_on_you": waiting} if waiting else {})})
         return
     persona = product.operator.persona
     console.print(

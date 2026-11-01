@@ -65,13 +65,9 @@ def joints_words(product: Product, iface_ids: list[str]) -> str:
 def hardware_checks(product: Product, units: BuildUnits | None = None) -> list[CheckResult]:
     """One ``hardware://<unit>`` row per build unit that has joint hardware (P9).
 
-    Then the ``fastening://`` rows of :func:`spacer_bolt_checks` (bolts into a spacer).
+    The stage then adds the ``fastening://`` rows of :func:`spacer_bolt_checks`.
     """
     units = units or BuildUnits(product)
-    return _count_checks(product, units) + spacer_bolt_checks(product, units)
-
-
-def _count_checks(product: Product, units: BuildUnits) -> list[CheckResult]:
     out: list[CheckResult] = []
     for uid in units.order():
         if not units.has_hardware(uid):

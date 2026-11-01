@@ -115,8 +115,13 @@ def example_signoff_why(n: int) -> str:
 
 
 def summarize(results: list[CheckResult]) -> dict[str, int]:
-    """Counts per status; ``signed`` holds real sign-offs only, ``example`` the example ones."""
-    out: dict[str, int] = dict.fromkeys(SUMMARY_KEYS, 0)
+    """Counts per status; ``signed`` holds real sign-offs only, ``example`` the example ones.
+
+    ``choice`` is a key only when a row is a choice.
+    """
+    # ``choice`` is counted only when there is one, so a product without choices writes the
+    # summary v0.4 wrote (F16)
+    out: dict[str, int] = {k: 0 for k in SUMMARY_KEYS if k != CHOICE}
     for r in results:
         key = "example" if is_example_signoff(r.status, r.detail) else r.status
         out[key] = out.get(key, 0) + 1
