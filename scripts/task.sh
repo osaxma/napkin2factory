@@ -43,6 +43,11 @@ cmd_new() {
   git config "branch.task/$slug.description" "$goal"
   if [ -z "${N2F_TASK_NO_SYNC:-}" ]; then
     (cd "$top/.worktrees/$slug" && "${UV:-uv}" sync -q)
+    # The first CAD-kernel import in a fresh environment waits ~2 min (S-057); start it now,
+    # detached, so it is done by the time the task first builds. N2F_NO_WARMUP=1 skips it.
+    if [ -z "${N2F_NO_WARMUP:-}" ]; then
+      (cd "$top/.worktrees/$slug" && nohup "${UV:-uv}" run python -c "import build123d" >/dev/null 2>&1 &)
+    fi
   fi
   cat <<EOF
 Task folder: $top/.worktrees/$slug (branch task/$slug)
