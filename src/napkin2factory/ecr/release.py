@@ -25,8 +25,6 @@ from napkin2factory.core.vcs import Vcs
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip
 
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
-#: How a gate blocker for an open choice starts (``core/checks/choices.py``).
-CHOICE_WAITING = "a choice is waiting on you"
 
 
 class ReleaseError(N2FError):
@@ -282,7 +280,9 @@ def release(
     if blockers:
         shown = "\n  • ".join(blockers[:8])
         # only choices left: they are the owner's to make, not checks to fix
-        waiting = all(b.startswith(CHOICE_WAITING) for b in blockers)
+        from napkin2factory.core.checks.choices import WAITING
+
+        waiting = all(b.startswith(WAITING) for b in blockers)
         head = f"cannot release {version}" + (
             " yet" if waiting else ": the checks are not green yet"
         )
