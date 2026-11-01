@@ -38,6 +38,7 @@ from napkin2factory.geometry.assembly import (
     AssemblyResult,
     FlatInstance,
     assembly_props,
+    exploded_scene,
     export_assembly_glb,
     flatten,
     scene_for_assembly,
@@ -50,6 +51,7 @@ from napkin2factory.geometry.exporters import (
     write_json,
 )
 from napkin2factory.geometry.features import PartResult
+from napkin2factory.geometry.render import rasterize, write_png
 
 
 class GeometryError(N2FError):
@@ -437,6 +439,12 @@ def build_assembly(
         # section through the mass centroid: a body on a tall stand is cut where the mass is
         render_views(
             scene_for_assembly(leaves), out_dir / "renders", section_z=props["centroid"]["z"]
+        )
+        # P8: the exploded picture for the unit's assembly sheet (the viewer's full explode)
+        spacing = float(asm.exploded.spacing.to("mm").magnitude)
+        write_png(
+            out_dir / "renders" / "exploded.png",
+            rasterize(exploded_scene(leaves, groups, asm.exploded.axis, spacing), "iso"),
         )
     built = BuiltAssembly(
         assembly=asm, result=result, leaves=leaves, props=props, reads=log.keys, out_dir=out_dir

@@ -165,12 +165,88 @@ def write_csv(path: Path, rollups: dict[str, Any]) -> Path:
     return path
 
 
-def write_xlsx(path: Path, rollups: dict[str, Any]) -> Path:
-    """Write ``bom.xlsx`` with the BOM, Rollups, Parts and Manufacturer sheets.
+#: Columns of the "Build plan" sheet (P8): one row per item, joint and hardware total.
+PLAN_COLUMNS = ["step", "unit", "row", "item", "uri", "name", "qty", "note"]
+
+
+def plan_rows(plan: dict[str, Any]) -> Iterator[list[Any]]:
+    """Rows of the "Build plan" sheet, step by step: items, joints, then hardware totals.
+
+    Args:
+        plan: The ``build-plan.json`` payload.
+
+    Yields:
+        Lists in :data:`PLAN_COLUMNS` order.
+    """
+    for uid in plan.get("order", []):
+        st = plan["units"][uid]
+        head = st["title"]
+        if st["driver_words"]:
+            head += " (" + ", ".join(st["driver_words"]) + ")"
+        yield [
+            st["step"],
+            head,
+            "step",
+            None,
+            st["unit"],
+            st["name"],
+            st["built_per_product"],
+            "; ".join(f"includes {f['name']}: {f['words']}" for f in st["folded"]),
+        ]
+        for it in st["items"]:
+            note = []
+            if it["kind"] == "unit":
+                note.append(f"built in step {it.get('step')}")
+            if it.get("loose"):
+                note.append("packed loose for the installer")
+            if it.get("spare"):
+                note.append(f"spare: {it['spare']}")
+            yield [
+                st["step"],
+                st["name"],
+                "item",
+                it["item"],
+                it["uri"],
+                it["name"],
+                it["qty"],
+                "; ".join(note),
+            ]
+        for j in st["joints"]:
+            hw = ", ".join(f"{h['qty']} x {h['name']}" for h in j["hardware"]) or "no hardware"
+            between = "; a joint between units" if j["between_units"] else ""
+            yield [
+                st["step"],
+                st["name"],
+                "joint",
+                None,
+                j["interface"],
+                j["words"],
+                j["occurrences"],
+                hw + between,
+            ]
+        for h in st["hardware"]:
+            note = f"{h['declared']} listed"
+            if h.get("spare"):
+                note += "; spare: " + "; ".join(h["spare"])
+            yield [
+                st["step"],
+                st["name"],
+                "hardware",
+                None,
+                h["part"],
+                h["name"],
+                h["demand"],
+                note,
+            ]
+
+
+def write_xlsx(path: Path, rollups: dict[str, Any], plan: dict[str, Any] | None = None) -> Path:
+    """Write ``bom.xlsx`` with the BOM, Rollups, Parts, Manufacturer and Build plan sheets.
 
     Args:
         path: Destination file.
         rollups: The ``rollups.json`` payload.
+        plan: The ``build-plan.json`` payload; without it there is no "Build plan" sheet.
 
     Returns:
         ``path``.
@@ -285,16 +361,33 @@ def write_xlsx(path: Path, rollups: dict[str, Any]) -> Path:
         ms.column_dimensions[get_column_letter(i)].width = w
     ms.freeze_panes = "A2"
 
+    if plan is not None:
+        bp = wb.create_sheet("Build plan")
+        bp.append(PLAN_COLUMNS)
+        for cell in bp[1]:
+            cell.font = bold
+        for row in plan_rows(plan):
+            bp.append(row)
+            if row[2] == "step":
+                for cell in bp[bp.max_row]:
+                    cell.font = bold
+        for i, w in enumerate((6, 40, 9, 6, 28, 40, 6, 60), start=1):
+            bp.column_dimensions[get_column_letter(i)].width = w
+        bp.freeze_panes = "A2"
+
     wb.save(path)
     return path
 
 
-def write_bom_files(ctx: RunContext, rollups: dict[str, Any]) -> list[Path]:
+def write_bom_files(
+    ctx: RunContext, rollups: dict[str, Any], plan: dict[str, Any] | None = None
+) -> list[Path]:
     """Write ``validation.json``, ``bom.csv`` and ``bom.xlsx``; return the files written.
 
     Args:
         ctx: The build context.
         rollups: The ``rollups.json`` payload from ``compute_rollups``.
+        plan: The ``build-plan.json`` payload (its sheet goes into the workbook).
 
     Returns:
         ``[validation.json, bom.csv, bom.xlsx]``.
@@ -309,5 +402,5 @@ def write_bom_files(ctx: RunContext, rollups: dict[str, Any]) -> list[Path]:
     return [
         path,
         write_csv(out_dir / "bom.csv", rollups),
-        write_xlsx(out_dir / "bom.xlsx", rollups),
+        write_xlsx(out_dir / "bom.xlsx", rollups, plan),
     ]

@@ -1,0 +1,9 @@
+id: frame
+rev: A
+name: Cover group
+build: phantom
+ports: [iface://cover-base]
+children:
+  - {part: part://cover, qty: 1}
+  - {part: part://stop, qty: 1}
+  - {part: part://nut, qty: 2}

@@ -1,0 +1,7 @@
+id: nut
+rev: A
+name: M6 nut
+kind: cots
+source: {vendor: Example, mpn: nut-1, url: "https://example.com/nut", verified: false}
+cost: {unit: 0.1 USD, basis: estimate}
+lead_time: 2 d

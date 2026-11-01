@@ -41,7 +41,8 @@ and a worktree per task (S-097). Releasing a version: bump the three version fil
 v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103:
 - M0 baseline and reconciliation done (`docs/v04-baseline.md`) — S-105.
 - M1 interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly done — S-106.
-- M2 sub-assemblies have ports (`ports:`, a part's home, `place_by` for sub-assemblies) done — S-107. Next: M3.
+- M2 sub-assemblies have ports (`ports:`, a part's home, `place_by` for sub-assemblies) done — S-107.
+- M3a build plan and hardware done — S-110. Next: M3b (kiln restructure).
 
 v0.2 — `NAPKIN_STAGE.md`:
 - M0 folds and ratifications — S-055–S-061.

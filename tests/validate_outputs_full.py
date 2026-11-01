@@ -67,6 +67,37 @@ def validate_full(root: Path, product, problems: list[str]) -> None:  # type: ig
             ]
             if rollups and not any(abs(n - float(rollups["total_cost"])) < 0.005 for n in numbers):
                 problems.append("bom.xlsx totals do not include rollups total_cost")
+    # build plan (P8): one step per build unit, its sheet in the workbook, one assembly
+    # sheet per unit and none for a phantom
+    from napkin2factory.core.build_units import BuildUnits
+
+    units = BuildUnits(product).order()
+    plan_path = build / "bom" / "build-plan.json"
+    if product.assemblies and not plan_path.is_file():
+        problems.append("bom: missing build-plan.json")
+    elif plan_path.is_file():
+        plan = json.loads(plan_path.read_text())
+        if plan.get("order") != units:
+            problems.append(f"build-plan.json steps {plan.get('order')} != build units {units}")
+        if (build / "bom" / "bom.xlsx").is_file():
+            wb = openpyxl.load_workbook(str(build / "bom" / "bom.xlsx"), data_only=True)
+            if "Build plan" not in wb.sheetnames:
+                problems.append("bom.xlsx has no Build plan sheet")
+    for aid, asm in product.assemblies.items():
+        sheet = build / "drawings" / "assemblies" / f"{aid}.svg"
+        if aid in units and not sheet.is_file():
+            problems.append(f"{asm.uri}: build unit without an assembly sheet")
+        elif aid not in units and sheet.exists():
+            problems.append(f"{asm.uri}: a phantom has an assembly sheet")
+        elif sheet.is_file():
+            try:
+                root_el = etree.parse(str(sheet)).getroot()
+            except etree.XMLSyntaxError as exc:
+                problems.append(f"{asm.uri}: assembly sheet does not parse: {exc}")
+                continue
+            ids = {el.get("id") for el in root_el.iter() if el.get("id")}
+            if not {"pictures", "tables", "titleblock"} <= ids:
+                problems.append(f"{asm.uri}: assembly sheet lacks pictures/tables/titleblock")
     if (build / "bom" / "bom.csv").is_file():
         with (build / "bom" / "bom.csv").open(newline="", encoding="utf-8") as fh:
             rows = list(csv.reader(fh))
@@ -130,6 +161,9 @@ def validate_full(root: Path, product, problems: list[str]) -> None:  # type: ig
         for rid in product.requirements:
             if f'id="req-{rid}"' not in html:
                 problems.append(f"report: requirement {rid} row missing")
+        for aid in units:
+            if f'id="step-{aid}"' not in html:
+                problems.append(f"report: build plan step for asm://{aid} missing")
         if "not been reviewed by a licensed engineer" not in html:
             problems.append("report: disclaimer missing")
         for s in product.signoffs.values():

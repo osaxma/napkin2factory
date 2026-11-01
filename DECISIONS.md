@@ -130,6 +130,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-107 | v0.4 M2: sub-assemblies have ports; a part's home; `place_by` places sub-assemblies | in force |
 | S-108 | A styled screenshot whose shader fails under load is rendered once more | in force |
 | S-109 | A landing that stops after giving out ids puts the task's own commits back | in force |
+| S-110 | v0.4 M3a: build units and phantoms, the build plan derived from the tree, joint hardware counted | in force |
 
 ---
 
@@ -462,3 +463,13 @@ gate once on a flaky test (S-108), kept S-108, and collided with the next task t
 S-108 too; `test_journals` caught the duplicate. Every stop after ids are given out (failed gate,
 unsaved main folder, failed fast-forward, main moving three times) now resets the folder to the
 task's own commits first and says so. A conflict during the rebase still stops mid-rebase as before.
+## S-110 — v0.4 M3a: build units, the derived build plan, joint hardware counted (2026-11-01)
+P7–P9 as amended by S-105, kiln untouched (M3b). `core/build_units.py` (strict) reads the tree once:
+units (top, or `build: unit`), phantoms folded (quantities multiply), a joint closes where its
+parties' homes meet (`AssemblyTree`) and occurs the larger of its parties' counts there. Beyond the
+plan: `per_joint` hardware (a mating face's only form); `hardware: []` overrides `fastener:`; `loose`
+counts as declared; `asm:` now writes `exploded.png` (none existed; the viewer's full explode); sheets
+in `build/drawings/assemblies/`; `bom`'s output hash stays the rollups' (P14), pages read
+`bom://build-plan#units.<id>`; lint `L13-assembly-driver`. Kiln (alias only): `hardware://door`,
+`://kiln` warn (8 vs 4, 50 vs 30 bolts), no fail; report 3,614,355 → 3,714,969 bytes. 18 new tests;
+`make check` 9 min 24 s green (803 passed), goldens unchanged; `make kiln` 2 min 55 s green.

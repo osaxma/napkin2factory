@@ -199,6 +199,14 @@ n2f build                           # everything: 3D, drawings, BOM, manuals, ch
 n2f check                           # the gate: every requirement and rule
 ```
 
+`n2f build` also writes the build plan, derived from the assemblies: one step per unit
+(`build/bom/build-plan.json`, a "Build plan" sheet in `bom.xlsx`, the report's Build plan, and
+an A3 assembly sheet per unit in `build/drawings/assemblies/`). A sub-assembly is a unit
+(`build: unit`, the default, with `driver: [...]` saying why) or a grouping (`build: phantom`);
+joint hardware is counted from each interface's `spec.hardware` (or its `fastener:`) by the
+`hardware://<unit>` check. The fields are in `docs/product-model.md`; the design role says
+how to use them.
+
 **Changes after a release** go through a change request, and the owner approves after
 reading the impact:
 

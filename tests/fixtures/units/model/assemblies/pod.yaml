@@ -1,0 +1,9 @@
+id: pod
+rev: A
+name: Pod
+driver: [built-as-unit, tested-as-unit]
+ports: [iface://pod-mount]
+children:
+  - {part: part://plate, qty: 1}
+  - {part: part://rail, qty: 2}
+  - {part: part://bolt, qty: 4}

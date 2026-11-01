@@ -74,6 +74,17 @@ and names both occurrences and the distance; the evidence holds every pair's wor
 both placed by coordinates; `place_by` on that interface closes the joint instead. Joints
 through ports are not looked at yet (B-0064).
 
+`hardware://<unit>` (P9 as amended by S-105, S-110): one row per build unit whose joints
+need hardware or whose lines list some. For each hardware part (one named in some interface's
+`hardware`, or its `fastener`), the quantity on the unit's lines and its phantoms' (folded,
+multiplied) must be at least what the joints closing in the unit need (`holes × per_hole +
+per_joint`, times the joint's occurrences). Fewer `fail`s, naming the joints and the number
+missing; more `warn`s unless a line of that part has `spare: "<reason>"`, which passes. A joint
+closes in the lowest assembly containing both parties' homes (`core/tree.py`), so hardware
+listed in a sub-unit for a joint that closes in its parent shows as surplus there and missing
+in the parent. Shared holes count once because each item is listed on one interface only.
+`count` is D18's instance-count stage; this one is `hardware`.
+
 ## Stage and gates (`n2f status`)
 
 Intake: requirements and operator pass lint. Design: every custom part has geometry and is

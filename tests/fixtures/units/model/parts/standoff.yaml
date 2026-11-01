@@ -1,0 +1,7 @@
+id: standoff
+rev: A
+name: M6 standoff 25
+kind: cots
+source: {vendor: Example, mpn: standoff-1, url: "https://example.com/standoff", verified: false}
+cost: {unit: 0.1 USD, basis: estimate}
+lead_time: 2 d

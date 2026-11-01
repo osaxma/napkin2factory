@@ -1,0 +1,9 @@
+id: top
+rev: A
+name: Top
+children:
+  - {part: part://base, qty: 1}
+  - {asm: asm://pod, qty: 1}
+  - {asm: asm://frame, qty: 1}
+  - {part: part://bolt, qty: 10}
+  - {part: part://standoff, qty: 4}

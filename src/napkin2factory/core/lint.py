@@ -221,6 +221,35 @@ def lint(product: Product) -> Problems:
                     rule="L9-orphan-part",
                 )
 
+    # L13: every sub-assembly says why it is built on its own (P7); a grouping is a phantom.
+    if product.assemblies:
+        from napkin2factory.core.tree import AssemblyTree
+
+        tops = set(AssemblyTree(product.assemblies).tops())
+        for a in product.assemblies.values():
+            if a.id in tops:
+                if a.build == "phantom":
+                    problems.add(
+                        product.files[a.uri],
+                        a.uri,
+                        "the top assembly is always built; `build: phantom` is ignored here",
+                        "remove `build: phantom` from the top assembly",
+                        severity="warn",
+                        rule="L13-assembly-driver",
+                    )
+                continue
+            if a.build == "unit" and not a.driver:
+                problems.add(
+                    product.files[a.uri],
+                    a.uri,
+                    "sub-assembly built as a unit of its own, but nothing says why",
+                    "add `driver: [built-as-unit]` (or tested-as-unit, serviced-as-unit, "
+                    "separate-process-or-supplier, varies, agent-context), or "
+                    "`build: phantom` if it only groups parts",
+                    severity="warn",
+                    rule="L13-assembly-driver",
+                )
+
     # L10: draft parametric change requests should carry edits.
     for e in product.ecrs.values():
         if e.kind == "parametric" and not e.edits:

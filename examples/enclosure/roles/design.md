@@ -38,6 +38,19 @@ sub-assembly by that joint, after the other part:
 (`inner="<label>"` picks the part's occurrence inside it when there are several). A
 sub-assembly never reads or places its siblings' parts.
 
+Every sub-assembly says how it is built. A **unit** (`build: unit`, the default) is put
+together on its own and fitted whole; give it `driver: [...]`, why: `built-as-unit`,
+`tested-as-unit`, `serviced-as-unit`, `separate-process-or-supplier`, `varies` or
+`agent-context` (`n2f lint` asks). A grouping with no such reason is `build: phantom`: its
+lines fold into the step of the unit around it. The build plan (report, `bom.xlsx`, one
+assembly sheet per unit) comes from this; in a manual, `{{ build_step("asm://door") }}` prints
+a step's parts, joints and hardware. Count joint hardware on the interface:
+`spec.hardware: [{part: part://m6-standoff-25, per_hole: 1}, {part: part://m6x16-bolt,
+per_hole: 2}]` (`per_joint:` on a mating face); list those parts in the assembly where the joint
+closes (the lowest one holding both parts). Where two joints share holes, list each item once,
+on the joint it closes. `n2f check` fails a shortfall and warns a surplus unless the line says
+`spare: "<reason>"`; `loose: true` marks a line packed loose for the installer.
+
 ## After the napkin stage
 When a concept card has been promoted (`n2f concept list` shows it `promoted`; its
 decision is in `model/decisions.yaml`), the owner has already chosen the form. Start from it:

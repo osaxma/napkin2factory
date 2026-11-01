@@ -38,6 +38,22 @@ words with the owner.
 | **set aside** / rejected | a direction not taken; the card is kept as a record | `n2f concept reject` |
 | **interpretation card** | the PM's playback, in words, of what it read in a sketch or photo, corrected by the owner before any card is written | the project manager role, `roles/pm.md` (N9) |
 
+## Structure words (the build plan, PRODUCT_STRUCTURE.md P7–P9)
+
+No version-control counterpart either; the owner reads the left column in the report, the
+manuals and the assembly sheets, the field names stay in the files and in `--json` (N5).
+
+| say | meaning | field, where you meet it |
+|---|---|---|
+| **unit** ("the door, built as one unit") | a sub-assembly put together on its own, then fitted as a whole; one step of the build plan and one assembly sheet | `build: unit` (the default) in `assemblies/<id>.yaml`; the report's Build plan, `build/drawings/assemblies/` |
+| **the final assembly** | the top assembly, always the last step | the report's Build plan |
+| **a grouping, not built separately** (a phantom) | lines grouped for the model's sake; its parts are fitted in the step of the unit that contains it | `build: phantom` |
+| **why it is built on its own** (driver) | built as one unit, tested as one unit, serviced or replaced as one unit, made by another process or supplier, comes in variants, worked on as one module | `driver: [built-as-unit, tested-as-unit, serviced-as-unit, separate-process-or-supplier, varies, agent-context]`; `n2f lint` asks for one (`L13-assembly-driver`) |
+| **a joint between units** (a port) | where two units built separately meet; closed in the step that joins them | `ports:` (P4); the report's Build plan |
+| **joint hardware** | the bolts, nuts, standoffs a joint takes, counted from the joint | `spec.hardware` on an interface; the `hardware://<unit>` check row |
+| **spare** | more hardware than the joints need, on purpose, with the reason | `spare: "<reason>"` on a child line |
+| **packed loose for the installer** | shipped with the product, fitted on site, not in the build step | `loose: true` on a child line |
+
 ## Check statuses
 
 | engineer words | owner words | meaning |

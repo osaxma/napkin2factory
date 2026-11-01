@@ -27,6 +27,7 @@ FULL = [
     "drawing:bracket",
     "drawing:lid",
     "bom",
+    "asmsheet:enclosure",
     "doc:assembly",
     "doc:safety",
     "checks",
@@ -39,6 +40,7 @@ LID_SET = [
     "asm:enclosure",
     "drawing:lid",
     "bom",
+    "asmsheet:enclosure",  # the lid's new thickness changes the assembly (P8 sheet)
     "doc:assembly",
     "checks",
     "report",

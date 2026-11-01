@@ -335,7 +335,11 @@ def _static_reads(product: Product, rule: Rule) -> list[str]:
             [f"{p.uri}#cost" for p in product.parts.values()]
             + [p.uri for p in product.parts.values()]
             + [f"{a.uri}#children" for a in product.assemblies.values()]
+            + [f"iface://{i}" for i in product.interfaces]  # the build plan's hardware (P9)
         )
+    if rule.kind == "asmsheet":
+        aid = rule.id.split(":", 1)[1]
+        return [f"asm://{aid}", f"bom://build-plan#units.{aid}"]
     if rule.kind == "doc":
         did = rule.id.split(":", 1)[1]
         return [str(d) for d in product.docs[did].meta.depends_on] + [

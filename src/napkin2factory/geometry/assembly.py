@@ -460,6 +460,41 @@ def scene_for_assembly(leaves: list[FlatInstance]) -> Scene:
     return scene
 
 
+def exploded_scene(
+    leaves: list[FlatInstance], groups: list[GlbGroup], axis: str, spacing: float
+) -> Scene:
+    """The assembly pulled apart as the report's viewer does at full explode (P8 sheets).
+
+    Each top-level occurrence (a part, or a whole sub-assembly) moves along ``axis`` by
+    ``spacing`` times its rank, ranked by its position along that axis, so the picture on an
+    assembly sheet matches what the owner sees with the viewer's slider at its end.
+    """
+    k = "xyz".index(axis)
+    parent_of = {g.name: g.parent for g in groups}
+    base: dict[str, float] = {g.name: g.translation[k] for g in groups if g.parent is None}
+
+    def top_of(leaf: FlatInstance) -> str:
+        node = leaf.parent
+        if node is None:
+            return leaf.node
+        while parent_of.get(node) is not None:
+            node = parent_of[node] or node
+        return node
+
+    for leaf in leaves:
+        if leaf.parent is None:
+            base[leaf.node] = location_to_trs(leaf.location)[0][k]
+    rank = {name: i for i, name in enumerate(sorted(base, key=lambda n: (base[n], n)))}
+    scene = Scene()
+    for leaf in leaves:
+        v, t = leaf.built.tess
+        pts = transform_points(v, leaf.location)
+        shift = np.zeros(3)
+        shift[k] = spacing * rank.get(top_of(leaf), 0)
+        scene.meshes.append(Mesh(pts + shift, t, color_for(leaf.uri), leaf.node))
+    return scene
+
+
 def assembly_props(leaves: list[FlatInstance]) -> dict[str, Any]:
     """bbox, mass, volume, centroid and instance counts over all leaves."""
     if not leaves:

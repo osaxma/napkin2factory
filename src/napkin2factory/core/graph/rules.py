@@ -1,9 +1,10 @@
 """Rule definitions and the ordered rule list for a product (GRAND_PLAN §6.1).
 
 Order: ``validate`` → ``part:<id>`` → ``asm:<id>`` → ``drawing:<id>`` → ``bom`` →
-``doc:<id>`` → ``checks`` → ``report`` → ``site``.  A rule knows its declared inputs
-(file and code hashes), the URI it produces (so downstream reads can be resolved to its
-output hash), and which ``--target`` groups include it.
+``asmsheet:<id>`` (one per build unit, P8) → ``doc:<id>`` → ``checks`` → ``report`` →
+``site``.  A rule knows its declared inputs (file and code hashes), the URI it produces
+(so downstream reads can be resolved to its output hash), and which ``--target`` groups
+include it.
 """
 
 from __future__ import annotations
@@ -25,10 +26,32 @@ TARGET_KINDS: dict[str, tuple[str, ...]] = {
     "drawings": ("validate", "part", "asm", "drawing"),
     "bom": ("validate", "part", "asm", "bom"),
     "docs": ("validate", "part", "asm", "bom", "doc"),
-    "checks": ("validate", "part", "asm", "drawing", "bom", "doc", "checks"),
-    "report": ("validate", "part", "asm", "drawing", "bom", "doc", "checks", "report"),
-    "site": ("validate", "part", "asm", "drawing", "bom", "doc", "checks", "report", "site"),
-    "all": ("validate", "part", "asm", "drawing", "bom", "doc", "checks", "report", "site"),
+    "checks": ("validate", "part", "asm", "drawing", "bom", "asmsheet", "doc", "checks"),
+    "report": ("validate", "part", "asm", "drawing", "bom", "asmsheet", "doc", "checks", "report"),
+    "site": (
+        "validate",
+        "part",
+        "asm",
+        "drawing",
+        "bom",
+        "asmsheet",
+        "doc",
+        "checks",
+        "report",
+        "site",
+    ),
+    "all": (
+        "validate",
+        "part",
+        "asm",
+        "drawing",
+        "bom",
+        "asmsheet",
+        "doc",
+        "checks",
+        "report",
+        "site",
+    ),
 }
 
 
@@ -191,6 +214,20 @@ def build_rules(product: Product, render: bool = True) -> list[Rule]:
             depends_on=["validate", *[f"part:{p}" for p in part_ids]],
         )
     )
+    from napkin2factory.core.build_units import BuildUnits
+
+    for aid in BuildUnits(product).order():  # P8: one assembly sheet per build unit
+        rules.append(
+            Rule(
+                id=f"asmsheet:{aid}",
+                kind="asmsheet",
+                produces=f"rule:asmsheet:{aid}",
+                inputs={"code": package_hash("drawings", "bom")},
+                run=runs.make_asmsheet_run(aid),
+                description=f"assembly sheet for the build step of asm://{aid}",
+                depends_on=[f"asm:{aid}", "bom"],
+            )
+        )
     for did in sorted(product.docs):
         rules.append(
             Rule(

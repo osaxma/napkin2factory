@@ -19,6 +19,7 @@ def test_rule_order_and_targets():
         < ids.index("asm:enclosure")
         < ids.index("drawing:lid")
         < ids.index("bom")
+        < ids.index("asmsheet:enclosure")  # P8: one assembly sheet per build unit
         < ids.index("doc:assembly")
     )
     geo = [r.id for r in rules_for_target(rules, "geometry")]
@@ -31,6 +32,7 @@ def test_rule_order_and_targets():
         "asm",
         "drawing",
         "bom",
+        "asmsheet",
         "doc",
         "checks",
         "report",
