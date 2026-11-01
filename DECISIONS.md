@@ -135,12 +135,13 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-112 | v0.4 M5: promotion keeps the napkin's modules (stubs, size budgets) or suggests them; start flat | in force |
 | S-113 | v0.4 M3b: the kiln built from units, door and controls hung by their ports, lining a phantom | in force |
 | S-114 | v0.4 M4: parameters have a scope, a module's context is a command, checks per module | in force |
-| S-115 | v0.4 M6: joints between units in the plan and the report, two-level review roles, the DoD 5 simulation protocol (run pending) | in force |
+| S-115 | v0.4 M6: joints between units in the plan and the report, two-level review roles, the DoD 5 simulation protocol | in force; run in S-116 |
 | S-116 | v0.4 DoD 5: a fresh agent changed the door from its context alone; all four criteria met | in force |
 | S-117 | The build plan is a valued read; the checks record the assembly fields the hardware stage reads | in force |
 | Gate C | Review gate C (architecture and honesty) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-118 | Joints in owner words: an optional `name:` and `closed_in:` on interfaces, joints in build order, sheet text never below 2.2 mm | in force |
 | Gate D | Review gate D (UX, owner persona) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
+| S-119 | v0.4 closed: version 0.4.0, product pins `>=0.4,<0.5`, handoff report | in force |
 
 ---
 
@@ -589,3 +590,14 @@ design (no loose fixings); they meet in …"; gate C's C3–C6 too. **Concerns f
 (the kiln's lid joint `closed_in: asm://kiln`, the manual's prose to match), 14–17; 8 by dropping the
 footer's claim; 12 by labelling each count. **To BACKLOG:** 11 → B-0069, balloons (8) → B-0070, one
 count per unit (12) → B-0071. Screenshots judged by the agent only; not yet by the maintainer.
+
+## S-119 — v0.4 closed: version 0.4.0, pins, handoff report (2026-11-01)
+The three version files read 0.4.0 (S-054) and the product pin moves to `>=0.4,<0.5` wherever S-083
+put it: manifest default, template and example `n2f.yaml`, product CI workflows, test fixtures;
+`uv.lock` follows. No schema change, so a 0.3 product loads with the pin notice (S-056, P14).
+`HANDOFF-REPORT-v0.4.md` takes the definition of done item by item: 1–6 and 8 met, 7's gates closed
+(S-117, S-118); `check-full` from a clean clone and the tag are the maintainer's. Measured on a fresh
+kiln copy: build 62.4 s, check no fail (251 OK), report 3,792,169 B, door context 16,524 B, mass and
+box as the golden. `make check` here: 10 min 8 s green (870 passed, 5 skipped; goldens 141). Open:
+B-0064, B-0065, B-0067, B-0069–B-0071, and the Linux nightly's evidence-key failure (a separate
+task). Judged by the maintainer: "looking right" (the build plan section and the door sheet), 2026-11-01.

@@ -14,8 +14,8 @@ from tests.conftest import EXAMPLES, copy_product, n2f
 def _repin(root: Path, system: str) -> None:
     manifest = root / "n2f.yaml"
     text = manifest.read_text()
-    assert 'system: ">=0.3,<0.4"' in text
-    manifest.write_text(text.replace('system: ">=0.3,<0.4"', f'system: "{system}"'))
+    assert 'system: ">=0.4,<0.5"' in text
+    manifest.write_text(text.replace('system: ">=0.4,<0.5"', f'system: "{system}"'))
 
 
 def test_validate_warns_but_runs_outside_the_pin(tmp_path: Path):
