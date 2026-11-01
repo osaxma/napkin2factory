@@ -1134,7 +1134,7 @@ explicit `UV_LINK_MODE` wins). Nothing writes into installed files, so the share
 
 ## S-099 — Landing gives placeholders their ids in every task commit, messages included (2026-11-01)
 Amends S-097. Found on the first real landing (S-098): ids were assigned in a final "Assign journal
-ids" commit, so the task's own commit kept `S-099` in its files and subject on `main`, and
+ids" commit, so the task's own commit kept its placeholder in its files and subject on `main`, and
 `git bisect run make check` would have blamed that commit for the placeholder check. Now
 `scripts/journal_ids.py` rebuilds each task commit from its snapshot with the ids applied to its
 changed files and its message (plumbing: `read-tree`, `hash-object`, `commit-tree`; no patch is
