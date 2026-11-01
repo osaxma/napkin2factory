@@ -96,9 +96,7 @@ def parse_set(text: str) -> Edit:
     command prints it instead of a traceback.
     """
     if "=" not in text:
-        raise EditError(
-            f"--set expects <uri>=<value>, e.g. param://wall-thickness=2 mm; got {text!r}"
-        )
+        raise EditError(f"--set expects <uri>=<value>, e.g. param://x=50mm; got {text!r}")
     target, value = text.split("=", 1)
     try:
         return Edit(set=Uri.parse(target.strip()), to=value.strip())
@@ -225,7 +223,8 @@ def compute_impact(
             if touches(k) or k in produced_affected or Uri_base(k) in produced_affected
         ]
         if hits:
-            affected[rule.id] = ", ".join(hits[:4]) + (" …" if len(hits) > 4 else "")
+            shown = _most_specific(hits)
+            affected[rule.id] = ", ".join(shown[:4]) + (" …" if len(shown) > 4 else "")
             for produced in rule.produced:
                 produced_affected.add(produced)
                 produced_affected.add(produced.split("#")[0])
@@ -369,6 +368,19 @@ def _edit_matcher(edited_keys: list[str], outputs: set[str]) -> Any:
         return False
 
     return touches
+
+
+def _most_specific(hits: list[str]) -> list[str]:
+    """The reason's keys: a whole-object hit is left out when a field of it hit too.
+
+    ``manifest://scope`` and ``manifest://scope#electrical`` both see an edit of
+    ``manifest://scope#electrical.note``; the field says which entry it is.
+    """
+    return [
+        k
+        for k in hits
+        if not any(o != k and o.startswith(k + ("." if "#" in k else "#")) for o in hits)
+    ]
 
 
 def Uri_base(key: str) -> str:  # noqa: N802 - reads like the Uri API
