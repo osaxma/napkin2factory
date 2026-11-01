@@ -207,6 +207,8 @@ The kit list is in the product's `AGENTS.md`; `docs/napkin.md` explains the stag
 ```bash
 n2f validate && n2f lint            # after every model edit
 n2f build --target geometry --part <id>   # after a geometry edit; look at build/parts/<id>/renders/
+                                    # (--target: geometry, drawings, bom, docs, checks, report,
+                                    # site, or any installed domain's step by its name)
 n2f build                           # everything: 3D, drawings, BOM, manuals, checks, report
 n2f check                           # the gate: every requirement and rule
 ```
