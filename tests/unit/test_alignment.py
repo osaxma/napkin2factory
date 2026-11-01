@@ -86,6 +86,11 @@ def test_every_kiln_interface_meets_in_its_assembly(kiln: tuple[Product, Path]) 
         out = _check(product, iface_id, build_dir)
         assert out["status"] == "pass", (iface_id, out.get("message"))
         offsets[iface_id] = out["offset_mm"]
+        # gate D, blocker 2: where they meet, by the assembly's name, never its id
+        where = {"door-guard-standoff": "door", "controller-lid-seat": "controls"}.get(
+            iface_id, "mini electric test kiln"
+        )
+        assert out["message"] == f"the assembled {where} (within 0.01 mm)", iface_id
     # M0's survey (docs/v04-baseline.md §1), now offsets written as expressions (P2)
     assert offsets["controller-mount"] == pytest.approx(40.0)
     assert offsets["guard-standoff-left"] == pytest.approx(26.0)
@@ -122,7 +127,10 @@ def test_two_hinges_on_one_post_each_meet_their_own_joint(
     for iface_id in ("hinge-upper", "hinge-lower"):  # a moved hinge meets neither joint
         out = _check(product, iface_id, tmp_path)
         assert out["status"] == "fail", iface_id
-        assert "part://hinge#2 do not meet in asm://kiln" in out["message"]
+        # owner words (gate D): parts and the joint by name, the occurrence by number
+        assert "Weld-on steel hinge, 12 mm barrel, 60 mm no. 2 do not line up" in out["message"]
+        assert "://" not in out["message"]
+        assert "part://hinge#2" in out["failures"][0]["occurrences"]
     # a missing upper hinge leaves hinge-upper with no pair that meets
     write_json(
         tmp_path / "assemblies/kiln/instances.json",
@@ -151,8 +159,22 @@ def test_controller_box_moved_10_mm_fails(kiln: tuple[Product, Path], tmp_path: 
     out = _check(product, "controller-mount", tmp_path)
     assert out["status"] == "fail"
     msg = out["message"]
-    assert "part://guard-shell#1 and part://controller-box#1 do not meet in asm://kiln" in msg
-    assert "10.0 mm apart" in msg
+    # gate D, blocker 1: plain words, the allowance and what to do; ids and offsets in --json
+    assert msg == (
+        "Ventilated touch guard and Controller enclosure do not line up at their joint "
+        '"Controls onto the guard\'s right wall": their holes are 10.0 mm apart (0.5 mm '
+        "allowed). Move the holes or the parts so they meet."
+    )
+    assert out["failures"] == [
+        {
+            "assembly": "asm://kiln",
+            "occurrences": ["part://guard-shell#1", "part://controller-box#1"],
+            "distance_mm": pytest.approx(10.0, abs=1e-3),
+            "normal_deg": 0.0,
+            "x_axis_deg": 0.0,
+        }
+    ]
+    assert "40 mm" in out["fix"] and "iface://controller-mount" in out["fix"]
     pair = out["assemblies"]["kiln"]["pairs"][0]
     assert pair["distance_mm"] == pytest.approx(10.0, abs=1e-3)
     assert set(pair["world"]) == {"part://guard-shell#1", "part://controller-box#1"}
@@ -174,7 +196,9 @@ def test_facing_normals_fail(kiln: tuple[Product, Path]) -> None:
     iface = iface.model_copy(update={"frames": {**iface.frames, "part://controller-box": old}})
     out = check_alignment(product, iface, build_dir)
     assert out["status"] == "fail"
-    assert "turned 180.0°" in out["message"] and "rotated 180.0°" in out["message"]
+    msg = out["message"]
+    assert "faces are turned 180.0° from each other (0.5° allowed)" in msg
+    assert "one is turned 180.0° against the other" in msg and "://" not in msg
 
 
 def test_shared_fallback_frame_is_not_aligned(kiln: tuple[Product, Path]) -> None:
@@ -207,3 +231,51 @@ def test_joint_closed_by_coordinates_warns(kiln: tuple[Product, Path], tmp_path:
         r.pop("via")
     write_json(tmp_path / "assemblies/kiln/instances.json", rows)
     assert coordinate_placement_warnings(product, tmp_path) == []
+
+
+def _features(build_dir: Path, pid: str, payload: dict[str, Any]) -> None:
+    write_json(build_dir / "parts" / pid / "features.json", payload)
+
+
+def test_passing_joint_messages_are_plain(kiln: tuple[Product, Path], tmp_path: Path) -> None:
+    """Gate D, blocker 2: a passing joint reads in owner words, ids and (D29) left out."""
+    import shutil
+
+    from napkin2factory.core.checks.interface import _basis, check_interface
+
+    product, build_dir = kiln
+    shutil.copytree(build_dir / "assemblies", tmp_path / "assemblies")
+    # a welded joint: both parts record the face
+    hinge = product.interfaces["hinge-lower"]
+    for party in ("hinge-post", "hinge"):
+        face = {"interface": hinge.uri, "origin": [0, 0, 0]}
+        _features(tmp_path, party, {"patterns": [], "extra": {"mating_faces": [face]}})
+    rep = check_interface(product, hinge, tmp_path)
+    assert rep.status == "pass"
+    assert rep.message == (
+        "the faces touch by design (no loose fixings); they meet in the assembled mini "
+        "electric test kiln (within 0.01 mm)"
+    )
+    # a bolted joint: both parts cut the same 4 holes in their own frames
+    mount = resolve_interface(product, product.interfaces["controller-mount"])
+    local = [(-30.0, -40.0), (30.0, -40.0), (-30.0, 40.0), (30.0, 40.0)]
+    for party in ("guard-shell", "controller-box"):
+        fr = mount.frame_for(f"part://{party}")
+        x, y, _n = _basis([float(c) for c in fr.normal], [float(c) for c in fr.x_axis])
+        o = [float(c) for c in fr.origin]
+        centers = [[o[i] + u * x[i] + v * y[i] for i in range(3)] for u, v in local]
+        pattern = {"interface": mount.uri, "centers": centers, "diameter": 6.6}
+        _features(tmp_path, party, {"patterns": [pattern]})
+    rep = check_interface(product, product.interfaces["controller-mount"], tmp_path)
+    assert rep.status == "pass", rep.message
+    assert rep.message == (
+        "the 4 holes line up on both parts, and in the assembled mini electric test kiln "
+        "(within 0.01 mm)"
+    )
+    # a hole pattern that differs fails in plain words; the holes stay in the parties
+    bad = {"interface": mount.uri, "centers": [[0.0, 0.0, 0.0]] * 4, "diameter": 6.6}
+    _features(tmp_path, "controller-box", {"patterns": [bad]})
+    rep = check_interface(product, product.interfaces["controller-mount"], tmp_path)
+    assert rep.status == "fail" and "://" not in rep.message
+    assert rep.message.startswith("the holes on Ventilated touch guard and Controller enclosure")
+    assert rep.parties["part://controller-box"]["holes"]

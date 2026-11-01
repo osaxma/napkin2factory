@@ -105,9 +105,10 @@ def evidence_key(
             return "missing"
         from napkin2factory.geometry.accessors import resolve_interface
 
-        return sha256_json(
-            resolve_interface(product, product.interfaces[u.id]).model_dump(mode="json")
-        )
+        record = resolve_interface(product, product.interfaces[u.id]).model_dump(mode="json")
+        # the joint's display name is a label, not evidence (as a part's role, N7; S-118)
+        record.pop("name", None)
+        return sha256_json(record)
     if u.scheme in ("req", "param", "dec"):
         try:
             obj = product.resolve(u.base)

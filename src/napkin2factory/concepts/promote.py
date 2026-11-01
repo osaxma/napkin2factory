@@ -299,7 +299,13 @@ def _list_indent(text: str, key: str) -> str:
 
 
 def _append_items(text: str, key: str, blocks: list[str]) -> str:
-    """Append list items under the top-level ``key:`` (an empty ``key: []`` is opened)."""
+    """Append list items under the top-level ``key:`` (an empty ``key: []`` is opened).
+
+    With nothing to append the text is left as it is: opening ``requirements: []`` with no
+    item under it would read as ``None`` (gate C, C4).
+    """
+    if not blocks:
+        return text
     text = re.sub(rf"^{key}:\s*\[\]\s*$", f"{key}:", text, count=1, flags=re.MULTILINE)
     if not text.endswith("\n"):
         text += "\n"
@@ -860,6 +866,11 @@ class ModulePlan:
         return next((a.id for a in self.seeded if a.top), None)
 
 
+#: A module budget under this along any axis is flagged at promotion (gate D): a rough
+#: shape drawn as a plate, not a size any real module (a door with its insulation) keeps.
+THIN_BUDGET_MM = 10.0
+
+
 def _module_title(name: str) -> str:
     return name.replace("-", " ").capitalize()
 
@@ -994,6 +1005,19 @@ def plan_modules(card: ConceptCard, product: Any, notes: list[str]) -> ModulePla
             size = (_round_up(box[0]), _round_up(box[1]), _round_up(box[2]))
             plan.budgets += [("budget", row) for row in _budget_rows(card, name, size)]
             budget = (_q_text(size[0]), _q_text(size[1]), _q_text(size[2]))
+            # gate D: a sketch's plate (a 3 mm door) would become a budget no real module
+            # meets; say so before anyone designs to it
+            thin = [
+                f"{_q_text(q)} {adjective}"
+                for (_, adjective, _), q, mm in zip(BUDGET_AXES, size, box, strict=True)
+                if mm < THIN_BUDGET_MM
+            ]
+            if thin:
+                notes.append(
+                    f"module {name}: the sketch drew it as a thin plate ({_and(thin)}), so its "
+                    "size budget says so too: set its real size on the card or in the budget "
+                    "requirement before designing (changing a budget is a decision)"
+                )
         seeded.append(
             SeededAssembly(
                 id=name,
@@ -1545,19 +1569,39 @@ def _check_texts(params: str, reqs: str, decs: str, n_reqs: int) -> None:
     from napkin2factory.core.model.parameters import ParametersFile
     from napkin2factory.core.model.requirements import RequirementsFile
 
-    try:
-        ParametersFile.model_validate(yaml.safe_load(params) or {})
-        rf = RequirementsFile.model_validate(yaml.safe_load(reqs) or {})
-        DecisionsFile.model_validate(yaml.safe_load(decs) or {})
-    except Exception as exc:
-        raise N2FError(
-            f"promotion could not edit the model files cleanly ({exc}); nothing was written"
-        ) from exc
+    checked: dict[str, Any] = {}
+    for name, schema, text in (
+        ("parameters", ParametersFile, params),
+        ("requirements", RequirementsFile, reqs),
+        ("decisions", DecisionsFile, decs),
+    ):
+        try:
+            checked[name] = schema.model_validate(yaml.safe_load(text) or {})
+        except Exception as exc:
+            # gate C, C4: plain words first; the validator's own text stays in the chain
+            raise N2FError(
+                f"promotion could not edit model/{name}.yaml cleanly, so nothing was written; "
+                f"check that the file still reads (`n2f lint`) — {_first_error(exc)}"
+            ) from exc
+    rf = checked["requirements"]
     if len(rf.requirements) != n_reqs:
         raise N2FError(
             "promotion could not append to model/requirements.yaml in its layout; nothing "
             "was written — check that `requirements:` is the file's only top-level key"
         )
+
+
+def _first_error(exc: Exception) -> str:
+    """The first problem of a validation error in one line ("requirements: not a list")."""
+    errors = getattr(exc, "errors", None)
+    if callable(errors):
+        try:
+            first = errors()[0]
+            where = ".".join(str(p) for p in first.get("loc", ()))
+            return f"{where}: {first.get('msg', '')}" if where else str(first.get("msg", ""))
+        except Exception:  # noqa: BLE001 — fall back to the message itself
+            pass
+    return str(exc).splitlines()[0]
 
 
 def _write_all(root: Path, writes: dict[Path, str], validate: Any) -> None:

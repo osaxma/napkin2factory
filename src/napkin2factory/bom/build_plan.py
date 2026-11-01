@@ -21,6 +21,7 @@ from napkin2factory.core.build_units import (
     DRIVER_WORDS,
     PHANTOM_WORDS,
     BuildUnits,
+    driver_sentence,
     unit_title,
 )
 from napkin2factory.core.checks.hardware import joint_words
@@ -70,13 +71,52 @@ def _name(product: Product, uri: str) -> str:
     return p.name if p is not None else uri
 
 
+#: A joint with no hardware to count, in owner words (gate D, S-118).
+NO_FIXINGS = "no loose fixings"
+
+
 def joint_kind_words(kind: str, holes: int, has_hardware: bool) -> str:
     """How a joint is made, in owner words (N5): "bolted, 4 holes", "faces that meet"."""
     if kind == "bolt-pattern":
         return f"bolted, {holes} holes" if holes else "bolted"
     if has_hardware:
         return "faces that meet, with fasteners"
-    return "faces that meet (welded, riveted or clamped: no loose hardware)"
+    return f"faces that meet, {NO_FIXINGS} (welded, riveted or clamped)"
+
+
+def lower_name(name: str) -> str:
+    """A name inside a sentence ("Lining" → "lining"); acronyms keep their capitals."""
+    if len(name) > 1 and name[0].isupper() and not name[1].isupper():
+        return name[0].lower() + name[1:]
+    return name
+
+
+def item_range(numbers: list[int]) -> str:
+    """Say "items 18–26", "item 4", "items 3, 5 and 7" for a folded grouping's lines."""
+    if not numbers:
+        return ""
+    if len(numbers) == 1:
+        return f"item {numbers[0]}"
+    if numbers == list(range(numbers[0], numbers[-1] + 1)):
+        return f"items {numbers[0]}–{numbers[-1]}"
+    head = ", ".join(str(n) for n in numbers[:-1])
+    return f"items {head} and {numbers[-1]}"
+
+
+def _arrival(units: BuildUnits, uid: str, items: list[dict[str, Any]], party: str) -> int:
+    """The item number at which a joint's party arrives in the step (build order, gate D).
+
+    A part listed in the step arrives with its line; a part inside an earlier unit arrives
+    with that unit's line.  Unknown: after every line.
+    """
+    for it in items:
+        if it["uri"] == party:
+            return int(it["item"])
+    home = units.unit_of(units.tree.home(party))
+    for it in items:
+        if home is not None and it["uri"] == f"asm://{home}":
+            return int(it["item"])
+    return len(items) + 1
 
 
 def _sides(product: Product, units: BuildUnits, parties: tuple[str, str]) -> list[dict[str, Any]]:
@@ -130,11 +170,23 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
                 row["loose"] = True
             items.append(row)
         joints = []
-        for j in units.joints(uid):
+        # build order (gate D): a joint is closed once the later of its two parts is in
+        # place, so the child lines' order is the joints' order; ties by interface id
+        order_key = {
+            j.iface: (
+                max(_arrival(units, uid, items, p) for p in j.parties),
+                min(_arrival(units, uid, items, p) for p in j.parties),
+                j.iface,
+            )
+            for j in units.joints(uid)
+        }
+        for j in sorted(units.joints(uid), key=lambda j: order_key[j.iface]):
             kind = product.interfaces[j.iface].kind
+            later = units.closed_later(j.iface)
             joints.append(
                 {
                     "interface": f"iface://{j.iface}",
+                    **({"closed_later_in": f"asm://{later}"} if later else {}),
                     "parties": list(j.parties),
                     "words": joint_words(product, j.iface),
                     "kind": kind,
@@ -183,6 +235,7 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
             "top": top,
             "driver": list(asm.driver),
             "driver_words": [DRIVER_WORDS[d] for d in asm.driver],
+            "driver_sentence": driver_sentence(list(asm.driver)),
             "built_per_product": sum(_count_asm(product, t, uid) for t in tops),
             "parents": parents,
             "folded": [
@@ -191,6 +244,8 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
                     "name": product.assemblies[aid].name,
                     "qty": mult,
                     "words": PHANTOM_WORDS,
+                    # gate D: which lines of the step are this grouping's
+                    "items": [it["item"] for it in items if it["via"] == f"asm://{aid}"],
                 }
                 for aid, mult in units.folded(uid)[1:]
             ],
@@ -199,13 +254,38 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
             "hardware": hardware,
             "checks": units.check_ids(uid),
         }
+    for step in out_units.values():
+        # gate D: grouped lines carry the grouping's name ("lining") for the note column
+        names = {f["asm"]: lower_name(f["name"]) for f in step["folded"]}
+        for it in step["items"]:
+            if it["via"] in names:
+                it["group"] = names[it["via"]]
+        step["parent_steps"] = [
+            {
+                "unit": pa,
+                "step": out_units[pa.removeprefix("asm://")]["step"],
+                "title": out_units[pa.removeprefix("asm://")]["title"],
+            }
+            for pa in step["parents"]
+        ]
+    # S-118: a joint closed later (``closed_in``) is listed again in the step that closes
+    # it, marked as carried; its hardware stays counted where its parts meet
+    for step in list(out_units.values()):
+        for j in step["joints"]:
+            target = j.get("closed_later_in")
+            if target is None:
+                continue
+            later = out_units[target.removeprefix("asm://")]
+            j["closed_later_step"] = later["step"]
+            carried = {k: v for k, v in j.items() if not k.startswith("closed_later")}
+            later["joints"].append({**carried, "from_step": step["step"]})
     # P13: every joint where two units built separately meet, in build order, with the step
     # that closes it (the verdicts are joined by the report: ``bom`` runs before ``checks``)
     between = [
         {**j, "step": step["step"], "closed_by": step["unit"], "closed_by_name": step["name"]}
         for step in out_units.values()
         for j in step["joints"]
-        if j["between_units"]
+        if j["between_units"] and "from_step" not in j
     ]
     return {
         "schema": SCHEMA,
@@ -224,30 +304,71 @@ def step_markdown(plan: dict[str, Any], unit_id: str) -> str:
     """
     step = plan["units"][unit_id]
     lines = [f"**Step {step['step']}: {step['title']}.**"]
-    if step["driver_words"]:
-        lines[0] += f" Built on its own because it is {', '.join(step['driver_words'])}."
+    sentence = step.get("driver_sentence") or driver_sentence(step["driver"])
+    if sentence:
+        lines[0] += f" {sentence}"
     for f in step["folded"]:
-        qty = f" ({f['qty']} ×)" if f["qty"] != 1 else ""
-        lines.append(f"It includes {f['name']}{qty}: {f['words']}.")
+        lines.append(folded_sentence(f))
     lines += ["", "| item | part | qty | note |", "|---:|---|---:|---|"]
     for it in step["items"]:
-        notes = []
-        if it["kind"] == "unit":
-            notes.append(f"built in step {it['step']}" if it.get("step") else "built earlier")
-        elif it["kind"] == "cots":
-            notes.append("bought")
-        if it.get("loose"):
-            notes.append("packed loose for the installer")
-        if it.get("spare"):
-            notes.append(f"spare: {it['spare']}")
-        lines.append(f"| {it['item']} | {it['name']} | {it['qty']} | {'; '.join(notes)} |")
+        lines.append(f"| {it['item']} | {it['name']} | {it['qty']} | {'; '.join(item_notes(it))} |")
     if step["joints"]:
         lines += ["", "Joints closed in this step:", ""]
         for j in step["joints"]:
-            hw = ", ".join(f"{h['qty']} × {h['name']}" for h in j["hardware"]) or "no hardware"
-            times = f"{j['occurrences']} × " if j["occurrences"] != 1 else ""
-            each = " each" if j["occurrences"] != 1 else ""
-            holes = f", {j['holes']} holes{each}" if j["holes"] else ""
-            between = f" ({BETWEEN_UNITS_WORDS})" if j["between_units"] else ""
-            lines.append(f"- {times}{j['words']}{holes}{between}: {hw}")
+            lines.append(f"- {joint_line(j)}")
     return "\n".join(lines) + "\n"
+
+
+def folded_sentence(f: dict[str, Any]) -> str:
+    """A grouping's lines in the step: "The lining (items 18–26) is not put together …"."""
+    qty = f", {f['qty']} ×" if f["qty"] != 1 else ""
+    where = item_range(f.get("items", []))
+    inside = f" ({where}{qty})" if where or qty else ""
+    return (
+        f"The {lower_name(f['name'])}{inside} is {PHANTOM_WORDS}: lay it in place during this step."
+    )
+
+
+def item_notes(it: dict[str, Any]) -> list[str]:
+    """The note column of one item, in owner words (the report, the manual, the sheet)."""
+    notes = []
+    if it["kind"] == "unit":
+        notes.append(f"built in step {it['step']}" if it.get("step") else "built earlier")
+    elif it["kind"] == "cots":
+        notes.append("bought")
+    if it.get("group"):
+        notes.append(it["group"])
+    if it.get("loose"):
+        notes.append("packed loose for the installer")
+    if it.get("spare"):
+        notes.append(f"spare: {it['spare']}")
+    return notes
+
+
+def hardware_words(j: dict[str, Any]) -> str:
+    """Say "8 × M6 x 16 socket-head cap screw, 4 × …", or "no loose fixings"."""
+    hw = ", ".join(f"{h['qty']} × {h['name']}" for h in j["hardware"])
+    if hw and "from_step" in j:
+        return f"{hw} (listed in step {j['from_step']})"
+    return hw or NO_FIXINGS
+
+
+def joint_status_words(j: dict[str, Any]) -> str:
+    """Say "closed later, in step 3" / "from step 1" / "a joint between units" (or empty)."""
+    out = []
+    if j.get("closed_later_step"):
+        out.append(f"closed later, in step {j['closed_later_step']}")
+    if "from_step" in j:
+        out.append(f"left open in step {j['from_step']}")
+    if j["between_units"]:
+        out.append(BETWEEN_UNITS_WORDS)
+    return "; ".join(out)
+
+
+def joint_line(j: dict[str, Any]) -> str:
+    """One joint as a manual line: "2 × Shell to guard, …, 4 holes each: 8 × …"."""
+    times = f"{j['occurrences']} × " if j["occurrences"] != 1 else ""
+    each = " each" if j["occurrences"] != 1 else ""
+    holes = f", {j['holes']} holes{each}" if j["holes"] else ""
+    status = joint_status_words(j)
+    return f"{times}{j['words']}{holes}{f' ({status})' if status else ''}: {hardware_words(j)}"

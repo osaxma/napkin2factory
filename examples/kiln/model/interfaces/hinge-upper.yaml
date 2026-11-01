@@ -2,6 +2,7 @@ id: hinge-upper
 kind: mating-face
 # The post (placed in the kiln) first, so the offset reads from it to the door's hinge (S-106).
 parties: [part://hinge-post, part://hinge]
+name: Door to kiln, upper hinge (welded)
 description: The upper hinge. One barrel half is welded to the hinge post's web, the other to the door guard's left wall, so no holes are cut (a joint between the door and the kiln; the door is hung by the lower one, this one is checked).
 frames:
   # post coordinates: x out from the guard's wall face, y back from the web's front face, z up

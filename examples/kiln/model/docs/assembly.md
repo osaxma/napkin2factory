@@ -27,11 +27,10 @@ on that unit's assembly sheet.
    the box's earth stud.
 2. Fit the three cable glands ({{ part("m20-gland").name }}) in the base.
 3. The electrician wires the box (installation manual) and can test it on the bench before
-   it is hung. Leave the lid off until the element, the thermocouples and the door switch are
-   connected in the final assembly (section 3.7).
-4. Then screw the lid ({{ part("controller-lid").name }}) on with the four self-tapping
-   screws, drilled on assembly.
-5. Rivet the rating label ({{ part("rating-label").name }}) to the box front.
+   it is hung. Leave the lid ({{ part("controller-lid").name }}) and its four screws aside:
+   they go on in the final assembly (section 3.7), once the element, the thermocouples and
+   the door switch are connected.
+4. Rivet the rating label ({{ part("rating-label").name }}) to the box front.
 
 ## 2. The door
 
@@ -115,5 +114,5 @@ corner clears the opening's edge.
 Hang the controls on the four 40 mm standoffs beside the guard's right wall, which gives
 {{ P["controller-standoff"] }} of free air. The door switch is packed loose: fit it where the
 closed door operates it. The electrician sets its position, connects the element, the
-thermocouples and the door switch to the controls (installation manual), and then the lid
-goes on (section 1).
+thermocouples and the door switch to the controls (installation manual). Then screw the lid
+on with its four self-tapping screws, drilled on assembly.

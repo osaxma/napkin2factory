@@ -149,11 +149,11 @@ def test_interface_mismatch_fails(tmp_path: Path) -> None:
     pat["centers"][0][0] += 5.0  # one hole 5 mm off
     feats_path.write_text(json.dumps(feats))
     rep = check_interface(product, iface, root / "build")
-    assert rep.status == "fail" and "differ" in rep.message
+    assert rep.status == "fail" and "do not match" in rep.message and "://" not in rep.message
     feats["patterns"] = []  # no pattern at all
     feats_path.write_text(json.dumps(feats))
     rep = check_interface(product, iface, root / "build")
-    assert rep.status == "fail" and "did not place" in rep.message
+    assert rep.status == "fail" and "does not cut the holes" in rep.message
 
 
 def test_enclosure_matrix_and_rulepacks() -> None:
@@ -227,7 +227,7 @@ def test_stage_progression(tmp_path: Path) -> None:
     """Each gate in turn, via n2f status --json; warn never changes the stage."""
     root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=True)
     s0 = compute_stage(load_product(root))
-    assert s0.stage == "intake" and any("not been built" in b for b in s0.gates[1].blockers)
+    assert s0.stage == "intake" and any("not built yet" in b for b in s0.gates[1].blockers)
     assert s0.headline == "design"  # Intake is ticked: the owner is in Design (gate B, B5)
     run_build(load_product(root), target="geometry", quiet=True, render=False)
     s1 = compute_stage(load_product(root))

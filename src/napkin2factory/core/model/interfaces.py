@@ -14,7 +14,14 @@ from pydantic import (
 )
 
 from napkin2factory.core.expr import check_syntax, referenced_names
-from napkin2factory.core.model.base import ChildUri, Model, PartUri, QuantityOrParam, Slug
+from napkin2factory.core.model.base import (
+    AsmUri,
+    ChildUri,
+    Model,
+    PartUri,
+    QuantityOrParam,
+    Slug,
+)
 
 
 class FrameExpr(Model):
@@ -214,6 +221,14 @@ class Interface(Model):
     offset: Any = 0.0
     spec: BoltPatternSpec | MatingFaceSpec
     description: str | None = None
+    # S-118 (gate D): the joint's short name in owner words ("Shell to guard, top wall"),
+    # where the two parts' names alone cannot tell two joints apart; optional, the build
+    # plan, the sheets and the check messages fall back to "<part> to <part>".
+    name: str | None = None
+    # S-118: the build step that closes the joint when it is later than the step where its
+    # parts first meet (a lid screwed on after the wiring of the final assembly). The joint
+    # and its hardware stay listed where the parts meet, marked "closed later, in step N".
+    closed_in: AsmUri | None = None
 
     @field_validator("offset", mode="before")
     @classmethod
@@ -231,6 +246,12 @@ class Interface(Model):
         data = handler(self)
         if isinstance(data, dict) and data.get("offset") in (0, 0.0):
             data.pop("offset")
+        if isinstance(data, dict):
+            # S-118: the optional fields of v0.4's gate D dump only when set, so an interface
+            # without them hashes as before and no sign-off evidence on it goes stale
+            for key in ("name", "closed_in"):
+                if data.get(key) is None:
+                    data.pop(key, None)
         return data
 
     @property

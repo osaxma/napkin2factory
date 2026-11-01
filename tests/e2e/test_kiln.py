@@ -107,7 +107,8 @@ def test_kiln_interfaces_meet_and_a_moved_box_fails(kiln: tuple[Path, float]) ->
     rows = [r for r in data["results"] if r["id"].startswith("iface://")]
     # nine joints, the door's two hinges and latch and the controls' lid since M3b (S-113)
     assert len(rows) == 13 and all(r["status"] == "pass" for r in rows), rows
-    assert all("meet in asm://" in r["message"] for r in rows)
+    # gate D: where they meet, in owner words; no id in the message
+    assert all("in the assembled " in r["message"] and "://" not in r["message"] for r in rows)
     assert not [r for r in data["results"] if r["id"].startswith("placement://")]
     moved = root.parent / "moved-build"
     shutil.copytree(root / "build", moved)
@@ -119,8 +120,13 @@ def test_kiln_interfaces_meet_and_a_moved_box_fails(kiln: tuple[Path, float]) ->
     product = load_product(root)
     rep = check_interface(product, product.interfaces["controller-mount"], moved)
     assert rep.status == "fail"
-    assert "part://guard-shell#1 and part://controller-box#1" in rep.message
-    assert "10.0 mm apart" in rep.message
+    # gate D: parts by name in the message, the occurrences in the evidence
+    assert "Ventilated touch guard and Controller enclosure do not line up" in rep.message
+    assert "10.0 mm apart (0.5 mm allowed)" in rep.message
+    assert rep.alignment["failures"][0]["occurrences"] == [
+        "part://guard-shell#1",
+        "part://controller-box#1",
+    ]
 
 
 #: The door's working context (P6, S-114): the key set an agent's tools may rely on.
@@ -243,14 +249,17 @@ def test_kiln_report_lists_the_joints_between_units(kiln: tuple[Path, float]) ->
         unit = "Controls" if rid == "joint-controller-mount" else "Door"
         assert f"Mini electric test kiln and {unit}" in text, text
         assert row.css_first(".badge.pass") is not None, text  # placed, the parts meet
-        assert "meet in asm://kiln" in text, text
+        assert "they meet in the assembled mini electric test kiln" in text or (
+            "and in the assembled mini electric test kiln" in text
+        ), text
+        assert "asm://" not in text and "D29" not in text, text
         assert "DEC-019" in text, text  # the decision that made the door and controls units
     mount = " ".join(rows["joint-controller-mount"].text().split())
     assert "bolted, 4 holes" in mount
     assert "4 × M6 female-female hex standoff, 40 mm" in mount and "8 × M6 x 16" in mount
     hinge = " ".join(rows["joint-hinge-lower"].text().split())
-    assert "Hinge post (steel angle)" in hinge and "faces that meet (welded" in hinge
-    assert "none" in hinge  # no loose hardware on a welded hinge
+    assert "Door to kiln, lower hinge (welded)" in hinge  # the joint by its name (gate D)
+    assert "Hinge post (steel angle)" in hinge and "faces that meet, no loose fixings" in hinge
 
 
 @pytest.mark.timing

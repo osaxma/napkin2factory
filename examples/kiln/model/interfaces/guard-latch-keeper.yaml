@@ -1,6 +1,7 @@
 id: guard-latch-keeper
 kind: bolt-pattern
 parties: [part://guard-shell, part://latch-keeper]
+name: Latch keeper onto the guard
 description: Two M6 bolts hold the latch keeper bracket to the guard's right wall.
 frame: {origin: [0, 0, 0], normal: [1, 0, 0]}
 frames:

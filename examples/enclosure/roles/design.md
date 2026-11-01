@@ -50,13 +50,19 @@ per_hole: 2}]` (`per_joint:` on a mating face); list those parts in the assembly
 closes (the lowest one holding both parts). Where two joints share holes, list each item once,
 on the joint it closes. `n2f check` fails a shortfall and warns a surplus unless the line says
 `spare: "<reason>"`; `loose: true` marks a line packed loose for the installer.
+List an assembly's child lines in the order they are fitted: the build plan lists the joints
+in that order. Give an interface a short `name:` in the owner's words ("Shell to guard, top
+wall", "Door to body, lower hinge") when the two part names alone would not tell it from
+another joint; the plan, the sheets and the check messages use it. A joint closed after its
+step (a lid screwed on once the final assembly's wiring is done) says so with
+`closed_in: asm://<unit>`: it stays listed where its parts meet, marked "closed later".
 
 ## Start flat; split for a reason
 A product starts as one assembly. Make a sub-assembly only when one of the reasons above
 applies (it is built, tested or serviced as one unit, made by another process or supplier,
 or comes in variants), or when the module's working context would be more than one agent
 can hold (`agent-context`): split when `n2f context asm://<id>` prints more than 32 kB
-(`n2f context asm://<id> | wc -c`). That is the reference kiln's measure (S-114): as one flat
+(`n2f context asm://<id> | wc -c`). That is the reference kiln's measure: as one flat
 module its context is 50 kB; split into the door (17 kB) and the controls (11 kB), its largest
 module, the kiln with its lining, is 31 kB. It is a line drawn on one product, not a measured
 limit of any agent: the geometry code the context lists comes on top. Splitting later is cheap, because every joint is already an explicit

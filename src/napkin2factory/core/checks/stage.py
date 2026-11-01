@@ -238,18 +238,19 @@ def compute_stage(
     gates.append(Gate("intake", not intake_blockers, intake_blockers))
     # Design
     design_blockers: list[str] = []
+    # owner words (gate D, N5): parts and assemblies by name, never their ids
     for part in product.custom_parts():
         if not part.has_geometry:
-            design_blockers.append(f"{part.uri} has no geometry yet")
+            design_blockers.append(f"{part.name}: no shape yet — the designer draws it")
     manifest = Manifest.load(build_dir)
     for part in product.parts_with_geometry():
         if f"part:{part.id}" not in manifest.entries:
-            design_blockers.append(f"{part.uri} has not been built — run `n2f build`")
+            design_blockers.append(f"{part.name}: not built yet — run `n2f build`")
     for asm in product.assemblies.values():
         if f"asm:{asm.id}" not in manifest.entries:
-            design_blockers.append(f"{asm.uri} has not been built — run `n2f build`")
+            design_blockers.append(f"{asm.name}: not built yet — run `n2f build`")
     if not product.parts:
-        design_blockers.append("no parts yet — the designer role composes the kit")
+        design_blockers.append("no parts yet — next, the designer gives each module its parts")
     gates.append(Gate("design", not design_blockers and not intake_blockers, design_blockers))
     # Verify
     verify_blockers: list[str] = []
@@ -266,11 +267,19 @@ def compute_stage(
         counts = data.get("summary", {})
         for r in data.get("results", []):
             if r["status"] == "fail":
-                verify_blockers.append(f"{r['id']}: {r['persona_message'] or r['message']}")
+                # a requirement keeps its REQ id (the owner's table shows it); other rows
+                # are said by their message alone for the owner (gate D, N5)
+                text = r["persona_message"] or r["message"]
+                if product.operator.persona != "owner":
+                    text = f"{r['id']}: {text}"
+                elif r["id"].startswith("req://"):
+                    text = f"{r['id'].removeprefix('req://')}: {text}"
+                verify_blockers.append(text)
             elif r["status"] == "needs-human":
                 why = r.get("message") or "needs a human sign-off"
+                rid = r["id"] if product.operator.persona != "owner" else r["id"].split("://")[-1]
                 verify_blockers.append(
-                    f"{r['id']}: needs a human sign-off ({why}) — `n2f signoff "
+                    f"{rid}: needs a human sign-off ({why}) — `n2f signoff "
                     f'{r["id"].split("://")[-1]} --by <name> --statement "…"`'
                 )
             elif is_example_signoff(r["status"], r.get("detail") or {}):

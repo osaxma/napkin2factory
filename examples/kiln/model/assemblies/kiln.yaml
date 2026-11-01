@@ -2,10 +2,12 @@ id: kiln
 rev: A
 name: Mini electric test kiln
 geometry: {module: geometry/kiln.py}
+# Child lines in the order they are fitted (the assembly manual's sections 3.1-3.7): the
+# build plan lists the joints in this order.
 children:
-  - {part: part://stand, qty: 1}
-  - {part: part://guard-shell, qty: 1}
   - {part: part://outer-shell, qty: 1}
+  - {part: part://guard-shell, qty: 1}
+  - {part: part://stand, qty: 1}
   - {asm: asm://lining, qty: 1}
   - {part: part://hinge-post, qty: 1}
   - {part: part://latch-keeper, qty: 1}

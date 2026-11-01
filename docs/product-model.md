@@ -105,7 +105,14 @@ coordinate and `offset` may be a number (mm), a quantity, a `param://` or
 every slug is a recorded read). `offset` (default 0) is the signed distance along the normal
 from the first party's frame to the second's once placed. The one convention: placed, both
 frames point the same way (same normal, same `x_axis`); `place_by` needs `x_axis` on both
-(P1, P2, S-106).
+(P1, P2, S-106). Optional (S-118): `name:` is the joint in the owner's words ("Shell to guard,
+top wall"), used by the build plan, the sheets and the check messages instead of "<part> to
+<part>"; it is a label, left out of sign-off evidence. `closed_in: asm://<unit>` marks a joint
+closed in a later step than the one where its parts meet (a lid after the final assembly's
+wiring): it stays listed, with its hardware, where they meet ("closed later, in step 3") and
+appears again in that unit's step; `n2f lint` warns (`L14-closed-in`) when the unit is not
+built after the joint's own. The build plan lists a step's joints in the order its child lines
+are written (a joint comes with the later of its two parts), so write the lines in fitting order.
 
 **decisions.yaml** — `decisions: [{id: DEC-001, date, title, context, decision,
 rationale, links: [uris], made_by, disclosed, verify, sources}]`. Lint requires links.

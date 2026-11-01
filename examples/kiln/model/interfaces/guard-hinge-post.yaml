@@ -1,6 +1,7 @@
 id: guard-hinge-post
 kind: bolt-pattern
 parties: [part://guard-shell, part://hinge-post]
+name: Hinge post onto the guard
 description: Four M6 bolts hold the hinge post to the guard's left wall, 140 mm apart up the wall.
 frame: {origin: [0, 0, 0], normal: [-1, 0, 0]}
 frames:

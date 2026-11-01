@@ -1,7 +1,11 @@
 id: controller-lid-seat
 kind: mating-face
 parties: [part://controller-box, part://controller-lid]
+name: Lid onto the controller box
 description: The lid sits on the controller box's 10 mm lips and is held by four self-tapping screws drilled on assembly (DEC-023).
+# The lid goes on after the electrician connects the element, the thermocouples and the door
+# switch in the final assembly (the assembly manual's section 3.7), so the joint is closed there.
+closed_in: asm://kiln
 frames:
   part://controller-box:
     origin: [0, 0, param://controller-box-height]

@@ -76,6 +76,9 @@ type commands or open files.
 - **A report page** that opens straight from disk: a 3D view you can turn, drawings, the
   parts list with "what to tell the manufacturer", and which requirements pass and which
   need you.
+- **A build plan**: what is put together on its own (a door, a control box), in what
+  order, with the fixings for each joint counted, and an assembly sheet for each step that a
+  workshop can follow.
 - **Safe changes.** Each change shows its impact first, waits for your yes, rebuilds only
   what it affects, and ends in a page comparing the two versions.
 - **Named versions** (v1.0.0, v1.1.0 …) you can send to a manufacturer, frozen only when

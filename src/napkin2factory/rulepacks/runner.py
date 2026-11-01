@@ -200,7 +200,10 @@ def _assembly_rows(product: Product, packs: list[RulePack]) -> list[CheckResult]
                 message = (
                     "; ".join(_fmt(str(rule.get("message", rule["id"])), v) for v in violations)
                     if violations
-                    else "ok"
+                    # gate D: a rule may say its pass in words ("Door has its parts")
+                    else _fmt(
+                        str(rule.get("pass_message", "ok")), {"uri": asm.uri, "name": asm.name}
+                    )
                 )
                 detail: dict[str, Any] = {"pack": pack.id, "rule": rule["id"]}
                 if violations:

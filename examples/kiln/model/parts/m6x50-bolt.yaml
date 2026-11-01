@@ -9,4 +9,4 @@ cost: {unit: 0.60 USD, basis: estimate}
 lead_time: 5 d
 mass: 15 g
 satisfies: [req://REQ-011]
-notes: One per bottom corner, from inside the inner shell through the bottom standoff and the guard into the stand's rivet nut (DEC-021). The length is the guard-standoff-bottom description's [verify] (stack and rivet-nut engagement not measured).
+notes: One per bottom corner, from inside the inner shell through the bottom standoff and the guard into the stand's rivet nut (DEC-021). The 50 mm length is DEC-021's [verify] (stack and rivet-nut engagement not measured).

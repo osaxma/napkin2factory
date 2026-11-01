@@ -191,7 +191,7 @@ def test_titleblock_fields(enclosure: Path) -> None:
         "cut-sheet",
         "powder coat, grey",
         "ISO2768-m",
-        "unsnapshotted",  # the temp copy is not tracked, so there is no snapshot date
+        "not yet saved",  # the temp copy is not tracked, so there is no snapshot date (gate D)
         "A3",
     ):
         assert needle in text, needle

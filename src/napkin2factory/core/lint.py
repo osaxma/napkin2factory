@@ -301,6 +301,25 @@ def lint(product: Product) -> Problems:
             rule="L12-form-needs-roles",
         )
 
+    # L14: a joint closed later names a unit above the one where its parts meet (S-118).
+    if any(i.closed_in is not None for i in product.interfaces.values()):
+        from napkin2factory.core.build_units import BuildUnits
+
+        units = BuildUnits(product)
+        for iface in product.interfaces.values():
+            if iface.closed_in is None or units.closed_later(iface.id) is not None:
+                continue
+            problems.add(
+                product.paths.interfaces / f"{iface.id}.yaml",
+                iface.uri,
+                f"closed_in: {iface.closed_in} is not a unit built after the one where the "
+                "joint's parts meet, so it is ignored",
+                "name the unit whose step closes the joint (an assembly above the one that "
+                "holds both parts, built as a unit), or remove the field",
+                severity="warn",
+                rule="L14-closed-in",
+            )
+
     return problems
 
 

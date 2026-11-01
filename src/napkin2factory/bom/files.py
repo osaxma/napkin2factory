@@ -178,11 +178,19 @@ def plan_rows(plan: dict[str, Any]) -> Iterator[list[Any]]:
     Yields:
         Lists in :data:`PLAN_COLUMNS` order.
     """
+    from napkin2factory.bom.build_plan import (
+        folded_sentence,
+        hardware_words,
+        item_notes,
+        joint_status_words,
+    )
+    from napkin2factory.core.build_units import and_words
+
     for uid in plan.get("order", []):
         st = plan["units"][uid]
         head = st["title"]
         if st["driver_words"]:
-            head += " (" + ", ".join(st["driver_words"]) + ")"
+            head += " (" + and_words(st["driver_words"]) + ")"
         yield [
             st["step"],
             head,
@@ -191,16 +199,10 @@ def plan_rows(plan: dict[str, Any]) -> Iterator[list[Any]]:
             st["unit"],
             st["name"],
             st["built_per_product"],
-            "; ".join(f"includes {f['name']}: {f['words']}" for f in st["folded"]),
+            " ".join(folded_sentence(f) for f in st["folded"]),
         ]
         for it in st["items"]:
-            note = []
-            if it["kind"] == "unit":
-                note.append(f"built in step {it.get('step')}")
-            if it.get("loose"):
-                note.append("packed loose for the installer")
-            if it.get("spare"):
-                note.append(f"spare: {it['spare']}")
+            note = [n for n in item_notes(it) if n != "bought"]
             yield [
                 st["step"],
                 st["name"],
@@ -212,8 +214,9 @@ def plan_rows(plan: dict[str, Any]) -> Iterator[list[Any]]:
                 "; ".join(note),
             ]
         for j in st["joints"]:
-            hw = ", ".join(f"{h['qty']} x {h['name']}" for h in j["hardware"]) or "no hardware"
-            between = "; a joint between units" if j["between_units"] else ""
+            hw = hardware_words(j)
+            status = joint_status_words(j)
+            between = f"; {status}" if status else ""
             yield [
                 st["step"],
                 st["name"],
