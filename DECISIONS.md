@@ -154,6 +154,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-129 | v0.5 gaps: `--target` and prose URIs from the registries, `manifest://` URIs, part keys read their density row, stubs get no module row, no example ids, screens declare fields and phase, domain style roles; B-0081, B-0087 kept open | in force |
 | S-130 | v0.5 M5: choices (`choice` status, `build/checks/choices.json`, `n2f decide` writes a `DEC-`, reopened on evidence); the kiln's bolts-into-a-spacer choice (DEC-022) | in force |
 | S-131 | v0.5 M6: splits and the fast gate (`validate_refs` beside each schema, `concepts/promote/`, `build_part`/`build_asm`, `make check-fast` as the land gate) | in force |
+| S-132 | v0.5 M7a: docs, doctor, simulation protocols (`docs/domains.md` final, `n2f doctor` lists the domains, the gadget and kiln-choice protocols) | in force |
 
 ---
 
@@ -744,3 +745,14 @@ validate's problems identical on 3 examples and 40 fixtures. B-0086: a product's
 dropped) [revisit]; promote goldens unchanged. `make check-fast` (lint, types, unit, smoke) is `make land`'s gate:
 2 min 1 s, host idle at start. `make check`: 9 min 52 s, green, 1000 passed, 141 goldens (another task's tests ran
 for about 3 of those minutes; 14 min 7 s fully alongside one); under S-119's 10 min 8 s, so no file moved to `-m full`.
+
+## S-132 — v0.5 M7a: docs, doctor, simulation protocols (2026-11-02)
+DoD 7 (first half), 11 (docs); DoD 2 and 6's protocols (the overseer runs the agents). `n2f doctor` lists each domain's verify
+kinds (targets, op/value), check stages (run order), screens, the system's and the product's screens; `--json` adds the rest; all
+from the registries. `docs/domains.md` rewritten for a reader with no core file: the toy end to end, every signature and object
+handed over, the pitfalls (load inside `installed`, CLI in-process, unique names), scope, choices, packs and their promotion hooks,
+§9 not registrable (release files B-0099, calc packs B-0100) [revisit]. Guide, napkin, cli, product model, checks, calc kit, kit,
+vocabulary; the four roles and the product `AGENTS.md` (scope, method by consequence, a case per calc), synced into all three
+examples (the kiln's copies too: `test_synced_copies_are_byte_identical` needs them) [revisit]. Protocols: `domain-transcripts/
+README.md`, `intake-transcripts/choice-kiln.md` (by hand: build 58 s, check 3 s, `n2f decide` 16 s, DEC-025, nothing waiting);
+their tests skip until a transcript exists. Closes B-0079, B-0085, B-0090, B-0096, B-0098. `make check`: 12 min 7 s, green, 1038 passed, 7 skipped, 141 goldens.

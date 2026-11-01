@@ -54,6 +54,7 @@ M2b and M4b follow-ups) 21:06–22:25, 79 min. `make check` on `main`: 9 min 7 s
 - Gaps after waves 1–2 (`--target` and prose URIs from the registries, `manifest://` URIs, density in part keys, stub rows, no example ids, screen fields and phase, domain style roles; B-0081, B-0087 open) — S-129.
 - M5 choices (`choice` rows, `build/checks/choices.json`, "waiting on you" in `n2f status`, `n2f decide`; the kiln's bolts-into-a-spacer choice) — S-130.
 - M6 splits (`validate_refs` beside each schema; `concepts/promote/`; `build_part`/`build_asm`) and `make check-fast`, the land gate — S-131.
+- M7a docs (`docs/domains.md` final, the guide, the roles), `n2f doctor` listing the domains, the two simulation protocols (gadget domain, kiln choice) — S-132.
 
 v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
 `HANDOFF-REPORT-v0.4.md`:
