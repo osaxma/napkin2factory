@@ -110,9 +110,12 @@ def prune(manifest: Manifest, rules: list[Rule], build_dir: Path) -> list[str]:
     """Drop manifest entries (and their outputs) for rules that no longer exist (gate-1 B1)."""
     import shutil
 
+    from napkin2factory.core.registry import registry
+
     live = {r.id for r in rules}
     removed: list[str] = []
-    dirs = {"part": "parts", "asm": "assemblies", "doc": "docs"}
+    # each rule family's per-id output folder (part → parts, asm → assemblies, doc → docs)
+    dirs = {f.name: f.output_dir for f in registry().rule_families() if f.output_dir}
     for rid in list(manifest.entries):
         if rid in live:
             continue

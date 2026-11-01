@@ -190,6 +190,8 @@ class Product:
     files: dict[str, Path] = field(default_factory=dict)  # uri string → source file
     broken: set[str] = field(default_factory=set)  # base URIs whose file failed schema validation
     broken_schemes: set[str] = field(default_factory=set)  # whole files that did not parse
+    #: Objects of the model families domains register (F1): family name → id → object.
+    families: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @property
     def root(self) -> Path:
@@ -224,6 +226,10 @@ class Product:
             "ecr": self.ecrs,
             "doc": self.docs,
         }
+        from napkin2factory.core.registry import registry
+
+        for fam in registry().model_families():  # a domain's family answers to its scheme (F1)
+            table.setdefault(fam.uri_scheme, self.families.get(fam.name, {}))
         if str(uri.base) in self.broken or uri.scheme in self.broken_schemes:
             return None  # the file exists but did not load; its own error is already reported
         if uri.scheme == "calc":
@@ -626,8 +632,41 @@ def _load(root: Path) -> tuple[Product, Problems]:
             if isinstance(n, ast.FunctionDef) and not n.name.startswith("_")
         ]
 
+    _load_domain_families(product, problems)
     _cross_validate(product, problems)
+    for fam in _domain_families():  # each family checks its own references (F15)
+        if fam.validate_refs is not None:
+            fam.validate_refs(product, problems)
     return product, problems
+
+
+def _domain_families() -> list[Any]:
+    from napkin2factory.core.registry import registry
+
+    return registry().model_families()
+
+
+def _load_domain_families(product: Product, problems: Problems) -> None:
+    """Load ``<folder>/*.yaml`` of every model family a domain registers (F1)."""
+    for fam in _domain_families():
+        objects: dict[str, Any] = {}
+        for f in sorted((product.root / fam.folder).glob("*.yaml")):
+            obj = _load_one(
+                problems, f, f.stem, fam.schema, _safe_read(problems, f), product, fam.uri_scheme
+            )
+            if obj is None:
+                continue
+            ident = getattr(obj, "id", f.stem)
+            if ident != f.stem:
+                problems.add(
+                    f,
+                    ident,
+                    f"file name {f.name} does not match id {ident!r}",
+                    f"rename the file to {ident}.yaml",
+                )
+            objects[ident] = obj
+            product.files[f"{fam.uri_scheme}://{ident}"] = f
+        product.families[fam.name] = objects
 
 
 def _safe_read(problems: Problems, file: Path) -> Any:

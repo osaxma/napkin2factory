@@ -1,58 +1,43 @@
-"""Rule definitions and the ordered rule list for a product (GRAND_PLAN §6.1).
+"""Rule definitions and the ordered rule list for a product (GRAND_PLAN §6.1, FOUNDATION F3).
 
-Order: ``validate`` → ``part:<id>`` → ``asm:<id>`` → ``drawing:<id>`` → ``bom`` →
-``asmsheet:<id>`` (one per build unit, P8) → ``doc:<id>`` → ``checks`` → ``report`` →
-``site``.  A rule knows its declared inputs (file and code hashes), the URI it produces
-(so downstream reads can be resolved to its output hash), and which ``--target`` groups
-include it.
+The list is the rule-family registry walked in dependency order (``core/registry.py``).
+With the mechanical domain alone that is, as before: ``validate`` → ``part:<id>`` →
+``asm:<id>`` → ``drawing:<id>`` → ``bom`` → ``asmsheet:<id>`` (one per build unit, P8) →
+``doc:<id>`` → ``checks`` → ``report`` → ``site``; a domain's family goes after the families
+it names in ``after`` and before ``checks``.  A rule knows its declared inputs (file and
+code hashes), the URI it produces (so downstream reads can be resolved to its output hash),
+and which ``--target`` groups include it.  The mechanical families' ``make_rules`` live
+here, registered in place by ``domains/mechanical`` (F2).
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from napkin2factory import __version__
 from napkin2factory.core.graph.hashing import sha256_file, sha256_text, sha256_tree
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import KitGeometry, ModuleGeometry
 
-#: Which rule kinds each ``--target`` runs (cumulative in dependency order).
-TARGET_KINDS: dict[str, tuple[str, ...]] = {
-    "geometry": ("validate", "part", "asm"),
-    "drawings": ("validate", "part", "asm", "drawing"),
-    "bom": ("validate", "part", "asm", "bom"),
-    "docs": ("validate", "part", "asm", "bom", "doc"),
-    "checks": ("validate", "part", "asm", "drawing", "bom", "asmsheet", "doc", "checks"),
-    "report": ("validate", "part", "asm", "drawing", "bom", "asmsheet", "doc", "checks", "report"),
-    "site": (
-        "validate",
-        "part",
-        "asm",
-        "drawing",
-        "bom",
-        "asmsheet",
-        "doc",
-        "checks",
-        "report",
-        "site",
-    ),
-    "all": (
-        "validate",
-        "part",
-        "asm",
-        "drawing",
-        "bom",
-        "asmsheet",
-        "doc",
-        "checks",
-        "report",
-        "site",
-    ),
-}
+
+def __getattr__(name: str) -> Any:
+    """``TARGET_KINDS`` is derived from the registered rule families on each read (F3)."""
+    if name == "TARGET_KINDS":
+        return target_kinds()
+    raise AttributeError(name)
+
+
+def target_kinds() -> dict[str, tuple[str, ...]]:
+    """Which rule kinds each ``--target`` runs (cumulative in dependency order).
+
+    From the rule-family registry: ``geometry``, ``drawings``, ``bom``, ``docs``, ``checks``,
+    ``report``, ``site`` and ``all`` as before, plus one per registered family.
+    """
+    from napkin2factory.core.registry import registry
+
+    return registry().target_kinds()
 
 
 @dataclass
@@ -105,15 +90,11 @@ class RunContext:
 SYSTEM_ROOT = Path(__file__).resolve().parents[2]  # src/napkin2factory
 
 
-@lru_cache(maxsize=32)
 def package_hash(*subdirs: str) -> str:
-    """Hash of the system package trees a rule's code lives in (gate-1 B6)."""
-    parts = {
-        d: sha256_tree(SYSTEM_ROOT / d, (".py", ".js", ".html", ".css", ".yaml", ".j2"))
-        for d in subdirs
-    }
-    parts["version"] = __version__
-    return sha256_text("\n".join(f"{k}={v}" for k, v in sorted(parts.items())))
+    """Hash of the system package trees a rule's code lives in (gate-1 B6, S-031)."""
+    from napkin2factory.core.registry import package_hash as _package_hash
+
+    return _package_hash(*subdirs)
 
 
 def code_hash_for_part(product: Product, part_id: str) -> str:
@@ -141,13 +122,77 @@ def code_hash_for_asm(product: Product, asm_id: str) -> str:
     return sha256_text(system + ":auto-layout")
 
 
+@dataclass
+class RuleBuild:
+    """What a rule family's ``make_rules`` sees.
+
+    The product, the render flag, the rules the families before it made (in build order),
+    and the family itself.
+    """
+
+    product: Product
+    render: bool
+    rules: list[Rule]
+    family: Any = None
+
+    @property
+    def render_flag(self) -> str:
+        """The ``render`` input of part and assembly rules."""
+        return "render" if self.render else "no-render"
+
+    def code_hash(self) -> str:
+        """The family's code hash (from the package that registered it, F3)."""
+        from napkin2factory.core.registry import registry
+
+        return registry().family_hash(self.family)
+
+
 def build_rules(product: Product, render: bool = True) -> list[Rule]:
-    """The ordered rule list for ``product`` (``render`` is a declared input of part/asm rules)."""
+    """The ordered rule list for ``product``: every registered rule family's rules (F3).
+
+    The families are walked in dependency order.
+
+    A rule's ``kind`` is its family's name.  A rule whose ``inputs`` carry no ``code`` gets
+    its family's code hash, and every domain registry the rule reads (verify kinds, check
+    stages, report sections, doc helpers, model families …) adds its contributing domains'
+    hashes (:meth:`~napkin2factory.core.registry.Registry.domain_inputs`), so a domain's code
+    change reruns exactly the rules that use it (gate E).  ``render`` is a declared input of
+    part and assembly rules.
+    """
+    from napkin2factory.core.registry import registry
+
+    reg = registry()
+    rules: list[Rule] = []
+    for family in reg.rule_families():
+        made = family.make_rules(RuleBuild(product, render, list(rules), family))
+        in_place = reg.owner("rule family", family.name).in_place
+        for rule in made:
+            if "code" not in rule.inputs and not in_place:  # validate has none (F2: unchanged)
+                rule.inputs["code"] = reg.family_hash(family)
+            rule.inputs.update(reg.domain_inputs(*_REGISTRIES_READ.get(rule.kind, ())))
+        rules += made
+    return rules
+
+
+#: The domain registries each mechanical rule kind reads (their contributors' code hashes
+#: are inputs of its rules, gate E); a domain's own families read their own code.
+_REGISTRIES_READ: dict[str, tuple[str, ...]] = {
+    "validate": ("families", "interface_kinds", "processes", "finishes", "categories", "drivers"),
+    "doc": ("doc_helpers",),
+    "checks": ("verify_kinds", "check_stages"),
+    "report": ("report_sections", "gate_rows", "vocabulary"),
+}
+
+
+# ---- the mechanical rule families (registered in place, F2: domains/mechanical) ----------
+
+
+def validate_rules(b: RuleBuild) -> list[Rule]:
+    """``validate``: load and cross-check the model."""
     from napkin2factory.core.graph import runs
 
-    paths = product.paths
-    render_flag = "render" if render else "no-render"
-    rules: list[Rule] = [
+    paths = b.product.paths
+    return [
         Rule(
             id="validate",
             kind="validate",
@@ -162,24 +207,37 @@ def build_rules(product: Product, render: bool = True) -> list[Rule]:
             description="load and cross-check the model",
         )
     ]
-    part_ids = sorted(p.id for p in product.parts_with_geometry())
-    for pid in part_ids:
-        rules.append(
-            Rule(
-                id=f"part:{pid}",
-                kind="part",
-                produces=f"part://{pid}",
-                inputs={
-                    "code": code_hash_for_part(product, pid),
-                    "render": render_flag,
-                },
-                run=runs.make_part_run(pid),
-                description=f"3D, props, features, renders for part://{pid}",
-                depends_on=["validate"],
-            )
+
+
+def part_rules(b: RuleBuild) -> list[Rule]:
+    """``part:<id>``: 3D, props, features and renders, one rule per part with geometry."""
+    from napkin2factory.core.graph import runs
+
+    product = b.product
+    return [
+        Rule(
+            id=f"part:{pid}",
+            kind="part",
+            produces=f"part://{pid}",
+            inputs={
+                "code": code_hash_for_part(product, pid),
+                "render": b.render_flag,
+            },
+            run=runs.make_part_run(pid),
+            description=f"3D, props, features, renders for part://{pid}",
+            depends_on=["validate"],
         )
+        for pid in sorted(p.id for p in product.parts_with_geometry())
+    ]
+
+
+def asm_rules(b: RuleBuild) -> list[Rule]:
+    """``asm:<id>``: placements, GLB and props, children first."""
+    from napkin2factory.core.graph import runs
     from napkin2factory.geometry.build import assembly_order
 
+    product = b.product
+    rules = []
     for aid in assembly_order(product):
         asm = product.assemblies[aid]
         deps = [
@@ -193,107 +251,157 @@ def build_rules(product: Product, render: bool = True) -> list[Rule]:
                 id=f"asm:{aid}",
                 kind="asm",
                 produces=f"asm://{aid}",
-                inputs={"code": code_hash_for_asm(product, aid), "render": render_flag},
+                inputs={"code": code_hash_for_asm(product, aid), "render": b.render_flag},
                 run=runs.make_asm_run(aid),
                 description=f"placements, GLB, props for asm://{aid}",
                 depends_on=["validate", *deps],
             )
         )
-    for pid in part_ids:
-        rules.append(
-            Rule(
-                id=f"drawing:{pid}",
-                kind="drawing",
-                produces=f"drawing://{pid}",
-                inputs={"code": package_hash("drawings")},
-                run=runs.make_drawing_run(pid),
-                description=f"SVG views (+ DXF flat pattern) for part://{pid}",
-                depends_on=[f"part:{pid}"],
-            )
+    return rules
+
+
+def drawing_rules(b: RuleBuild) -> list[Rule]:
+    """``drawing:<id>``: SVG views (and the DXF flat pattern) per part with geometry."""
+    from napkin2factory.core.graph import runs
+
+    return [
+        Rule(
+            id=f"drawing:{pid}",
+            kind="drawing",
+            produces=f"drawing://{pid}",
+            inputs={"code": b.code_hash()},
+            run=runs.make_drawing_run(pid),
+            description=f"SVG views (+ DXF flat pattern) for part://{pid}",
+            depends_on=[f"part:{pid}"],
         )
-    rules.append(
+        for pid in sorted(p.id for p in b.product.parts_with_geometry())
+    ]
+
+
+def bom_rules(b: RuleBuild) -> list[Rule]:
+    """``bom``: rollups, validation, CSV, XLSX and the build plan."""
+    from napkin2factory.core.graph import runs
+
+    part_ids = sorted(p.id for p in b.product.parts_with_geometry())
+    return [
         Rule(
             id="bom",
             kind="bom",
             produces="bom://rollups",
             also_produces=("bom://build-plan",),  # P8: the plan, read per step (S-117)
-            inputs={"code": package_hash("bom", "catalog")},
+            inputs={"code": b.code_hash()},
             run=runs.run_bom,
             description="rollups, validation, CSV, XLSX",
             depends_on=["validate", *[f"part:{p}" for p in part_ids]],
         )
-    )
-    from napkin2factory.core.build_units import BuildUnits
+    ]
 
-    for aid in BuildUnits(product).order():  # P8: one assembly sheet per build unit
-        rules.append(
-            Rule(
-                id=f"asmsheet:{aid}",
-                kind="asmsheet",
-                produces=f"rule:asmsheet:{aid}",
-                inputs={"code": package_hash("drawings", "bom")},
-                run=runs.make_asmsheet_run(aid),
-                description=f"assembly sheet for the build step of asm://{aid}",
-                depends_on=[f"asm:{aid}", "bom"],
-            )
+
+def asmsheet_rules(b: RuleBuild) -> list[Rule]:
+    """``asmsheet:<id>``: one assembly sheet per build unit (P8)."""
+    from napkin2factory.core.build_units import BuildUnits
+    from napkin2factory.core.graph import runs
+
+    return [
+        Rule(
+            id=f"asmsheet:{aid}",
+            kind="asmsheet",
+            produces=f"rule:asmsheet:{aid}",
+            inputs={"code": b.code_hash()},
+            run=runs.make_asmsheet_run(aid),
+            description=f"assembly sheet for the build step of asm://{aid}",
+            depends_on=[f"asm:{aid}", "bom"],
         )
-    for did in sorted(product.docs):
-        rules.append(
-            Rule(
-                id=f"doc:{did}",
-                kind="doc",
-                produces=f"doc://{did}",
-                inputs={
-                    "source": sha256_file(product.docs[did].path),
-                    "code": package_hash("docs"),
-                },
-                run=runs.make_doc_run(did),
-                description=f"manual page doc://{did} (Markdown, HTML, PDF, reads.json)",
-                depends_on=["validate", "bom"],
-            )
+        for aid in BuildUnits(b.product).order()
+    ]
+
+
+def doc_rules(b: RuleBuild) -> list[Rule]:
+    """``doc:<id>``: one manual page each (Markdown, HTML, PDF, reads.json)."""
+    from napkin2factory.core.graph import runs
+
+    product = b.product
+    return [
+        Rule(
+            id=f"doc:{did}",
+            kind="doc",
+            produces=f"doc://{did}",
+            inputs={
+                "source": sha256_file(product.docs[did].path),
+                "code": b.code_hash(),
+            },
+            run=runs.make_doc_run(did),
+            description=f"manual page doc://{did} (Markdown, HTML, PDF, reads.json)",
+            depends_on=["validate", "bom"],
         )
-    rules.append(
+        for did in sorted(product.docs)
+    ]
+
+
+def checks_rules(b: RuleBuild) -> list[Rule]:
+    """``checks``: requirement verification, rule packs, check matrix, stage."""
+    from napkin2factory.core.graph import runs
+
+    product = b.product
+    produced_before = [r.id for r in b.rules if r.kind not in ("validate", "bom", "doc")]
+    produced_before = [
+        rid
+        for rid in produced_before
+        if not rid.startswith("asmsheet:")  # the sheets are read by the report, not checks
+    ]
+    return [
         Rule(
             id="checks",
             kind="checks",
             produces="rule:checks",
             inputs={
-                "code": package_hash("core/checks", "rulepacks", "bom", "catalog"),
-                "calcs": sha256_tree(paths.calcs),
-                "signoffs": sha256_tree(paths.signoffs),
+                "code": b.code_hash(),
+                "calcs": sha256_tree(product.paths.calcs),
+                "signoffs": sha256_tree(product.paths.signoffs),
             },
             run=runs.run_checks,
             description="requirement verification, rule packs, check matrix, stage",
             depends_on=[
                 "bom",
                 *[f"doc:{d}" for d in sorted(product.docs)],
-                *[r.id for r in rules if r.kind in ("part", "asm", "drawing")],
+                *produced_before,
             ],
         )
-    )
-    rules.append(
+    ]
+
+
+def report_rules(b: RuleBuild) -> list[Rule]:
+    """``report``: the self-contained HTML report."""
+    from napkin2factory.core.graph import runs
+
+    return [
         Rule(
             id="report",
             kind="report",
             produces="rule:report",
-            inputs={"code": package_hash("report", "docs")},
+            inputs={"code": b.code_hash()},
             run=runs.run_report,
             description="self-contained HTML report",
             depends_on=["checks"],
         )
-    )
-    rules.append(
+    ]
+
+
+def site_rules(b: RuleBuild) -> list[Rule]:
+    """``site``: the site layout (latest, frozen versions, diffs)."""
+    from napkin2factory.core.graph import runs
+
+    return [
         Rule(
             id="site",
             kind="site",
             produces="rule:site",
-            inputs={"code": package_hash("report")},
+            inputs={"code": b.code_hash()},
             run=runs.run_site,
             description="site layout (latest, frozen versions, diffs)",
             depends_on=["report"],
         )
-    )
-    return rules
+    ]
 
 
 def rules_for_target(
@@ -306,7 +414,12 @@ def rules_for_target(
     those parts' drawings when the target makes drawings.  The BOM, assembly sheets, manuals,
     checks, report and site are the whole product's and are left out.
     """
-    kinds = TARGET_KINDS[target]
+    targets = target_kinds()
+    if target not in targets:
+        from napkin2factory.core.registry import unknown
+
+        raise unknown("build target", target, list(targets))
+    kinds = targets[target]
     selected = [r for r in rules if r.kind in kinds]
     if only_part:
         selected = [

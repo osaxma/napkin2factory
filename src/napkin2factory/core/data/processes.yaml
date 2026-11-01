@@ -1,0 +1,11 @@
+# Manufacturing processes a part may name in `process:` (FOUNDATION F6): an open set, so a
+# product that is cast or anodised needs no schema change. A domain adds its own through
+# `Domain.processes`; `declared: false` marks "not decided yet" (the general rule pack's
+# custom-part-complete check asks for a declared one).
+- {id: sheet-metal, title: Sheet metal}
+- {id: machining, title: Machining}
+- {id: welding, title: Welding}
+- {id: cut-block, title: Cut from a block}
+- {id: cut-sheet, title: Cut from a sheet}
+- {id: 3d-print, title: 3D printing}
+- {id: none, title: Not decided yet, declared: false}

@@ -1,0 +1,10 @@
+# Finishes `style.yaml` may give a styling role (F6), with the viewer's physically based
+# rendering factors (glTF metallic-roughness). These are rendering parameters chosen by eye
+# for the screenshot rig, not engineering numbers: nothing is computed or checked from them.
+# A domain adds finishes through `Domain.finishes` (rendered with the neutral factors).
+- {id: powder-coat, title: Powder coat, metallic: 0.1, roughness: 0.6}
+- {id: brushed-steel, title: Brushed steel, metallic: 0.9, roughness: 0.35}
+- {id: painted, title: Painted, metallic: 0.0, roughness: 0.5}
+- {id: ceramic, title: Ceramic, metallic: 0.0, roughness: 0.8}
+- {id: anodized, title: Anodised, metallic: 0.7, roughness: 0.4}
+- {id: plastic, title: Plastic, metallic: 0.0, roughness: 0.45}
