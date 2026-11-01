@@ -1,0 +1,6 @@
+id: rig
+rev: A
+name: Rig
+children:
+  - {part: part://frame, qty: 1}
+  - {asm: asm://controls, qty: 1}

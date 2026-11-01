@@ -1,0 +1,9 @@
+schema: 1
+system: '>=0.4,<0.5'
+product:
+  id: rig
+  name: Scope fixture rig without its stub
+  description: Electrical is done elsewhere but no module stands for it (tests/unit/test_scope.py, F11).
+units: metric
+scope:
+  electrical: {state: external, decision: DEC-001}

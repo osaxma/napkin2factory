@@ -1,0 +1,22 @@
+requirements:
+  - id: REQ-001
+    title: Frame mass
+    statement: The frame weighs less than 5 kg under load://shelf.
+    category: mass
+    allocation: [part://frame, load://shelf]
+    verify: {kind: geometry_prop, target: "asm://rig#props.mass", op: "<", value: 5 kg}
+  - id: REQ-002
+    title: Harness strain relief
+    statement: The harness bends no tighter than 30 mm radius at the controls.
+    category: performance
+    tags: [wiring]
+    allocation: [asm://controls]
+    verify: {kind: manual, note: "Measure the bend radius at the gland."}
+  - id: REQ-003
+    title: Harness earth bond
+    statement: The harness bonds the frame to earth below 0.1 ohm.
+    category: safety
+    safety: true
+    tags: [wiring]
+    allocation: [asm://controls]
+    verify: {kind: manual, note: "Measure frame to earth terminal."}

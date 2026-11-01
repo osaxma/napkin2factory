@@ -1,0 +1,5 @@
+id: controls
+rev: A
+name: Controls (bought wired)
+build: external
+ports: [iface://controls-mount]

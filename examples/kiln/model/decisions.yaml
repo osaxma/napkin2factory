@@ -258,3 +258,12 @@ decisions:
     disclosed: true
     verify: true
     sources: ["model/docs/assembly.md before this change: steps 1, 3, 5 and 7 fit the earth studs, step 5 the anchors and the gasket, step 7 the glands, the lid screws and the label", "model/parts/controller-lid.yaml: four self-tapping screws drilled on assembly", "ST4.2 x 9.5 screw size not checked against the lid and its lips [verify]"]
+  - id: DEC-024
+    date: 2026-11-01
+    title: "Electrical comes later: the electrician wires the kiln"
+    context: The kiln's model holds the boxes, panels and mountings, and the controller box with its three cable glands, but no wiring - no circuits, cables or terminals are modelled.
+    decision: Electrical is left for later (n2f.yaml, scope electrical - later). The licensed electrician wires the kiln from the installation manual; the controller box keeps its cable entries and earth studs so the wiring fits later without changing the metalwork. The safety requirements that the electrician checks stay in the checks and still need their sign-offs.
+    rationale: The owner wants the metalwork built and checked first; wiring is the electrician's work, and modelling it now would hold the build back without changing a part.
+    links: [asm://controls, doc://installation]
+    made_by: agent
+    disclosed: true

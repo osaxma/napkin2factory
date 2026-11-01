@@ -1,0 +1,8 @@
+id: shelf
+name: Shelf load on the frame
+kind: mass
+value: 4 kg
+acts_on: part://frame
+faces: [top]
+direction: -z
+source: the owner's brief

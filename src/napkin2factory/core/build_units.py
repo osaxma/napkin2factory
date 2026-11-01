@@ -13,6 +13,9 @@ The assembly YAML stays the one tree (D18); this module reads it as a build plan
   included).  A joint occurs, per one closing assembly, as often as the more numerous of its
   two parties occurs there: alignment (P3) gives every occurrence of either party a partner.
   Several interfaces joining the same two parts (two hinges on one post) share that number.
+- An **external** sub-assembly (``build: external``, F11) is a stub for work done elsewhere:
+  supplied, not built here.  It is no step and folds nothing; :meth:`BuildUnits.supplied`
+  lists the stubs a step fits, with the joints (its ports) that fit them.
 - A **hardware part** is a part named in some interface's hardware (P9); lines of any other
   part are not counted, so earth studs or glands need no field (S-105).
 
@@ -46,8 +49,9 @@ def __getattr__(name: str) -> Any:
     raise AttributeError(name)
 
 
-#: Owner words for a phantom and for a port (docs/vocabulary.md).
+#: Owner words for a phantom, an external stub and a port (docs/vocabulary.md).
 PHANTOM_WORDS = "not put together on its own"
+EXTERNAL_WORDS = "supplied, not built here"
 BETWEEN_UNITS_WORDS = "a joint between units"
 
 
@@ -129,6 +133,25 @@ class BuildUnits:
         """True when ``aid`` gets a build step of its own (the top, or ``build: unit``)."""
         return aid in self._tops or self.product.assemblies[aid].build == "unit"
 
+    def is_external(self, aid: str) -> bool:
+        """True for a stub of work done elsewhere (``build: external``, F11): never a step."""
+        return aid not in self._tops and self.product.assemblies[aid].build == "external"
+
+    def supplied(self, uid: str) -> list[tuple[str, int, list[str]]]:
+        """``(stub, how many per one unit, its ports)``: the external stubs the step fits.
+
+        A stub is fitted by the step whose lines (its own or a folded phantom's) list it;
+        its ports are the joints that fit it (F11: "supplied, not built here").
+        """
+        out: list[tuple[str, int, list[str]]] = []
+        for aid, mult in self.folded(uid):
+            for c in self.product.assemblies[aid].children:
+                if c.asm is not None and c.asm.id in self.product.assemblies:
+                    if self.is_external(c.asm.id):
+                        ports = [str(p) for p in self.product.assemblies[c.asm.id].ports]
+                        out.append((c.asm.id, c.qty * mult, ports))
+        return out
+
     def order(self) -> list[str]:
         """The build units, children before parents: the order of the build steps."""
         return [a for a in self.tree.order() if self.is_unit(a)]
@@ -161,7 +184,7 @@ class BuildUnits:
                 if c.asm is None or c.asm.id not in self.product.assemblies:
                     continue
                 sub = c.asm.id
-                if self.is_unit(sub) or sub in stack:
+                if self.is_unit(sub) or self.is_external(sub) or sub in stack:
                     continue
                 out.append((sub, mult * c.qty))
                 walk(sub, mult * c.qty, (*stack, sub))
@@ -199,7 +222,7 @@ class BuildUnits:
             out: dict[str, str | None] = {}
             for iid, iface in sorted(self.product.interfaces.items()):
                 a, b = (str(p) for p in iface.parties)
-                ha, hb = self.tree.home(a), self.tree.home(b)
+                ha, hb = self.home(a), self.home(b)
                 lowest = self.tree.lowest_common([ha, hb]) if ha and hb else []
                 out[iid] = lowest[0] if len(lowest) == 1 else None
             self._closing = out
@@ -221,6 +244,23 @@ class BuildUnits:
         if not self.is_unit(target) or here is None or here == target:
             return None
         return target if here in self.tree.below(target) else None
+
+    def home(self, party: str) -> str | None:
+        """A joint party's home (P5); an external stub's is the assembly that lists it (F11).
+
+        A stub holds no parts, so its joints (its ports) close where it is fitted.
+        """
+        aid = party.removeprefix("asm://")
+        if party.startswith("asm://") and aid in self.product.assemblies:
+            if self.is_external(aid):
+                listers = [
+                    p
+                    for p, a in self.product.assemblies.items()
+                    if any(c.asm is not None and c.asm.id == aid for c in a.children)
+                ]
+                lowest = self.tree.lowest_common(listers)
+                return lowest[0] if len(lowest) == 1 else None
+        return self.tree.home(party)
 
     def unplaced_joints(self) -> list[str]:
         """Interfaces whose joint closes in no assembly (a party in no assembly, say)."""
@@ -251,7 +291,7 @@ class BuildUnits:
                     )
                     for h in iface.hardware_items()
                 )
-                between = any(self.tree.home(p) not in inside for p in (a, b))
+                between = any(self.home(p) not in inside for p in (a, b))
                 out.append(Joint(iid, (a, b), aid, occ, holes, needs, between))
         return out
 

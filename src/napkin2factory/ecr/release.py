@@ -164,13 +164,18 @@ def make_bundle(product: Product, build_dir: Path, version: str, out_dir: Path) 
         shutil.copyfile(checks, stage / "checks.json")
     if product.paths.changelog.is_file():
         shutil.copyfile(product.paths.changelog, stage / "CHANGELOG.md")
+    lines = scope_lines(product)
     (stage / "README.txt").write_text(
         f"{product.manifest.product.name} — Revision {version}\n\n"
-        "Contents: step/ (3D models), drawings/ (SVG + drawings.pdf), flat-patterns/ (DXF for\n"
+        + ("".join(f"Scope: {line}\n" for line in lines) + "\n" if lines else "")
+        + "Contents: step/ (3D models), drawings/ (SVG + drawings.pdf), flat-patterns/ (DXF for\n"
         "laser or punch), bom/ (bom.xlsx, bom.csv), manuals/ (PDF + HTML), report.html, "
-        "checks.json.\n\nThis design was produced with an AI system and has not been reviewed "
-        "by a licensed engineer.\n",
+        "checks.json, release.json.\n\nThis design was produced with an AI system and has not "
+        "been reviewed by a licensed engineer.\n",
         encoding="utf-8",
+    )
+    (stage / "release.json").write_text(
+        json.dumps(release_record(product, version), indent=2) + "\n", encoding="utf-8"
     )
     zip_path = out_dir / f"{product.id}-{version}.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -178,6 +183,34 @@ def make_bundle(product: Product, build_dir: Path, version: str, out_dir: Path) 
             if p.is_file():
                 zf.write(p, p.relative_to(stage.parent))
     return zip_path
+
+
+def scope_lines(product: Product) -> list[str]:
+    """The package cover's scope lines (F11): one per declared domain, owner words."""
+    from napkin2factory.core.checks.stage import scope_entries
+
+    return [e["line"] for e in scope_entries(product)]
+
+
+def release_record(product: Product, version: str) -> dict[str, Any]:
+    """``release.json`` in the package: the Revision, the system that made it, its scope (F11).
+
+    ``scope`` lists every declared domain with its state and decision, so what the Revision
+    leaves to a later stage or to someone else is recorded with it, never only in the model.
+    """
+    from napkin2factory import __version__
+    from napkin2factory.core.checks.stage import scope_entries
+
+    return {
+        "product": product.id,
+        "name": product.manifest.product.name,
+        "revision": version,
+        "system": __version__,
+        "scope": [
+            {k: e[k] for k in ("domain", "state", "decision", "note", "stub", "line") if k in e}
+            for e in scope_entries(product)
+        ],
+    }
 
 
 def gate_blockers(product: Product) -> list[str]:

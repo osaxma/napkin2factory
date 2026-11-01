@@ -1,0 +1,5 @@
+id: controls-mount
+kind: mating-face
+parties: [part://frame, asm://controls]
+description: The bought controls sit on the frame's top face; the stub's one port.
+spec: {width: 80 mm, depth: 60 mm}
