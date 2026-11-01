@@ -252,6 +252,24 @@ parts meet; `roles/verifier.md` reviews each unit alone, then those joints (does
 move, need another material, or need to come apart?), and `n2f ecr impact --json` names the
 ports a change crosses (`ports`).
 
+**Choices: waiting on you.** A check may find a trade-off with two or more valid designs (the
+kiln's bolts meet inside their spacers: shorter bolts, or one bolt right through with a nut).
+It reads "a choice waiting on you" in `n2f check`, and `n2f status` lists it under "Waiting on
+you", after the gates: what was found, each option with what it takes and its cost, and the
+gate it holds (`blocks`: the Design or Verify gate, the release, or nothing). Every choice is
+in `build/checks/choices.json`; `n2f status --json` lists the open ones as `waiting_on_you`.
+Ask the owner when `roles/pm.md` says to (never in the interview), then record the answer:
+
+```bash
+n2f decide fastening://m6-standoff-25/m6x16-bolt --pick shorter-bolts --by "<owner's name>" \
+  --note "<their reason>"           # writes a DEC- entry; the check then reads OK with it
+```
+
+The `DEC-` entry names the check, the option and what it was decided on (its `sources`); the
+designer then makes the change the option takes. `n2f check` never decides. A decided choice
+reopens by itself when what it was decided on changes, like a sign-off. `--agent` records an
+agent's pick, allowed only for a choice that holds nothing.
+
 **Changes after a release** go through a change request, and the owner approves after
 reading the impact:
 

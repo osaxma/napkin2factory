@@ -1,0 +1,31 @@
+Mini electric test kiln — stage: Verify
+  Scope (what this product covers)
+      Electrical: later — the electrician wires it; the box keeps its cable entries (DEC-024)
+  ✓ Napkin
+  ✓ Intake
+  ✓ Design
+  ○ Verify
+      Electrical: later (DEC-024) — not checked at this stage; no requirement waits for it
+      • replace the 6 example sign-offs (not reviews) with real ones — `n2f signoff REQ-003 --by
+<name> --statement "…"` — or release with --allow-example-signoffs for a demonstration
+  Waiting on you: 1 choice
+      Bolts into both ends of the M6 female-female hex standoff, 25 mm, steel (it holds the release)
+        As listed, the M6 x 16 bolts, one into each end of a 25 mm spacer, meet inside it. 14.5 +
+        15.0 = 29.5 mm of bolt in 25 mm at Door guard onto the door tray. 14.8 + 15.0 = 29.8 mm of
+        bolt in 25 mm at Shell to guard, left wall; Shell to guard, right wall; Shell to guard, top
+        wall.
+        1. shorter bolts at both ends: M6 x 12 — 32 M6 x 12 bolts in place of the 32 M6 x 16 bolts
+        (a new line on the parts list); each end engages 10.5 to 11.0 mm of thread and the two ends
+        stay 3.2 mm apart, so the spacer's thread must reach 11.0 mm from each end (a spacer tapped
+        right through does). Cost: about the same (estimate: priced like the M6 x 16 socket-head cap
+        screw).
+        2. one bolt right through each spacer, with a nut: M6 x 35 — 16 M6 x 35 bolts and 16 M6 nuts
+        in place of the 32 M6 x 16 bolts; each bolt passes right through, so the spacer must be
+        tapped right through or be a plain spacer, and both ends must be reachable when it is
+        fitted; the nut sits on the far side (Door touch guard; Ventilated touch guard). Cost: about
+        4.80 USD less (estimate: bolts priced like the M6 x 16 socket-head cap screw, nuts like the
+        M6 hex nut, zinc).
+        to record the pick: `n2f decide fastening://m6-standoff-25/m6x16-bolt --pick shorter-bolts |
+        through-bolt --by "<name>"`
+next: replace the 6 example sign-offs (not reviews) with real ones — `n2f signoff REQ-003 --by
+<name> --statement "…"` — or release with --allow-example-signoffs for a demonstration

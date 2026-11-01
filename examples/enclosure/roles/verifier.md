@@ -19,8 +19,11 @@ Write only `reports/review-<YYYY-MM-DD>.md` with these sections:
    numbers.
 3. **Requirements** — thresholds that look indefensible; missing safety requirements for the
    hazards the product has (mains, heat, mass, sharp edges, pinch points).
-4. **Sign-offs** — any that look like consent-washing (signed without evidence, example
-   sign-offs not labelled).
+4. **Sign-offs and choices** — any sign-off that looks like consent-washing (signed without
+   evidence, example sign-offs not labelled); each open choice (`status: choice`,
+   `build/checks/choices.json`) classed inside a module or at a joint, like a failure. A
+   choice whose options are not all valid designs is a blocker: a choice must never hide a
+   failure.
 5. **Manufacturer package** — could a shop quote from it? What is ambiguous?
 6. **Units and joints** (a product built from units only) — one row per unit (its scoped
    check: what is not a pass, each classed inside a module or at a port), then one row per
@@ -45,6 +48,9 @@ them.
    - **at a port**: the row is a joint listed under the unit's `ports:` (it is checked with the
      assembly both sides are built into), or a size read across units (`reach://` rows). The
      fix changes the joint, so it is a change request touching both sides: name both units.
+   - A **choice** (`status: choice`) is classed the same way, by its joints (`detail.joints`)
+     or its subject: inside a module when all of them close in that unit, at a joint
+     otherwise. It is not a failure, but check that each option is a valid design.
 
 **Level 2, the joints between units.** Run `n2f check` once for the whole product. The joints
 between units are `between_units` in `build/bom/build-plan.json` and the report's "Joints
