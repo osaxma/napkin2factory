@@ -53,7 +53,7 @@ v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfac
 - M3b kiln restructure done — S-113.
 - M5 napkin modules and promotion done — S-112.
 - M4 scope and module context done — S-114.
-- M6 joints review and simulation protocol done — S-115 (simulation run pending). Next: M7.
+- M6 joints review and simulation protocol done — S-115; door simulation passed — S-116. Next: M7.
 
 v0.2 — `NAPKIN_STAGE.md`:
 - M0 folds and ratifications — S-055–S-061.
