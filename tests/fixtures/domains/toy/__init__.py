@@ -32,6 +32,7 @@ from napkin2factory.core.domain import (
     ReportSection,
     RuleFamily,
     Screen,
+    SectionContext,
     StageContext,
     StyleRoleSpec,
     VerifyKind,
@@ -96,21 +97,25 @@ def toy_rules(b: RuleBuild) -> list[Rule]:
 
 def _make_run(tid: str) -> Any:
     def run(ctx: RunContext) -> RunResult:
-        thing = things(ctx.product)[tid]
-        reads = [f"toy://{tid}#glow", f"toy://{tid}#name", str(thing.part)]
-        record = {"id": tid, "name": thing.name, "glow": thing.glow, "part": str(thing.part)}
+        # D5: read the thing through the recording accessor; each field used is a read
+        thing = ctx.proxy(things(ctx.product)[tid], f"toy://{tid}")
+        part = str(thing.part)  # records toy://<tid>#part
+        ctx.log.add(part)  # and the part rule's output: this rule runs after it
+        record = {"id": tid, "name": thing.name, "glow": thing.glow, "part": part}
         out = ctx.build_dir / "toy" / f"{tid}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
-        return RunResult(reads=reads, outputs=[out], output_hash=sha256_json(record))
+        # the core adds what ctx recorded to `reads`
+        return RunResult(reads=[], outputs=[out], output_hash=sha256_json(record))
 
     return run
 
 
 def toy_static_reads(product: Any, rule: Rule) -> list[str]:
-    """Before the first build: the thing's fields and its part."""
+    """Before the first build: every field of the thing, and its part."""
     tid = rule.id.split(":", 1)[1]
-    return [f"toy://{tid}#glow", f"toy://{tid}#name", str(things(product)[tid].part)]
+    fields = [f"toy://{tid}#{f}" for f in ToyThing.model_fields if f != "id"]
+    return [*fields, str(things(product)[tid].part)]
 
 
 # ---- the verify kind: toy_glow --------------------------------------------------------------
@@ -137,7 +142,8 @@ def evaluate_glow(ctx: Any, req: Any, res: CheckResult, evidence: dict[str, str]
 def toy_checks(sctx: StageContext) -> list[CheckResult]:
     """A toy thing passes when it was built and glows at all."""
     rows = []
-    for tid, thing in sorted(things(sctx.product).items()):
+    for tid, raw in sorted(things(sctx.product).items()):
+        thing = sctx.proxy(raw, f"toy://{tid}")  # each field used is a read of the checks
         built = (sctx.build_dir / "toy" / f"{tid}.json").is_file()
         status = "pass" if built and thing.glow > 0 else ("skip" if not built else "fail")
         rows.append(
@@ -154,7 +160,7 @@ def toy_checks(sctx: StageContext) -> list[CheckResult]:
 
 
 def toy_check_reads(product: Any) -> list[str]:
-    """The rows read the things' rule outputs."""
+    """The rows read the things' rule outputs (whether each was built), not a model field."""
     return [f"toy://{tid}" for tid in things(product)]
 
 
@@ -168,16 +174,10 @@ def toy_row(product: Any, build_dir: Path) -> Any:
     return check_rows_state(build_dir, "toy", {"pass": "OK", "fail": "needs attention"})
 
 
-def toy_report_data(product: Any, build_dir: Path) -> dict[str, Any]:
-    """What the toy section shows: every toy thing with its glow."""
-    return {
-        "things": [{"id": t.id, "name": t.name, "glow": t.glow} for t in things(product).values()]
-    }
-
-
-def toy_report_reads(product: Any) -> list[str]:
-    """The section shows the things' names and glows."""
-    return [f"toy://{tid}#{f}" for tid in things(product) for f in ("name", "glow")]
+def toy_report_data(sctx: SectionContext) -> dict[str, Any]:
+    """What the toy section shows: every toy thing with its glow (each field a read, D5)."""
+    shown = [sctx.proxy(t, f"toy://{tid}") for tid, t in sorted(things(sctx.product).items())]
+    return {"things": [{"id": t.id, "name": t.name, "glow": t.glow} for t in shown]}
 
 
 def toy_helper(h: HelperContext) -> Any:
@@ -260,7 +260,6 @@ DOMAIN = Domain(
             group="Product",
             fragment="toy.html.j2",
             data=toy_report_data,
-            reads=toy_report_reads,
         ),
     ),
     doc_helpers={"toy": toy_helper},

@@ -143,8 +143,9 @@ names the registry (§3) and the assertion in `tests/unit/test_domain_contract.p
    `load_product(root).families["toy"]["widget"]` is the object; `toy://widget` names it.
    `validate_toy` adds a problem when `part:` names no part.
 2. **The build runs the toy rule after the part.** The **rule family** `toy` (§3.2,
-   `after=("part",)`) makes one rule, `toy:widget`, that writes `build/toy/widget.json` and
-   records the reads `toy://widget#glow`, `toy://widget#name` and `part://plate`. The build
+   `after=("part",)`) makes one rule, `toy:widget`, that writes `build/toy/widget.json`. It
+   reads the thing through `ctx.proxy`, which records `toy://widget#part`, `#name` and
+   `#glow`, and records the part's output `part://plate` with `ctx.log.add`. The build
    runs `part:plate`, then `toy:widget`, then `checks` (`test_rule_family_runs_after_…`).
    `n2f build --target toy` builds the toy and what it waits for, nothing else.
 3. **A requirement is checked by the toy's verify kind.** `model/requirements.yaml`:
@@ -188,9 +189,13 @@ names the registry (§3) and the assertion in `tests/unit/test_domain_contract.p
     `- toy://widget: Widget on part://plate (glow 3)` to `n2f context asm://box`
     (`test_context_contribution`).
 14. **Impact and hashing.** `n2f impact --set toy://widget#glow=5` names `toy:widget` and not
-    `part:plate`, and the rebuild reruns no more than that (`test_impact_is_a_superset_…`); a
-    change to a file of the toy's package reruns `toy:widget`, `validate`, `doc:guide`, `checks`
-    and `report`, and no part, assembly, drawing or bom rule (`test_a_domain_code_change_…`).
+    `part:plate`, and the rebuild reruns no more than that; the same holds for an edit of
+    every other field of the thing (each reruns `toy:widget` and changes its output) and of
+    the toy interface (`test_impact_is_a_superset_…`, one case per field, and
+    `test_every_toy_field_is_edited`, which fails when `ToyThing` gains a field the table does
+    not edit). A change to a file of the toy's package reruns `toy:widget`, `validate`, `bom`,
+    `doc:guide`, `checks` and `report`, and no part, assembly or drawing rule
+    (`test_a_domain_code_change_…`).
 
 ## 3. The registries, one by one
 
@@ -249,23 +254,31 @@ def toy_rules(b):
 
 def make_run(tid):
     def run(ctx):                                    # ctx: RunContext
-        thing = things(ctx.product)[tid]
-        record = {"id": tid, "glow": thing.glow, "part": str(thing.part)}
+        thing = ctx.proxy(things(ctx.product)[tid], f"toy://{tid}")   # the recording accessor
+        part = str(thing.part)                       # records toy://<tid>#part
+        ctx.log.add(part)                            # and the part rule's output
+        record = {"id": tid, "name": thing.name, "glow": thing.glow, "part": part}
         out = ctx.build_dir / "toy" / f"{tid}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
-        return RunResult(reads=[f"toy://{tid}#glow", str(thing.part)], outputs=[out],
-                         output_hash=sha256_json(record))
+        return RunResult(reads=[], outputs=[out], output_hash=sha256_json(record))
     return run
 ```
 - `RuleFamily(name, make_rules, after=(), produces="", also_produces=(), code=(), reads_all=False, targets=(), output_dir=None, static_reads=None)`.
 - A rule's `kind` is the family name and its id is `<family>:<id>`. `depends_on` lists the
   rule ids it waits for (rule ids of the mechanical domain: `validate`, `part:<id>`,
   `asm:<id>`, `drawing:<id>`, `bom`, `asmsheet:<id>`, `doc:<id>`, `checks`, `report`, `site`).
-- `run(ctx)`: write under `ctx.build_dir / <output_dir>`; **every value you use must be in
-  `reads`** (D5: a recorded read is what makes a change rerun the rule). A read is a URI
-  (`part://plate`: that rule's output hash) or a URI with a field (`toy://widget#glow`: the
-  value). `output_hash` is what downstream rules see when they read your URI.
+- `run(ctx)`: write under `ctx.build_dir / <output_dir>`. **Every value you use must be a
+  recorded read** (D5: a recorded read is what makes a change rerun the rule). Read the
+  model through the recording accessor: `ctx.proxy(obj, "<scheme>://<id>")` returns a view
+  of `obj` whose every field read records `<scheme>://<id>#<field>` (a nested object records
+  `#<field>.<sub>`; a method or a computed property records every field), and the leaves come
+  back as plain values. Add any other key with `ctx.log.add(key)`, typically a rule output
+  you read (`part://plate`: that rule's output hash). The core adds everything recorded to
+  `RunResult.reads`, so `reads=[]` is fine; list a key there only if you read it some other
+  way. A field read straight from `ctx.product` is not recorded: an edit of it reruns
+  nothing, and the output goes stale (gate E B2). `output_hash` is what downstream rules see
+  when they read your URI.
 - `after`: families whose rules run first (the mechanical ones: `validate`, `part`, `asm`,
   `drawing`, `bom`, `asmsheet`, `doc`). The family goes after them and always **before**
   `checks`, `report` and `site`, which read everything (`reads_all=True`; do not set it).
@@ -334,20 +347,26 @@ Rows of `n2f check` (`build/checks/checks.json`).
 CheckStage("toy", toy_checks, after=("interface",), reads=toy_check_reads)
 
 def toy_checks(sctx) -> list[CheckResult]:          # sctx: StageContext (§4.4)
-    return [CheckResult(id=f"toy://{tid}", subject=str(t.part), status="pass", kind="toy",
-                        title=f"{t.name} glows", message="it glows")
-            for tid, t in sorted(things(sctx.product).items())]
+    rows = []
+    for tid, raw in sorted(things(sctx.product).items()):
+        t = sctx.proxy(raw, f"toy://{tid}")           # each field used is a read of `checks`
+        rows.append(CheckResult(id=f"toy://{tid}", subject=str(t.part), status="pass",
+                                kind="toy", title=f"{t.name} glows", message="it glows"))
+    return rows
 
-def toy_check_reads(product) -> list[str]:
-    return [f"toy://{tid}" for tid in things(product)]
+def toy_check_reads(product) -> list[str]:           # what is not a model field
+    return [f"toy://{tid}" for tid in things(product)]   # the toy rules' outputs
 ```
 - `CheckStage(name, run, after=(), whole_product=False, reads=None)`.
 - The mechanical stages, in order: `interface`, `interference`, `requirements`, `count`,
   `hardware`, `reach`, `docs`, `sourcing`, `calc-case`. `after` puts yours after the ones named.
 - Give your rows a `kind` of your own (your domain's name is a good one): the gate row
   (§3.5) and the report count rows by kind.
-- `reads(product)`: the keys your rows depend on (your rules' `toy://<id>`), added to the
-  `checks` rule's reads, so a change reruns the checks.
+- Read the model through `sctx.proxy(obj, uri)` (as a rule does, §3.2): each field used is
+  added to the `checks` rule's reads, so editing it reruns the checks. `sctx.log.add(key)`
+  records any other key.
+- `reads(product)`: further keys your rows depend on that are not model fields (your rules'
+  outputs, `toy://<id>`), added to the same reads.
 - `whole_product=True` leaves the stage out of `n2f check --scope asm://<id>` (a module's
   own checks). Without it, filter your rows with `sctx.keep(<the assembly id the row belongs
   to, or None>)`.
@@ -380,11 +399,18 @@ A section of the one-page report (F5).
 
 ```python
 ReportSection("toy", "Toy things", group="Product", fragment="toy.html.j2",
-              data=toy_report_data, reads=toy_report_reads)
+              data=toy_report_data)
+
+def toy_report_data(sctx):                           # sctx: SectionContext (§4.4)
+    shown = [sctx.proxy(t, f"toy://{tid}") for tid, t in sorted(things(sctx.product).items())]
+    return {"things": [{"id": t.id, "name": t.name, "glow": t.glow} for t in shown]}
 ```
 - `ReportSection(id, label, group, fragment, data=None, reads=None, show=None)`.
+- `data(sctx)` returns the dict the fragment renders; `sctx` is a `SectionContext` (§4.4):
+  read the model through `sctx.proxy(obj, uri)` and each field shown is a read of the
+  `report` rule, so editing it reruns the report.
 - `fragment` is a Jinja file in your package (relative to `root`). It renders inside the page
-  with `data` (the dict `data(product, build_dir)` returns) and the page's helpers: `h2(id,
+  with `data` (the dict `data(sctx)` returns) and the page's helpers: `h2(id,
   title)` (the heading), `badge(status)`, `w(status)` (owner words), the `ref` filter (a URI
   as a link). Start it with `<section class="card" id="<id>">`, end it with `</section>`:
   ```html
@@ -401,7 +427,8 @@ ReportSection("toy", "Toy things", group="Product", fragment="toy.html.j2",
   (Verification); `parameters`, `decisions`, `changes` (Design record); `manuals`. None of
   them has a `show`, so each is in the side index of every report (`joints` included, with or
   without interfaces), and a Product section of yours follows `data-sec="joints"`.
-- `reads(product)`: the keys it shows, added to the report rule's reads.
+- `reads(product)`: further keys it shows that are not model fields read through the proxy
+  (a rule's output, say), added to the report rule's reads.
 
 ### 3.7 Doc helpers — `doc_helpers={"toy": factory}`
 Names a manual page (`model/docs/*.md`, a Jinja template) can call.
@@ -574,7 +601,7 @@ InterfaceKind(name, title="", spec=None, check=None)
 Process(id, title, declared=True)      StyleRoleSpec(id, words, styled=False, aliases=())
 Screen(name, run, title="", fields=(), phase="")
 ContextContribution(name, title, collect)
-StageContext, HelperContext            (handed to you; §4.4)
+StageContext, SectionContext, HelperContext   (handed to you; §4.4)
 SCREEN_PHASES = ("measure", "estimate", "total", "check")
 ```
 `code` lists folders of your package (relative to `root`) hashed as its code; empty: all of
@@ -585,9 +612,12 @@ SCREEN_PHASES = ("measure", "estimate", "total", "check")
 - `RuleBuild`: `product`, `render` (bool: renders requested), `rules` (the rules the earlier
   families made, in build order), `family`; `code_hash()` is your family's code hash.
 - `RunContext`: `product`, `build_dir` (the product's `build/`), `render`, `payloads`
-  (in-memory results of earlier rules this run, by rule id: a rule's `RunResult.payload`).
+  (in-memory results of earlier rules this run, by rule id: a rule's `RunResult.payload`),
+  `proxy(obj, uri)` (the recording accessor, §3.2) and `log` (this rule's read log:
+  `log.add(key)`; a fresh one for each rule).
 - `RunResult(reads, outputs, output_hash, payload=None)`: `outputs` are the absolute paths
-  written; `payload` is handed to later rules in the same run.
+  written; `payload` is handed to later rules in the same run. The rule's recorded reads are
+  `reads` plus what `ctx.log` recorded.
 
 ### 4.3 Rows (`napkin2factory.core.checks.results.CheckResult`)
 `CheckResult(id, subject, status, message, persona_message="", kind="requirement",
@@ -599,7 +629,10 @@ sentence; `message` what was found.
 ### 4.4 Contexts
 - `StageContext` (a check stage): `product`, `build_dir`, `ectx` (the evaluators' context,
   below), `keep(home) -> bool` (for `n2f check --scope`), `within` (the scoped assembly id or
-  `None`), `modules`.
+  `None`), `modules`, `proxy(obj, uri)` and `log` (the recording accessor and the `checks`
+  rule's read log, §3.4).
+- `SectionContext` (a report section's `data`): `product`, `build_dir`, `proxy(obj, uri)` and
+  `log` (the `report` rule's read log, §3.6).
 - The evaluators' context (a verify kind's `ctx`, and `sctx.ectx`): `product`, `build_dir`,
   `props(uri)` (a part's or assembly's `props.json` as a dict, or `None`), `interfaces`
   (interface id → its check report), `rollups` (the bom totals when read).
@@ -692,11 +725,17 @@ A module that fails to import is an error naming the file.
 ## 7. What the core does with a registered domain (so you do not have to)
 - **Hashing (gate E).** Your domain's code hash is an input of your rules, and of every rule
   that reads a registry you add to: `validate` (model families and the open sets of §3.10),
-  `doc:*` (doc helpers), `checks` (verify kinds, check stages), `report` (sections, gate
-  rows, vocabulary), and each part whose `role:` is a style role you register. Change a file
-  of your domain and exactly those rerun.
+  `bom` (drivers and interface kinds: the build plan prints their words), `doc:*` (doc
+  helpers), `checks` (verify kinds, check stages), `report` (sections, gate rows, vocabulary,
+  finishes, style roles), and each part whose `role:` is a style role you register. Change a
+  file of your domain and exactly those rerun. The core's own half of each open set, the
+  tables in `src/napkin2factory/core/data/`, is hashed into the same rules (`table:<file>`).
 - **Impact.** `n2f impact` uses your rules' recorded reads (or `static_reads` before the
-  first build), so it stays a superset of what the build reruns.
+  first build), so it stays a superset of what the build reruns. An edit of a field
+  (`toy://widget#glow`) matches a read of that field, of a field inside it, and of the object
+  read whole (`iface://x` matches an edit of `iface://x#spec.depth`); a bare key your family
+  produces (`toy://widget`) is your rule's output, which the edit reaches through the rules it
+  reruns.
 - **Order.** Your family runs after its `after` families and before `checks`; your stage
   after its `after` stages; your section at the end of its group.
 - **Discoverable.** `n2f doctor` lists every installed domain with its verify kinds, check
@@ -712,8 +751,10 @@ A module that fails to import is an error naming the file.
    fragment files (3.6), doc helpers (3.7), vocabulary (3.8), interface kinds (3.9),
    processes, finishes, categories, drivers, style roles (3.10), screens (3.11), context
    (3.12). Every name new (§1).
-3. Record every read (`RunResult.reads`, `h.proxy` / `h.log.add`, `CheckStage.reads`,
-   `ReportSection.reads`). A value you use and do not record never reruns anything.
+3. Record every read: read the model through the recording accessor (`ctx.proxy` in a rule,
+   `sctx.proxy` in a check stage and a section's `data`, `h.proxy` in a doc helper), and add
+   other keys with `log.add` (`ctx.log`, `sctx.log`, `h.log`), `CheckStage.reads` or
+   `ReportSection.reads`. A value you use and do not record never reruns anything.
 4. Give it a product: a fixture folder using each thing. Copy `tests/fixtures/products/toy/`
    (`n2f.yaml`, `operator.yaml`, `model/parameters.yaml`, `model/decisions.yaml`,
    `model/requirements.yaml`, two parts, one assembly, one interface, one manual page) and
@@ -728,15 +769,19 @@ tests, with your names: `test_every_registry_sees_the_toy`,
 `test_interface_kind_validates`, `test_process_passes_the_general_rule_pack`,
 `test_screen_runs_on_a_card`, `test_screen_declares_its_fields_and_phase`,
 `test_style_role_is_a_role_while_the_domain_is_installed`, `test_context_contribution`,
-`test_impact_is_a_superset_of_the_rebuild`, `test_a_domain_code_change_reruns_its_rules_only`.
+`test_every_toy_field_is_edited`, `test_impact_is_a_superset_of_the_rebuild` (with its table
+`TOY_EDITS`: one edit per field of your object, and one of your interface if you bring an
+interface kind), `test_a_stage_and_a_section_record_the_fields_they_read`,
+`test_a_domain_code_change_reruns_its_rules_only`.
 The rest of that file tests the core, not a domain.
 
 **A field you leave out takes its tests with it.** Each test proves one field; keep the ones
 for what your domain brings, and in `test_every_registry_sees_…` assert only those registries:
 - `families` — the model-family lines of `test_every_registry_sees_…`;
 - `rule_families` — `test_rule_family_runs_…`, `test_the_rule_family_is_a_build_target_…`,
-  `test_impact_is_a_superset_of_the_rebuild`;
-- `verify_kinds` — `test_verify_kind_evaluates`; `check_stages` — `test_check_stage_reports`;
+  `test_every_toy_field_is_edited`, `test_impact_is_a_superset_of_the_rebuild`;
+- `verify_kinds` — `test_verify_kind_evaluates`; `check_stages` — `test_check_stage_reports`
+  (and `test_a_stage_and_a_section_record_…`, keeping the lines for what you bring);
   `gate_rows` — `test_gate_row_shows_in_status`; `report_sections` —
   `test_report_section_renders`; `doc_helpers` — `test_doc_helper_records_a_read`;
   `vocabulary` — `test_vocabulary_word_in_the_owner_view`; `interface_kinds` —

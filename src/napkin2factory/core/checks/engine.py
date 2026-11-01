@@ -284,7 +284,7 @@ def build_matrix(
 
 
 def collect_results(
-    product: Product, build_dir: Path, within: str | None = None
+    product: Product, build_dir: Path, within: str | None = None, log: Any = None
 ) -> tuple[list[CheckResult], EvalContext]:
     """Every check row, each with its module (P12); ``within`` keeps one module's rows only.
 
@@ -293,6 +293,7 @@ def collect_results(
     the joints that close inside it (both stages; its ports close in the parent), interference,
     counts and hardware of its assemblies, and its reach rows.  Documents and sourcing are the
     whole product's and are left out.  The costly checks are skipped outside the scope.
+    ``log`` (the ``checks`` rule's) receives what the stages read through ``sctx.proxy``.
     """
     from napkin2factory.core.checks.modules import RowModules
     from napkin2factory.core.domain import StageContext
@@ -306,6 +307,8 @@ def collect_results(
 
     ectx = EvalContext(product, build_dir)
     sctx = StageContext(product, build_dir, ectx, keep, within, modules)
+    if log is not None:
+        sctx.log = log  # the stages' recorded reads are the checks rule's (D5, S-138)
     results: list[CheckResult] = []
     for stage in registry().check_stages():  # F3: each stage's rows, in stage order
         if stage.whole_product and within is not None:
@@ -444,7 +447,7 @@ def run_all_checks(ctx: RunContext) -> RunResult:
     from napkin2factory.core.graph.rules import RunResult
 
     product, build_dir = ctx.product, ctx.build_dir
-    results, ectx = collect_results(product, build_dir)
+    results, ectx = collect_results(product, build_dir, log=ctx.log)
     payload = check_payload(product, results, ectx)
     out_dir = build_dir / "checks"
     out = _write(out_dir / "checks.json", payload)

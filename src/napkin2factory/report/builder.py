@@ -726,8 +726,15 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     }
 
 
-def render_report(product: Product, build_dir: Path, snapshot_date: str, build_id: str = "") -> str:
-    """Render the page HTML (the viewer bundle inlined)."""
+def render_report(
+    product: Product, build_dir: Path, snapshot_date: str, build_id: str = "", log: Any = None
+) -> str:
+    """Render the page HTML (the viewer bundle inlined).
+
+    ``log`` (the ``report`` rule's) receives what a section's ``data`` read through its
+    context's ``proxy`` (D5, S-138).
+    """
+    from napkin2factory.core.domain import SectionContext
     from napkin2factory.core.registry import registry
     from napkin2factory.report.brand import favicon_link, footer_mark, footer_wordmark
     from napkin2factory.report.inline import bundle_viewer, inline_module_script
@@ -764,8 +771,11 @@ def render_report(product: Product, build_dir: Path, snapshot_date: str, build_i
         for sec in reg.report_sections()
         if sec.id in shown
     ]
+    sctx = SectionContext(product, build_dir)
+    if log is not None:
+        sctx.log = log
     data["section_data"] = {
-        sec.id: sec.data(product, build_dir)
+        sec.id: sec.data(sctx)
         for sec in reg.report_sections()
         if sec.id in shown and sec.data is not None
     }
@@ -776,7 +786,7 @@ def build_report(ctx: RunContext) -> RunResult:
     """The ``report`` rule body."""
     from napkin2factory.core.graph.rules import RunResult
 
-    html = render_report(ctx.product, ctx.build_dir, ctx.snapshot_date)
+    html = render_report(ctx.product, ctx.build_dir, ctx.snapshot_date, log=ctx.log)
     out = ctx.build_dir / "report" / "index.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding="utf-8")

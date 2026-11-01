@@ -142,6 +142,7 @@ class StageContext:
     their reports there, e.g. ``ectx.interfaces``); ``keep(home)`` says whether a row whose
     module is ``home`` belongs to this run (``n2f check --scope``); ``within`` is the scoped
     assembly id or ``None`` for the whole product; ``modules`` is the row-to-module mapper.
+    ``proxy(obj, uri)`` reads a model object so that each field used is recorded in ``log``.
     """
 
     product: Product
@@ -150,6 +151,27 @@ class StageContext:
     keep: Callable[[str | None], bool]
     within: str | None
     modules: Any
+    log: Any = field(default_factory=lambda: _read_log())
+
+    def proxy(self, obj: Any, uri: str) -> Any:
+        """``obj`` (named ``uri``) through the recording accessor: each field read is a read.
+
+        The reads join the ``checks`` rule's, so a change to a field a stage used reruns the
+        checks (D5, gate E B2).
+        """
+        return _recorded(obj, uri, self.log)
+
+
+def _read_log() -> Any:
+    from napkin2factory.geometry.accessors import ReadLog
+
+    return ReadLog()
+
+
+def _recorded(obj: Any, uri: str, log: Any) -> Any:
+    from napkin2factory.core.graph.recording import Recorded
+
+    return Recorded(obj, uri, log)
 
 
 @dataclass(frozen=True)
@@ -159,8 +181,9 @@ class CheckStage:
     ``run(sctx)`` returns :class:`~napkin2factory.core.checks.results.CheckResult` rows.
     Stages run in dependency order (``after``), ties by installation order.
     ``whole_product`` stages (documents, sourcing) are left out of a module's checks.
-    ``reads(product)`` names the keys the rows depend on, added to the ``checks`` rule's
-    recorded reads, so a change behind them re-runs the checks.
+    Read the model through ``sctx.proxy`` and each field used is a recorded read of the
+    ``checks`` rule; ``reads(product)`` names further keys the rows depend on (a rule's
+    output, say), added to the same reads, so a change behind them re-runs the checks.
     """
 
     name: str
@@ -193,22 +216,42 @@ class GateRow:
     row: Callable[[Product, Path], GateRowState | None]
 
 
+@dataclass
+class SectionContext:
+    """What a report section's ``data`` sees: the product, the build folder and a read log.
+
+    ``proxy(obj, uri)`` reads a model object so that each field used is recorded in ``log``;
+    the reads join the ``report`` rule's, so a change to a field the section shows reruns
+    the report (D5, gate E B2).
+    """
+
+    product: Product
+    build_dir: Path
+    log: Any = field(default_factory=lambda: _read_log())
+
+    def proxy(self, obj: Any, uri: str) -> Any:
+        """``obj`` (named ``uri``) through the recording accessor."""
+        return _recorded(obj, uri, self.log)
+
+
 @dataclass(frozen=True)
 class ReportSection:
     """A section of the report page (F5): a Jinja fragment plus the data it renders.
 
     ``fragment`` is the template file, relative to :attr:`Domain.root`.  It renders inside
     the page with the page's context (``badge``, ``h2``, ``w``, ``ref`` …) plus ``data``,
-    the dict ``data(product, build_dir)`` returns.  A section goes at the end of its
-    ``group`` in the side index.  ``reads(product)`` names the keys it shows, added to the
-    report rule's recorded reads.  ``show(product)`` false leaves it off the page.
+    the dict ``data(sctx)`` returns (``sctx``: a :class:`SectionContext`; read the model
+    through ``sctx.proxy`` and each field shown is a recorded read).  A section goes at the
+    end of its ``group`` in the side index.  ``reads(product)`` names further keys it shows
+    (a rule's output, say), added to the report rule's recorded reads.  ``show(product)``
+    false leaves it off the page.
     """
 
     id: str
     label: str
     group: str
     fragment: str
-    data: Callable[[Product, Path], dict[str, Any]] | None = None
+    data: Callable[[SectionContext], dict[str, Any]] | None = None
     reads: Callable[[Product], list[str]] | None = None
     show: Callable[[Product], bool] | None = None
 
