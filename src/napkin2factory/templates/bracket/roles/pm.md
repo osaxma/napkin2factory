@@ -43,7 +43,7 @@ and controls go, standing or on a bench), size class, how it is used — not fiv
 one idea. Make each one a card:
 ```
 n2f concept new "<short title>"               # writes concepts/C-00x.yaml (a commented skeleton)
-n2f concept new "<short title>" --from C-002  # a variant: copies layout, envelope, site, style, massing, notes
+n2f concept new "<short title>" --from C-002  # a variant: copies layout, envelope, site, style, modules, massing, notes
 ```
 Fill in the card. This is the shape (`docs/napkin.md` in the system repo, "Writing a card"):
 ```yaml
@@ -58,11 +58,14 @@ envelope:                           # rough named sizes; they seed parameters at
   power: 1.8 kW
 site: {alcove_width: 800 mm, circuit: 240V-13A, region: SA}
 style: {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}
+modules:                            # what is built, bought or serviced as one unit, and why
+  door: {driver: [built-as-unit]}
+  controls: {driver: [separate-process-or-supplier]}
 massing:                            # rough shapes, one kit call per line, numbers only
   - {kit: enclosure, as: body, material: mild steel, args: {length: 420 mm, width: 440 mm, height: 418 mm, thickness: 1.2 mm}, at: {z: 760 mm}}
   - {kit: plate, as: lid, role: body, material: mild steel, args: {width: 420 mm, depth: 440 mm, thickness: 2 mm}, at: {z: 1178 mm}}
-  - {kit: block, as: door, material: mild steel, process_class: sheet-metal, args: {length: 340 mm, width: 3 mm, height: 340 mm}, at: {y: -221.5 mm, z: 800 mm}}
-  - {kit: block, as: controls, material: abs, process_class: cots-controls, args: {length: 300 mm, width: 160 mm, height: 100 mm}, at: {z: 1180 mm}}
+  - {kit: block, as: door, module: door, material: mild steel, process_class: sheet-metal, args: {length: 340 mm, width: 3 mm, height: 340 mm}, at: {y: -221.5 mm, z: 800 mm}}
+  - {kit: block, as: controls, module: controls, material: abs, process_class: cots-controls, args: {length: 300 mm, width: 160 mm, height: 100 mm}, at: {z: 1180 mm}}
   - {kit: frame, as: stand, material: mild steel, args: {length: 380 mm, width: 400 mm, height: 760 mm, member: {size: 25 mm, wall: 1.5 mm}}}
 notes: Budget about 1500 USD. Small chamber so the door can swing inside the alcove.
 screening: null                     # written by `n2f concept build`
@@ -83,6 +86,17 @@ far a hinged door opens; without it screening counts the door swung fully back, 
 case), `envelope.target_volume: 8 L` (how much the inside should hold) and
 `site.touch_limit: 60 degC` (the hottest outside surface allowed).
 Run `n2f concept lint` after every edit and fix every error (warnings never fail).
+
+**Modules: what is built, bought or serviced as one unit.** Once the directions take shape,
+ask once, in plain words: "Is any part of it made or bought separately, tested on its own,
+or swapped out whole for service — the door, the control box, the stand?" Record each yes
+under the card's `modules:` with its reason (`built-as-unit`, `tested-as-unit`,
+`serviced-as-unit`, `separate-process-or-supplier`, `varies`), and add `module: <name>` to
+the massing lines that make it up. No reason, no module: the rest belongs to the product
+as a whole (start flat). `n2f concept lint` warns about a reason word it does not know, a
+line naming a module with no entry, and an entry with no line. The board lists each card's
+modules ("door (built as one unit)"), and promotion turns them into the product's first
+structure.
 
 ### Screen, then talk limitations from the data
 ```
@@ -153,7 +167,13 @@ ask again. On a clear yes: `n2f concept promote C-00x --by "<owner name>"`, then
 what it wrote: the parameters it seeded (`owner: napkin`), the requirements — the alcove one
 (closed width plus the door swing), the supply one, the form ones (rounded corners, nothing
 visible on the front, where the controls sit) — the `style.yaml` update and the decision
-(`DEC-xxx`). Only one card can be the design direction.
+(`DEC-xxx`). When the card had modules and the product no assembly yet, promotion also
+wrote the product's first structure: one assembly for the whole product, one empty one per
+module, and three size limits per module taken from its rough shapes (computed) — say
+"the door now has its own place in the design, still empty, and must fit within the size
+the sketch gave it". When the product already had assemblies, promotion only prints the
+modules as a suggestion; pass it to the designer, do not edit assemblies yourself. Only
+one card can be the design direction.
 
 Promotion sets every other card aside by itself. Tell the owner "the other directions are
 set aside and kept on the record as alternatives" — never say or imply that the owner

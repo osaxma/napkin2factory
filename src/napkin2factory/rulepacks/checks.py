@@ -14,10 +14,13 @@ from collections.abc import Callable
 from typing import Any
 
 from napkin2factory.core.loader import Product
-from napkin2factory.core.model import Part
+from napkin2factory.core.model import Assembly, Part
 
 Violation = dict[str, Any]
 CheckFn = Callable[[Part, dict[str, Any], dict[str, Any], Product], list[Violation]]
+#: A check on one assembly (a rule with ``subject: assembly``): the assembly, the rule's
+#: params and the product.
+AssemblyCheckFn = Callable[[Assembly, dict[str, Any], Product], list[Violation]]
 
 
 class RuleNotApplicable(Exception):  # noqa: N818 - a signal, not an error
@@ -211,4 +214,21 @@ CHECKS: dict[str, CheckFn] = {
     "part_in_assembly": part_in_assembly,
     "cots_has_source": cots_has_source,
     "cots_source_verified": cots_source_verified,
+}
+
+
+def module_has_parts(asm: Assembly, params: dict[str, Any], product: Product) -> list[Violation]:
+    """An assembly with no children is a module still to design (P10, S-112).
+
+    Promotion seeds one empty stub per module the concept sketched; the row stays a warning
+    until the designer gives it parts (or folds it back into its parent).
+    """
+    if asm.children:
+        return []
+    return [{"uri": asm.uri, "name": asm.name}]
+
+
+#: Checks on assemblies, for rules with ``subject: assembly`` (one row per assembly).
+ASSEMBLY_CHECKS: dict[str, AssemblyCheckFn] = {
+    "module_has_parts": module_has_parts,
 }

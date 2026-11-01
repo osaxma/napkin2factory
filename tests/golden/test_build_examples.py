@@ -125,9 +125,10 @@ def kiln_board_fingerprint(root: Path) -> dict[str, Any]:
     """What the kiln's concept board shows, without the pictures (NAPKIN_STAGE M6 golden).
 
     Card count, statuses and verdicts, the red cards with the exact wording of their
-    reasons, the failing rule ids, and how many numbers carry each label (``given``,
-    ``computed``, ``estimate``). Read from the board's own data (``board.gather``), which reads
-    the cards' screening blocks, so it is the same whether or not the pictures were built.
+    reasons, the failing rule ids, how many numbers carry each label (``given``,
+    ``computed``, ``estimate``) and each card's modules in plain words (v0.4 M5, P10). Read
+    from the board's own data (``board.gather``), which reads the cards' screening blocks, so
+    it is the same whether or not the pictures were built.
     """
     from collections import Counter
 
@@ -152,6 +153,7 @@ def kiln_board_fingerprint(root: Path) -> dict[str, Any]:
             if card.screening is not None and card.screening.failing
         },
         "labels": dict(sorted(labels.items())),
+        "modules": {c["id"]: c["modules"] for c in data["cards"] if c["modules"]},
     }
 
 

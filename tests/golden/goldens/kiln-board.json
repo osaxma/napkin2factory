@@ -29,5 +29,23 @@
     "computed": 20,
     "estimate": 32,
     "given": 8
+  },
+  "modules": {
+    "C-001": [
+      "door (built as one unit)",
+      "controls (made by another process or supplier)"
+    ],
+    "C-002": [
+      "door (built as one unit)",
+      "controls (made by another process or supplier)"
+    ],
+    "C-003": [
+      "door (built as one unit)",
+      "controls (made by another process or supplier)"
+    ],
+    "C-004": [
+      "door (built as one unit)",
+      "controls (made by another process or supplier)"
+    ]
   }
 }

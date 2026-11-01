@@ -1,0 +1,8 @@
+# Seeded from concept C-001 by `n2f concept promote`: the door module, still empty.
+# Give it its parts under `children:` (design it flat inside; split it further only for
+# a reason). The size it must keep to is three requirements taken from C-001's rough
+# shapes; changing one is a decision.
+id: door
+name: Door
+driver: [built-as-unit, serviced-as-unit]
+children: []

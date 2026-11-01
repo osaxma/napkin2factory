@@ -132,6 +132,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-108 | A styled screenshot whose shader fails under load is rendered once more | in force |
 | S-109 | A landing that stops after giving out ids puts the task's own commits back | in force |
 | S-110 | v0.4 M3a: build units and phantoms, the build plan derived from the tree, joint hardware counted | in force |
+| S-112 | v0.4 M5: promotion keeps the napkin's modules (stubs, size budgets) or suggests them; start flat | in force |
 
 ---
 
@@ -484,3 +485,13 @@ helper edits eight core files (`FOUNDATION.md` §0.2); 23 package files carry th
 of the package, a schema policy, scope as data, and choices; v0.6 (`ELECTRICAL_STAGE.md`, E1–E12)
 builds the electrical domain through that contract with a count of core edits as its headline.
 `docs/reviews/v0.6-independent-trial.md` briefs an outside model to use and review both.
+## S-112 — v0.4 M5: promotion keeps the napkin's modules; start flat, split for a reason (2026-11-01)
+P10, P11. Card `driver`/`build` words are free text: lint C9 warns, never errors (the plan said
+"rejects"; a typo must not block a card, N1). A line's `module:` without an entry is allowed (a stub
+with no driver; L13 warns); lines without one seed nothing. Budgets: box of the module's lines, composed
+again in memory, rounded up to 0.1 mm, `must`. Refused: a module named like the product, a file already
+there. Empty stubs: `assembly_props` gets a centroid, no layout row, `geometry_prop` on no parts `skip`
+(not a 0 mm pass); rules may say `subject: assembly`. Kiln cards: door and controls only (assembly.md
+§5; an electrician wires the box); body, guard, lining, the one-part stand fit in sequence, no module.
+`cli/concept.py` prints seeded files and the suggestion. Measured: blank promote 8.5 s, kiln 2.5 s; 10
+new tests 32 s; kiln cards rebuild unchanged; only `kiln-board.json` moved; `make check` 12 min 38 s.

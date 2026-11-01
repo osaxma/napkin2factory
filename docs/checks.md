@@ -34,10 +34,15 @@ demonstration, in which case the release goes ahead and the report keeps the lab
 `sheet-metal-v0`: bend radius ≥ 1 t, hole ⌀ ≥ 1 t, hole-to-bend ≥ 2 t + r, flange ≥ 4 t,
 reliefs where bends meet, flat pattern present (warn). `general-v0`: custom parts complete
 (process, material, finish, tolerance class), every part in an assembly (warn), COTS parts
-have a source, COTS links verified (warn). Thresholds are nominal shop rules of thumb
+have a source, COTS links verified (warn), and, once per assembly, every module has parts
+(`module-has-parts`, warn: an empty assembly, such as a stub promotion seeded from a concept's
+modules, P10). Thresholds are nominal shop rules of thumb
 `[verify]`. A product may add `model/rulepacks/*.yaml` using the same named checks. A check
 may decide a rule does not concern a part (no row) or concern it without being able to
-decide (a `skip` row saying why).
+decide (a `skip` row saying why). A rule with `subject: assembly` runs once per assembly
+instead (row `rule://<pack>/<rule>@<assembly id>`), from packs without `applies_to`. A
+`geometry_prop` requirement on an assembly with no parts yet is `skip` ("nothing to
+measure"), never a pass at 0 mm.
 
 `form-v0` (v0.2, NAPKIN_STAGE N8) checks taste once it is chosen. Its thresholds live in the
 product's `style.yaml`, not in the pack, and `n2f concept promote` writes the requirements
