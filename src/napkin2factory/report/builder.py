@@ -6,7 +6,7 @@ fragments.  One layout for everyone: a sticky section index, sections grouped by
 (overview, safety, product, verification, design record, manuals), and every model URI
 rendered as a hyperlink to the row that describes it.  The operator persona only picks
 the words used for check statuses and whether visible URIs keep their ``scheme://`` prefix
-(the owner reads ``outer-shell``, the engineer ``part://outer-shell``; attributes and
+(the owner reads ``lid``, the engineer ``part://lid``; attributes and
 anchors always carry the full URI); safety content is always visible.
 """
 

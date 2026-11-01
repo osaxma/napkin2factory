@@ -12,17 +12,19 @@ the part but cannot decide (a ``skip`` row saying why).
 
 What each check can and cannot see:
 
-* ``form_corner_radius`` — custom parts with a styled role (body, door, stand, controls,
-  trim). It reads the bend radii in ``features.json`` and the part's declared
+* ``form_corner_radius`` — custom parts with a styled role (body, opening, support,
+  controls, trim; ``door`` and ``stand`` read as opening and support). It reads the bend
+  radii in ``features.json`` and the part's declared
   ``corner_radius``/``fillet`` (a style default fills an unset one unless the build noted it
   did not fit). Edges a generator rounds without recording (custom geometry modules, frame
   tubes) are not seen: such a part is skipped with a message, never passed.
-* ``form_fasteners_hidden_front`` — parts with role body or door. A hole counts as on the
-  front when, placed in a top assembly (``instances.json``), its axis runs along Y and its
-  centre lies in the front (−Y) half of that assembly's bounding box: the −Y wall of an
-  enclosure, or a panel whose placement faces −Y. It cannot tell whether something in front
-  hides the hole, and it reads holes in the body and door, not the screws themselves; a
-  part not placed in any assembly is skipped (front and back cannot be told apart).
+* ``form_fasteners_hidden_front`` — parts with role body or opening (or door). A hole
+  counts as on the front when, placed in a top assembly (``instances.json``), its axis runs
+  along Y and its centre lies in the front (−Y) half of that assembly's bounding box: the
+  −Y wall of an enclosure, or a panel whose placement faces −Y. It cannot tell whether
+  something in front hides the hole, and it reads holes in the body and door, not the
+  screws themselves; a part not placed in any assembly is skipped (front and back cannot
+  be told apart).
 * ``form_controls_placement`` (a warning) — the part with role controls: its centroid,
   placed in a top assembly, against the side ``style.layout.controls`` names (left/right on
   X, front/back on Y, top/below on Z, relative to the assembly's bounding-box centre).
@@ -43,7 +45,8 @@ from napkin2factory.core.units import UnitError, parse_quantity
 from napkin2factory.rulepacks.checks import CheckFn, RuleNotApplicable, RuleSkip, Violation
 
 #: Roles whose fastener holes must not show on the front (``hidden-front``).
-FASTENER_ROLES: frozenset[str] = frozenset({"body", "door"})
+#: ``role_for`` reads an alias as its role, so a part written ``role: door`` is an opening.
+FASTENER_ROLES: frozenset[str] = frozenset({"body", "opening"})
 #: Kit generators with a declared corner rounding, and the argument that carries it.
 KIT_ROUND_ARGS: dict[str, str] = {
     "panel": "corner_radius",

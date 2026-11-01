@@ -10,12 +10,13 @@ validated before the first byte is written; a refusal writes nothing):
 2. **Parameters** — ``envelope`` numbers seed ``model/parameters.yaml`` (``owner:
    napkin``): a quantity becomes one parameter, a 3-list ``<key>-width/-depth/-height``,
    another list ``<key>-1..n``, a list of named layers ``<layer>-thickness`` (and
-   ``-clearance``); ``power`` seeds ``element-power``. A parameter already declared with
+   ``-clearance``); a field a screen declares with another parameter name seeds that name.
+   A parameter already declared with
    the same value is left alone ("already declared"); a different value refuses the whole
    promotion unless ``--override`` (then it is overwritten and listed in the decision).
-3. **Site constraints → requirements** — the alcove (width with the door-swing term,
+3. **Site constraints → requirements** — the alcove (width with the open door's term,
    depth, height), the supply circuit and a mass limit become ordinary ``req://`` rows
-   allocated to the top assembly, so DEC-011 cannot happen again.
+   allocated to the top assembly, so a product too wide for its space is caught on paper.
    3b. **Modules** (P10) — when the product has no assembly yet and the card names modules
    (``modules:``, ``module:`` on massing lines): the top assembly ``<product id>``, one empty
    stub per module and three size budgets per module (``asm://<m>#props.bbox.x|y|z``, from
@@ -47,6 +48,7 @@ from typing import Any
 
 import yaml
 
+from napkin2factory.concepts.screens import generic
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.errors import GateBlocked, N2FError
 from napkin2factory.core.model.concepts import ConceptCard, LabelledValue
@@ -57,8 +59,8 @@ from napkin2factory.rulepacks.concept_checks import circuit_headroom, parse_circ
 
 #: ``owner`` of every seeded parameter.
 SEED_OWNER = "napkin"
-#: Envelope keys that seed a parameter under another name (the kiln's names, M6 retrofit).
-PARAM_ALIASES: dict[str, str] = {"power": "element-power"}
+#: The envelope key whose seeded parameter the supply requirement bounds.
+POWER_KEY = "power"
 #: Suffixes of a three-value envelope entry.
 AXIS_SUFFIXES: tuple[str, str, str] = ("width", "depth", "height")
 #: The rule pack the form requirements point at.
@@ -315,11 +317,17 @@ def _append_items(text: str, key: str, blocks: list[str]) -> str:
 # --- step 2: parameters ---------------------------------------------------------------
 
 
-def seed_plan(card: ConceptCard, notes: list[str]) -> list[tuple[str, Any, str]]:
-    """``(parameter name, quantity, envelope source)`` for every envelope number."""
+def seed_plan(
+    card: ConceptCard, notes: list[str], renamed: dict[str, str] | None = None
+) -> list[tuple[str, Any, str]]:
+    """``(parameter name, quantity, envelope source)`` for every envelope number.
+
+    ``renamed``: envelope keys that seed under another name (:func:`cm.param_names`, as the
+    product's screens declare them).
+    """
     plan: list[tuple[str, Any, str]] = []
     for key, value in card.envelope.items():
-        base = PARAM_ALIASES.get(key, _slug(key))
+        base = (renamed or {}).get(key, _slug(key))
         if not _SLUG_RE.match(base):
             notes.append(f"envelope.{key}: not usable as a parameter name; not seeded")
             continue
@@ -376,7 +384,8 @@ def plan_parameters(
     conflicts: list[str] = []
     new_lines: list[str] = []
     plan: list[tuple[str, Any, str, str | None]] = [
-        (name, q, source, None) for name, q, source in seed_plan(card, notes)
+        (name, q, source, None)
+        for name, q, source in seed_plan(card, notes, cm.param_names(product.paths.root))
     ]
     planned_names = {item[0] for item in plan}
     plan += [item for item in door_seeds(card) if item[0] not in planned_names]
@@ -443,8 +452,8 @@ def plan_parameters(
 # --- step 3: site constraints -----------------------------------------------------------
 
 
-def _site_length(card: ConceptCard, key: str) -> Any:
-    v: Any = card.site.get(key)
+def _site_length(card: ConceptCard, field: Any) -> Any:
+    v: Any = field.raw(card)
     if is_quantity(v):
         try:
             return v.to("mm")
@@ -454,10 +463,10 @@ def _site_length(card: ConceptCard, key: str) -> Any:
 
 
 #: Parameters promotion seeds for the alcove requirements (S-085): the leaf that swings
-#: (unless the card gives ``envelope.door_width``, seeded as ``door-width``) and the room it
-#: takes beside the hinge, an expression over the leaf.
-DOOR_LEAF_PARAM = "door-leaf-width"
-DOOR_ROOM_PARAM = "door-swing-clearance"
+#: (unless the card gives ``envelope.door_width``, seeded under its own name) and the room it
+#: takes beside the hinge, an expression over the leaf. The fits-the-space screen names them.
+DOOR_LEAF_PARAM = generic.DOOR_LEAF_PARAM
+DOOR_ROOM_PARAM = generic.DOOR_ROOM_PARAM
 DOOR_ROW_TITLE = "The open door keeps to its room beside the hinge"
 _SEED_WORDS = {
     DOOR_LEAF_PARAM: ": the width of the door that swings open; write it as an expression "
@@ -533,7 +542,7 @@ def door_swing(card: ConceptCard) -> DoorSwing | None:
     leaf = _lv_quantity(sc.computed.get("door_leaf"))
     on_card = card.envelope.get("door_width")
     if is_quantity(on_card) and "door_width" in card.envelope:
-        leaf, leaf_param = on_card, "door-width"
+        leaf, leaf_param = on_card, _slug(generic.DOOR_WIDTH.key)
     if leaf is None:
         return None
     try:
@@ -557,7 +566,7 @@ def door_seeds(card: ConceptCard) -> list[tuple[str, Any, str, str | None]]:
     Only for a card with an alcove width and a hinged door that reaches past the hinge.
     """
     ds = door_swing(card)
-    if ds is None or ds.factor <= 0 or _site_length(card, "alcove_width") is None:
+    if ds is None or ds.factor <= 0 or _site_length(card, generic.SITE_WIDTH) is None:
         return []
     out: list[tuple[str, Any, str, str | None]] = []
     if ds.leaf_param == DOOR_LEAF_PARAM:
@@ -622,7 +631,7 @@ def site_requirements(
             "value": _q_text(value),
         }
 
-    width = _site_length(card, "alcove_width")
+    width = _site_length(card, generic.SITE_WIDTH)
     seeded_names = {p.name for p in seeded}
     ds = door_swing(card)
     if width is not None and ds is not None and DOOR_ROOM_PARAM in seeded_names:
@@ -703,29 +712,29 @@ def site_requirements(
                 },
             )
         )
-    for key, axis, word in (
-        ("alcove_depth", "bbox.y", "deep"),
-        ("alcove_height", "bbox.z", "tall"),
+    for site_field, axis, word in (
+        (generic.SITE_DEPTH, "bbox.y", "deep"),
+        (generic.SITE_HEIGHT, "bbox.z", "tall"),
     ):
-        limit = _site_length(card, key)
+        limit = _site_length(card, site_field)
         if limit is None:
             continue
         out.append(
             (
                 "alcove",
                 {
-                    "title": f"Fits the alcove {key.removeprefix('alcove_')}",
+                    "title": f"Fits the alcove {site_field.key}",
                     "statement": f"The assembled product is at most {_q_text(limit)} {word}.",
                     "category": "geometry",
                     "verify": geometry(axis, "<=", limit),
-                    "rationale": f"site.{key} on {card.id}.",
+                    "rationale": f"site.{site_field.written(card)} on {card.id}.",
                 },
             )
         )
     circuit = card.site.get("circuit")
     if circuit is not None:
         parsed = parse_circuit(circuit) if isinstance(circuit, str) else None
-        power = next((p for p in seeded if p.name == PARAM_ALIASES["power"]), None)
+        power = next((p for p in seeded if p.source == f"envelope.{POWER_KEY}"), None)
         if parsed is None:
             notes.append(
                 f"site.circuit {circuit!r} is not like 240V-13A: no supply requirement written"
@@ -765,7 +774,9 @@ def site_requirements(
                     },
                 )
             )
-    elif card.site.get("region") is not None and any(p.name == "element-power" for p in seeded):
+    elif card.site.get("region") is not None and any(
+        p.source == f"envelope.{POWER_KEY}" for p in seeded
+    ):
         notes.append(
             f"site.region {card.site['region']} but no site.circuit: no supply requirement "
             "written — add site.circuit (e.g. 230V-16A) once the socket is known"

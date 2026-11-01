@@ -1,11 +1,11 @@
 """The URI scheme and selector grammar (GRAND_PLAN §4.1, decision D24).
 
-``req://REQ-014``, ``param://wall-thickness``, ``part://outer-shell``, ``asm://kiln``,
-``iface://shell-frame-mount``, ``dec://DEC-031``, ``ecr://ECR-019``, ``doc://installation``,
-``calc://thermal.skin_temperature``, ``rule://sheet-metal/min-bend-radius``, ``bom://rollups``.
+``req://REQ-001``, ``param://sheet-thickness``, ``part://lid``, ``asm://enclosure``,
+``iface://lid-base-mount``, ``dec://DEC-031``, ``ecr://ECR-019``, ``doc://installation``,
+``calc://thermal.heat_loss``, ``rule://sheet-metal/min-bend-radius``, ``bom://rollups``.
 
 Selector: ``<uri>#dotted.path`` selects a field or computed property.  For parts inside an
-assembly, ``part://outer-shell#3`` selects the third instance; the grammar distinguishes
+assembly, ``part://m4x10-screw#3`` selects the third instance; the grammar distinguishes
 the two by whether the fragment is all digits.
 """
 
@@ -86,7 +86,7 @@ class Uri:
         m = _URI_RE.match(text.strip())
         if not m:
             raise UriError(
-                f"{text!r} is not a URI; expected something like part://outer-shell "
+                f"{text!r} is not a URI; expected something like part://lid "
                 f"or req://REQ-001#verify.value"
             )
         scheme, ident, fragment = m.group("scheme"), m.group("id"), m.group("fragment")
@@ -168,10 +168,10 @@ _DISPLAY_PREFIX_RE = re.compile(r"^(?:" + "|".join(SCHEMES) + r")://")
 def display_uri(uri: str, persona: str) -> str:
     """How a model URI reads in a human-facing table cell or caption for ``persona``.
 
-    The owner sees ``outer-shell`` for ``part://outer-shell`` and ``REQ-003#verify.value`` for
+    The owner sees ``lid`` for ``part://lid`` and ``REQ-003#verify.value`` for
     ``req://REQ-003#verify.value`` (the ``scheme://`` prefix dropped, any ``#selector`` kept);
     the engineer sees the full URI.  Only a leading known scheme is dropped, so free text that
-    merely starts with a URI (``asm://kiln · iso``) is shortened the same way and anything else
+    merely starts with a URI (``asm://enclosure · iso``) is shortened the same way and anything else
     passes through.  Machine outputs (JSON, ``data-uri``, anchors, GLB node names) never use this.
     """
     if persona != "owner":
@@ -188,5 +188,5 @@ def uri(scheme: str, ident: str) -> Uri:
 
 
 def slug_to_module(slug: str) -> str:
-    """``outer-shell`` → ``outer_shell`` (geometry file naming rule, §3.2)."""
+    """``m4x10-screw`` → ``m4x10_screw`` (geometry file naming rule, §3.2)."""
     return slug.replace("-", "_")

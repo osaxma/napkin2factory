@@ -40,7 +40,7 @@ def test_section3_example_validates_and_round_trips() -> None:
     assert card.id == "C-003" and card.status == "exploring" and card.based_on == "C-001"
     assert card.envelope["chamber"] == [parse_quantity("200 mm")] * 3
     assert card.envelope["insulation"] == parse_quantity("170 mm")
-    assert card.site["alcove_width"] == parse_quantity("800 mm")
+    assert card.site["width"] == parse_quantity("800 mm")  # alcove_width before v0.5 (F8)
     assert card.site["circuit"] == "240V-13A" and card.site["region"] == "SA"
     assert [m.kit for m in card.massing] == ["enclosure", "block", "frame"]
     assert card.massing[0].as_ == "body" and card.massing[1].at is not None

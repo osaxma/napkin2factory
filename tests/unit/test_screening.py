@@ -3,6 +3,10 @@
 The first test is the DEC-011 regression, the release's reason to exist: the v0.1 kiln,
 995 mm wide with its controller box, screens red on an 800 mm alcove once the open door is
 counted beside the hinge — in minute five rather than hour forty.
+
+Since v0.5 (F8, F10, S-128) the heated-box screens (thermal, supply, skin, chamber volume,
+controls) are the kiln's own (``examples/kiln/model/screens/``): these cards are screened
+with the kiln's folder as their product root, so its pack runs as it does for the kiln.
 """
 
 from __future__ import annotations
@@ -23,12 +27,16 @@ from napkin2factory.concepts.screening import (
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.model import ConceptCard, RuleRow, Screening
 from napkin2factory.core.units import parse_quantity
+from tests.conftest import EXAMPLES
 from napkin2factory.rulepacks.concept_checks import (
     concept_packs,
     parse_circuit,
     rule_params,
     run_concept_rules,
 )
+
+#: The product whose own screens (the heated box's) run on these cards.
+KILN_ROOT = EXAMPLES / "kiln"
 
 KILN: dict[str, Any] = {
     "id": "C-001",
@@ -50,7 +58,7 @@ KILN: dict[str, Any] = {
         "power": "2.5 kW",
         "max_temperature": "1200 degC",
     },
-    "site": {"alcove_width": "800 mm", "circuit": "240V-13A", "region": "SA"},
+    "site": {"width": "800 mm", "circuit": "240V-13A", "region": "SA"},
     "massing": [
         # guard-sized body; with the controller box beside it the kiln is 995 mm wide
         {
@@ -100,7 +108,7 @@ SMALL: dict[str, Any] = {
     "title": "Compact",
     "layout": {"load": "front", "door": "hinged-right", "controls": "front-below"},
     "envelope": {"chamber": ["150 mm", "150 mm", "150 mm"], "insulation": "100 mm"},
-    "site": {"alcove_width": "800 mm", "region": "EU"},
+    "site": {"width": "800 mm", "region": "EU"},
     "massing": [
         {
             "kit": "enclosure",
@@ -143,7 +151,7 @@ def _without(base: dict[str, Any], section: str, key: str, **changes: Any) -> Co
 
 
 def _screen(card: ConceptCard) -> Screening:
-    return screen(card, compose(card, write=False))
+    return screen(card, compose(card, write=False), KILN_ROOT)
 
 
 def _rule(s: Screening, rid: str) -> RuleRow:
@@ -196,7 +204,7 @@ def test_kiln_like_card_screens_red_on_the_alcove_with_door_swing(kiln: Screenin
     assert kiln.given["power"].source == "on the card"
     assert kiln.given["power"].ref == "envelope.power"
 
-    wide = _screen(_card(KILN, site={"alcove_width": "1300 mm"}))
+    wide = _screen(_card(KILN, site={"width": "1300 mm"}))
     assert _rule(wide, "fits-site-width").status == "pass"
     assert "1245 mm with the door open" in _rule(wide, "fits-site-width").message
 
@@ -218,7 +226,7 @@ def test_seven_hour_plan_needs_about_two_kilowatts() -> None:
 def test_door_swing_term_sources() -> None:
     no_door = copy.deepcopy(KILN)
     no_door["massing"] = [m for m in no_door["massing"] if m["as"] != "door"]
-    s = _screen(_card(no_door, site={"alcove_width": "1000 mm"}))
+    s = _screen(_card(no_door, site={"width": "1000 mm"}))
     row = _rule(s, "fits-site-width")
     assert row.status == "pass" and "+ 0 mm" in row.message
     assert "not counted" in s.computed["footprint_with_door_swing"].source
@@ -226,17 +234,17 @@ def test_door_swing_term_sources() -> None:
     s = _screen(declared)
     assert "the 300 mm door (its width on the card)" in _rule(s, "fits-site-width").message
     assert s.computed["door_leaf"].ref == "envelope.door_width"
-    sliding = _screen(_card(KILN, layout={"door": "sliding"}, site={"alcove_width": "1000 mm"}))
+    sliding = _screen(_card(KILN, layout={"door": "sliding"}, site={"width": "1000 mm"}))
     assert _rule(sliding, "fits-site-width").status == "pass"
 
 
 def test_fits_site_depth_and_height(kiln: Screening) -> None:
     assert _rule(kiln, "fits-site-depth").status == "skip"
-    tight = _screen(_card(KILN, site={"alcove_depth": "500 mm", "alcove_height": "1000 mm"}))
+    tight = _screen(_card(KILN, site={"depth": "500 mm", "height": "1000 mm"}))
     assert _rule(tight, "fits-site-depth").status == "fail"
     assert "656 mm deep but the alcove is 500 mm deep" in _rule(tight, "fits-site-depth").message
     assert _rule(tight, "fits-site-height").status == "fail"
-    roomy = _screen(_card(KILN, site={"alcove_depth": "700 mm", "alcove_height": "1400 mm"}))
+    roomy = _screen(_card(KILN, site={"depth": "700 mm", "height": "1400 mm"}))
     assert _rule(roomy, "fits-site-depth").status == "pass"
     assert _rule(roomy, "fits-site-height").status == "pass"
 

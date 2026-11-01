@@ -6,8 +6,8 @@ Two notions of "the lowest assembly containing both parties" live here, on purpo
   parts include both, with no sub-assembly that also includes both.  Alignment is checked
   where the two parts actually meet.
 - :meth:`AssemblyTree.port_crossings` (P4): starts from each part's *home* (P5), the lowest
-  assembly containing all its occurrences.  A bolt used in the door and in the kiln has its
-  home at the kiln, so a joint naming it is a port of the door.
+  assembly containing all its occurrences.  A bolt used in the door and in the top assembly
+  has its home at the top, so a joint naming it is a port of the door.
 
 Both take the assembly YAML only (no build), so the loader can use them.  M4 reuses
 :meth:`AssemblyTree.home` for parameter reach (P5).

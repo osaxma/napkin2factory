@@ -51,6 +51,8 @@ def fresh(tmp_path_factory: pytest.TempPathFactory) -> Path:
     assert r.returncode == 0, r.stderr
     assert not list((root / "model" / "assemblies").glob("*.yaml"))
     shutil.copytree(CARDS, root / "concepts", dirs_exist_ok=True)
+    # the kiln-like card is screened and seeded with the kiln's own screens (F8, F10)
+    shutil.copytree(EXAMPLES / "kiln" / "model" / "screens", root / "model" / "screens")
     done, errors = build_concepts(root, list(cm.load_concepts(root).values()), render=False)
     assert errors == [] and len(done) == 1
     return root

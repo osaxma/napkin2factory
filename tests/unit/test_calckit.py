@@ -460,7 +460,12 @@ def test_kiln_body_directly_through_calckit(kiln):
 
 def test_one_row_per_material_for_screening_and_massing():
     """Review gate A, C4: screening's layer defaults and the massing densities agree."""
-    from napkin2factory.concepts.screening import FIBER_BOARD, LAYER_MATERIALS
+    from napkin2factory.core.packs import load_module
+
+    # the layer defaults are the kiln's own screens' since v0.5 (F8, F10)
+    heated = EXAMPLES / "kiln" / "model" / "screens" / "heated_enclosure.py"
+    pack = load_module(heated, "screens")
+    FIBER_BOARD, LAYER_MATERIALS = pack.FIBER_BOARD, pack.LAYER_MATERIALS  # noqa: N806
     from napkin2factory.geometry.materials import density_kg_m3
 
     rows = {r["name"]: r for r in load_table("materials")}

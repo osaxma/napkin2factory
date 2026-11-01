@@ -4,8 +4,8 @@
 preset: appliance
 palette:
   body: '#efede8'
-  door: '#e6e3dc'
-  stand: '#3a3e42'
+  opening: '#e6e3dc'
+  support: '#3a3e42'
   controls: '#3a3e42'
   trim: '#b9bdc1'
   lining: '#d8d1c4'
@@ -13,8 +13,8 @@ palette:
   default: '#d9d7d2'
 finish:
   body: painted
-  door: painted
-  stand: powder-coat
+  opening: painted
+  support: powder-coat
   controls: plastic
   trim: brushed-steel
   lining: ceramic

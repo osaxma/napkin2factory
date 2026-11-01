@@ -1,7 +1,9 @@
 """style.yaml schema (decision N7): the product's look, seeded by ``n2f init``.
 
-Colours and finishes are keyed by **part role**, a small closed vocabulary (``body``,
-``door``, ``stand``, ``controls``, ``trim``, ``lining``, ``fastener``, ``default``).  Three
+Colours and finishes are keyed by **part role**, a table of neutral words
+(``core/data/style_roles.yaml``: ``body``, ``opening``, ``support``, ``controls``, ``trim``,
+``lining``, ``fastener``, ``default``; F6, F9).  The earlier words ``door`` and ``stand`` are
+read as aliases of ``opening`` and ``support`` for one version (F16).  Three
 presets are plain data (:data:`PRESETS`); :meth:`StyleFile.resolved` fills whatever the file
 leaves out from its preset.  The kit's aesthetic parameters read the shape cues
 (``radius_scale``, ``corner_radius``, ``chamfer``, ``reveal``, ``overhang``,
@@ -12,7 +14,9 @@ leaves out from its preset.  The kit's aesthetic parameters read the shape cues
 from __future__ import annotations
 
 import re
-from typing import Annotated, Any, Literal, get_args
+from functools import lru_cache
+from pathlib import Path
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, field_validator, model_validator
 
@@ -20,7 +24,39 @@ from napkin2factory.core.model.base import Model, Quantity, table_check
 
 StylePreset = Literal["industrial", "appliance", "lab"]
 FastenerVisibility = Literal["visible", "hidden-front", "hidden"]
-StyleRole = Literal["body", "door", "stand", "controls", "trim", "lining", "fastener", "default"]
+
+
+@lru_cache(maxsize=1)
+def _roles_table() -> tuple[dict[str, Any], ...]:
+    """``core/data/style_roles.yaml`` (F6): the roles, their words, aliases and opt-in flag."""
+    import yaml
+
+    path = Path(__file__).resolve().parents[1] / "data" / "style_roles.yaml"
+    return tuple(yaml.safe_load(path.read_text(encoding="utf-8")))
+
+
+#: Every role, in display order (the table's).
+STYLE_ROLES: tuple[str, ...] = tuple(str(r["id"]) for r in _roles_table())
+#: An earlier role word → the role it is read as, for one version (F16, S-128).
+ROLE_ALIASES: dict[str, str] = {
+    str(alias): str(r["id"]) for r in _roles_table() for alias in r.get("aliases") or ()
+}
+#: Each role in the owner's words.
+ROLE_WORDS: dict[str, str] = {str(r["id"]): str(r["words"]) for r in _roles_table()}
+
+
+def canonical_role(name: str) -> str:
+    """The role a word stands for: ``door`` → ``opening``; a role is itself."""
+    return ROLE_ALIASES.get(name, name)
+
+
+def _role_names() -> list[str]:
+    return [*STYLE_ROLES, *ROLE_ALIASES]
+
+
+#: A styling role: a word of the table or one of its aliases, kept as written (a part's
+#: ``role: door`` reads, and hashes, as before); :func:`canonical_role` resolves it.
+StyleRole = Annotated[str, table_check("style role", _role_names)]
 
 
 def _finishes() -> dict[str, dict[str, float]]:
@@ -33,11 +69,13 @@ def _finishes() -> dict[str, dict[str, float]]:
 FinishName = Annotated[str, table_check("finish", _finishes)]
 VentPattern = Literal["slots", "holes"]
 
-#: Every role, in display order.
-STYLE_ROLES: tuple[str, ...] = get_args(StyleRole)
 #: Roles whose parts take style-sourced geometry defaults (the opt-in rule): a part with no
 #: role, or role ``lining``/``fastener``/``default``, builds exactly as without a style.
-STYLED_ROLES: frozenset[str] = frozenset({"body", "door", "stand", "controls", "trim"})
+#: The aliases are members too, so a part written ``role: door`` builds as it did.
+_STYLED = {str(r["id"]) for r in _roles_table() if r.get("styled")}
+STYLED_ROLES: frozenset[str] = frozenset(
+    _STYLED | {alias for alias, role in ROLE_ALIASES.items() if role in _STYLED}
+)
 
 
 def __getattr__(name: str) -> Any:
@@ -57,8 +95,8 @@ PRESETS: dict[str, dict[str, Any]] = {
     "industrial": {
         "palette": {
             "body": "#4b5157",
-            "door": "#3f444a",
-            "stand": "#2b2e32",
+            "opening": "#3f444a",
+            "support": "#2b2e32",
             "controls": "#e07a2e",
             "trim": "#8c9196",
             "lining": "#cfc6b6",
@@ -67,8 +105,8 @@ PRESETS: dict[str, dict[str, Any]] = {
         },
         "finish": {
             "body": "powder-coat",
-            "door": "powder-coat",
-            "stand": "powder-coat",
+            "opening": "powder-coat",
+            "support": "powder-coat",
             "controls": "plastic",
             "trim": "brushed-steel",
             "lining": "ceramic",
@@ -88,8 +126,8 @@ PRESETS: dict[str, dict[str, Any]] = {
     "appliance": {
         "palette": {
             "body": "#efede8",
-            "door": "#e6e3dc",
-            "stand": "#3a3e42",
+            "opening": "#e6e3dc",
+            "support": "#3a3e42",
             "controls": "#3a3e42",
             "trim": "#b9bdc1",
             "lining": "#d8d1c4",
@@ -98,8 +136,8 @@ PRESETS: dict[str, dict[str, Any]] = {
         },
         "finish": {
             "body": "painted",
-            "door": "painted",
-            "stand": "powder-coat",
+            "opening": "painted",
+            "support": "powder-coat",
             "controls": "plastic",
             "trim": "brushed-steel",
             "lining": "ceramic",
@@ -119,8 +157,8 @@ PRESETS: dict[str, dict[str, Any]] = {
     "lab": {
         "palette": {
             "body": "#d4d8dc",
-            "door": "#c9ced3",
-            "stand": "#8e959c",
+            "opening": "#c9ced3",
+            "support": "#8e959c",
             "controls": "#2f6db5",
             "trim": "#aab1b8",
             "lining": "#d8d1c4",
@@ -129,8 +167,8 @@ PRESETS: dict[str, dict[str, Any]] = {
         },
         "finish": {
             "body": "painted",
-            "door": "painted",
-            "stand": "painted",
+            "opening": "painted",
+            "support": "painted",
             "controls": "plastic",
             "trim": "anodized",
             "lining": "ceramic",
@@ -183,7 +221,15 @@ class StyleFile(Model):
     @field_validator("palette")
     @classmethod
     def _palette_hex(cls, v: dict[str, str]) -> dict[str, str]:
-        return {role: _check_hex(colour, f"palette.{role}") for role, colour in v.items()}
+        return {
+            canonical_role(role): _check_hex(colour, f"palette.{role}")
+            for role, colour in v.items()
+        }
+
+    @field_validator("finish")
+    @classmethod
+    def _finish_roles(cls, v: dict[str, str]) -> dict[str, str]:
+        return {canonical_role(role): finish for role, finish in v.items()}
 
     @field_validator("accent")
     @classmethod
@@ -240,17 +286,22 @@ def role_for(obj: Any) -> str:
     """The styling role of a :class:`Part` or :class:`MassingCall`.
 
     The explicit ``role`` when set; else its ``as`` name (a massing call) or id (a part)
-    when that is a role word (``body``, ``door``…); else ``default``.
+    when that is a role word (``body``, ``opening``…) or an alias of one; else ``default``.
+    Always the table's word: an alias (``door``) reads as its role (``opening``).
     """
     role = getattr(obj, "role", None)
     if role:
-        return str(role)
+        return canonical_role(str(role))
     name = getattr(obj, "as_", None) or getattr(obj, "id", None)
-    return str(name) if name in STYLE_ROLES else "default"
+    if name in STYLE_ROLES or name in ROLE_ALIASES:
+        return canonical_role(str(name))
+    return "default"
 
 
 __all__ = [
     "PRESETS",
+    "ROLE_ALIASES",
+    "ROLE_WORDS",
     "STYLED_ROLES",
     "STYLE_ROLES",
     "FastenerVisibility",
@@ -259,5 +310,6 @@ __all__ = [
     "StylePreset",
     "StyleRole",
     "VentPattern",
+    "canonical_role",
     "role_for",
 ]

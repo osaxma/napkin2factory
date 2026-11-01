@@ -14,12 +14,13 @@ import pytest
 
 from napkin2factory.concepts.screening import keep_unchanged_at, same_screening
 from napkin2factory.core.model import Screening
-from napkin2factory.rulepacks.concept_checks import (
-    concept_packs,
-    swing_factor,
-    touch_limit_default,
-)
-from tests.unit.test_screening import KILN, SMALL, _card, _q, _rule, _screen
+from napkin2factory.core.packs import load_module
+from napkin2factory.rulepacks.concept_checks import swing_factor
+from tests.unit.test_screening import KILN, KILN_ROOT, SMALL, _card, _q, _rule, _screen
+
+#: The kiln's own screens (F10): the skin and chamber-volume advisories live there.
+HEATED = load_module(KILN_ROOT / "model" / "screens" / "heated_enclosure.py", "screens")
+touch_limit_default = HEATED.touch_limit_default
 
 # --- B-0029: the door's opening angle --------------------------------------------------
 
@@ -63,7 +64,7 @@ def test_an_unreadable_angle_keeps_the_widest_case() -> None:
 
 
 def test_the_new_rules_are_warnings() -> None:
-    rules = {r["id"]: r for p in concept_packs() for r in p.rules}
+    rules = HEATED.RULES
     assert rules["skin-vs-touch-limit"]["severity"] == "warn"
     assert rules["chamber-volume-vs-target"]["severity"] == "warn"
 
@@ -158,7 +159,7 @@ def test_an_unchanged_screen_keeps_its_timestamp(tmp_path: Path) -> None:
     again = _screen(card)
     assert same_screening(first, again)
     assert keep_unchanged_at(first, again) and again.at == first.at
-    changed = _screen(_card(SMALL, site={"alcove_width": "700 mm"}))
+    changed = _screen(_card(SMALL, site={"width": "700 mm"}))
     assert not same_screening(first, changed)
     stamp = changed.at
     assert not keep_unchanged_at(first, changed) and changed.at == stamp

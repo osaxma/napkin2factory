@@ -29,7 +29,7 @@ envelope:
 # an alcove the owner has NOT confirmed (DEC-011): 1.75 m, picked when screening still counted
 # the leaf swung fully back (1698 mm); at the door's 110 degrees it needs about 1.24 m (see the
 # notes); 230 V on a dedicated 16 A circuit (DEC-006)
-site: {alcove_width: 1750 mm, circuit: 230V-16A, touch_limit: 60 degC}
+site: {width: 1750 mm, circuit: 230V-16A, touch_limit: 60 degC}
 # the appliance look; corner radius and fasteners as the kiln is built (see the notes)
 style: {preset: appliance, corner_radius: 1 mm, fastener_visibility: visible}
 # modules (v0.4): the units the kiln is built from and why. The door is built as one unit

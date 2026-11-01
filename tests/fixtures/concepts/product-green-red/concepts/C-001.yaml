@@ -16,7 +16,7 @@ envelope:
     - {name: shell, thickness: 1.2 mm, clearance: 2 mm}
   power: 2.5 kW
   max_temperature: 1200 degC
-site: {alcove_width: 800 mm, circuit: 240V-13A, region: SA}
+site: {width: 800 mm, circuit: 240V-13A, region: SA}
 style: {}
 # massing: guard-sized body with the controller box beside it (995 mm overall), the door
 # leaf, and the stand

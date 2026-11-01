@@ -103,14 +103,16 @@ def test_industrial_shape_cues_are_no_ops() -> None:
 
 
 def test_role_for_and_opt_in_roles() -> None:
-    assert STYLED_ROLES == {"body", "door", "stand", "controls", "trim"}
-    assert role_for(MassingCall.model_validate({"kit": "block", "as": "door"})) == "door"
+    # neutral role words; door and stand are read as opening and support (F9, F16)
+    styled = {"body", "opening", "support", "controls", "trim"}
+    assert STYLED_ROLES == styled | {"door", "stand"}
+    assert role_for(MassingCall.model_validate({"kit": "block", "as": "door"})) == "opening"
     assert role_for(MassingCall.model_validate({"kit": "block", "as": "lid"})) == "default"
     call = MassingCall.model_validate({"kit": "block", "as": "lid", "role": "trim"})
     assert role_for(call) == "trim"
     part = Part.model_validate({"id": "outer-shell", "name": "Shell", "role": "body"})
     assert role_for(part) == "body"
-    assert role_for(Part.model_validate({"id": "stand", "name": "Stand"})) == "stand"
+    assert role_for(Part.model_validate({"id": "stand", "name": "Stand"})) == "support"
     assert role_for(Part.model_validate({"id": "brick", "name": "Brick"})) == "default"
     with pytest.raises(ValidationError):
         Part.model_validate({"id": "x", "name": "X", "role": "chassis"})
@@ -134,7 +136,7 @@ def test_card_style_lays_over_the_product_style() -> None:
     product = StyleFile.model_validate({"preset": "industrial", "palette": {"body": "#111111"}})
     product = product.resolved()
     same, notes = merge_card_style(product, {"palette": {"door": "#222222"}, "flair": 1})
-    assert same.palette["body"] == "#111111" and same.palette["door"] == "#222222"
+    assert same.palette["body"] == "#111111" and same.palette["opening"] == "#222222"
     assert notes == ["card style keys not used: flair"]
     other, _ = merge_card_style(product, {"preset": "appliance", "corner_radius": "8 mm"})
     assert other.palette["body"] == PRESETS["appliance"]["palette"]["body"]

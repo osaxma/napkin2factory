@@ -5,15 +5,18 @@ Before, screening fed it to the calc kit and stopped with a unit traceback.
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
 
 from napkin2factory.core import concepts as cm
-from tests.unit.test_screening import KILN, _card, _screen
+from tests.unit.test_screening import KILN, KILN_ROOT, _card, _screen
 
 
 def test_lint_names_the_number_and_the_kind_it_should_be(tmp_path: Path) -> None:
+    # the power and the touch limit are read by the kiln's own screens (F8, F10)
+    shutil.copytree(KILN_ROOT / "model" / "screens", tmp_path / "model" / "screens")
     d = tmp_path / "concepts"
     d.mkdir()
     (d / "C-001.yaml").write_text(
@@ -68,6 +71,6 @@ def test_screening_leaves_a_wrong_power_out_with_a_note(power: str) -> None:
 
 
 def test_screening_skips_a_wrong_alcove_instead_of_failing() -> None:
-    s = _screen(_card(KILN, site={"alcove_width": "3 kg"}))
+    s = _screen(_card(KILN, site={"width": "3 kg"}))
     assert {r.id: r.status for r in s.rules}["fits-site-width"] == "skip"
     assert any(n.startswith("the alcove width on the card (3 kg) is not a length") for n in s.notes)

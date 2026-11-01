@@ -1,0 +1,13 @@
+# Styling roles a part or a rough shape may take (F6, F9, S-128): what `style.yaml` keys its
+# colours and finishes by. Neutral words, so no product's nouns become the schema; `aliases`
+# are earlier words still read for one version (F16) and shown as the role they stand for.
+# `styled: true` roles take the style's shape cues (corner radius, reveal, ...) when a part
+# names one explicitly (the opt-in rule, N7); the others only take a colour and a finish.
+- {id: body, words: the main body, styled: true}
+- {id: opening, words: a door, lid or hatch, styled: true, aliases: [door]}
+- {id: support, words: a stand, legs or feet, styled: true, aliases: [stand]}
+- {id: controls, words: controls and displays, styled: true}
+- {id: trim, words: trim and small visible parts, styled: true}
+- {id: lining, words: an inner lining}
+- {id: fastener, words: visible fasteners}
+- {id: default, words: anything without a role}

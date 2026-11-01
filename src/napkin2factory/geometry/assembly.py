@@ -191,7 +191,7 @@ def place_by(
         res: the assembly result holding the placed party.
         iface_id: the interface id (without ``iface://``).
         uri: the part to place (one of the parties), or the sub-assembly holding one.
-        built: the built part or sub-assembly (``parts["hinge-post"]``, ``parts["door"]``).
+        built: the built part or sub-assembly (``parts["lid"]``, ``parts["door"]``).
         onto: the label of the occurrence to place onto, when the other party is placed
             more than once; inside a placed sub-assembly, either its label or the leaf's.
         label: this occurrence's label.

@@ -27,7 +27,7 @@ envelope:
   power: 2500 W
   door_swing: 110 degree
 # the same unconfirmed 1.75 m alcove as C-003 (DEC-011); 230 V on a 16 A circuit (DEC-006)
-site: {alcove_width: 1750 mm, circuit: 230V-16A, touch_limit: 60 degC}
+site: {width: 1750 mm, circuit: 230V-16A, touch_limit: 60 degC}
 style: {preset: industrial}
 # modules (v0.4): the units the kiln is built from and why. The door is built as one unit
 # (assembly.md section 5); the controls are fitted and wired by an electrician, another trade
