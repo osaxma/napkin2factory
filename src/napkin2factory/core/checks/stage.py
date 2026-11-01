@@ -17,7 +17,9 @@ out: it still needs its sign-off and still blocks a release.
 Choices (F12): an open choice never blocks by itself; it blocks the gate its ``blocks`` names
 (``design``, ``verify`` or ``release``; ``none`` holds nothing) until ``n2f decide`` records
 the pick, one blocker per choice in owner words ("a choice is waiting on you: …").  A decided
-choice the model does not show yet is a Design caveat ("decided in DEC-x …, not yet applied").
+choice the model does not show yet is a Design caveat ("decided in DEC-x …, not yet in the
+design") and, unless it holds nothing, a blocker of the release (S-139).  While the first open
+gate has only caveats, "Next:" names the choice that holds a later gate (gate F, concern 14).
 
 Example sign-offs (``example: true``) are *caveats*, not blockers: they keep the Verify gate
 open and the stage at ``verify``, but they do not stop a demonstration release
@@ -410,12 +412,14 @@ def compute_stage(
             design_blockers.append(f"{asm.name}: not built yet — run `n2f build`")
     if not product.parts:
         design_blockers.append("no parts yet — next, the designer gives each module its parts")
-    from napkin2factory.core.checks.choices import choice_blockers, unapplied_caveats
+    from napkin2factory.core.checks.choices import WAITING, choice_blockers, unapplied_caveats
 
     held = choice_blockers(build_dir)  # F12: an open choice holds the gate it names
+    held_all = {b for bs in held.values() for b in bs}
     design_blockers += held.get("design", [])
     design_rows, design_caveats = _domain_rows(product, build_dir, "design", design_blockers)
-    # a decided choice the model does not show yet keeps the gate open, never blocked (S-133)
+    # a decided choice the model does not show yet keeps the gate open (S-133); the release
+    # is what it blocks (S-139, in `held["released"]`)
     design_caveats += unapplied_caveats(build_dir)
     waiting = later_requirements(product)
     for domain in waiting:  # F11: a later domain's design rows are left out, and said so
@@ -538,11 +542,16 @@ def compute_stage(
             stage = name
         else:
             break
-    first_open = next((g for g in gates if not g.ok), None)
-    if first_open is None:
+    open_at = next((i for i, g in enumerate(gates) if not g.ok), None)
+    first_open = gates[open_at] if open_at is not None else None
+    if first_open is None or open_at is None:
         next_step = "send the Revision to the manufacturer"
     elif first_open.blockers:
         next_step = first_open.blockers[0]
+    elif held_later := [b for g in gates[open_at + 1 :] for b in g.blockers if b in held_all]:
+        # only caveats here (example sign-offs, a pick to make): the owner's choice that
+        # holds a later gate comes first, or the release refuses on it (gate F, concern 14)
+        next_step = sorted(held_later, key=lambda b: not b.startswith(WAITING))[0]
     elif first_open.caveats:
         next_step = first_open.caveats[0]
     else:
