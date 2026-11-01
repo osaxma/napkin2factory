@@ -2,7 +2,8 @@
 
 Checks are looked up in :data:`~napkin2factory.rulepacks.checks.CHECKS` and the form pack's
 :data:`~napkin2factory.rulepacks.form_checks.FORM_CHECKS`.  A check that raises
-``RuleNotApplicable`` writes no row for that part; ``RuleSkip`` writes a ``skip`` row.
+``RuleNotApplicable`` writes no row for that part or assembly; ``RuleSkip`` writes a
+``skip`` row.
 ``features`` carries two private keys for the checks: ``_has_flat_pattern`` and
 ``_build_dir`` (where assembly placements are read).
 """
@@ -202,7 +203,10 @@ def _assembly_rows(
                         )
                     )
                     continue
-                violations = fn(asm, dict(rule.get("params") or {}), product)
+                try:
+                    violations = fn(asm, dict(rule.get("params") or {}), product)
+                except RuleNotApplicable:  # e.g. a stub supplied whole (S-129): no row
+                    continue
                 status = str(rule.get("severity", "fail")) if violations else "pass"
                 message = (
                     "; ".join(_fmt(str(rule.get("message", rule["id"])), v) for v in violations)
