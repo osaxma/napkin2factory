@@ -26,6 +26,7 @@ from napkin2factory.concepts.screenshot import (
     layout_marks,
     styled_page,
     styled_screenshots,
+    transient_gl_error,
 )
 from napkin2factory.core.model.concepts import ConceptCard
 from napkin2factory.core.model.style import StyleFile
@@ -170,17 +171,27 @@ def test_blank_capture_detection() -> None:
 
 
 class _FakePage:
-    """A browser page whose snapshots come from a script: one entry per page load."""
+    """A browser page whose snapshots come from a script: one entry per page load.
 
-    def __init__(self, loads: list[bool]) -> None:
+    ``errors`` gives, per load, a page error the viewer raises instead of loading.
+    """
+
+    def __init__(self, loads: list[bool], errors: list[str | None] | None = None) -> None:
         self.loads = loads
+        self.errors = errors or []
         self.goto_count = 0
+        self.session: ScreenshotSession | None = None
 
     def goto(self, url: str) -> None:
         self.goto_count += 1
 
     def evaluate(self, expr: str, arg: Any = None) -> Any:
         if "n2fMarksReady" in expr:
+            i = self.goto_count - 1
+            error = self.errors[i] if i < len(self.errors) else None
+            if error is not None and self.session is not None:
+                self.session._errors.append(error)
+                return False
             return True
         picture = self.loads[min(self.goto_count, len(self.loads)) - 1]
         return "data:image/png;base64," + base64.b64encode(_png(picture)).decode()
@@ -190,6 +201,7 @@ def _session(fake: _FakePage) -> ScreenshotSession:
     session = ScreenshotSession()
     session._started = True
     session._page = fake
+    fake.session = session
     return session
 
 
@@ -228,6 +240,30 @@ def test_two_blank_captures_fall_back_with_a_note(
         "twice): showing correctness renders [revisit]"
     ]
     assert "blank" in capsys.readouterr().err
+
+
+SHADER_ERROR = "THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false"
+
+
+def test_a_shader_error_under_load_is_rendered_once_more(tmp_path: Path) -> None:
+    fake = _FakePage([True, True], errors=[SHADER_ERROR, None])
+    result = _shoot(tmp_path, fake)
+    assert result.method == "viewer" and result.retried and fake.goto_count == 2
+
+
+def test_a_second_shader_error_falls_back(tmp_path: Path) -> None:
+    fake = _FakePage([True, True], errors=[SHADER_ERROR, SHADER_ERROR])
+    result = _shoot(tmp_path, fake)
+    assert result.method == "zbuffer-fallback" and fake.goto_count == 2
+    assert "Shader Error" in result.notes[0]
+
+
+def test_other_viewer_errors_are_not_retried(tmp_path: Path) -> None:
+    fake = _FakePage([True, True], errors=["ReferenceError: n2fViewer is not defined"])
+    result = _shoot(tmp_path, fake)
+    assert result.method == "zbuffer-fallback" and fake.goto_count == 1
+    assert not transient_gl_error("ReferenceError: n2fViewer is not defined")
+    assert transient_gl_error(SHADER_ERROR)
 
 
 # ---- in the browser ---------------------------------------------------------------------
