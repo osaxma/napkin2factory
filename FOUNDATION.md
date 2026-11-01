@@ -296,8 +296,8 @@ Budgets are guesses; record the actual times in the decision entries. Every mile
 files it owns. A task edits only its owned files plus the three journals and the docs it names;
 if it must touch another milestone's file, it stops and says so in its WIP commit.
 
-**Prerequisite:** B-0073 (platform-stable evidence keys) is fixed and the nightly `check-full`
-is green on Linux before M0 starts. It is its own task, outside the waves: `evidence.py` keys a
+**Prerequisite:** B-0073 (platform-stable evidence keys) is fixed (S-121); the nightly
+`check-full` must be green on Linux before M0 starts. It is its own task, outside the waves: `evidence.py` keys a
 part on tolerance-compared invariants (volume, area, bounding box, the feature list; D14) instead
 of the mesh, and the three examples' sign-offs are re-keyed once.
 

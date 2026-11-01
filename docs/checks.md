@@ -19,7 +19,10 @@ and prints the matrix. Exit code 2 when any row is `fail`.
 
 Safety ladder (S-026): computed `fail` → fail; `safety: true` → `needs-human` until a valid
 sign-off → `signed`; non-safety `manual` → `needs-human` → `pass` with a sign-off; a
-sign-off is valid while every evidence key it recorded is unchanged (D25).
+sign-off is valid while every evidence key it recorded is unchanged (D25). A part's key is its
+geometric invariants (volume, area, bounding box, centroid, counts, features), compared
+within a tolerance, never its mesh: the same part keyed on another computer still matches
+(S-121).
 
 A sign-off flagged `example: true` (the example products ship with them; `n2f signoff
 --example`) keeps its row `signed` and labelled "EXAMPLE SIGN-OFF, NOT A REVIEW", but it

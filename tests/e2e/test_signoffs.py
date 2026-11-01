@@ -145,3 +145,56 @@ def test_signoff_binds_parts_without_geometry(tmp_path: Path) -> None:
     # … a change to the part's record voids it
     screw.write_text(screw.read_text().replace("unit: 0.12 USD", "unit: 0.15 USD"))
     assert _result(_checks(root), "req://REQ-009")["status"] == "needs-human"
+
+
+def test_signoff_survives_a_build_on_another_machine(tmp_path: Path) -> None:
+    """A part's key is its invariants within a tolerance, not its mesh (S-121, B-0073).
+
+    The kernel meshes the same part differently on Linux and macOS; here the mesh hash is
+    rewritten by hand to stand in for the other machine.  The v0.3/v0.4 hash is still accepted.
+    """
+    import json
+
+    from napkin2factory.core.checks.evidence import legacy_keys
+
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=True)
+    assert _result(_checks(root), "req://REQ-004")["status"] == "needs-human"
+    r = n2f("signoff", "REQ-004", "--by", "Tester", "--statement", "Edges checked.", cwd=root)
+    assert r.returncode == 0, r.stderr
+    so_path = root / "model/signoffs/REQ-004.yaml"
+    so = yaml.safe_load(so_path.read_text())
+    assert so["evidence_keys"]["part://base"].startswith("inv:")
+    assert _result(_checks(root), "req://REQ-004")["status"] == "signed"
+
+    # a sign-off recorded before S-121 carries the old hash: still valid
+    old = legacy_keys(load_product(root), root / "build", "part://base")
+    assert len(old) == 1 and old[0].startswith("sha256:")
+    so["evidence_keys"]["part://base"] = old[0]
+    so_path.write_text(yaml.safe_dump(so, sort_keys=False))
+    assert _result(_checks(root), "req://REQ-004")["status"] == "signed"
+    # re-sign so the file carries the new key again
+    r = n2f("signoff", "REQ-004", "--by", "Tester", "--statement", "Edges checked again.", cwd=root)
+    assert r.returncode == 0, r.stderr
+
+    # the other machine: a different mesh, float noise on the integrals, the same part.  The
+    # build re-verifies its outputs (S-029) and would restore props.json, so the sign-off state
+    # is evaluated directly on the edited build.
+    from napkin2factory.core.checks.evaluators import EvalContext, _signoff_state
+
+    product = load_product(root)
+    req = product.requirements["REQ-004"]
+    props_path = root / "build/parts/base/props.json"
+    props = json.loads(props_path.read_text())
+    props["tess_hash"] = "sha256:the-other-machine"
+    props["volume"] = props["volume"] * (1 + 1e-10)
+    props["area"] = props["area"] * (1 - 1e-10)
+    props_path.write_text(json.dumps(props))
+    _, valid, why = _signoff_state(EvalContext(product, root / "build"), req, {})
+    assert valid, why
+
+    # a real change to the part voids it
+    props["volume"] = props["volume"] * 1.01
+    props_path.write_text(json.dumps(props))
+    _, valid, why = _signoff_state(EvalContext(product, root / "build"), req, {})
+    assert not valid
+    assert why == "evidence changed since signing: part://base"

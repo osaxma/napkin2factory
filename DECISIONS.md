@@ -54,7 +54,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-037 | "Unused parameter → nothing rebuilds" holds for artifacts, not for the report | in force |
 | S-038 | Release bundle and frozen site data | in force |
 | S-039 | Diff overlays rescale to the newer drawing | in force |
-| S-040 | Sign-off evidence for parts is geometry, not the manifest hash | amended by S-050, S-069 |
+| S-040 | Sign-off evidence for parts is geometry, not the manifest hash | amended by S-050, S-069; keyed on invariants since S-121 |
 | S-041 | `n2f check` never changes render state | in force |
 | Gate 2 | Review gate 2 (UX) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-042 | EXAMPLE sign-offs are visible everywhere and gate releases | in force |
@@ -143,6 +143,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | Gate D | Review gate D (UX, owner persona) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | S-119 | v0.4 closed: version 0.4.0, product pins `>=0.4,<0.5`, handoff report | in force |
 | S-120 | The v0.5 and v0.6 plans reconciled with what v0.4 shipped; the Linux evidence-key defect opened as B-0073 | in force |
+| S-121 | Sign-off evidence keys are tolerance-compared invariants, not the mesh (closes B-0073) | in force |
 
 ---
 
@@ -612,3 +613,16 @@ Changed in the plans: the registries carry what v0.4 added (a tenth rule kind, `
 10 min 8 s, not 10 min; M6's budget grows with `promote.py` (1,299 → 1,647 lines). Opened B-0073:
 the first Linux nightly failed on four kiln example sign-offs because a part's evidence key hashes
 the mesh; fixing it (invariants, D14) is a prerequisite of v0.5 M0, outside the waves.
+## S-121 — Sign-off evidence keys are tolerance-compared invariants, not the mesh (2026-11-01)
+Amends S-040; closes B-0073. The first Linux nightly `check-full` (run on S-105) failed four kiln
+example sign-offs: a part's key hashed its tessellation, and the kernel meshes bent sheet
+differently on Linux and macOS, so a sign-off recorded on one machine was void on the other.
+A part now keys as `inv:` plus volume, area, bounding box, centroid, face/edge/solid counts and
+its features rounded to 1 µm; an assembly as `inv:` plus placements rounded to 0.1 µm and its
+counts. `keys_match` compares `inv:` numbers within 1e-6 relative (D14's tolerance; platform
+noise is near 1e-10, a real change never that small); text keys compare as before. The v0.3/v0.4
+hashes are still accepted (`legacy_keys`) until the next schema bump (F7), so no existing sign-off
+is voided. Measured on a fresh kiln copy: 0 needs-human before and after re-keying its six
+sign-offs (`scripts/rekey_signoffs.py`); a test changes the mesh hash and keeps the sign-off, and
+changes the volume by 1 % to void it. Docs and drawings still key on output hashes: whether those
+differ on Linux is what the next nightly says; B-0073 reopens if they do.
