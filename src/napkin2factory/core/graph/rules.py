@@ -341,6 +341,7 @@ def doc_rules(b: RuleBuild) -> list[Rule]:
 def checks_rules(b: RuleBuild) -> list[Rule]:
     """``checks``: requirement verification, rule packs, check matrix, stage."""
     from napkin2factory.core.graph import runs
+    from napkin2factory.core.packs import pack_inputs
 
     product = b.product
     produced_before = [r.id for r in b.rules if r.kind not in ("validate", "bom", "doc")]
@@ -358,6 +359,7 @@ def checks_rules(b: RuleBuild) -> list[Rule]:
                 "code": b.code_hash(),
                 "calcs": sha256_tree(product.paths.calcs),
                 "signoffs": sha256_tree(product.paths.signoffs),
+                **pack_inputs(product.paths.root),  # model/rulepacks/ (F10, S-128)
             },
             run=runs.run_checks,
             description="requirement verification, rule packs, check matrix, stage",

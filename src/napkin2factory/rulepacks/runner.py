@@ -76,7 +76,12 @@ def run_rulepacks(
     product: Product, build_dir: Path, packs: list[RulePack] | None = None
 ) -> list[CheckResult]:
     """One CheckResult per (rule, part) the pack applies to."""
+    from napkin2factory.core.packs import pack_checks
+
     packs = packs if packs is not None else load_packs([product.paths.model / "rulepacks"])
+    # the product's own checks (model/rulepacks/*.py, F10) beside the shipped ones
+    own_parts, own_assemblies = pack_checks(product.paths.root)
+    part_checks = {**ALL_CHECKS, **own_parts}
     results: list[CheckResult] = []
     for part in product.parts.values():
         feats_path = build_dir / "parts" / part.id / "features.json"
@@ -92,7 +97,7 @@ def run_rulepacks(
                 if _on_assemblies(rule):
                     continue  # run once per assembly below
                 rid = f"rule://{pack.id}/{rule['id']}"
-                fn = ALL_CHECKS.get(str(rule.get("check")))
+                fn = part_checks.get(str(rule.get("check")))
                 if fn is None:
                     results.append(
                         CheckResult(
@@ -162,11 +167,13 @@ def run_rulepacks(
                             detail={"pack": pack.id, "rule": rule["id"]},
                         )
                     )
-    results += _assembly_rows(product, packs)
+    results += _assembly_rows(product, packs, {**ASSEMBLY_CHECKS, **own_assemblies})
     return results
 
 
-def _assembly_rows(product: Product, packs: list[RulePack]) -> list[CheckResult]:
+def _assembly_rows(
+    product: Product, packs: list[RulePack], checks: dict[str, Any] | None = None
+) -> list[CheckResult]:
     """One row per (``subject: assembly`` rule, assembly), from packs with no ``applies_to``.
 
     The row id is ``rule://<pack>/<rule>@<assembly id>`` and its subject ``asm://<id>``
@@ -181,7 +188,7 @@ def _assembly_rows(product: Product, packs: list[RulePack]) -> list[CheckResult]
                 continue
             rid = f"rule://{pack.id}/{rule['id']}"
             title = str(rule.get("title", rule["id"]))
-            fn = ASSEMBLY_CHECKS.get(str(rule.get("check")))
+            fn = (checks if checks is not None else ASSEMBLY_CHECKS).get(str(rule.get("check")))
             for asm in product.assemblies.values():
                 if fn is None:
                     rows.append(
