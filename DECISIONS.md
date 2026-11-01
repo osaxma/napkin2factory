@@ -119,6 +119,7 @@ should confirm before relying on them.
 | S-100 | The why sits where the thing happens: code cites its decision | in force |
 | S-101 | Owners need no uv link-mode setting: one environment, kept across upgrades | in force |
 | S-102 | A landing that loses the race starts again with fresh ids | in force |
+| S-103 | v0.4 is the product's structure (`PRODUCT_STRUCTURE.md`); electrical, profiles, stack-up move later | in force |
 
 ---
 
@@ -1169,3 +1170,12 @@ entries; only the fast gate would notice). Each attempt now resets to the task's
 (placeholders intact), rebases, and takes ids afresh; a fast-forward refused while `main` has not
 moved (two landings meeting on git's lock) waits and retries. `test_task_script.py` lands one task
 inside the other's gate: the old script landed both as S-002, the new one as S-002 and S-003.
+## S-103 — v0.4 is the product's structure; electrical, profiles and stack-up move later (2026-11-01)
+A modularity review found the kiln built as one flat assembly: 34 child lines at the top, one
+sub-assembly (the door), parts placed by hand-computed coordinates, and an interface check that
+cannot see a misplaced part. Research into industry practice (middle-out design, module drivers,
+interface control, a build plan derived from one tree) and 2026 agent-CAD preprints agreed:
+plan the structure and joints as data, let code place and count, check one module at a time.
+The maintainer asked for a v0.4 plan covering all five fixes: `PRODUCT_STRUCTURE.md`, decisions
+P1–P14. Electrical (B-0035), manufacturer profiles (B-0038) and stack-up (B-0039), earlier slated
+for v0.4, move to v0.5 or later; stack-up gains from explicit frame chains.

@@ -18,8 +18,8 @@ agent needs, write it here, in `STATUS.md`, or in a decision entry. `AGENTS.md` 
    Resume one if it is yours to finish; never start a duplicate.
 3. For your task only: the `BACKLOG.md` rows and `DECISIONS.md` entries it touches (the index
    table at the top of `DECISIONS.md` names them; open an entry only when you change what it
-   decides). `GRAND_PLAN.md` (v0.1, D-series) and `NAPKIN_STAGE.md` (v0.2, N-series) are the
-   plans those entries amend.
+   decides). `GRAND_PLAN.md` (v0.1, D-series), `NAPKIN_STAGE.md` (v0.2, N-series) and
+   `PRODUCT_STRUCTURE.md` (v0.4, P-series) are the plans those entries amend.
 Do not run `make check` to "see where things stand": CI's result for `main` says that.
 
 ## How work flows (S-097)
