@@ -39,8 +39,12 @@ outside model's brief for after it lands.
 
 v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
 package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120: planned;
-its prerequisite B-0073 (platform-stable sign-off evidence keys) is fixed in S-121, and the next
-Linux nightly on a pushed `main` is the proof.
+its prerequisite B-0073 (platform-stable sign-off evidence keys) is fixed in S-121: the push run of
+`make check` on 4c8d66c is green on ubuntu and macOS; no nightly has run on a commit after S-121
+yet (the latest, 10:28 on 2026-11-01, predates it), and `main` is not pushed during v0.5.
+Wave times on the host (measured): M0 14 min; M1 65 min; wave 2 (M2, M3, M4 at once, then the
+M2b and M4b follow-ups) 21:06–22:25, 79 min. `make check` on `main`: 9 min 7 s at 29e7d4b
+(after M1, 908 passed), 9 min 14 s at 895df01 (after wave 2, 998 passed).
 - M0 baseline (the before numbers: files a new step edits, product words, file sizes, check time) — S-122.
 - M1 the domain contract and its registries (`core/domain.py`, `core/registry.py`, `domains/`), the toy domain, `docs/domains.md` — S-123.
 - M2 schema policy (`docs/schema-policy.md`, migrations, `n2f init .` upgrades) and calc reference cases (`calc-case` rows) — S-125; the checks rule hashes the calc kit (M2b) — S-126.
