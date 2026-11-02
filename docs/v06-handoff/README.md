@@ -98,7 +98,7 @@ Wave 3 = M5 + M6 at once (start M5 first: it is the long one). Then M7.
 - Wave times: M0 (baseline + five seam tasks at once) 07:00–07:43 last land; M1 07:56–08:24;
   wave 2 08:40–09:56 (M2 08:57, M3 09:06, M4 09:16, seams 09:34 and 09:51, M4b 09:56).
 - `make check` on main: 9 min 34 s at 4358ba6 (1,135 passed); 9 min 40 s at 9bd5b3f
-  (1,173 passed); **10 min 53 s at e72704b (after wave 2, 1,290 passed) — over the 10 min 4 s budget**, maybe on a busy host (a subagent's background work may have overlapped): re-measure on an idle host before wave 3 and, if still over, move the slowest end-to-end files behind `-m full` (plan §6).
+  (1,173 passed); **10 min 53 s at e72704b (after wave 2, 1,290 passed) — over the 10 min 4 s budget**, maybe on a busy host (a subagent's background work may have overlapped): re-measured by the second overseer on an idle host at 1f81117: **7 min 39 s**, green (1,290 passed, 141 goldens): under budget, nothing moved.
 - `make check-full`: not re-run; v0.5's 29 min 14 s stands (S-147: code identical at M0).
 - Kiln (before wiring): cold build 69.1 s, report 3,796,445 bytes (S-147). Minimal wiring
   fixture: build 8–12 s, report 1,722,207 bytes with the Wiring section (S-159).

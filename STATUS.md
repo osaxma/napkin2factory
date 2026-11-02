@@ -36,12 +36,12 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
 
 ## Milestones (one line each; detail in the entries named)
 v0.6 — `ELECTRICAL_STAGE.md` (the electrical domain through the v0.5 contract; the count of core edits is
-the headline), S-111; reconciled with the contract as built in S-141: in progress: M0–M4 landed, M5 and M6 held by the maintainer; the overseer's temporary handoff is `docs/v06-handoff/README.md` (delete it at close).
+the headline), S-111; reconciled with the contract as built in S-141: in progress: M0–M4 landed; M5 and M6 green-lit by the maintainer 2026-11-02 (wave 3, then M7; the second overseer's ledger is `docs/v06-handoff/PROGRESS.md`); the overseer's temporary handoff is `docs/v06-handoff/README.md` (delete it at close).
 `docs/reviews/v0.6-independent-trial.md` is the outside model's brief for after it lands.
 Wave times on the host (measured, 2026-11-02): M0 (the baseline and five seam tasks at once) 07:00–07:55, 55 min;
 M1 07:56–08:26. `make check` on `main`: 9 min 34 s at 4358ba6 (after M0, 1,135 passed), 9 min 40 s at 9bd5b3f
 (after M1, 1,173 passed); wave 2 (M2, M3, M4 at once, two seam tasks, M4b) 08:40–09:56; `make check` 10 min 53 s at e72704b
-(after wave 2, 1,290 passed: over the 10 min 4 s budget, perhaps on a busy host; to re-measure before wave 3). Linux: the push run of `make check` on 7f4d8d0 is green on ubuntu and macOS; no nightly
+(after wave 2, 1,290 passed, on a busy host); re-measured on an idle host at 1f81117: 7 min 39 s, green (1,290 passed, 141 goldens), under the 10 min 4 s budget, so nothing moved behind `-m full`. Linux: the push run of `make check` on 7f4d8d0 is green on ubuntu and macOS; no nightly
 has run since S-121 (the latest, 2026-11-01 10:28, predates it).
 - M0 seam tasks (v0.5 defects, counted apart from the domain): a domain's files in the release package (S-142,
   B-0099); a rule family runs `before=` a named one (S-143, B-0125); interfaces treated by their spec's type
