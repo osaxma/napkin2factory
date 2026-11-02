@@ -16,6 +16,7 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 13:19 | Fix: the common brief's placeholder rule held literal placeholders, which `test_no_placeholder_ids_on_main` refuses on main | worded without digits | 796a3f2, 1f81117 |
 | 13:36 | First step 3: `make check` on main, idle host | **7 min 39 s, green** (1,290 passed, 4 skipped; goldens 141 passed) at 1f81117: under the 10 min 4 s budget; nothing moved behind `-m full`. (The first try at 139422d stopped at the unit step on the placeholder test after 6 min 44 s.) | — |
 | 13:36 | M7a's brief written (`brief-m7.md`, docs only; starts after M5 and M6 land since `make templates` writes into the kiln) | — | 1f81117 |
+| 13:45 | Gate briefs drafted: `brief-gate-g.md` (electrician read-through from the package, then engineering), `brief-gate-h.md` (owner persona); fill the commit at gate time | — | (this commit) |
 
 ## In flight (wave 3 started 13:39)
 - **M5 the kiln, wired**: task `m5-kiln`, folder `.worktrees/m5-kiln`, branch `task/m5-kiln`
