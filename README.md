@@ -90,8 +90,10 @@ It runs on your computer, works offline once installed, and needs no account.
 
 ## What it does not do yet
 
-Mechanical parts and the parts list are covered. Electrical design, structural simulation
-(FEA) and hosted services are not.
+Mechanical parts, the parts list and the wiring (what plugs in, what connects to what, the
+cables and the wiring diagrams, checked for the arithmetic, with a licensed electrician
+still having the last word) are covered. Circuit boards, structural simulation (FEA) and
+hosted services are not.
 
 ## Developing napkin2factory
 

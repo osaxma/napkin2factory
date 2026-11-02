@@ -81,6 +81,25 @@ package, the fields stay in the files and in `--json`.
 | **decided** ("decided in DEC-0xx: shorter bolts at both ends (chosen by <name>)") | the owner picked an option; the row reads OK with the decision until what it was decided on changes, then the choice opens again | `n2f decide <check> --pick <option> --by "<name>"`, a `DEC-` entry |
 | **how it is checked** (a verify method) | the way a requirement is checked, chosen once and logged; the stronger one is offered when a mistake would cost much or the owner knows the area well | `verify.kind` on a requirement; `n2f doctor` lists the installed kinds |
 
+## Wiring words (the electrical domain, v0.6, ELECTRICAL_STAGE.md)
+
+No version-control counterpart. The owner reads the left column in `n2f status`, the report's
+Wiring section, the manuals and the check messages; the fields and URIs stay in the files and
+in `--json` (`docs/electrical.md` has every field).
+
+| say | meaning | field, where you meet it |
+|---|---|---|
+| **wiring** ("Wiring: done here") | the product's electrical side at wiring level: what it plugs into, its electrical devices, what connects to what and the cables; never circuit boards. The owner's word for the `electrical` domain | `scope.electrical` in `n2f.yaml`; `model/electrical/`; the Wiring rows of `n2f status`, the report's Wiring section |
+| **supply** ("the supply", "what it plugs into") | the one socket or circuit the product plugs into: its voltage, its rating and the breaker that protects it, as the owner or the electrician gives them | `model/electrical/supply.yaml` (`supply://supply`; no owner word before its id, it would read "supply supply") |
+| **circuit** ("the Heater circuit") | one path the current takes: a list of connections between terminals, with what protects it; said by its `name` | `model/electrical/circuits/<id>.yaml`, `circuit://<id>`; one diagram each, `build/electrical/<id>/diagram.svg` |
+| **electrical device** | a wired thing (a heater, a switch, a controller, a sensor), the part it is plus its rating and terminals | `model/electrical/devices/<id>.yaml`, `device://<id>` |
+| **terminal** ("Switch terminal 1") | a named connection point on a device, as its maker marks it | `terminals:` on a device; the `#<terminal>` of a connection end |
+| **cable entry** | the hole where wires cross a box, with the gland or bushing in it, and the circuits that pass it | an interface `kind: cable-entry` (`spec: {diameter, passes}`); a box from elsewhere has its cable entries as `ports:` |
+| **earth** ("a path to earth") | the protective connection that keeps a metal part safe to touch if a live wire touches it: an earth conductor to the supply's earth, or a joint a person tests | `PE` terminals; a circuit's `earth:` entries (`bonded_via`); the `earth-path` and `earth-bonded` check rows |
+| **interlock** | a switch (on a door, a lid) that must stop the load while it is open | `safety: interlock` on a device; the `interlock-series` check row |
+| **for an electrician to confirm** | a wiring check's finding that a wiring code judges, not arithmetic: worth a look, and a licensed electrician decides | a `warn` row of kind `electrical`; the Verify row "Wiring checks" |
+| **room to spare on the supply's circuit** | the choice the wiring raises once built, when the load uses more than half the circuit: keep the circuit for the product alone, or a larger circuit | the `supply-headroom` choice; `dedicated: true` on the supply, or its rating |
+
 ## Sheet and report labels (gate D)
 
 | say | not | where |

@@ -197,6 +197,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-170 | v0.6 M6: the external-box fixture (a control box supplied from elsewhere, two cable-entry ports), the scope words tested with the wiring's owner word, the owner-session script for DoD 7 on that fixture | in force |
 | S-171 | v0.6 M5 follow-up: cited EU 20 A and 32 A circuit classes, so a European 16 A supply raises the supply-headroom choice; `dedicated: true` on the supply is the `dedicated` pick made in the model (closes B-0149, B-0151) | in force |
 | S-172 | v0.6 M5: the kiln wired (four circuits, earth points named by the metal they earth, three cable entries in the gland holes' places, five bought parts, two studs), its manual's wiring generated, the headroom choice decided, `demo-electrical.sh` | in force |
+| S-173 | v0.6 M7a: the docs for the wiring (`docs/electrical.md`, the guide, the three roles, the vocabulary, `docs/domains.md` read against the domain); an owner who asked to be asked decides every choice in that area, whatever it holds | in force |
 
 ---
 
@@ -1193,3 +1194,13 @@ Three entries at the cutouts' centres (box bbox same, centroid within 0.001 mm, 
 REQ-007's box key re-keyed; REQ-008/-018 (manual), -019 (stud note) renewed as EXAMPLE. Headroom decided `dedicated` (DEC-026,
 `n2f decide`) and made (`dedicated: true`). Also edited (the wired kiln moves them): `test_kiln.py`, `test_scope.py`,
 `test_alignment.py`, `test_build_plan.py`. Measured: cold build 60.0 s; report 3,919,200 B; `demo-electrical.sh` alone 492 s (8 min 12 s). Core/`src/`: none.
+## S-173 — v0.6 M7a: the docs for the wiring (2026-11-02)
+DoD 10's docs half, written from the domain as built, not the plan. `docs/electrical.md` (its circuit-requirement example run on
+a copy of the minimal fixture: pass). The pm role: the supply is a fact asked at intake; the owner is asked once how electrical
+questions are handled (`model/intake.md`); the room-to-spare choice only after the first build with wiring; and a new rule
+[revisit]: a choice in an area the owner asked to be asked about is theirs whatever it holds, although `n2f status` says an agent
+may decide a `blocks: none` one (the core's words unchanged: E10). The pick is recorded `--by` the owner, then made in the model by
+the designer. Written in the role's own words, not the M6 script's. Design gains "Wiring"; verifier a "Wiring" item (6; the joints
+and verdict items renumbered 7, 8). The guide drops the kiln's stale part count (21; 46 part files now), its demo time is S-172's 492 s. `docs/domains.md`:
+the electrical package as the third example; §1's sample no longer names a "wiring" domain; `CardField(hint=)`, `later`, §9's two
+work-rounds. Vocabulary: ten wiring words. B-0155. Tests: agent docs, templates, vocabulary, journals, the role-reading e2e files.

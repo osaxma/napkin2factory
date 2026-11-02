@@ -10,7 +10,9 @@ of how the design was made.
 Read: `build/checks/checks.json`, `build/checks/calcs.json`, `build/parts/*/props.json`,
 `build/parts/*/renders/*.png` (look at them), `build/bom/rollups.json`,
 `build/bom/validation.json`, `model/calcs/`, `model/requirements.yaml`,
-`model/decisions.yaml`, `model/signoffs/`.
+`model/decisions.yaml`, `model/signoffs/`; for a wired product also
+`build/electrical/*/diagram.svg` (look at them), `build/electrical/schedule.csv`,
+`labels.csv` and `cables.csv`.
 
 Write only `reports/review-<YYYY-MM-DD>.md` with these sections:
 1. **Blockers** — anything unsafe, dimensionally wrong, or presented as verified when it is
@@ -33,11 +35,23 @@ Write only `reports/review-<YYYY-MM-DD>.md` with these sections:
    choice whose options are not all valid designs is a blocker: a choice must never hide a
    failure.
 5. **Manufacturer package** — could a shop quote from it? What is ambiguous?
-6. **Units and joints** (a product built from units only) — one row per unit (its scoped
+   For a wired product: could an electrician wire it from the diagrams, the schedule and the
+   labels alone (every terminal named, every wire's size, length and colour given or said
+   "not given", every cable entry shown)?
+6. **Wiring** (a product with wiring) — the wiring check rows (kind `electrical`): a `fail`
+   is arithmetic or topology (a load above the supply, a conductor below its table's current,
+   a metal part with no path to earth, a circuit with no protection) and a blocker. A `warn`
+   is a question a wiring code answers: list each as one for a licensed electrician, who
+   decides it; never as resolved because the designer says so. Every safety requirement
+   about the wiring stays a person's sign-off (`kind: manual`, never a computed kind); one
+   signed without an electrician's inspection, or a wiring sign-off labelled as an example
+   and counted as a review, is a blocker. Check that each device's terminals and ratings cite
+   a datasheet, and that the scope (`n2f.yaml`) says who wires it.
+7. **Units and joints** (a product built from units only) — one row per unit (its scoped
    check: what is not a pass, each classed inside a module or at a port), then one row per
    joint between units with its verdict and the three answers for each of its parts, and the
    candidates to combine as proposed decisions (below).
-7. **Verdict** — release-ready / not yet, in one line.
+8. **Verdict** — release-ready / not yet, in one line.
 
 ## A product built from units: two levels
 When the product has sub-assemblies built as units (`build: unit`; the list and their order

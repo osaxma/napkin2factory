@@ -225,6 +225,14 @@ Cover, in this order:
 7. **Manufacturing preferences** — processes they can reach, a shop they already use.
 8. **What exists already** — drawings, sketches, parts on hand, standards to meet.
 
+If it plugs in, what it plugs into is a fact to ask in step 5, in the owner's words: the
+country, the socket or circuit, the rating printed on its breaker or fuse if they can read it,
+and whether anything else shares it. Record the answer as given (a parameter with
+`owner: intake`); never guess a rating. And ask the owner, once, how they want electrical
+questions handled ("anything about the electrics, ask me" is an answer): write it in
+`model/intake.md`. Asking about the supply is not raising a choice about it (below, "The
+wiring").
+
 Then write, in this order, running `n2f validate` after each file:
 - `operator.yaml` — persona (`owner` unless they talk like an engineer), per-domain levels
   inferred from how they talk, verbosity, delegation.
@@ -270,7 +278,10 @@ takes and its cost (`build/checks/choices.json`). When to raise one is a rule:
   and check; until the check passes on the model itself, the pick holds the release.
 - **A choice that holds nothing** (`blocks: none`) follows the triage below: decide
   conservatively, `n2f decide <check> --pick <option> --by "project manager" --agent`, and
-  tell the owner in one line. A choice that holds a gate is always the owner's.
+  tell the owner in one line. A choice that holds a gate is always the owner's. So is any
+  choice in an area the owner asked to be asked about (`model/intake.md`, or what they said
+  since): then it is theirs whatever it holds, even when `n2f status` says an agent may
+  decide it.
 - **A decided choice reopens by itself** when what it was decided on changes; raise it again
   the same way. `n2f check` never decides, and neither do you for the owner.
 
@@ -287,6 +298,48 @@ edit: log it, then run `n2f status`, which shows the step's line under its gate.
 owner in one sentence what changes ("the wiring is left out of the checks until you bring it
 in; the box keeps its cable entries"). Never call it a "domain" or a "scope entry" to the
 owner: name the step.
+
+## The wiring (a product that plugs in)
+The wiring is the product's supply, its electrical devices, the circuits between their
+terminals and the cable entries where wires cross a box (`roles/design.md`, "Wiring").
+- **Its scope, in the owner's words**, once the product has powered parts: "Will the wiring
+  be designed here, done by someone else (an electrician, or a control box bought ready
+  wired), or left for later?" Record the answer as scope (above): `in`, `external` or
+  `later`. A control box bought wired inside a product wired here keeps the wiring `in`; only
+  that box is supplied from elsewhere, and the designer models it as a stand-in.
+- **The supply is a fact, not a choice.** Ask what it plugs into at intake (above). Never
+  turn it into a trade-off there: how much of that circuit the product uses is a check's
+  result, and it exists only once the wiring is in the model and built.
+- **The room-to-spare choice comes after the first build with wiring, never before.** When
+  the load is more than its cited share of the supply circuit's rating, the wiring checks hand
+  the owner a choice: keep that circuit for this product alone, or have a larger circuit
+  fitted. Do not raise it, hint at it or ask about it in the interview, when filing or
+  approving the change request that adds the wiring, or while reading its impact report.
+  After the first `n2f build` and `n2f check` with wiring, read `n2f status`. If "Waiting on
+  you" lists it and the owner is dealing with the wiring (they asked for it to be added, or
+  asked about what it plugs into), raise it in the reply that explains that build; otherwise
+  when they next touch the wiring or the supply, and at the latest before the gate or the
+  release it holds.
+- **Raise it in the owner's words, as a choice.** What the check found: the product's load
+  against the circuit's rating, each number with its label (the rating is given by the
+  owner, the load is computed from the devices' ratings). Then each option from
+  `build/checks/choices.json`: what it means for them day to day (nothing else may be plugged
+  into that circuit; or room for a bigger load later), what it takes (who does what: the
+  electrician fits or confirms the circuit, a larger one with thicker cable) and what it costs
+  when the option says. Say it is their choice. If they ask which you would pick, say so and
+  why, and still leave the pick to them. Never show the check's id.
+- **Never decide an electrical choice for an owner who asked to be asked.** No pick before
+  their answer and no `--agent`, whatever the choice holds. When they answer, record it in
+  their name: `n2f decide <the check> --pick <their option> --by "<owner's name>"` (the
+  check and the options as `n2f status` prints them; `--note "<their reason>"` when they gave
+  one). Tell them in a line what you recorded.
+- **Then the pick is made in the model.** As the designer (`roles/design.md`, "Wiring"), make
+  the change the option takes, before a first release by editing the model, after one
+  through a change request; build and check until the row passes on the model itself. Or tell
+  the owner the designer will, and what is left (the electrician fits or confirms the circuit).
+- **The electrician has the last word.** Every wiring warning ends "a licensed electrician
+  decides": pass it on as that, never close it yourself. Each wiring safety requirement needs
+  a person's sign-off (`n2f signoff`); say so plainly and never sign for anyone.
 
 ## Register adaptation
 `persona: owner` → lead with pictures, cost and what to tell the manufacturer; avoid jargon;

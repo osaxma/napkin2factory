@@ -140,9 +140,10 @@ what you need from them. The owner chooses in conversation; the pages are read-o
 ## 6. Show the example (the kiln)
 
 When the owner wants to see what the tool does before starting their own product, use the
-showcase: a 1200 °C test kiln with 21 parts, thermal and element calcs, six manuals, example
-sign-offs, two change requests and four concept cards. It is in the source repository, not in
-the installed package:
+showcase: a 1200 °C test kiln with its parts, thermal and element calcs, its wiring (supply,
+power, control, sensing and earth circuits, three cable entries), six manuals, example
+sign-offs, three change requests and four concept cards. It is in the source repository, not
+in the installed package:
 
 ```bash
 git clone --depth 1 https://github.com/osaxma/napkin2factory.git <scratch>/napkin2factory
@@ -157,6 +158,14 @@ needs 1236 mm of width with its door open, and the owner's alcove is about 800 m
 napkin stage that came up at hour forty; the board shows it in minute five. C-003 is the
 promoted direction. The kiln is the largest example, so its first build takes noticeably longer
 than a small product's.
+
+The wiring has a story of its own: `examples/kiln/demo-electrical.sh`, run from the clone,
+makes its own scratch copy and plays it unattended (about eight minutes). The kiln is released as v1.0.0 with its
+wiring left for later (the package cover says so); a change request adds the wiring; the first
+build with wiring raises the room-to-spare choice on the supply circuit, which is decided and
+made in the model; v1.1.0 is released with the wiring done here, and the page comparing the
+two Revisions shows "Wiring: added". Open `build/report/index.html`'s Wiring section for the
+diagrams, the cable schedule and the wiring checks.
 
 ## Command reference
 
@@ -240,6 +249,33 @@ fits by, each an interface naming the stub and the part it fits to; it is suppli
 here, and the step that fits it lists it so, with those joints); joint hardware is counted from each interface's `spec.hardware` (or its `fastener:`) by the
 `hardware://<unit>` check. The fields are in `docs/product-model.md`; the design role says
 how to use them.
+
+**Wiring: a product with powered parts.** No new command: the wiring is model files and the
+same verbs (`docs/electrical.md` has the files, the checks and a complete small example).
+The supply, the electrical devices (each naming the part it is) and the circuits (lists of
+connections between terminals, `device://<id>#<terminal>`) live under `model/electrical/`;
+where wires cross a box is an interface of kind `cable-entry` (one hole, the circuits that
+pass it).
+- `n2f doctor` lists the `electrical` domain: its verify kind `circuit`, its check stage
+  `electrical` and its napkin screen `supply`.
+- `n2f build` draws each circuit (`build/electrical/<circuit>/diagram.svg`) and writes the
+  cable schedule, the terminal labels and the cable to buy (`schedule.csv`, `labels.csv`,
+  `cables.csv`); `n2f build --target elec` builds only the wiring and what it waits for. The
+  report gets a Wiring section, and the release package an `electrical/` folder.
+- `n2f check` adds the wiring rows: a failure only for arithmetic and topology (a load above
+  the supply, a conductor too thin for its current, a metal part with no path to earth, a
+  circuit with no protection); everything a wiring code would judge is worth a look, for a
+  licensed electrician to decide. A load above half the supply circuit's rating is a choice
+  for the owner (keep the circuit for the product alone, or a larger circuit), raised after
+  the first build with wiring, never in the interview (`roles/pm.md`).
+- `n2f status` shows a Wiring row under Design (each device not wired yet keeps the gate
+  open) and a Wiring checks row under Verify, and the wiring's scope line when it has one;
+  neither row exists for a product without wiring.
+- `n2f check --scope asm://<unit>` keeps the circuits whose devices sit in that unit, and
+  `n2f context asm://<unit>` lists them with the cable entries on its parts and ports.
+A requirement on a circuit's figure uses `verify: {kind: circuit, target:
+"circuit://<id>#props.supply_margin", op: ">", value: 0 A}`; the wiring's safety requirements
+stay a person's sign-off.
 
 **Scope: what this product covers.** When the owner says a step is done elsewhere or comes
 later ("the electrician wires it"), record it once in `n2f.yaml` with the decision behind it:
@@ -358,12 +394,15 @@ refuses and changes nothing: bring them in (`git pull`) and publish again.
   next. Never edit anything under `build/`; edit the model and rebuild.
 - **Unsure what a page or number means.** `docs/how-it-works.md` (the ideas),
   `docs/checks.md` (verification), `docs/ecr-loop.md` (changes), `docs/product-model.md`
-  (the files in a product folder), `docs/vocabulary.md` (the owner's words and what each
-  means underneath).
+  (the files in a product folder), `docs/electrical.md` (the wiring), `docs/vocabulary.md`
+  (the owner's words and what each means underneath).
 
 ## What napkin2factory does not do (yet)
 
-Mechanical parts and the bill of materials are covered. Electrical design, FEA and hosted
-services are not. Say so when the owner's product needs them, say what the tool can still do
-for the mechanical side, and record the step as scope (`later`, or `external` when someone
-else does it) so `n2f status` and the release say so.
+Mechanical parts, the bill of materials and wiring-level electrical design (the supply,
+devices, circuits, conductors, cable entries, earthing, with checks a licensed electrician
+still reviews) are covered. Printed circuit boards, FEA and hosted services are not, and no
+check claims compliance with a wiring code. Say so when the owner's product needs them, say
+what the tool can still do, and record the step as scope (`later`, or `external` when someone
+else does it) so `n2f status` and the release say so. A board a product needs is a bought
+part with terminals.

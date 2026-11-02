@@ -82,6 +82,7 @@ entry that closed them. Ids are never reused.
 | B-0152 | The wiring diagram's boundary and the report's line under it say "supplied from elsewhere" where every core surface says a stand-in is "supplied, not built here" (S-152) | S-170; gate H judges; one phrase in `domains/electrical/outputs/rules.py` (the diagram golden moves) |
 | B-0153 | An earth stud cannot be its own device: the earth walk (`checks/nets.py::earth_paths`) counts a part earthed only when a device naming that part is on the earth net, so the kiln's earth points name the metal parts and `part://earth-stud` is on no device | S-172; an optional `bonds: part://…` on an `earth` device, read by `earth_paths` (a domain change) |
 | B-0154 | Kiln diagram readability (M2's layout): the earth diagram stacks seven labels at the earth terminal and one overprints; the sensing diagram draws the limit probe right of its cable entry beside the controllers; a sensing or earth diagram's title says the supply's "230 V AC" or "Protected by: not given" | S-172; `outputs/diagram.py`: labels at the far end when a terminal holds several, a no-supply circuit's sources on the left; the maintainer judges `docs/reviews/v0.6-kiln-diagram-*.png` |
+| B-0155 | `docs/calckit.md`'s data-table list says `circuits` holds 14 rows (EU 2); since S-171 it holds 16 (EU 4) | S-173 (found, not this task's file); one line in `docs/calckit.md` |
 
 ## Closed
 

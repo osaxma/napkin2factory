@@ -20,6 +20,7 @@ to finish, this page is missing something: say which file and why in your report
 | `tests/conftest.py` | `copy_product`, `FIXTURES`, `EXAMPLES` (test helpers; not core) |
 | `src/napkin2factory/domains/__init__.py` | `INSTALLED`, the list of shipped domains (not core) |
 | `src/napkin2factory/domains/mechanical/__init__.py` | everything v0.4 did, registered in place (F2): the second, bigger example |
+| `src/napkin2factory/domains/electrical/` | the wiring (v0.6, `docs/electrical.md`): the first real domain built on this contract: its own tasks changed no core file, and the seams it found were fixed as v0.5 defects in tasks of their own (S-142–S-144, S-160–S-167). The third example, and the one to read when the toy is too small: four model families, a rule family with a schedule rule, a verify kind with figures, a check stage that offers a choice, gate rows, a report section with `show`, doc helpers reading build files, an interface kind with holes, a screen, a context contribution, release files. Each section below points at its part |
 
 A second domain is a copy of the toy with every name changed (§1, "names are unique").
 
@@ -33,8 +34,8 @@ from pathlib import Path
 from napkin2factory.core.domain import Domain   # and the types of §3 it uses
 
 DOMAIN = Domain(
-    name="wiring",                         # unique; also the key of its code hash
-    title="Wiring: circuits, cables, connectors",
+    name="pneumatics",                     # unique; also the key of its code hash
+    title="Pneumatics: air supply, valves, hoses",
     root=Path(__file__).resolve().parent,  # every relative path below is relative to it
     families=(...), rule_families=(...), verify_kinds=(...), check_stages=(...),
     gate_rows=(...), report_sections=(...), doc_helpers={...}, vocabulary={...},
@@ -51,7 +52,11 @@ list, with types and defaults, is §4.1.
 in `src/napkin2factory/domains/__init__.py`:
 
 ```python
-INSTALLED: tuple[str, ...] = ("napkin2factory.domains.mechanical", "napkin2factory.domains.wiring")
+INSTALLED: tuple[str, ...] = (
+    "napkin2factory.domains.mechanical",
+    "napkin2factory.domains.electrical",
+    "napkin2factory.domains.pneumatics",   # yours, last
+)
 ```
 Installation order is the order every registry iterates in. The first registry lookup
 imports each module and registers its `DOMAIN`. That file is not part of the core.
@@ -255,7 +260,16 @@ ModelFamily("toy", schema=ToyThing, folder="model/toy", validate_refs=validate_t
   can name it; `product.files["<scheme>://<id>"]` is its file.
 - `validate_refs(product, problems)` runs after the core's own cross-checks: one problem per
   broken reference, `problems.add(file, subject, message, hint="", severity="error", rule="")`
-  (`severity="warn"` for a warning).
+  (`severity="warn"` for a warning). Several families that refer to each other may share one:
+  the electrical domain declares it on its `supply` family only, so each reference is checked
+  once with every family loaded (`domains/electrical/__init__.py`).
+- A family of one file: give the schema `id: Literal["<id>"] = "<id>"` and the file that name
+  (the electrical `supply` family reads `model/electrical/supply.yaml`; its subfolders
+  `devices/`, `circuits/`, `conductors/` are other families: a family reads `<folder>/*.yaml`,
+  not below it).
+- A field the core cannot parse as a URI (a terminal after `#` such as `1` or `+`, which a
+  core URI reads as an instance) is a plain string your schema validates: the electrical
+  domain's connection ends `device://<id>#<terminal>` are parsed by the domain (S-153).
 - A read of `<scheme>://<id>#<field>` is valued from the declared field (a manual page or a
   rule that reads it reruns when it changes); a read of `<scheme>://<id>` is the output hash
   of the rule that produces it (§3.2), else the object's own hash.
@@ -337,6 +351,11 @@ def make_run(tid):
   in `inputs` as `name → hash string`.
 - `static_reads(product, rule) -> list[str]`: the reads `n2f impact` assumes before the first
   build; afterwards it uses the recorded ones.
+- A real one: the electrical `elec` family (`domains/electrical/outputs/__init__.py`) has
+  `after=("part",)`, `before=("doc",)` (the manuals print the wiring of the same build),
+  `code=("outputs", "model", "interfaces")` (an edit of its report or checks reruns no `elec`
+  rule), one rule per circuit and the rule `elec-schedule`, which produces
+  `rule:elec-schedule` and holds the circuits' ids as an input.
 - `output_dir`: the folder under `build/` the family writes; a rule's files there are removed
   when the rule disappears.
 - Targets: the family's own name is a `--target` (`n2f build --target toy`, and
@@ -380,7 +399,10 @@ def evaluate_glow(ctx, req, res, evidence) -> str | None:
   wrote (the core recomputes `<scheme>://<id>` as that, or as the object's hash when no rule
   makes it), so the key you store equals the one the core checks later.
 - The schema reads the rest: `target_schemes` (empty: the kind takes no target), `compares`
-  (the requirement needs `op` and `value`; `value` arrives as a quantity), `binary` (a
+  (the requirement needs `op` and `value`; `value` arrives as a quantity, and a `param://`
+  there is refused when the product loads: to compare with a parameter, compute the margin
+  and compare it with zero, as the electrical `circuit` kind's `#props.supply_margin` does
+  with `value: 0 A`), `binary` (a
   statement need not carry a number, lint L1), `check(verify)` (extra rules on the `verify`
   block: raise `ValueError` with the fix), `hypothetical(...)` (`n2f impact`'s "would it pass";
   leave it `None` and impact says "known after the rebuild").
@@ -428,6 +450,10 @@ def toy_check_reads(product) -> list[str]:           # what is not a model field
   own checks). Without it, filter your rows with `sctx.keep(<the assembly id the row belongs
   to, or None>)`.
 - A row may be a **choice** for the owner: §3.13.
+- A real one: the `electrical` stage (`domains/electrical/checks/`), `after=("interface",)`,
+  reads the model once through `sctx.proxy`, writes rows of kind `electrical` from a rules
+  file of its own (`electrical-v0.yaml`: severity, owner title and fix per rule, every number
+  a cited param), and keeps a row in `n2f check --scope` by the assembly its devices share.
 
 ### 3.5 Gate rows — `gate_rows=(GateRow(...),)`
 The stage ladder is the core's (`intake → design → verify → released`); a domain adds a
@@ -453,6 +479,10 @@ def toy_row(product, build_dir):
   blocker (failing rows block Verify on their own; an open choice holds what it says).
 - `n2f status --json` shows it as `{"title", "summary"}` in that gate's `detail.rows`.
 - Scope can take the row away: §5.
+- A real pair: the electrical domain's Design row "Wiring" (a blocker per device no connection
+  reaches) and Verify row "Wiring checks" (`check_rows_state` with its own words, "for an
+  electrician to confirm" for `warn`; "not checked yet" before the checks ran), both `None`
+  without wiring unless the scope says `in` (`domains/electrical/owner/gates.py`).
 
 ### 3.6 Report sections — `report_sections=(ReportSection(...),)`
 A section of the one-page report (F5).
@@ -486,7 +516,11 @@ def toy_report_data(sctx):                           # sctx: SectionContext (§4
   `interfaces`, `build`, `joints` (Product); `requirements`, `rules`, `signoffs`
   (Verification); `parameters`, `decisions`, `changes` (Design record); `manuals`. None of
   them has a `show`, so each is in the side index of every report (`joints` included, with or
-  without interfaces), and a Product section of yours follows `data-sec="joints"`.
+  without interfaces), and a Product section of yours follows `data-sec="joints"` and the
+  Product sections of the domains installed before yours (the electrical domain's `wiring`).
+  The `wiring` section is the real example of `show`: on the page when the product has wiring
+  or its scope names the domain, so a `later` page can say the wiring is not included
+  (`domains/electrical/owner/report.py`).
 - `reads(product)`: further keys it shows that are not model fields read through the proxy
   (a rule's output, say), added to the report rule's reads.
 
@@ -503,13 +537,18 @@ def toy_helper(h):                                  # h: HelperContext (§4.4)
     return toy
 ```
 `{{ toy("widget").name }}` records `toy://widget#name` with its value; the page reruns when
-it changes. Record anything else you read with `h.log.add(key)`. The system's helper names
+it changes. Record anything else you read with `h.log.add(key)`. A helper that prints your
+rule's files reads them under `h.build_dir` and records the rule's key: the electrical
+`circuit("<id>")` and `cable_schedule()` record `circuit://<id>` and `rule:elec-schedule`
+(`domains/electrical/owner/docs_helpers.py`); your family needs `before=("doc",)` (§3.2). The system's helper names
 (`P`, `part`, `asm`, `req`, `iface`, `dec`, `build_step`, `bom`, `product`) are taken.
 
 ### 3.8 Vocabulary — `vocabulary={"owner": {"toy": "toy thing"}}`
 Owner words for your terms; `"owner"` is the persona the system reads. A term named like your
 URI scheme is said before the id: `toy://widget` reads "toy thing widget" in `n2f check`.
-Engineers see the URI.
+Engineers see the URI. Give no word to a scheme whose one id is that word: the electrical
+`supply://supply` has none, or it would read "supply supply"
+(`domains/electrical/owner/vocabulary.py`).
 
 ### 3.9 Interface kinds — `interface_kinds=(InterfaceKind(...),)`
 ```python
@@ -547,6 +586,12 @@ class EntrySpec(BoltPatternSpec):   # pattern: rect, count: 1, diameter: 20 mm, 
 
 InterfaceKind("entry", "Entry hole", spec=EntrySpec, check=check_entry)
 ```
+The real one is the electrical domain's `cable-entry` (`domains/electrical/interfaces/`): one
+hole at the frame's origin, so `count` defaults to 1 and any other count is refused, and the
+pattern stays the default `rect` (the core's one-hole case; a `circle` places its holes on a
+pitch circle, which one hole has not, so it is refused with the fix); `passes` lists the
+circuits through it. A party may be a stand-in assembly (`build: external`), whose `ports:`
+then list the entries: no frame for the stand-in, the hole is cut in the part.
 A spec subclassing `InterfaceSpec` gets none of this: the core cuts and matches nothing and the
 row is your `check`'s alone (copy `tests/unit/test_pattern_kinds.py`, which has one of each). A
 spec subclassing the mating-face spec is not treated as a face yet (B-0127, a domain kind with a mating-face spec).
@@ -579,7 +624,7 @@ known ones; `registry().processes()`, `.finishes()`, `.categories()`, `.drivers(
 `.style_roles()`, `.interface_kinds()` show the lists.
 
 ### 3.11 Screens — `screens=(Screen("toy", toy_screen, fields=(TOYS,), phase="estimate"),)`
-Napkin-stage screening of a concept card (`model/concepts/C-xxx.yaml`, before any design). A
+Napkin-stage screening of a concept card (`concepts/C-xxx.yaml`, before any design). A
 screen declares the card fields it reads and the phase it runs in; `n2f concept new` writes
 the fields into a new card's skeleton and `n2f concept lint` checks a card's numbers against
 their kind.
@@ -603,7 +648,11 @@ def toy_screen(card, massing, values) -> list[RuleRow]:
 Screen("toy", toy_screen, title="Toy count", fields=(TOYS,), phase="estimate")
 ```
 - `Screen(name, run, title="", fields=(), phase="")`;
-  `CardField(section, key, unit, kind, example, words, aliases=(), param=None)`.
+  `CardField(section, key, unit, kind, example, words, aliases=(), param=None, hint=True)`.
+  `hint=False` keeps the field out of the "screens read" lines of a new card's skeleton
+  unless the card already gives it: for a field only some products have, so a product without it never reads your words
+  (the electrical screen `supply`, rule `circuit-available`, declares its power, circuit and
+  region fields so: `domains/electrical/owner/screens.py`).
 - `section` is `envelope` (the product's own sizes and figures), `site` (the space it must fit
   and what it plugs into) or `layout` (words: where things go). `unit` is the unit the screen
   converts to (`"mm"`, `"W"`; `None` for words or a bare count); `aliases` are earlier keys
@@ -631,7 +680,9 @@ What `n2f context asm://<id>` adds for a module:
 `ContextContribution(name, title, collect)`, `collect(product, aid, members) -> list[str]`
 (Markdown lines; `members` are the assembly id and the ids of the phantoms folded into it;
 `product.assemblies[a].children` each have `.part` or `.asm`, a URI or `None`). Printed under
-`## <title>`; nothing when the list is empty.
+`## <title>`; nothing when the list is empty. The electrical one ("Wiring in this module")
+lists the circuits that reach a device in the module, their connections and the cable entries
+on its parts or ports (`domains/electrical/owner/context.py`).
 
 ### 3.13 Choices from a check stage (F12)
 A check that finds a trade-off with two or more valid designs hands it to the owner as a
@@ -660,6 +711,12 @@ return offer(row, [
   `n2f decide <row id> --pick <option> --by "<name>"` writing a `DEC-` entry, and the row
   reading `pass` with the decision afterwards. Write `what_it_takes` and `summary` in the
   owner's words: the project manager reads them out.
+- Let the model say a pick was made: give your schema a field the option sets, and pass the
+  row on it, so the check passes on the model itself and not only on the decision. A real
+  one: the electrical `supply-headroom` choice (`blocks="none"`, options `dedicated` and
+  `larger`), which passes once the supply says `dedicated: true` or its rating is raised; with
+  only one valid option on file it writes a `warn` with that fix instead of offering
+  (`domains/electrical/checks/stage.py`, S-158, S-171).
 
 ### 3.14 Release files — `release_files=(ReleaseFiles(...),)`
 Files your rules write that the manufacturer needs go in the release package (`n2f release`).
@@ -681,6 +738,8 @@ ReleaseFiles("toy", ("*.json",), "toy glow records")
   the package of a product that does not use your domain is the one it was.
 - A `folder` or pattern that is absolute, climbs out with `..`, or names the whole build
   folder (`""`, `"."`) is refused at `register`, naming your domain.
+- A real one: `ReleaseFiles("electrical", ("*/diagram.svg", "schedule.csv", "labels.csv",
+  "cables.csv"), "wiring diagrams, cable schedule, terminal labels")`.
 
 ## 4. The objects you are handed (reference)
 
@@ -724,7 +783,8 @@ SCREEN_PHASES = ("measure", "estimate", "total", "check")
 ### 4.3 Rows (`napkin2factory.core.checks.results.CheckResult`)
 `CheckResult(id, subject, status, message, persona_message="", kind="requirement",
 evidence={}, evidence_keys={}, safety=False, title="", detail={}, module=None)`. `status` is
-one of `pass`, `fail`, `warn`, `skip`, `needs-human`, `signed`, `choice`; only `fail` blocks.
+one of `pass`, `fail`, `warn`, `skip`, `needs-human`, `signed`, `choice` (and `later`, which
+the core sets for a step left for later, §5); only `fail` blocks.
 `id` is the row's address (a URI); `subject` the thing it is about; `title` a short owner
 sentence; `message` what was found.
 
@@ -989,7 +1049,15 @@ The calls the tests make, with their signatures:
 ## 9. Not registrable in v0.5
 
 A domain cannot add these; each is the system's, and a domain that needs one asks for a
-change to the system (a backlog row), not a core edit of its own:
+change to the system (a backlog row), not a core edit of its own (still true in v0.6: the
+electrical domain worked round the first two):
+- **Fields on the system's schemas** (a part, an assembly, a requirement): a domain's data is
+  a family of its own whose files name the object, as an electrical device file names its
+  part (`part: part://<id>`), so the part stays one line of the parts list (ELECTRICAL_STAGE
+  E2).
+- **Lines in the parts list**: a domain's rules write their own tables (the electrical
+  `cables.csv`) and ship them as release files (§3.14); the parts list takes no lines from a
+  domain (S-145, B-0128).
 - **Gates of the stage ladder** (`intake → design → verify → released`): a domain adds rows
   under Design or Verify, never a rung (F4).
 - **The system's own words**: row statuses, severities, the labels `given` / `computed` /

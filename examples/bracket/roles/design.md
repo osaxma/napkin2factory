@@ -153,13 +153,58 @@ in two places.
   make the change the option takes (its `what_it_takes`, in `build/checks/choices.json`),
   rebuild and check. The row reads OK with the decision meanwhile; once the model has
   changed, the check passes on the model itself. Never pick an option yourself unless the
-  choice holds nothing (`roles/pm.md`).
+  choice holds nothing and the owner did not ask to be asked about its area (`roles/pm.md`).
 - **A step done elsewhere** (`scope:` in `n2f.yaml` says `external`): model it as a stand-in
   sub-assembly, `build: external`, no children, its `ports:` the joints where the supplied
   work fits, each an interface naming the stand-in and the part it fits to (`stub:
   asm://<id>` in the scope line names it). Validation fails, naming the file, until it
   exists. **A step left for later** (`later`): design nothing for it; keep the room and the
   openings it will need (a cable entry, a mounting face) and say so in a decision.
+
+## Wiring
+When the product has powered parts (a heater, a motor, a controller, a switch, a sensor), and
+its scope does not leave the wiring for later or to someone else, the wiring is part of the
+model. The system repo's `docs/electrical.md` has every field and a complete small example.
+- **The files**, under `model/electrical/`: `supply.yaml` (what it plugs into: voltage,
+  phases, frequency, `rating` as `param://` the owner gave, `earthing`, `region`, the site's
+  `protection: {upstream: "<words>", rating: …}` or a protective part the product ships);
+  one `devices/<id>.yaml` per wired thing, naming the part it is (`part: part://<id>`, so the
+  part stays one line of the parts list), with its `role`, `rating`, `terminals`, `class` and,
+  for a switching device, `contact`, `coil` and `through` (the terminal pairs inside it);
+  one `circuits/<id>.yaml` per circuit (`purpose`: power, control, sensing or earth; a `name`
+  in the owner's words; its `protection`; `connections`); `conductors/<id>.yaml` only for a
+  conductor the calc kit's table lacks, with its `source`.
+- **Connections name terminals**: `{from: "device://<id>#<terminal>", to: …, conductor:
+  <table id>, length: 0.4 m, via: iface://<entry>}`; the supply's are `supply://supply#L`,
+  `#N`, `#PE`. Terminals, ratings and contact categories come from the datasheet, cited in
+  the device file with `[verify]`; a device whose terminals you cannot source gets
+  `terminals: []` (a warning), never invented names.
+- **The joint between the box and the wiring is a cable entry**: an interface of kind
+  `cable-entry`, the box first (it gets the hole), the gland or bushing second, `spec:
+  {diameter: <hole>, passes: [circuit://<id>, …]}`: one hole per entry at its frame's origin,
+  no `pattern:`. Every connection that crosses the box names it with `via:`. A box supplied
+  from elsewhere is a stand-in (`build: external`, no children) whose `ports:` are its cable
+  entries; connections reach it as `asm://<box>#<terminal>`, only through a port.
+- **Earth**: every custom part of a metal reaches the supply's earth by a conductor (an
+  earth stud and a lead), or the circuit's `earth:` names the joint that bonds it to a part
+  that does (`bonded_via: [iface://…]`, a claim the electrician tests).
+- **Build and look**: `n2f validate`, then `n2f build --target elec` and open
+  `build/electrical/<circuit>/diagram.svg` and `schedule.csv`; then `n2f check`. Fix every
+  wiring `fail` (a load above the supply, a conductor too thin, a metal part with no path to
+  earth, a circuit with no protection). Leave every wiring warning to the electrician: it says
+  "a licensed electrician decides"; never silence it by editing the model to look right.
+- **A requirement on a circuit** uses `verify: {kind: circuit, target:
+  "circuit://<id>#props.supply_margin", op: ">", value: 0 A}` (also `load_current`,
+  `conductor_margin`, `earth_paths`); its value is a quantity, never `param://`. A safety
+  requirement about the wiring stays `kind: manual`, `safety: true`, `tags: [electrical]`.
+- **The room-to-spare pick** (the supply-headroom choice, once the owner has decided):
+  `dedicated` is `dedicated: true` in `supply.yaml`; `larger` raises the supply's rating
+  parameter to the class the option names. Then build and check: the row passes on the model.
+- **Manuals** print the wiring from the model, never a copied table: `{{
+  circuit("<id>").table }}` (a circuit's wires), and rows to loop over from
+  `cable_schedule()`, `terminal_labels()` and `cables_to_buy()`.
+- **Left for later**: no wiring files; keep the cable entries (with `passes: []`) and the
+  room the wiring will need, and say so in a decision.
 
 ## Decisions
 Every material, thickness, process or sizing choice is a `DEC-xxx` with `links:` to the

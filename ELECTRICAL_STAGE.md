@@ -161,6 +161,10 @@ registered through the v0.5 contract and nothing else:
 
 ## 3. Schema additions (all optional; shapes only, not kiln data)
 
+Amended 2026-11-02 by the domain as built: a requirement's `value` is a quantity, never
+`param://`; a cable entry's spec has no `pattern:`; connection ends are
+`device://<id>#<terminal>` (S-154, S-158, S-167); `docs/electrical.md` has the shapes as built.
+
 ```yaml
 # model/electrical/devices/temperature-controller.yaml — a device (E2); device://temperature-controller
 id: temperature-controller
