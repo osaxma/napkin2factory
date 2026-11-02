@@ -20,8 +20,15 @@ silent, decide like a senior engineer, write the decision in a DECISIONS.md entr
   `sed -i ''`. Never run `n2f build` inside `examples/`; copy a product to a temp folder first
   (`tests.conftest.copy_product`).
 - Commit freely on your branch; stage explicit paths, never `git add -A`. Never commit `build/`.
-- Journal ids are placeholders until landing: write `S-169`, `S-170` …, `B-0149` … in
-  DECISIONS.md, BACKLOG.md, comments and commit messages; `make land` numbers them.
+- **Commit often: this run may be cut off at any moment without warning.** After each
+  meaningful piece of work (a file family written, a test passing, a fix found), commit it on
+  your branch with a subject starting `WIP: ` and a body saying what is done, what is left and
+  how to check it, so a cut-off loses minutes, not hours. Before `make land`, fold them
+  (`git reset --soft main && git commit` with the real `M<n>: …` subject; land refuses `WIP`).
+- Journal ids are placeholders until landing: write `S-NEW` plus a number (`S-NEW1`,
+  `S-NEW2` …) and `B-NEW` plus a number in DECISIONS.md, BACKLOG.md, comments and commit
+  messages; `make land` gives them the next free numbers. Never write a literal next number
+  yourself: a parallel task may take it first.
 - Commit subjects: `M<n>: <what>` for a milestone task (your brief names `<n>`); plain imperative
   for a seam task.
 - When done: `make land` from inside your task folder (it rebases on main, assigns ids, runs

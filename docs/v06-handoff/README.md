@@ -6,6 +6,9 @@ the briefs, decisions not yet in the journals, measured times, the count so far,
 the maintainer. Everything else is in the journals (`STATUS.md`, `DECISIONS.md`,
 `BACKLOG.md`); read those as `AGENTS.md` says, then this file.
 
+**Resuming a cut-off run? Read `PROGRESS.md` here first: it is the ledger of the second
+overseer's run (what is done, what is in flight, the exact next step).**
+
 ## First steps for the next overseer, in order
 1. Read `AGENTS.md`, `STATUS.md`, this file, then `ELECTRICAL_STAGE.md` §5 M5–M7 and §8.
 2. `make tasks` (expect none) and `git log --oneline -25` (main should be at or after the commit
@@ -14,7 +17,7 @@ the maintainer. Everything else is in the journals (`STATUS.md`, `DECISIONS.md`,
    it on an idle host; if still over, a small task moves the slowest end-to-end files behind
    `-m full` (find them with `pytest --durations=25`), and record the times in STATUS.md.
 4. Check the latest scheduled CI run (§0, Linux).
-5. **Wait for the maintainer's green light**, then hand out `brief-m5.md` (first) and
+5. **The maintainer's green light was given on 2026-11-02 (second session)**; hand out `brief-m5.md` (first) and
    `brief-m6.md` with `brief-common.md`; then write M7's brief from plan §5 M7 and §0 here.
 
 ## 0. The maintainer's standing instructions (from the run's opening brief)
@@ -63,8 +66,8 @@ the maintainer. Everything else is in the journals (`STATUS.md`, `DECISIONS.md`,
 | M3 checks, verify kind, choice | landed | a196024 | S-158 |
 | M4 the owner's view | landed | 9559335, 1dea28d, fc7e347, e72704b (M4b, E8) | S-159, S-168 |
 | wave-2 seam tasks | landed | dd34f32, cc2e32a | S-160–S-164, S-165–S-167 |
-| **M5 the kiln, wired** | **not started (held)** | — | brief: `brief-m5.md` |
-| **M6 external, scope, script** | **not started (held)** | — | brief: `brief-m6.md` |
+| **M5 the kiln, wired** | **green light given 2026-11-02; not started** | — | brief: `brief-m5.md` |
+| **M6 external, scope, script** | **green light given 2026-11-02; not started** | — | brief: `brief-m6.md` |
 | M7 docs, simulation, gates G/H, close-out | not started | — | brief to write (plan §5 M7; §0 above) |
 
 Wave 3 = M5 + M6 at once (start M5 first: it is the long one). Then M7.
@@ -137,7 +140,7 @@ Wave 3 = M5 + M6 at once (start M5 first: it is the long one). Then M7.
   limit device is judged; AC-3 accepted for inductive loads), B-0131.
 
 ## 6. Waiting on the maintainer
-- **Green light for M5 and M6.**
+- ~~Green light for M5 and M6.~~ Given 2026-11-02 (second session), with: do not push, do not tag.
 - Visual judgment (S-078), sent 2026-11-02 with one question ("is this diagram style the one to
   carry to the kiln's three circuits, or should the layout change first?"):
   `docs/reviews/v0.6-diagram-power.png`, `docs/reviews/v0.6-diagram-external.png`,
