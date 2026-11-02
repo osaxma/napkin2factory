@@ -239,6 +239,10 @@ class Supply(Model):
     device that protects the supply: the site's (``{upstream, rating}``) or a part the
     product ships.  ``dc: true`` is a DC supply (no frequency).  ``terminals`` defaults to
     L, N, PE for one phase, L1, L2, L3, N, PE for three, and +, -, PE for DC.
+    ``dedicated: true`` says the supply circuit serves this product alone: nothing else may
+    be plugged into it (the electrician confirms).  The supply-headroom check then passes
+    a load above its cited share of the rating; it is how the model says that pick was made
+    (S-171).
     """
 
     id: Literal["supply"] = "supply"
@@ -251,6 +255,7 @@ class Supply(Model):
     region: str | None = None
     protection: SupplyProtection = None
     terminals: list[str] | None = None
+    dedicated: bool = False
     notes: str | None = None
 
     @field_validator("earthing")

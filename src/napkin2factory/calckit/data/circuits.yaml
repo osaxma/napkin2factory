@@ -17,6 +17,10 @@ rows:
      source: "CEE 7/3 socket, CEE 7/4 plug, rated 16 A; 230 V nominal per IEC 60038 / EN 50160 (many makers limit long continuous loads to about 10 A)"}
   - {region: EU, label: "16 A dedicated circuit", voltage: 230, rating_a: 16, kind: dedicated, verify: true,
      source: "IEC 60309 16 A (blue) outlet or a dedicated 16 A MCB circuit (IEC 60898-1, HD 60364)"}
+  - {region: EU, label: "20 A dedicated circuit", voltage: 230, rating_a: 20, kind: dedicated, verify: true,
+     source: "IEC 60898-1 preferred MCB ratings (20 A); HD 60364 final circuit sized by a licensed electrician"}
+  - {region: EU, label: "32 A dedicated circuit (IEC 60309 32 A outlet)", voltage: 230, rating_a: 32, kind: dedicated, verify: true,
+     source: "IEC 60309-2 32 A (blue) outlet; IEC 60898-1 preferred MCB ratings (32 A); HD 60364 final circuit sized by a licensed electrician"}
   - {region: UK, label: "13 A socket (BS 1363)", voltage: 230, rating_a: 13, kind: plug, verify: true,
      source: "BS 1363 13 A socket-outlet with a BS 1362 fused plug; 230 V nominal (IEC 60038, ESQCR 2002)"}
   - {region: UK, label: "32 A dedicated radial circuit", voltage: 230, rating_a: 32, kind: dedicated, verify: true,

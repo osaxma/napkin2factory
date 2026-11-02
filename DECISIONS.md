@@ -195,6 +195,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-168 | v0.6 M4 (E8): the supply screen is the wiring's (`circuit-available`, phase `check`); the kiln's pack reads its fields | in force |
 | S-169 | v0.6 M6: the diff page says a report section the later Revision's package adds or drops ("Wiring: added"); a domain left for later or done elsewhere counts as not there | in force |
 | S-170 | v0.6 M6: the external-box fixture (a control box supplied from elsewhere, two cable-entry ports), the scope words tested with the wiring's owner word, the owner-session script for DoD 7 on that fixture | in force |
+| S-171 | v0.6 M5 follow-up: cited EU 20 A and 32 A circuit classes, so a European 16 A supply raises the supply-headroom choice; `dedicated: true` on the supply is the `dedicated` pick made in the model (closes B-0149, B-0151) | in force |
 
 ---
 
@@ -1169,3 +1170,14 @@ later read the core's words with "Wiring"; the later cover lists what is not inc
 (`tests/e2e/intake-transcripts/wiring-session.md`) uses this fixture, not the kiln: the wired kiln had not landed, and on
 EU 16 A no larger class is on file, so its headroom row is a warn (B-0151). 5.2 A of 10 A is a choice; the owner asks to be
 asked, so delegation does not apply; she picks `larger` (`dedicated` never clears, B-0149). Step 1 run as written: 5 s; tests: 18, 15 s.
+
+## S-171 — v0.6 M5 follow-up: the supply-headroom choice on a European 16 A supply, the dedicated pick made (2026-11-02)
+B-0151: `calckit/data/circuits.yaml` gains two EU rows, "20 A dedicated circuit" (IEC 60898-1 preferred MCB ratings; HD 60364)
+and "32 A dedicated circuit (IEC 60309 32 A outlet)" (IEC 60309-2; IEC 60898-1), both 230 V, `verify: true` [verify]. Ratings
+only the cited standards list; no other number. Table rows over the brief's generic second option, because no screen moved:
+every golden unchanged (`tests/golden` 141 passed), the board, calc-kit and screening tests green; the kiln's cards name their
+circuit (no region lookup); the one fixture card screened by EU region draws 6.5 A (1.5 kW). So on EU 230 V 16 A above 8 A, `larger` offers the
+20 A class (S-158's "next class on file", unchanged). B-0149: `Supply.dedicated` (optional, default false, schema stays 1):
+"the supply circuit serves this product alone". The headroom row reads it through `sctx.proxy` and passes, saying nothing
+else may be plugged in (the electrician confirms); the `dedicated` option's what-it-takes and the no-larger-class warn's fix
+name the field. Measured: decide `dedicated`, set the field, build: `n2f status` has no "not yet in the design" line. Core files changed: none.

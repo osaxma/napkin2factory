@@ -38,7 +38,7 @@ from napkin2factory.domains.electrical.checks.calcs import (
     supply_load,
 )
 from napkin2factory.domains.electrical.checks.pack import rule
-from napkin2factory.domains.electrical.model import circuits, has_content
+from napkin2factory.domains.electrical.model import circuits, has_content, supply
 
 if TYPE_CHECKING:  # an installed domain is imported while the core's schemas load (S-153)
     from napkin2factory.core.checks.results import CheckResult
@@ -315,6 +315,22 @@ def _headroom_row(rows: _Rows, w: Wiring, total: Any, rating: Any, load: Any) ->
         f"{_a(total)} of the {_rating(rating)} circuit ({_load_words(load.loads)}): more "
         f"than {share} of it."
     )
+    # `dedicated: true` is the `dedicated` pick made in the model, so the row passes and a
+    # decided choice leaves "not yet in the design" (S-171).
+    sctx = rows.sctx
+    if bool(sctx.proxy(supply(sctx.product), "supply://supply").dedicated):
+        rows.add(
+            "supply-headroom",
+            "supply",
+            "supply://supply",
+            "pass",
+            f"{_a(total)} of the {_rating(rating)} circuit, more than {share} of it; the "
+            "circuit serves this product alone, so nothing else may be plugged into it (the "
+            "electrician confirms).",
+            home=None,
+            detail={**detail, "dedicated": True},
+        )
+        return
     nxt = _next_circuit(w, rating_a)
     if nxt is None:
         rows.add(
@@ -326,8 +342,9 @@ def _headroom_row(rows: _Rows, w: Wiring, total: Any, rating: Any, load: Any) ->
             "left is to keep this circuit for the product alone.",
             home=None,
             fix=(
-                f"the electrician makes the {_rating(rating)} circuit serve this product alone; "
-                "a licensed electrician decides"
+                f"the electrician makes the {_rating(rating)} circuit serve this product alone "
+                "and the supply says so (`dedicated: true` in the wiring's supply file); a "
+                "licensed electrician decides"
             ),
             detail=detail,
         )
@@ -351,7 +368,8 @@ def _headroom_row(rows: _Rows, w: Wiring, total: Any, rating: Any, load: Any) ->
                 "dedicated",
                 f"a dedicated {_rating(rating)} circuit; nothing else may be plugged into it",
                 f"the electrician fits or confirms a {_rating(rating)} circuit that serves this "
-                "product alone, and the manual says nothing else may be plugged into it",
+                "product alone, the supply says so (`dedicated: true` in the wiring's supply "
+                "file), and the manual says nothing else may be plugged into it",
             ),
             Option(
                 "larger",
