@@ -359,11 +359,15 @@ def test_the_verify_row_counts_the_wiring_checks(
 
     build = tmp_path / "build"
     shutil.copytree(root / "build", build)
+    results = json.loads((build / "checks/checks.json").read_text())["results"]
+    mine = [r["status"] for r in results if r["kind"] == "electrical"]
     _add_check_row(build, "warn")
     _add_check_row(build, "pass")
+    ok, warn = mine.count("pass") + 1, mine.count("warn") + 1
     state = verify_row(product, build)
     assert state is not None
-    assert state.summary.endswith(": 1 OK, 1 for an electrician to confirm"), state.summary
+    assert state.summary.startswith(f"{len(mine) + 2} checks: {ok} OK"), state.summary
+    assert f"{warn} for an electrician to confirm" in state.summary, state.summary
 
 
 def test_the_rows_say_not_checked_before_the_checks(tmp_path: Path) -> None:
