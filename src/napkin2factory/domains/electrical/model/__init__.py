@@ -772,6 +772,7 @@ def _validate_circuit(
                     f"add model/interfaces/{joint.id}.yaml, or name the joint that exists",
                     rule=RULE,
                 )
+    entries: set[str] = set()
     for n, conn in enumerate(circuit.connections, start=1):
         where = f"connection {n} ({conn.from_} to {conn.to})"
         for end in conn.ends():
@@ -787,7 +788,8 @@ def _validate_circuit(
                 + f"{conn.conductor}.yaml with its source",
                 rule=RULE,
             )
-        if conn.via is not None:
+        if conn.via is not None and str(conn.via) not in entries:
+            entries.add(str(conn.via))  # one problem per entry, however many conductors cross
             _validate_via(product, problems, file, subject, where, circuit, conn.via)
 
 

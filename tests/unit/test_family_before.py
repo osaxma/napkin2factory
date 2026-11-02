@@ -39,6 +39,21 @@ MECHANICAL = ("validate", "part", "asm", "drawing", "bom", "asmsheet", "doc")
 CONSUMERS = ("checks", "report", "site")
 
 
+def _families() -> list[str]:
+    """The rule families in build order, the other installed domains' left out."""
+    reg = registry()
+    return [
+        f.name
+        for f in reg.rule_families()
+        if reg.owner("rule family", f.name).name in ("mechanical", "beacon")
+    ]
+
+
+def _ours(kinds: tuple[str, ...]) -> tuple[str, ...]:
+    """A target's rule kinds, the other installed domains' left out."""
+    return tuple(k for k in kinds if k in (*MECHANICAL, *CONSUMERS, "beacon"))
+
+
 class Beacon(Model):
     """A beacon: a name, the part it sits on, and its colour."""
 
@@ -186,7 +201,7 @@ def _page(root: Path) -> str:
 
 
 def test_the_family_runs_before_every_doc_rule(beacon: Domain, tmp_path: Path) -> None:
-    names = [f.name for f in registry().rule_families()]
+    names = _families()
     assert names == ["validate", "part", "asm", "drawing", "bom", "asmsheet", "beacon", "doc"] + [
         *CONSUMERS
     ]
@@ -279,10 +294,10 @@ def test_a_before_naming_a_reader_of_all_or_nothing_installed_changes_nothing(
 
 
 def test_a_product_without_such_a_family_builds_in_todays_order(tmp_path: Path) -> None:
-    assert [f.name for f in registry().rule_families()] == [*MECHANICAL, *CONSUMERS]
+    assert _families() == [*MECHANICAL, *CONSUMERS]
     targets = registry().target_kinds()
-    assert targets["docs"] == ("validate", "part", "asm", "bom", "doc")
-    assert targets["bom"] == ("validate", "part", "asm", "bom")
+    assert _ours(targets["docs"]) == ("validate", "part", "asm", "bom", "doc")
+    assert _ours(targets["bom"]) == ("validate", "part", "asm", "bom")
     root = _write_product(tmp_path / "p", with_beacon=False)
     product = load_product(root)
     kinds = [r.kind for r in build_rules(product)]

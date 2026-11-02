@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from napkin2factory.core.domain import HelperContext
@@ -46,7 +47,7 @@ def terminal_labels_helper(h: HelperContext) -> Any:
     return terminal_labels
 
 
-DOC_HELPERS = {
+DOC_HELPERS: dict[str, Callable[[HelperContext], Any]] = {
     "circuit": circuit_helper,
     "cable_schedule": cable_schedule_helper,
     "terminal_labels": terminal_labels_helper,

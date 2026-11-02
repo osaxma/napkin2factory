@@ -74,13 +74,20 @@ def test_every_uri_and_requirement_present(report: tuple[Path, str]) -> None:
 
 
 def test_navigation_and_links_without_toggle(report: tuple[Path, str]) -> None:
+    from napkin2factory.core.registry import registry
     from napkin2factory.report.builder import SECTIONS
 
-    _, html = report
+    root, html = report
     tree = LexborHTMLParser(html)
     assert tree.css_first("#btn-owner") is None and tree.css_first("#btn-engineer") is None
     nav = {a.attributes.get("data-sec") for a in tree.css("nav.side a[data-sec]")}
-    assert {sid for sid, _, _ in SECTIONS} <= nav
+    # a domain's section with show() false for this product is left off (docs/domains.md §3.6)
+    hidden = {
+        s.id
+        for s in registry().report_sections()
+        if s.show is not None and not s.show(load_product(root))
+    }
+    assert {sid for sid, _, _ in SECTIONS} - hidden <= nav
     cards = [s.attributes.get("id") for s in tree.css("main > section.card")]
     assert cards and all(c in nav for c in cards), cards
     # safety is always on the page, never inside a collapsed or hidden container

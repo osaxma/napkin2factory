@@ -66,7 +66,7 @@ def test_every_registry_sees_the_toy(toy_built: tuple[Path, Any, Any]) -> None:
     assert reg.rule_family("toy").produces == "toy://"
     assert reg.verify_kind("toy_glow").target_schemes == ("toy",)
     assert reg.check_stage("toy").after == ("interface",)
-    assert [r.title for r in reg.gate_rows("verify")] == ["Toy things"]
+    assert "Toy things" in [r.title for r in reg.gate_rows("verify")]
     assert reg.report_section("toy").group == "Product"
     assert reg.doc_helper("toy") is toy.toy_helper
     assert reg.vocabulary("owner")["toy"] == "toy thing"
@@ -75,13 +75,13 @@ def test_every_registry_sees_the_toy(toy_built: tuple[Path, Any, Any]) -> None:
     assert "toy-glitter" in reg.finishes()
     assert "fun" in reg.categories()
     assert reg.drivers()["toy-swapped"] == "swapped between toys"
-    assert [s.name for s in reg.screens()] == ["toy"]
-    assert reg.screens()[0].fields == (toy.TOYS,) and reg.screens()[0].phase == "estimate"
+    toy_screen = next(s for s in reg.screens() if s.name == "toy")
+    assert toy_screen.fields == (toy.TOYS,) and toy_screen.phase == "estimate"
     assert reg.style_roles()["toy-shell"].styled
-    assert [c.name for c in reg.context_contributions()] == ["toy"]
+    assert "toy" in [c.name for c in reg.context_contributions()]
     assert reg.model_family("toy").folder == "model/toy"
-    assert reg.release_files() == [("toy", toy.DOMAIN.release_files[0])]
-    assert [d.name for d in reg.domains] == ["mechanical", "toy"]
+    assert ("toy", toy.DOMAIN.release_files[0]) in reg.release_files()
+    assert "toy" in [d.name for d in reg.domains]
 
 
 def test_rule_family_runs_after_the_parts_and_before_the_checks(
@@ -207,7 +207,7 @@ def test_screen_runs_on_a_card(toy_built: tuple[Path, Any, Any]) -> None:
     )
     result = screen(card, None)
     assert result.estimates["toy_count"].value == "5 toys"
-    assert [r.id for r in result.rules][-1] == "toy-count"
+    assert "toy-count" in [r.id for r in result.rules]
 
 
 def test_screen_declares_its_fields_and_phase(toy_built: tuple[Path, Any, Any]) -> None:
@@ -216,7 +216,7 @@ def test_screen_declares_its_fields_and_phase(toy_built: tuple[Path, Any, Any]) 
     from napkin2factory.core.concepts import render_card
     from napkin2factory.core.domain import Screen
 
-    screen = registry().screens()[0]
+    screen = next(s for s in registry().screens() if s.name == "toy")
     assert fields_of(screen) == (toy.TOYS,) and phase_of(screen) == "estimate"
     assert "envelope.toys" in [f.name for f in card_fields()]
     skeleton = render_card({"id": "C-001", "title": "Toy chest"})
@@ -239,7 +239,7 @@ def test_style_role_is_a_role_while_the_domain_is_installed(
     )
 
     _, product, _ = toy_built
-    assert STYLE_ROLES[-1] == "toy-shell" and "toy-shell" in STYLED_ROLES  # live views
+    assert "toy-shell" in STYLE_ROLES and "toy-shell" in STYLED_ROLES  # live views
     assert ROLE_ALIASES["casing"] == "toy-shell" and canonical_role("casing") == "toy-shell"
     part = Part.model_validate({"id": "x", "name": "x", "role": "casing"})
     assert part.role == "casing"
@@ -271,7 +271,9 @@ def test_context_contribution(toy_built: tuple[Path, Any, Any]) -> None:
 
     _, product, _ = toy_built
     ctx = module_context(product, "box")
-    assert ctx["domains"][0]["lines"] == ["- toy://widget: Widget on part://plate (glow 3)"]
+    assert any(
+        d["lines"] == ["- toy://widget: Widget on part://plate (glow 3)"] for d in ctx["domains"]
+    )
     assert "## Toy things on its parts" in render_text(ctx)
 
 
@@ -473,15 +475,15 @@ def test_a_product_naming_an_uninstalled_kind_fails_validation(tmp_path: Path) -
 @pytest.mark.parametrize(
     ("lookup", "name", "known"),
     [
-        (lambda r, n: r.rule_family(n), "wiring", "part"),
-        (lambda r, n: r.verify_kind(n), "wiring", "calc"),
-        (lambda r, n: r.check_stage(n), "wiring", "interference"),
-        (lambda r, n: r.report_section(n), "wiring", "overview"),
-        (lambda r, n: r.doc_helper(n), "wiring", "build_step"),
-        (lambda r, n: r.interface_kind(n), "wiring", "bolt-pattern"),
-        (lambda r, n: r.model_family(n), "wiring", "known:"),
-        (lambda r, n: r.domain(n), "wiring", "mechanical"),
-        (lambda r, n: r.gate_rows(n), "wiring", "verify"),
+        (lambda r, n: r.rule_family(n), "nonesuch", "part"),
+        (lambda r, n: r.verify_kind(n), "nonesuch", "calc"),
+        (lambda r, n: r.check_stage(n), "nonesuch", "interference"),
+        (lambda r, n: r.report_section(n), "nonesuch", "overview"),
+        (lambda r, n: r.doc_helper(n), "nonesuch", "build_step"),
+        (lambda r, n: r.interface_kind(n), "nonesuch", "bolt-pattern"),
+        (lambda r, n: r.model_family(n), "nonesuch", "known:"),
+        (lambda r, n: r.domain(n), "nonesuch", "mechanical"),
+        (lambda r, n: r.gate_rows(n), "nonesuch", "verify"),
         (
             lambda r, n: (
                 r.target_kinds()[n]
@@ -490,7 +492,7 @@ def test_a_product_naming_an_uninstalled_kind_fails_validation(tmp_path: Path) -
                     [], n
                 )
             ),
-            "wiring",
+            "nonesuch",
             "geometry",
         ),
     ],
@@ -526,15 +528,15 @@ def _old_package_hash(*subdirs: str) -> str:
 
 @pytest.fixture
 def mechanical_only() -> Iterator[None]:
-    """The installed domains alone, for the duration of a test (the toy set aside)."""
-    toy_on = any(d.name == "toy" for d in registry().domains)
-    if toy_on:
-        registry_mod.unregister("toy")
+    """The mechanical domain alone, for the duration of a test (every other one set aside)."""
+    aside = [d for d in registry().domains if d.name != "mechanical"]
+    for d in aside:
+        registry_mod.unregister(d.name)
     try:
         yield
     finally:
-        if toy_on:
-            registry_mod.register(toy.DOMAIN)
+        for d in aside:
+            registry_mod.register(d)
 
 
 def test_mechanical_family_hashes_equal_the_old_subtree_hashes(mechanical_only: None) -> None:

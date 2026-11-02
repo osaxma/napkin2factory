@@ -7,7 +7,7 @@ for a bolt pattern; a bought gland with no shape is skipped with the core's own 
 Then :func:`check_cable_entry` runs and the worse status wins: every circuit the entry
 ``passes`` exists and has a connection going ``via`` it.
 
-An entry is one hole at its frame's origin (S-153): ``count`` is 1 and the pattern stays
+An entry is one hole at its frame's origin (S-155): ``count`` is 1 and the pattern stays
 ``rect`` (the core's one-hole case); a ``circle`` pattern places its holes on a pitch
 circle, so a one-hole circle without one is refused with the fix.  A module supplied from
 elsewhere (``build: external``) lists its cable entries under ``ports:``; the model's
@@ -52,7 +52,8 @@ class CableEntrySpec(BoltPatternSpec):
 def _party_words(product: Any, party: Any) -> str:
     table = product.parts if party.scheme == "part" else product.assemblies
     obj = table.get(party.id)
-    return str(getattr(obj, "name", None) or party.id)
+    # lower case, as the core's own sentence before it says the parties ("cut in box")
+    return str(getattr(obj, "name", None) or party.id).lower()
 
 
 def _circuit_words(circuit: Any) -> str:

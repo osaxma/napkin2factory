@@ -40,6 +40,8 @@ the headline), S-111; reconciled with the contract as built in S-141: planned, n
 outside model's brief for after it lands.
 - M0 baseline and tables (the kiln's electrical survey `docs/v06-baseline.md`, report 3.8 MB, cold build 69 s; the
   conductor, earthing and wire-colour tables and `calckit.wiring`; E5: no parts-list seam, B-0128) — S-147, S-146, S-145.
+- M1 the family and the joint (`domains/electrical/` installed: supply, devices, circuits, product conductors, the
+  `cable-entry` kind, the Design row "Wiring", every other registration stubbed for wave 2; 0 core files) — S-153, S-154, S-155.
 
 v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
 package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120; closed,

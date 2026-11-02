@@ -41,8 +41,14 @@ def test_doctor_lists_the_installed_domains_from_the_registries():
     data = json.loads(r.stdout)
     assert [d["name"] for d in data["domains"]] == [d.name for d in registry().domains]
     mech = data["domains"][0]
-    assert [v["name"] for v in mech["verify_kinds"]] == list(registry().verify_kinds())
-    assert [s["name"] for s in mech["check_stages"]] == [s.name for s in registry().check_stages()]
+    reg = registry()
+    # each row lists its own domain's kinds and stages (others may be installed after it)
+    own_kinds = [k for k in reg.verify_kinds() if reg.owner("verify kind", k).name == "mechanical"]
+    own_stages = [
+        s.name for s in reg.check_stages() if reg.owner("check stage", s.name).name == "mechanical"
+    ]
+    assert [v["name"] for v in mech["verify_kinds"]] == own_kinds
+    assert [s["name"] for s in mech["check_stages"]] == own_stages
     geo = next(v for v in mech["verify_kinds"] if v["name"] == "geometry_prop")
     assert geo["targets"] == ["part://", "asm://"] and geo["compares"]
     assert [s["name"] for s in data["screens"]["system"]] == [s.name for s in GENERIC_SCREENS]

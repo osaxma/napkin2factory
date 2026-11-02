@@ -177,6 +177,9 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-150 | Seam (gate F 8): a domain is said by its own owner word, else its title, else its key (closes B-0117) | in force |
 | S-151 | Seam (gate F 10): `n2f status` with work done elsewhere and no stand-in shows the product, the missing stand-in its first bullet (closes B-0119) | in force |
 | S-152 | Seam (gate F 9): a stand-in is "supplied, not built here" everywhere; its joint said by its interface's description (closes B-0118) | in force |
+| S-153 | v0.6 M1: the electrical domain's package and wiring model (four families, connection ends parsed by the domain, the fields wave 2 needs, `model/` and `interfaces/` as folders so the `elec` code hash leaves out the owner's view) | in force |
+| S-154 | v0.6 M1: how the wiring model addresses instances, upstream protection, entries by voltage band (the overseer's decisions on the kiln survey; amends E2, E3, E6) | in force |
+| S-155 | v0.6 M1: a cable entry is one hole; the Design row "Wiring" blocks on unwired devices; tests that assumed one installed domain take the membership form | in force |
 
 ---
 
@@ -980,3 +983,34 @@ built here); a joint side that is a stand-in carries `supplied` in the build pla
 not built here" (never "no unit"); its "how" is the interface's `description`, else "fitted to <name>, supplied, not built
 here"; the interface check's row says "fits <name>, supplied, not built here" in place of "the faces touch by design".
 The keys appear only on a stand-in's side: the enclosure built on `main` and here has the same `build-plan.json` and `checks.json`.
+## S-153 — v0.6 M1: the electrical domain's package and its wiring model (2026-11-02)
+`domains/electrical/`: `__init__.py` composes `DOMAIN`; `model/`, `interfaces/` (M1's), `outputs/` (M2), `checks/` (M3),
+`owner/` (M4) export registration tuples, wave 2 fills function bodies. Families: `supply` over `model/electrical/` (id fixed
+`supply`, `supply://supply`), `device`, `circuit`, `conductor` (the product's rows, `source` required), each in its own
+folder; one `validate_refs`, on `supply`. A connection end is parsed by the domain, not as a core URI (whose fragment reads
+`1` as an instance and refuses `+`): `device://x#T`, `part://x#T`, `supply://supply#L`, `asm://<stub>#T`. Fields beyond §3,
+so wave 2 adds none [revisit]: Device `coil`, `inductive`, `safety` (interlock | limit), `through` (terminal pairs inside a
+device, for the series checks); Circuit `name`, `voltage`, `dc`, `earth`; Supply `dc`, `terminals`. `code` hashes folders
+only (a file hashes as nothing, B-0130), so `model/` and `interfaces/` are packages and the `elec` family's code is
+`outputs`, `model`, `interfaces`: an `owner/` edit reruns no `elec:` rule. An installed domain is imported while the core's
+schemas load: it imports `core.graph` and `core.checks` lazily (B-0129). Core files changed: none.
+## S-154 — v0.6 M1: how the wiring model addresses instances, upstream protection, entries by voltage band (2026-11-02)
+The overseer's decisions on `docs/v06-baseline.md` §5, binding for M1 and M5. 1 (amends E2, E3): connections name devices
+(`device://<id>#<terminal>`); several devices may name a part placed that many times (counted in the assemblies; uncountable:
+a warn), `part://` is a shorthand only when one device names the part, `instance:` words each. 2 (amends E3, E6): the
+supply's `protection` is `{upstream, rating}` (the site's) or a part; a circuit's is a part, a device or `supply`, and E6's
+"no protective device" fail passes for `supply` when the supply has a rating, with a warn for the electrician. 3: the
+missing parts are M5's (bought, `verified: false`); type K extension cable is a product conductor row. 4 (refines E6): the
+shared-entry warn is extra-low voltage (≤ 50 V AC / 120 V DC, IEC 61140 [verify]) beside mains; PE may share any entry; the
+kiln keeps DEC-024's three holes. 5: a joint as an earth path is a `bonded_via` warn; opening parts get a bonding lead (M5).
+6: a contact switching a coil warns unless AC-15/DC-13. 7: unsourced terminals stay `[]`, a lint warn, never invented.
+## S-155 — v0.6 M1: one-hole entries, the Design row, a second installed domain (2026-11-02)
+A cable entry's spec (`CableEntrySpec(BoltPatternSpec)`) is one hole at its frame's origin: `count: 1`, the pattern left
+`rect` (the core's one-hole case); §3's `pattern: circle` needs a pitch circle and is refused with the fix. Its check says
+"box to cable gland: carries the Heater circuit" after the core's hole sentence, fails a listed circuit with no connection
+`via` it, warns on an empty `passes`. Design "Wiring": counts devices and circuits; each load or control device no
+connection reaches is a blocker; scope `in` with no content is one too. Verify "Wiring checks" counts `electrical` rows.
+Installing a second domain moved tests that assumed one: `test_domain_contract.py` (membership form, `mechanical_only`
+sets every other domain aside, the unknown-name lookups use `nonesuch` since `wiring` is now a section), `test_doctor.py`,
+`test_graph.py`, `test_report.py` (a section whose `show` is false is off the index), `test_family_before.py`, and
+`test_scope.py` ("Wiring: …" where it said "Electrical: …", as S-150 foresaw). `test_electrical_model.py`: 38 passed, 16 s.

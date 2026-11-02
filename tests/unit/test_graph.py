@@ -6,6 +6,7 @@ from napkin2factory.core.graph.impact import next_rev, parse_set
 from napkin2factory.core.graph.manifest import Entry, Manifest
 from napkin2factory.core.graph.rules import TARGET_KINDS, build_rules, rules_for_target
 from napkin2factory.core.loader import load_product
+from napkin2factory.core.registry import registry
 from tests.conftest import EXAMPLES
 
 
@@ -26,7 +27,8 @@ def test_rule_order_and_targets():
     assert geo == ["validate", "part:base", "part:bracket", "part:lid", "asm:enclosure"]
     only = [r.id for r in rules_for_target(rules, "drawings", only_part="lid")]
     assert only == ["validate", "part:lid", "drawing:lid"]
-    assert set(TARGET_KINDS["all"]) == {
+    assert set(TARGET_KINDS["all"]) == {f.name for f in registry().rule_families()}
+    assert set(TARGET_KINDS["all"]) >= {
         "validate",
         "part",
         "asm",

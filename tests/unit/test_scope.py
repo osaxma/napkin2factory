@@ -195,7 +195,7 @@ def test_status_shows_the_scope_rows(rig: Path) -> None:
     out = _cli("status", "--dir", str(rig))
     assert "Scope (what this product covers)" in out
     assert (
-        "Electrical: done elsewhere (supplied, not built here) — the controls come wired from "
+        "Wiring: done elsewhere (supplied, not built here) — the controls come wired from "
         "the supplier (DEC-001)" in out
     )
     assert "Wiring: left for later (not designed here yet) — Wiring comes later (DEC-002)" in out
@@ -259,7 +259,7 @@ def test_report_overview_says_the_scope(rig: Path) -> None:
     line = re.search(r'<p class="scope" id="scope">(.*?)</p>', html)
     assert line is not None
     assert line.group(1) == (
-        "<strong>Scope.</strong> Electrical: done elsewhere (supplied, not built here) — the "
+        "<strong>Scope.</strong> Wiring: done elsewhere (supplied, not built here) — the "
         "controls come wired from the supplier (DEC-001). Wiring: left for later (not designed "
         "here yet) — Wiring comes later (DEC-002); left for later with it: REQ-002 (Harness "
         "strain relief)."
@@ -280,13 +280,13 @@ def test_release_cover_and_record_carry_the_scope(rig: Path, tmp_path: Path) -> 
         "Scope fixture rig — Revision v1.0.0",
         "",
         "Not included in this package:",
-        "- Electrical (done elsewhere, supplied, not built here; DEC-001 — The controls are "
+        "- Wiring (done elsewhere, supplied, not built here; DEC-001 — The controls are "
         "bought wired). It stands in the model as Controls (bought wired).",
         "- Wiring (left for later, not designed here yet; DEC-002 — Wiring comes later). Left "
         "for later with it: REQ-002 (Harness strain relief). About safety, and still to be "
         "signed off: REQ-003 (Harness earth bond).",
         "",
-        "Scope: Electrical: done elsewhere (supplied, not built here) — the controls come wired "
+        "Scope: Wiring: done elsewhere (supplied, not built here) — the controls come wired "
         "from the supplier (DEC-001)",
         "Scope: Wiring: left for later (not designed here yet) — Wiring comes later (DEC-002)",
         "",
@@ -364,7 +364,7 @@ def test_the_kiln_leaves_electrical_for_later() -> None:
     entry = product.manifest.scope["electrical"]
     assert entry.state == "later" and entry.decision in product.decisions
     assert scope_entries(product)[0]["line"] == (
-        "Electrical: left for later (not designed here yet) — the electrician wires it; the box "
+        "Wiring: left for later (not designed here yet) — the electrician wires it; the box "
         f"keeps its cable entries ({entry.decision})"
     )
     # its electrical requirements are tagged (gate F, concern 6): the two about the supply
@@ -576,7 +576,9 @@ def test_a_domain_is_said_by_its_own_word() -> None:
     """B-0117 (S-150): an installed domain's owner word, else its title, else its key."""
     from napkin2factory.core.checks.stage import domain_word
 
-    assert domain_word("electrical") == "Electrical"  # not installed: the key, capitalised
+    # installed: its owner word (vocabulary={"owner": {"electrical": "wiring"}})
+    assert domain_word("electrical") == "Wiring"
+    assert domain_word("hydraulics") == "Hydraulics"  # not installed: the key, capitalised
     with installed(toy.DOMAIN):
         assert domain_word("toy") == "Toy thing"  # vocabulary={"owner": {"toy": "toy thing"}}
     from dataclasses import replace
@@ -678,16 +680,16 @@ def test_status_with_work_done_elsewhere_and_no_stub(tmp_path: Path) -> None:
     lines = [ln.strip() for ln in result.output.splitlines()]
     first = next(ln for ln in lines if ln.startswith("•"))
     assert first.startswith(
-        "• Electrical is done elsewhere, but nothing in the product shows where it fits yet: "
+        "• Wiring is done elsewhere, but nothing in the product shows where it fits yet: "
         "your agent adds a stand-in module, model/assemblies/<id>.yaml, with `build: external`"
     )
     assert any(ln.startswith("○ Design") for ln in lines)
     design = next(
         g for g in compute_stage(load_product(root, strict=False)).gates if g.name == "design"
     )
-    assert design.blockers[0].startswith("Electrical is done elsewhere")
+    assert design.blockers[0].startswith("Wiring is done elsewhere")
     data = json.loads(_cli("status", "--dir", str(root), "--json"))
-    assert data["scope"][0]["missing_stub"].startswith("Electrical is done elsewhere")
+    assert data["scope"][0]["missing_stub"].startswith("Wiring is done elsewhere")
     # validation still refuses it: only the status goes on
     assert CliRunner().invoke(app, ["validate", "--dir", str(root)]).exit_code != 0
 
