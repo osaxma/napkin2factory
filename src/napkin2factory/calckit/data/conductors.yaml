@@ -1,0 +1,122 @@
+# Copper conductors for wiring checks, by region (calckit.wiring; ELECTRICAL_STAGE E3).
+# NOT VERIFIED by the project: every row is the owner's (or their electrician's) to confirm,
+# and DECISIONS.md lists the table as [verify]. The values were written from the named tables
+# by the project's agent without the standards at hand (2026-11-02): check each against the
+# standard you hold before relying on it. Ampacity is the number a wiring check fails on, so
+# every row names the exact table, column and installation basis it assumes.
+# Columns: id, region, label, csa (mm2), awg (US rows), ampacity (A) at ambient (degC) on the
+# stated basis, insulation, max_temp (degC, the insulation's conductor limit), kind
+# (panel: wiring inside an enclosure or a machine; cord: a flexible supply cord; high-temp:
+# insulation for hot zones).
+# The silicone rows (EU) carry the PVC value as a floor, not their own rating: no silicone table
+# was read. By IEC 60364-5-52 Table B.52.14's square-root rule, k = sqrt((theta_p - theta_a) /
+# (theta_p - 30)), a 180 degC conductor at any ambient up to 150 degC keeps at least the
+# temperature rise a 70 degC conductor has at 40 degC, so the floor errs low; the maker's table
+# (DIN VDE 0298-4, heat-resistant cables) gives more and governs (S-146).
+table: conductors
+rows:
+  # --- EU: PVC single cores (H05V-K / H07V-K class), 70 degC -------------------------------
+  - {id: cu-0p75-pvc, region: EU, label: "0.75 mm² PVC", csa: 0.75, ampacity: 8.5, ambient: 40, kind: panel,
+     insulation: "PVC, 70 °C (H05V-K class)", max_temp: 70,
+     basis: "installation method B2 (cable in conduit or trunking on a wall), three loaded conductors",
+     verify: true, source: "IEC 60204-1:2016 Table 6 (PVC-insulated copper, 70 °C conductor, +40 °C ambient), column B2, the lowest of B1/B2/C/E; the table is IEC 60364-5-52 Table B.52.4 x 0.87 (B.52.14 at 40 °C)"}
+  - {id: cu-1p0-pvc, region: EU, label: "1.0 mm² PVC", csa: 1.0, ampacity: 10.1, ambient: 40, kind: panel,
+     insulation: "PVC, 70 °C (H05V-K class)", max_temp: 70,
+     basis: "installation method B2 (cable in conduit or trunking on a wall), three loaded conductors",
+     verify: true, source: "IEC 60204-1:2016 Table 6 (PVC-insulated copper, 70 °C conductor, +40 °C ambient), column B2, the lowest of B1/B2/C/E"}
+  - {id: cu-1p5-pvc, region: EU, label: "1.5 mm² PVC", csa: 1.5, ampacity: 13.1, ambient: 40, kind: panel,
+     insulation: "PVC, 70 °C (H07V-K class)", max_temp: 70,
+     basis: "installation method B2 (cable in conduit or trunking on a wall), three loaded conductors",
+     verify: true, source: "IEC 60204-1:2016 Table 6, column B2 (= IEC 60364-5-52 Table B.52.4 method B2, 15 A at 30 °C, x 0.87 for 40 °C per Table B.52.14)"}
+  - {id: cu-2p5-pvc, region: EU, label: "2.5 mm² PVC", csa: 2.5, ampacity: 17.4, ambient: 40, kind: panel,
+     insulation: "PVC, 70 °C (H07V-K class)", max_temp: 70,
+     basis: "installation method B2 (cable in conduit or trunking on a wall), three loaded conductors",
+     verify: true, source: "IEC 60204-1:2016 Table 6, column B2 (= IEC 60364-5-52 Table B.52.4 method B2, 20 A at 30 °C, x 0.87 for 40 °C per Table B.52.14)"}
+  - {id: cu-4p0-pvc, region: EU, label: "4 mm² PVC", csa: 4.0, ampacity: 23, ambient: 40, kind: panel,
+     insulation: "PVC, 70 °C (H07V-K class)", max_temp: 70,
+     basis: "installation method B2 (cable in conduit or trunking on a wall), three loaded conductors",
+     verify: true, source: "IEC 60204-1:2016 Table 6, column B2 (= IEC 60364-5-52 Table B.52.4 method B2, 27 A at 30 °C, x 0.87 = 23.5 A for 40 °C, rounded down)"}
+  # --- EU: silicone single cores (H05SJ-K / SiF class), 180 degC: PVC floor, see the header ---
+  - {id: cu-0p75-silicone, region: EU, label: "0.75 mm² silicone", csa: 0.75, ampacity: 8.5, ambient: 40, kind: high-temp,
+     insulation: "silicone rubber, 180 °C (H05SJ-K / SiF class)", max_temp: 180,
+     basis: "the PVC row's value as a floor for ambients up to 150 °C (header); the maker's rating is higher",
+     verify: true, source: "floor from IEC 60204-1:2016 Table 6 column B2 (cu-0p75-pvc) by IEC 60364-5-52 Table B.52.14's rule; replace with the maker's DIN VDE 0298-4 heat-resistant rating"}
+  - {id: cu-1p0-silicone, region: EU, label: "1.0 mm² silicone", csa: 1.0, ampacity: 10.1, ambient: 40, kind: high-temp,
+     insulation: "silicone rubber, 180 °C (H05SJ-K / SiF class)", max_temp: 180,
+     basis: "the PVC row's value as a floor for ambients up to 150 °C (header); the maker's rating is higher",
+     verify: true, source: "floor from IEC 60204-1:2016 Table 6 column B2 (cu-1p0-pvc) by IEC 60364-5-52 Table B.52.14's rule; replace with the maker's DIN VDE 0298-4 heat-resistant rating"}
+  - {id: cu-1p5-silicone, region: EU, label: "1.5 mm² silicone", csa: 1.5, ampacity: 13.1, ambient: 40, kind: high-temp,
+     insulation: "silicone rubber, 180 °C (H05SJ-K / SiF class)", max_temp: 180,
+     basis: "the PVC row's value as a floor for ambients up to 150 °C (header); the maker's rating is higher",
+     verify: true, source: "floor from IEC 60204-1:2016 Table 6 column B2 (cu-1p5-pvc) by IEC 60364-5-52 Table B.52.14's rule; replace with the maker's DIN VDE 0298-4 heat-resistant rating"}
+  - {id: cu-2p5-silicone, region: EU, label: "2.5 mm² silicone", csa: 2.5, ampacity: 17.4, ambient: 40, kind: high-temp,
+     insulation: "silicone rubber, 180 °C (H05SJ-K / SiF class)", max_temp: 180,
+     basis: "the PVC row's value as a floor for ambients up to 150 °C (header); the maker's rating is higher",
+     verify: true, source: "floor from IEC 60204-1:2016 Table 6 column B2 (cu-2p5-pvc) by IEC 60364-5-52 Table B.52.14's rule; replace with the maker's DIN VDE 0298-4 heat-resistant rating"}
+  - {id: cu-4p0-silicone, region: EU, label: "4 mm² silicone", csa: 4.0, ampacity: 23, ambient: 40, kind: high-temp,
+     insulation: "silicone rubber, 180 °C (H05SJ-K / SiF class)", max_temp: 180,
+     basis: "the PVC row's value as a floor for ambients up to 150 °C (header); the maker's rating is higher",
+     verify: true, source: "floor from IEC 60204-1:2016 Table 6 column B2 (cu-4p0-pvc) by IEC 60364-5-52 Table B.52.14's rule; replace with the maker's DIN VDE 0298-4 heat-resistant rating"}
+  # --- US: machine-tool wire (MTW / THHN class, 90 degC insulation rated at the 60 degC column) ---
+  - {id: awg18-mtw, region: US, label: "18 AWG MTW", awg: 18, csa: 0.823, ampacity: 7, ambient: 30, kind: panel,
+     insulation: "MTW / THHN class, 90 °C dry (60 °C wet)", max_temp: 90,
+     basis: "60 °C column, 30 °C ambient, not more than three current-carrying conductors",
+     verify: true, source: "NFPA 79-2021 Table 12.5.1 (copper, 60 °C column, 30 °C ambient); equals the NEC 240.4(D)(1) small-conductor limit of 7 A; csa per ASTM B258"}
+  - {id: awg16-mtw, region: US, label: "16 AWG MTW", awg: 16, csa: 1.31, ampacity: 10, ambient: 30, kind: panel,
+     insulation: "MTW / THHN class, 90 °C dry (60 °C wet)", max_temp: 90,
+     basis: "60 °C column, 30 °C ambient, not more than three current-carrying conductors",
+     verify: true, source: "NFPA 79-2021 Table 12.5.1 (copper, 60 °C column, 30 °C ambient); equals the NEC 240.4(D)(2) small-conductor limit of 10 A; csa per ASTM B258"}
+  - {id: awg14-mtw, region: US, label: "14 AWG MTW / THHN", awg: 14, csa: 2.08, ampacity: 15, ambient: 30, kind: panel,
+     insulation: "MTW / THHN class, 90 °C dry (60 °C wet)", max_temp: 90,
+     basis: "60 °C column (NEC 110.14(C)(1)(a): terminations of circuits up to 100 A), 30 °C ambient, not more than three current-carrying conductors",
+     verify: true, source: "NEC (NFPA 70-2023) Table 310.16, copper, 60 °C column: 15 A (90 °C column 25 A, for derating only); NFPA 79-2021 Table 12.5.1 agrees; csa per ASTM B258"}
+  - {id: awg12-mtw, region: US, label: "12 AWG MTW / THHN", awg: 12, csa: 3.31, ampacity: 20, ambient: 30, kind: panel,
+     insulation: "MTW / THHN class, 90 °C dry (60 °C wet)", max_temp: 90,
+     basis: "60 °C column (NEC 110.14(C)(1)(a)), 30 °C ambient, not more than three current-carrying conductors",
+     verify: true, source: "NEC (NFPA 70-2023) Table 310.16, copper, 60 °C column: 20 A (90 °C column 30 A, for derating only); NFPA 79-2021 Table 12.5.1 agrees; csa per ASTM B258"}
+  - {id: awg10-mtw, region: US, label: "10 AWG MTW / THHN", awg: 10, csa: 5.26, ampacity: 30, ambient: 30, kind: panel,
+     insulation: "MTW / THHN class, 90 °C dry (60 °C wet)", max_temp: 90,
+     basis: "60 °C column (NEC 110.14(C)(1)(a)), 30 °C ambient, not more than three current-carrying conductors",
+     verify: true, source: "NEC (NFPA 70-2023) Table 310.16, copper, 60 °C column: 30 A (90 °C column 40 A, for derating only); NFPA 79-2021 Table 12.5.1 agrees; csa per ASTM B258"}
+  # --- US: silicone fixture wire (SF-2, 200 degC) for hot zones --------------------------------
+  - {id: awg18-sf2, region: US, label: "18 AWG SF-2 silicone", awg: 18, csa: 0.823, ampacity: 6, ambient: 30, kind: high-temp,
+     insulation: "silicone rubber fixture wire SF-2, 200 °C", max_temp: 200,
+     basis: "fixture-wire ampacity; NEC 402.11 does not allow fixture wire as a supply circuit's conductors",
+     verify: true, source: "NEC (NFPA 70-2023) Table 402.5 (allowable ampacities for fixture wires): 18 AWG 6 A; SF-2 200 °C per Table 402.3; csa per ASTM B258"}
+  - {id: awg16-sf2, region: US, label: "16 AWG SF-2 silicone", awg: 16, csa: 1.31, ampacity: 8, ambient: 30, kind: high-temp,
+     insulation: "silicone rubber fixture wire SF-2, 200 °C", max_temp: 200,
+     basis: "fixture-wire ampacity; NEC 402.11 does not allow fixture wire as a supply circuit's conductors",
+     verify: true, source: "NEC (NFPA 70-2023) Table 402.5 (allowable ampacities for fixture wires): 16 AWG 8 A; SF-2 200 °C per Table 402.3; csa per ASTM B258"}
+  - {id: awg14-sf2, region: US, label: "14 AWG SF-2 silicone", awg: 14, csa: 2.08, ampacity: 17, ambient: 30, kind: high-temp,
+     insulation: "silicone rubber fixture wire SF-2, 200 °C", max_temp: 200,
+     basis: "fixture-wire ampacity; NEC 402.11 does not allow fixture wire as a supply circuit's conductors",
+     verify: true, source: "NEC (NFPA 70-2023) Table 402.5 (allowable ampacities for fixture wires): 14 AWG 17 A; SF-2 200 °C per Table 402.3; csa per ASTM B258"}
+  - {id: awg12-sf2, region: US, label: "12 AWG SF-2 silicone", awg: 12, csa: 3.31, ampacity: 23, ambient: 30, kind: high-temp,
+     insulation: "silicone rubber fixture wire SF-2, 200 °C", max_temp: 200,
+     basis: "fixture-wire ampacity; NEC 402.11 does not allow fixture wire as a supply circuit's conductors",
+     verify: true, source: "NEC (NFPA 70-2023) Table 402.5 (allowable ampacities for fixture wires): 12 AWG 23 A; SF-2 200 °C per Table 402.3; csa per ASTM B258"}
+  - {id: awg10-sf2, region: US, label: "10 AWG SF-2 silicone", awg: 10, csa: 5.26, ampacity: 28, ambient: 30, kind: high-temp,
+     insulation: "silicone rubber fixture wire SF-2, 200 °C", max_temp: 200,
+     basis: "fixture-wire ampacity; NEC 402.11 does not allow fixture wire as a supply circuit's conductors",
+     verify: true, source: "NEC (NFPA 70-2023) Table 402.5 (allowable ampacities for fixture wires): 10 AWG 28 A; SF-2 200 °C per Table 402.3; csa per ASTM B258"}
+  # --- US: flexible supply cords (SJ / SJT / SJOOW class) -------------------------------------
+  - {id: awg18-cord, region: US, label: "18 AWG cord (SJT class)", awg: 18, csa: 0.823, ampacity: 10, ambient: 30, kind: cord,
+     insulation: "hard-service cord, SJ / SJT / SJOOW class (60 °C taken, the lowest of the class)", max_temp: 60,
+     basis: "column B: two current-carrying conductors (a single-phase cord: line and neutral; the equipment ground does not count)",
+     verify: true, source: "NEC (NFPA 70-2023) Table 400.5(A)(1), 18 AWG, column B: 10 A (column A, three current-carrying: 7 A)"}
+  - {id: awg16-cord, region: US, label: "16 AWG cord (SJT class)", awg: 16, csa: 1.31, ampacity: 13, ambient: 30, kind: cord,
+     insulation: "hard-service cord, SJ / SJT / SJOOW class (60 °C taken, the lowest of the class)", max_temp: 60,
+     basis: "column B: two current-carrying conductors (a single-phase cord: line and neutral; the equipment ground does not count)",
+     verify: true, source: "NEC (NFPA 70-2023) Table 400.5(A)(1), 16 AWG, column B: 13 A (column A: 10 A)"}
+  - {id: awg14-cord, region: US, label: "14 AWG cord (SJT class)", awg: 14, csa: 2.08, ampacity: 18, ambient: 30, kind: cord,
+     insulation: "hard-service cord, SJ / SJT / SJOOW class (60 °C taken, the lowest of the class)", max_temp: 60,
+     basis: "column B: two current-carrying conductors (a single-phase cord: line and neutral; the equipment ground does not count)",
+     verify: true, source: "NEC (NFPA 70-2023) Table 400.5(A)(1), 14 AWG, column B: 18 A (column A: 15 A)"}
+  - {id: awg12-cord, region: US, label: "12 AWG cord (SJT class)", awg: 12, csa: 3.31, ampacity: 25, ambient: 30, kind: cord,
+     insulation: "hard-service cord, SJ / SJT / SJOOW class (60 °C taken, the lowest of the class)", max_temp: 60,
+     basis: "column B: two current-carrying conductors (a single-phase cord: line and neutral; the equipment ground does not count)",
+     verify: true, source: "NEC (NFPA 70-2023) Table 400.5(A)(1), 12 AWG, column B: 25 A (column A: 20 A)"}
+  - {id: awg10-cord, region: US, label: "10 AWG cord (SJT class)", awg: 10, csa: 5.26, ampacity: 30, ambient: 30, kind: cord,
+     insulation: "hard-service cord, SJ / SJT / SJOOW class (60 °C taken, the lowest of the class)", max_temp: 60,
+     basis: "column B: two current-carrying conductors (a single-phase cord: line and neutral; the equipment ground does not count)",
+     verify: true, source: "NEC (NFPA 70-2023) Table 400.5(A)(1), 10 AWG, column B: 30 A (column A: 25 A)"}

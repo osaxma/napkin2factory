@@ -1,0 +1,41 @@
+# Conductor colours by region and role (calckit.wiring; the cable schedule's colour column).
+# NOT VERIFIED by the project: every row is the owner's (or their electrician's) to confirm;
+# DECISIONS.md lists the table as [verify] (S-146). National rules may add to these (the UK's
+# BS 7671 Table 51 follows the EU rows since 2004; other regions are not on file yet).
+# Columns: region, role (L single-phase line; L1/L2/L3 phases; N neutral; PE protective earth;
+# control-ac / control-dc ungrounded control conductors; interlock-external a conductor that
+# stays live from an outside source when the main switch is off), colour, label.
+table: wire_colours
+rows:
+  # --- EU: IEC 60445 / CENELEC HD 308 S2 (power), IEC 60204-1 §13.2.4 (machine control) -------
+  - {region: EU, role: L, colour: brown, label: "line, single-phase", verify: true,
+     source: "IEC 60445:2017 §6.2.2 and CENELEC HD 308 S2:2001: line conductors brown, black or grey; brown for a single-phase line"}
+  - {region: EU, role: L1, colour: brown, label: "line, phase 1", verify: true,
+     source: "IEC 60445:2017 §6.2.2; CENELEC HD 308 S2:2001 (L1 brown, L2 black, L3 grey)"}
+  - {region: EU, role: L2, colour: black, label: "line, phase 2", verify: true,
+     source: "IEC 60445:2017 §6.2.2; CENELEC HD 308 S2:2001 (L1 brown, L2 black, L3 grey)"}
+  - {region: EU, role: L3, colour: grey, label: "line, phase 3", verify: true,
+     source: "IEC 60445:2017 §6.2.2; CENELEC HD 308 S2:2001 (L1 brown, L2 black, L3 grey)"}
+  - {region: EU, role: N, colour: blue, label: "neutral", verify: true,
+     source: "IEC 60445:2017 §6.2.3: neutral or mid-point conductor blue; CENELEC HD 308 S2:2001"}
+  - {region: EU, role: PE, colour: green-and-yellow, label: "protective earth", verify: true,
+     source: "IEC 60445:2017 §6.2.4: protective conductor green-and-yellow, used for nothing else; CENELEC HD 308 S2:2001"}
+  - {region: EU, role: control-ac, colour: red, label: "AC control circuit", verify: true,
+     source: "IEC 60204-1:2016 §13.2.4 (recommended colours for machine wiring): red for ungrounded AC control circuits"}
+  - {region: EU, role: control-dc, colour: blue, label: "DC control circuit", verify: true,
+     source: "IEC 60204-1:2016 §13.2.4: blue for ungrounded DC control circuits (distinguishable from a light-blue neutral)"}
+  - {region: EU, role: interlock-external, colour: orange, label: "interlock fed from outside, live with the main switch off", verify: true,
+     source: "IEC 60204-1:2016 §13.2.4: orange for excepted circuits that stay live when the supply disconnecting device is off"}
+  # --- US: NEC (NFPA 70-2023) for power, NFPA 79-2021 §13.2.4 for machine control ------------
+  - {region: US, role: L, colour: black, label: "line (ungrounded, 'hot')", verify: true,
+     source: "NEC 310.6(C): ungrounded conductors any colour but white, grey or green; black is the custom, also NFPA 79-2021 §13.2.4 (black for ungrounded AC/DC power)"}
+  - {region: US, role: N, colour: white, label: "neutral (grounded conductor)", verify: true,
+     source: "NEC 200.6(A): grounded conductor white or grey (or three white stripes) along its length"}
+  - {region: US, role: PE, colour: green, label: "equipment ground", verify: true,
+     source: "NEC 250.119: equipment grounding conductor bare, green, or green with one or more yellow stripes"}
+  - {region: US, role: control-ac, colour: red, label: "AC control circuit", verify: true,
+     source: "NFPA 79-2021 §13.2.4: red for ungrounded AC control conductors"}
+  - {region: US, role: control-dc, colour: blue, label: "DC control circuit", verify: true,
+     source: "NFPA 79-2021 §13.2.4: blue for ungrounded DC control conductors"}
+  - {region: US, role: interlock-external, colour: orange, label: "interlock fed from outside, live with the main switch off", verify: true,
+     source: "NFPA 79-2021 §13.2.4: orange for ungrounded conductors that stay energized when the main disconnect is off"}

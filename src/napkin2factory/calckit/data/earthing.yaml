@@ -1,0 +1,32 @@
+# System earthing arrangements (calckit.wiring; ELECTRICAL_STAGE E3, the supply's `earthing:`).
+# NOT VERIFIED by the project: every row is the owner's (or their electrician's) to confirm;
+# DECISIONS.md lists the table as [verify] (S-146). Which arrangement a site has is the
+# electrician's answer, never the product's: a product declares the one it was designed for.
+# Columns: code (the IEC letter code), label, description (one line), class_i (what a Class I
+# product, one whose shock protection relies on its protective conductor, must provide there).
+table: earthing
+rows:
+  - code: TN-S
+    label: "TN-S"
+    description: "The source is earthed at one point; separate neutral and protective (PE) conductors run all the way to the installation."
+    class_i: "A protective conductor from every exposed metal part to the supply's PE terminal; a fault to the case is cleared by the circuit's protective device (or a residual-current device) within the disconnection time the wiring rules set."
+    verify: true
+    source: "IEC 60364-1:2005 §312.2.1 (TN systems, TN-S figure); IEC 60364-4-41:2005 §411.4 (protection by automatic disconnection in TN systems); IEC 61140:2016 §7.2 (Class I equipment)"
+  - code: TN-C-S
+    label: "TN-C-S"
+    description: "Neutral and protective functions share one PEN conductor in part of the system (usually the supply network) and separate at or before the installation (PME in the UK)."
+    class_i: "A protective conductor from every exposed metal part to the installation's PE terminal, never to the neutral; some wiring rules restrict TN-C-S supplies outdoors or for equipment in contact with the ground, which the electrician judges."
+    verify: true
+    source: "IEC 60364-1:2005 §312.2.1 (TN-C-S figure); IEC 60364-4-41:2005 §411.4; IEC 61140:2016 §7.2; restrictions per national rules (e.g. BS 7671 Regulation 722.411.4 for TN-C-S at EV charge points)"
+  - code: TT
+    label: "TT"
+    description: "The source is earthed; the installation's exposed metal parts are earthed by its own local electrode, independent of the source's earth."
+    class_i: "A protective conductor from every exposed metal part to the installation's earth terminal; the earth-fault current is usually too small to trip an overcurrent device, so protection relies on a residual-current device (RCD) on the circuit."
+    verify: true
+    source: "IEC 60364-1:2005 §312.2.2 (TT systems); IEC 60364-4-41:2005 §411.5 (TT: an RCD is normally used for fault protection); IEC 61140:2016 §7.2"
+  - code: IT
+    label: "IT"
+    description: "The source is isolated from earth, or earthed through a high impedance; the installation's exposed metal parts are earthed locally. Rare in homes."
+    class_i: "A protective conductor from every exposed metal part to the installation's earth terminal; a first fault does not disconnect and is signalled by an insulation monitoring device, a second fault must be cleared, which the installation provides."
+    verify: true
+    source: "IEC 60364-1:2005 §312.2.3 (IT systems); IEC 60364-4-41:2005 §411.6 (IT: first fault signalled, insulation monitoring); IEC 61140:2016 §7.2"
