@@ -167,6 +167,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-140 | v0.5 close-out: version 0.5.0, product pins `>=0.5,<0.6` | in force |
 | S-141 | The v0.6 plan reconciled with the contract v0.5 built: devices as a family, cable entries as a bolt-pattern spec, the seam tasks named | in force |
 | S-142 | A domain's files in the release package (closes B-0099) | in force |
+| S-143 | A rule family can run before a named family (`before=`), so a manual reads a domain's outputs from the same build | in force |
 
 ---
 
@@ -888,3 +889,13 @@ copied, so a product without such files gets the package it had (the bracket's C
 pinned by a test). An absolute folder or pattern, a `..`, or the whole build folder is refused at
 `register`: the package is the manufacturer's, and nothing else of `build/` belongs in it.
 `release.json` lists no files today, so it is unchanged. `docs/domains.md` §3.14.
+## S-143 — A rule family can run before a named family (`before=`), so a manual reads a domain's outputs from the same build (2026-11-02)
+A v0.5 defect (E10), found by the overseer reading the code before M1 (B-0125). `RuleFamily` had only `after` and ties
+go by installation order, so a domain's family `after=("part",)` ran after `doc`: a manual page showing its outputs (E5's
+wiring section) rendered from the previous build's files, missing on a first build, right only on the second; a domain
+cannot add an `after` to a mechanical family. `RuleFamily.before` names families that wait for this one: the registry
+(`_waits`) counts it as their `after` in the order and in `target_kinds` (so `--target docs` builds it); naming a
+`reads_all` family is redundant, a name nothing installs is ignored, a loop is the existing error naming the families,
+and a `reads_all` family naming a producer is that error too. `rules_for_target`, `explain_build` and `n2f impact` follow
+unchanged (the first two read `target_kinds`, impact the recorded reads). No `before` anywhere: today's order, rule keys
+and goldens unchanged (a field is in no key). `tests/unit/test_family_before.py`, with the old order kept as a control.

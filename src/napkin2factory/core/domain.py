@@ -80,11 +80,15 @@ class ModelFamily:
 class RuleFamily:
     """A kind of build rule (F3): ``make_rules`` returns this family's rules for a product.
 
-    ``after`` names the families whose rules must run first; the build walks the families in
-    dependency order (ties by installation order).  ``produces`` is the URI scheme (``<scheme>://``)
-    or rule key its rules produce, so a downstream read resolves to their output hash, and
-    ``also_produces`` lists further keys (S-117).  A ``reads_all`` family (checks, report,
-    site) runs after every family that is not itself ``reads_all``.
+    ``after`` names the families whose rules must run first; ``before`` names the families
+    that must wait for this one, as if they named it in their ``after`` (a domain cannot add
+    an ``after`` to the mechanical families, so a manual page that shows the domain's
+    outputs needs ``before=("doc",)``, S-143).  The build walks the families in dependency
+    order (ties by installation order); a name no installed family has is ignored.  A
+    ``reads_all`` family (checks, report, site) runs after every family that is not itself
+    ``reads_all``, so naming one in ``before`` is redundant.  ``produces`` is the URI scheme
+    (``<scheme>://``) or rule key its rules produce, so a downstream read resolves to their
+    output hash, and ``also_produces`` lists further keys (S-117).
 
     ``code`` lists the folders of the domain's package (relative to :attr:`Domain.root`)
     whose files are the family's code: :meth:`Registry.family_hash` hashes them, and a rule
@@ -100,6 +104,7 @@ class RuleFamily:
     name: str
     make_rules: Callable[[RuleBuild], list[Rule]]
     after: tuple[str, ...] = ()
+    before: tuple[str, ...] = ()
     produces: str = ""
     also_produces: tuple[str, ...] = ()
     code: tuple[str, ...] = ()

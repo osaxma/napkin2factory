@@ -99,6 +99,20 @@ def _ordered(items: list[tuple[int, str, tuple[str, ...]]], what: str) -> list[i
     return out
 
 
+def _waits(fams: list[RuleFamily]) -> dict[str, tuple[str, ...]]:
+    """Family name → the families it waits for: its ``after``, and each naming it in ``before``.
+
+    ``before`` exists because a domain cannot edit a mechanical family's ``after`` (S-143).
+    Only names among ``fams`` are added; :func:`_ordered` ignores any other ``after`` name.
+    """
+    out = {f.name: list(f.after) for f in fams}
+    for f in fams:
+        for name in f.before:
+            if name in out and f.name not in out[name]:
+                out[name].append(f.name)
+    return {name: tuple(after) for name, after in out.items()}
+
+
 #: Registry kind → the names a domain registers in it (for :meth:`Registry.owner`).
 _OWNED: dict[str, Callable[[Domain], list[str]]] = {
     "rule family": lambda d: [f.name for f in d.rule_families],
@@ -224,15 +238,26 @@ class Registry:
         """Every rule family in build order.
 
         Producers in dependency order, then the ``reads_all`` families (checks, report,
-        site) in theirs.
+        site) in theirs.  ``before`` counts as the named family's ``after`` (S-143); a
+        producer naming a ``reads_all`` family there is redundant, and a ``reads_all``
+        family naming a producer there is a cycle (it waits for every producer).
         """
         self.ensure()
         fams = [f for d in self.domains for f in d.rule_families]
         producers = [f for f in fams if not f.reads_all]
         consumers = [f for f in fams if f.reads_all]
+        made = {f.name for f in producers}
+        for f in consumers:
+            if clash := [n for n in f.before if n in made]:
+                raise ValueError(
+                    "the rule families wait for each other: " + ", ".join(sorted({f.name, *clash}))
+                )
         out: list[RuleFamily] = []
         for group in (producers, consumers):
-            order = _ordered([(i, f.name, f.after) for i, f in enumerate(group)], "rule families")
+            waits = _waits(group)
+            order = _ordered(
+                [(i, f.name, waits[f.name]) for i, f in enumerate(group)], "rule families"
+            )
             out += [group[i] for i in order]
         return out
 
@@ -246,12 +271,15 @@ class Registry:
     def target_kinds(self) -> dict[str, tuple[str, ...]]:
         """``--target`` name → the rule kinds it runs, cumulative in dependency order.
 
-        Each family is a target (itself and everything it waits for, transitively; a
-        ``reads_all`` family waits for every producer); a family's ``targets`` are aliases
-        of its own (``geometry`` is ``asm``'s, S-031's names kept); ``all`` runs every family.
+        Each family is a target (itself and everything it waits for, transitively: its
+        ``after`` and the families naming it in ``before``, so ``docs`` builds a domain's
+        family that runs before ``doc``; a ``reads_all`` family waits for every producer); a
+        family's ``targets`` are aliases of its own (``geometry`` is ``asm``'s, S-031's names
+        kept); ``all`` runs every family.
         """
         fams = self.rule_families()
         by_name = {f.name: f for f in fams}
+        waits = _waits(fams)
         order = [f.name for f in fams]
         producers = [f.name for f in fams if not f.reads_all]
 
@@ -263,7 +291,7 @@ class Registry:
                 if cur in need or cur not in by_name:
                     continue
                 need.add(cur)
-                todo += list(by_name[cur].after)
+                todo += list(waits[cur])
                 if by_name[cur].reads_all:
                     todo += producers
             return need

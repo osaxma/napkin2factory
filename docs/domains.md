@@ -264,7 +264,7 @@ def make_run(tid):
         return RunResult(reads=[], outputs=[out], output_hash=sha256_json(record))
     return run
 ```
-- `RuleFamily(name, make_rules, after=(), produces="", also_produces=(), code=(), reads_all=False, targets=(), output_dir=None, static_reads=None)`.
+- `RuleFamily(name, make_rules, after=(), before=(), produces="", also_produces=(), code=(), reads_all=False, targets=(), output_dir=None, static_reads=None)`.
 - A rule's `kind` is the family name and its id is `<family>:<id>`. `depends_on` lists the
   rule ids it waits for (rule ids of the mechanical domain: `validate`, `part:<id>`,
   `asm:<id>`, `drawing:<id>`, `bom`, `asmsheet:<id>`, `doc:<id>`, `checks`, `report`, `site`).
@@ -282,6 +282,12 @@ def make_run(tid):
 - `after`: families whose rules run first (the mechanical ones: `validate`, `part`, `asm`,
   `drawing`, `bom`, `asmsheet`, `doc`). The family goes after them and always **before**
   `checks`, `report` and `site`, which read everything (`reads_all=True`; do not set it).
+- `before`: families that must wait for yours, as if they named it in their `after` (you
+  cannot edit a mechanical family's `after`). A manual page that shows your outputs needs
+  `before=("doc",)`; without it your family runs after `doc` (ties go by installation
+  order) and the page shows the previous build's files. Naming `checks`, `report` or
+  `site` is redundant; a name nothing installs is ignored; a loop is an error naming the
+  families in it.
 - `produces="toy://"`: a downstream read of `toy://<id>` resolves to the output hash of rule
   `toy:<id>`. `also_produces` lists further keys a rule of the family produces.
 - Code hash: leave `"code"` out of `inputs`; the core adds the hash of your domain's code
@@ -611,7 +617,7 @@ Domain(name, root=Path(), title="", families=(), rule_families=(), verify_kinds=
        interface_kinds=(), processes=(), finishes=(), categories=(), drivers={},
        style_roles=(), screens=(), context=(), release_files=(), code=(), in_place=False)
 ModelFamily(name, schema, folder, validate_refs=None, scheme="", id_pattern=SLUG)
-RuleFamily(name, make_rules, after=(), produces="", also_produces=(), code=(),
+RuleFamily(name, make_rules, after=(), before=(), produces="", also_produces=(), code=(),
            reads_all=False, targets=(), output_dir=None, static_reads=None)
 VerifyKind(name, evaluate, target_schemes=(), compares=False, binary=False, title="",
            check=None, hypothetical=None)
@@ -765,8 +771,10 @@ A module that fails to import is an error naming the file.
   read whole (`iface://x` matches an edit of `iface://x#spec.depth`); a bare key your family
   produces (`toy://widget`) is your rule's output, which the edit reaches through the rules it
   reruns.
-- **Order.** Your family runs after its `after` families and before `checks`; your stage
-  after its `after` stages; your section at the end of its group.
+- **Order.** Your family runs after its `after` families, before its `before` families
+  and before `checks`; a target that builds a family builds every family it waits for
+  (`--target docs` builds a family declared `before=("doc",)`); your stage after its
+  `after` stages; your section at the end of its group.
 - **Discoverable.** `n2f doctor` lists every installed domain with its verify kinds, check
   stages and screens (`--json` adds the rest), read from the registries.
 
