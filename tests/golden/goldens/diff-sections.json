@@ -1,0 +1,17 @@
+{
+  "sections": [
+    {
+      "id": "wiring",
+      "label": "Wiring",
+      "state": "added",
+      "words": "Wiring: added"
+    },
+    {
+      "id": "parts",
+      "label": "Parts",
+      "state": "removed",
+      "words": "Parts: removed"
+    }
+  ],
+  "block": "<section id=\"sections\"><h2>What the package covers</h2>\n<ul><li data-section=\"wiring\"><strong class=\"new\">Wiring: added</strong></li><li data-section=\"parts\"><strong class=\"old\">Parts: removed</strong></li></ul>\n<p class=\"muted\">Added: v1.1.0 covers it and v1.0.0 did not (left for later, done elsewhere, or not there). Removed: the other way round.</p>\n</section>\n"
+}

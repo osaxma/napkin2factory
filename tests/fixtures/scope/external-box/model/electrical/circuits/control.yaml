@@ -1,0 +1,10 @@
+id: control
+purpose: control
+name: Probe
+protection: supply
+voltage: 24 V
+dc: true
+connections:
+  - {from: "device://probe#1", to: "asm://control-box#C1", conductor: cu-0p75-pvc, length: 0.6 m, via: iface://control-entry}
+  - {from: "device://probe#2", to: "asm://control-box#C2", conductor: cu-0p75-pvc, length: 0.6 m, via: iface://control-entry}
+notes: The control box reads the probe on its two control terminals.

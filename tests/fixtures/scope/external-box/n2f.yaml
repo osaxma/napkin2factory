@@ -1,0 +1,9 @@
+schema: 1
+system: '>=0.5,<0.6'
+product:
+  id: warming-box
+  name: Warming box
+  description: A cabinet that keeps dough warm while it rises; its control box is bought wired and stands in as ports only (tests/unit/test_scope_external.py, ELECTRICAL_STAGE DoD 5).
+units: metric
+scope:
+  electrical: {state: in, decision: DEC-001}

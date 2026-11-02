@@ -1,0 +1,6 @@
+id: probe
+part: part://probe
+role: sensor
+rating: {voltage: 24 V, current: 0.1 A}
+terminals: ["1", "2"]
+class: III

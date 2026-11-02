@@ -1,0 +1,16 @@
+decisions:
+  - id: DEC-001
+    date: 2026-11-02
+    title: The wiring inside the box is designed here
+    context: The box holds a heater and a probe; the control box that switches the heater comes wired from its maker.
+    decision: Wire the heater and the probe in this product, up to the control box's two cable entries.
+    rationale: The control box is bought complete; its ports are the whole contract with it.
+    links: [manifest://scope]
+    made_by: agent
+    disclosed: true
+  - id: DEC-002
+    date: 2026-11-02
+    title: The control box is bought wired
+    decision: The maker wires and tests the control box; this product holds a stand-in with its two cable entries as ports.
+    made_by: agent
+    disclosed: true

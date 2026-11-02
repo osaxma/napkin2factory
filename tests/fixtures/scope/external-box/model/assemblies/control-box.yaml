@@ -1,0 +1,5 @@
+id: control-box
+rev: A
+name: External control box
+build: external
+ports: [iface://mains-entry, iface://control-entry]

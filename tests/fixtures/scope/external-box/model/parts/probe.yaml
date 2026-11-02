@@ -1,0 +1,10 @@
+id: probe
+rev: A
+name: Probe
+kind: cots
+process: none
+geometry: none
+source: {vendor: Probe maker, mpn: PROBE-2W, url: "https://example.com/probe", verified: true}
+cost: {unit: 3 USD, basis: catalog}
+lead_time: 2 d
+mass: 10 g

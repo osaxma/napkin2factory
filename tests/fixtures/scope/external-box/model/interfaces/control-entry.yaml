@@ -1,0 +1,8 @@
+id: control-entry
+kind: cable-entry
+parties: [part://box, asm://control-box]
+name: Probe cable to the control box
+description: The probe's cable leaves the box through the small gland in its back, to the control box.
+frames:
+  part://box: {origin: [60, 150, 150], normal: [0, 1, 0], x_axis: [1, 0, 0]}
+spec: {diameter: param://control-hole, passes: [circuit://control]}

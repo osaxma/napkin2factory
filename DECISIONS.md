@@ -193,6 +193,8 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-166 | Seam (v0.6 wave 2, a v0.5 defect): an interface field read is valued by its field as written, as impact matches it (closes B-0136) | in force |
 | S-167 | Seam (v0.6 wave 2, v0.5 defects): a `rule:<x>` key is rule `<x>`'s output, refused when no rule answers; a verify kind's figure is `#props.<figure>`; the docs rule hands helpers its build folder (closes B-0135, B-0139, B-0147) | in force |
 | S-168 | v0.6 M4 (E8): the supply screen is the wiring's (`circuit-available`, phase `check`); the kiln's pack reads its fields | in force |
+| S-169 | v0.6 M6: the diff page says a report section the later Revision's package adds or drops ("Wiring: added"); a domain left for later or done elsewhere counts as not there | in force |
+| S-170 | v0.6 M6: the external-box fixture (a control box supplied from elsewhere, two cable-entry ports), the scope words tested with the wiring's owner word, the owner-session script for DoD 7 on that fixture | in force |
 
 ---
 
@@ -1145,3 +1147,25 @@ for its promotion and summary hooks. Landed on two seams: the kiln's `param` sur
 the domain's `CardField`s load whatever is imported first (S-161). A card with a power or a region gets `circuit-available`
 without the kiln's pack (two screening tests). Measured: the kiln's four cards re-screened against main give the same
 rows, words and numbers (only the screens hash differs); kiln board golden unchanged.
+
+## S-169 — v0.6 M6: the diff page's added and removed sections (2026-11-02)
+DoD 4's diff half. `ecr/diff.py`: `delta["sections"]` lists each report section the later Revision's package adds or drops,
+said "<label>: added" / "<label>: removed" for any domain's section. A section is in a Revision when its page's side index
+shows it and the scope does not leave its domain out of the package (`later`, `external`: the cover's "Not included", S-148),
+because `show_wiring` keeps the Wiring section on a `later` page to say so: presence alone would never say "Wiring: added".
+A released Revision's page and scope are read from `build/site/<ref>/index.html` and its package's `release.json`; a scratch
+build writes `sections.json` beside its data; either page unknown claims nothing. The block is rendered in `diff.py` and put
+before the 3D section, since `diff.html.j2` was not this task's file [revisit] (B-0150). No diff page golden existed: new
+golden `diff-sections.json`. A diff with no section change renders as before: `tests/e2e/test_release_diff.py` 6 passed, 1 min 47 s.
+
+## S-170 — v0.6 M6: the external-box fixture, the scope words, the owner-session script (2026-11-02)
+DoD 5 and the script for DoD 7. `tests/fixtures/scope/external-box`: a warming box (box, 1200 W heater, probe); the control
+box `build: external`, `ports:` two cable entries, no children; `scope.electrical: in`; the power circuit (L, N, PE) and the
+control circuit (C1, C2) reach it only through them. Each circuit's diagram draws it as a dashed boundary, nothing inside:
+"to the external control box, supplied from elsewhere: L, N, PE" and "…: C1, C2", the domain's words; DoD 5's one sentence
+is said across the two diagrams, one per circuit. The domain's "supplied from elsewhere" differs from S-152's "supplied, not
+built here" [revisit] (B-0152). Removing a port: one error, on the stub's file, naming the port and the circuit. External and
+later read the core's words with "Wiring"; the later cover lists what is not included and REQ-001 still to sign. The script
+(`tests/e2e/intake-transcripts/wiring-session.md`) uses this fixture, not the kiln: the wired kiln had not landed, and on
+EU 16 A no larger class is on file, so its headroom row is a warn (B-0151). 5.2 A of 10 A is a choice; the owner asks to be
+asked, so delegation does not apply; she picks `larger` (`dedicated` never clears, B-0149). Step 1 run as written: 5 s; tests: 18, 15 s.

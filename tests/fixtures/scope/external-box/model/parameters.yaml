@@ -1,0 +1,4 @@
+parameters:
+  supply-rating: {value: 10, unit: A, description: Rating of the circuit the control box plugs into}
+  mains-hole: {value: 20.5, unit: mm, description: Hole for the mains cable's M20 gland}
+  control-hole: {value: 12.5, unit: mm, description: Hole for the probe cable's M12 gland}

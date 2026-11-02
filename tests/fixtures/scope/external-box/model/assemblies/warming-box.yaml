@@ -1,0 +1,8 @@
+id: warming-box
+rev: A
+name: Warming box
+children:
+  - {part: part://box, qty: 1}
+  - {part: part://heater, qty: 1}
+  - {part: part://probe, qty: 1}
+  - {asm: asm://control-box, qty: 1}

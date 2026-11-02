@@ -1,0 +1,9 @@
+id: power
+purpose: power
+name: Heater
+protection: supply
+connections:
+  - {from: "asm://control-box#L", to: "device://heater#L", conductor: cu-1p5-pvc, length: 0.6 m, via: iface://mains-entry}
+  - {from: "asm://control-box#N", to: "device://heater#N", conductor: cu-1p5-pvc, length: 0.6 m, via: iface://mains-entry}
+  - {from: "asm://control-box#PE", to: "device://heater#PE", conductor: cu-1p5-pvc, length: 0.6 m, via: iface://mains-entry, colour: green-and-yellow}
+notes: The control box switches the heater; its own wiring is the maker's.

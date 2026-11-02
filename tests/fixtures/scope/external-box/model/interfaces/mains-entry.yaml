@@ -1,0 +1,8 @@
+id: mains-entry
+kind: cable-entry
+parties: [part://box, asm://control-box]
+name: Heater cable to the control box
+description: The heater's cable leaves the box through the gland in its back, to the control box.
+frames:
+  part://box: {origin: [-60, 150, 150], normal: [0, 1, 0], x_axis: [1, 0, 0]}
+spec: {diameter: param://mains-hole, passes: [circuit://power]}
