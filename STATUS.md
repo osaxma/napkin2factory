@@ -1,16 +1,18 @@
 # STATUS — napkin2factory
 
-**Version:** 0.4.0, ready to tag; not tagged (last release 0.3.0, tag `v0.3.0`) · **Trunk:** `main`;
+**Version:** 0.5.0, ready to push and tag; not pushed, not tagged (last release 0.3.0, tag `v0.3.0`; 0.4.0 closed, untagged) · **Trunk:** `main`;
 work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:** `BACKLOG.md` ·
 **Why things are the way they are:** `DECISIONS.md` (index at the top) · **What shipped:**
-`HANDOFF-REPORT-v0.4.md` (v0.4), `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
+`HANDOFF-REPORT-v0.5.md` (v0.5), `HANDOFF-REPORT-v0.4.md` (v0.4), `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
 
 ## Where we are
-v0.4 (the tree, `PRODUCT_STRUCTURE.md`) is closed: M0–M7 done, gates C and D closed with their
-blockers fixed, version files and product pins at 0.4.0 / `>=0.4,<0.5` (S-119). Left to the
-maintainer: the visual judgment of the build-plan section and one assembly sheet (DoD 7),
-`make check-full` from a clean clone, push and the `v0.4.0` tag. Known open: the Linux nightly
-fails on a sign-off evidence key (owned by a separate task). Next: v0.5 (`FOUNDATION.md`).
+v0.5 (the seams, `FOUNDATION.md`) is closed: M0–M7 done, the count is 0 (a fresh agent added a
+domain without touching the core, S-134), gates E and F closed with their blockers fixed, version
+files and product pins at 0.5.0 / `>=0.5,<0.6` (S-140); `HANDOFF-REPORT-v0.5.md`. Measured at
+29951e2: `make check` 10 min 4 s (1,088 passed), `make check-full` from a clean clone 29 min 14 s,
+both green. Left to the maintainer: the visual judgment of the status output with a choice and the
+report's scope line (`docs/reviews/v0.5-*.png`), push, the first Linux nightly after S-121, and the
+`v0.5.0` tag (v0.4.0 was never tagged either). Next: v0.6 (`ELECTRICAL_STAGE.md`).
 Releasing a version: bump the three version files and the pins (S-054, S-083), `make check` on
 `main`, push, wait for CI, tag `v<version>` on that green commit (S-072).
 
@@ -34,11 +36,12 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
 
 ## Milestones (one line each; detail in the entries named)
 v0.6 — `ELECTRICAL_STAGE.md` (the electrical domain through the v0.5 contract; the count of core edits is
-the headline), S-111: planned, starts after v0.5. `docs/reviews/v0.6-independent-trial.md` is the
+the headline), S-111: planned, next. `docs/reviews/v0.6-independent-trial.md` is the
 outside model's brief for after it lands.
 
 v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
-package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120: planned;
+package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120; closed,
+`HANDOFF-REPORT-v0.5.md`, version 0.5.0 (S-140);
 its prerequisite B-0073 (platform-stable sign-off evidence keys) is fixed in S-121: the push run of
 `make check` on 4c8d66c is green on ubuntu and macOS; no nightly has run on a commit after S-121
 yet (the latest, 10:28 on 2026-11-01, predates it), and `main` is not pushed during v0.5.
