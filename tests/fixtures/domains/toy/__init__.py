@@ -7,7 +7,8 @@ rule family writes ``build/toy/<id>.json`` after the part is built; the ``toy_gl
 kind compares that glow with a limit; the ``toy`` check stage writes one row per thing; a
 Verify gate row, a report section, a doc helper, an owner word, an interface kind, a process,
 a finish, a requirement category, a build-unit driver, a style role, a napkin screen (with
-the card field it reads and its phase) and a module-context contribution complete the set.
+the card field it reads and its phase), a module-context contribution and its files in the
+release package complete the set.
 It imports the core's public API only, never its internals.
 """
 
@@ -29,6 +30,7 @@ from napkin2factory.core.domain import (
     InterfaceKind,
     ModelFamily,
     Process,
+    ReleaseFiles,
     ReportSection,
     RuleFamily,
     Screen,
@@ -274,4 +276,5 @@ DOMAIN = Domain(
     style_roles=(StyleRoleSpec("toy-shell", "a toy's shell", styled=True, aliases=("casing",)),),
     screens=(Screen("toy", toy_screen, title="Toy count", fields=(TOYS,), phase="estimate"),),
     context=(ContextContribution("toy", "Toy things on its parts", toy_context),),
+    release_files=(ReleaseFiles("toy", ("*.json",), "toy glow records"),),
 )

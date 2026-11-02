@@ -174,15 +174,19 @@ def make_bundle(
         shutil.copyfile(checks, stage / "checks.json")
     if product.paths.changelog.is_file():
         shutil.copyfile(product.paths.changelog, stage / "CHANGELOG.md")
+    domain_folders = "".join(
+        f"{name}/ ({title}), " if title else f"{name}/, "
+        for name, title in copy_domain_files(build_dir, stage)
+    )
     lines = scope_lines(product)
     (stage / "README.txt").write_text(
         f"{product.manifest.product.name} — Revision {version}\n\n"
         + "".join(f"{para}\n\n" for para in cover_notes(product, example_ids or []))
         + ("".join(f"Scope: {line}\n" for line in lines) + "\n" if lines else "")
         + "Contents: step/ (3D models), drawings/ (SVG + drawings.pdf), flat-patterns/ (DXF for\n"
-        "laser or punch), bom/ (bom.xlsx, bom.csv), manuals/ (PDF + HTML), report.html, "
-        "checks.json, release.json.\n\nThis design was produced with an AI system and has not "
-        "been reviewed by a licensed engineer.\n",
+        f"laser or punch), bom/ (bom.xlsx, bom.csv), manuals/ (PDF + HTML), {domain_folders}"
+        "report.html, checks.json, release.json.\n\nThis design was produced with an AI system "
+        "and has not been reviewed by a licensed engineer.\n",
         encoding="utf-8",
     )
     record = release_record(product, version)
@@ -192,6 +196,31 @@ def make_bundle(
     zip_path = out_dir / f"{product.id}-{version}.zip"
     zip_stage(stage, zip_path)
     return zip_path
+
+
+def copy_domain_files(build_dir: Path, stage: Path) -> list[tuple[str, str]]:
+    """Copy each domain's release files into the package; ``(folder, words)`` per domain.
+
+    A domain's files (``Domain.release_files``) go to ``<domain name>/<path inside its
+    folder>``, so the package keeps the layout its rules wrote (S-142).  Only domains with at
+    least one file copied are returned, their titles joined, so a product without such files
+    gets the same package and cover as before.
+    """
+    from napkin2factory.core.registry import registry
+
+    copied: dict[str, list[str]] = {}
+    for name, spec in registry().release_files():
+        base = build_dir / spec.folder
+        files = sorted({p for pattern in spec.patterns for p in base.glob(pattern) if p.is_file()})
+        for src in files:
+            dst = stage / name / src.relative_to(base)
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
+        if files:
+            titles = copied.setdefault(name, [])
+            if spec.title and spec.title not in titles:
+                titles.append(spec.title)
+    return [(name, "; ".join(titles)) for name, titles in copied.items()]
 
 
 def zip_stage(stage: Path, zip_path: Path) -> None:

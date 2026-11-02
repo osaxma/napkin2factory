@@ -80,6 +80,7 @@ def test_every_registry_sees_the_toy(toy_built: tuple[Path, Any, Any]) -> None:
     assert reg.style_roles()["toy-shell"].styled
     assert [c.name for c in reg.context_contributions()] == ["toy"]
     assert reg.model_family("toy").folder == "model/toy"
+    assert reg.release_files() == [("toy", toy.DOMAIN.release_files[0])]
     assert [d.name for d in reg.domains] == ["mechanical", "toy"]
 
 
@@ -272,6 +273,70 @@ def test_context_contribution(toy_built: tuple[Path, Any, Any]) -> None:
     ctx = module_context(product, "box")
     assert ctx["domains"][0]["lines"] == ["- toy://widget: Widget on part://plate (glow 3)"]
     assert "## Toy things on its parts" in render_text(ctx)
+
+
+def test_release_package_holds_the_domain_files(
+    toy_built: tuple[Path, Any, Any], tmp_path: Path
+) -> None:
+    import zipfile
+
+    from napkin2factory.ecr.release import make_bundle
+
+    root, product, _ = toy_built
+    zip_path = make_bundle(product, root / "build", "v0.1.0", tmp_path)
+    with zipfile.ZipFile(zip_path) as zf:
+        names = zf.namelist()
+        cover = zf.read("v0.1.0/README.txt").decode("utf-8")
+        packed = zf.read("v0.1.0/toy/widget.json")
+    assert packed == (root / "build/toy/widget.json").read_bytes()
+    assert [n for n in names if n.startswith("v0.1.0/toy/")] == ["v0.1.0/toy/widget.json"]
+    assert "manuals/ (PDF + HTML), toy/ (toy glow records), report.html" in cover
+
+
+#: The cover's Contents line of a package with no domain's files: the one before S-142.
+CONTENTS = (
+    "Contents: step/ (3D models), drawings/ (SVG + drawings.pdf), flat-patterns/ (DXF for\n"
+    "laser or punch), bom/ (bom.xlsx, bom.csv), manuals/ (PDF + HTML), report.html, "
+    "checks.json, release.json.\n"
+)
+
+
+def test_release_package_without_domain_files_is_unchanged(
+    toy_built: tuple[Path, Any, Any], tmp_path: Path
+) -> None:
+    """The toy is installed, but a product whose build has no toy files gets no toy folder."""
+    import zipfile
+
+    from napkin2factory.ecr.release import make_bundle
+
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "bracket", git=False)
+    (root / "build").mkdir()
+    zip_path = make_bundle(load_product(root), root / "build", "v0.1.0", tmp_path / "out")
+    with zipfile.ZipFile(zip_path) as zf:
+        assert not [n for n in zf.namelist() if n.startswith("v0.1.0/toy")]
+        assert CONTENTS in zf.read("v0.1.0/README.txt").decode("utf-8")
+
+
+@pytest.mark.parametrize(
+    ("folder", "patterns"),
+    [
+        ("../elsewhere", ("*",)),
+        ("/tmp/elsewhere", ("*",)),
+        ("", ("*",)),
+        (".", ("*",)),
+        ("toy", ("../*.json",)),
+        ("toy", ("/etc/*",)),
+    ],
+)
+def test_release_files_outside_the_build_folder_are_refused(
+    folder: str, patterns: tuple[str, ...]
+) -> None:
+    from napkin2factory.core.domain import Domain, ReleaseFiles
+
+    leaky = Domain(name="leaky", release_files=(ReleaseFiles(folder, patterns, "leaks"),))
+    with pytest.raises(ValueError, match="domain 'leaky' puts release files from"):
+        registry_mod.register(leaky)
+    assert "leaky" not in [d.name for d in registry().domains]
 
 
 #: An edit of every field of the toy thing (``widget.yaml``: the line before, the line after,

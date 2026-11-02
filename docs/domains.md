@@ -581,6 +581,27 @@ return offer(row, [
   reading `pass` with the decision afterwards. Write `what_it_takes` and `summary` in the
   owner's words: the project manager reads them out.
 
+### 3.14 Release files — `release_files=(ReleaseFiles(...),)`
+Files your rules write that the manufacturer needs go in the release package (`n2f release`).
+
+```python
+from napkin2factory.core.domain import ReleaseFiles
+
+ReleaseFiles("toy", ("*.json",), "toy glow records")
+```
+- `ReleaseFiles(folder, patterns=("**/*",), title="")`. `folder` is relative to the product's
+  `build/`, normally your rule family's `output_dir` (§3.2); `patterns` are globs inside it
+  (the default: every file under it); `title` says in the owner's words what the files are
+  ("wiring diagrams, cable schedule, terminal labels").
+- The core copies each matching file to `<domain name>/<its path inside folder>` in the
+  package (`build/toy/widget.json` → `toy/widget.json`), and the cover's Contents line names
+  the folder with its title ("toy/ (toy glow records)"). Several entries of one domain share
+  its folder; their titles are joined.
+- No matching file (the product has no content for your domain): no folder and no words, so
+  the package of a product that does not use your domain is the one it was.
+- A `folder` or pattern that is absolute, climbs out with `..`, or names the whole build
+  folder (`""`, `"."`) is refused at `register`, naming your domain.
+
 ## 4. The objects you are handed (reference)
 
 ### 4.1 The contract's types (`napkin2factory.core.domain`)
@@ -588,7 +609,7 @@ return offer(row, [
 Domain(name, root=Path(), title="", families=(), rule_families=(), verify_kinds=(),
        check_stages=(), gate_rows=(), report_sections=(), doc_helpers={}, vocabulary={},
        interface_kinds=(), processes=(), finishes=(), categories=(), drivers={},
-       style_roles=(), screens=(), context=(), code=(), in_place=False)
+       style_roles=(), screens=(), context=(), release_files=(), code=(), in_place=False)
 ModelFamily(name, schema, folder, validate_refs=None, scheme="", id_pattern=SLUG)
 RuleFamily(name, make_rules, after=(), produces="", also_produces=(), code=(),
            reads_all=False, targets=(), output_dir=None, static_reads=None)
@@ -601,6 +622,7 @@ InterfaceKind(name, title="", spec=None, check=None)
 Process(id, title, declared=True)      StyleRoleSpec(id, words, styled=False, aliases=())
 Screen(name, run, title="", fields=(), phase="")
 ContextContribution(name, title, collect)
+ReleaseFiles(folder, patterns=("**/*",), title="")
 StageContext, SectionContext, HelperContext   (handed to you; §4.4)
 SCREEN_PHASES = ("measure", "estimate", "total", "check")
 ```
@@ -757,7 +779,7 @@ A module that fails to import is an error naming the file.
    verify kinds (3.3), check stages (3.4), gate rows (3.5), report sections and their
    fragment files (3.6), doc helpers (3.7), vocabulary (3.8), interface kinds (3.9),
    processes, finishes, categories, drivers, style roles (3.10), screens (3.11), context
-   (3.12). Every name new (§1).
+   (3.12), release files (3.14). Every name new (§1).
 3. Record every read: read the model through the recording accessor (`ctx.proxy` in a rule,
    `sctx.proxy` in a check stage and a section's `data`, `h.proxy` in a doc helper), and add
    other keys with `log.add` (`ctx.log`, `sctx.log`, `h.log`), `CheckStage.reads` or
@@ -776,7 +798,8 @@ tests, with your names: `test_every_registry_sees_the_toy`,
 `test_interface_kind_validates`, `test_process_passes_the_general_rule_pack`,
 `test_screen_runs_on_a_card`, `test_screen_declares_its_fields_and_phase`,
 `test_style_role_is_a_role_while_the_domain_is_installed`, `test_context_contribution`,
-`test_every_toy_field_is_edited`, `test_impact_is_a_superset_of_the_rebuild` (with its table
+`test_release_package_holds_the_domain_files`, `test_every_toy_field_is_edited`,
+`test_impact_is_a_superset_of_the_rebuild` (with its table
 `TOY_EDITS`: one edit per field of your object, and one of your interface if you bring an
 interface kind), `test_a_stage_and_a_section_record_the_fields_they_read`,
 `test_a_domain_code_change_reruns_its_rules_only`.
@@ -795,7 +818,7 @@ for what your domain brings, and in `test_every_registry_sees_…` assert only t
   `test_interface_kind_validates`; `processes` — `test_process_passes_the_general_rule_pack`;
   `screens` — `test_screen_runs_on_a_card`, `test_screen_declares_its_fields_and_phase`;
   `style_roles` — `test_style_role_is_a_role_while_the_domain_is_installed`; `context` —
-  `test_context_contribution`;
+  `test_context_contribution`; `release_files` — `test_release_package_holds_the_domain_files`;
 - keep `test_a_domain_code_change_reruns_its_rules_only` whenever a rule reads your code hash
   (§7), and drop from it the rules your domain does not touch.
 
@@ -848,7 +871,8 @@ The calls the tests make, with their signatures:
   `reg.report_section(id)`, `reg.doc_helper(n)`, `reg.vocabulary("owner")`,
   `reg.interface_kind(n)`, `reg.processes()`, `reg.finishes()`, `reg.categories()`,
   `reg.drivers()`, `reg.screens()`, `reg.style_roles()`, `reg.context_contributions()`,
-  `reg.model_family(n)`, `reg.domains`, `reg.target_kinds()` (target → rule kinds it runs).
+  `reg.model_family(n)`, `reg.release_files()`, `reg.domains`, `reg.target_kinds()`
+  (target → rule kinds it runs).
 - A code change, as `test_a_domain_code_change_reruns_its_rules_only` does it: copy your
   package to a temporary folder, `dataclasses.replace(DOMAIN, root=copy)`, swap it in with
   `unregister`/`register`, edit a file in the copy, and call
@@ -876,8 +900,6 @@ change to the system (a backlog row), not a core edit of its own:
 - **Calc packs**: the calc kit (`src/napkin2factory/calckit/`) is the system's; a domain's
   code may import it, and a product's `model/calcs/` holds its own calcs, but there is no
   `Domain` field for a pack of calcs.
-- **Files in the release package**: `n2f release` packs the parts, drawings, parts list,
-  manuals, report and checks it knows; a domain's `build/<output_dir>` files are not in it.
 - **Schema migrations**: the migration registry (`docs/schema-policy.md`) is the system's; a
   change to a domain family's schema follows the same policy (additive and optional, or a
   migration shipped with the system).

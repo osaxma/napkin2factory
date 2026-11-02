@@ -33,6 +33,7 @@ from napkin2factory.core.domain import (
     InterfaceKind,
     ModelFamily,
     Process,
+    ReleaseFiles,
     ReportSection,
     RuleFamily,
     Screen,
@@ -134,6 +135,7 @@ class Registry:
         self.ensure()
         if any(d.name == domain.name for d in self.domains):
             raise ValueError(f"a domain named {domain.name!r} is already registered")
+        _check_release_files(domain)
         self.domains.append(domain)
         self._check_unique()
         _apply_schemes(self)
@@ -394,6 +396,11 @@ class Registry:
         self.ensure()
         return [s for d in self.domains for s in d.screens]
 
+    def release_files(self) -> list[tuple[str, ReleaseFiles]]:
+        """``(domain name, files)`` for each domain's release files, in installation order."""
+        self.ensure()
+        return [(d.name, r) for d in self.domains for r in d.release_files]
+
     # ---- the open sets of F6: core/data tables plus the domains' additions --------------------
 
     def interface_kinds(self) -> dict[str, InterfaceKind]:
@@ -510,6 +517,28 @@ def _apply_schemes(reg: Registry) -> None:
 
     schemes = {f.uri_scheme: f.id_pattern for f in reg.model_families()}
     uris.set_domain_schemes(schemes, reg.vocabulary("owner"))
+
+
+def _check_release_files(domain: Domain) -> None:
+    """A domain's release files stay inside ``build/`` (S-142).
+
+    The package is the manufacturer's: a folder or pattern that is absolute, climbs out with
+    ``..`` or names the whole build folder (its cache, every other domain's files) would put
+    files in it that no domain owns.  Refused at ``register``, naming the domain.
+    """
+    for r in domain.release_files:
+        where = f"domain {domain.name!r} puts release files from {r.folder!r}"
+        folder = Path(r.folder)
+        if folder.is_absolute() or ".." in folder.parts:
+            raise ValueError(f"{where}, which is outside the build folder; name a folder in it")
+        if not folder.parts or folder.parts == (".",):
+            raise ValueError(f"{where}, the whole build folder; name the folder its rules write")
+        for pattern in r.patterns:
+            if not pattern or Path(pattern).is_absolute() or ".." in Path(pattern).parts:
+                raise ValueError(
+                    f"{where} with the pattern {pattern!r}, which leaves that folder; "
+                    "use a pattern inside it"
+                )
 
 
 #: The process-wide registry.

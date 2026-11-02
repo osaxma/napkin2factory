@@ -3,11 +3,11 @@
 A domain is a Python package exposing one object, ``DOMAIN = Domain(...)``.  Everything it
 adds to the system is declared there: model families, build rule families, verify kinds,
 check stages, gate rows, report sections, doc helpers, vocabulary, interface kinds,
-processes, finishes, requirement categories, build-unit drivers, style roles, napkin screens
-and context contributions.  :mod:`napkin2factory.core.registry` holds one registry per
-kind; the core reads the registries and never imports a domain by name.  ``docs/domains.md`` is the
-contract's documentation, with the toy domain (``tests/fixtures/domains/toy/``) as its
-worked example.
+processes, finishes, requirement categories, build-unit drivers, style roles, napkin screens,
+context contributions and the files it puts in the release package.
+:mod:`napkin2factory.core.registry` holds one registry per kind; the core reads the
+registries and never imports a domain by name.  ``docs/domains.md`` is the contract's
+documentation, with the toy domain (``tests/fixtures/domains/toy/``) as its worked example.
 
 This module imports nothing from the rest of the core at run time, so a domain package (and
 the registry, which the schemas consult) can be imported from anywhere without a cycle; the
@@ -366,6 +366,23 @@ class ContextContribution:
 
 
 @dataclass(frozen=True)
+class ReleaseFiles:
+    """Files of the build a domain puts in the release package (S-142).
+
+    ``folder`` is relative to the product's ``build/`` (normally the ``output_dir`` of the
+    domain's rule family) and must stay inside it; ``patterns`` are globs inside ``folder``
+    (``"**/*"``: every file under it).  ``n2f release`` copies each matching file to
+    ``<domain name>/<its path inside folder>`` in the package, and the cover's Contents line
+    names that folder with ``title``, the owner's words for what it holds ("wiring diagrams,
+    cable schedule, terminal labels").  No matching file: no folder and no words.
+    """
+
+    folder: str
+    patterns: tuple[str, ...] = ("**/*",)
+    title: str = ""
+
+
+@dataclass(frozen=True)
 class Domain:
     """Everything one domain brings (F1). Only ``name`` is required.
 
@@ -396,5 +413,6 @@ class Domain:
     style_roles: tuple[StyleRoleSpec, ...] = ()
     screens: tuple[Screen, ...] = ()
     context: tuple[ContextContribution, ...] = ()
+    release_files: tuple[ReleaseFiles, ...] = ()
     code: tuple[str, ...] = ()
     in_place: bool = False

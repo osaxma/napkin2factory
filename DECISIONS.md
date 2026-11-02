@@ -166,6 +166,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | Gate F | Review gate F (UX, owner persona, v0.5) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG; the maintainer's visual judgment pending |
 | S-140 | v0.5 close-out: version 0.5.0, product pins `>=0.5,<0.6` | in force |
 | S-141 | The v0.6 plan reconciled with the contract v0.5 built: devices as a family, cable entries as a bolt-pattern spec, the seam tasks named | in force |
+| S-142 | A domain's files in the release package (closes B-0099) | in force |
 
 ---
 
@@ -877,3 +878,13 @@ and the domain's own schedule (E5); the release package takes no domain files (B
 gaps (B-0099, B-0115–B-0119, E5's) become M0's tasks, landed before M1 and listed apart from the
 count (E10). The F9 guard forbids the kiln's part ids in the domain's words (E6). Budgets follow
 v0.5's figures: `make check` 10 min 4 s with no slack, `make check-full` 29 min 14 s (S-140).
+## S-142 — A domain's files in the release package (closes B-0099) (2026-11-02)
+A seam task under E10 (v0.6's wiring diagrams must ship), counted apart from the domain's count.
+`Domain.release_files=(ReleaseFiles(folder, patterns=("**/*",), title=""),)`: `folder` under
+`build/` (normally the rule family's `output_dir`), globs inside it, owner words for the cover.
+`make_bundle` copies each match to `<domain name>/<path inside folder>`, keeping the layout the
+rules wrote, and the cover's Contents line names the folder with its title only when a file was
+copied, so a product without such files gets the package it had (the bracket's Contents line is
+pinned by a test). An absolute folder or pattern, a `..`, or the whole build folder is refused at
+`register`: the package is the manufacturer's, and nothing else of `build/` belongs in it.
+`release.json` lists no files today, so it is unchanged. `docs/domains.md` §3.14.
