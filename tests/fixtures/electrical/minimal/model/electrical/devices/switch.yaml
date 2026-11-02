@@ -1,0 +1,8 @@
+id: switch
+part: part://switch
+role: control
+rating: {voltage: 250 V, current: 10 A}
+terminals: ["1", "2", "3", "4"]
+class: II
+contact: {current: 10 A, category: AC-1}
+through: [["1", "2"], ["3", "4"]]

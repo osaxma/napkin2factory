@@ -1,0 +1,7 @@
+# The wiring rules (ELECTRICAL_STAGE E6), read by the electrical check stage (M3 fills it).
+# `fail` only for arithmetic and topology that is certain; `warn` for everything a wiring
+# code would judge, and its message says a licensed electrician decides. Every number cites
+# its table in the calc kit, never here.
+pack: electrical-v0
+title: Wiring checks
+rules: []

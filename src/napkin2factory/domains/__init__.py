@@ -8,4 +8,7 @@ Adding a domain: write its package (``docs/domains.md``) and add its module path
 from __future__ import annotations
 
 #: Module paths of the installed domains, in installation order.
-INSTALLED: tuple[str, ...] = ("napkin2factory.domains.mechanical",)
+INSTALLED: tuple[str, ...] = (
+    "napkin2factory.domains.mechanical",
+    "napkin2factory.domains.electrical",
+)

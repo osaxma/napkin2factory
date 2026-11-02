@@ -1,0 +1,11 @@
+id: gland
+rev: A
+name: Cable gland
+kind: cots
+process: none
+geometry: none
+interfaces: [iface://box-entry]
+source: {vendor: Electrical wholesaler, mpn: GLAND-M16, url: "https://example.com/gland", verified: true}
+cost: {unit: 0.5 USD, basis: catalog}
+lead_time: 1 d
+mass: 8 g
