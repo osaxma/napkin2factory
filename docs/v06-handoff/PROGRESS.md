@@ -25,9 +25,11 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 - **M5 the kiln, wired**: task `m5-kiln`, `.worktrees/m5-kiln`; last WIP 3a7cbf7 (the demo,
   ECR-003, the demo test, Makefile `-n 4`, validate_outputs_full); told to rebase on 3e115b6 and
   settle the kiln's choice with `dedicated: true`.
-- **Owner simulation (DoD 7)**: the overseer runs `tests/e2e/intake-transcripts/wiring-session.md`
-  (on the external-box fixture, on main) with a fresh agent playing the PM; transcript to
-  `tests/e2e/intake-transcripts/wiring-session-2026-11-02.md`.
+- **M7a the docs**: task `m7-docs`, `.worktrees/m7-docs` (from dd4370b, 14:17), beside M5 (no shared
+  files); brief `brief-common.md` + `brief-m7.md`; last WIP: none yet.
+- **Owner simulation (DoD 7)**: waits for M7a (the run tests the new `roles/pm.md`). Then the
+  overseer runs `tests/e2e/intake-transcripts/wiring-session.md` (external-box fixture, on main)
+  with a fresh agent playing the PM; transcript to `…/wiring-session-2026-11-02.md`.
 
 ## Next step
 Wait for the follow-up and M5 to land. After each: read the diff, run the count, record here.
