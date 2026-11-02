@@ -88,7 +88,7 @@ def test_every_kiln_interface_meets_in_its_assembly(kiln: tuple[Product, Path]) 
         offsets[iface_id] = out["offset_mm"]
         # gate D, blocker 2: where they meet, by the assembly's name, never its id
         where = {"door-guard-standoff": "door", "controller-lid-seat": "controls"}.get(
-            iface_id, "mini electric test kiln"
+            iface_id, "controls" if iface_id.startswith("entry-") else "mini electric test kiln"
         )
         assert out["message"] == f"the assembled {where} (within 0.01 mm)", iface_id
     # M0's survey (docs/v04-baseline.md §1), now offsets written as expressions (P2)
@@ -101,7 +101,7 @@ def test_every_kiln_interface_meets_in_its_assembly(kiln: tuple[Product, Path]) 
     # M3b: the door's ports meet in the kiln, the latch body 14 mm short of the keeper's web
     assert offsets["latch-catch"] == pytest.approx(-14.0)
     assert lowest_common_assemblies(product, "part://hinge-post", "part://hinge") == ["kiln"]
-    assert len(product.interfaces) == 13
+    assert len(product.interfaces) == 16  # and the three cable entries since v0.6 M5 (S-172)
 
 
 def _moved(rows: list[dict[str, Any]], node: str, dz: float) -> list[dict[str, Any]]:

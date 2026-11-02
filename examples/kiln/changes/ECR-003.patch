@@ -1,0 +1,830 @@
+diff --git a/model/assemblies/controls.yaml b/model/assemblies/controls.yaml
+index 3b751e4..42a053f 100644
+--- a/model/assemblies/controls.yaml
++++ b/model/assemblies/controls.yaml
+@@ -18,5 +18,9 @@ children:
+   - {part: part://m20-gland, qty: 3}
+   - {part: part://lid-screw, qty: 4}
+-  - {part: part://earth-stud, qty: 1}
++  - {part: part://earth-stud, qty: 2}
++  - {part: part://supply-terminal-block, qty: 1}
++  - {part: part://earth-terminal, qty: 1}
++  - {part: part://control-fuse, qty: 1}
++  - {part: part://ssr-heat-sink, qty: 1}
+   - {part: part://rating-label, qty: 1}
+ exploded: {axis: z, spacing: 60 mm}
+diff --git a/model/assemblies/door.yaml b/model/assemblies/door.yaml
+index c750a43..0d74d16 100644
+--- a/model/assemblies/door.yaml
++++ b/model/assemblies/door.yaml
+@@ -19,5 +19,5 @@ children:
+   - {part: part://fiber-anchor, qty: 4}
+   - {part: part://fiber-gasket, qty: 1}
+-  - {part: part://earth-stud, qty: 1}
++  - {part: part://earth-stud, qty: 2}
+ exploded: {axis: y, spacing: 60 mm}
+ satisfies: [req://REQ-003, req://REQ-009, req://REQ-014, req://REQ-020]
+diff --git a/model/assemblies/kiln.yaml b/model/assemblies/kiln.yaml
+index 56f9069..679b139 100644
+--- a/model/assemblies/kiln.yaml
++++ b/model/assemblies/kiln.yaml
+@@ -23,4 +23,5 @@ children:
+   - {part: part://m6-rivnut, qty: 4}
+   - {part: part://earth-stud, qty: 3}
++  - {part: part://element-tail-connector, qty: 1}
+   - {part: part://kiln-shelf-set, qty: 1}
+ exploded: {axis: z, spacing: 120 mm}
+diff --git a/model/decisions.yaml b/model/decisions.yaml
+index 3c1a095..6bff363 100644
+--- a/model/decisions.yaml
++++ b/model/decisions.yaml
+@@ -268,2 +268,15 @@ decisions:
+     made_by: agent
+     disclosed: true
++  - id: DEC-025
++    date: 2026-11-02
++    title: The wiring is designed here
++    context: DEC-024 left the wiring to the electrician with no diagram. The electrician still needs to know what connects to what, with which cable, through which gland, and where each earth lead goes.
++    decision: Design the wiring in the kiln's model (n2f.yaml, scope electrical - in) - the supply, every powered part's terminals from its datasheet, the element, control and temperature sensing circuits and the earth leads - and generate the wiring diagrams, the cable schedule, the terminal labels and the cable to buy into the installation manual. The three gland holes in the controller box base become its cable entries, in the same places. Five bought parts the wiring needs join the parts list (the supply terminal block, the earth terminal, the control fuse, the relay's heat sink, the element tails' connector), and the lid and the door tray get an earth stud each with a flexible lead. A licensed electrician still wires the kiln to local code and decides every point marked for checking.
++    rationale: A manufacturer package that cannot say what connects to what is not complete; the diagrams and the schedule are drawn from the same data the checks read, so they cannot disagree with them. The metalwork does not change.
++    links: [manifest://scope, asm://controls, doc://installation, iface://entry-mains, iface://entry-element, iface://entry-sensing]
++    made_by: agent
++    disclosed: true
++    verify: true
++    sources:
++      - 'terminal markings: Omron E5CC-800 datasheet p. 10, Omron D4N catalogue p. G-227, Crydom Series 1 datasheet p. 2, IEC 60947-4-1 for the contactor [verify]'
++      - 'conductors: the calc kit''s conductor table (IEC 60204-1:2016 Table 6) [verify]'
+diff --git a/model/docs/assembly.md b/model/docs/assembly.md
+index 1a0b9a7..8776e29 100644
+--- a/model/docs/assembly.md
++++ b/model/docs/assembly.md
+@@ -24,6 +24,7 @@ on that unit's assembly sheet.
+    ({{ part("limit-controller").name }}) through the two front cutouts of the controller box
+    ({{ part("controller-box").name }}), and the solid-state relay
+-   ({{ part("ssr").name }}) and the contactor ({{ part("contactor").name }}) on its base. Fit
+-   the box's earth stud.
++   ({{ part("ssr").name }}) on its heat sink and the contactor ({{ part("contactor").name }})
++   on its base, with the supply terminal block, the earth terminal and the control fuse. Fit
++   the box's earth stud, and the lid's on its inside.
+ 2. Fit the three cable glands ({{ part("m20-gland").name }}) in the base.
+ 3. The electrician wires the box (installation manual) and can test it on the bench before
+@@ -47,5 +48,5 @@ on that unit's assembly sheet.
+ 4. Fit the door guard ({{ part("door-guard").name }}) on four 25 mm standoffs bolted through
+    the tray face, outside the plug. Its hinge parts and latch body are welded on by the shop
+-   before coating. Fit its earth stud.
++   before coating. Fit its earth stud, and the tray's on bare metal on the tray's outer face.
+ 
+ ## 3. The final assembly
+@@ -114,5 +115,5 @@ corner clears the opening's edge.
+ Hang the controls on the four 40 mm standoffs beside the guard's right wall, which gives
+ {{ P["controller-standoff"] }} of free air. The door switch is packed loose: fit it where the
+-closed door operates it. The electrician sets its position, connects the element, the
+-thermocouples and the door switch to the controls (installation manual). Then screw the lid
++door operates it. The electrician sets its position, connects the element, the
++thermocouples, the door switch and the earth leads to the controls (installation manual). Then screw the lid
+ on with its four self-tapping screws, drilled on assembly.
+diff --git a/model/docs/installation.md b/model/docs/installation.md
+index 32d510c..834b328 100644
+--- a/model/docs/installation.md
++++ b/model/docs/installation.md
+@@ -4,5 +4,5 @@ title: Installation
+ audience: [owner, engineer]
+ order: 10
+-depends_on: [req://REQ-008, req://REQ-009, req://REQ-018, req://REQ-019, part://stand, part://outer-shell, part://guard-shell, part://m6x50-bolt, part://m6-rivnut, part://controller-box, part://pid-controller, part://limit-controller, part://contactor, part://ssr, part://door-switch, part://earth-stud, part://m20-gland, part://rating-label, param://circuit-rating, param://mains-voltage]
++depends_on: [req://REQ-008, req://REQ-009, req://REQ-018, req://REQ-019, part://stand, part://outer-shell, part://guard-shell, part://m6x50-bolt, part://m6-rivnut, part://controller-box, part://pid-controller, part://limit-controller, part://contactor, part://ssr, part://door-switch, part://earth-stud, part://m20-gland, part://rating-label, part://supply-terminal-block, part://earth-terminal, part://control-fuse, part://ssr-heat-sink, part://element-tail-connector, param://circuit-rating, param://mains-voltage]
+ ---
+ 
+@@ -26,27 +26,83 @@ door guard's top and bottom slots clear.
+ **A licensed electrician must install a dedicated {{ P["circuit-rating"] }} circuit at
+ {{ P["mains-voltage"] }}** with a residual-current device and a local isolator within reach
+-of the operator. The element draws {{ P["element-power"] }}. The rating
++of the operator. Nothing else may be plugged into that circuit: it serves the kiln alone.
++The element draws {{ P["element-power"] }}. The rating
+ label on the controller box front ({{ part("rating-label").name }}) says: "Dedicated
+ {{ P["circuit-rating"] }} circuit at {{ P["mains-voltage"] }}. Installation by a licensed
+ electrician only."
+ 
+-This package has no wiring diagram. The electrician wires, to local code:
++## Wiring
+ 
+-- the temperature controller ({{ part("pid-controller").name }}), its thermocouple and the
+-  solid-state relay ({{ part("ssr").name }}) that switches the element;
+-- the over-temperature limit controller ({{ part("limit-controller").name }}) and the
+-  contactor ({{ part("contactor").name }}). {{ req("REQ-018").statement }}
+-- the door switch, wired into the contactor's coil circuit. **The door switch is required,
+-  not optional.** {{ req("REQ-009").statement }}
+-- the cables through the three cable glands in the controller box base: mains in, element,
+-  thermocouples ({{ part("m20-gland").name }}).
++The wiring is drawn below from the kiln's model: what connects to what, with which cable,
++through which gland in the controller box base, and where each earth lead goes. The same
++wiring is drawn as one diagram per circuit in the package's wiring folder and in the report's
++Wiring section. **A licensed electrician still wires the kiln, to local code**, and decides
++every point listed under "What the electrician decides" before the first firing. The terminal
++numbers are read from the makers' datasheets; confirm each against the part in hand.
++
++The temperature controller ({{ part("pid-controller").name }}) switches the element through
++the solid-state relay ({{ part("ssr").name }}). The over-temperature limit controller
++({{ part("limit-controller").name }}) and the door switch hold the contactor
++({{ part("contactor").name }}) in, in series with the relay. {{ req("REQ-018").statement }}
++**The door switch is required, not optional.** {{ req("REQ-009").statement }}
++
++### {{ circuit("power").name }}
++
++Protected by {{ circuit("power").protection }}.
++
++{{ circuit("power").table }}
++
++### {{ circuit("control").name }}
++
++Protected by {{ circuit("control").protection }}. The door switch's pair leaves the box
++through the middle gland and runs to the switch on the guard's right wall.
++
++{{ circuit("control").table }}
++
++### {{ circuit("sensing").name }}
++
++Type K extension cable all the way from each probe's head to its controller, plus to plus.
++
++{{ circuit("sensing").table }}
++
++### Cable to buy
++
++{% for row in cables_to_buy() %}- {{ row.label }}: {{ row.total_length_m }} m ({{ row.wires.split() | length }} wires)
++{% endfor %}
++The lengths are estimates from the placed parts with slack at each end; cut to fit.
++
++### Terminal labels
++
++Each of the {{ cable_schedule() | length }} wires carries a sleeve at both ends reading the
++wire, then the device and terminal it lands on:
++
++| Label | Lands on | Terminal |
++|---|---|---|
++{% for row in terminal_labels() %}| {{ row.label }} | {{ row.device }} | {{ row.terminal }} |
++{% endfor %}
++
++### What the electrician decides
++
++- The site's dedicated circuit, its breaker and residual-current device, the isolator and the
++  earthing arrangement (the drawings assume a TT installation because they ask for a
++  residual-current device).
++- The control fuse's rating, from the contactor coil's and the controllers' draw.
++- The limit controller's relay is rated for a resistive load only and switches the
++  contactor's coil: confirm it with the maker, or let it drive a relay rated for a coil.
++- The door switch's mounting, so that opening the door opens its contact 31-32 (the one
++  with a direct opening action).
++- The relay's heat sink at the element's current, the cover over the element tails'
++  connector at the back, and the ratings of the supply terminal block and the earth terminal.
+ 
+ ## Earth bonding
+ 
+ Every metal part has its own earth stud ({{ part("earth-stud").name }}) on bare metal: the inner
+-shell, the guard, the door guard, the stand and the controller box. The electrician runs an
+-earth lead from each stud to the earth terminal in the controller box.
++shell, the guard, the door guard, the stand and the controller box, and the lid and the door
++tray, which come off or open and so are bonded by a flexible lead. The hinge post and the
++latch keeper reach earth through their bolts to the guard; the electrician tests that joint.
+ {{ req("REQ-019").statement }}
+ 
++{{ circuit("earth").table }}
++
+ ## Mounting the body
+ 
+diff --git a/model/docs/safety.md b/model/docs/safety.md
+index 5258e6b..e9716af 100644
+--- a/model/docs/safety.md
++++ b/model/docs/safety.md
+@@ -30,5 +30,6 @@ Have the design, the wiring and the finished kiln checked by qualified people be
+ - **Electricity.** The element is bare wire in the brick grooves, running directly on
+   {{ P["mains-voltage"] }} mains at {{ P["element-power"] }}. {{ req("REQ-008").statement }}
+-  All wiring is done by the electrician; this package contains no wiring diagram.
++  All wiring is done by a licensed electrician, from the wiring diagrams and the cable
++  schedule in the installation manual.
+ - **Earth.** {{ req("REQ-019").statement }} A broken element touching the case must trip the
+   circuit protection instead of making the case live. Do not paint over or remove the earth
+diff --git a/model/electrical/circuits/control.yaml b/model/electrical/circuits/control.yaml
+new file mode 100644
+index 0000000..45617f8
+--- /dev/null
++++ b/model/electrical/circuits/control.yaml
+@@ -0,0 +1,25 @@
++id: control
++purpose: control
++name: Control
++protection: device://control-fuse
++connections:
++  # from the supply's line through the control fuse (2.5 mm² up to the fuse: only the site's 16 A
++  # breaker protects that piece)
++  - {from: "device://supply-block#L", to: "device://control-fuse#1", conductor: cu-2p5-pvc, length: 0.2 m}
++  # both controllers' supplies, ahead of the contactor so they stay on when it drops
++  - {from: "device://control-fuse#2", to: "device://pid#11", conductor: cu-0p75-pvc, length: 0.3 m}
++  - {from: "device://supply-block#N", to: "device://pid#12", conductor: cu-0p75-pvc, length: 0.3 m}
++  - {from: "device://control-fuse#2", to: "device://limit#11", conductor: cu-0p75-pvc, length: 0.3 m}
++  - {from: "device://supply-block#N", to: "device://limit#12", conductor: cu-0p75-pvc, length: 0.3 m}
++  # the contactor's coil, held by the door switch and the limit relay in series (DEC-010, DEC-014)
++  - {from: "device://control-fuse#2", to: "device://door-switch#31", conductor: cu-0p75-pvc, length: 0.8 m, via: iface://entry-element}
++  - {from: "device://door-switch#32", to: "device://limit#1", conductor: cu-0p75-pvc, length: 0.8 m, via: iface://entry-element}
++  - {from: "device://limit#2", to: "device://contactor#A1", conductor: cu-0p75-pvc, length: 0.3 m}
++  - {from: "device://contactor#A2", to: "device://supply-block#N", conductor: cu-0p75-pvc, length: 0.3 m}
++  # the controller's 12 V DC output drives the solid-state relay
++  - {from: "device://pid#1", to: "device://ssr#3", conductor: cu-0p75-pvc, length: 0.3 m, colour: blue}
++  - {from: "device://pid#2", to: "device://ssr#4", conductor: cu-0p75-pvc, length: 0.3 m, colour: blue}
++notes: >-
++  0.75 mm² is the largest bare conductor the controllers' terminals take (Omron E5CC instruction sheet).
++  The door switch's pair leaves the box with the element's cable and runs to the switch on the guard's
++  right wall. Lengths estimated from the placed parts; the electrician cuts to fit.
+diff --git a/model/electrical/circuits/earth.yaml b/model/electrical/circuits/earth.yaml
+new file mode 100644
+index 0000000..0e5bdd8
+--- /dev/null
++++ b/model/electrical/circuits/earth.yaml
+@@ -0,0 +1,21 @@
++id: earth
++purpose: earth
++name: Earth bonding
++# The protective earth: the supply's earth to the box's earth terminal, a lead from there to each
++# stud (REQ-019). Its own circuit, so the element's diagram stays readable (S-172).
++connections:
++  - {from: "supply://supply#PE", to: "device://earth-bar#PE", conductor: cu-2p5-pvc, length: 0.3 m, via: iface://entry-mains}
++  - {from: "device://earth-bar#PE", to: "device://stud-box#PE", conductor: cu-2p5-pvc, length: 0.2 m}
++  - {from: "device://earth-bar#PE", to: "device://stud-lid#PE", conductor: cu-2p5-pvc, length: 0.4 m}
++  - {from: "device://earth-bar#PE", to: "device://stud-guard#PE", conductor: cu-2p5-pvc, length: 0.6 m, via: iface://entry-element}
++  - {from: "device://earth-bar#PE", to: "device://stud-shell#PE", conductor: cu-2p5-pvc, length: 1.0 m, via: iface://entry-element}
++  - {from: "device://earth-bar#PE", to: "device://stud-stand#PE", conductor: cu-2p5-pvc, length: 1.2 m, via: iface://entry-element}
++  - {from: "device://earth-bar#PE", to: "device://stud-door#PE", conductor: cu-2p5-pvc, length: 1.6 m, via: iface://entry-element}
++  - {from: "device://stud-door#PE", to: "device://stud-tray#PE", conductor: cu-2p5-pvc, length: 0.3 m}
++earth:
++  # bolted to the guard, which has its own stud: a claim the electrician tests (E6, S-154 point 5)
++  - {part: part://hinge-post, bonded_via: [iface://guard-hinge-post]}
++  - {part: part://latch-keeper, bonded_via: [iface://guard-latch-keeper]}
++notes: >-
++  2.5 mm² green-and-yellow, as thick as the element's conductors. The leads to the lid and across the
++  door's hinge are flexible. Lengths estimated from the placed parts; the electrician cuts to fit.
+diff --git a/model/electrical/circuits/power.yaml b/model/electrical/circuits/power.yaml
+new file mode 100644
+index 0000000..2a35e20
+--- /dev/null
++++ b/model/electrical/circuits/power.yaml
+@@ -0,0 +1,19 @@
++id: power
++purpose: power
++name: Element power
++protection: supply
++connections:
++  # the supply cable's cores, from the mains gland to where they land in the box
++  - {from: "supply://supply#L", to: "device://supply-block#L", conductor: cu-2p5-pvc, length: 0.3 m, via: iface://entry-mains}
++  - {from: "supply://supply#N", to: "device://supply-block#N", conductor: cu-2p5-pvc, length: 0.3 m, via: iface://entry-mains}
++  # the contactor breaks line and neutral; the solid-state relay switches the line in series (DEC-014)
++  - {from: "device://supply-block#L", to: "device://contactor#1/L1", conductor: cu-2p5-pvc, length: 0.4 m}
++  - {from: "device://supply-block#N", to: "device://contactor#3/L2", conductor: cu-2p5-pvc, length: 0.4 m}
++  - {from: "device://contactor#2/T1", to: "device://ssr#1", conductor: cu-2p5-pvc, length: 0.2 m, colour: brown}
++  - {from: "device://ssr#2", to: "device://element#A", conductor: cu-2p5-silicone, length: 1.2 m, via: iface://entry-element, colour: brown}
++  - {from: "device://contactor#4/T2", to: "device://element#B", conductor: cu-2p5-silicone, length: 1.2 m, via: iface://entry-element, colour: blue}
++notes: >-
++  2.5 mm² throughout: it carries the element's 10.9 A with margin and is not below the site's 16 A
++  breaker. The lengths are estimated from the placed parts with slack for the terminations; the
++  electrician cuts to fit. The supply cable from the site's isolator is the site's: the lengths given for
++  its cores are their run inside the box. The earth leads are their own circuit (Earth bonding).
+diff --git a/model/electrical/circuits/sensing.yaml b/model/electrical/circuits/sensing.yaml
+new file mode 100644
+index 0000000..312c7e6
+--- /dev/null
++++ b/model/electrical/circuits/sensing.yaml
+@@ -0,0 +1,16 @@
++id: sensing
++purpose: sensing
++name: Temperature sensing
++# A type K thermocouple gives about 51 mV at the 1250 degC limit (IEC 60584-1 table) [verify];
++# the figure only says the circuit is extra-low voltage, so it keeps its own cable entry.
++voltage: 51 mV
++dc: true
++connections:
++  - {from: "device://probe-control#+", to: "device://pid#6", conductor: type-k-extension, length: 1.2 m, via: iface://entry-sensing, colour: green}
++  - {from: "device://probe-control#-", to: "device://pid#5", conductor: type-k-extension, length: 1.2 m, via: iface://entry-sensing, colour: white}
++  - {from: "device://probe-limit#+", to: "device://limit#6", conductor: type-k-extension, length: 1.2 m, via: iface://entry-sensing, colour: green}
++  - {from: "device://probe-limit#-", to: "device://limit#5", conductor: type-k-extension, length: 1.2 m, via: iface://entry-sensing, colour: white}
++notes: >-
++  Type K extension cable all the way from each probe's head to its controller, plus to plus: a copper
++  wire anywhere in the run makes the reading wrong. Green is plus and white minus in IEC 60584-3;
++  probes bought to the American code are yellow and red [verify].
+diff --git a/model/electrical/conductors/type-k-extension.yaml b/model/electrical/conductors/type-k-extension.yaml
+new file mode 100644
+index 0000000..931fc3e
+--- /dev/null
++++ b/model/electrical/conductors/type-k-extension.yaml
+@@ -0,0 +1,6 @@
++id: type-k-extension
++label: Type K thermocouple extension cable, 2-core
++kind: sensing
++insulation: "the supplier's; rated for the guard's outside temperature [verify]"
++source: "IEC 60584-3:2007 (thermocouple extension and compensating cables): type KX extension cable, colour code green (+) and white (-). Cross-section and insulation are the supplier's [verify]"
++verify: true
+diff --git a/model/electrical/devices/contactor.yaml b/model/electrical/devices/contactor.yaml
+new file mode 100644
+index 0000000..51e2826
+--- /dev/null
++++ b/model/electrical/devices/contactor.yaml
+@@ -0,0 +1,14 @@
++id: contactor
++part: part://contactor
++role: control
++rating: {voltage: 230 V, current: 25 A}
++# The IEC 60947-4-1 / EN 50012 marking every TeSys D carries; not read from Schneider's own
++# sheet [verify]. 21-22 (the normally closed auxiliary contact) is left out of `through`: the
++# checks read every pair as closing with the coil.
++terminals: [A1, A2, 1/L1, 2/T1, 3/L2, 4/T2, 5/L3, 6/T3, "13", "14", "21", "22"]
++coil: [A1, A2]
++through: [[1/L1, 2/T1], [3/L2, 4/T2], [5/L3, 6/T3], ["13", "14"]]
++contact: {current: 25 A, category: AC-3}
++notes: >-
++  Coil 230 V AC 50/60 Hz; main poles AC-3 25 A. Two poles break line and neutral together (DEC-014);
++  the third pole (5/L3, 6/T3) and the auxiliary contacts are not used.
+diff --git a/model/electrical/devices/control-fuse.yaml b/model/electrical/devices/control-fuse.yaml
+new file mode 100644
+index 0000000..645cb0b
+--- /dev/null
++++ b/model/electrical/devices/control-fuse.yaml
+@@ -0,0 +1,6 @@
++id: control-fuse
++part: part://control-fuse
++role: protection
++terminals: ["1", "2"]
++through: [["1", "2"]]
++notes: Its rating is the electrician's, from the contactor coil's and the controllers' draw [verify].
+diff --git a/model/electrical/devices/door-switch.yaml b/model/electrical/devices/door-switch.yaml
+new file mode 100644
+index 0000000..cc087c1
+--- /dev/null
++++ b/model/electrical/devices/door-switch.yaml
+@@ -0,0 +1,15 @@
++id: door-switch
++part: part://door-switch
++role: control
++safety: interlock
++rating: {voltage: 240 V, current: 3 A}
++# Omron D4N catalogue, p. G-227, row D4N-x1x: NO 13-14, NC 31-32; "Only NC contacts 31-32
++# have an approved direct opening mechanism", so the interlock uses 31-32 [verify].
++terminals: ["13", "14", "31", "32"]
++through: [["31", "32"]]
++contact: {current: 3 A, category: AC-15}
++notes: >-
++  Positive-opening safety switch in the contactor's coil circuit (DEC-010). The interlock uses the
++  direct-opening contact 31-32, which opens when the lever is operated: the electrician mounts the
++  switch so that the door opening operates it [verify the mounting against the part's note, which
++  has the closed door press it]. 13-14 is not used.
+diff --git a/model/electrical/devices/earth-bar.yaml b/model/electrical/devices/earth-bar.yaml
+new file mode 100644
+index 0000000..43939af
+--- /dev/null
++++ b/model/electrical/devices/earth-bar.yaml
+@@ -0,0 +1,5 @@
++id: earth-bar
++part: part://earth-terminal
++role: earth
++terminals: [PE]
++notes: The earth terminal in the controller box that REQ-019 measures to.
+diff --git a/model/electrical/devices/element.yaml b/model/electrical/devices/element.yaml
+new file mode 100644
+index 0000000..658e759
+--- /dev/null
++++ b/model/electrical/devices/element.yaml
+@@ -0,0 +1,10 @@
++id: element
++part: part://heating-element
++role: load
++class: I
++rating: {voltage: param://mains-voltage, power: param://element-power}
++# A coil of bare wire has no marked terminals: A and B are its two tails, either way round.
++terminals: [A, B]
++notes: >-
++  The two tails leave the back wall through the ceramic bushes and join the high-temperature cable in
++  the ceramic connector there. It draws 10.9 A at 230 V (computed from its 2.5 kW).
+diff --git a/model/electrical/devices/limit.yaml b/model/electrical/devices/limit.yaml
+new file mode 100644
+index 0000000..47bc768
+--- /dev/null
++++ b/model/electrical/devices/limit.yaml
+@@ -0,0 +1,16 @@
++id: limit
++part: part://limit-controller
++role: control
++safety: limit
++rating: {voltage: 240 V}
++# As the PID controller, but control output 1 is a relay contact on 1-2 (Omron E5CC-800
++# datasheet p. 10) [verify].
++terminals: ["1", "2", "5", "6", "7", "8", "9", "10", "11", "12"]
++through: [["1", "2"]]
++# "SPST-NO, 250 VAC, 3 A (resistive load)"; no inductive (AC-15) rating found in the datasheet,
++# so the contactor's coil on this contact is unrated: the check's warning is the honest result.
++contact: {current: 3 A, category: resistive}
++notes: >-
++  Configured as a high-limit alarm with manual reset on control output 1, the relay closed while the
++  chamber is below the limit and open once it trips (DEC-014) [verify the setting in Omron's manual
++  H174]. Its own thermocouple is the limit probe.
+diff --git a/model/electrical/devices/pid.yaml b/model/electrical/devices/pid.yaml
+new file mode 100644
+index 0000000..c091aea
+--- /dev/null
++++ b/model/electrical/devices/pid.yaml
+@@ -0,0 +1,12 @@
++id: pid
++part: part://pid-controller
++role: control
++rating: {voltage: 240 V}
++# Omron E5CC-800 datasheet, p. 10 "External Connections" (screw terminals) [verify]:
++# supply 11-12, control output 1 (12 V DC for the SSR) 1 (+) / 2 (-), thermocouple 6 (+) / 5 (-),
++# auxiliary outputs 9-10 and 7-8 (not used); 3 and 4 are not wired.
++terminals: ["1", "2", "5", "6", "7", "8", "9", "10", "11", "12"]
++notes: >-
++  Supply 100-240 V AC on 11 and 12 (the datasheet marks no line or neutral side). Control output 1 is
++  a 12 V DC, 21 mA voltage output that drives the solid-state relay. Each terminal takes bare wire of
++  0.205 to 0.823 mm² or an M3 crimp terminal, two conductors at most (Omron E5CC instruction sheet) [verify].
+diff --git a/model/electrical/devices/probe-control.yaml b/model/electrical/devices/probe-control.yaml
+new file mode 100644
+index 0000000..be7e786
+--- /dev/null
++++ b/model/electrical/devices/probe-control.yaml
+@@ -0,0 +1,7 @@
++id: probe-control
++part: part://thermocouple
++instance: control probe
++role: sensor
++# Every type K thermocouple: the nickel-chromium leg is positive (IEC 60584-1) [verify].
++terminals: ["+", "-"]
++notes: The probe the temperature controller reads.
+diff --git a/model/electrical/devices/probe-limit.yaml b/model/electrical/devices/probe-limit.yaml
+new file mode 100644
+index 0000000..90f5686
+--- /dev/null
++++ b/model/electrical/devices/probe-limit.yaml
+@@ -0,0 +1,6 @@
++id: probe-limit
++part: part://thermocouple
++instance: limit probe
++role: sensor
++terminals: ["+", "-"]
++notes: The limit controller's own probe, independent of the control probe (DEC-014).
+diff --git a/model/electrical/devices/ssr.yaml b/model/electrical/devices/ssr.yaml
+new file mode 100644
+index 0000000..255074f
+--- /dev/null
++++ b/model/electrical/devices/ssr.yaml
+@@ -0,0 +1,14 @@
++id: ssr
++part: part://ssr
++role: control
++rating: {voltage: 280 V, current: 25 A}
++# Crydom Series 1 datasheet (FastFax 151, Rev. 102104), p. 2: load 1-2, control 3 (+) / 4 (-) [verify].
++terminals: ["1", "2", "3", "4"]
++# Its load side, read as a contact that may be closed: a solid-state relay usually fails closed,
++# which is the failure the limit controller is there for (DEC-014). Its control input is not a
++# coil here: the controller's 12 V output is not a source the checks walk (S-158).
++through: [["1", "2"]]
++contact: {current: 25 A}
++notes: >-
++  Load 24-280 V AC, 25 A, zero-cross; control 3-32 V DC from the controller's output 1. Needs its heat
++  sink at the element's current.
+diff --git a/model/electrical/devices/stud-box.yaml b/model/electrical/devices/stud-box.yaml
+new file mode 100644
+index 0000000..149ed7d
+--- /dev/null
++++ b/model/electrical/devices/stud-box.yaml
+@@ -0,0 +1,7 @@
++id: stud-box
++part: part://controller-box
++instance: earth stud
++role: earth
++terminals: [PE]
++notes: >-
++  The controller box's own earth stud. An M6 earth stud with serrated washers.
+diff --git a/model/electrical/devices/stud-door.yaml b/model/electrical/devices/stud-door.yaml
+new file mode 100644
+index 0000000..7dbb436
+--- /dev/null
++++ b/model/electrical/devices/stud-door.yaml
+@@ -0,0 +1,7 @@
++id: stud-door
++part: part://door-guard
++instance: earth stud
++role: earth
++terminals: [PE]
++notes: >-
++  On bare metal on the door guard; its lead crosses the hinge, so it is flexible. An M6 earth stud with serrated washers.
+diff --git a/model/electrical/devices/stud-guard.yaml b/model/electrical/devices/stud-guard.yaml
+new file mode 100644
+index 0000000..57f656f
+--- /dev/null
++++ b/model/electrical/devices/stud-guard.yaml
+@@ -0,0 +1,7 @@
++id: stud-guard
++part: part://guard-shell
++instance: earth stud
++role: earth
++terminals: [PE]
++notes: >-
++  On bare metal on the guard. An M6 earth stud with serrated washers.
+diff --git a/model/electrical/devices/stud-lid.yaml b/model/electrical/devices/stud-lid.yaml
+new file mode 100644
+index 0000000..c29c970
+--- /dev/null
++++ b/model/electrical/devices/stud-lid.yaml
+@@ -0,0 +1,7 @@
++id: stud-lid
++part: part://controller-lid
++instance: earth stud
++role: earth
++terminals: [PE]
++notes: >-
++  On the lid's inside, joined to the box's earth terminal by a flexible lead: the lid comes off. An M6 earth stud with serrated washers.
+diff --git a/model/electrical/devices/stud-shell.yaml b/model/electrical/devices/stud-shell.yaml
+new file mode 100644
+index 0000000..1bb5f6d
+--- /dev/null
++++ b/model/electrical/devices/stud-shell.yaml
+@@ -0,0 +1,7 @@
++id: stud-shell
++part: part://outer-shell
++instance: earth stud
++role: earth
++terminals: [PE]
++notes: >-
++  On bare metal at the back of the inner shell. An M6 earth stud with serrated washers.
+diff --git a/model/electrical/devices/stud-stand.yaml b/model/electrical/devices/stud-stand.yaml
+new file mode 100644
+index 0000000..c7df0fa
+--- /dev/null
++++ b/model/electrical/devices/stud-stand.yaml
+@@ -0,0 +1,7 @@
++id: stud-stand
++part: part://stand
++instance: earth stud
++role: earth
++terminals: [PE]
++notes: >-
++  On bare metal on the stand. An M6 earth stud with serrated washers.
+diff --git a/model/electrical/devices/stud-tray.yaml b/model/electrical/devices/stud-tray.yaml
+new file mode 100644
+index 0000000..47638cb
+--- /dev/null
++++ b/model/electrical/devices/stud-tray.yaml
+@@ -0,0 +1,7 @@
++id: stud-tray
++part: part://door-tray
++instance: earth stud
++role: earth
++terminals: [PE]
++notes: >-
++  On the door tray, joined to the door guard's stud by a flexible lead. An M6 earth stud with serrated washers.
+diff --git a/model/electrical/devices/supply-block.yaml b/model/electrical/devices/supply-block.yaml
+new file mode 100644
+index 0000000..5c63b0c
+--- /dev/null
++++ b/model/electrical/devices/supply-block.yaml
+@@ -0,0 +1,5 @@
++id: supply-block
++part: part://supply-terminal-block
++role: passthrough
++terminals: [L, N]
++notes: The supply's line and neutral land here; the power and control circuits take them from here.
+diff --git a/model/electrical/supply.yaml b/model/electrical/supply.yaml
+new file mode 100644
+index 0000000..055823b
+--- /dev/null
++++ b/model/electrical/supply.yaml
+@@ -0,0 +1,15 @@
++# What the kiln plugs into (DEC-006, REQ-008): the site's dedicated circuit, wired by a
++# licensed electrician with a residual-current device and a local isolator (installation manual).
++voltage: param://mains-voltage
++phases: 1
++frequency: 50 Hz
++rating: param://circuit-rating
++# [verify] not stated anywhere in the kiln: TT is assumed because the manual asks for a
++# residual-current device, which a TT installation relies on; the electrician says which (S-172).
++earthing: TT
++region: EU
++protection: {upstream: "the breaker of the site's dedicated circuit, with its residual-current device", rating: param://circuit-rating}
++notes: >-
++  The circuit, its breaker, the residual-current device and the isolator are the site's, not parts of
++  the kiln; the electrician confirms them and the earthing arrangement before the first firing.
++  50 Hz follows from the EU supply of DEC-006 [verify].
+diff --git a/model/interfaces/entry-element.yaml b/model/interfaces/entry-element.yaml
+new file mode 100644
+index 0000000..e465e31
+--- /dev/null
++++ b/model/interfaces/entry-element.yaml
+@@ -0,0 +1,12 @@
++id: entry-element
++kind: cable-entry
++# The middle gland carries everything at mains voltage that leaves the box: the element's two
++# conductors, the door switch's pair and the earth leads to the studs (S-154 point 4: the
++# kiln keeps DEC-024's three holes; extra-low voltage keeps its own).
++parties: [part://controller-box, part://m20-gland]
++name: Element, door switch and earth leads out
++description: The element's cable, the door switch's cable and the earth leads to the studs leave the controller box through the middle gland in its base.
++frames:
++  part://controller-box: {origin: [0, -35, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
++  part://m20-gland: {origin: [0, 0, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
++spec: {diameter: param://gland-hole, passes: [circuit://power, circuit://control, circuit://earth]}
+diff --git a/model/interfaces/entry-mains.yaml b/model/interfaces/entry-mains.yaml
+new file mode 100644
+index 0000000..6726417
+--- /dev/null
++++ b/model/interfaces/entry-mains.yaml
+@@ -0,0 +1,11 @@
++id: entry-mains
++kind: cable-entry
++# The box (it gets the hole) first, then the gland in it (E4). The hole is where the base's
++# `gland-mains` cutout was, the same size (S-172: the three cutouts became these entries).
++parties: [part://controller-box, part://m20-gland]
++name: Mains in
++description: The supply cable from the site's isolator enters the controller box through the left gland in its base.
++frames:
++  part://controller-box: {origin: [-80, -35, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
++  part://m20-gland: {origin: [0, 0, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
++spec: {diameter: param://gland-hole, passes: [circuit://power, circuit://earth]}
+diff --git a/model/interfaces/entry-sensing.yaml b/model/interfaces/entry-sensing.yaml
+new file mode 100644
+index 0000000..343e9c6
+--- /dev/null
++++ b/model/interfaces/entry-sensing.yaml
+@@ -0,0 +1,10 @@
++id: entry-sensing
++kind: cable-entry
++# Extra-low voltage only: the two thermocouple pairs (S-154 point 4).
++parties: [part://controller-box, part://m20-gland]
++name: Thermocouple leads in
++description: The two thermocouples' extension cables enter the controller box through the right gland in its base.
++frames:
++  part://controller-box: {origin: [80, -35, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
++  part://m20-gland: {origin: [0, 0, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
++spec: {diameter: param://gland-hole, passes: [circuit://sensing]}
+diff --git a/model/parts/control-fuse.yaml b/model/parts/control-fuse.yaml
+new file mode 100644
+index 0000000..1bd00c3
+--- /dev/null
++++ b/model/parts/control-fuse.yaml
+@@ -0,0 +1,13 @@
++id: control-fuse
++rev: A
++name: Control-circuit fuse in a fuse holder
++kind: cots
++process: none
++geometry: none
++source: {vendor: generic electrical wholesaler, mpn: FUSE-HOLDER-5X20, url: "https://www.mcmaster.com/fuse-holders/", verified: false}
++satisfies: [req://REQ-018]
++notes: >-
++  Protects the control circuit (the two controllers' supplies, the door switch, the limit relay and
++  the contactor's coil) and its 0.75 mm² conductors. Its rating is not chosen here: the electrician
++  sizes it from the contactor coil's and the controllers' draw [verify]. The holder's two clamps carry
++  no maker's marking; they are 1 (supply side) and 2 here.
+diff --git a/model/parts/controller-box.yaml b/model/parts/controller-box.yaml
+index 7c6cf5b..53bd720 100644
+--- a/model/parts/controller-box.yaml
++++ b/model/parts/controller-box.yaml
+@@ -20,8 +20,5 @@ geometry:
+       - {face: front, center: [-70, 20], width: param://controller-cutout, height: param://controller-cutout, corner_radius: 1 mm, label: pid-cutout}
+       - {face: front, center: [-10, 20], width: param://controller-cutout, height: param://controller-cutout, corner_radius: 1 mm, label: limit-cutout}
+-      - {face: base, center: [-80, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-mains}
+-      - {face: base, center: [0, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-element}
+-      - {face: base, center: [80, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-thermocouples}
+-interfaces: [iface://controller-mount, iface://controller-lid-seat]
++interfaces: [iface://controller-mount, iface://controller-lid-seat, iface://entry-mains, iface://entry-element, iface://entry-sensing]
+ satisfies: [req://REQ-007, req://REQ-008]
+ cost: {unit: 80 USD, basis: estimate}
+diff --git a/model/parts/earth-stud.yaml b/model/parts/earth-stud.yaml
+index 3edadc8..33de678 100644
+--- a/model/parts/earth-stud.yaml
++++ b/model/parts/earth-stud.yaml
+@@ -10,3 +10,3 @@ lead_time: 5 d
+ mass: 10 g
+ satisfies: [req://REQ-019]
+-notes: One each on the shell, guard, door guard, stand and controller box, fitted while each is assembled (assembly manual); the electrician bonds each to protective earth (DEC-023).
++notes: One each on the shell, guard, door guard, stand and controller box, and on the lid and the door tray (their flexible leads), fitted while each is assembled (assembly manual); the electrician bonds each to protective earth (DEC-023).
+diff --git a/model/parts/earth-terminal.yaml b/model/parts/earth-terminal.yaml
+new file mode 100644
+index 0000000..c681d66
+--- /dev/null
++++ b/model/parts/earth-terminal.yaml
+@@ -0,0 +1,12 @@
++id: earth-terminal
++rev: A
++name: Earth terminal (protective earth bar) in the controller box
++kind: cots
++process: none
++geometry: none
++source: {vendor: generic electrical wholesaler, mpn: EARTH-BAR, url: "https://www.mcmaster.com/terminal-blocks/", verified: false}
++satisfies: [req://REQ-019]
++notes: >-
++  The one earth point inside the controller box: the supply's protective earth lands here and every
++  earth lead to a stud starts here (REQ-019 measures to it). How many conductors it clamps and of what
++  size is not on file [verify: at least nine 2.5 mm² leads].
+diff --git a/model/parts/element-tail-connector.yaml b/model/parts/element-tail-connector.yaml
+new file mode 100644
+index 0000000..16cc351
+--- /dev/null
++++ b/model/parts/element-tail-connector.yaml
+@@ -0,0 +1,12 @@
++id: element-tail-connector
++rev: A
++name: High-temperature connector for the element tails, 2-way ceramic
++kind: cots
++process: none
++geometry: none
++source: {vendor: generic kiln supplier, mpn: CERAMIC-CONNECTOR-2W, url: "https://www.omega.com/en-us/", verified: false}
++notes: >-
++  Joins the element's two bare tails, where they leave the back wall through the ceramic bushes, to
++  the high-temperature cable that runs to the controller box. Its temperature and current ratings
++  are not on file [verify: the tails run hot; at least the element's 10.9 A]. The joint is live at
++  mains voltage: the electrician covers it so it cannot be touched [verify].
+diff --git a/model/parts/heating-element.yaml b/model/parts/heating-element.yaml
+index 1da77f7..4f37d6d 100644
+--- a/model/parts/heating-element.yaml
++++ b/model/parts/heating-element.yaml
+@@ -10,3 +10,3 @@ lead_time: 14 d
+ mass: 0.6 kg
+ satisfies: [req://REQ-006, req://REQ-015, req://REQ-021, req://REQ-022]
+-notes: Wound on site from wire on a 9 mm mandrel; length from calc://element.wire_length, turns and stretched pitch from calc://element.coil_turns and calc://element.pitch_factor. Lies in five grooves per wall (two sides and the back) with the tails leaving through the back wall. No electrical design is part of this package.
++notes: Wound on site from wire on a 9 mm mandrel; length from calc://element.wire_length, turns and stretched pitch from calc://element.coil_turns and calc://element.pitch_factor. Lies in five grooves per wall (two sides and the back) with the tails leaving through the back wall. Its two tails are wired as the installation manual shows.
+diff --git a/model/parts/m20-gland.yaml b/model/parts/m20-gland.yaml
+index dacb117..3d9fdc4 100644
+--- a/model/parts/m20-gland.yaml
++++ b/model/parts/m20-gland.yaml
+@@ -9,4 +9,5 @@ cost: {unit: 2 USD, basis: estimate}
+ lead_time: 5 d
+ mass: 15 g
++interfaces: [iface://entry-mains, iface://entry-element, iface://entry-sensing]
+ satisfies: [req://REQ-008]
+ notes: Three in the controller box base (mains in, element out, thermocouple leads).
+diff --git a/model/parts/ssr-heat-sink.yaml b/model/parts/ssr-heat-sink.yaml
+new file mode 100644
+index 0000000..2040eae
+--- /dev/null
++++ b/model/parts/ssr-heat-sink.yaml
+@@ -0,0 +1,12 @@
++id: ssr-heat-sink
++rev: A
++name: Heat sink for the solid-state relay
++kind: cots
++process: none
++geometry: none
++source: {vendor: Crydom, mpn: HS-series heat sink, url: "https://www.sensata.com/products/relays/d24-series-panel-mount-ssr-d2425", verified: false}
++satisfies: [req://REQ-007]
++notes: >-
++  The solid-state relay carries the element's 10.9 A and needs a heat sink; its thermal resistance is
++  read from the relay maker's derating curve at that current and the box's inside temperature
++  (below 50 degC, REQ-007), which this package has not done [verify].
+diff --git a/model/parts/supply-terminal-block.yaml b/model/parts/supply-terminal-block.yaml
+new file mode 100644
+index 0000000..e4e2c38
+--- /dev/null
++++ b/model/parts/supply-terminal-block.yaml
+@@ -0,0 +1,13 @@
++id: supply-terminal-block
++rev: A
++name: Supply terminal block, 2-pole (line and neutral)
++kind: cots
++process: none
++geometry: none
++source: {vendor: generic electrical wholesaler, mpn: TERMINAL-BLOCK-2P, url: "https://www.mcmaster.com/terminal-blocks/", verified: false}
++satisfies: [req://REQ-008]
++notes: >-
++  Where the supply cable's line and neutral land inside the controller box, and where the power and
++  control circuits take them from. Its rated current and the conductor sizes it clamps are not on file
++  [verify: at least the site's 16 A, and 2.5 mm²]; it is fixed to the box base where the electrician
++  chooses. Its two ways are marked L and N here (terminal blocks carry the designer's marking, not a maker's).
+diff --git a/model/requirements.yaml b/model/requirements.yaml
+index 3683f5d..b5e4646 100644
+--- a/model/requirements.yaml
++++ b/model/requirements.yaml
+@@ -258,2 +258,22 @@ requirements:
+       of passing unseen.
+     source: concept C-003 site constraint
++  - id: REQ-028
++    title: The element fits the supply
++    statement: The element power circuit's load stays below the site's circuit rating, a margin above 0 A.
++    category: electrical
++    tags: [electrical]
++    priority: must
++    verify: {kind: circuit, target: 'circuit://power#props.supply_margin', op: '>', value: 0 A}
++    allocation: ['circuit://power', 'part://heating-element', 'param://circuit-rating', 'param://element-power']
++    rationale: The supply's rating less the element's current, computed from the wiring model (DEC-025); REQ-006 bounds the element's power, this checks the wired circuit.
++    source: design
++  - id: REQ-029
++    title: The element's conductors carry its current
++    statement: Every conductor of the element power circuit is rated more than 0 A above the element's current.
++    category: electrical
++    tags: [electrical]
++    priority: must
++    verify: {kind: circuit, target: 'circuit://power#props.conductor_margin', op: '>', value: 0 A}
++    allocation: ['circuit://power', 'part://heating-element']
++    rationale: The smallest margin of the circuit's conductors over the element's current, from the calc kit's conductor table (DEC-025).
++    source: design
+diff --git a/n2f.yaml b/n2f.yaml
+index 7ee1bdf..3429267 100644
+--- a/n2f.yaml
++++ b/n2f.yaml
+@@ -8,3 +8,3 @@ units: metric
+ manufacturer_profile: null
+ scope:
+-  electrical: {state: later, decision: DEC-024, note: "the electrician wires it; the box keeps its cable entries"}
++  electrical: {state: in, decision: DEC-025}

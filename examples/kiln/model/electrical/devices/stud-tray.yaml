@@ -1,0 +1,7 @@
+id: stud-tray
+part: part://door-tray
+instance: earth stud
+role: earth
+terminals: [PE]
+notes: >-
+  On the door tray, joined to the door guard's stud by a flexible lead. An M6 earth stud with serrated washers.

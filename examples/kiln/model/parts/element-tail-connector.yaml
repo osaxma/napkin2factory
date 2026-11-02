@@ -1,0 +1,12 @@
+id: element-tail-connector
+rev: A
+name: High-temperature connector for the element tails, 2-way ceramic
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic kiln supplier, mpn: CERAMIC-CONNECTOR-2W, url: "https://www.omega.com/en-us/", verified: false}
+notes: >-
+  Joins the element's two bare tails, where they leave the back wall through the ceramic bushes, to
+  the high-temperature cable that runs to the controller box. Its temperature and current ratings
+  are not on file [verify: the tails run hot; at least the element's 10.9 A]. The joint is live at
+  mains voltage: the electrician covers it so it cannot be touched [verify].

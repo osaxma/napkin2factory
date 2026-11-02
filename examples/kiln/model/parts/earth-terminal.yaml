@@ -1,0 +1,12 @@
+id: earth-terminal
+rev: A
+name: Earth terminal (protective earth bar) in the controller box
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic electrical wholesaler, mpn: EARTH-BAR, url: "https://www.mcmaster.com/terminal-blocks/", verified: false}
+satisfies: [req://REQ-019]
+notes: >-
+  The one earth point inside the controller box: the supply's protective earth lands here and every
+  earth lead to a stud starts here (REQ-019 measures to it). How many conductors it clamps and of what
+  size is not on file [verify: at least nine 2.5 mm² leads].

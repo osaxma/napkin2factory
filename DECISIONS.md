@@ -196,6 +196,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-169 | v0.6 M6: the diff page says a report section the later Revision's package adds or drops ("Wiring: added"); a domain left for later or done elsewhere counts as not there | in force |
 | S-170 | v0.6 M6: the external-box fixture (a control box supplied from elsewhere, two cable-entry ports), the scope words tested with the wiring's owner word, the owner-session script for DoD 7 on that fixture | in force |
 | S-171 | v0.6 M5 follow-up: cited EU 20 A and 32 A circuit classes, so a European 16 A supply raises the supply-headroom choice; `dedicated: true` on the supply is the `dedicated` pick made in the model (closes B-0149, B-0151) | in force |
+| S-172 | v0.6 M5: the kiln wired (four circuits, earth points named by the metal they earth, three cable entries in the gland holes' places, five bought parts, two studs), its manual's wiring generated, the headroom choice decided, `demo-electrical.sh` | in force |
 
 ---
 
@@ -1181,3 +1182,14 @@ circuit (no region lookup); the one fixture card screened by EU region draws 6.5
 "the supply circuit serves this product alone". The headroom row reads it through `sctx.proxy` and passes, saying nothing
 else may be plugged in (the electrician confirms); the `dedicated` option's what-it-takes and the no-larger-class warn's fix
 name the field. Measured: decide `dedicated`, set the field, build: `n2f status` has no "not yet in the design" line. Core files changed: none.
+## S-172 — v0.6 M5: the kiln wired, its manual, the headroom choice, the wiring demo (2026-11-02)
+`model/electrical/`: supply 230 V 50 Hz [verify], TT [verify] (the manual asks for an RCD), EU, the site's breaker upstream;
+18 devices, terminals from the makers' drawings (`docs/v06-baseline.md` §2.1) [verify]; circuits power, control (control fuse;
+door switch 31-32, then the limit relay next to the coil, so its resistive-only contact-on-coil warn shows), sensing (51 mV DC
+[verify]) and earth, its own circuit (inside power the diagram was unreadable). Lengths are estimates [verify]. Earth points are
+devices naming the metal a stud sits on, not `part://earth-stud`: the earth walk keys on a device's part (B-0153) [revisit]. Lid
+and tray get a stud and a flexible lead; hinge post, latch keeper `bonded_via`. Five bought parts, no rating or cost invented.
+Three entries at the cutouts' centres (box bbox same, centroid within 0.001 mm, volume +2.6 mm³: square-with-corners to circle):
+REQ-007's box key re-keyed; REQ-008/-018 (manual), -019 (stud note) renewed as EXAMPLE. Headroom decided `dedicated` (DEC-026,
+`n2f decide`) and made (`dedicated: true`). Also edited (the wired kiln moves them): `test_kiln.py`, `test_scope.py`,
+`test_alignment.py`, `test_build_plan.py`. Measured: cold build 60.0 s; report 3,919,200 B; `demo-electrical.sh` alone 492 s (8 min 12 s). Core/`src/`: none.

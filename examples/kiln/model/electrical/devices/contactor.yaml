@@ -1,0 +1,14 @@
+id: contactor
+part: part://contactor
+role: control
+rating: {voltage: 230 V, current: 25 A}
+# The IEC 60947-4-1 / EN 50012 marking every TeSys D carries; not read from Schneider's own
+# sheet [verify]. 21-22 (the normally closed auxiliary contact) is left out of `through`: the
+# checks read every pair as closing with the coil.
+terminals: [A1, A2, 1/L1, 2/T1, 3/L2, 4/T2, 5/L3, 6/T3, "13", "14", "21", "22"]
+coil: [A1, A2]
+through: [[1/L1, 2/T1], [3/L2, 4/T2], [5/L3, 6/T3], ["13", "14"]]
+contact: {current: 25 A, category: AC-3}
+notes: >-
+  Coil 230 V AC 50/60 Hz; main poles AC-3 25 A. Two poles break line and neutral together (DEC-014);
+  the third pole (5/L3, 6/T3) and the auxiliary contacts are not used.

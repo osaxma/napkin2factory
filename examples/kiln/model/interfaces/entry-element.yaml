@@ -1,0 +1,12 @@
+id: entry-element
+kind: cable-entry
+# The middle gland carries everything at mains voltage that leaves the box: the element's two
+# conductors, the door switch's pair and the earth leads to the studs (S-154 point 4: the
+# kiln keeps DEC-024's three holes; extra-low voltage keeps its own).
+parties: [part://controller-box, part://m20-gland]
+name: Element, door switch and earth leads out
+description: The element's cable, the door switch's cable and the earth leads to the studs leave the controller box through the middle gland in its base.
+frames:
+  part://controller-box: {origin: [0, -35, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
+  part://m20-gland: {origin: [0, 0, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
+spec: {diameter: param://gland-hole, passes: [circuit://power, circuit://control, circuit://earth]}

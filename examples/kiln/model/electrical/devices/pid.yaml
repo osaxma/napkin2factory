@@ -1,0 +1,12 @@
+id: pid
+part: part://pid-controller
+role: control
+rating: {voltage: 240 V}
+# Omron E5CC-800 datasheet, p. 10 "External Connections" (screw terminals) [verify]:
+# supply 11-12, control output 1 (12 V DC for the SSR) 1 (+) / 2 (-), thermocouple 6 (+) / 5 (-),
+# auxiliary outputs 9-10 and 7-8 (not used); 3 and 4 are not wired.
+terminals: ["1", "2", "5", "6", "7", "8", "9", "10", "11", "12"]
+notes: >-
+  Supply 100-240 V AC on 11 and 12 (the datasheet marks no line or neutral side). Control output 1 is
+  a 12 V DC, 21 mA voltage output that drives the solid-state relay. Each terminal takes bare wire of
+  0.205 to 0.823 mm² or an M3 crimp terminal, two conductors at most (Omron E5CC instruction sheet) [verify].

@@ -1,0 +1,13 @@
+id: supply-terminal-block
+rev: A
+name: Supply terminal block, 2-pole (line and neutral)
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic electrical wholesaler, mpn: TERMINAL-BLOCK-2P, url: "https://www.mcmaster.com/terminal-blocks/", verified: false}
+satisfies: [req://REQ-008]
+notes: >-
+  Where the supply cable's line and neutral land inside the controller box, and where the power and
+  control circuits take them from. Its rated current and the conductor sizes it clamps are not on file
+  [verify: at least the site's 16 A, and 2.5 mm²]; it is fixed to the box base where the electrician
+  chooses. Its two ways are marked L and N here (terminal blocks carry the designer's marking, not a maker's).

@@ -1,0 +1,15 @@
+id: door-switch
+part: part://door-switch
+role: control
+safety: interlock
+rating: {voltage: 240 V, current: 3 A}
+# Omron D4N catalogue, p. G-227, row D4N-x1x: NO 13-14, NC 31-32; "Only NC contacts 31-32
+# have an approved direct opening mechanism", so the interlock uses 31-32 [verify].
+terminals: ["13", "14", "31", "32"]
+through: [["31", "32"]]
+contact: {current: 3 A, category: AC-15}
+notes: >-
+  Positive-opening safety switch in the contactor's coil circuit (DEC-010). The interlock uses the
+  direct-opening contact 31-32, which opens when the lever is operated: the electrician mounts the
+  switch so that the door opening operates it [verify the mounting against the part's note, which
+  has the closed door press it]. 13-14 is not used.

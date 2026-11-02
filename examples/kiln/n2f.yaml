@@ -7,4 +7,4 @@ product:
 units: metric
 manufacturer_profile: null
 scope:
-  electrical: {state: later, decision: DEC-024, note: "the electrician wires it; the box keeps its cable entries"}
+  electrical: {state: in, decision: DEC-025}

@@ -1,0 +1,7 @@
+id: stud-lid
+part: part://controller-lid
+instance: earth stud
+role: earth
+terminals: [PE]
+notes: >-
+  On the lid's inside, joined to the box's earth terminal by a flexible lead: the lid comes off. An M6 earth stud with serrated washers.

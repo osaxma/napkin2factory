@@ -19,10 +19,7 @@ geometry:
     cutouts:
       - {face: front, center: [-70, 20], width: param://controller-cutout, height: param://controller-cutout, corner_radius: 1 mm, label: pid-cutout}
       - {face: front, center: [-10, 20], width: param://controller-cutout, height: param://controller-cutout, corner_radius: 1 mm, label: limit-cutout}
-      - {face: base, center: [-80, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-mains}
-      - {face: base, center: [0, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-element}
-      - {face: base, center: [80, -35], width: param://gland-hole, height: param://gland-hole, corner_radius: 10.2 mm, label: gland-thermocouples}
-interfaces: [iface://controller-mount, iface://controller-lid-seat]
+interfaces: [iface://controller-mount, iface://controller-lid-seat, iface://entry-mains, iface://entry-element, iface://entry-sensing]
 satisfies: [req://REQ-007, req://REQ-008]
 cost: {unit: 80 USD, basis: estimate}
 lead_time: 15 d

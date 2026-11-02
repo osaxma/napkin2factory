@@ -81,8 +81,8 @@ def test_kiln_promoted_direction_holds_on_the_kiln_as_built(kiln: tuple[Path, fl
     assert len(from_card) >= 4
     for rid in from_card:
         row = by_id[f"req://{rid}"]
-        # the site circuit is electrical, left for later (DEC-024): its check still runs and
-        # what it found is kept (S-149)
+        # the site circuit is electrical, designed here since v0.6 M5 (DEC-025); a copy with
+        # the wiring left for later keeps what the check found (S-149)
         found = row["detail"]["later"]["status"] if row["status"] == "later" else row["status"]
         assert found == "pass", row
     alcove = next(r for r in from_card.values() if r.title == "Fits the alcove with the door open")
@@ -109,10 +109,16 @@ def test_kiln_interfaces_meet_and_a_moved_box_fails(kiln: tuple[Path, float]) ->
     root, _ = kiln
     data = json.loads((root / "build/checks/checks.json").read_text())
     rows = [r for r in data["results"] if r["id"].startswith("iface://")]
-    # nine joints, the door's two hinges and latch and the controls' lid since M3b (S-113)
-    assert len(rows) == 13 and all(r["status"] == "pass" for r in rows), rows
-    # gate D: where they meet, in owner words; no id in the message
-    assert all("in the assembled " in r["message"] and "://" not in r["message"] for r in rows)
+    # nine joints, the door's two hinges and latch and the controls' lid since M3b (S-113), and
+    # the controller box's three cable entries since v0.6 M5 (S-172)
+    assert len(rows) == 16 and all(r["status"] == "pass" for r in rows), rows
+    entries = [r for r in rows if r["id"].startswith("iface://entry-")]
+    assert len(entries) == 3 and all(": carries the " in r["message"] for r in entries)
+    # gate D: where they meet, in owner words; no id in the message (an entry's gland is bought
+    # and has no shape, so its row says the hole and the circuits instead)
+    joints = [r for r in rows if r not in entries]
+    assert all("in the assembled " in r["message"] and "://" not in r["message"] for r in joints)
+    assert all("://" not in r["message"] for r in entries)
     assert not [r for r in data["results"] if r["id"].startswith("placement://")]
     moved = root.parent / "moved-build"
     shutil.copytree(root / "build", moved)
@@ -134,9 +140,10 @@ def test_kiln_interfaces_meet_and_a_moved_box_fails(kiln: tuple[Path, float]) ->
 
 
 #: The door's working context (P6, S-114): the key set an agent's tools may rely on.
+# "domains": the wiring's lines for the door's earth studs since v0.6 M5 (S-172, F1)
 DOOR_CONTEXT_KEYS = {
     "": [
-        "assemblies", "build", "commands", "files", "inside", "joints_inside", "module",
+        "assemblies", "build", "commands", "domains", "files", "inside", "joints_inside", "module",
         "name", "parameters", "parts", "ports", "requirements", "shared_parts",
         "sub_assemblies", "title", "why",
     ],

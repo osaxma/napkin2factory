@@ -1,0 +1,10 @@
+id: element
+part: part://heating-element
+role: load
+class: I
+rating: {voltage: param://mains-voltage, power: param://element-power}
+# A coil of bare wire has no marked terminals: A and B are its two tails, either way round.
+terminals: [A, B]
+notes: >-
+  The two tails leave the back wall through the ceramic bushes and join the high-temperature cable in
+  the ceramic connector there. It draws 10.9 A at 230 V (computed from its 2.5 kW).

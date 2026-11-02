@@ -257,3 +257,23 @@ requirements:
       door guard's outside width (door-guard-width), so a wider door or a wider opening fails here instead
       of passing unseen.
     source: concept C-003 site constraint
+  - id: REQ-028
+    title: The element fits the supply
+    statement: The element power circuit's load stays below the site's circuit rating, a margin above 0 A.
+    category: electrical
+    tags: [electrical]
+    priority: must
+    verify: {kind: circuit, target: 'circuit://power#props.supply_margin', op: '>', value: 0 A}
+    allocation: ['circuit://power', 'part://heating-element', 'param://circuit-rating', 'param://element-power']
+    rationale: The supply's rating less the element's current, computed from the wiring model (DEC-025); REQ-006 bounds the element's power, this checks the wired circuit.
+    source: design
+  - id: REQ-029
+    title: The element's conductors carry its current
+    statement: Every conductor of the element power circuit is rated more than 0 A above the element's current.
+    category: electrical
+    tags: [electrical]
+    priority: must
+    verify: {kind: circuit, target: 'circuit://power#props.conductor_margin', op: '>', value: 0 A}
+    allocation: ['circuit://power', 'part://heating-element']
+    rationale: The smallest margin of the circuit's conductors over the element's current, from the calc kit's conductor table (DEC-025).
+    source: design

@@ -8,5 +8,6 @@ source: {vendor: generic electrical wholesaler, mpn: M20-GLAND, url: "https://ww
 cost: {unit: 2 USD, basis: estimate}
 lead_time: 5 d
 mass: 15 g
+interfaces: [iface://entry-mains, iface://entry-element, iface://entry-sensing]
 satisfies: [req://REQ-008]
 notes: Three in the controller box base (mains in, element out, thermocouple leads).

@@ -1,0 +1,7 @@
+id: stud-shell
+part: part://outer-shell
+instance: earth stud
+role: earth
+terminals: [PE]
+notes: >-
+  On bare metal at the back of the inner shell. An M6 earth stud with serrated washers.

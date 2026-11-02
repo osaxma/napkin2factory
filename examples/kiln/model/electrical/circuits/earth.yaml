@@ -1,0 +1,21 @@
+id: earth
+purpose: earth
+name: Earth bonding
+# The protective earth: the supply's earth to the box's earth terminal, a lead from there to each
+# stud (REQ-019). Its own circuit, so the element's diagram stays readable (S-172).
+connections:
+  - {from: "supply://supply#PE", to: "device://earth-bar#PE", conductor: cu-2p5-pvc, length: 0.3 m, via: iface://entry-mains}
+  - {from: "device://earth-bar#PE", to: "device://stud-box#PE", conductor: cu-2p5-pvc, length: 0.2 m}
+  - {from: "device://earth-bar#PE", to: "device://stud-lid#PE", conductor: cu-2p5-pvc, length: 0.4 m}
+  - {from: "device://earth-bar#PE", to: "device://stud-guard#PE", conductor: cu-2p5-pvc, length: 0.6 m, via: iface://entry-element}
+  - {from: "device://earth-bar#PE", to: "device://stud-shell#PE", conductor: cu-2p5-pvc, length: 1.0 m, via: iface://entry-element}
+  - {from: "device://earth-bar#PE", to: "device://stud-stand#PE", conductor: cu-2p5-pvc, length: 1.2 m, via: iface://entry-element}
+  - {from: "device://earth-bar#PE", to: "device://stud-door#PE", conductor: cu-2p5-pvc, length: 1.6 m, via: iface://entry-element}
+  - {from: "device://stud-door#PE", to: "device://stud-tray#PE", conductor: cu-2p5-pvc, length: 0.3 m}
+earth:
+  # bolted to the guard, which has its own stud: a claim the electrician tests (E6, S-154 point 5)
+  - {part: part://hinge-post, bonded_via: [iface://guard-hinge-post]}
+  - {part: part://latch-keeper, bonded_via: [iface://guard-latch-keeper]}
+notes: >-
+  2.5 mm² green-and-yellow, as thick as the element's conductors. The leads to the lid and across the
+  door's hinge are flexible. Lengths estimated from the placed parts; the electrician cuts to fit.

@@ -1,0 +1,6 @@
+id: type-k-extension
+label: Type K thermocouple extension cable, 2-core
+kind: sensing
+insulation: "the supplier's; rated for the guard's outside temperature [verify]"
+source: "IEC 60584-3:2007 (thermocouple extension and compensating cables): type KX extension cable, colour code green (+) and white (-). Cross-section and insulation are the supplier's [verify]"
+verify: true

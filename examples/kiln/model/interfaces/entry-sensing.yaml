@@ -1,0 +1,10 @@
+id: entry-sensing
+kind: cable-entry
+# Extra-low voltage only: the two thermocouple pairs (S-154 point 4).
+parties: [part://controller-box, part://m20-gland]
+name: Thermocouple leads in
+description: The two thermocouples' extension cables enter the controller box through the right gland in its base.
+frames:
+  part://controller-box: {origin: [80, -35, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
+  part://m20-gland: {origin: [0, 0, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
+spec: {diameter: param://gland-hole, passes: [circuit://sensing]}

@@ -267,3 +267,32 @@ decisions:
     links: [asm://controls, doc://installation]
     made_by: agent
     disclosed: true
+  - id: DEC-025
+    date: 2026-11-02
+    title: The wiring is designed here
+    context: DEC-024 left the wiring to the electrician with no diagram. The electrician still needs to know what connects to what, with which cable, through which gland, and where each earth lead goes.
+    decision: Design the wiring in the kiln's model (n2f.yaml, scope electrical - in) - the supply, every powered part's terminals from its datasheet, the element, control and temperature sensing circuits and the earth leads - and generate the wiring diagrams, the cable schedule, the terminal labels and the cable to buy into the installation manual. The three gland holes in the controller box base become its cable entries, in the same places. Five bought parts the wiring needs join the parts list (the supply terminal block, the earth terminal, the control fuse, the relay's heat sink, the element tails' connector), and the lid and the door tray get an earth stud each with a flexible lead. A licensed electrician still wires the kiln to local code and decides every point marked for checking.
+    rationale: A manufacturer package that cannot say what connects to what is not complete; the diagrams and the schedule are drawn from the same data the checks read, so they cannot disagree with them. The metalwork does not change.
+    links: [manifest://scope, asm://controls, doc://installation, iface://entry-mains, iface://entry-element, iface://entry-sensing]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources:
+      - 'terminal markings: Omron E5CC-800 datasheet p. 10, Omron D4N catalogue p. G-227, Crydom Series 1 datasheet p. 2, IEC 60947-4-1 for the contactor [verify]'
+      - 'conductors: the calc kit''s conductor table (IEC 60204-1:2016 Table 6) [verify]'
+  - id: DEC-026
+    date: 2026-11-02
+    title: "Room to spare on the supply's circuit: a dedicated 16 A circuit; nothing else may be plugged into it"
+    context: '10.9 A of the 16 A circuit (the Heating element coil, Kanthal A1 1.6 mm: 10.9 A, computed from 2500 W at 230 V): more than half of it. Two ways to fix it: a dedicated 16 A circuit; nothing else may be plugged into it; or a 20 A dedicated circuit: room for a bigger load later; the electrician fits thicker cable'
+    decision: "A dedicated 16 A circuit; nothing else may be plugged into it. What it takes: the electrician fits or confirms a 16 A circuit that serves this product alone, the supply says so (`dedicated: true` in the wiring's supply file), and the manual says nothing else may be plugged into it."
+    rationale: 'Conservative: the rating label and DEC-006 already state a dedicated 16 A circuit; a larger circuit would only matter for a bigger element, which no requirement asks for.'
+    links: [supply://supply, circuit://power, device://element, param://circuit-rating]
+    made_by: human
+    disclosed: true
+    verify: false
+    sources:
+      - 'choice elec-rule://supply-headroom@supply: option dedicated, chosen by Project manager (agent)'
+      - evidence circuit://power sha256:28707350867159eed1ea7f319f56d27354513d3a0ec74d129bb9d201d1faed13
+      - evidence device://element sha256:afcb38c910e5cfdc810e0c21d90cf924b56a8595022ca98e632816548509bbbc
+      - evidence param://circuit-rating sha256:95fce4b018f8b504b0102ac1aac59d633f8196c6adfde32e950b66f5654751b8
+      - evidence supply://supply sha256:cfd219c6dfdce519449f22895a40f10ea196009a836fab840594ef51575bb099

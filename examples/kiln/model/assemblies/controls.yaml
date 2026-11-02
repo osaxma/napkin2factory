@@ -17,7 +17,11 @@ children:
   - {part: part://contactor, qty: 1}
   - {part: part://m20-gland, qty: 3}
   - {part: part://lid-screw, qty: 4}
-  - {part: part://earth-stud, qty: 1}
+  - {part: part://earth-stud, qty: 2}
+  - {part: part://supply-terminal-block, qty: 1}
+  - {part: part://earth-terminal, qty: 1}
+  - {part: part://control-fuse, qty: 1}
+  - {part: part://ssr-heat-sink, qty: 1}
   - {part: part://rating-label, qty: 1}
 exploded: {axis: z, spacing: 60 mm}
 satisfies: [req://REQ-007, req://REQ-008, req://REQ-018]

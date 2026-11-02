@@ -1,0 +1,7 @@
+id: probe-control
+part: part://thermocouple
+instance: control probe
+role: sensor
+# Every type K thermocouple: the nickel-chromium leg is positive (IEC 60584-1) [verify].
+terminals: ["+", "-"]
+notes: The probe the temperature controller reads.

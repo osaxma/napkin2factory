@@ -29,7 +29,8 @@ Have the design, the wiring and the finished kiln checked by qualified people be
   hot for hours after a firing.
 - **Electricity.** The element is bare wire in the brick grooves, running directly on
   {{ P["mains-voltage"] }} mains at {{ P["element-power"] }}. {{ req("REQ-008").statement }}
-  All wiring is done by the electrician; this package contains no wiring diagram.
+  All wiring is done by a licensed electrician, from the wiring diagrams and the cable
+  schedule in the installation manual.
 - **Earth.** {{ req("REQ-019").statement }} A broken element touching the case must trip the
   circuit protection instead of making the case live. Do not paint over or remove the earth
   studs.

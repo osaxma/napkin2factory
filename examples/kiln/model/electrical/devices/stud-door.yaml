@@ -1,0 +1,7 @@
+id: stud-door
+part: part://door-guard
+instance: earth stud
+role: earth
+terminals: [PE]
+notes: >-
+  On bare metal on the door guard; its lead crosses the hinge, so it is flexible. An M6 earth stud with serrated washers.

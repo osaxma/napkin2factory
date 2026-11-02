@@ -1,21 +1,11 @@
 requirement: req://REQ-019
 by: Example Reviewer (not a real review)
 role: human
-date: '2026-11-01'
-statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
-  against the built kiln.
+date: '2026-11-02'
+statement: EXAMPLE sign-off for the showcase, renewed when the wiring was designed
+  (DEC-025); a real reviewer must repeat this check against the built kiln.
 evidence:
 - part://earth-stud
-- part://outer-shell
-- part://guard-shell
-- part://door-guard
-- part://stand
-- part://controller-box
 evidence_keys:
-  part://earth-stud: sha256:133c6f7b85406a01834a18a9e7d6e642025a25ea67b8f12d8d1f7e61ef3d12ed
-  part://outer-shell: inv:{"area":3502902.691,"bbox":[620.4,620.4,586.2],"centroid":[0.0,0.0252,241.2432],"counts":[94,260,1],"features":"sha256:a290f85c16f094de192d5a43f4020a826ca8ad7e8277dbbea998e705bd7162bc","volume":2096202.477}
-  part://guard-shell: inv:{"area":4102223.638,"bbox":[672.4,672.4,637.2],"centroid":[-0.0107,-1.8363,261.0572],"counts":[136,386,1],"features":"sha256:852ba0d56881640e2572304679aa139def59617ac15b57fbd7221c8097957ffc","volume":2045550.132}
-  part://door-guard: inv:{"area":1465416.014,"bbox":[702.4,702.4,89.5],"centroid":[0.0,0.0,15.4874],"counts":[50,128,1],"features":"sha256:38d7d9259d524376462e5a2878346a42700ff63cee13a103945b95b9eb88f6f4","volume":730290.898}
-  part://stand: inv:{"area":1216811.2,"bbox":[512.4,507.2,700.0],"centroid":[0.0,0.0,392.5846],"counts":[109,252,1],"features":"sha256:9db9951d0456f0715f61cd02ded1c8d8c9e2151c33beda9d093ad316df57d001","volume":913454.4}
-  part://controller-box: inv:{"area":304302.794,"bbox":[280.0,140.0,160.0],"centroid":[1.1915,1.8279,67.8599],"counts":[90,248,1],"features":"sha256:5fd5423f5b055018c19f6944115d396b2abdc512413bf5a0973788f366287b92","volume":150784.063}
+  part://earth-stud: sha256:a0978798d3e0be1c627d56cda8945b918716d7edd0f1672b76ad888865bb3c5f
 example: true

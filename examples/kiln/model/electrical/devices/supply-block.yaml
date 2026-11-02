@@ -1,0 +1,5 @@
+id: supply-block
+part: part://supply-terminal-block
+role: passthrough
+terminals: [L, N]
+notes: The supply's line and neutral land here; the power and control circuits take them from here.

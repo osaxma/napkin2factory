@@ -23,8 +23,9 @@ on that unit's assembly sheet.
 1. Fit the temperature controller ({{ part("pid-controller").name }}) and the limit controller
    ({{ part("limit-controller").name }}) through the two front cutouts of the controller box
    ({{ part("controller-box").name }}), and the solid-state relay
-   ({{ part("ssr").name }}) and the contactor ({{ part("contactor").name }}) on its base. Fit
-   the box's earth stud.
+   ({{ part("ssr").name }}) on its heat sink and the contactor ({{ part("contactor").name }})
+   on its base, with the supply terminal block, the earth terminal and the control fuse. Fit
+   the box's earth stud, and the lid's on its inside.
 2. Fit the three cable glands ({{ part("m20-gland").name }}) in the base.
 3. The electrician wires the box (installation manual) and can test it on the bench before
    it is hung. Leave the lid ({{ part("controller-lid").name }}) and its four screws aside:
@@ -46,7 +47,7 @@ on that unit's assembly sheet.
    seals against the front of the brick box.
 4. Fit the door guard ({{ part("door-guard").name }}) on four 25 mm standoffs bolted through
    the tray face, outside the plug. Its hinge parts and latch body are welded on by the shop
-   before coating. Fit its earth stud.
+   before coating. Fit its earth stud, and the tray's on bare metal on the tray's outer face.
 
 ## 3. The final assembly
 
@@ -113,6 +114,6 @@ corner clears the opening's edge.
 
 Hang the controls on the four 40 mm standoffs beside the guard's right wall, which gives
 {{ P["controller-standoff"] }} of free air. The door switch is packed loose: fit it where the
-closed door operates it. The electrician sets its position, connects the element, the
-thermocouples and the door switch to the controls (installation manual). Then screw the lid
+door operates it. The electrician sets its position, connects the element, the
+thermocouples, the door switch and the earth leads to the controls (installation manual). Then screw the lid
 on with its four self-tapping screws, drilled on assembly.

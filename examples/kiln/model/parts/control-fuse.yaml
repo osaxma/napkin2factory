@@ -1,0 +1,13 @@
+id: control-fuse
+rev: A
+name: Control-circuit fuse in a fuse holder
+kind: cots
+process: none
+geometry: none
+source: {vendor: generic electrical wholesaler, mpn: FUSE-HOLDER-5X20, url: "https://www.mcmaster.com/fuse-holders/", verified: false}
+satisfies: [req://REQ-018]
+notes: >-
+  Protects the control circuit (the two controllers' supplies, the door switch, the limit relay and
+  the contactor's coil) and its 0.75 mm² conductors. Its rating is not chosen here: the electrician
+  sizes it from the contactor coil's and the controllers' draw [verify]. The holder's two clamps carry
+  no maker's marking; they are 1 (supply side) and 2 here.

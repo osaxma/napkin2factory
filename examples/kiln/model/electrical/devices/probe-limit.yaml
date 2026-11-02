@@ -1,0 +1,6 @@
+id: probe-limit
+part: part://thermocouple
+instance: limit probe
+role: sensor
+terminals: ["+", "-"]
+notes: The limit controller's own probe, independent of the control probe (DEC-014).

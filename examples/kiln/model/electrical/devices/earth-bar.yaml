@@ -1,0 +1,5 @@
+id: earth-bar
+part: part://earth-terminal
+role: earth
+terminals: [PE]
+notes: The earth terminal in the controller box that REQ-019 measures to.

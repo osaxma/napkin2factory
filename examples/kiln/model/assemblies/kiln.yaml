@@ -22,6 +22,7 @@ children:
   - {part: part://m6-nut, qty: 6}
   - {part: part://m6-rivnut, qty: 4}
   - {part: part://earth-stud, qty: 3}
+  - {part: part://element-tail-connector, qty: 1}
   - {part: part://kiln-shelf-set, qty: 1}
 exploded: {axis: z, spacing: 120 mm}
 satisfies: [req://REQ-002, req://REQ-004, req://REQ-010, req://REQ-013]

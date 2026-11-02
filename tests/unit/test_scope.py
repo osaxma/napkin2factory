@@ -359,19 +359,18 @@ def test_load_cases_resolve_and_validate(tmp_path: Path) -> None:
 # ---- the kiln -----------------------------------------------------------------------------------
 
 
-def test_the_kiln_leaves_electrical_for_later() -> None:
+def test_the_kiln_designs_its_wiring_here() -> None:
+    """v0.6 M5 (S-172): the kiln's wiring is designed here; the demo's copy leaves it for later."""
     product = load_product(EXAMPLES / "kiln")
     entry = product.manifest.scope["electrical"]
-    assert entry.state == "later" and entry.decision in product.decisions
+    assert entry.state == "in" and entry.decision in product.decisions
     assert scope_entries(product)[0]["line"] == (
-        "Wiring: left for later (not designed here yet) — the electrician wires it; the box "
-        f"keeps its cable entries ({entry.decision})"
+        f"Wiring: done here — The wiring is designed here ({entry.decision})"
     )
-    # its electrical requirements are tagged (gate F, concern 6): the two about the supply
-    # are left for later, the four about safety still need their sign-offs
-    later = later_requirements(product)["electrical"]
-    assert later == ["REQ-006", "REQ-008", "REQ-009", "REQ-018", "REQ-019", "REQ-024"]
-    assert [r for r in later if not product.requirements[r].safety] == ["REQ-006", "REQ-024"]
+    # its electrical requirements are tagged (gate F, concern 6) and none is left for later
+    assert later_requirements(product) == {}
+    tagged = [r for r, q in product.requirements.items() if "electrical" in q.tags]
+    assert {"REQ-006", "REQ-008", "REQ-009", "REQ-018", "REQ-019", "REQ-024"} <= set(tagged)
 
 
 # ---- M4b: the scope is a recorded value (B-0076) ------------------------------------------

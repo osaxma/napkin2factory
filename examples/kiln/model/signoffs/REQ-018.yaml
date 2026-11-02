@@ -1,9 +1,9 @@
 requirement: req://REQ-018
 by: Example Reviewer (not a real review)
 role: human
-date: '2026-11-01'
-statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
-  against the built kiln.
+date: '2026-11-02'
+statement: EXAMPLE sign-off for the showcase, renewed when the wiring was designed
+  (DEC-025); a real reviewer must repeat this check against the built kiln.
 evidence:
 - asm://controls
 - part://limit-controller
@@ -17,5 +17,5 @@ evidence_keys:
   part://contactor: inv:{"area":27930.0,"bbox":[45.0,78.0,85.0],"centroid":[0.0,-0.0,42.5],"counts":[6,12,1],"features":"sha256:feeb8dfa4d9d3c6c38f0839c65395d99274dc1032d4bcb9926f9e1fe4cfe008b","volume":298350.0}
   part://thermocouple: sha256:b3c84518bcc5d8e4b4115f753ea5838dba06fbb50e88c74a22603693eae8196a
   param://over-temperature-limit: sha256:f976fc59557a95aa7aba040123fd59953792b51f5db5f7869127d4445febce4c
-  doc://installation: sha256:a22318f896f71cf30a9a30e19ba254f9f3589c8a61ba773971161ab3845e6435
+  doc://installation: sha256:773b295e8b1a73512069978c4469a57ff24de45973867cb59801be5115cac075
 example: true

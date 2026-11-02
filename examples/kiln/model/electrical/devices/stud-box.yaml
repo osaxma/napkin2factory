@@ -1,0 +1,7 @@
+id: stud-box
+part: part://controller-box
+instance: earth stud
+role: earth
+terminals: [PE]
+notes: >-
+  The controller box's own earth stud. An M6 earth stud with serrated washers.

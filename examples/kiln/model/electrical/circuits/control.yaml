@@ -1,0 +1,25 @@
+id: control
+purpose: control
+name: Control
+protection: device://control-fuse
+connections:
+  # from the supply's line through the control fuse (2.5 mm² up to the fuse: only the site's 16 A
+  # breaker protects that piece)
+  - {from: "device://supply-block#L", to: "device://control-fuse#1", conductor: cu-2p5-pvc, length: 0.2 m}
+  # both controllers' supplies, ahead of the contactor so they stay on when it drops
+  - {from: "device://control-fuse#2", to: "device://pid#11", conductor: cu-0p75-pvc, length: 0.3 m}
+  - {from: "device://supply-block#N", to: "device://pid#12", conductor: cu-0p75-pvc, length: 0.3 m}
+  - {from: "device://control-fuse#2", to: "device://limit#11", conductor: cu-0p75-pvc, length: 0.3 m}
+  - {from: "device://supply-block#N", to: "device://limit#12", conductor: cu-0p75-pvc, length: 0.3 m}
+  # the contactor's coil, held by the door switch and the limit relay in series (DEC-010, DEC-014)
+  - {from: "device://control-fuse#2", to: "device://door-switch#31", conductor: cu-0p75-pvc, length: 0.8 m, via: iface://entry-element}
+  - {from: "device://door-switch#32", to: "device://limit#1", conductor: cu-0p75-pvc, length: 0.8 m, via: iface://entry-element}
+  - {from: "device://limit#2", to: "device://contactor#A1", conductor: cu-0p75-pvc, length: 0.3 m}
+  - {from: "device://contactor#A2", to: "device://supply-block#N", conductor: cu-0p75-pvc, length: 0.3 m}
+  # the controller's 12 V DC output drives the solid-state relay
+  - {from: "device://pid#1", to: "device://ssr#3", conductor: cu-0p75-pvc, length: 0.3 m, colour: blue}
+  - {from: "device://pid#2", to: "device://ssr#4", conductor: cu-0p75-pvc, length: 0.3 m, colour: blue}
+notes: >-
+  0.75 mm² is the largest bare conductor the controllers' terminals take (Omron E5CC instruction sheet).
+  The door switch's pair leaves the box with the element's cable and runs to the switch on the guard's
+  right wall. Lengths estimated from the placed parts; the electrician cuts to fit.

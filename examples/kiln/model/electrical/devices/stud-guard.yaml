@@ -1,0 +1,7 @@
+id: stud-guard
+part: part://guard-shell
+instance: earth stud
+role: earth
+terminals: [PE]
+notes: >-
+  On bare metal on the guard. An M6 earth stud with serrated washers.

@@ -1,0 +1,19 @@
+id: ECR-003
+title: Design the wiring here
+status: draft
+kind: design
+requested_by: human
+reason: The kiln was released with its wiring left for later (DEC-024); the electrician needs to know what connects to what, with which cable and through which gland, and where each earth lead goes.
+created: 2026-11-02
+edits: []
+tasks:
+  - Set the wiring's scope to designed here, with its decision.
+  - Add the supply, every powered part's terminals from its datasheet, and the element, control, temperature sensing and earth circuits.
+  - Turn the three gland holes in the controller box base into its cable entries, in the same places.
+  - Add the parts the wiring needs (supply terminal block, earth terminal, control fuse, relay heat sink, element tails' connector) and an earth stud on the lid and on the door tray.
+  - Rewrite the installation manual's wiring around the generated diagrams, cable schedule, terminal labels and cable to buy.
+patch: changes/ECR-003.patch
+impact: null
+approval: null
+applied: null
+released_in: null

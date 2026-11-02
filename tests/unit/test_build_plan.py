@@ -521,7 +521,10 @@ def test_lid_joint_is_closed_later_in_the_final_assembly() -> None:
     product = load_product(EXAMPLES / "kiln")
     assert BuildUnits(product).closed_later("controller-lid-seat") == "kiln"
     plan = derive_build_plan(product)
-    (lid,) = plan["units"]["controls"]["joints"]
+    # the lid, and the box's three cable entries since v0.6 M5 (S-172)
+    joints = plan["units"]["controls"]["joints"]
+    (lid,) = [j for j in joints if j["interface"] == "iface://controller-lid-seat"]
+    assert len(joints) == 4
     assert lid["closed_later_in"] == "asm://kiln" and lid["closed_later_step"] == 3
     carried = plan["units"]["kiln"]["joints"][-1]
     assert carried["interface"] == "iface://controller-lid-seat" and carried["from_step"] == 1

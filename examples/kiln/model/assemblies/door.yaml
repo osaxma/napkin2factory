@@ -18,6 +18,6 @@ children:
   - {part: part://m6x16-bolt, qty: 8}
   - {part: part://fiber-anchor, qty: 4}
   - {part: part://fiber-gasket, qty: 1}
-  - {part: part://earth-stud, qty: 1}
+  - {part: part://earth-stud, qty: 2}
 exploded: {axis: y, spacing: 60 mm}
 satisfies: [req://REQ-003, req://REQ-009, req://REQ-014, req://REQ-020]

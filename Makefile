@@ -2,7 +2,7 @@
 # `make check` is the full gate, run on main's tip in the primary folder before a push (CI
 # repeats it); it grows by milestone. Tasks: `make task`, `make land`, `make tasks`,
 # `make abandon` (scripts/task.sh).
-# `make check-full` adds the kiln (and its napkin stage), the three demos, and the timing
+# `make check-full` adds the kiln (and its napkin stage), the four demos, and the timing
 # assertions (N2F_TIMING=1). `make check-fast` is the land gate (S-131): lint, types and the
 # unit and smoke tests, no end-to-end, no examples, no coverage floor.
 
@@ -72,10 +72,10 @@ kiln:
 	$(PY) python tests/validate_outputs.py $(KILN_NAPKIN) --stage concepts
 	N2F_TIMING=1 $(PY) pytest tests/e2e/test_kiln.py -q
 
-# The three demos share nothing (own temp copy each), so they run side by side; they are one
+# The four demos share nothing (own temp copy each), so they run side by side; they are one
 # file, so the default distribution, not --dist loadfile, spreads them (S-079).
-demos:  # demo.sh, demo-design.sh and demo-napkin.sh, each in a temp copy (D23)
-	N2F_TIMING=1 $(PY) pytest tests/e2e/test_demos.py -q -n 3
+demos:  # demo.sh, demo-design.sh, demo-napkin.sh and demo-electrical.sh, each in a temp copy (D23)
+	N2F_TIMING=1 $(PY) pytest tests/e2e/test_demos.py -q -n 4
 
 templates:
 	$(PY) python -m napkin2factory.templates.sync

@@ -1,0 +1,12 @@
+id: ssr-heat-sink
+rev: A
+name: Heat sink for the solid-state relay
+kind: cots
+process: none
+geometry: none
+source: {vendor: Crydom, mpn: HS-series heat sink, url: "https://www.sensata.com/products/relays/d24-series-panel-mount-ssr-d2425", verified: false}
+satisfies: [req://REQ-007]
+notes: >-
+  The solid-state relay carries the element's 10.9 A and needs a heat sink; its thermal resistance is
+  read from the relay maker's derating curve at that current and the box's inside temperature
+  (below 50 degC, REQ-007), which this package has not done [verify].

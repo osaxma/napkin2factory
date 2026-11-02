@@ -1,0 +1,6 @@
+id: control-fuse
+part: part://control-fuse
+role: protection
+terminals: ["1", "2"]
+through: [["1", "2"]]
+notes: Its rating is the electrician's, from the contactor coil's and the controllers' draw [verify].

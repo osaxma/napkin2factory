@@ -1,0 +1,19 @@
+id: power
+purpose: power
+name: Element power
+protection: supply
+connections:
+  # the supply cable's cores, from the mains gland to where they land in the box
+  - {from: "supply://supply#L", to: "device://supply-block#L", conductor: cu-2p5-pvc, length: 0.3 m, via: iface://entry-mains}
+  - {from: "supply://supply#N", to: "device://supply-block#N", conductor: cu-2p5-pvc, length: 0.3 m, via: iface://entry-mains}
+  # the contactor breaks line and neutral; the solid-state relay switches the line in series (DEC-014)
+  - {from: "device://supply-block#L", to: "device://contactor#1/L1", conductor: cu-2p5-pvc, length: 0.4 m}
+  - {from: "device://supply-block#N", to: "device://contactor#3/L2", conductor: cu-2p5-pvc, length: 0.4 m}
+  - {from: "device://contactor#2/T1", to: "device://ssr#1", conductor: cu-2p5-pvc, length: 0.2 m, colour: brown}
+  - {from: "device://ssr#2", to: "device://element#A", conductor: cu-2p5-silicone, length: 1.2 m, via: iface://entry-element, colour: brown}
+  - {from: "device://contactor#4/T2", to: "device://element#B", conductor: cu-2p5-silicone, length: 1.2 m, via: iface://entry-element, colour: blue}
+notes: >-
+  2.5 mm² throughout: it carries the element's 10.9 A with margin and is not below the site's 16 A
+  breaker. The lengths are estimated from the placed parts with slack for the terminations; the
+  electrician cuts to fit. The supply cable from the site's isolator is the site's: the lengths given for
+  its cores are their run inside the box. The earth leads are their own circuit (Earth bonding).

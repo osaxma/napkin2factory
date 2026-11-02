@@ -1,0 +1,16 @@
+id: limit
+part: part://limit-controller
+role: control
+safety: limit
+rating: {voltage: 240 V}
+# As the PID controller, but control output 1 is a relay contact on 1-2 (Omron E5CC-800
+# datasheet p. 10) [verify].
+terminals: ["1", "2", "5", "6", "7", "8", "9", "10", "11", "12"]
+through: [["1", "2"]]
+# "SPST-NO, 250 VAC, 3 A (resistive load)"; no inductive (AC-15) rating found in the datasheet,
+# so the contactor's coil on this contact is unrated: the check's warning is the honest result.
+contact: {current: 3 A, category: resistive}
+notes: >-
+  Configured as a high-limit alarm with manual reset on control output 1, the relay closed while the
+  chamber is below the limit and open once it trips (DEC-014) [verify the setting in Omron's manual
+  H174]. Its own thermocouple is the limit probe.

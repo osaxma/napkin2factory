@@ -1,0 +1,16 @@
+# What the kiln plugs into (DEC-006, REQ-008): the site's dedicated circuit, wired by a
+# licensed electrician with a residual-current device and a local isolator (installation manual).
+voltage: param://mains-voltage
+phases: 1
+frequency: 50 Hz
+rating: param://circuit-rating
+# [verify] not stated anywhere in the kiln: TT is assumed because the manual asks for a
+# residual-current device, which a TT installation relies on; the electrician says which (S-172).
+earthing: TT
+region: EU
+dedicated: true  # the supply-headroom pick (DEC-026): it serves the kiln alone, as the label says
+protection: {upstream: "the breaker of the site's dedicated circuit, with its residual-current device", rating: param://circuit-rating}
+notes: >-
+  The circuit, its breaker, the residual-current device and the isolator are the site's, not parts of
+  the kiln; the electrician confirms them and the earthing arrangement before the first firing.
+  50 Hz follows from the EU supply of DEC-006 [verify].

@@ -57,6 +57,40 @@ def test_demo_design(tmp_path: Path) -> None:
     assert yaml.safe_load((work / "changes/ECR-002.yaml").read_text())["released_in"] == "v1.2.0"
 
 
+def test_demo_electrical(tmp_path: Path) -> None:
+    """v0.6 DoD 4: wiring left for later at v1.0.0 → ECR-003 adds it → the headroom choice
+    raised and decided → v1.1.0 with the wiring done here → the diff shows it added."""
+    r = _run_demo("demo-electrical.sh", tmp_path / "demo")
+    assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
+    out = r.stdout + r.stderr
+    for w in GIT_WORDS:
+        assert w not in out.lower(), f"git vocabulary {w!r} leaked"
+    work = tmp_path / "demo"
+    import yaml
+
+    first = (work / "build/release/v1.0.0/README.txt").read_text(encoding="utf-8")
+    assert "Wiring (left for later" in first
+    later = (work / "build/release/v1.1.0/README.txt").read_text(encoding="utf-8")
+    assert "Wiring (left for later" not in later
+    assert yaml.safe_load((work / "changes/ECR-003.yaml").read_text())["released_in"] == "v1.1.0"
+    assert yaml.safe_load((work / "n2f.yaml").read_text())["scope"]["electrical"]["state"] == "in"
+    decs = yaml.safe_load((work / "model/decisions.yaml").read_text())["decisions"]
+    picked = [d for d in decs if any("supply-headroom" in s for s in d.get("sources", []))]
+    assert len(picked) == 1 and "option dedicated" in picked[0]["sources"][0]
+    for cid in ("power", "control", "sensing", "earth"):
+        assert (work / f"build/electrical/{cid}/diagram.svg").is_file()
+    assert "electrical/power/diagram.svg" in _zip_names(work / "build/release/kiln-v1.1.0.zip")
+    html = (work / "build/site/diff/v1.0.0..v1.1.0/index.html").read_text(encoding="utf-8")
+    assert "Wiring: added" in html  # the diff page's added section (M6, S-169)
+
+
+def _zip_names(path: Path) -> str:
+    import zipfile
+
+    with zipfile.ZipFile(path) as z:
+        return "\n".join(z.namelist())
+
+
 def test_demo_napkin(tmp_path: Path) -> None:
     """DoD 5: four directions built → board → one red with reasons → promote → factory green."""
     r = _run_demo("demo-napkin.sh", tmp_path / "demo")

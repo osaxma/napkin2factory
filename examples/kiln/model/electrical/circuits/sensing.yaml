@@ -1,0 +1,16 @@
+id: sensing
+purpose: sensing
+name: Temperature sensing
+# A type K thermocouple gives about 51 mV at the 1250 degC limit (IEC 60584-1 table) [verify];
+# the figure only says the circuit is extra-low voltage, so it keeps its own cable entry.
+voltage: 51 mV
+dc: true
+connections:
+  - {from: "device://probe-control#+", to: "device://pid#6", conductor: type-k-extension, length: 1.2 m, via: iface://entry-sensing, colour: green}
+  - {from: "device://probe-control#-", to: "device://pid#5", conductor: type-k-extension, length: 1.2 m, via: iface://entry-sensing, colour: white}
+  - {from: "device://probe-limit#+", to: "device://limit#6", conductor: type-k-extension, length: 1.2 m, via: iface://entry-sensing, colour: green}
+  - {from: "device://probe-limit#-", to: "device://limit#5", conductor: type-k-extension, length: 1.2 m, via: iface://entry-sensing, colour: white}
+notes: >-
+  Type K extension cable all the way from each probe's head to its controller, plus to plus: a copper
+  wire anywhere in the run makes the reading wrong. Green is plus and white minus in IEC 60584-3;
+  probes bought to the American code are yellow and red [verify].

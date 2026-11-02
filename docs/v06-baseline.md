@@ -49,6 +49,23 @@ against the datasheet named in its row before typing it.**
 device. No part on file is a terminal block, an earth terminal, a supply cable, a protective
 device, an isolator or a heat sink (§5).
 
+### 2.1 Terminals sourced after the survey (copied by M5 from `docs/v06-handoff/terminals.md`)
+
+Read on 2026-11-02 by rendering the makers' PDF pages to images and viewing the drawings (the
+makers' sites still refused automated reads). Every row is `[verify]`: nobody has checked it
+against the part in hand, and three of the four documents came through third-party hosts.
+
+| part | terminals, as the drawing marks them | source |
+|---|---|---|
+| `pid-controller` (E5CC-QX2ASM-800) | supply 100–240 VAC on **11, 12** (no L/N marking; "no polarity" is printed only under the 24 V version); control output 1, voltage for an SSR (12 VDC, 21 mA), **1 (+), 2 (−)**; auxiliary output 1 **9, 10**; auxiliary output 2 **7, 8**; thermocouple **6 (+), 5 (−)**; 3 and 4 grey (do not wire) `[verify]` | Omron datasheet "E5CC-800/E5CC-B-800/E5CC-U-800", p. 10 "External Connections", screw terminal blocks, via baa.vn and cdn.eicom.ru (no revision printed; cites user's manual H174, not obtained) |
+| `limit-controller` (E5CC-RX2ASM-800) | as above, but control output 1 is a relay contact on **1, 2** ("SPST-NO, 250 VAC, 3 A (resistive load)", 100,000 operations); auxiliary outputs SPST-NO 250 VAC 3 A resistive. **No inductive (AC-15, cos φ 0.4) rating found** in the datasheet: the contactor's coil on this contact is unrated `[verify]` | the same page and specification table |
+| `door-switch` (D4N-1120) | 1NC/1NO snap-action, direct opening: **NO 13, 14; NC 31, 32**; "Only NC contacts 31-32 have an approved direct opening mechanism"; AC-15 3 A at 240 V (Ie/Ue), DC-13 0.27 A at 250 V `[verify]` | Omron "D4N Miniature Safety Limit Switch", pp. G-220, G-224, G-227 (the maker's own host, files.omron.eu; no revision shown) |
+| `ssr` (D2425) | load (output) **1, 2**, no polarity; control (input) **3 (+), 4 (−)**, 3–32 VDC `[verify]` | Crydom "Series 1, 10-90 Amp, 120/240 Vac", FastFax 151, Rev. 102104 (2003), p. 2, via Octopart (an old revision; the current Sensata sheet could not be fetched) |
+
+Not found: the E5CC-800 user's manual H174; whether 11–12 prefers L on one side; the current
+Sensata D2425 sheet. The contactor's markings stay those of §2's table (IEC 60947-4-1 /
+EN 50012, not read from Schneider's own sheet) `[verify]`.
+
 ## 3. The intended connections, as the kiln's documents describe them
 
 The documents give the topology in words; none gives a terminal, a conductor or a length.

@@ -1,0 +1,14 @@
+id: ssr
+part: part://ssr
+role: control
+rating: {voltage: 280 V, current: 25 A}
+# Crydom Series 1 datasheet (FastFax 151, Rev. 102104), p. 2: load 1-2, control 3 (+) / 4 (-) [verify].
+terminals: ["1", "2", "3", "4"]
+# Its load side, read as a contact that may be closed: a solid-state relay usually fails closed,
+# which is the failure the limit controller is there for (DEC-014). Its control input is not a
+# coil here: the controller's 12 V output is not a source the checks walk (S-158).
+through: [["1", "2"]]
+contact: {current: 25 A}
+notes: >-
+  Load 24-280 V AC, 25 A, zero-cross; control 3-32 V DC from the controller's output 1. Needs its heat
+  sink at the element's current.

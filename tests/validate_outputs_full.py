@@ -103,6 +103,29 @@ def validate_full(root: Path, product, problems: list[str]) -> None:  # type: ig
             rows = list(csv.reader(fh))
         if not rows or "uri" not in rows[0]:
             problems.append("bom.csv has no header with 'uri'")
+    # wiring (v0.6 E5): a diagram and a connection record per circuit, the three tables
+    circuits = sorted(product.families.get("circuit", {}))
+    for cid in circuits:
+        folder = build / "electrical" / cid
+        svg = folder / "diagram.svg"
+        if not svg.is_file():
+            problems.append(f"circuit://{cid}: missing electrical/{cid}/diagram.svg")
+        else:
+            try:
+                etree.parse(str(svg))
+            except etree.XMLSyntaxError as exc:
+                problems.append(f"circuit://{cid}: diagram SVG does not parse: {exc}")
+        if not (folder / "connections.json").is_file():
+            problems.append(f"circuit://{cid}: missing electrical/{cid}/connections.json")
+    if circuits:
+        for name in ("schedule.csv", "labels.csv", "cables.csv"):
+            path = build / "electrical" / name
+            if not path.is_file():
+                problems.append(f"wiring: missing electrical/{name}")
+                continue
+            with path.open(newline="", encoding="utf-8") as fh:
+                if len(list(csv.reader(fh))) < 2:
+                    problems.append(f"wiring: electrical/{name} has no rows")
     # docs
     for doc in product.docs.values():
         d = build / "docs" / doc.meta.id

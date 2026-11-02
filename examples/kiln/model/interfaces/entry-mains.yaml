@@ -1,0 +1,11 @@
+id: entry-mains
+kind: cable-entry
+# The box (it gets the hole) first, then the gland in it (E4). The hole is where the base's
+# `gland-mains` cutout was, the same size (S-172: the three cutouts became these entries).
+parties: [part://controller-box, part://m20-gland]
+name: Mains in
+description: The supply cable from the site's isolator enters the controller box through the left gland in its base.
+frames:
+  part://controller-box: {origin: [-80, -35, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
+  part://m20-gland: {origin: [0, 0, 0], normal: [0, 0, -1], x_axis: [1, 0, 0]}
+spec: {diameter: param://gland-hole, passes: [circuit://power, circuit://earth]}
