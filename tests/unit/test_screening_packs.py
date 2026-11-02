@@ -3,9 +3,10 @@
 The heated-box screens moved out of the system into ``examples/kiln/model/screens/``; the
 system keeps the screens any card can use. These tests pin the seam: the kiln's shipped
 screenings come out the same through the kiln's own pack; a card without the pack gets only
-the generic screens; a product's screen runs, declares its fields (skeleton, lint) and is
-hashed into the concept build; a product's rule pack runs in ``n2f check``; the v0.4 site
-keys (``alcove_*``) are read as aliases with a lint note.
+the generic screens and an installed domain's (the wiring's supply row, E8); a product's
+screen runs, declares its fields (skeleton, lint) and is hashed into the concept build; a
+product's rule pack runs in ``n2f check``; the v0.4 site keys (``alcove_*``) are read as
+aliases with a lint note.
 """
 
 from __future__ import annotations
@@ -34,6 +35,8 @@ GENERIC_RULES = [
     "blank-vs-stock-sheet",
     "walls-fit-envelope",
 ]
+#: An installed domain's screen rows a card saying a power or a region gets (E8: the supply).
+WIRING_RULES = ["circuit-available"]
 KILN_RULES = [
     "circuit-available",
     "controls-not-adjacent-hot-face",
@@ -85,14 +88,19 @@ def test_the_kilns_shipped_screenings_come_out_the_same(cid: str) -> None:
     assert [r.id for r in again.rules] == GENERIC_RULES + KILN_RULES
 
 
-def test_a_heated_card_without_the_pack_gets_the_generic_screens_only() -> None:
+def test_a_heated_card_without_the_pack_gets_the_generic_and_wiring_screens_only() -> None:
     card = _card(KILN)
     massing = compose(card, write=False)
     alone, full = screen(card, massing), screen(card, massing, KILN_ROOT)
-    assert [r.id for r in alone.rules] == GENERIC_RULES
+    # the supply is the wiring domain's screen now (E8): it needs no product pack
+    assert [r.id for r in alone.rules] == GENERIC_RULES + WIRING_RULES
     assert alone.computed == full.computed  # the space, the mass and the door: the same
-    assert not alone.given and "heat_loss" not in alone.estimates
-    assert set(alone.estimates) == {"cost_low", "cost_high", "lift_class"}
+    # the wiring's supply: the same givens and row words as through the kiln's pack, no heat
+    assert alone.given == full.given and set(alone.given) == {"power", "circuit_class"}
+    assert "heat_loss" not in alone.estimates
+    assert set(alone.estimates) == {"cost_low", "cost_high", "lift_class", "current"}
+    supply = next(r for r in alone.rules if r.id == "circuit-available")
+    assert supply == next(r for r in full.rules if r.id == "circuit-available")
     walls = next(r for r in alone.rules if r.id == "walls-fit-envelope")
     assert walls.status == "skip"  # no screen shares an inner size and a wall
 
@@ -116,7 +124,9 @@ def test_a_product_screen_runs_after_the_generic_rows(tmp_path: Path) -> None:
     s = screen(card, compose(card, write=False), root)
     assert s.estimates["ballast_mass"].value == "12 kg"
     assert s.estimates["total_mass"].source == "the rough shapes plus the ballast"
-    assert [r.id for r in s.rules] == [*GENERIC_RULES, "ballast-set"]
+    # the card names a region, so the wiring's supply row (phase check) follows this
+    # estimate-phase screen (E8)
+    assert [r.id for r in s.rules] == [*GENERIC_RULES, "ballast-set", *WIRING_RULES]
 
 
 def test_its_fields_shape_the_skeleton_and_the_lint(tmp_path: Path) -> None:

@@ -474,3 +474,84 @@ def test_the_context_lists_the_modules_own_wiring_only(tmp_path: Path) -> None:
     (lines,) = [d["lines"] for d in lamp["domains"] if d["title"] == "Wiring in this module"]
     assert lines[0].startswith("- circuit://lamp: Lamp (power circuit)")
     assert not [ln for ln in lines if "heater" in ln.lower() or "box-entry" in ln]
+
+
+# ---- the supply screen moved from the kiln's pack (E8) ------------------------------------------
+
+#: card → (status, message) and the estimates, exactly as the kiln's pack gave them on main
+#: before the move (measured with `screen(card, None, examples/kiln)` at f8bd098).
+SUPPLY_CASES = [
+    (
+        {"power": "2.5 kW"},
+        {"circuit": "230V-16A"},
+        "pass",
+        "2.5 kW draws 10.9 A at 230 V: fits the 230V-16A circuit on site",
+        {"current": "10.9 A"},
+    ),
+    (
+        {"power": "2.5 kW"},
+        {"region": "EU"},
+        "pass",
+        "2.5 kW draws 10.9 A: needs a 16 A socket (Schuko)",
+        {"current": "10.9 A", "circuit_class": "16 A socket (Schuko)"},
+    ),
+    (
+        {"power": "5 kW"},
+        {"circuit": "230V-16A"},
+        "fail",
+        "5 kW draws 21.7 A at 230 V; with 20 % headroom it needs 26.1 A, more than the "
+        "230V-16A circuit on site",
+        {"current": "21.7 A"},
+    ),
+    (
+        {"power": "2.5 kW"},
+        {"region": "XX"},
+        "warn",
+        "no circuit table for region XX — confirm the supply",
+        {},
+    ),
+]
+
+
+@pytest.mark.parametrize(("envelope", "site", "status", "message", "estimates"), SUPPLY_CASES)
+def test_the_supply_screen_says_what_the_kilns_pack_said(
+    envelope: dict[str, str],
+    site: dict[str, str],
+    status: str,
+    message: str,
+    estimates: dict[str, str],
+) -> None:
+    from napkin2factory.concepts.screening import screen
+    from napkin2factory.core.model import ConceptCard
+
+    card = ConceptCard.model_validate(
+        {"id": "C-001", "title": "A box", "status": "exploring", "envelope": envelope, "site": site}
+    )
+    s = screen(card, None)  # no product pack: the domain's screen alone
+    (row,) = [r for r in s.rules if r.id == "circuit-available"]
+    assert (row.status, row.message, row.relies_on) == (status, message, ["estimate", "given"])
+    assert {k: v.value for k, v in s.estimates.items() if k in estimates} == estimates
+    assert all(s.estimates[k].label == "estimate" for k in estimates)
+    assert s.given["power"].value == envelope["power"]
+
+
+def test_a_card_without_a_supply_gets_no_supply_row() -> None:
+    from napkin2factory.concepts.screening import screen
+    from napkin2factory.core.model import ConceptCard
+
+    card = ConceptCard.model_validate(
+        {"id": "C-001", "title": "A shelf", "status": "exploring", "site": {"width": "800 mm"}}
+    )
+    s = screen(card, None)
+    assert "circuit-available" not in [r.id for r in s.rules]
+    assert not [n for n in s.notes if "power" in n or "circuit" in n]
+
+
+def test_the_screen_is_the_domains_and_the_kiln_pack_has_no_copy() -> None:
+    from napkin2factory.concepts.screens import fields_of, phase_of
+    from napkin2factory.core.packs import product_screens
+
+    supply = next(s for s in registry().screens() if s.name == "supply")
+    assert phase_of(supply) == "check"  # after the kiln's thermal screen (estimate)
+    assert {f.name for f in fields_of(supply)} == {"envelope.power", "site.circuit", "site.region"}
+    assert "supply" not in [s.name for s in product_screens(EXAMPLES / "kiln")]

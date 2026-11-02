@@ -96,5 +96,9 @@ def test_inside_a_product_its_own_screens_are_listed(tmp_path):
     root = copy_product(EXAMPLES / "kiln", tmp_path / "kiln", git=False)
     r = n2f("doctor", "--json", cwd=root)
     assert r.returncode == 0, r.stderr
-    own = [s["name"] for s in json.loads(r.stdout)["screens"]["product"]]
-    assert "thermal" in own and "supply" in own, own
+    data = json.loads(r.stdout)
+    own = [s["name"] for s in data["screens"]["product"]]
+    assert "thermal" in own and "supply" not in own, own
+    # the supply is the wiring domain's screen now (E8), listed with the domain
+    wiring = next(d for d in data["domains"] if d["name"] == "electrical")
+    assert [s["name"] for s in wiring["screens"]] == ["supply"]

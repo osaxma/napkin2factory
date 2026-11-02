@@ -48,12 +48,11 @@ def _scope_line(product: Any) -> str | None:
     if entry is None or entry.state == "in":
         return None
     # imported here: the core's check engine imports the loader, which imports this domain
-    from napkin2factory.core.checks.stage import scope_entries
+    from napkin2factory.core.checks.stage import scope_entry
 
-    for item in scope_entries(product):
-        if item["domain"] == DOMAIN:
-            return str(item["line"])
-    return None
+    # the public way to say a domain's scope line (S-163)
+    item = scope_entry(product, DOMAIN)
+    return None if item is None else str(item["line"])
 
 
 def _number(value: Any, unit: str) -> str:

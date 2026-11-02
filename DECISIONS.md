@@ -192,6 +192,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-165 | Seam (v0.6 wave 2, a v0.5 defect): a model family's membership key `set://<family>`, recorded wherever the family is listed during a run; impact touches it for a new object (closes B-0140) | in force |
 | S-166 | Seam (v0.6 wave 2, a v0.5 defect): an interface field read is valued by its field as written, as impact matches it (closes B-0136) | in force |
 | S-167 | Seam (v0.6 wave 2, v0.5 defects): a `rule:<x>` key is rule `<x>`'s output, refused when no rule answers; a verify kind's figure is `#props.<figure>`; the docs rule hands helpers its build folder (closes B-0135, B-0139, B-0147) | in force |
+| S-168 | v0.6 M4 (E8): the supply screen is the wiring's (`circuit-available`, phase `check`); the kiln's pack reads its fields | in force |
 
 ---
 
@@ -1134,3 +1135,13 @@ when its family has no rule `<x>` (an error naming the family and the rule; ever
 its selectors was rejected (a contract field to cover a sentence). §3.1, §3.4 and §7 say the membership and field reads.
 B-0147 (S-164): the docs rule passes its `ctx.build_dir` to `render_doc`, so `h.build_dir` is the folder the rule builds in;
 `tests/unit/test_graph_family_reads.py` renders a page into another build folder and reads the helper's answer.
+
+## S-168 — v0.6 M4 (E8): the supply screen moves to the wiring domain (2026-11-02)
+`owner/screens.py`: rule `circuit-available`, phase `check` (after the kiln's `estimate` screens, so a heat-up-derived
+power is seen; domains before a product within a phase, so the row lands where the kiln's pack had it). No row or note
+for a card saying nothing of power or supply (E12); fields `hint=False`, so no skeleton names a circuit unless the card
+does [revisit]; generic words. The kiln's pack drops its supply screen and imports `CIRCUIT`, `REGION`, `SUPPLY_HEADROOM`
+for its promotion and summary hooks. Landed on two seams: the kiln's `param` survives the domain's `envelope.power` (S-160);
+the domain's `CardField`s load whatever is imported first (S-161). A card with a power or a region gets `circuit-available`
+without the kiln's pack (two screening tests). Measured: the kiln's four cards re-screened against main give the same
+rows, words and numbers (only the screens hash differs); kiln board golden unchanged.

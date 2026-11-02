@@ -11,8 +11,10 @@ this file into its own ``model/screens/``.
   ``heat_up_time`` and ``max_temperature`` (``calckit.thermal_enclosure``). It shares the
   inner size and the wall with the system's walls-fit-envelope rule, the insulation's mass
   with the total mass, and each layer with the cost band.
-* **supply** — the current on the site's ``circuit`` (or the usual circuits of ``region``)
-  and rule ``circuit-available``.
+* **supply** — moved to the wiring domain in v0.6 (E8, S-168): the generic supply screen,
+  rule ``circuit-available``, runs for every card that gives a power or a supply, after
+  ``thermal`` (it reads the power ``thermal`` derives). The promotion and summary hooks
+  below read its fields and its margin (``SUPPLY_HEADROOM``) from the domain.
 * **controls-vs-hot-face**, **skin-vs-touch**, **chamber-volume** — rules
   ``controls-not-adjacent-hot-face``, ``skin-vs-touch-limit`` (``site.touch_limit``) and
   ``chamber-volume-vs-target`` (``envelope.target_volume``), all advisories.
@@ -34,7 +36,6 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from napkin2factory.calckit import power as pw
 from napkin2factory.concepts.screens import (
     TO_CHECK,
     CardField,
@@ -46,6 +47,7 @@ from napkin2factory.concepts.screens import (
 from napkin2factory.core.domain import Screen
 from napkin2factory.core.model.concepts import ConceptCard, RuleRow
 from napkin2factory.core.units import Quantity, is_quantity
+from napkin2factory.domains.electrical.owner.screens import CIRCUIT, REGION, SUPPLY_HEADROOM
 from napkin2factory.rulepacks.concept_checks import (
     ConceptFacts,
     Outcome,
@@ -81,8 +83,6 @@ SITE_MAX_TEMP = CardField(
     "site", "max_temperature", "degC", "a temperature", "1200 degC", "the top temperature"
 )
 TARGET_VOLUME = CardField("envelope", "target_volume", "L", "a volume", "8 L", "the volume to hold")
-CIRCUIT = CardField("site", "circuit", None, "words", "230V-16A", "the circuit it plugs into")
-REGION = CardField("site", "region", None, "words", "EU", "where it will be used")
 TOUCH_LIMIT = CardField(
     "site", "touch_limit", "degC", "a temperature", "60 degC", "the touch limit"
 )
@@ -444,157 +444,6 @@ def thermal(card: ConceptCard, massing: Any, values: ScreenValues) -> list[RuleR
     return []
 
 
-# --- the supply screen -------------------------------------------------------------------------
-
-
-def _power_text(power: Qty) -> str:
-    w = float(power.to("W").magnitude)
-    return f"{w / 1000:.3g} kW" if w >= 1000 else f"{w:.0f} W"
-
-
-def _article(label: str | None) -> str:
-    return "an" if (label or "x")[0] in "8aeiouAEIOU" or (label or "").startswith("11") else "a"
-
-
-def circuit_available(facts: ConceptFacts, params: dict[str, Any]) -> Outcome:
-    """The element current, with headroom, fits the site's circuit.
-
-    An explicit ``site.circuit`` (``240V-13A``) is checked directly; otherwise the region
-    table picks the smallest class (``calckit.power.circuit_for_power``). An unknown region
-    is a warning, never a failure.
-    """
-    power = facts.shared.get("power")
-    if power is None:
-        return Outcome(
-            "skip",
-            message="no power to check: give the card a power, or a heat-up time with the "
-            "chamber and insulation",
-        )
-    headroom = float(params.get("headroom", pw.CIRCUIT_HEADROOM_MIN))
-    circuit = CIRCUIT.raw(facts.card)
-    region = REGION.raw(facts.card)
-    parsed = parse_circuit(circuit) if isinstance(circuit, str) else None
-    # the current is an estimate; the card's own power and circuit are given (gate A, C1)
-    relies = ["estimate"]
-    if parsed is not None or facts.shared.get("power_label") == "card":
-        relies.append("given")
-    values: dict[str, Any] = {
-        "power": _power_text(power),
-        "margin": f"{(headroom - 1) * 100:.0f} %",
-        "region": region,
-    }
-    if parsed is not None:
-        volts, amps = parsed
-        current = pw.element_current(power, volts)
-        needed = headroom * float(current.to("A").magnitude)
-        values.update(
-            current=f"{float(current.to('A').magnitude):.1f} A at {volts.magnitude:g} V",
-            needed=f"{needed:.1f} A",
-            circuit=f"the {circuit} circuit on site",
-        )
-        if needed <= float(amps.to("A").magnitude) + 1e-9:
-            values["circuit"] = f"fits the {circuit} circuit on site"
-            return Outcome("pass", values, [], relies)
-        return Outcome("violated", values, [values], relies)
-    if not isinstance(region, str) or not region.strip():
-        return Outcome(
-            "skip", message="no supply on the card (a circuit like 240V-13A, or a region)"
-        )
-    verdict = pw.circuit_for_power(region, power, headroom=headroom)
-    if verdict.status == "unknown_region":
-        return Outcome("warn", values, [], relies)
-    amps_now = float(verdict.current.to("A").magnitude)
-    values.update(current=f"{amps_now:.1f} A", needed=f"{headroom * amps_now:.1f} A")
-    if verdict.status == "ok":
-        values["circuit"] = f"needs {_article(verdict.label)} {verdict.label}"
-        return Outcome("pass", values, [], relies)
-    values["circuit"] = f"any circuit on file for {region}"
-    return Outcome("violated", values, [values], relies)
-
-
-@reads(POWER, CIRCUIT, REGION, phase="estimate")
-def supply(card: ConceptCard, massing: Any, values: ScreenValues) -> list[RuleRow]:
-    """The element current on the site's circuit, or the usual circuit of its region."""
-    card_power = POWER.quantity(card)
-    if card_power is not None:
-        values.given.add("power", card_power, fmt(card_power, "W"), "on the card", "envelope.power")
-    _supply_values(card, values)
-    return _rows("circuit-available", card, massing, values)
-
-
-def _supply_values(card: ConceptCard, values: ScreenValues) -> None:
-    est, given, extra, notes = values.estimate, values.given, values.shared, values.notes
-    power = extra.get("power")
-    if power is None:
-        power = POWER.quantity(card)
-        if power is not None:
-            extra["power"], extra["power_label"] = power, "card"
-        elif POWER.raw(card) is not None:
-            return  # a power of the wrong kind: the runner already says so
-        else:
-            notes.append(
-                "no power on the card: give the element power (or a planned heat-up time with "
-                "the chamber size and the insulation) to check the supply"
-            )
-            return
-    circuit = CIRCUIT.raw(card)
-    region = REGION.raw(card)
-    parsed = parse_circuit(circuit) if isinstance(circuit, str) else None
-    if parsed is not None:
-        volts, _amps = parsed
-        current = pw.element_current(power, volts)
-        est.add(
-            "current",
-            current,
-            fmt(current, "A"),
-            "from the power and the circuit's voltage",
-            f"power.element_current at {volts.magnitude:g} V",
-        )
-        given.add(
-            "circuit_class",
-            f"the {circuit} circuit",
-            f"the {circuit} circuit",
-            "on the card",
-            "site.circuit",
-        )
-        return
-    if isinstance(circuit, str) and circuit.strip():
-        notes.append(
-            f"the circuit {circuit.strip()!r} is not written like 240V-13A, so the usual "
-            "circuits of the region are used instead"
-        )
-    if not isinstance(region, str) or not region.strip():
-        notes.append(
-            "say which circuit it plugs into (like 230V-16A) or where it will be used (SA, EU, "
-            "UK, US or AU) to check the supply"
-        )
-        return
-    verdict = pw.circuit_for_power(region, power)
-    if verdict.status == "unknown_region":
-        notes.append(f"no list of the usual circuits in {region} yet: confirm the supply by hand")
-        return
-    est.add(
-        "current",
-        verdict.current,
-        fmt(verdict.current, "A"),
-        f"from the power and the usual {region} supply voltage",
-        "power.circuit_for_power",
-    )
-    if verdict.status == "ok":
-        label = str(verdict.label)
-        est.add(
-            "circuit_class",
-            label,
-            label,
-            f"the smallest {region} circuit on file that carries it; {TO_CHECK}",
-            f"power.circuit_for_power ({region} table) [verify]",
-        )
-    else:
-        notes.append(
-            f"none of the usual {region} circuits on file carries {fmt(verdict.current, 'A')}"
-        )
-
-
 # --- the advisories --------------------------------------------------------------------------
 
 
@@ -726,25 +575,11 @@ def chamber_volume_vs_target(facts: ConceptFacts, params: dict[str, Any]) -> Out
 # --- the rules, worded like a pack (S-022) ------------------------------------------------------
 
 CHECKS = {
-    "circuit_available": circuit_available,
     "controls_not_adjacent_hot_face": controls_not_adjacent_hot_face,
     "skin_vs_touch_limit": skin_vs_touch_limit,
     "chamber_volume_vs_target": chamber_volume_vs_target,
 }
 RULES: dict[str, dict[str, Any]] = {
-    "circuit-available": {
-        "id": "circuit-available",
-        "title": "The supply on site carries it",
-        "severity": "fail",
-        "check": "circuit_available",
-        # rating ≥ headroom × current: the calc kit's margin, the one promotion writes into
-        # the supply requirement too (REQ-006; NEC 210.20 uses 1.25) [verify]
-        "params": {"headroom": pw.CIRCUIT_HEADROOM_MIN},
-        "message": "{power} draws {current}; with {margin} headroom it needs {needed}, more "
-        "than {circuit}",
-        "pass_message": "{power} draws {current}: {circuit}",
-        "warn_message": "no circuit table for region {region} — confirm the supply",
-    },
     "controls-not-adjacent-hot-face": {
         "id": "controls-not-adjacent-hot-face",
         "title": "Controls away from the hot air path",
@@ -805,7 +640,6 @@ def chamber_volume(card: ConceptCard, massing: Any, values: ScreenValues) -> lis
 
 SCREENS = (
     Screen("thermal", thermal, title="Heat loss, skin and heat-up"),
-    Screen("supply", supply, title="The supply carries it"),
     Screen("controls-vs-hot-face", controls_vs_hot_face, title="Controls away from the heat"),
     Screen("skin-vs-touch", skin_vs_touch, title="Safe to touch"),
     Screen("chamber-volume", chamber_volume, title="Chamber volume"),
@@ -858,7 +692,7 @@ def promote_requirements(
         )
         return []
     volts, amps = parsed
-    headroom = float(RULES["circuit-available"]["params"]["headroom"])
+    headroom = SUPPLY_HEADROOM
     raw = float((volts * amps).to("W").magnitude) / headroom
     # rounded *up* to 0.1 W so a card exactly at the screening limit still passes
     limit = Quantity(math.ceil(round(raw * 10, 6)) / 10, "W")
@@ -915,7 +749,7 @@ def _supply_phrase(screening: Any) -> str | None:
     on_card = v("given", "circuit_class")
     if on_card:
         row = screening.rule("circuit-available")
-        spare = spare_words(float(RULES["circuit-available"]["params"]["headroom"]))
+        spare = spare_words(SUPPLY_HEADROOM)
         if row is not None and row.status == "pass":
             fit = f"fits with {spare} to spare (estimate)"
         elif row is not None and row.status == "fail":

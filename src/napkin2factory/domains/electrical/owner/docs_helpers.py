@@ -14,8 +14,7 @@ a build file by its rule's key with ``h.log.add`` (``circuit://power``, the sche
 key).  The ``elec`` family runs before the manuals (``before=("doc",)``, S-143), so a page
 using these is stale after a wiring edit and fresh after one build.
 
-The build folder is ``h.product.paths.build``: the contract's ``HelperContext`` has no
-``build_dir`` (B-0142).
+The build folder is ``h.build_dir``, the one the page renders in (S-164).
 """
 
 from __future__ import annotations
@@ -43,7 +42,7 @@ from napkin2factory.domains.electrical.owner.vocabulary import PURPOSE_WORDS, RO
 
 
 def _build_dir(h: HelperContext) -> Path:
-    return Path(h.product.paths.build)
+    return Path(h.build_dir)
 
 
 class Row(dict[str, Any]):
