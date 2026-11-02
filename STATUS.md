@@ -56,6 +56,7 @@ has run since S-121 (the latest, 2026-11-01 10:28, predates it).
   `cable-entry` kind, the Design row "Wiring", every other registration stubbed for wave 2; 0 core files) — S-153, S-154, S-155.
 - M2 the `elec` rules: per-circuit diagram, record and text schematic; schedule, labels, cables to buy — S-156, S-157.
 - M3 the wiring checks, the `circuit` verify kind, the supply-headroom choice, six fault fixtures — S-158.
+- M6 the external-box fixture (a box supplied from elsewhere, two cable-entry ports), the diff page's "<label>: added", the owner-session script — S-169, S-170.
 - M4 the Wiring report section, manual helpers, Verify row, owner words, module context (S-159); the supply screen
   moved from the kiln's pack into the domain (M4b, E8) — S-168.
 

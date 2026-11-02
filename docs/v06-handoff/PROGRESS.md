@@ -17,18 +17,16 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 13:36 | First step 3: `make check` on main, idle host | **7 min 39 s, green** (1,290 passed, 4 skipped; goldens 141 passed) at 1f81117: under the 10 min 4 s budget; nothing moved behind `-m full`. (The first try at 139422d stopped at the unit step on the placeholder test after 6 min 44 s.) | — |
 | 13:36 | M7a's brief written (`brief-m7.md`, docs only; starts after M5 and M6 land since `make templates` writes into the kiln) | — | 1f81117 |
 | 13:45 | Gate briefs drafted: `brief-gate-g.md` (electrician read-through from the package, then engineering), `brief-gate-h.md` (owner persona); fill the commit at gate time | — | (this commit) |
+| 14:03 | **M6 landed** (13:39–14:03, 24 min): external-box fixture (DoD 5), diff page "<label>: added/removed" (S-169), owner-session script on the external-box fixture (S-170); land gate 2 min 8 s | **count: 0 files** under core/, report/builder.py, docs/engine.py, cli/check.py (and none under domains/). Opened B-0149 (dedicated pick never in the design), B-0150 (diff block placement), B-0151 (EU 16 A cannot raise the choice), B-0152 (boundary words vs S-152) | b5530ef |
+| 14:08 | Follow-up opened for B-0149 + B-0151 (domain + calc-kit table, not core; subjects `M5: …`); M5 told to wait for it before deciding the kiln's choice | brief `brief-m5-headroom.md` | 95a00d8 |
 
-## In flight (wave 3 started 13:39)
-- **M5 the kiln, wired**: task `m5-kiln`, folder `.worktrees/m5-kiln`, branch `task/m5-kiln`
-  (from 17e9496); a builder subagent with `brief-common.md` + `brief-m5.md`; last WIP: none yet.
-- **M6 external, scope, script**: task `m6-external`, folder `.worktrees/m6-external`, branch
-  `task/m6-external` (from 17e9496); a builder subagent with `brief-common.md` + `brief-m6.md`;
-  last WIP: none yet.
+## In flight
+- **M5 the kiln, wired**: task `m5-kiln`, `.worktrees/m5-kiln`; last WIP: 1abba48 WIP: M5 manual rewritten around the wiring helpers, earth circuit, REQ-028/029, sign-offs.
+- **Headroom follow-up**: task `wiring-headroom`, `.worktrees/wiring-headroom` (from 95a00d8);
+  brief `brief-common.md` + `brief-m5-headroom.md`; last WIP: none yet.
 
 ## Next step
-Wait for both to land (`git log main --oneline | grep -E "^.{8}M[56]:"`). If a session is cut
-off and a builder is gone: `make tasks` shows the WIP; start a new builder on the same folder
-with the same two briefs plus "resume from your branch's WIP commit". After each landing:
-read the diff, run the count (`git show --name-only` over the M5/M6 commits against `core/`,
-`report/builder.py`, `docs/engine.py`, `cli/check.py`), record it here. After both: `make check`
-on main (time it), the Linux CI look, then M7a (`brief-m7.md`) and the owner simulation.
+Wait for the follow-up and M5 to land. After each: read the diff, run the count, record here.
+Then `make check` on main (time it), the Linux CI look, then M7a (`brief-m7.md`), the owner
+simulation (`tests/e2e/intake-transcripts/wiring-session.md`, run by the overseer with a fresh
+agent playing the PM), gates G and H (`brief-gate-g.md`, `brief-gate-h.md`), fixes, close-out.
