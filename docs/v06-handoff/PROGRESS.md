@@ -26,7 +26,7 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 ## In flight
 - **M7a the docs**: task `m7-docs`, `.worktrees/m7-docs`; last WIP: 010613d M7: the docs for the wiring: docs/electrical.md, the guide, the three roles, vocabulary, domains.md (S-173, B-0155).
 - **Diagram follow-up** (B-0154, B-0152): task `wiring-diagrams`, `.worktrees/wiring-diagrams`;
-  brief `brief-common.md` + `brief-diagrams.md`; last WIP: none yet.
+  brief `brief-common.md` + `brief-diagrams.md`; started 14:59 from d4c6ffe; last WIP: none yet.
 
 ## Next step
 When M7a and the diagram follow-up land: `make check` on main (time it; record in STATUS), the
