@@ -82,6 +82,9 @@ entry that closed them. Ids are never reused.
 | B-0139 | A domain verify kind's computed figure must be selected as `#props.<figure>`: the core's URI check refuses any other selector that is not a declared field, and `docs/domains.md` §3.3 does not say so | S-158; say it in §3.3, or let a `VerifyKind` declare the selectors it computes (`core/loader.py::_validate_uris`, a core seam) |
 | B-0140 | A domain's model family has no membership key (`set://<family>`): adding a device or circuit file alone reruns no check that enumerates the family | S-158; a membership key per registered family in `core/graph/values.py` (a core seam), recorded by the stages that enumerate it |
 | B-0141 | `make verify-list` reads the calc kit's tables only: a domain's rule-pack params (`electrical-v0.yaml`, `verify: true`) are listed nowhere but their DECISIONS line | S-158; scan each installed domain's packs and tables in `scripts/verify_list.py` |
+| B-0142 | A doc helper cannot name the build folder: `HelperContext` has no `build_dir`, so a domain helper reading its rule's files takes `h.product.paths.build` (wrong if a build ever runs elsewhere) | S-159; add `build_dir` to `HelperContext` (core/domain.py, docs/engine.py) and say it in `docs/domains.md` §4.4 |
+| B-0143 | `check_rows_state` counts a `choice` row in a gate row's total but lists no word for it ("3 checks: 2 OK"), so the supply-headroom choice (E11) vanishes from "Wiring checks" | S-159; add `choice` (and any status) to the order in `core/checks/stage.py::check_rows_state` |
+| B-0144 | The contract names no public way for a domain to say its scope line (`scope_entries`/`scope_line` live in core modules outside `docs/domains.md` §1's list); the Wiring section imports `core.checks.stage.scope_entries` | S-159; list it (or a `scope_line(product, domain)`) in §1 |
 
 ## Closed
 

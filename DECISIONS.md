@@ -183,6 +183,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-156 | v0.6 M2: the schedule rule's id is `elec-schedule`, so the key `rule:elec-schedule` the checks and manuals record is valued (the core reads `rule:<x>` as rule `<x>`'s output) | in force |
 | S-157 | v0.6 M2: the `elec` outputs (the record drawn and tabulated, a left-to-right diagram from the supply, colours never guessed, labels, the cable to buy, the text schematic kept) | in force |
 | S-158 | v0.6 M3: the wiring checks (rows per rule, the nets walked with contacts and coils, the controller's side for a limit, which materials conduct, the headroom choice, the circuit kind's figures under `#props.`) | in force |
+| S-159 | v0.6 M4: the owner's view of the wiring (the Wiring section with its diagrams made page-safe, the manual helpers, the Verify row, the words, the module context) | in force |
 
 ---
 
@@ -1045,3 +1046,14 @@ Headroom: above 50 % of the rating (NEC 210.23(A)(2)) [verify] a choice, `blocks
 Circuit rows' subject is the assembly their devices share, so `--scope` keeps them. The kind's figures are `circuit://<id>#props.<figure>`: the core's URI check refuses a selector that is no declared field except `props.*` (`core/loader.py`), so the plan's `#load_current` cannot load (B-0139).
 A new device or circuit file alone reruns no check: a family has no membership key (B-0140). Core files changed: none.
 Measured: `test_electrical_checks.py` 43 passed, 20 s (one process, on M2's rules).
+## S-159 — v0.6 M4: the owner's view of the wiring (2026-11-02)
+`domains/electrical/owner/` reads the `elec` files (S-157), never computes. Section "Wiring" (Product, after joints): per
+circuit its diagram, then its wires (from `connections.json`, else from the model before the rule ran), the schedule in a
+fold, the cable to buy, the `electrical` check rows failing first, a disclaimer (no licensed electrician reviewed it); the
+scope line for `later`/`external` is the core's own (`scope_entries`); shown with wiring or a scope entry (E12). A diagram is
+inlined only after `owner/svg.py`: no script, handler, foreign object or outside reference, ids prefixed per circuit, its
+`<style>` scoped to it (M2's `text{fill:#000}` would restyle every drawing), at the card's width but never below 0.8 of its
+own size, past which the card scrolls. Minimal report 1,722,207 bytes, renders on. Helpers `circuit()` (name, purpose, protection, devices, wires,
+`table`), `cable_schedule()`, `terminal_labels()`, `cables_to_buy()` (added), each recording `circuit://<id>` and
+`rule:elec-schedule`; build folder from `h.product.paths.build` (B-0142). Verify row: "not checked yet" until rows exist,
+present with wiring or scope `in`. No owner word for `supply` (it would read "supply supply"), no `engineer` words (§9).
