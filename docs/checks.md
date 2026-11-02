@@ -6,7 +6,7 @@ and prints the matrix. Exit code 2 when any row is `fail`.
 Rows come from the **check stages**, in order: `interface`, `interference`, `requirements`,
 `count`, `hardware`, `reach`, `docs`, `sourcing`, `calc-case`, then any an installed domain
 adds (`docs/domains.md` §3.4). A row's status is `pass`, `fail`, `warn`, `skip`,
-`needs-human`, `signed` or `choice`; only `fail` blocks.
+`needs-human`, `signed`, `choice` or `later`; only `fail` blocks.
 
 ## Requirement evaluators (`core/checks/evaluators.py`)
 
@@ -175,10 +175,23 @@ section joins each such joint's `iface://` verdict to the build plan's `between_
 (both units, both parts, how it is joined, its hardware, P13); `n2f ecr impact --json` lists
 the ports a change crosses under `ports`.
 
+## Left for later (`later` rows, F11)
+
+A requirement of a domain whose scope is `later` (by tag, category, or what an installed
+domain registers; `docs/domains.md` §5) reads `later`, "left for later": its check still
+runs, and what it found stays in `detail.later` (`status`, `message`, `domain`, `decision`),
+but the row neither blocks nor asks for a sign-off. `summary.later` counts it apart (a key
+only when there is one); `n2f status`, the Verify gate row, the report's overview scope line
+and the package cover name each with its title. A safety requirement never reads `later`: it
+keeps its status and still needs its sign-off. The `checks` rule reads each domain's
+`manifest://scope#<d>.state`, so changing a state reruns the checks and a note does not.
+
 ## Stage and gates (`n2f status`)
 
 Intake: requirements and operator pass lint. Design: every custom part has geometry and is
-built. Verify: no `fail`, no `needs-human`, no example sign-offs. An installed domain adds a
+built (a stand-in for work done elsewhere is supplied, never built here); a domain done
+elsewhere with no stand-in module is Design's first blocker, and `n2f status` still shows the
+product with it as its first bullet. Verify: no `fail`, no `needs-human`, no example sign-offs. An installed domain adds a
 row under Design or Verify when the product has content for it ("Wiring: 3 checks OK"); scope
 (`n2f.yaml`, F11) leaves a `later` domain's rows and requirements out of both gates with a row
 saying so (safety requirements still count). An open choice holds the gate its `blocks` names

@@ -718,18 +718,27 @@ scope:
 ```
 The key is your domain's `name`. Without an entry a domain is `in` when the product has
 content for it, and absent (no row) when it has none.
+Every surface says a state in the same owner words (`SCOPE_WORDS` and `SCOPE_MEANS` in
+`core/model/manifest.py`): `in` "done here", `later` "left for later (not designed here yet)",
+`external` "done elsewhere (supplied, not built here)". Your domain is said by your owner
+word for it, `vocabulary={"owner": {"<name>": "wiring"}}`, else your `title`, else your name
+capitalised ("Wiring: done here").
 - **`in`**: everything in this page applies.
 - **`later`**: your gate rows are left out of Design and Verify, and each gate says so in a
-  row of its own ("Toy: later (DEC-004) — …"). Your requirements are left out too, except
-  safety ones, which still block. A requirement is yours when a tag or its category names the
+  row of its own ("Toy: left for later (DEC-004) — …"). Your requirements are left out too,
+  except safety ones, which still block: each reads `later` ("left for later") in the checks,
+  counted apart (`docs/checks.md`), and the package cover lists them under "Not included in
+  this package". A requirement is yours when a tag or its category names the
   domain (`tags: [toy]`, which works before the domain is installed), or its category is one
   you register, or its verify kind is yours, or its verify target or allocation uses one of
   your schemes. Content for a `later` domain (objects in your families) is a lint warning
   ("content exists; set scope to in or remove it").
 - **`external`** (said "done elsewhere"): the work is done outside this product; a
   sub-assembly with `build: external`, its `ports:` declared and no children, stands for it,
-  and validation fails naming the file when it is missing. The build plan lists it as
-  "supplied, not built here".
+  and validation fails naming the file when it is missing (`n2f status` still shows the
+  product, with the missing stand-in as its first bullet). The build plan, the joints and the
+  check rows say it as "supplied, not built here"; a joint to it is said by its interface's
+  `description`.
 - Every state should name the decision behind it (`decision: DEC-xxx`); without one, a lint
   warning. The release records the scope and prints it on the package cover.
 

@@ -172,6 +172,11 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-145 | E5: the conductors stay in the electrical domain's own schedule; no parts-list seam in v0.6 (B-0128) | in force |
 | S-146 | The wiring tables in the calc kit: conductors (ampacity by cited table and column; silicone rows at the PVC floor), earthing arrangements, wire colours; `calckit.wiring` | in force |
 | S-147 | v0.6 M0 baseline: the kiln's electrical survey (`docs/v06-baseline.md`), its report size and build time; `make check-full` cited from S-140 | in force |
+| S-148 | Seam (gate F 6): one table of scope words, "done here" / "left for later (not designed here yet)" / "done elsewhere (supplied, not built here)"; the cover's "Not included"; the kiln's electrical requirements tagged (closes B-0115) | in force |
+| S-149 | Seam (gate F 7): `later` is a check status, "left for later", counted apart; the checks read each domain's scope state (closes B-0116; amends S-127's "no check row reads scope") | in force |
+| S-150 | Seam (gate F 8): a domain is said by its own owner word, else its title, else its key (closes B-0117) | in force |
+| S-151 | Seam (gate F 10): `n2f status` with work done elsewhere and no stand-in shows the product, the missing stand-in its first bullet (closes B-0119) | in force |
+| S-152 | Seam (gate F 9): a stand-in is "supplied, not built here" everywhere; its joint said by its interface's description (closes B-0118) | in force |
 
 ---
 
@@ -939,3 +944,39 @@ gland's circuit (the door switch and the four bonding leads have none), each stu
 only through a joint, a proposed device list and three circuits for M5, and seven open points (one part with several
 instances, an upstream protective device that is no part, missing parts). Kiln cold build 69.1 s, report 3,796,445 bytes.
 `make check-full` not re-run: the code equals 29951e2's, so S-140's 29 min 14 s is the baseline.
+## S-148 — Scope words: one table, the cover's "Not included", the kiln's electrical requirements (2026-11-02)
+Closes B-0115 (gate F 6), a v0.5 seam (E10, counted apart). `SCOPE_WORDS`/`SCOPE_MEANS` in `core/model/manifest.py`
+are the one table every surface reads (status, check, report, cover): `in` "done here", `later` "left for later (not
+designed here yet)", `external` "done elsewhere (supplied, not built here)". Lines read "Electrical: left for later (not
+designed here yet) — <note> (DEC-024)". The cover adds "Not included in this package:", one bullet per `later` or
+`external` domain with its decision's title, what is left out with it and the safety requirements still to sign
+(`ecr/release.py::not_included`, in `cover_notes`). Kiln: REQ-006, -008, -009, -018, -019, -024 tagged `electrical`
+(supply, door switch, limit device, earthing); REQ-007, -016, -021 stay untagged (box placement, the element as a heater)
+[revisit]. Measured on a kiln copy: no row newly fails, no sign-off voided; REQ-006 and REQ-024 read "left for later"
+(their checks still pass, kept in `detail.later`). `test_scope.py` 40 passed, 49 s; `test_kiln.py` 11 passed, 1 min 31 s.
+## S-149 — "Left for later" is a check status (2026-11-02)
+Closes B-0116 (gate F 7). A new status, not a flag: the row is no action now, so every surface that words, styles, orders
+or counts a status says it (F6's closed set: `results.py`, the CLI and report words, `docs/vocabulary.md`,
+`docs/checks.md`); a flag on a `needs-human` row would have left each of them to remember it. The check still runs, its
+finding kept in `detail.later`; `summary.later` exists only when a row has it (F16); a safety requirement never reads it.
+The `checks` rule reads `manifest://scope#<d>.state` for every domain a requirement could belong to (declared, installed,
+a tag or category; "missing" until declared) and, once one is `later`, its decision and each requirement's tags, category
+and allocation: a state edit reruns the checks, a note does not. Amends S-127 ("no check row reads scope"); every
+product's checks key moves once. `n2f impact` lists the checks for a note edit too (its field-to-entry widening) without
+them rerunning. The kiln's `test_kiln.py` DoD 4 row reads the kept finding for REQ-024.
+## S-150 — A domain says itself in its own word (2026-11-02)
+Closes B-0117 (gate F 8). `core/checks/stage.py::domain_word`: an installed domain's `vocabulary["owner"][<name>]`, else its
+`title`, else the scope key capitalised (true today for `electrical`, not installed). The core names no domain's word: the
+v0.6 domain registers "wiring" and every scope line, gate row and cover bullet says "Wiring". The owner term named like the
+domain shares the vocabulary table with URI-scheme terms; a domain whose name is also its scheme says one word for both.
+## S-151 — Status with work done elsewhere and no stand-in (2026-11-02)
+Closes B-0119 (gate F 10). `n2f status` loads with `validate()` and goes on when the only errors are the scope's missing
+stand-in (rule `external`, subject `scope.<d>`); any other problem stops it as before, and `n2f validate` still refuses.
+The missing stand-in is Design's first blocker and a bullet under its scope row naming the file to add and what it needs
+(`build: external`, `ports:`, no children, `stub:`), also `missing_stub` in `--json`.
+## S-152 — A stand-in is "supplied, not built here" everywhere (2026-11-02)
+Closes B-0118 (gate F 9). The Design gate skips `build: external` modules ("not built yet" was false for a thing never
+built here); a joint side that is a stand-in carries `supplied` in the build plan and the report says "<name>, supplied,
+not built here" (never "no unit"); its "how" is the interface's `description`, else "fitted to <name>, supplied, not built
+here"; the interface check's row says "fits <name>, supplied, not built here" in place of "the faces touch by design".
+The keys appear only on a stand-in's side: the enclosure built on `main` and here has the same `build-plan.json` and `checks.json`.

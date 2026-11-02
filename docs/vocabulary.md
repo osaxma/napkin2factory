@@ -73,9 +73,9 @@ package, the fields stay in the files and in `--json`.
 |---|---|---|
 | **domain** ("the electrical side", "the wiring") | one step of making a product, such as mechanical or electrical; with the owner, name the step itself rather than the word "domain" | `scope:` keys in `n2f.yaml`; `n2f doctor` lists the installed ones |
 | **scope** ("what this product covers") | which steps this product does here, which are done elsewhere, which come later; changing it is a decision | `scope: {<domain>: {state, decision, note}}` in `n2f.yaml`; a row under its gate in `n2f status`, a line in the report overview and on the package cover |
-| **in** | the step is done here, in this product | `state: in` (the default for a step with content) |
-| **done elsewhere** | another person or company does it; a stand-in unit with its joints shows where it fits ("supplied, not built here") | `state: external`; a sub-assembly with `build: external` and `ports:` |
-| **later** | left for a later stage; its checks and requirements wait, except safety ones, and each gate says so ("Electrical: later (DEC-024) — not checked at this stage") | `state: later` |
+| **done here** | the step is designed and checked here, in this product ("Wiring: done here") | `state: in` (the default for a step with content) |
+| **done elsewhere** (supplied, not built here) | another person or company does it; a stand-in unit with its joints shows where it fits, and everything that names it says "supplied, not built here" (the build plan, the joints, the gates) | `state: external`; a sub-assembly with `build: external` and `ports:` |
+| **left for later** (not designed here yet) | this product does not design it yet; its requirements read "left for later", counted apart, except safety ones, which still need their sign-off; each gate and the package cover say so ("Electrical: left for later (DEC-024) — not checked at this stage"; "Not included in this package: …") | `state: later`; tag the step's requirements (`tags: [electrical]`) |
 | **a choice** | a trade-off a check found once the facts existed, with two or more valid designs, each with what it takes and what it costs; never a failure by itself | a `choice` row in `n2f check`; `build/checks/choices.json` |
 | **waiting on you** | the open choices, listed after the gates, each with the gate it holds ("it holds the release") | `n2f status`; `waiting_on_you` in `--json` |
 | **decided** ("decided in DEC-0xx: shorter bolts at both ends (chosen by <name>)") | the owner picked an option; the row reads OK with the decision until what it was decided on changes, then the choice opens again | `n2f decide <check> --pick <option> --by "<name>"`, a `DEC-` entry |
@@ -100,6 +100,7 @@ package, the fields stay in the files and in `--json`.
 | needs-human | needs your sign-off | a human must review and `n2f signoff` |
 | signed | signed off | a valid sign-off exists for a safety requirement (D25) |
 | choice | a choice waiting on you | a trade-off with two or more valid designs; never blocks by itself, holds the gate its `blocks` names until `n2f decide` records the pick, then reads OK with the decision |
+| later | left for later | a requirement of a step the scope leaves for later (F11); never blocks, counted apart; what its check found is kept in `detail.later`; a safety requirement never reads this |
 | example (summary counter, not a row status) | example sign-offs — not reviews | the sign-off is flagged `example: true`; the row stays `signed` and labelled, but it is counted apart, the Verify gate stays open, and `n2f release` refuses it without `--allow-example-signoffs` |
 
 ## Stages (computed by `n2f status`, never stored — D10)
