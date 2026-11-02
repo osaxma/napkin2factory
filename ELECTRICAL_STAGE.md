@@ -32,6 +32,18 @@ Two reasons, in this order:
    whole of it to "the electrician, to local code". A manufacturer package that cannot say what
    connects to what is not a package.
 
+**Read against v0.5 as shipped (2026-11-02, S-141).** The contract is `docs/domains.md`; a fresh
+agent added a domain from it with 0 core files (S-134). What it offers that this plan uses: model
+families with their own folder and `validate_refs`; rule families with `after`, `produces`,
+`also_produces`, `output_dir` and `code`; verify kinds; check stages that may return a choice;
+gate rows under Design or Verify, dropped by the core for `later`; report sections (`data(sctx)`,
+S-138); doc helpers; vocabulary; interface kinds with their own `spec` schema and `check`; open
+sets; screens with declared fields and a phase; context contributions; the recording accessor
+`ctx.proxy`. What it does not offer, and this plan works round or asks for as a separate task
+(E10): a field on a core schema (so devices are a family, E2), lines in the parts list from a
+domain (E5), files in the release package (B-0099) and calc packs on `Domain` (B-0100). The
+domain's name must be `electrical`: the kiln's `scope.electrical: later` (DEC-024) keys on it.
+
 What electrical means here, and what it does not:
 - **Wiring-level electrical:** a supply, devices with ratings and terminals, connections between
   terminals, conductors with a cross-section from a cited table, protection, earthing, interlocks.
@@ -58,8 +70,8 @@ not, it waits.
 ### 1.1 Mission
 Ship **napkin2factory v0.6**: the `electrical` domain under `src/napkin2factory/domains/electrical/`,
 registered through the v0.5 contract and nothing else:
-- a model family `model/electrical/` (the supply and the circuits) and an `electrical:` block on
-  parts (the devices);
+- a model family `model/electrical/` (the supply, the devices and the circuits); a device file
+  names the part it is, so the part stays the one BOM line;
 - the `cable-entry` interface kind: the joint between a box and the wiring that crosses it,
   and the port an external electrical module exposes;
 - a rule family `elec:` producing a wiring diagram per circuit, a connection table, a cable
@@ -86,10 +98,13 @@ registered through the v0.5 contract and nothing else:
 1. **The count.** Every v0.6 task's commits change nothing under `src/napkin2factory/core/`,
    `report/builder.py`, `docs/engine.py`, `core/graph/` or `cli/check.py`, verified by
    `git log --stat` over the release's tasks in the handoff report. Core changes made under E10
-   are listed there with their backlog rows; the target is zero.
+   are listed there with their backlog rows; the target is zero. The seam tasks M0 opens before
+   M1 (B-0099, B-0115–B-0119, and the parts-list seam if M0 decides on it) are v0.5 defects
+   fixed in their own tasks and are listed apart, never inside the domain's count.
 2. **The kiln is wired.** `build/electrical/<circuit>/diagram.svg` for its power, control and
-   sensing circuits; `build/electrical/schedule.csv` and `labels.csv`; the BOM carries the
-   conductor lines; the installation manual's wiring section is generated from the doc helpers,
+   sensing circuits; `build/electrical/schedule.csv` and `labels.csv`; the conductor lines reach
+   the parts list only if M0 adds the seam (E5), otherwise the schedule is the domain's own
+   table; the installation manual's wiring section is generated from the doc helpers,
    and the sentence "This package has no wiring diagram" is gone. The report has a Wiring
    section. The report stays ≤ 20 MB; record its size.
 3. **The checks catch what they claim.** Fixtures under `tests/fixtures/electrical/`: a load
@@ -132,27 +147,28 @@ registered through the v0.5 contract and nothing else:
 | # | Decision | Why |
 |---|---|---|
 | E1 | **Wiring-level, data as source, pip-only.** The electrical model is YAML under `model/electrical/` plus an `electrical:` block on parts. Building, checking and reading need no desktop tool. A text schematic export (`.kicad_sch`, an s-expression file written by the `elec:` rule) is a ⤵ droppable extra and never source; running a desktop tool's rule check is tier-1 and a later version | What the kiln and most tinkerer products need; D3's pip-only rule; a desktop file as source would make the model unreadable to a rule and unmergeable to the change loop |
-| E2 | **Devices are parts.** A part gains an optional `electrical:` block: `role` (supply, load, control, protection, sensor, earth, passthrough), `rating` (voltage, and current or power), `terminals` (a list of names: `L`, `N`, `PE`, `A1`, `A2`, `+`, `-`, `1` …), `class` (I, II, III) and `notes`. One part, one BOM line, one URI: the controller the mechanical model places is the controller the wiring connects. The block is additive (F7: no schema bump) | One canonical model; the BOM and the wiring never disagree about what exists |
+| E2 | **Devices are a family that names its part.** The contract lets a domain add files, not fields on a core schema, so a device is `model/electrical/devices/<id>.yaml` (`device://<id>`): `part: part://<id>` (required, must exist), `role` (supply, load, control, protection, sensor, earth, passthrough), `rating` (voltage, and current or power), `terminals` (a list of names: `L`, `N`, `PE`, `A1`, `A2`, `+`, `-`, `1` …), `class` (I, II, III) and `notes`. One part stays one BOM line and one URI: the controller the mechanical model places is the part the device file names. `validate_refs` refuses a device whose part does not exist and two devices naming one part. [revisit] a field on `Part` would be one file per device instead of two; if M1 finds the two-file form hurts, that is a backlog row for the contract (a schema-extension seam), never a core edit here | One canonical model; the contract as built; the count stays honest |
 | E3 | **Circuits are connection lists.** `model/electrical/supply.yaml` declares the supply: voltage, phases, frequency, circuit rating, earthing arrangement, region (the key into the existing circuits table). `model/electrical/circuits/<id>.yaml` declares a circuit: its purpose (power, control, sensing, earth), its protective device, and `connections: [{from: part://x#L, to: part://y#1, conductor: <id>, length: 0.6 m, via: iface://<cable-entry>}]`. Nets are derived from the connections; a terminal named on a part that has no such terminal is a validation error naming both. Conductors come from `calckit/data/conductors.yaml` (cross-section, ampacity, insulation class, cited `[verify]`); a product may add its own rows | A connection list is what an electrician reads and what a rule can walk; nets are a view, never typed twice |
-| E4 | **`cable-entry` is an interface kind.** Parties: the box part (it gets the hole, a `circle` pattern of count 1, cut by the existing interface machinery) and the gland or bushing part. In the kiln both sit in the controls unit (v0.4 M3b, S-113), so the entries are joints inside that unit and ports of it only where a circuit leaves it. Its spec adds `passes: [circuit://<id>, …]`. The mechanical side sees a hole; the electrical side sees which circuits cross there. A sub-assembly that is `build: external` (F11) lists its cable entries under `ports:`; that is the whole contract between the product and the work done elsewhere. The kiln's three M20 glands become three cable entries on the controller box base | The joint between the two domains is one interface, owned by neither; an external box is a module with ports (P4) |
-| E5 | **The `elec:` rule family.** One rule per circuit, after `part` (it reads the devices and the cable entries) and before `bom` (the BOM reads its schedule). Outputs under `build/electrical/`: `<circuit>/diagram.svg` (a programmatic ladder-style diagram: devices as labelled boxes, terminals, conductors with their id and cross-section, the cable entries as dashed boundaries; drawn with the same SVG helpers as the drawings), `<circuit>/connections.json`, `schedule.csv` (conductor id, from, to, cross-section, length, colour, via), `labels.csv` (terminal labels for the shop). The BOM's rollups add the conductor lines as consumables from the schedule. The diagram embeds in the report as the drawings do | Derived views of one source; the diagram is what the electrician reads, the schedule is what they buy and cut |
-| E6 | **Advisory discipline in `electrical-v0.yaml`.** `fail` only for arithmetic and topology that is certain: load current above the supply rating; a conductor below the table's ampacity for its current; a custom part of conductive material with no connection to the earth net and no `bonded_via: iface://…` note; a circuit with no protective device; a terminal used twice where the device allows one conductor. `warn` for everything a code would judge: an interlock not in series with the load's switching device; a limit device sharing the controller's switching path; mains and control conductors through one cable entry; missing labels; `bonded_via` claims (a bolted joint as an earth path is a claim a person verifies). Every rule's message says what to do and, for warns, that a licensed electrician decides. Safety requirements in the electrical category are `manual` (`needs-human`) always; the disclaimer gains the wiring sentence | Catch what arithmetic can; never let a rule read as a code review |
+| E4 | **`cable-entry` is an interface kind.** Parties: the box part (it gets the hole) and the gland or bushing part. In the kiln both sit in the controls unit (v0.4 M3b, S-113), so the entries are joints inside that unit and ports of it only where a circuit leaves it. Its `spec` schema extends the bolt-pattern spec (`pattern: circle`, `count: 1`, `diameter`), so the core's hole cutting and alignment check treat the entry as a one-hole bolt pattern, and adds `passes: [circuit://<id>, …]`; the kind ships its own `check` (the circuits named exist and cross this box). If M1 finds the hole cutting keys on the kind's name rather than the spec's type, that is a v0.5 defect under E10, not a workaround. The mechanical side sees a hole; the electrical side sees which circuits cross there. A sub-assembly that is `build: external` (F11) lists its cable entries under `ports:`; that is the whole contract between the product and the work done elsewhere. The kiln's three M20 glands become three cable entries on the controller box base | The joint between the two domains is one interface, owned by neither; an external box is a module with ports (P4) |
+| E5 | **The `elec:` rule family.** One rule per circuit, after `part` (it reads the devices and the cable entries) and before `bom` (the BOM reads its schedule). Outputs under `build/electrical/`: `<circuit>/diagram.svg` (a programmatic ladder-style diagram: devices as labelled boxes, terminals, conductors with their id and cross-section, the cable entries as dashed boundaries; drawn with the same SVG helpers as the drawings), `<circuit>/connections.json`, `schedule.csv` (conductor id, from, to, cross-section, length, colour, via), `labels.csv` (terminal labels for the shop). The parts list cannot take lines from a domain today, and a mechanical family cannot be told to run after one: M0 decides whether to open that seam as a v0.5 defect (one task: a `bom_lines` hook on the contract, `bom` declaring an optional `after` on installed families) or to leave the conductors in the domain's own schedule for v0.6 and open a backlog row. Either way the schedule, the labels and the diagram are the domain's outputs under `build/electrical/` and reach the report and the manual through the domain's section and helpers. The diagram embeds in the report as the drawings do | Derived views of one source; the diagram is what the electrician reads, the schedule is what they buy and cut |
+| E6 | **Advisory discipline in `electrical-v0.yaml`.** `fail` only for arithmetic and topology that is certain: load current above the supply rating; a conductor below the table's ampacity for its current; a custom part of conductive material with no connection to the earth net and no `bonded_via: iface://…` note; a circuit with no protective device; a terminal used twice where the device allows one conductor. `warn` for everything a code would judge: an interlock not in series with the load's switching device; a limit device sharing the controller's switching path; mains and control conductors through one cable entry; missing labels; `bonded_via` claims (a bolted joint as an earth path is a claim a person verifies). Every rule's message says what to do and, for warns, that a licensed electrician decides. Safety requirements in the electrical category are `manual` (`needs-human`) always; the disclaimer gains the wiring sentence. Generic words only: the domain's code, messages, fixtures and docs name no kiln identifier (the F9 guard, `tests/unit/test_no_example_identifiers.py`, derives its list from the examples, so the kiln's relay, sensor, switch and gland part ids are forbidden tokens); say "the switching device", "the limit device", "the interlock", "the sensor" | Catch what arithmetic can; never let a rule read as a code review |
 | E7 | **Gate rows.** Design gate: a part with `electrical.role: load` or `control` and no connection blocks the gate when the scope is `in` ("the fan is not wired yet"). Verify gate: the electrical check stage's rows. Both rows exist only when the domain has content or the scope says `in` (F4, F11) | A product cannot leave Design with a device nobody wired |
 | E8 | **The supply screen is the domain's.** `supply-fits` (the card's power against the site's circuit, by region) moves from the kiln's product-local pack into the domain's screens; the kiln pack keeps only its thermal screens. A screen migrating from a product to a domain is exactly the path a third party's screen would take | Screens follow their physics: supply is electrical, not kiln |
 | E9 | **The kiln is the demo and the scope story.** The kiln ships wired on `main` (its pre-change-request state, D23, with `scope.electrical: in`), and `demo-electrical.sh` replays the story from a copy whose wiring is removed: `later` at v1.0.0, a design change request with a patch that adds `model/electrical/` and the `electrical:` blocks, the choice, `in` at v1.1.0, the diff. `demo.sh` and `demo-design.sh` are unchanged; B-0063's patch is re-created in the same task because the manual moves | The story the owner will live: design the thing, wire it later, see what changed |
-| E10 | **A core change is a v0.5 defect.** When a v0.6 task cannot proceed without editing the core, it stops, commits `WIP:` naming the file and the reason, and the overseer opens a separate task with a `B-NEW` row and a decision entry naming the seam that failed. The electrical task resumes after that lands. The handoff report lists every such task; the target is zero | The count is the point of the release; a silent core edit would hide the one thing v0.6 exists to measure |
+| E10 | **A core change is a v0.5 defect.** When a v0.6 task cannot proceed without editing the core, it stops, commits `WIP:` naming the file and the reason, and the overseer opens a separate task with a `B-NEW` row and a decision entry naming the seam that failed. The electrical task resumes after that lands. The handoff report lists every such task; the target is zero. Known before the start, opened by M0 as separate tasks, each with its backlog row, landed before M1: B-0099 (a domain's files in the release package: the wiring diagrams must ship), B-0115–B-0119 (the scope words gate F found: "later" explained, a "left for later" status, "done here", the stub's words, status with a missing stub), and the parts-list seam if E5 decides on it | The count is the point of the release; a silent core edit would hide the one thing v0.6 exists to measure |
 | E11 | **Choices in the domain.** `supply-headroom`: when the load uses more than a cited fraction of the supply rating but still fits, the check returns a `choice` with `blocks: none` ("2.5 kW on the 16 A circuit leaves 5 A spare; a bigger element later would need a 20 A circuit, which is the electrician's job"); the project manager decides conservatively and logs it (F13). The kiln's demo decides it with `n2f decide` so the path is exercised end to end | A real choice from real numbers, low consequence, raised after the facts exist |
 | E12 | **Backward compatible.** Every new field is optional (F7's additive rule; schema stays 1); products without `model/electrical/` show no electrical row anywhere; the bracket and enclosure goldens are unchanged; pins `>=0.6,<0.7` at release | The two flat examples must not move; a product with no wiring must not see the word |
 
 ## 3. Schema additions (all optional; shapes only, not kiln data)
 
 ```yaml
-# model/parts/pid-controller.yaml — a device (E2)
-electrical:
-  role: control
-  rating: {voltage: 230 V, power: 5 W}
-  terminals: [L, N, "1", "2", TC+, TC-]
-  class: II
+# model/electrical/devices/temperature-controller.yaml — a device (E2); device://temperature-controller
+id: temperature-controller
+part: part://temperature-controller       # the part it is: one BOM line, placed by the mechanical model
+role: control
+rating: {voltage: 230 V, power: 5 W}
+terminals: [L, N, "1", "2", TC+, TC-]
+class: II
 
 # model/electrical/supply.yaml (E3)
 voltage: 230 V
@@ -211,20 +227,25 @@ nothing else. **Waves (§8):** M0 → M1 alone → wave 2 = {M2, M3, M4} → wav
 content by hand into `docs/v06-baseline.md`: every powered part, its terminals from the vendor
 page (`[verify]`), the intended connections from `installation.md` and `decisions.yaml`, the
 three glands' circuits, the earth studs' parts. Draft `calckit/data/conductors.yaml` and the
-earthing arrangements table with sources. Record `make check-full`'s time.
-**Owns:** `ELECTRICAL_STAGE.md`, the journals, `docs/v06-baseline.md`, `calckit/data/conductors.yaml`.
+earthing arrangements table with sources. Record `make check-full`'s time. Then the seam tasks
+(E10): open B-0099 and B-0115–B-0119 as tasks and decide E5's parts-list seam (a task, or a
+backlog row); land them before M1. Tag the kiln's electrical requirements (`tags: [electrical]`,
+B-0115) so `later` leaves them out with the note and the safety ones still block.
+**Owns:** `ELECTRICAL_STAGE.md`, the journals, `docs/v06-baseline.md`, `calckit/data/conductors.yaml`,
+`examples/kiln/model/requirements.yaml` (the tags only). The seam tasks own what their rows name.
 
 ### M1 — The family and the joint (budget 6 h; serial)
 **Build:** `domains/electrical/__init__.py` (the `DOMAIN` object; every registry entry stubbed
 so later tasks fill functions, not registrations); `domains/electrical/model.py` (the schemas:
-`Electrical` block, `Supply`, `Circuit`, `Connection`; the `validate_refs` for terminals,
-conductors, protection, `via` entries); the `electrical:` field on `Part` (additive) registered
-as the family's extension; the `cable-entry` interface kind with `passes:` (its hole cut by the
-existing `circle` pattern); the external stub's port check for cable entries; the toy-level
-fixture `tests/fixtures/electrical/minimal/` (one supply, one load, one circuit, one entry).
+`Device`, `Supply`, `Circuit`, `Connection` as three families under `model/electrical/`; the
+`validate_refs` for a device's part, terminals, conductors, protection, `via` entries); the
+`cable-entry` interface kind whose spec extends the bolt-pattern spec and adds `passes:`, with
+its `check`; the external stub's port check for cable entries; the toy-level fixture
+`tests/fixtures/electrical/minimal/` (one supply, one device, one circuit, one entry).
 **Tests:** load and validate the minimal fixture; every validation error names its file and the
-fix; an `electrical:` block on a part in a product with no `model/electrical/` is a lint warn
-("a device with no wiring; add a circuit or set scope: later").
+fix; a device with no connection in a product whose scope is `in` is a Design-gate blocker
+(E7), and a `later` product's devices are a lint warn ("content exists; set scope to in or
+remove it", the core's rule); the entry's hole is cut and its alignment checked.
 **Owns:** `domains/electrical/__init__.py`, `domains/electrical/model.py`,
 `domains/electrical/interfaces.py`, `tests/fixtures/electrical/minimal/`,
 `tests/unit/test_electrical_model.py`.
@@ -304,8 +325,10 @@ M7 (the product and the lines the owner says, so M7 only runs it).
 ## 6. `make check` / `make check-full` growth
 - The electrical unit tests and the minimal fixture run in `make check-fast` and `make check`.
 - The kiln's wiring builds inside the existing kiln step of `make check-full`; the new demo
-  runs beside the three others (S-079, `-n 4`). Record the times; `make check-full` must stay
-  under 25 min on the host.
+  runs beside the three others (S-079, `-n 4`). Record the times; `make check-full` must not grow
+  by more than the new demo's own time over v0.5's 29 min 14 s (S-140); `make check` must stay at
+  or under v0.5's 10 min 4 s, which leaves no slack: move the slowest end-to-end files behind
+  `-m full` if it does not.
 
 ## 7. Risks
 | Risk | Watch | Fallback |
@@ -316,7 +339,9 @@ M7 (the product and the lines the owner says, so M7 only runs it).
 | The diagram is unreadable at kiln size (three circuits, a dozen devices) | M2's golden; the maintainer judges it (S-078) | One diagram per circuit (already the design); if still crowded, a device index table beside it |
 | The conductor table is regional | Keyed by region like `circuits.yaml`; the supply names its region | Rows for EU and US at v0.6; others `[verify]` as added |
 | The text schematic export eats the budget | ⤵ droppable | Drop it; the diagram is the deliverable |
-| `bom` must read `elec:` output and the family order fights the registry | M1 declares `after: [part]` and the `bom` family declares `after: [elec]` through the registry's optional-dependency rule (a family may run after another *if installed*) | If the contract lacks optional dependencies, that is a v0.5 defect under E10 |
+| The parts list needs the conductor lines and the contract has no seam for it | E5: M0 decides, before M1, between a seam task (a v0.5 defect, its own row) and the domain's own schedule | The schedule, labels and diagram are complete without the parts list; the seam waits for v0.7 |
+| The F9 guard forbids the kiln's part ids and the domain's messages drift into them | E6: generic words; the guard runs in `make check-fast` on every landing | Rename in the message, never add to the guard's allow-list |
+| `make check` has no slack left (10 min 4 s against 10 min 8 s) | Measured at every wave boundary | Move the slowest end-to-end files behind `-m full` (FOUNDATION §7's fallback, unused so far) |
 
 ## 8. How the overseer runs this plan
 As `FOUNDATION.md` §8, with these differences:
