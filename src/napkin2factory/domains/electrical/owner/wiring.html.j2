@@ -1,4 +1,40 @@
 <section class="card" id="wiring">
   {{ h2('wiring', 'Wiring') }}
-  <p class="muted">No wiring to show yet.</p>
+  {% if data.scope_line %}<p class="next">{{ data.scope_line }}</p>{% endif %}
+  {% if data.circuits %}
+  <p class="lead">What connects to what: each circuit's diagram and its wires, then the cable schedule, the cable to buy and the wiring checks. Lengths are given in the wiring model; cross-sections and colours come from the conductor table (to confirm); totals are computed.</p>
+  <div class="disclaimer">The wiring checks catch arithmetic and connection mistakes only. This wiring was not reviewed by a licensed electrician: a licensed electrician wires the product to local code and decides every point marked for an electrician.</div>
+  {% for c in data.circuits %}
+  <div class="step" id="wiring-{{ c.id }}">
+    <h3>{{ c.title }} <span class="muted small">{{ c.purpose }} circuit{% if c.voltage %} · {{ c.voltage }}{% endif %} · protected by {{ c.protection }}</span></h3>
+    {% if c.svg %}<figure id="wiring-diagram-{{ c.id }}"><div class="scroll">{{ c.svg | safe }}</div><figcaption>Wiring diagram of the {{ c.title }} circuit · in the package as <span class="mono">electrical/{{ c.id }}/diagram.svg</span></figcaption></figure>
+    {% else %}<p class="muted small">The diagram is drawn by the next build.</p>{% endif %}
+    {% if c.boundary %}<p class="small">{% for b in c.boundary %}{{ b }}{% if not loop.last %}; {% endif %}{% endfor %}</p>{% endif %}
+    {% if c.notes %}<p class="small muted">{{ c.notes }}</p>{% endif %}
+    <div class="scroll"><table>
+      <thead><tr><th>Wire</th><th>From</th><th>To</th><th>Conductor</th><th class="num">Cross-section</th><th class="num">Length</th><th>Colour</th><th>Through</th></tr></thead>
+      <tbody>{% for w in c.wires %}<tr><td class="mono">{{ w.id }}</td><td>{{ w.from }}</td><td>{{ w.to }}</td><td>{{ w.conductor }}</td><td class="num">{{ w.csa }}</td><td class="num">{{ w.length }}</td><td>{{ w.colour }}</td><td>{{ w.via }}</td></tr>{% else %}<tr><td colspan="8" class="muted">No connections yet.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endfor %}
+  <h3 id="wiring-schedule">Cable schedule</h3>
+  {% if data.schedule %}<details><summary>Every wire of every circuit, as the package's <span class="mono">electrical/schedule.csv</span> lists it ({{ data.schedule | length }} wires)</summary><div class="scroll"><table>
+    <thead><tr><th>Wire</th><th>Circuit</th><th>From</th><th>To</th><th>Conductor</th><th class="num">Cross-section</th><th class="num">Length</th><th>Colour</th><th>Through</th></tr></thead>
+    <tbody>{% for r in data.schedule %}<tr><td class="mono">{{ r.wire }}</td><td>{{ r.circuit }}</td><td>{{ r.from }}</td><td>{{ r.to }}</td><td>{{ r.conductor }}</td><td class="num">{{ r.csa }}</td><td class="num">{{ r.length }}</td><td>{{ r.colour }}</td><td>{{ r.via }}</td></tr>{% endfor %}</tbody>
+  </table></div></details>
+  {% if data.labels %}<p class="small muted">{{ data.labels }} terminal labels for the shop are in the package (<span class="mono">electrical/labels.csv</span>).</p>{% endif %}
+  {% else %}<p class="muted small">The schedule is written by the next build.</p>{% endif %}
+  <h3 id="wiring-cables">Cable to buy</h3>
+  {% if data.cables %}<div class="scroll"><table>
+    <thead><tr><th>Cable</th><th class="num">Cross-section</th><th>Insulation</th><th class="num">Total length (computed)</th><th class="num">Wires</th></tr></thead>
+    <tbody>{% for r in data.cables %}<tr><td>{{ r.label }}</td><td class="num">{{ r.csa }}</td><td>{{ r.insulation }}</td><td class="num">{{ r.total }}</td><td class="num">{{ r.wires }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted small">The totals are written by the next build.</p>{% endif %}
+  <h3 id="wiring-checks">Wiring checks</h3>
+  {% if data.rows %}<div class="scroll"><table>
+    <thead><tr><th>Status</th><th>Check</th><th>What was found</th></tr></thead>
+    <tbody>{% for r in data.rows %}<tr class="st-{{ r.status }}"><td>{{ badge(r.status) }}</td><td>{{ r.title }}</td><td class="wrap">{{ r.message }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted small">No wiring checks have run yet.</p>{% endif %}
+  {% elif not data.scope_line %}<p class="muted">No wiring yet.</p>{% endif %}
 </section>

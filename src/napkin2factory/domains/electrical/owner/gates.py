@@ -26,6 +26,9 @@ CHECK_WORDS = {
     "fail": "needs attention",
     "warn": "for an electrician to confirm",
     "needs-human": "for a person to confirm",
+    "skip": "not checked",
+    "signed": "signed off",
+    "later": "left for later",
 }
 
 
@@ -74,13 +77,20 @@ def design_row(product: Any, build_dir: Path) -> GateRowState | None:
 
 
 def verify_row(product: Any, build_dir: Path) -> GateRowState | None:
-    """Under Verify: the wiring check rows, counted (none until the checks ran)."""
-    if not has_content(product):
+    """Under Verify: the wiring check rows, counted in owner words (E7).
+
+    Absent without wiring unless the wiring is said to be done here (F4, F11); the core
+    leaves it out while the scope is ``later``.  Before the checks ran, or when they found
+    nothing to check, the row says so rather than vanishing, so the owner sees the wiring
+    still waits for its checks.
+    """
+    if not has_content(product) and _scope_state(product) != "in":
         return None
     # imported here: the core's check engine imports the loader, which imports this domain
     from napkin2factory.core.checks.stage import check_rows_state
 
-    return check_rows_state(build_dir, "electrical", CHECK_WORDS)
+    state = check_rows_state(build_dir, "electrical", CHECK_WORDS)
+    return state if state is not None else GateRowState("not checked yet")
 
 
 GATE_ROWS = (
