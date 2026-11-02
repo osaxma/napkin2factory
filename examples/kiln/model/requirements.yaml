@@ -50,6 +50,7 @@ requirements:
     title: Element power within the circuit
     statement: The heating element draws at most 3000 W from a 230 V supply so that a dedicated 16 A circuit keeps a margin.
     category: performance
+    tags: [electrical]
     priority: must
     verify: {kind: param_bound, target: param://element-power, op: "<=", value: 3000 W}
     allocation: [param://element-power, param://mains-voltage, param://circuit-rating, part://heating-element]
@@ -69,6 +70,7 @@ requirements:
     title: Dedicated circuit disclosed
     statement: The installation manual states that a dedicated 16 A circuit installed by a licensed electrician is required, and a rating label on the controller box says so.
     category: safety
+    tags: [electrical]
     safety: true
     priority: must
     verify: {kind: manual, note: "Read the installation manual's power section and the rating label riveted to the controller box front; both name the dedicated 16 A circuit and the licensed electrician."}
@@ -78,6 +80,7 @@ requirements:
     title: Door latch and door switch
     statement: The door has a positive latch that holds it closed against a 50 N pull, and a door switch drops the contactor (cutting element power) whenever the door is not closed.
     category: safety
+    tags: [electrical]
     safety: true
     priority: must
     verify: {kind: manual, note: "Pull the closed, latched door outward with 50 N (a luggage scale); it stays shut. With the controller calling for heat, open the door: the contactor must drop out (audible click, element voltage zero at the terminals, measured by the electrician) and stay out until the door is closed."}
@@ -155,6 +158,7 @@ requirements:
     title: Independent over-temperature cut-out
     statement: An independent limit controller on its own thermocouple opens a contactor in series with the solid-state relay when the chamber exceeds 1250 degC, and power stays off until the limit controller is reset by hand.
     category: safety
+    tags: [electrical]
     safety: true
     priority: must
     verify: {kind: manual, note: "With the electrician: set the limit controller's trip point temporarily below the chamber temperature during a low firing (or warm its thermocouple with a heat gun); the contactor must drop out, the element voltage must fall to zero, and power must stay off after the temperature falls until the reset key is pressed. Restore the trip point afterwards and record it."}
@@ -165,6 +169,7 @@ requirements:
     title: Earth bonding
     statement: The inner shell, the guard, the door guard, the stand and the controller box are each bonded to protective earth with a resistance below 0.1 ohm to the earth terminal.
     category: safety
+    tags: [electrical]
     safety: true
     priority: must
     verify: {kind: manual, note: "The electrician measures with a low-resistance ohmmeter from the earth terminal in the controller box to bare metal at each earth stud (inner shell, guard, door guard, stand, controller box); each reading is below 0.1 ohm."}
@@ -214,6 +219,7 @@ requirements:
     title: Runs on the site circuit
     statement: The element power is at most 3066.7 W, so the 230V-16A site circuit keeps a 1.2 headroom.
     category: performance
+    tags: [electrical]
     priority: must
     verify: {kind: param_bound, target: 'param://element-power', op: <=, value: 3066.7 W}
     allocation: ['param://element-power', 'asm://kiln']
