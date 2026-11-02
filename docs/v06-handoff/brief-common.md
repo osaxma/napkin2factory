@@ -25,9 +25,9 @@ silent, decide like a senior engineer, write the decision in a DECISIONS.md entr
   your branch with a subject starting `WIP: ` and a body saying what is done, what is left and
   how to check it, so a cut-off loses minutes, not hours. Before `make land`, fold them
   (`git reset --soft main && git commit` with the real `M<n>: …` subject; land refuses `WIP`).
-- Journal ids are placeholders until landing: write `S-NEW` plus a number (`S-NEW1`,
-  `S-NEW2` …) and `B-NEW` plus a number in DECISIONS.md, BACKLOG.md, comments and commit
-  messages; `make land` gives them the next free numbers. Never write a literal next number
+- Journal ids are placeholders until landing: write `S-NEW<n>` and `B-NEW<n>` (the letters
+  `S-NEW` or `B-NEW` followed by 1, 2 … in your own files) in DECISIONS.md, BACKLOG.md,
+  comments and commit messages; `make land` gives them the next free numbers. Never write a literal next number
   yourself: a parallel task may take it first.
 - Commit subjects: `M<n>: <what>` for a milestone task (your brief names `<n>`); plain imperative
   for a seam task.
