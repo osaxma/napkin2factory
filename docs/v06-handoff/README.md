@@ -66,7 +66,7 @@ overseer's run (what is done, what is in flight, the exact next step).**
 | M3 checks, verify kind, choice | landed | a196024 | S-158 |
 | M4 the owner's view | landed | 9559335, 1dea28d, fc7e347, e72704b (M4b, E8) | S-159, S-168 |
 | wave-2 seam tasks | landed | dd34f32, cc2e32a | S-160–S-164, S-165–S-167 |
-| **M5 the kiln, wired** | **in progress (task `m5-kiln`, from 13:39; follow-up `wiring-headroom` for B-0149, B-0151)** | — | brief: `brief-m5.md` |
+| M5 the kiln, wired | landed (with follow-up S-171) | 3e115b6, b864778 | brief: `brief-m5.md` |
 | M6 external, scope, script | landed | b5530ef | brief: `brief-m6.md` |
 | M7 docs, simulation, gates G/H, close-out | **M7a docs in progress (task `m7-docs`, from 14:17)** | — | briefs: `brief-m7.md`, `brief-gate-g.md`, `brief-gate-h.md` |
 

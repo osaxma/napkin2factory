@@ -20,19 +20,17 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 14:03 | **M6 landed** (13:39–14:03, 24 min): external-box fixture (DoD 5), diff page "<label>: added/removed" (S-169), owner-session script on the external-box fixture (S-170); land gate 2 min 8 s | **count: 0 files** under core/, report/builder.py, docs/engine.py, cli/check.py (and none under domains/). Opened B-0149 (dedicated pick never in the design), B-0150 (diff block placement), B-0151 (EU 16 A cannot raise the choice), B-0152 (boundary words vs S-152) | b5530ef |
 | 14:08 | Follow-up opened for B-0149 + B-0151 (domain + calc-kit table, not core; subjects `M5: …`); M5 told to wait for it before deciding the kiln's choice | brief `brief-m5-headroom.md` | 95a00d8 |
 | 14:13 | **Headroom follow-up landed** (14:08–14:13 land; gate 2 min 45 s): EU 20 A and 32 A dedicated classes cited; `Supply.dedicated` makes the dedicated pick; no golden moved; B-0149, B-0151 closed | **count: 0 core files** | 3e115b6 (S-171) |
+| 14:55 | **M5 landed** (13:39–14:55, 76 min; gate `LAND_GATE=check` 1,314 passed): the kiln wired (18 devices, power/control/sensing/earth circuits, three cable entries in the gland holes' places, five bought parts, DEC-025 scope in, DEC-026 headroom `dedicated` + `dedicated: true`), manuals generated, `demo-electrical.sh` + ECR-003; cold build 60.0 s; report 3,919,200 B; demo alone 492 s | **count: 0 files under src/** (so 0 core). Four kiln-specific tests outside its list edited because the wired kiln moves them (`test_kiln.py`, `test_scope.py`, `test_alignment.py`, `test_build_plan.py`): accepted by the overseer (tests, not core). `test_demo_electrical` not yet run under pytest (check-full runs it). Opened B-0153 (earth device naming its stud), B-0154 (diagram layout) | b864778 (S-172) |
+| 14:55 | **Wave 3 closed**: M5, M6 and the headroom follow-up; the count over wave 3 is 0 core files. Overseer's visual read of the kiln diagrams: power clear; control busy; earth labels overprint and its title says 230 V / "Protected by: not given"; sensing draws the limit probe on the box's side of its entry. Diagram follow-up opened before the gates | — | — |
 
 ## In flight
-- **M5 the kiln, wired**: task `m5-kiln`, `.worktrees/m5-kiln`; last WIP 3a7cbf7 (the demo,
-  ECR-003, the demo test, Makefile `-n 4`, validate_outputs_full); told to rebase on 3e115b6 and
-  settle the kiln's choice with `dedicated: true`.
-- **M7a the docs**: task `m7-docs`, `.worktrees/m7-docs` (from dd4370b, 14:17), beside M5 (no shared
-  files); brief `brief-common.md` + `brief-m7.md`; last WIP: none yet.
-- **Owner simulation (DoD 7)**: waits for M7a (the run tests the new `roles/pm.md`). Then the
-  overseer runs `tests/e2e/intake-transcripts/wiring-session.md` (external-box fixture, on main)
-  with a fresh agent playing the PM; transcript to `…/wiring-session-2026-11-02.md`.
+- **M7a the docs**: task `m7-docs`, `.worktrees/m7-docs`; last WIP: 010613d M7: the docs for the wiring: docs/electrical.md, the guide, the three roles, vocabulary, domains.md (S-173, B-0155).
+- **Diagram follow-up** (B-0154, B-0152): task `wiring-diagrams`, `.worktrees/wiring-diagrams`;
+  brief `brief-common.md` + `brief-diagrams.md`; last WIP: none yet.
 
 ## Next step
-Wait for the follow-up and M5 to land. After each: read the diff, run the count, record here.
-Then `make check` on main (time it), the Linux CI look, then M7a (`brief-m7.md`), the owner
-simulation (`tests/e2e/intake-transcripts/wiring-session.md`, run by the overseer with a fresh
-agent playing the PM), gates G and H (`brief-gate-g.md`, `brief-gate-h.md`), fixes, close-out.
+When M7a and the diagram follow-up land: `make check` on main (time it; record in STATUS), the
+Linux CI look; then the owner simulation (`wiring-session.md`, fresh PM agent); then gates G and
+H at once on that commit (`brief-gate-g.md`, `brief-gate-h.md`); fix blockers; close-out
+(version 0.6.0 + pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` count first, `make check-full` from
+a clean clone, delete `docs/v06-handoff/` last).
