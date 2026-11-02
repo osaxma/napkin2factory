@@ -22,11 +22,11 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 14:13 | **Headroom follow-up landed** (14:08–14:13 land; gate 2 min 45 s): EU 20 A and 32 A dedicated classes cited; `Supply.dedicated` makes the dedicated pick; no golden moved; B-0149, B-0151 closed | **count: 0 core files** | 3e115b6 (S-171) |
 | 14:55 | **M5 landed** (13:39–14:55, 76 min; gate `LAND_GATE=check` 1,314 passed): the kiln wired (18 devices, power/control/sensing/earth circuits, three cable entries in the gland holes' places, five bought parts, DEC-025 scope in, DEC-026 headroom `dedicated` + `dedicated: true`), manuals generated, `demo-electrical.sh` + ECR-003; cold build 60.0 s; report 3,919,200 B; demo alone 492 s | **count: 0 files under src/** (so 0 core). Four kiln-specific tests outside its list edited because the wired kiln moves them (`test_kiln.py`, `test_scope.py`, `test_alignment.py`, `test_build_plan.py`): accepted by the overseer (tests, not core). `test_demo_electrical` not yet run under pytest (check-full runs it). Opened B-0153 (earth device naming its stud), B-0154 (diagram layout) | b864778 (S-172) |
 | 14:55 | **Wave 3 closed**: M5, M6 and the headroom follow-up; the count over wave 3 is 0 core files. Overseer's visual read of the kiln diagrams: power clear; control busy; earth labels overprint and its title says 230 V / "Protected by: not given"; sensing draws the limit probe on the box's side of its entry. Diagram follow-up opened before the gates | — | — |
+| 15:05 | **M7a landed** (14:17–15:05): `docs/electrical.md`, the guide's wiring paragraph, the three roles (pm: the supply asked as a fact, the headroom choice only after the first build with wiring, an owner who asked to be asked decides every choice there [revisit]), ten vocabulary words, `docs/domains.md` read against the domain, the §3 amendment line; boundary words "supplied, not built here" | Markdown only (no code); B-0155 (calckit.md row count) | a73f9b9, 4c5c535 (S-173) |
 
 ## In flight
-- **M7a the docs**: task `m7-docs`, `.worktrees/m7-docs`; last WIP: 010613d M7: the docs for the wiring: docs/electrical.md, the guide, the three roles, vocabulary, domains.md (S-173, B-0155).
-- **Diagram follow-up** (B-0154, B-0152): task `wiring-diagrams`, `.worktrees/wiring-diagrams`;
-  brief `brief-common.md` + `brief-diagrams.md`; started 14:59 from d4c6ffe; last WIP: none yet.
+- **Diagram follow-up** (B-0154, B-0152): task `wiring-diagrams`, `.worktrees/wiring-diagrams`
+  (from d4c6ffe, 14:59); last WIP: none yet.
 
 ## Next step
 When M7a and the diagram follow-up land: `make check` on main (time it; record in STATUS), the

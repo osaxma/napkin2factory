@@ -57,6 +57,7 @@ has run since S-121 (the latest, 2026-11-01 10:28, predates it).
 - M2 the `elec` rules: per-circuit diagram, record and text schematic; schedule, labels, cables to buy — S-156, S-157.
 - M3 the wiring checks, the `circuit` verify kind, the supply-headroom choice, six fault fixtures — S-158.
 - M5 the kiln wired (four circuits, three cable entries, the manual's wiring generated, the headroom choice decided, `demo-electrical.sh`) — S-172.
+- M7a the docs for the wiring (`docs/electrical.md`, the guide, the three roles, vocabulary, `docs/domains.md`) — S-173.
 - M6 the external-box fixture (a box supplied from elsewhere, two cable-entry ports), the diff page's "<label>: added", the owner-session script — S-169, S-170.
 - M4 the Wiring report section, manual helpers, Verify row, owner words, module context (S-159); the supply screen
   moved from the kiln's pack into the domain (M4b, E8) — S-168.

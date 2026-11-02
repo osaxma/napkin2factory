@@ -68,7 +68,7 @@ overseer's run (what is done, what is in flight, the exact next step).**
 | wave-2 seam tasks | landed | dd34f32, cc2e32a | S-160–S-164, S-165–S-167 |
 | M5 the kiln, wired | landed (with follow-up S-171) | 3e115b6, b864778 | brief: `brief-m5.md` |
 | M6 external, scope, script | landed | b5530ef | brief: `brief-m6.md` |
-| M7 docs, simulation, gates G/H, close-out | **M7a docs in progress (task `m7-docs`, from 14:17)** | — | briefs: `brief-m7.md`, `brief-gate-g.md`, `brief-gate-h.md` |
+| M7 docs, simulation, gates G/H, close-out | **M7a docs landed; simulation, gates, close-out next** | a73f9b9, 4c5c535 | briefs: `brief-m7.md`, `brief-gate-g.md`, `brief-gate-h.md` |
 
 Wave 3 = M5 + M6 at once (start M5 first: it is the long one). Then M7.
 
