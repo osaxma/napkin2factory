@@ -36,7 +36,7 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
 
 ## Milestones (one line each; detail in the entries named)
 v0.6 — `ELECTRICAL_STAGE.md` (the electrical domain through the v0.5 contract; the count of core edits is
-the headline), S-111: planned, next. `docs/reviews/v0.6-independent-trial.md` is the
+the headline), S-111; reconciled with the contract as built in S-141: planned, next. `docs/reviews/v0.6-independent-trial.md` is the
 outside model's brief for after it lands.
 
 v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the

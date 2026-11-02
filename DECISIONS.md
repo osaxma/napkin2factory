@@ -165,6 +165,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | Gate E | Review gate E (architecture and honesty, v0.5) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG |
 | Gate F | Review gate F (UX, owner persona, v0.5) — outcome | outcome recorded; blockers fixed, the rest in BACKLOG; the maintainer's visual judgment pending |
 | S-140 | v0.5 close-out: version 0.5.0, product pins `>=0.5,<0.6` | in force |
+| S-141 | The v0.6 plan reconciled with the contract v0.5 built: devices as a family, cable entries as a bolt-pattern spec, the seam tasks named | in force |
 
 ---
 
@@ -865,3 +866,14 @@ and the layout line in `docs/product-model.md`; `uv.lock` follows. Dated transcr
 the pin they ran with. No schema change (F16), so a 0.4 product loads with the pin notice. `docs/domains.md` §6
 now names S-137's `WORDS = {"space": …}` hook beside the promotion hooks. `make check` in the task folder:
 12 min 6 s green (1087 passed, 5 skipped; goldens 141 passed), no other pytest running.
+## S-141 — The v0.6 plan reconciled with the contract v0.5 built (2026-11-02)
+Read `HANDOFF-REPORT-v0.5.md`, `docs/domains.md` and `core/domain.py` against `ELECTRICAL_STAGE.md`.
+The contract offers everything the plan assumed except three things, now written into it: a
+domain cannot add a field to a core schema, so devices are a family (`device://<id>` naming its
+`part://`), not an `electrical:` block on parts (E2, [revisit] a schema-extension seam); a domain
+cannot add lines to the parts list nor make `bom` run after it, so M0 decides between a seam task
+and the domain's own schedule (E5); the release package takes no domain files (B-0099). A
+`cable-entry` spec extends the bolt-pattern spec so the core cuts its hole (E4). The known seam
+gaps (B-0099, B-0115–B-0119, E5's) become M0's tasks, landed before M1 and listed apart from the
+count (E10). The F9 guard forbids the kiln's part ids in the domain's words (E6). Budgets follow
+v0.5's figures: `make check` 10 min 4 s with no slack, `make check-full` 29 min 14 s (S-140).
