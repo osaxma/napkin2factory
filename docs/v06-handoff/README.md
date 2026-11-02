@@ -66,8 +66,8 @@ overseer's run (what is done, what is in flight, the exact next step).**
 | M3 checks, verify kind, choice | landed | a196024 | S-158 |
 | M4 the owner's view | landed | 9559335, 1dea28d, fc7e347, e72704b (M4b, E8) | S-159, S-168 |
 | wave-2 seam tasks | landed | dd34f32, cc2e32a | S-160–S-164, S-165–S-167 |
-| **M5 the kiln, wired** | **green light given 2026-11-02; not started** | — | brief: `brief-m5.md` |
-| **M6 external, scope, script** | **green light given 2026-11-02; not started** | — | brief: `brief-m6.md` |
+| **M5 the kiln, wired** | **in progress (task `m5-kiln`, from 13:39)** | — | brief: `brief-m5.md` |
+| **M6 external, scope, script** | **in progress (task `m6-external`, from 13:39)** | — | brief: `brief-m6.md` |
 | M7 docs, simulation, gates G/H, close-out | not started | — | brief to write (plan §5 M7; §0 above) |
 
 Wave 3 = M5 + M6 at once (start M5 first: it is the long one). Then M7.
