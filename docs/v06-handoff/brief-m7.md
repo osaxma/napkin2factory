@@ -6,7 +6,7 @@ gates G and H, their fixes, the close-out (version files, pins, the handoff repo
 
 Hand this to the subagent together with `docs/v06-handoff/brief-common.md` (read it first).
 Task folder: `make task NAME=m7-docs GOAL="v0.6 M7a: docs/electrical.md, the agent guide, the three roles, vocabulary, docs/domains.md read against the domain"`
-from the main folder, then `.worktrees/m7-docs`. Starts after M5 and M6 have landed.
+from the main folder, then `.worktrees/m7-docs`. Started (second overseer, 14:16) while M5 was still building: M5 edits no `roles/` file, so `make templates`' copies into the kiln do not collide; read the kiln's wiring and `demo-electrical.sh` from M5's branch (`git show task/m5-kiln:<path>`) or main once M5 lands, and land after M5 if you can.
 
 Read: ELECTRICAL_STAGE.md §1.3 DoD 10, §3 (shapes; **three of its examples are wrong**, see
 below), §4 (the CLI surface), §5 "M7"; the decisions S-153..S-168 and the M5/M6 entries (index
