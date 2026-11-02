@@ -1,0 +1,10 @@
+decisions:
+  - id: DEC-001
+    date: 2026-11-02
+    title: The wiring is designed here
+    context: The box holds a heater and its switch, fed from a socket circuit.
+    decision: Wire it in this product.
+    rationale: The fixture of the wiring model needs its scope said.
+    links: [manifest://scope]
+    made_by: agent
+    disclosed: true

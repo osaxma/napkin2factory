@@ -1,0 +1,10 @@
+id: sensor
+rev: A
+name: Temperature sensor
+kind: cots
+process: none
+geometry: none
+source: {vendor: Sensor maker, mpn: SENSOR-5V, url: "https://example.com/sensor", verified: true}
+cost: {unit: 4 USD, basis: catalog}
+lead_time: 2 d
+mass: 10 g

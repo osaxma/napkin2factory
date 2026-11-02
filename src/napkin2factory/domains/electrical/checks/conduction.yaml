@@ -1,0 +1,27 @@
+# Which materials conduct electricity, for the earth-path check (E6, S-158). A part made
+# here whose material's name or spec holds one of these words (whole words, any case) is
+# conductive (it needs a path to earth) or insulating (it does not); a material no row
+# names is "not known" and the check asks a person. Conductive words win over insulating
+# ones. The calc kit's materials table has no electrical column yet (B-0138): this table
+# moves there when it gains one. NOT VERIFIED: confirm a part's material with its maker.
+table: conduction
+rows:
+  - class: conductive
+    keywords: [metal, steel, stainless, iron, aluminium, aluminum, copper, brass, bronze,
+               zinc, galvanised, galvanized, titanium, nickel, tin, chromium, kanthal,
+               nichrome, carbon, graphite]
+    verify: true
+    source: >-
+      IEC 60050-195:2021 195-01-06 (conductive part) and 826-12-10 (exposed-conductive-part);
+      metals and carbon conduct (handbook resistivities, e.g. CRC Handbook of Chemistry and
+      Physics, "Electrical resistivity of pure metals")
+  - class: insulating
+    keywords: [polycarbonate, pc, abs, pla, petg, asa, nylon, pa6, pa12, polyamide, acrylic,
+               pmma, polypropylene, pp, polyethylene, hdpe, pe, pom, acetal, ptfe, pvc, peek,
+               silicone, rubber, epdm, wood, plywood, mdf, hardboard, glass, ceramic, porcelain,
+               brick, firebrick, mica, fiber, fibre, kaowool, cork, paper, cardboard, felt]
+    verify: true
+    source: >-
+      IEC 60050-212 (insulating materials); polymers, wood, glass, ceramics and mineral
+      fibre are insulators in a dry state (handbook resistivities, e.g. CRC Handbook of
+      Chemistry and Physics); a filled or coated grade may differ, so confirm with its maker

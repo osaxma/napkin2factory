@@ -1,0 +1,9 @@
+schema: 1
+system: '>=0.5,<0.6'
+product:
+  id: heated-box
+  name: Heated box
+  description: The minimal heated box in a steel box that no conductor earths (tests/unit/test_electrical_checks.py, DoD 3).
+units: metric
+scope:
+  electrical: {state: in, decision: DEC-001}

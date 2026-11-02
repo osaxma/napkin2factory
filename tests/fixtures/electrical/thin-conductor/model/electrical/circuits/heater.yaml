@@ -1,0 +1,11 @@
+id: heater
+purpose: power
+name: Heater
+protection: supply
+connections:
+  - {from: "supply://supply#L", to: "device://switch#1", conductor: cu-1p5-pvc, length: 0.4 m, via: iface://box-entry}
+  - {from: "supply://supply#N", to: "device://switch#3", conductor: cu-1p5-pvc, length: 0.4 m, via: iface://box-entry}
+  - {from: "device://switch#2", to: "device://heater#L", conductor: cu-0p75-pvc, length: 0.2 m}
+  - {from: "device://switch#4", to: "device://heater#N", conductor: cu-1p5-pvc, length: 0.2 m}
+  - {from: "supply://supply#PE", to: "device://heater#PE", conductor: cu-1p5-pvc, length: 0.5 m, via: iface://box-entry, colour: green-and-yellow}
+notes: The switch breaks line and neutral.

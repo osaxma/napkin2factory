@@ -1,0 +1,9 @@
+id: sense
+purpose: sensing
+name: Temperature reading
+voltage: 5 V
+dc: true
+connections:
+  - {from: "device://sensor#+", to: "device://indicator#+", conductor: cu-0p75-pvc, length: 1.0 m, via: iface://box-entry}
+  - {from: "device://sensor#-", to: "device://indicator#-", conductor: cu-0p75-pvc, length: 1.0 m, via: iface://box-entry}
+notes: The sensor sits outside the box; its 5 V loop enters through the supply's gland.

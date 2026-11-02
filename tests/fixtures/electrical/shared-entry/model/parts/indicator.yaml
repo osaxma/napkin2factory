@@ -1,0 +1,10 @@
+id: indicator
+rev: A
+name: Temperature display
+kind: cots
+process: none
+geometry: none
+source: {vendor: Display maker, mpn: DISPLAY-5V, url: "https://example.com/display", verified: true}
+cost: {unit: 6 USD, basis: catalog}
+lead_time: 2 d
+mass: 30 g

@@ -1,7 +1,132 @@
-# The wiring rules (ELECTRICAL_STAGE E6), read by the electrical check stage (M3 fills it).
-# `fail` only for arithmetic and topology that is certain; `warn` for everything a wiring
-# code would judge, and its message says a licensed electrician decides. Every number cites
-# its table in the calc kit, never here.
+# The wiring rules (ELECTRICAL_STAGE E6 as refined by S-154; E11), read by the electrical
+# check stage (checks/stage.py). `fail` only for arithmetic and topology that is certain;
+# `warn` for everything a wiring code would judge, and its fix says a licensed electrician
+# decides; `choice` hands a trade-off to the owner (F12). Owner words only: no file paths,
+# no identifiers. Every number here is a param with its source and `verify: true` (S-158);
+# the currents and the conductor ratings themselves come from the calc kit (`calckit.power`,
+# `calckit/data/conductors.yaml`, `calckit/data/circuits.yaml`), never from this file.
 pack: electrical-v0
 title: Wiring checks
-rules: []
+rules:
+  # ---- fail: arithmetic and topology -------------------------------------------------------
+  - id: supply-load
+    title: The loads fit the supply
+    severity: fail
+    does: the power circuits' load currents, added up, against the supply's rating
+    fix: >-
+      lower the load (a smaller heater or motor, or fewer loads on at once), or plug the
+      product into a larger circuit and change the supply's rating to match
+  - id: conductor-current
+    title: Each conductor carries its current
+    severity: fail
+    does: >-
+      each conductor of a circuit against the current the circuit's loads draw, using the
+      conductor's rated current from the calc kit's table (or the product's own row)
+    fix: use a thicker conductor whose rated current is at least the circuit's load current
+  - id: earth-path
+    title: Each metal part has a path to earth
+    severity: fail
+    does: >-
+      each part made here of a material that conducts reaches the supply's earth through
+      an earth conductor, or names the joints that bond it to a part that does
+    fix: >-
+      run an earth conductor from the supply's earth to it (an earth stud on the part), or
+      list it in a circuit's earth entries with the joint that bonds it to an earthed part
+  - id: protection
+    title: Each circuit has a protective device
+    severity: fail
+    does: >-
+      each power and control circuit names a protective device (a breaker or fuse the
+      product ships, or the supply's own when the supply's rating is given), and that
+      device's rating is not below the circuit's load
+    fix: >-
+      name the breaker or fuse that protects the circuit, or say the supply's own device
+      protects it and give the supply's rating
+  - id: terminal-conductors
+    title: No terminal holds more conductors than it takes
+    severity: fail
+    does: >-
+      a terminal used by more conductors than its device allows; only when the device
+      declares the limit, which no field does yet (B-0137), so this rule writes no row
+    fix: move a conductor to another terminal, or join them in a terminal block
+  # ---- warn: a wiring code judges, a licensed electrician decides -----------------------------
+  - id: interlock-series
+    title: Opening the interlock stops the load
+    severity: warn
+    does: >-
+      walks the wiring with the interlock open (every other contact closed, each switching
+      device's contacts open when its coil loses power) and lists the loads that still get
+      power
+    fix: >-
+      put the interlock in series with the coil of the device that switches the load (or in
+      the load's own supply); a licensed electrician decides
+  - id: limit-independent
+    title: The limit device breaks a switching device of its own
+    severity: warn
+    does: >-
+      assumes the controller and everything it switches are stuck on (the failure the
+      limit device is there for), opens the limit device and lists the loads that still
+      get power
+    fix: >-
+      let the limit device break a switching device the controller does not drive (a
+      separate contactor or relay); a licensed electrician decides
+  - id: entry-voltage
+    title: Extra-low-voltage and mains conductors use separate cable entries
+    severity: warn
+    does: >-
+      the conductors through each cable entry, sorted into extra-low voltage and mains by
+      their circuit's voltage; earth conductors may share any entry
+    params:
+      elv-ac: {value: 50, unit: V, verify: true,
+               source: "IEC 61140:2016 / IEC 60449 voltage band I: extra-low voltage is at most 50 V AC r.m.s."}
+      elv-dc: {value: 120, unit: V, verify: true,
+               source: "IEC 61140:2016 / IEC 60449 voltage band I: extra-low voltage is at most 120 V ripple-free DC"}
+    fix: >-
+      give the extra-low-voltage conductors their own cable entry, or use conductors
+      insulated for the mains voltage throughout; a licensed electrician decides
+  - id: contact-category
+    title: A contact that switches a coil is rated for it
+    severity: warn
+    does: >-
+      a contact wired straight to another device's coil needs utilisation category AC-15
+      or DC-13; one wired straight to an inductive load needs AC-3, AC-15 or DC-13
+    params:
+      coil: {value: "AC-15, DC-13", verify: true,
+             source: "IEC 60947-5-1 Table 1 (AC-15: control of electromagnetic loads; DC-13: control of electromagnets)"}
+      inductive: {value: "AC-3, AC-15, DC-13", verify: true,
+                  source: "IEC 60947-4-1 Table 1 (AC-3: squirrel-cage motors) and IEC 60947-5-1 Table 1"}
+    fix: >-
+      check the device's datasheet for its rating in that category and write it as the
+      device's contact category; a licensed electrician decides
+  - id: earth-bonded
+    title: A metal part earthed through a joint
+    severity: warn
+    does: >-
+      a part that reaches earth only through bolted or screwed joints (its `bonded_via`
+      entries): a claim a person verifies with a continuity test
+    fix: >-
+      test the joint's earth continuity, or run an earth conductor to the part; a licensed
+      electrician decides
+  - id: upstream-protection
+    title: The site's protective device is confirmed
+    severity: warn
+    does: the supply's protection is the site's device, not a part of the product
+    fix: >-
+      the electrician confirms the site's breaker (its rating and type) and the earthing
+      before the product is first connected; a licensed electrician decides
+  - id: terminals-unsourced
+    title: Each device's terminals are read from its datasheet
+    severity: warn
+    does: a device whose terminals are not listed yet, so nothing wired to it can be checked
+    fix: read the terminals from the datasheet and list them; never guess them
+  # ---- choice: a trade-off for the owner (E11) ------------------------------------------------
+  - id: supply-headroom
+    title: Room to spare on the supply's circuit
+    severity: choice
+    does: >-
+      when the power circuits' load is more than a fraction of the supply's rating but still
+      fits, the owner chooses: keep the circuit for this product alone, or a larger circuit
+    params:
+      fraction: {value: 0.5, unit: "", verify: true,
+                 source: "NEC 210.23(A)(2): equipment fastened in place may use at most 50 % of a branch circuit's rating when the circuit also supplies other loads"}
+    fix: keep the circuit for this product alone, or fit a larger circuit

@@ -1,0 +1,10 @@
+id: guard-switch
+rev: A
+name: Guard switch
+kind: cots
+process: none
+geometry: none
+source: {vendor: Switch maker, mpn: GUARD-1NC, url: "https://example.com/guard-switch", verified: true}
+cost: {unit: 3 USD, basis: catalog}
+lead_time: 1 d
+mass: 20 g

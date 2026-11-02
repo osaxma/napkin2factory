@@ -1,0 +1,10 @@
+id: heater
+rev: A
+name: Heater
+kind: cots
+process: none
+geometry: none
+source: {vendor: Heater maker, mpn: HEATER-500W, url: "https://example.com/heater", verified: true}
+cost: {unit: 9 USD, basis: catalog}
+lead_time: 3 d
+mass: 120 g

@@ -1,0 +1,10 @@
+id: guard-switch
+part: part://guard-switch
+role: control
+rating: {voltage: 250 V, current: 5 A}
+terminals: ["11", "12"]
+class: II
+contact: {current: 5 A, category: AC-15}
+safety: interlock
+through: [["11", "12"]]
+notes: Meant to stop the heater when the guard opens; wired beside the line, not in it.

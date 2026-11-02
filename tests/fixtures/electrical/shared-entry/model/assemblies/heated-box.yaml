@@ -1,0 +1,10 @@
+id: heated-box
+rev: A
+name: Heated box
+children:
+  - {part: part://box, qty: 1}
+  - {part: part://gland, qty: 1}
+  - {part: part://heater, qty: 1}
+  - {part: part://switch, qty: 1}
+  - {part: part://sensor, qty: 1}
+  - {part: part://indicator, qty: 1}

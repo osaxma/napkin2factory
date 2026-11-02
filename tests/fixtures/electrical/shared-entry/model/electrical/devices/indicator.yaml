@@ -1,0 +1,6 @@
+id: indicator
+part: part://indicator
+role: control
+rating: {voltage: 5 V}
+terminals: ["+", "-"]
+class: III

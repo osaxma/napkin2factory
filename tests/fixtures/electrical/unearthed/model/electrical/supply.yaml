@@ -1,0 +1,8 @@
+voltage: 230 V
+phases: 1
+frequency: 50 Hz
+rating: param://supply-rating
+earthing: TN-S
+region: EU
+protection: {upstream: "the 10 A breaker of the socket circuit", rating: 10 A}
+notes: A socket circuit; the electrician confirms its breaker and its earthing.

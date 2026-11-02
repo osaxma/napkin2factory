@@ -182,6 +182,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-155 | v0.6 M1: a cable entry is one hole; the Design row "Wiring" blocks on unwired devices; tests that assumed one installed domain take the membership form | in force |
 | S-156 | v0.6 M2: the schedule rule's id is `elec-schedule`, so the key `rule:elec-schedule` the checks and manuals record is valued (the core reads `rule:<x>` as rule `<x>`'s output) | in force |
 | S-157 | v0.6 M2: the `elec` outputs (the record drawn and tabulated, a left-to-right diagram from the supply, colours never guessed, labels, the cable to buy, the text schematic kept) | in force |
+| S-158 | v0.6 M3: the wiring checks (rows per rule, the nets walked with contacts and coils, the controller's side for a limit, which materials conduct, the headroom choice, the circuit kind's figures under `#props.`) | in force |
 
 ---
 
@@ -1034,3 +1035,13 @@ Colour: the connection's own, else the region's for PE, N or a line terminal, a 
 makes it "not given". Calc-kit tables are an input (the code hash skips the calc kit). An interface is recorded whole:
 the core values a field read as the whole joint, which impact does not match (B-0136). The text schematic (E1) is kept: a test parses it.
 Measured: minimal report 1,668,966 bytes (no Wiring section yet: M4); `test_electrical_outputs.py` 35 passed, 25 s (-n 4).
+## S-158 — v0.6 M3: the wiring checks, the `circuit` verify kind, the supply-headroom choice (2026-11-02)
+Rows `elec-rule://<rule>@<thing>`, kind `electrical`, from `checks/electrical-v0.yaml` (owner title and fix, numbers as cited params); the model read once through `sctx.proxy` (`calcs.py`), currents by `calckit.power.element_current` at the rated voltage, an unknown never `fail`.
+Nets (`nets.py`): connections, an `earth` device's terminals and a `passthrough`'s pairs joined; other `through` pairs are contacts, a coil device's closed only while its coil is live (a fixed point). Interlock: opened, a load still live warns.
+Limit: the controller (a non-safety control contact outside power circuits whose opening drops a coil) and what it drives held stuck on, then the limit opened [revisit]. Protection is required of power and control circuits only.
+Earth: custom parts whose material conducts by `checks/conduction.yaml` keywords [verify] (no electrical column in the calc kit's materials table, B-0138); all devices Class II/III: one pass row. A bond to no earthed party fails.
+Entries: ELV ≤ 50 V AC / 120 V DC (IEC 61140, IEC 60449 band I) [verify]. A contact wired straight to a coil needs AC-15/DC-13, to an inductive load also AC-3 (IEC 60947-4-1, -5-1) [verify] [revisit].
+Headroom: above 50 % of the rating (NEC 210.23(A)(2)) [verify] a choice, `blocks: none`, the larger option the region's next class in `circuits.yaml`; none larger is a warn (one option is no choice). Evidence: supply, its rating's param, power circuits, loads.
+Circuit rows' subject is the assembly their devices share, so `--scope` keeps them. The kind's figures are `circuit://<id>#props.<figure>`: the core's URI check refuses a selector that is no declared field except `props.*` (`core/loader.py`), so the plan's `#load_current` cannot load (B-0139).
+A new device or circuit file alone reruns no check: a family has no membership key (B-0140). Core files changed: none.
+Measured: `test_electrical_checks.py` 43 passed, 20 s (one process, on M2's rules).

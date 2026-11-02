@@ -1,0 +1,6 @@
+id: sensor
+part: part://sensor
+role: sensor
+rating: {voltage: 5 V}
+terminals: ["+", "-"]
+class: III
