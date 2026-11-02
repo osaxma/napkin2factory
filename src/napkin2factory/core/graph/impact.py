@@ -130,6 +130,9 @@ def _edit_keys(product: Product, edits: list[Edit]) -> tuple[list[str], dict[str
     overrides: dict[str, Any] = {}
     for e in edits:
         u = e.set
+        added = _membership_if_new(product, u)
+        if added is not None:
+            keys.append(added)
         if u.scheme == "param" and not u.selector:
             keys.append(f"param://{u.id}")
             try:
@@ -155,6 +158,48 @@ def _edit_keys(product: Product, edits: list[Edit]) -> tuple[list[str], dict[str
     for k in keys:
         seen.setdefault(k, None)
     return list(seen), overrides
+
+
+def _families_added_to(edited_keys: list[str]) -> dict[str, str]:
+    """Rule family → the ``set://<family>`` key it answers to, for each family a file is added to.
+
+    The domain that registers a family makes its rules from it at every build and declares
+    their dependence itself (inputs; its rules record no listing, S-165), so impact names
+    all of that domain's rules: conservative, a superset of what the build reruns.
+    """
+    from napkin2factory.core.graph.recording import membership_key
+    from napkin2factory.core.registry import registry
+
+    out: dict[str, str] = {}
+    for d in registry().domains:
+        if d.in_place:  # the system's own rules record the listing (S-165)
+            continue
+        for fam in d.families:
+            key = membership_key(fam.name)
+            if key in edited_keys:
+                for rf in d.rule_families:
+                    out.setdefault(rf.name, key)
+    return out
+
+
+def _membership_if_new(product: Product, u: Uri) -> str | None:
+    """The membership key an edit touches when it names an object that does not exist yet.
+
+    ``--set tally://b#count=2`` with no ``model/tally/b.yaml`` is that file added: every rule
+    that listed the family reads ``set://tally`` and reruns when the file arrives (S-165).
+    """
+    from napkin2factory.core.graph.recording import MEMBERSHIP, membership_key
+    from napkin2factory.core.graph.values import MEMBERSHIP_BY_SCHEME
+    from napkin2factory.core.registry import registry
+
+    if u.scheme in MEMBERSHIP_BY_SCHEME:
+        key = MEMBERSHIP_BY_SCHEME[u.scheme]
+        return None if u.id in getattr(product, MEMBERSHIP[key]) else key
+    for fam in registry().model_families():
+        if fam.uri_scheme == u.scheme:
+            objects = product.families.get(fam.name, {})
+            return None if dict.__contains__(objects, u.id) else membership_key(fam.name)
+    return None
 
 
 def _hypothetical_params(product: Product, overrides: dict[str, Any]) -> dict[str, Any]:
@@ -211,10 +256,18 @@ def compute_impact(
             "run `n2f build` once for an exact list"
         )
     touches = _edit_matcher(edited_keys, {p for r in rules for p in r.produced})
+    added_to = _families_added_to(edited_keys)
     for rule in rules:
         entry = manifest.entries.get(rule.id)
         if rule.kind == "validate":
             affected[rule.id] = "always re-validates"
+            continue
+        if rule.kind in added_to:
+            # its domain makes its rules from the family and records no listing (S-165)
+            affected[rule.id] = added_to[rule.kind]
+            for produced in rule.produced:
+                produced_affected.add(produced)
+                produced_affected.add(produced.split("#")[0])
             continue
         reads = entry.reads if entry is not None else _static_reads(product, rule)
         hits = [
@@ -422,13 +475,20 @@ def _static_reads(product: Product, rule: Rule) -> list[str]:
     if family is not None and family.static_reads is not None:
         return list(family.static_reads(product, rule))
     # every rule that produces a model artifact (a URI; not validate's or a sheet's rule key)
+    from napkin2factory.core.graph.recording import membership_key
+
     produced = [r.produces for r in build_rules(product) if r.produces and "://" in r.produces]
-    return produced + [
-        "bom://rollups",
-        "bom://build-plan",
-        "rule:checks",
-        "rule:report",
-    ]
+    return (
+        produced
+        + [
+            "bom://rollups",
+            "bom://build-plan",
+            "rule:checks",
+            "rule:report",
+        ]
+        # what a check stage or a report section may list (S-165)
+        + [membership_key(f.name) for f in reg.model_families()]
+    )
 
 
 # ---- the mechanical families' static read sets (registered in place, F2) -----------------

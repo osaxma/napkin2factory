@@ -189,6 +189,9 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-162 | v0.5 defect (v0.6 wave 2): `check_rows_state` says every status it counts ("1 choice waiting on you"), the core's owner word where the domain gives none | in force |
 | S-163 | v0.5 defect (v0.6 wave 2): `scope_entry(product, domain)` is the public way for a domain to say its scope line | in force |
 | S-164 | v0.5 defect (v0.6 wave 2): `HelperContext.build_dir`, the build folder a manual page renders in | in force |
+| S-165 | Seam (v0.6 wave 2, a v0.5 defect): a model family's membership key `set://<family>`, recorded wherever the family is listed during a run; impact touches it for a new object (closes B-0140) | in force |
+| S-166 | Seam (v0.6 wave 2, a v0.5 defect): an interface field read is valued by its field as written, as impact matches it (closes B-0136) | in force |
+| S-167 | Seam (v0.6 wave 2, v0.5 defects): a `rule:<x>` key is rule `<x>`'s output, refused when no rule answers; a verify kind's figure is `#props.<figure>`; the docs rule hands helpers its build folder (closes B-0135, B-0139, B-0147) | in force |
 
 ---
 
@@ -1106,3 +1109,28 @@ run in another folder. `HelperContext.build_dir` (required; only `docs/engine.py
 pass its `ctx.build_dir` yet: `core/graph/` was another seam task's while this one ran (B-0147). Every caller today
 builds a product into its own build folder (`ecr/diff.py` builds the other version at its own root), so the default
 is the build folder in fact; the one argument closes it.
+## S-165 — Seam: a model family's membership key, recorded wherever the family is listed (2026-11-02)
+A v0.5 defect found in v0.6 wave 2 (S-158, B-0140): listing `product.families["device"]` recorded only the objects seen, so a
+new file reran no check, report or rule that listed the family. The key is `set://<family name>` (`set` already holds the
+system's sets; a family named `parts`, `asms`, `reqs`, `params`, `docs`, `decs`, `ecrs`, `signoffs` or `ifaces` is refused at
+`register`), valued as the hash of the sorted ids. Not forgettable: `product.families[name]` is a `Members` mapping
+(`core/graph/recording.py`); used in any way while a rule runs (the runner sets the read log around `rule.run`) it records the
+key, so check stages, sections, doc helpers and other domains' rules do, the electrical domain unedited. The family's own
+domain's rules record nothing (its `make_rules` lists the family each build; ids as an input, as S-156; its static reads stay
+whole); impact names all that domain's rules for an added file. Rejected: a `members(ctx, family)` helper (needs a domain edit).
+Impact: an edit naming an object that does not exist yet touches its kind's key; a removal has no edit form (B-0148). [revisit]
+## S-166 — Seam: an interface field read is valued by its field (2026-11-02)
+A v0.5 defect found in v0.6 wave 2 (S-157, B-0136): `iface://x#<path>`, as `ctx.proxy` records it, was valued as the whole
+resolved joint while `n2f impact` matched it by field, so an edit of another field reran a rule impact did not name. Now the
+read is valued as that field of the interface as written (a `param://` stays the reference, which is what the proxy handed
+the rule); a bare `iface://x` stays the resolved joint, so no part, build plan or check key moves. Rejected: impact widening a
+field read to the whole joint (reruns more than the rule needs). Manual pages read joints through `I`, which also records the
+joint whole, so their staleness is unchanged. S-157's reason to record an entry whole is gone; whole stays correct.
+## S-167 — Seam: `rule:<x>` keys and `#props.` figures in the contract; helpers' build folder (2026-11-02)
+Two v0.5 contract gaps found in v0.6 wave 2. B-0135 (S-156): `docs/domains.md` §3.2 now says a `rule:<x>` key in `produces`
+or `also_produces` is the output hash of the rule whose id is `<x>`, and `build_rules` refuses a rule producing `rule:<x>`
+when its family has no rule `<x>` (an error naming the family and the rule; every shipped rule already complies). B-0139
+(S-158): §3.3 says a verify kind's computed figure is selected as `#props.<figure>`, with an example; letting a kind declare
+its selectors was rejected (a contract field to cover a sentence). §3.1, §3.4 and §7 say the membership and field reads.
+B-0147 (S-164): the docs rule passes its `ctx.build_dir` to `render_doc`, so `h.build_dir` is the folder the rule builds in;
+`tests/unit/test_graph_family_reads.py` renders a page into another build folder and reads the helper's answer.

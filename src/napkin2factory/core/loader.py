@@ -19,6 +19,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from napkin2factory.core.errors import ModelError, Problems
+from napkin2factory.core.graph.recording import Members
 from napkin2factory.core.model import (
     DecisionsFile,
     DocMeta,
@@ -181,7 +182,8 @@ def _load(root: Path) -> tuple[Product, Problems]:
             fam.uri_scheme,
             objects,
         )
-        product.families[fam.name] = objects
+        # listing the family inside a rule's run records set://<family> (S-165)
+        product.families[fam.name] = Members(fam.name, objects)
     _validate_uris(product, problems)
     for check in REF_CHECKS:
         check(product, problems)

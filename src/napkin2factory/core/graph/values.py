@@ -13,24 +13,25 @@ from typing import Any
 
 from napkin2factory.core.graph.hashing import sha256_file, sha256_json
 from napkin2factory.core.graph.manifest import Manifest
+from napkin2factory.core.graph.recording import MEMBERSHIP
 from napkin2factory.core.loader import Product
 from napkin2factory.core.units import format_quantity, is_quantity
 from napkin2factory.core.uris import Uri, UriError
 
 RULE_FOR_SCHEME = {"part": "part:", "asm": "asm:", "doc": "doc:", "drawing": "drawing:"}
 
-#: Membership keys (gate-1 B1): the *set* of ids of a kind, so adding or removing an
-#: object changes every rule that enumerates it.
-MEMBERSHIP: dict[str, str] = {
-    "set://parts": "parts",
-    "set://asms": "assemblies",
-    "set://reqs": "requirements",
-    "set://params": "parameters",
-    "set://docs": "docs",
-    "set://decs": "decisions",
-    "set://ecrs": "ecrs",
-    "set://signoffs": "signoffs",
-    "set://ifaces": "interfaces",
+
+#: The scheme of each core kind whose objects have a membership key (an edit naming an id
+#: that does not exist yet is a file added: impact touches the key, S-165).
+MEMBERSHIP_BY_SCHEME: dict[str, str] = {
+    "part": "set://parts",
+    "asm": "set://asms",
+    "req": "set://reqs",
+    "param": "set://params",
+    "doc": "set://docs",
+    "dec": "set://decs",
+    "ecr": "set://ecrs",
+    "iface": "set://ifaces",
 }
 
 
@@ -110,6 +111,8 @@ def value_of(
         return entry.output_hash if entry else "unbuilt"
     if key in MEMBERSHIP:
         return membership_value(product, key)
+    if key.startswith("set://"):
+        return family_membership_value(product, key[len("set://") :])
     if key in ("style:geometry", "style:look", "style:form"):
         from napkin2factory.core.errors import N2FError
         from napkin2factory.core.style import (
@@ -165,6 +168,11 @@ def value_of(
 
         if uri.id not in product.interfaces:
             return "missing"
+        if uri.selector:
+            # a field read is the field as the file writes it (a `param://` stays the
+            # reference), as `n2f impact` matches it: an edit of another field of the joint
+            # reruns nothing that read only this one (S-166)
+            return _walk(product.interfaces[uri.id], uri.selector)
         try:
             return sha256_json(
                 resolve_interface(product, product.interfaces[uri.id]).model_dump(mode="json")
@@ -229,10 +237,15 @@ def _domain_value(product: Product, manifest: Manifest, key: str) -> str | None:
     )
     if objects is None:
         return None
-    if ident not in objects:
+    if not dict.__contains__(objects, ident):  # the core's lookup records nothing (S-165)
         return "missing"
-    cur: Any = objects[ident]
-    for name in selector.split(".") if selector else []:
+    return _walk(dict.__getitem__(objects, ident), tuple(selector.split(".")) if selector else ())
+
+
+def _walk(obj: Any, selector: tuple[str, ...]) -> str:
+    """The value at ``selector`` inside a model object (``"missing"`` when a step is absent)."""
+    cur: Any = obj
+    for name in selector:
         if isinstance(cur, dict) and name in cur:
             cur = cur[name]
         elif hasattr(cur, name):
@@ -240,6 +253,21 @@ def _domain_value(product: Product, manifest: Manifest, key: str) -> str | None:
         else:
             return "missing"
     return _fmt(cur)
+
+
+def family_membership_value(product: Product, family: str) -> str:
+    """``set://<family>``: hash of a domain family's sorted ids (S-165).
+
+    Adding or removing a file of the family changes it.  A family no installed domain
+    registers is not a key the core can value (``unknown``: the read reruns its rule once).
+    """
+    if family in product.families:
+        return sha256_json(sorted(dict.keys(product.families[family])))
+    from napkin2factory.core.registry import registry
+
+    if any(f.name == family for f in registry().model_families()):
+        return sha256_json([])
+    return "unknown:set://" + family
 
 
 #: The schemes :func:`value_of` itself knows; any other is asked of the domains.

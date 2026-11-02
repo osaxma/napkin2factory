@@ -18,6 +18,7 @@ from typing import Any
 from napkin2factory.core.errors import N2FError
 from napkin2factory.core.graph.hashing import combine, sha256_file
 from napkin2factory.core.graph.manifest import Entry, Manifest
+from napkin2factory.core.graph.recording import recording_into
 from napkin2factory.core.graph.rules import (
     Rule,
     RunContext,
@@ -145,6 +146,23 @@ def prune(manifest: Manifest, rules: list[Rule], build_dir: Path) -> list[str]:
     return removed
 
 
+def _own_families(kind: str) -> frozenset[str]:
+    """The model families of the domain whose rule family is ``kind`` (S-165).
+
+    That domain makes its rules from them at every build (``make_rules``) and declares what
+    its rules depend on (their inputs and static reads), so the core records no listing of
+    them in its rules.  The system's own rules (the in-place domain: checks, report, manual
+    pages, which run every domain's stages, sections and helpers) record every family.
+    """
+    from napkin2factory.core.registry import UnknownName, registry
+
+    try:
+        domain = registry().owner("rule family", kind)
+    except UnknownName:
+        return frozenset()
+    return frozenset() if domain.in_place else frozenset(f.name for f in domain.families)
+
+
 def run_build(
     product: Product,
     target: str = "all",
@@ -212,7 +230,9 @@ def run_build(
         t0 = time.perf_counter()
         ctx.log = _new_log()  # this rule's reads through ctx.proxy / ctx.log (D5, S-138)
         try:
-            result = rule.run(ctx)
+            # a family listed in the run is a read, but not one of the rule's own domain (S-165)
+            with recording_into(ctx.log, skip=_own_families(rule.kind)):
+                result = rule.run(ctx)
         except N2FError:
             raise
         except Exception as exc:

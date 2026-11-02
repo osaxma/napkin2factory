@@ -17,6 +17,9 @@ field of it is read, or the object itself is used whole (``str()``, ``==``, iter
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any
 
 
@@ -141,3 +144,125 @@ def _field_names(obj: Any) -> list[str]:
         return [str(k) for k in obj]
     fields = getattr(type(obj), "model_fields", None)
     return list(fields) if fields is not None else []
+
+
+# ---- a model family's membership (S-165) -------------------------------------------------
+
+#: Membership keys (gate-1 B1): the *set* of ids of a kind, so adding or removing an
+#: object changes every rule that enumerates it.  A domain's family has its own,
+#: ``set://<family>`` (:func:`membership_key`), so no family may take one of these names.
+MEMBERSHIP: dict[str, str] = {
+    "set://parts": "parts",
+    "set://asms": "assemblies",
+    "set://reqs": "requirements",
+    "set://params": "parameters",
+    "set://docs": "docs",
+    "set://decs": "decisions",
+    "set://ecrs": "ecrs",
+    "set://signoffs": "signoffs",
+    "set://ifaces": "interfaces",
+}
+
+#: The read log of the rule now running and the families it does not record (the runner sets
+#: both around ``rule.run``), so a family listed anywhere inside the run, by a check stage, a
+#: report section, a doc helper or another domain's rule, records its membership key (S-165).
+_CURRENT_LOG: ContextVar[tuple[Any, frozenset[str]] | None] = ContextVar(
+    "n2f_current_read_log", default=None
+)
+
+
+def membership_key(family: str) -> str:
+    """``set://<family>``: the sorted ids of a domain's model family, as a recorded read."""
+    return f"set://{family}"
+
+
+@contextmanager
+def recording_into(log: Any, skip: frozenset[str] = frozenset()) -> Iterator[None]:
+    """Within the block, listing a family records its membership key in ``log``.
+
+    ``skip`` names the families that record nothing: the runner passes those of the domain
+    whose rule is running, since that domain makes its rules from its own families at every
+    build and declares what they depend on itself (inputs, static reads; S-165).
+    """
+    token = _CURRENT_LOG.set((log, skip))
+    try:
+        yield
+    finally:
+        _CURRENT_LOG.reset(token)
+
+
+class Members(dict[str, Any]):
+    """One model family's objects by id (``product.families[name]``) that records its listing.
+
+    Any use of the mapping (iterating it, its length, ``in``, a lookup by id, ``get``,
+    ``dict(...)``) during a rule's run records ``set://<family>`` in that rule's read log, so
+    adding or removing a file reruns every check stage, report section, doc helper and other
+    domain's rule that listed the family, without the domain having to remember it (S-165).
+    The rules of the domain that registers the family record nothing (see
+    :func:`recording_into`).  The core's own lookups (valuing a read, impact) use ``dict``'s
+    methods directly and record nothing.
+    """
+
+    def __init__(self, family: str, objects: dict[str, Any] | None = None) -> None:
+        """The objects of ``family`` (id → object)."""
+        super().__init__(objects or {})
+        self.family = family
+
+    def _record(self) -> None:
+        current = _CURRENT_LOG.get()
+        if current is not None and self.family not in current[1]:
+            current[0].add(membership_key(self.family))
+
+    def __iter__(self) -> Iterator[str]:
+        """The ids (records the listing)."""
+        self._record()
+        return super().__iter__()
+
+    def __reversed__(self) -> Iterator[str]:
+        """The ids, last first (records the listing)."""
+        self._record()
+        return super().__reversed__()
+
+    def __len__(self) -> int:
+        """How many (records the listing)."""
+        self._record()
+        return super().__len__()
+
+    def __contains__(self, key: object) -> bool:
+        """Whether an id is one (records the listing)."""
+        self._record()
+        return super().__contains__(key)
+
+    def __getitem__(self, key: str) -> Any:
+        """The object of an id (records the listing: an absent id is a read too)."""
+        self._record()
+        return super().__getitem__(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """The object of an id, or ``default`` (records the listing)."""
+        self._record()
+        return super().get(key, default)
+
+    def keys(self) -> Any:
+        """The ids (records the listing)."""
+        self._record()
+        return super().keys()
+
+    def values(self) -> Any:
+        """The objects (records the listing)."""
+        self._record()
+        return super().values()
+
+    def items(self) -> Any:
+        """``(id, object)`` pairs (records the listing)."""
+        self._record()
+        return super().items()
+
+    def copy(self) -> dict[str, Any]:
+        """A plain copy (records the listing)."""
+        self._record()
+        return dict(super().items())
+
+    def __reduce__(self) -> Any:
+        """Pickles as the family name and a plain dict of its objects."""
+        return (Members, (self.family, dict(super().items())))

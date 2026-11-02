@@ -259,6 +259,19 @@ ModelFamily("toy", schema=ToyThing, folder="model/toy", validate_refs=validate_t
 - A read of `<scheme>://<id>#<field>` is valued from the declared field (a manual page or a
   rule that reads it reruns when it changes); a read of `<scheme>://<id>` is the output hash
   of the rule that produces it (§3.2), else the object's own hash.
+- **Listing the family is a read too, recorded for you.** `product.families["toy"]` is a
+  mapping that, used in any way inside a check stage, a report section's `data`, a doc helper
+  or another domain's rule (iterated, `.items()`, `len`, `in`, `.get(id)`, `[id]`,
+  `dict(...)`), records `set://toy` in the running rule's reads: a hash of the family's sorted
+  ids. Adding or removing a file of the family changes it, so whatever listed the family
+  reruns in the next build, and `n2f impact` names it (§7). Nothing to call. **Your own
+  rules** record no listing of your own families: `make_rules` lists them at every build, so
+  a rule that uses the whole family (a schedule, a sum) holds the ids as an input,
+  `inputs={"ids": sha256_json(sorted(things(b.product)))}`, and impact names every rule of
+  your domain when a file is added to one of your families. Because the key is
+  `set://<family name>`, a family may not be named like one of the system's own sets
+  (`parts`, `asms`, `reqs`, `params`, `docs`, `decs`, `ecrs`, `signoffs`, `ifaces`): refused
+  at `register`.
 
 ### 3.2 Build rule families — `rule_families=(RuleFamily(...),)`
 Steps of `n2f build`. `make_rules(b: RuleBuild) -> list[Rule]` returns this family's rules
@@ -312,6 +325,12 @@ def make_run(tid):
   families in it.
 - `produces="toy://"`: a downstream read of `toy://<id>` resolves to the output hash of rule
   `toy:<id>`. `also_produces` lists further keys a rule of the family produces.
+- **A `rule:<x>` key is rule `<x>`'s output.** A key `rule:<x>` in `produces` or
+  `also_produces` (a family's or a rule's) is valued as the output hash of the rule whose id
+  is `<x>`, so give the rule that id: `Rule(id="toy-summary", kind="toy",
+  produces="rule:toy-summary", ...)`, and readers record `rule:toy-summary`. The build
+  refuses a rule that produces `rule:<x>` when its family has no rule `<x>`, naming the family
+  and the rule (such a key would read "unbuilt" forever and never rerun its readers).
 - Code hash: leave `"code"` out of `inputs`; the core adds the hash of your domain's code
   (the `code` folders, else `Domain.code`, else the whole `root`), so editing your domain
   reruns your rules and nothing else. Put any other input (a parameter value, a table hash)
@@ -348,6 +367,14 @@ def evaluate_glow(ctx, req, res, evidence) -> str | None:
   and `res.detail` for more). Return `"pass"`, `"fail"`, `"warn"`, `"skip"`, or `None` when a
   person must decide. The core applies sign-offs and safety (a safety requirement always
   needs a person).
+- **A figure the kind computes is selected as `#props.<figure>`.** A selector on the target
+  must be a declared field of the object or start with `props.`; any other is refused when
+  the product loads. So a kind that reports several figures of one object takes them as
+  `props.*`:
+  ```yaml
+  verify: {kind: toy_glow, target: "toy://widget#props.brightness", op: ">=", value: 2}
+  ```
+  and `evaluate` reads the figure's name from `v.target.selector` (`("props", "brightness")`).
 - `evidence` maps a URI to a key; a sign-off (and a decided choice) is held against those
   keys and voids when one changes. For a URI of your scheme, use the output hash your rule
   wrote (the core recomputes `<scheme>://<id>` as that, or as the object's hash when no rule
@@ -395,6 +422,8 @@ def toy_check_reads(product) -> list[str]:           # what is not a model field
   records any other key.
 - `reads(product)`: further keys your rows depend on that are not model fields (your rules'
   outputs, `toy://<id>`), added to the same reads.
+- Listing a family (`sctx.product.families["toy"]`) records `set://toy` for you (§3.1), so a
+  file added or removed reruns the checks.
 - `whole_product=True` leaves the stage out of `n2f check --scope asm://<id>` (a module's
   own checks). Without it, filter your rows with `sctx.keep(<the assembly id the row belongs
   to, or None>)`.
@@ -826,7 +855,16 @@ A module that fails to import is an error naming the file.
   (`toy://widget#glow`) matches a read of that field, of a field inside it, and of the object
   read whole (`iface://x` matches an edit of `iface://x#spec.depth`); a bare key your family
   produces (`toy://widget`) is your rule's output, which the edit reaches through the rules it
-  reruns.
+  reruns. The build values a read the same way: a field read of an interface
+  (`iface://x#spec.snap`, as `ctx.proxy` records it) is that field as the file writes it, so
+  an edit of another field of the joint reruns nothing that read only this one (a `param://`
+  in the field stays the reference: record `param://<id>` too when you use its value). Read
+  whole, `iface://x` is the joint with its parameters resolved.
+- **An added file.** An edit naming an object that does not exist yet (`--set
+  toy://gizmo#glow=2` with no `model/toy/gizmo.yaml`) is that file added: it touches the
+  family's `set://toy` (§3.1), and impact names every rule that listed the family (not the
+  rule your family will make for the new object: it does not exist yet). A removed file has
+  no edit form (B-0148); the build still reruns what listed the family.
 - **Order.** Your family runs after its `after` families, before its `before` families
   and before `checks`; a target that builds a family builds every family it waits for
   (`--target docs` builds a family declared `before=("doc",)`); your stage after its

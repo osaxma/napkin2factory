@@ -191,8 +191,29 @@ def build_rules(product: Product, render: bool = True) -> list[Rule]:
             kinds = _REGISTRIES_READ.get(rule.kind, ())
             rule.inputs.update(reg.domain_inputs(*kinds))
             rule.inputs.update(table_inputs(*kinds))
+        _check_rule_keys(family.name, made)
         rules += made
     return rules
+
+
+def _check_rule_keys(family: str, made: list[Rule]) -> None:
+    """A ``rule:<x>`` key a rule produces names a rule of its family whose id is ``<x>``.
+
+    The core values a ``rule:<x>`` read as the output hash of rule ``<x>``; a key no rule's
+    id answers reads "unbuilt" forever, so whatever records it never reruns (S-167).
+    """
+    from napkin2factory.core.errors import N2FError
+
+    ids = {r.id for r in made}
+    for rule in made:
+        for key in rule.produced:
+            if key.startswith("rule:") and key.removeprefix("rule:") not in ids:
+                raise N2FError(
+                    f"rule family {family!r}: rule {rule.id!r} produces {key!r}, but a "
+                    f"`rule:<x>` key is read as the output of the rule whose id is <x>, and "
+                    f"the family has no rule {key.removeprefix('rule:')!r}; produce "
+                    f"'rule:{rule.id}' or give the rule that id"
+                )
 
 
 #: The open sets of F6 whose core half is a table, ``core/data/<file>.yaml`` (registry kind →

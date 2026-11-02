@@ -150,6 +150,7 @@ class Registry:
         if any(d.name == domain.name for d in self.domains):
             raise ValueError(f"a domain named {domain.name!r} is already registered")
         _check_release_files(domain)
+        _check_family_names(domain)
         self.domains.append(domain)
         self._check_unique()
         _apply_schemes(self)
@@ -545,6 +546,23 @@ def _apply_schemes(reg: Registry) -> None:
 
     schemes = {f.uri_scheme: f.id_pattern for f in reg.model_families()}
     uris.set_domain_schemes(schemes, reg.vocabulary("owner"))
+
+
+def _check_family_names(domain: Domain) -> None:
+    """A model family's membership key is ``set://<name>`` (S-165): not one of the system's.
+
+    ``set://parts`` already says which parts there are; a family named ``parts`` would read
+    the system's set instead of its own.  Refused at ``register``, naming the domain.
+    """
+    from napkin2factory.core.graph.recording import MEMBERSHIP
+
+    taken = sorted(k.removeprefix("set://") for k in MEMBERSHIP)
+    for f in domain.families:
+        if f.name in taken:
+            raise ValueError(
+                f"domain {domain.name!r} registers model family {f.name!r}, a name the system's "
+                f"own sets use ({', '.join(taken)}); pick another"
+            )
 
 
 def _check_release_files(domain: Domain) -> None:

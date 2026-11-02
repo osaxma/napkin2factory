@@ -242,7 +242,8 @@ def make_doc_run(doc_id: str) -> Any:
             pp = ctx.build_dir / "bom" / "build-plan.json"
             plan = json.loads(pp.read_text(encoding="utf-8")) if pp.is_file() else None
         doc = ctx.product.docs[doc_id]
-        rendered = render_doc(ctx.product, doc, rollups, plan)
+        # the helpers' h.build_dir is the folder this build writes (S-164)
+        rendered = render_doc(ctx.product, doc, rollups, plan, build_dir=ctx.build_dir)
         out_dir = ctx.build_dir / "docs" / doc_id
         out_dir.mkdir(parents=True, exist_ok=True)
         md = out_dir / "page.md"
