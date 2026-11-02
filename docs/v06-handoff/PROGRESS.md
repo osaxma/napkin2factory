@@ -19,11 +19,15 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 13:45 | Gate briefs drafted: `brief-gate-g.md` (electrician read-through from the package, then engineering), `brief-gate-h.md` (owner persona); fill the commit at gate time | — | (this commit) |
 | 14:03 | **M6 landed** (13:39–14:03, 24 min): external-box fixture (DoD 5), diff page "<label>: added/removed" (S-169), owner-session script on the external-box fixture (S-170); land gate 2 min 8 s | **count: 0 files** under core/, report/builder.py, docs/engine.py, cli/check.py (and none under domains/). Opened B-0149 (dedicated pick never in the design), B-0150 (diff block placement), B-0151 (EU 16 A cannot raise the choice), B-0152 (boundary words vs S-152) | b5530ef |
 | 14:08 | Follow-up opened for B-0149 + B-0151 (domain + calc-kit table, not core; subjects `M5: …`); M5 told to wait for it before deciding the kiln's choice | brief `brief-m5-headroom.md` | 95a00d8 |
+| 14:13 | **Headroom follow-up landed** (14:08–14:13 land; gate 2 min 45 s): EU 20 A and 32 A dedicated classes cited; `Supply.dedicated` makes the dedicated pick; no golden moved; B-0149, B-0151 closed | **count: 0 core files** | 3e115b6 (S-171) |
 
 ## In flight
-- **M5 the kiln, wired**: task `m5-kiln`, `.worktrees/m5-kiln`; last WIP: 1abba48 WIP: M5 manual rewritten around the wiring helpers, earth circuit, REQ-028/029, sign-offs.
-- **Headroom follow-up**: task `wiring-headroom`, `.worktrees/wiring-headroom` (from 95a00d8);
-  brief `brief-common.md` + `brief-m5-headroom.md`; last WIP: none yet.
+- **M5 the kiln, wired**: task `m5-kiln`, `.worktrees/m5-kiln`; last WIP 3a7cbf7 (the demo,
+  ECR-003, the demo test, Makefile `-n 4`, validate_outputs_full); told to rebase on 3e115b6 and
+  settle the kiln's choice with `dedicated: true`.
+- **Owner simulation (DoD 7)**: the overseer runs `tests/e2e/intake-transcripts/wiring-session.md`
+  (on the external-box fixture, on main) with a fresh agent playing the PM; transcript to
+  `tests/e2e/intake-transcripts/wiring-session-2026-11-02.md`.
 
 ## Next step
 Wait for the follow-up and M5 to land. After each: read the diff, run the count, record here.
