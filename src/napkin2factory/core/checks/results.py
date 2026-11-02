@@ -1,6 +1,7 @@
 """``CheckResult`` and status semantics (GRAND_PLAN M4).
 
-Statuses: ``pass`` | ``fail`` | ``warn`` | ``skip`` | ``needs-human`` | ``signed`` | ``choice``.
+Statuses: ``pass`` | ``fail`` | ``warn`` | ``skip`` | ``needs-human`` | ``signed`` | ``choice``
+| ``later``.
 Only ``fail`` blocks (``warn`` never does, D10); ``needs-human`` blocks release until a
 valid sign-off turns it into ``signed`` (D9/D25).
 
@@ -9,6 +10,10 @@ valid sign-off turns it into ``signed`` (D9/D25).
 decided (:data:`CHOICE_BLOCKS`). ``n2f decide`` records the pick as a ``DEC-`` entry and the
 row reads ``pass`` with its decision until an evidence key changes
 (:mod:`napkin2factory.core.checks.choices`). Owner text says "a choice" and "waiting on you".
+
+``later`` (F11, S-149) is a requirement a ``later`` domain leaves out of this stage ("left
+for later"): never blocking, counted apart, its check's own finding kept in ``detail.later``.
+A safety requirement never reads ``later``.
 
 A sign-off flagged ``example: true`` (shipped with the example products) keeps the row
 ``signed`` and labelled, but the summary counts it under ``example`` rather than
@@ -20,11 +25,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-Status = Literal["pass", "fail", "warn", "skip", "needs-human", "signed", "choice"]
+Status = Literal["pass", "fail", "warn", "skip", "needs-human", "signed", "choice", "later"]
 BLOCKING: frozenset[str] = frozenset({"fail"})
 HUMAN: frozenset[str] = frozenset({"needs-human"})
 #: The status of a trade-off the owner decides (F12): never blocking by itself.
 CHOICE = "choice"
+#: The status of a requirement its domain's ``later`` scope leaves out (F11, S-149).
+LATER = "later"
 #: What a choice can hold until decided (F12): a gate of the stage ladder, or nothing.
 CHOICE_BLOCKS: tuple[str, ...] = ("design", "verify", "release", "none")
 #: Keys of the summary, in display order.  ``example`` is not a row status: it counts the
@@ -38,6 +45,7 @@ SUMMARY_KEYS: tuple[str, ...] = (
     "signed",
     "choice",
     "example",
+    "later",
 )
 
 
@@ -87,6 +95,7 @@ OWNER_WORDS: dict[str, str] = {
     "needs-human": "needs your sign-off",
     "signed": "signed off",
     "choice": "a choice waiting on you",
+    "later": "left for later",
 }
 
 
@@ -117,11 +126,11 @@ def example_signoff_why(n: int) -> str:
 def summarize(results: list[CheckResult]) -> dict[str, int]:
     """Counts per status; ``signed`` holds real sign-offs only, ``example`` the example ones.
 
-    ``choice`` is a key only when a row is a choice.
+    ``choice`` and ``later`` are keys only when a row has that status.
     """
-    # ``choice`` is counted only when there is one, so a product without choices writes the
-    # summary v0.4 wrote (F16)
-    out: dict[str, int] = {k: 0 for k in SUMMARY_KEYS if k != CHOICE}
+    # counted only when there is one, so a product without choices or a later scope writes
+    # the summary v0.4 wrote (F16)
+    out: dict[str, int] = {k: 0 for k in SUMMARY_KEYS if k not in (CHOICE, LATER)}
     for r in results:
         key = "example" if is_example_signoff(r.status, r.detail) else r.status
         out[key] = out.get(key, 0) + 1

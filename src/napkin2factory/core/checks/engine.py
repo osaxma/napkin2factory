@@ -71,6 +71,9 @@ def checks_reads(product: Product) -> list[str]:
     from napkin2factory.core.registry import registry
 
     reads += decision_reads(product)  # F12: a new decision may resolve a choice
+    from napkin2factory.core.checks.stage import scope_check_reads
+
+    reads += scope_check_reads(product)  # F11: the rows a later scope leaves out (S-149)
     for stage in registry().check_stages():  # what each registered stage's rows depend on
         if stage.reads is not None:
             reads += stage.reads(product)
@@ -319,6 +322,9 @@ def collect_results(
 
     # F12: a choice is keyed on its evidence now and reads `pass` once decided (S-130)
     resolve(product, build_dir, results, {k: v.to_dict() for k, v in ectx.calc_records.items()})
+    from napkin2factory.core.checks.stage import mark_later
+
+    mark_later(product, results)  # F11: a later domain's requirements read "left for later"
     if within is not None:
         results = [r for r in results if modules.inside(r, within)]
     return results, ectx

@@ -5,7 +5,7 @@
     <a class="tile" href="#parts"><div class="v">{{ rollups.total_cost | round(2) }} USD</div><div class="k">per unit, from declared costs{% if not rollups.cost_complete %} · incomplete{% endif %}</div></a>
     <a class="tile" href="#parts"><div class="v">{{ rollups.part_count }} parts</div><div class="k">{{ rollups.custom_count }} custom · {{ rollups.total_mass | round(2) }} kg</div></a>
     <a class="tile" href="#parts"><div class="v">{{ rollups.max_lead_time }} d</div><div class="k">longest lead time</div></a>
-    <a class="tile" href="#requirements"><div class="v">{{ summary.pass + summary.signed }} / {{ req_rows | length }}</div><div class="k">requirements {{ w('pass') }}{% if summary.fail %} · {{ summary.fail }} {{ w('fail') }}{% endif %}{% if summary['needs-human'] %} · {{ summary['needs-human'] }} {{ w('needs-human') }}{% endif %}</div></a>
+    <a class="tile" href="#requirements"><div class="v">{{ summary.pass + summary.signed }} / {{ req_rows | length }}</div><div class="k">requirements {{ w('pass') }}{% if summary.fail %} · {{ summary.fail }} {{ w('fail') }}{% endif %}{% if summary['needs-human'] %} · {{ summary['needs-human'] }} {{ w('needs-human') }}{% endif %}{% if summary.later %} · {{ summary.later }} {{ w('later') }}{% endif %}</div></a>
     <a class="tile" href="#safety"><div class="v">{{ safety_reqs | selectattr('status', 'in', ['pass', 'signed']) | list | length }} / {{ safety_reqs | length }}</div><div class="k">safety requirements {{ w('pass') }}{% if summary.example %} · {{ summary.example }} example{% endif %}</div></a>
     <a class="tile" href="#rules"><div class="v">{{ rule_summary.fail + rule_summary.warn }}</div><div class="k">rule findings{% if rule_summary.fail %} · {{ rule_summary.fail }} {{ w('fail') }}{% endif %}{% if rule_summary.warn %} · {{ rule_summary.warn }} {{ w('warn') }}{% endif %}</div></a>
     <a class="tile" href="#drawings"><div class="v">{{ drawings | length }}</div><div class="k">drawings</div></a>
@@ -17,6 +17,6 @@
   </div>
   {% if waiting %}<h3>Waiting on you: {{ waiting | length }} choice{{ '' if waiting | length == 1 else 's' }}</h3>
   <div id="waiting">{% for c in waiting %}<div class="choice" id="choice-{{ loop.index }}"><p><strong>{{ c.title }}</strong> <span class="muted">({{ c.holds }})</span><br>{{ c.found }}</p><ol>{% for o in c.options %}<li>{{ o.summary }} — {{ o.what_it_takes }}.{% if o.get('cost_delta') %} Cost: {{ o.cost_delta }}.{% endif %}<br><span class="muted">To pick it:</span> <span class="mono">n2f decide {{ c.id }} --pick {{ o.id }} --by "&lt;your name&gt;"</span></li>{% endfor %}</ol></div>{% endfor %}</div>{% endif %}
-  {% if stage.scope %}<p class="scope" id="scope"><strong>Scope.</strong> {% for s in stage.scope %}{{ s.line }}{% if not loop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
+  {% if stage.scope %}<p class="scope" id="scope"><strong>Scope.</strong> {% for s in stage.scope %}{{ s.line }}{% if s.get('left_for_later') %}; left for later with it: {{ s.left_for_later | join(', ') }}{% endif %}.{% if not loop.last %} {% endif %}{% endfor %}</p>{% endif %}
   <p class="next">Next: {{ stage.next_step | replace('`', '') }}</p>
 </section>

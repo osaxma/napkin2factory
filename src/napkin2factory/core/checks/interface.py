@@ -123,6 +123,16 @@ def _name(product: Product, uri: str) -> str:
     return part.name if part is not None else uri
 
 
+def _stubs(product: Product, iface: Interface) -> list[str]:
+    """The parties of ``iface`` that are modules supplied from elsewhere (F11)."""
+    out = []
+    for party in map(str, iface.parties):
+        asm = product.assemblies.get(party.removeprefix("asm://"))
+        if party.startswith("asm://") and asm is not None and asm.build == "external":
+            out.append(party)
+    return out
+
+
 def lower_name(name: str) -> str:
     """A name inside a sentence: "Sheet-metal enclosure" → "sheet-metal enclosure".
 
@@ -284,6 +294,14 @@ def _core_report(product: Product, iface: Interface, build_dir: Path) -> Interfa
             else:
                 rep.parties[str(party)] = {"status": "pass", "face": faces[0]}
     if rep.status == "fail":
+        return rep
+    if stubs := _stubs(product, iface):
+        # F11: a module supplied from elsewhere is fitted as its maker says, not by faces or
+        # holes this product designs (gate F, concern 9; S-152)
+        from napkin2factory.core.build_units import EXTERNAL_WORDS
+
+        rep.message = f"fits {_name(product, stubs[0])}, {EXTERNAL_WORDS}"
+        rep.alignment = {"status": "skip", "message": f"{EXTERNAL_WORDS}: nothing to line up"}
         return rep
     if len(shaped) == 1 and len(rep.parties) == 2:
         # one party is BOM-only (a bought gland in a box wall): nothing to match or line up

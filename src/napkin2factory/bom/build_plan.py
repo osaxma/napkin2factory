@@ -166,10 +166,47 @@ def _arrival(units: BuildUnits, uid: str, items: list[dict[str, Any]], party: st
     return len(items) + 1
 
 
+def _stub(product: Product, party: str) -> bool:
+    """True when ``party`` is a module supplied from elsewhere (``build: external``, F11)."""
+    a = product.assemblies.get(party.removeprefix("asm://")) if party.startswith("asm://") else None
+    return a is not None and a.build == "external"
+
+
+def joint_how(product: Product, iface_id: str, holes: int, has_hardware: bool) -> str:
+    """How a joint is made: its kind's words, or, for a joint to a stub, its own description.
+
+    A module supplied from elsewhere is fitted however its maker says (a cable entry, a
+    bracket, a plug), so "faces that meet … (welded, riveted or clamped)" would be a guess
+    (gate F, concern 9; S-152): the interface's ``description`` says it, else the stub's
+    words do.
+    """
+    iface = product.interfaces[iface_id]
+    stubs = [str(p) for p in iface.parties if _stub(product, str(p))]
+    if not stubs:
+        return joint_kind_words(iface.kind, holes, has_hardware)
+    if iface.description:
+        return iface.description.strip()
+    return f"fitted to {_name(product, stubs[0])}, {EXTERNAL_WORDS}"
+
+
 def _sides(product: Product, units: BuildUnits, parties: tuple[str, str]) -> list[dict[str, Any]]:
-    """Each party of a joint with the build unit it is built into (P13)."""
-    out = []
+    """Each party of a joint with the build unit it is built into (P13).
+
+    A stub is built into no unit of this product: its side says ``supplied`` (F11, S-152).
+    """
+    out: list[dict[str, Any]] = []
     for party in parties:
+        if _stub(product, party):
+            out.append(
+                {
+                    "part": party,
+                    "name": _name(product, party),
+                    "unit": None,
+                    "unit_name": None,
+                    "supplied": EXTERNAL_WORDS,
+                }
+            )
+            continue
         uid = units.unit_of(units.tree.home(party))
         out.append(
             {
@@ -237,7 +274,7 @@ def derive_build_plan(product: Product, log: ReadLog | None = None) -> dict[str,
                     "parties": list(j.parties),
                     "words": plan_joint_words(product, j.iface),
                     "kind": kind,
-                    "how": joint_kind_words(kind, j.holes, bool(j.hardware)),
+                    "how": joint_how(product, j.iface, j.holes, bool(j.hardware)),
                     "sides": _sides(product, units, j.parties),
                     "closes_in": f"asm://{j.closes_in}",
                     "occurrences": j.occurrences,

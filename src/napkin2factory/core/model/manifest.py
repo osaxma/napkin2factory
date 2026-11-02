@@ -28,8 +28,26 @@ class ProductInfo(Model):
 #: Where a domain's work stands in this product (F11): ``in`` (done here), ``external`` (done
 #: elsewhere; a stub module stands for it) or ``later`` (left for a later stage).
 ScopeState = Literal["in", "external", "later"]
-#: The owner's words for each state (docs/vocabulary.md: in / done elsewhere / later).
-SCOPE_WORDS: dict[str, str] = {"in": "in", "external": "done elsewhere", "later": "later"}
+#: The owner's words for each state, the one table every surface says them from (S-148):
+#: ``n2f status``, ``n2f check``, the report and the package cover (docs/vocabulary.md).
+SCOPE_WORDS: dict[str, str] = {
+    "in": "done here",
+    "later": "left for later",
+    "external": "done elsewhere",
+}
+#: What each state means, said after its word (gate F, concern 6: "later" alone read like
+#: "done elsewhere"); ``in`` needs no gloss.
+SCOPE_MEANS: dict[str, str] = {
+    "in": "",
+    "later": "not designed here yet",
+    "external": "supplied, not built here",
+}
+
+
+def scope_words(state: str) -> str:
+    """A state in owner words with its meaning: "left for later (not designed here yet)"."""
+    means = SCOPE_MEANS.get(state, "")
+    return SCOPE_WORDS[state] + (f" ({means})" if means else "")
 
 
 class ScopeEntry(Model):
@@ -54,13 +72,21 @@ class ScopeEntry(Model):
         return self
 
 
-def scope_line(domain: str, entry: ScopeEntry, decision_title: str | None = None) -> str:
-    """One scope line in owner words (F11): "Electrical: later — <note> (DEC-xxx)".
+def scope_line(
+    domain: str,
+    entry: ScopeEntry,
+    decision_title: str | None = None,
+    owner_word: str | None = None,
+) -> str:
+    """One scope line in owner words (F11): "Wiring: left for later (…) — <note> (DEC-xxx)".
 
-    The note is the entry's own, else the decision's title; the decision id closes the line
-    so the owner can find it in the decisions list.
+    The state is said with its meaning (:func:`scope_words`).  The domain is said by
+    ``owner_word`` (an installed domain's own word, S-150), else its key capitalised.  The
+    note is the entry's own, else the decision's title; the decision id closes the line so
+    the owner can find it in the decisions list.
     """
-    text = f"{domain.capitalize()}: {SCOPE_WORDS[entry.state]}"
+    word = owner_word or domain.capitalize()
+    text = f"{word}: {scope_words(entry.state)}"
     note = entry.note or decision_title
     if note:
         text += f" — {note}"

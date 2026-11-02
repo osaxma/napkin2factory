@@ -238,10 +238,11 @@ def _req_words(product: Product, rid: str) -> str:
 
 
 def cover_notes(product: Product, example_ids: list[str]) -> list[str]:
-    """The cover's paragraphs before the scope: a demonstration, and the choices made (F12).
+    """The cover's paragraphs before the scope: a demonstration, what is left out, the choices.
 
     A Revision released on EXAMPLE sign-offs says so first, naming each requirement, so a
-    shop never takes a demonstration for a reviewed design (gate F, concern 17).  Each choice
+    shop never takes a demonstration for a reviewed design (gate F, concern 17).  Then what
+    the package does not hold (:func:`not_included`, gate F, concern 6).  Each choice
     decided with ``n2f decide`` is listed with its decision, so the package says why the
     design is the way it is where a check offered two.
     """
@@ -257,6 +258,9 @@ def cover_notes(product: Product, example_ids: list[str]) -> list[str]:
             f"reviews, for: {named}. A qualified person must review and sign each of these "
             "before anything is made from this package."
         )
+    left_out = not_included(product)
+    if left_out:
+        out.append("Not included in this package:\n" + "\n".join(left_out))
     picks = []
     for rec in decided_choices(product).values():
         dec = product.decisions.get(rec.decision)
@@ -265,6 +269,47 @@ def cover_notes(product: Product, example_ids: list[str]) -> list[str]:
         picks.append(f"- {title} ({rec.decision}, chosen by {rec.by}{later})")
     if picks:
         out.append("Choices made:\n" + "\n".join(picks))
+    return out
+
+
+def not_included(product: Product) -> list[str]:
+    """One cover bullet per domain this package leaves out (F11, S-148).
+
+    A ``later`` domain ("left for later, not designed here yet") names the requirements left
+    out with it and the safety ones that still need a sign-off; an ``external`` one ("done
+    elsewhere, supplied, not built here") its stand-in module.  Each names its decision with
+    its title, so the shop knows the gap is meant.
+    """
+    from napkin2factory.core.checks.stage import (
+        domain_word,
+        later_requirements,
+        requirement_words,
+    )
+    from napkin2factory.core.model.manifest import SCOPE_MEANS, SCOPE_WORDS
+
+    later = later_requirements(product)
+    out = []
+    for domain, entry in product.manifest.scope.items():
+        if entry.state == "in":
+            continue
+        dec = product.decisions.get(entry.decision) if entry.decision else None
+        why = f"; {entry.decision}" if entry.decision else ""
+        why += f" — {dec.title}" if dec is not None and dec.title else ""
+        state = f"{SCOPE_WORDS[entry.state]}, {SCOPE_MEANS[entry.state]}"
+        line = f"- {domain_word(domain)} ({state}{why})."
+        if entry.state == "later":
+            rids = later.get(domain, [])
+            left = [
+                requirement_words(product, r) for r in rids if not product.requirements[r].safety
+            ]
+            safety = [requirement_words(product, r) for r in rids if product.requirements[r].safety]
+            if left:
+                line += f" Left for later with it: {', '.join(left)}."
+            if safety:
+                line += f" About safety, and still to be signed off: {', '.join(safety)}."
+        elif entry.stub is not None and entry.stub.id in product.assemblies:
+            line += f" It stands in the model as {product.assemblies[entry.stub.id].name}."
+        out.append(line)
     return out
 
 

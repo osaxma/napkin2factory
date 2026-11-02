@@ -41,8 +41,10 @@ from napkin2factory.core.checks.results import (
 from napkin2factory.core.graph.manifest import Manifest
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model.concepts import CONCEPT_STATUSES as CARD_STATUSES
+from napkin2factory.core.model.manifest import SCOPE_WORDS
 
 if TYPE_CHECKING:
+    from napkin2factory.core.checks.results import CheckResult
     from napkin2factory.core.domain import Domain, GateRowState
     from napkin2factory.core.model.requirements import Requirement
 
@@ -140,23 +142,61 @@ class StageReport:
 # ---- scope (F11) ----------------------------------------------------------------------------
 
 
+def domain_word(name: str) -> str:
+    """How the owner says a domain (S-150): "Wiring", never a bare key when it has a word.
+
+    An installed domain says itself by its owner vocabulary term named like the domain
+    (``vocabulary={"owner": {"<name>": "wiring"}}``), else by its ``title``; a domain that is
+    not installed (a scope key a product names before its domain exists) is its key,
+    capitalised.
+    """
+    d = _installed(name)
+    word = ""
+    if d is not None:
+        word = d.vocabulary.get("owner", {}).get(name, "") or d.title
+    word = word or name
+    return word[:1].upper() + word[1:]
+
+
+def requirement_words(product: Product, rid: str) -> str:
+    """A requirement as the owner reads it: its id with its title (gate F, concern 15)."""
+    req = product.requirements.get(rid)
+    return f"{rid} ({req.title})" if req is not None and req.title else rid
+
+
 def scope_entries(product: Product) -> list[dict[str, Any]]:
-    """The declared scope in ``n2f.yaml`` order, each with its owner line (F11)."""
+    """The declared scope in ``n2f.yaml`` order, each with its owner line (F11).
+
+    A ``later`` domain that leaves requirements out lists them, with their titles, under
+    ``left_for_later`` (S-149), so the scope line names what waits; an ``external`` domain
+    with no module standing for it carries ``missing_stub``, the owner's next step (S-151).
+    """
     from napkin2factory.core.model.manifest import scope_line
 
+    stubless = missing_stubs(product)
     out: list[dict[str, Any]] = []
     for domain, entry in product.manifest.scope.items():
         dec = product.decisions.get(entry.decision) if entry.decision else None
-        out.append(
-            {
-                "domain": domain,
-                "state": entry.state,
-                "decision": entry.decision,
-                "note": entry.note,
-                **({"stub": str(entry.stub)} if entry.stub is not None else {}),
-                "line": scope_line(domain, entry, dec.title if dec is not None else None),
-            }
-        )
+        word = domain_word(domain)
+        item: dict[str, Any] = {
+            "domain": domain,
+            "state": entry.state,
+            "decision": entry.decision,
+            "note": entry.note,
+            **({"stub": str(entry.stub)} if entry.stub is not None else {}),
+            "line": scope_line(domain, entry, dec.title if dec is not None else None, word),
+        }
+        if entry.state == "later":
+            left = [
+                requirement_words(product, r)
+                for r in later_requirements(product)[domain]
+                if not product.requirements[r].safety
+            ]
+            if left:
+                item["left_for_later"] = left
+        if domain in stubless:
+            item["missing_stub"] = stubless[domain]
+        out.append(item)
     return out
 
 
@@ -202,27 +242,120 @@ def later_requirements(product: Product) -> dict[str, list[str]]:
     }
 
 
+def mark_later(product: Product, results: list[CheckResult]) -> None:
+    """A requirement a ``later`` domain leaves out reads ``later`` in the checks (S-149).
+
+    Its own status, counted apart from "needs your sign-off" (gate F, concern 7): the check
+    still runs, and what it found stays in ``detail.later`` (``status``, ``message``) for
+    the day the scope says ``in``.  A safety requirement is never left for later: its row is
+    untouched and still blocks.
+    """
+    from napkin2factory.core.checks.results import LATER
+
+    owner: dict[str, str] = {}
+    for domain, rids in later_requirements(product).items():
+        for rid in rids:
+            owner.setdefault(rid, domain)  # n2f.yaml order: the first later domain says it
+    if not owner:
+        return
+    for r in results:
+        rid = r.id.removeprefix("req://")
+        if r.kind != "requirement" or rid not in owner or product.requirements[rid].safety:
+            continue
+        domain = owner[rid]
+        entry = product.manifest.scope[domain]
+        dec = f" ({entry.decision})" if entry.decision else ""
+        r.detail = {
+            **r.detail,
+            "later": {
+                "domain": domain,
+                "decision": entry.decision,
+                "status": r.status,
+                "message": r.message,
+            },
+        }
+        r.status = LATER
+        r.message = (
+            f"{domain_word(domain)} is left for later{dec}: not checked until it is designed here"
+        )
+
+
+def scope_check_reads(product: Product) -> list[str]:
+    """What :func:`mark_later` depends on, as recorded reads of the ``checks`` rule (S-149).
+
+    The state of every domain a requirement could belong to (declared, installed, or named by
+    a tag or category; "missing" until declared), so a first ``later`` reruns the checks; and,
+    once a domain is ``later``, its decision and each requirement's tags, category and
+    allocation, so a requirement newly tagged moves its row.  A scope note edit reruns nothing.
+    """
+    from napkin2factory.core.graph.values import SCOPE_KEY
+    from napkin2factory.core.registry import registry
+
+    names = set(product.manifest.scope) | {d.name for d in registry().domains}
+    for req in product.requirements.values():
+        names |= set(req.tags)
+        if req.category:
+            names.add(req.category)
+    reads = [f"{SCOPE_KEY}#{d}.state" for d in sorted(names)]
+    later = later_domains(product)
+    if later:
+        reads += [f"{SCOPE_KEY}#{d}.decision" for d in later]
+        for rid in product.requirements:
+            reads += [f"req://{rid}#{f}" for f in ("tags", "category", "allocation")]
+    return reads
+
+
+def missing_stubs(product: Product) -> dict[str, str]:
+    """``external`` domain → the owner's next step, for each with no module standing for it.
+
+    The same cases validation refuses (F11); ``n2f status`` still shows the product with this
+    as its first bullet (gate F, concern 10, S-151).
+    """
+    stubs = {aid for aid, a in product.assemblies.items() if a.build == "external"}
+    out: dict[str, str] = {}
+    for domain, entry in product.manifest.scope.items():
+        if entry.state != "external":
+            continue
+        if entry.stub is not None:
+            if entry.stub.id in product.assemblies:
+                continue
+            file, uri = f"model/assemblies/{entry.stub.id}.yaml", str(entry.stub)
+        elif stubs:
+            continue
+        else:
+            file, uri = "model/assemblies/<id>.yaml", "asm://<id>"
+        out[domain] = (
+            f"{domain_word(domain)} is done elsewhere, but nothing in the product shows where "
+            f"it fits yet: your agent adds a stand-in module, {file}, with `build: external`, "
+            "its `ports:` (the joints it fits by) and no children, lists it in the assembly "
+            f"it fits into and names it in n2f.yaml as `stub: {uri}`"
+        )
+    return out
+
+
 def _scope_note(product: Product, domain: str, waiting: list[str], gate: str) -> dict[str, str]:
     """The row a ``later`` domain leaves under a gate: what is left out, never silently."""
     entry = product.manifest.scope[domain]
-    head = "later" + (f" ({entry.decision})" if entry.decision else "")
+    head = SCOPE_WORDS["later"] + (f" ({entry.decision})" if entry.decision else "")
     safety = [r for r in waiting if product.requirements[r].safety]
-    left = [r for r in waiting if r not in safety]
+    left = [requirement_words(product, r) for r in waiting if r not in safety]
     what = "checked" if gate == "verify" else "designed"
     if gate == "verify" and left:
-        noun = "requirement waits" if len(left) == 1 else "requirements wait"
-        tail = f"{len(left)} {noun} for it: {', '.join(left)}"
+        noun = "requirement" if len(left) == 1 else "requirements"
+        tail = f"{len(left)} {noun} left for later with it: {', '.join(left)}"
     elif gate == "verify":
-        tail = "no requirement waits for it"
+        tail = "no requirement is left for later with it"
     else:
         tail = "its rows wait for it"
     text = f"{head} — not {what} at this stage; {tail}"
     if safety:
+        named = ", ".join(requirement_words(product, r) for r in safety)
         text += (
-            f"; {', '.join(safety)} {'is' if len(safety) == 1 else 'are'} about safety and "
-            "still need" + ("s" if len(safety) == 1 else "") + " a sign-off"
+            f"; {named} {'is' if len(safety) == 1 else 'are'} about safety and still "
+            + ("needs" if len(safety) == 1 else "need")
+            + " a sign-off"
         )
-    return {"title": domain.capitalize(), "summary": text, "scope": "later"}
+    return {"title": domain_word(domain), "summary": text, "scope": "later"}
 
 
 def example_signoff_hint(requirement_ids: list[str]) -> str:
@@ -361,7 +494,7 @@ def check_rows_state(build_dir: Path, kind: str, words: dict[str, str]) -> GateR
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["status"]] = counts.get(r["status"], 0) + 1
-    order = ("pass", "fail", "needs-human", "warn", "skip", "signed")
+    order = ("pass", "fail", "needs-human", "warn", "skip", "signed", "later")
     parts = [f"{counts[k]} {words.get(k, k)}" for k in order if counts.get(k)]
     noun = "check" if len(rows) == 1 else "checks"
     return GateRowState(f"{len(rows)} {noun}: " + ", ".join(parts))
@@ -398,7 +531,8 @@ def compute_stage(
         )
     gates.append(Gate("intake", not intake_blockers, intake_blockers))
     # Design
-    design_blockers: list[str] = []
+    # F11: work done elsewhere with no module standing for it comes first (S-151)
+    design_blockers: list[str] = list(missing_stubs(product).values())
     # owner words (gate D, N5): parts and assemblies by name, never their ids
     for part in product.custom_parts():
         if not part.has_geometry:
@@ -408,6 +542,8 @@ def compute_stage(
         if f"part:{part.id}" not in manifest.entries:
             design_blockers.append(f"{part.name}: not built yet — run `n2f build`")
     for asm in product.assemblies.values():
+        if asm.build == "external":
+            continue  # supplied, not built here (F11): never "not built yet" (S-152)
         if f"asm:{asm.id}" not in manifest.entries:
             design_blockers.append(f"{asm.name}: not built yet — run `n2f build`")
     if not product.parts:
@@ -457,7 +593,7 @@ def compute_stage(
             if not product.requirements[rid].safety
         }
         for r in data.get("results", []):
-            if r["id"] in excluded:
+            if r["id"] in excluded or r["status"] == "later":
                 continue
             if r["status"] == "fail":
                 # a requirement keeps its REQ id (the owner's table shows it); other rows

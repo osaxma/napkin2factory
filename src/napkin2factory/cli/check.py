@@ -32,6 +32,7 @@ STATUS_STYLE = {
     "needs-human": "magenta",
     "signed": "cyan",
     "choice": "blue",
+    "later": "dim",  # F11: left for later, never an action now (S-149)
     "example": "yellow",  # summary-only key: example sign-offs are not reviews
 }
 #: The order of the non-requirement rows: what blocks first (gate D).
@@ -41,8 +42,9 @@ STATUS_ORDER = {
     "choice": 2,
     "warn": 3,
     "skip": 4,
-    "signed": 5,
-    "pass": 6,
+    "later": 5,
+    "signed": 6,
+    "pass": 7,
 }
 OWNER_WORDS = {
     "pass": "OK",
@@ -52,6 +54,7 @@ OWNER_WORDS = {
     "needs-human": "needs your sign-off",
     "signed": "signed off",
     "choice": "a choice waiting on you",
+    "later": "left for later",
 }
 
 
@@ -210,7 +213,7 @@ def status(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
 
     root = product_root(dir)
     warn_if_pin_excludes(root, json_out)
-    product = load_product(root)
+    product = _load_for_status(root)
     rep = compute_stage(product)
     if json_out:
         waiting = waiting_on_you(product)  # only when there is one: v0.4's JSON otherwise (F16)
@@ -252,6 +255,31 @@ def print_scope_rows(scope: list[dict[str, str]]) -> None:
     console.print("  Scope [dim](what this product covers)[/dim]")
     for entry in scope:
         console.print(f"      {escape(entry['line'])}")
+        if entry.get("missing_stub"):  # F11: the first thing to fix (S-151)
+            console.print(f"        [dim]•[/dim] {escape(entry['missing_stub'])}")
+        if entry.get("left_for_later"):  # what waits with it, named (S-149)
+            console.print(
+                f"        [dim]left for later with it: {escape(', '.join(entry['left_for_later']))}"
+                "[/dim]"
+            )
+
+
+def _load_for_status(root: Path):  # type: ignore[no-untyped-def]
+    """The product for ``n2f status``, also when work done elsewhere has no stand-in module.
+
+    That one problem is the status's first bullet (gate F, concern 10; S-151), so the owner
+    still sees where the product stands; any other problem stops as ``n2f validate`` does.
+    """
+    from napkin2factory.core.checks.stage import missing_stubs
+    from napkin2factory.core.loader import validate
+
+    product, problems = validate(root)
+    if product is None:
+        return load_product(root)  # raises with every problem, as before
+    stubless = {f"scope.{d}" for d in missing_stubs(product)}
+    if any(not (p.rule == "external" and p.subject in stubless) for p in problems.errors):
+        return load_product(root)
+    return product
 
 
 def waiting_on_you(product) -> list[dict]:  # type: ignore[no-untyped-def,type-arg]

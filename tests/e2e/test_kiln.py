@@ -80,7 +80,11 @@ def test_kiln_promoted_direction_holds_on_the_kiln_as_built(kiln: tuple[Path, fl
     from_card = {rid: r for rid, r in reqs.items() if (r.source or "").startswith("concept C-003")}
     assert len(from_card) >= 4
     for rid in from_card:
-        assert by_id[f"req://{rid}"]["status"] == "pass", by_id[f"req://{rid}"]
+        row = by_id[f"req://{rid}"]
+        # the site circuit is electrical, left for later (DEC-024): its check still runs and
+        # what it found is kept (S-149)
+        found = row["detail"]["later"]["status"] if row["status"] == "later" else row["status"]
+        assert found == "pass", row
     alcove = next(r for r in from_card.values() if r.title == "Fits the alcove with the door open")
     assert alcove.verify.kind == "geometry_prop"
     assert "995.4 mm" in by_id[f"req://{alcove.id}"]["message"]

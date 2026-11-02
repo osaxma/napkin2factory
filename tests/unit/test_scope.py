@@ -169,7 +169,7 @@ def test_requirements_belong_to_a_domain_by_tag_or_registration() -> None:
     assert not requirement_in_domain(product.requirements["REQ-001"], "wiring")
 
 
-def test_later_requirements_leave_the_verify_gate_with_a_note(rig: Path) -> None:
+def test_later_requirements_leave_the_verify_gate_with_a_note(rig: Path, tmp_path: Path) -> None:
     rep = compute_stage(load_product(rig))
     verify = next(g for g in rep.gates if g.name == "verify")
     text = "\n".join(verify.blockers)
@@ -177,13 +177,16 @@ def test_later_requirements_leave_the_verify_gate_with_a_note(rig: Path) -> None
     assert "REQ-003" in text  # a safety requirement never is
     note = next(r for r in verify.detail["rows"] if r["title"] == "Wiring")
     assert note["summary"] == (
-        "later (DEC-002) — not checked at this stage; 1 requirement waits for it: REQ-002; "
-        "REQ-003 is about safety and still needs a sign-off"
+        "left for later (DEC-002) — not checked at this stage; 1 requirement left for later "
+        "with it: REQ-002 (Harness strain relief); REQ-003 (Harness earth bond) is about safety "
+        "and still needs a sign-off"
     )
     # without the scope the same requirement blocks: nothing was hidden, only moved
-    product = load_product(rig)
-    product.manifest.scope.pop("wiring")
-    verify = next(g for g in compute_stage(product).gates if g.name == "verify")
+    root = tmp_path / "rig"
+    shutil.copytree(rig, root)
+    _edit(root, "n2f.yaml", "  wiring: {state: later, decision: DEC-002}\n", "")
+    run_build(load_product(root), render=False, quiet=True)
+    verify = next(g for g in compute_stage(load_product(root)).gates if g.name == "verify")
     assert any(b.startswith("REQ-002") for b in verify.blockers)
     assert not any(r["title"] == "Wiring" for r in verify.detail.get("rows", []))
 
@@ -191,9 +194,13 @@ def test_later_requirements_leave_the_verify_gate_with_a_note(rig: Path) -> None
 def test_status_shows_the_scope_rows(rig: Path) -> None:
     out = _cli("status", "--dir", str(rig))
     assert "Scope (what this product covers)" in out
-    assert "Electrical: done elsewhere — the controls come wired from the supplier (DEC-001)" in out
-    assert "Wiring: later — Wiring comes later (DEC-002)" in out
-    assert "Wiring: later (DEC-002) — not checked at this stage" in out
+    assert (
+        "Electrical: done elsewhere (supplied, not built here) — the controls come wired from "
+        "the supplier (DEC-001)" in out
+    )
+    assert "Wiring: left for later (not designed here yet) — Wiring comes later (DEC-002)" in out
+    assert "left for later with it: REQ-002 (Harness strain relief)" in out
+    assert "Wiring: left for later (DEC-002) — not checked at this stage" in out
     data = json.loads(_cli("status", "--dir", str(rig), "--json"))
     assert [(s["domain"], s["state"]) for s in data["scope"]] == [
         ("electrical", "external"),
@@ -228,8 +235,10 @@ def test_a_later_domains_gate_row_is_left_out(tmp_path: Path) -> None:
         assert later_requirements(product) == {"toy": ["REQ-001"]}  # its verify kind and category
         verify = next(g for g in compute_stage(product).gates if g.name == "verify")
         titles = [r["title"] for r in verify.detail["rows"]]
-        assert titles == ["Toy"]
-        assert "1 requirement waits for it: REQ-001" in verify.detail["rows"][0]["summary"]
+        assert titles == ["Toy thing"]  # the domain's own owner word (S-150)
+        assert (
+            "1 requirement left for later with it: REQ-001" in verify.detail["rows"][0]["summary"]
+        )
         warnings = [p for p in lint(product).warnings if p.rule == "L15-scope"]
         assert len(warnings) == 1 and "toy://widget" in warnings[0].message
         assert "set scope to in or remove it" in warnings[0].hint
@@ -250,8 +259,10 @@ def test_report_overview_says_the_scope(rig: Path) -> None:
     line = re.search(r'<p class="scope" id="scope">(.*?)</p>', html)
     assert line is not None
     assert line.group(1) == (
-        "<strong>Scope.</strong> Electrical: done elsewhere — the controls come wired from the "
-        "supplier (DEC-001); Wiring: later — Wiring comes later (DEC-002)."
+        "<strong>Scope.</strong> Electrical: done elsewhere (supplied, not built here) — the "
+        "controls come wired from the supplier (DEC-001). Wiring: left for later (not designed "
+        "here yet) — Wiring comes later (DEC-002); left for later with it: REQ-002 (Harness "
+        "strain relief)."
     )
 
 
@@ -265,12 +276,21 @@ def test_release_cover_and_record_carry_the_scope(rig: Path, tmp_path: Path) -> 
     with zipfile.ZipFile(zip_path) as zf:
         cover = zf.read("v1.0.0/README.txt").decode("utf-8")
         record: dict[str, Any] = json.loads(zf.read("v1.0.0/release.json"))
-    assert cover.splitlines()[:5] == [
+    assert cover.splitlines()[:10] == [
         "Scope fixture rig — Revision v1.0.0",
         "",
-        "Scope: Electrical: done elsewhere — the controls come wired from the supplier (DEC-001)",
-        "Scope: Wiring: later — Wiring comes later (DEC-002)",
+        "Not included in this package:",
+        "- Electrical (done elsewhere, supplied, not built here; DEC-001 — The controls are "
+        "bought wired). It stands in the model as Controls (bought wired).",
+        "- Wiring (left for later, not designed here yet; DEC-002 — Wiring comes later). Left "
+        "for later with it: REQ-002 (Harness strain relief). About safety, and still to be "
+        "signed off: REQ-003 (Harness earth bond).",
         "",
+        "Scope: Electrical: done elsewhere (supplied, not built here) — the controls come wired "
+        "from the supplier (DEC-001)",
+        "Scope: Wiring: left for later (not designed here yet) — Wiring comes later (DEC-002)",
+        "",
+        "Contents: step/ (3D models), drawings/ (SVG + drawings.pdf), flat-patterns/ (DXF for",
     ]
     assert record["revision"] == "v1.0.0" and record["product"] == "rig"
     assert [(s["domain"], s["state"], s["decision"]) for s in record["scope"]] == [
@@ -290,7 +310,8 @@ def test_release_cover_without_scope_has_no_scope_line(tmp_path: Path) -> None:
     import zipfile
 
     with zipfile.ZipFile(zip_path) as zf:
-        assert "Scope" not in zf.read("v0.1.0/README.txt").decode("utf-8")
+        cover = zf.read("v0.1.0/README.txt").decode("utf-8")
+        assert "Scope" not in cover and "Not included" not in cover
     assert release_record(product, "v0.1.0")["scope"] == []
 
 
@@ -343,11 +364,14 @@ def test_the_kiln_leaves_electrical_for_later() -> None:
     entry = product.manifest.scope["electrical"]
     assert entry.state == "later" and entry.decision in product.decisions
     assert scope_entries(product)[0]["line"] == (
-        "Electrical: later — the electrician wires it; the box keeps its cable entries "
-        f"({entry.decision})"
+        "Electrical: left for later (not designed here yet) — the electrician wires it; the box "
+        f"keeps its cable entries ({entry.decision})"
     )
-    # no kiln requirement belongs to electrical today: the gate leaves nothing out
-    assert later_requirements(product) == {"electrical": []}
+    # its electrical requirements are tagged (gate F, concern 6): the two about the supply
+    # are left for later, the four about safety still need their sign-offs
+    later = later_requirements(product)["electrical"]
+    assert later == ["REQ-006", "REQ-008", "REQ-009", "REQ-018", "REQ-019", "REQ-024"]
+    assert [r for r in later if not product.requirements[r].safety] == ["REQ-006", "REQ-024"]
 
 
 # ---- M4b: the scope is a recorded value (B-0076) ------------------------------------------
@@ -383,7 +407,9 @@ def test_impact_on_the_command_line_names_the_report_for_a_scope_edit(rig: Path)
     out = _cli("impact", "--dir", str(rig), "--set", "manifest://scope#wiring.state=in", "--json")
     report = json.loads(out)
     assert "report" in report["rules"], report
-    assert report["rule_reasons"]["report"] == "manifest://scope#wiring"
+    assert "manifest://scope#wiring" in report["rule_reasons"]["report"].split(", ")
+    # the checks read the state: a requirement of a later domain reads "left for later" (S-149)
+    assert "manifest://scope#wiring.state" in report["rule_reasons"]["checks"]
     assert not [r for r in report["rules"] if r.startswith(("part:", "asm:", "drawing:"))]
 
 
@@ -398,16 +424,17 @@ def test_a_scope_edit_reruns_the_report_and_nothing_else(rig: Path, tmp_path: Pa
     edit = Edit(set=Uri("manifest", "scope", ("electrical", "note")), to="from the maker")
     impact = compute_impact(load_product(root), [edit])
     assert "report" in impact.rules
-    assert impact.rule_reasons["report"] == "manifest://scope#electrical"
+    assert "manifest://scope#electrical" in impact.rule_reasons["report"].split(", ")
     _edit(root, "n2f.yaml", "come wired from the supplier", "come wired from the maker")
     ran = run_build(load_product(root), render=False, quiet=True)["ran"]
     assert "report" in ran and set(ran) <= set(impact.rules), (ran, impact.rules)
+    assert "checks" not in ran  # a note: the checks read only the state (S-149)
     assert "the controls come wired from the maker (DEC-001)" in _scope_line(root)
     assert run_build(load_product(root), render=False, quiet=True)["ran"] == []
     # a domain moved to another state reruns it too, and its line follows
     _edit(root, "n2f.yaml", "wiring: {state: later", "wiring: {state: in")
     assert "report" in run_build(load_product(root), render=False, quiet=True)["ran"]
-    assert _scope_line(root).endswith("Wiring: in — Wiring comes later (DEC-002).")
+    assert _scope_line(root).endswith("Wiring: done here — Wiring comes later (DEC-002).")
 
 
 @pytest.mark.parametrize("name", ["bracket", "enclosure"])
@@ -430,7 +457,7 @@ def test_a_first_scope_reruns_the_report_by_itself(tmp_path: Path) -> None:
         f.write("scope:\n  wiring: {state: later, note: wired by the maker}\n")
     ran = run_build(load_product(root), render=False, quiet=True)["ran"]
     assert "report" in ran
-    assert "Wiring: later" in _scope_line(root)
+    assert "Wiring: left for later" in _scope_line(root)
 
 
 def test_a_decision_may_link_the_scope_it_set(tmp_path: Path) -> None:
@@ -523,3 +550,150 @@ def test_the_build_plan_sheet_lists_a_supplied_stub(rig: Path) -> None:
     assert note.startswith("supplied, not built here; fitted at "), note
     kinds = [r[2] for r in rows if r[1] == unit]
     assert kinds.index("supplied") < kinds.index("joint")  # items, supplied, joints, hardware
+
+
+# ---- gate F: the scope words (B-0115 … B-0119) --------------------------------------------
+
+
+def test_one_table_of_words_for_each_state() -> None:
+    """B-0115 (S-148): every surface says a state from one table, with what it means."""
+    from napkin2factory.core.model.manifest import SCOPE_WORDS, ScopeEntry, scope_line, scope_words
+
+    assert SCOPE_WORDS == {
+        "in": "done here",
+        "later": "left for later",
+        "external": "done elsewhere",
+    }
+    assert scope_words("later") == "left for later (not designed here yet)"
+    assert scope_words("external") == "done elsewhere (supplied, not built here)"
+    assert scope_words("in") == "done here"
+    entry = ScopeEntry(state="in", decision="DEC-009")
+    assert scope_line("electrical", entry) == "Electrical: done here (DEC-009)"
+    assert scope_line("electrical", entry, None, "Wiring") == "Wiring: done here (DEC-009)"
+
+
+def test_a_domain_is_said_by_its_own_word() -> None:
+    """B-0117 (S-150): an installed domain's owner word, else its title, else its key."""
+    from napkin2factory.core.checks.stage import domain_word
+
+    assert domain_word("electrical") == "Electrical"  # not installed: the key, capitalised
+    with installed(toy.DOMAIN):
+        assert domain_word("toy") == "Toy thing"  # vocabulary={"owner": {"toy": "toy thing"}}
+    from dataclasses import replace
+
+    with installed(replace(toy.DOMAIN, vocabulary={}, title="Toy work")):
+        assert domain_word("toy") == "Toy work"
+
+
+def test_a_later_requirement_reads_left_for_later_in_the_checks(rig: Path) -> None:
+    """B-0116 (S-149): its own status, counted apart; a safety one still needs its sign-off."""
+    data = json.loads((rig / "build" / "checks" / "checks.json").read_text(encoding="utf-8"))
+    rows = {r["id"]: r for r in data["results"]}
+    later = rows["req://REQ-002"]
+    assert later["status"] == "later"
+    assert later["message"] == (
+        "Wiring is left for later (DEC-002): not checked until it is designed here"
+    )
+    assert later["persona_message"].startswith("left for later: Wiring is left for later")
+    # what the check found is kept for the day the scope says `in`
+    assert later["detail"]["later"]["status"] == "needs-human"
+    assert later["detail"]["later"]["domain"] == "wiring"
+    assert rows["req://REQ-003"]["status"] == "needs-human"  # safety: never left for later
+    assert data["summary"]["later"] == 1 and data["summary"]["needs-human"] == 1
+    matrix = {r["id"]: r["status"] for r in data["matrix"]["requirements"]}
+    assert matrix["REQ-002"] == "later"
+    out = _cli("check", "--dir", str(rig))
+    assert "left for later" in out and "1 left for later" in out
+    assert "1 needs your sign-off" in out  # REQ-003 only
+    html = (rig / "build" / "report" / "index.html").read_text(encoding="utf-8")
+    req = html.split('id="req-REQ-002"', 1)[1].split("</tr>", 1)[0]
+    assert 'title="later">left for later</span>' in req
+    tile = html.split('<a class="tile" href="#requirements">', 1)[1].split("</a>", 1)[0]
+    assert "1 left for later" in tile and "1 needs your sign-off" in tile
+
+
+def test_a_product_without_a_later_scope_has_no_later_count() -> None:
+    from napkin2factory.core.checks.results import CheckResult, summarize
+
+    rows = [CheckResult(id="req://REQ-001", subject="s", status="pass", message="m")]
+    assert "later" not in summarize(rows)  # the summary v0.4 wrote (F16)
+    rows.append(CheckResult(id="req://REQ-002", subject="s", status="later", message="m"))
+    assert summarize(rows)["later"] == 1
+
+
+def test_the_checks_follow_the_scope_state_not_its_note(rig: Path, tmp_path: Path) -> None:
+    """B-0116 (S-149): a state edit reruns the checks; a note edit does not."""
+    root = tmp_path / "rig"
+    shutil.copytree(rig, root)
+    _edit(root, "n2f.yaml", "come wired from the supplier", "come wired from the maker")
+    assert "checks" not in run_build(load_product(root), render=False, quiet=True)["ran"]
+    _edit(root, "n2f.yaml", "wiring: {state: later", "wiring: {state: in")
+    assert "checks" in run_build(load_product(root), render=False, quiet=True)["ran"]
+    data = json.loads((root / "build" / "checks" / "checks.json").read_text(encoding="utf-8"))
+    assert {r["id"]: r["status"] for r in data["results"]}["req://REQ-002"] == "needs-human"
+    assert "later" not in data["summary"]
+
+
+def test_a_stub_is_supplied_never_not_built_yet(tmp_path: Path) -> None:
+    """B-0118 (S-152): before the first build the stub is no "not built yet" bullet."""
+    root = copy_product(SCOPE / "external", tmp_path / "rig", git=False)
+    design = next(g for g in compute_stage(load_product(root)).gates if g.name == "design")
+    assert any(b.startswith("Frame: not built yet") for b in design.blockers)
+    assert not any("Controls (bought wired)" in b for b in design.blockers)
+
+
+def test_a_joint_to_a_stub_says_how_it_fits(tmp_path: Path) -> None:
+    """B-0118 (S-152): its "how" is its own description, its side "supplied, not built here".
+
+    The frame moves into a unit of its own, so the stub's joint lies between units and the
+    report's joints section shows it.
+    """
+    root = copy_product(SCOPE / "external", tmp_path / "rig", git=False)
+    (root / "model" / "assemblies" / "base.yaml").write_text(
+        "id: base\nrev: A\nname: Base\nchildren:\n  - {part: part://frame, qty: 1}\n",
+        encoding="utf-8",
+    )
+    _edit(root, "model/assemblies/rig.yaml", "{part: part://frame, qty: 1}", "{asm: asm://base}")
+    run_build(load_product(root), render=False, quiet=True)
+    plan = json.loads((root / "build" / "bom" / "build-plan.json").read_text(encoding="utf-8"))
+    (joint,) = [j for j in plan["between_units"] if j["interface"] == "iface://controls-mount"]
+    assert joint["how"] == "The bought controls sit on the frame's top face; the stub's one port."
+    stub = next(sd for sd in joint["sides"] if sd["part"] == "asm://controls")
+    assert stub["supplied"] == "supplied, not built here" and stub["unit"] is None
+    checks = json.loads((root / "build" / "checks" / "checks.json").read_text(encoding="utf-8"))
+    row = next(r for r in checks["results"] if r["id"] == "iface://controls-mount")
+    assert row["message"].startswith("fits Controls (bought wired), supplied, not built here")
+    html = (root / "build" / "report" / "index.html").read_text(encoding="utf-8")
+    section = html.split('id="joints"', 1)[1].split("</section>", 1)[0]
+    assert "no unit" not in section and "welded, riveted or clamped" not in section
+    assert "Controls (bought wired), supplied, not built here" in section
+    assert "The bought controls sit on the frame&#39;s top face" in section
+
+
+def test_status_with_work_done_elsewhere_and_no_stub(tmp_path: Path) -> None:
+    """B-0119 (S-151): the status still shows, the missing stand-in its first bullet."""
+    root = copy_product(SCOPE / "no-stub", tmp_path / "rig", git=False)
+    result = CliRunner().invoke(app, ["status", "--dir", str(root)], env={"COLUMNS": "300"})
+    assert result.exit_code == 0, result.output
+    lines = [ln.strip() for ln in result.output.splitlines()]
+    first = next(ln for ln in lines if ln.startswith("•"))
+    assert first.startswith(
+        "• Electrical is done elsewhere, but nothing in the product shows where it fits yet: "
+        "your agent adds a stand-in module, model/assemblies/<id>.yaml, with `build: external`"
+    )
+    assert any(ln.startswith("○ Design") for ln in lines)
+    design = next(
+        g for g in compute_stage(load_product(root, strict=False)).gates if g.name == "design"
+    )
+    assert design.blockers[0].startswith("Electrical is done elsewhere")
+    data = json.loads(_cli("status", "--dir", str(root), "--json"))
+    assert data["scope"][0]["missing_stub"].startswith("Electrical is done elsewhere")
+    # validation still refuses it: only the status goes on
+    assert CliRunner().invoke(app, ["validate", "--dir", str(root)]).exit_code != 0
+
+
+def test_status_still_stops_on_any_other_problem(tmp_path: Path) -> None:
+    root = copy_product(SCOPE / "no-stub", tmp_path / "rig", git=False)
+    _edit(root, "model/assemblies/rig.yaml", "part://frame", "part://beam")
+    result = CliRunner().invoke(app, ["status", "--dir", str(root)])
+    assert result.exit_code != 0 and "part://beam" in result.output
