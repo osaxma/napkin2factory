@@ -72,6 +72,9 @@ entry that closed them. Ids are never reused.
 | B-0129 | `docs/domains.md` does not say that an installed domain is imported while the core's schemas load: the toy's top-level `from napkin2factory.core.graph.rules import …` cycles when the domain is in `INSTALLED` | S-153; a sentence in §1 "What a domain may import" (import `core.graph`, `core.checks`, `core.loader` inside functions or under `TYPE_CHECKING`), or a lazy registry import |
 | B-0130 | `Domain.code` and `RuleFamily.code` hash folders only: a file named there hashes as nothing, silently, so its edits rerun nothing | S-153; refuse a non-folder at `register`, or hash files too (`core/registry.py::_tree_hash`) |
 | B-0131 | A domain field whose key is a Python keyword (`class`, `from`) is addressed by its attribute (`device://x#class_`): `select` refuses `#class` and `n2f impact --set device://x#class=II` says nothing is rebuilt | S-153; honour pydantic aliases in `Product.select`, the recording accessor and impact (a core seam), or rename the fields [revisit] |
+| B-0132 | A domain named like a fixed folder of the release package (`step`, `drawings`, `bom`, `manuals`, `flat-patterns`) merges its files into that folder | S-142 task; refuse such a domain name at `register`, or put domain folders under `domains/` in the package |
+| B-0133 | `n2f impact` names the checks for an edit of a scope entry's note, though the build does not rerun them (a field edit widened to the whole entry) | S-149 task; compare impact's widening of `manifest://scope` with the state-only read the checks record |
+| B-0134 | The report's header counts and its "only what is not OK" filter say nothing of rows left for later | S-149 task; count `later` rows in the header and keep them visible under the filter (`report/`) |
 
 ## Closed
 

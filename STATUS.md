@@ -36,8 +36,16 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
 
 ## Milestones (one line each; detail in the entries named)
 v0.6 — `ELECTRICAL_STAGE.md` (the electrical domain through the v0.5 contract; the count of core edits is
-the headline), S-111; reconciled with the contract as built in S-141: planned, next. `docs/reviews/v0.6-independent-trial.md` is the
-outside model's brief for after it lands.
+the headline), S-111; reconciled with the contract as built in S-141: in progress (M0, M1 landed; wave 2 running).
+`docs/reviews/v0.6-independent-trial.md` is the outside model's brief for after it lands.
+Wave times on the host (measured, 2026-11-02): M0 (the baseline and five seam tasks at once) 07:00–07:55, 55 min;
+M1 07:56–08:26. `make check` on `main`: 9 min 34 s at 4358ba6 (after M0, 1,135 passed), 9 min 40 s at 9bd5b3f
+(after M1, 1,173 passed). Linux: the push run of `make check` on 7f4d8d0 is green on ubuntu and macOS; no nightly
+has run since S-121 (the latest, 2026-11-01 10:28, predates it).
+- M0 seam tasks (v0.5 defects, counted apart from the domain): a domain's files in the release package (S-142,
+  B-0099); a rule family runs `before=` a named one (S-143, B-0125); interfaces treated by their spec's type
+  (S-144, B-0126); the scope words, a "left for later" status, the domain's own word, stand-ins (S-148–S-152,
+  B-0115–B-0119).
 - M0 baseline and tables (the kiln's electrical survey `docs/v06-baseline.md`, report 3.8 MB, cold build 69 s; the
   conductor, earthing and wire-colour tables and `calckit.wiring`; E5: no parts-list seam, B-0128) — S-147, S-146, S-145.
 - M1 the family and the joint (`domains/electrical/` installed: supply, devices, circuits, product conductors, the
