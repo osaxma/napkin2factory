@@ -80,6 +80,25 @@ fabricator's, supplier's) to confirm. DECISIONS.md lists each table as `[verify]
 | `materials` | 3 (K-23 insulating firebrick, ceramic fiber board (Kaowool 1260), mild steel) | the makers' datasheets (Morgan Thermal Ceramics K-23 and Kaowool 1260 board), at the kiln's chosen values: fiber board k 0.15 W/m·K at a ~400 °C mean (datasheet 0.12–0.18), ρ 260 kg/m³. Concept screening's insulation layers and the massing densities (`geometry/materials.py`) both read these rows, so the napkin and the factory use one number per material |
 | `lift_classes` | 3 (one-person ≤ 25 kg, two-person ≤ 33 kg, equipment) | UK HSE INDG143 / L23 guideline weights — a screening filter, not a safe limit |
 | `stock_sheets` | 10 (mild steel 4, stainless 3, aluminium 3) | common stockist formats (1000 × 2000, 1220 × 2440, 1250 × 2500, 1500 × 3000 mm) |
+| `conductors` | 25 (EU 10: 0.75–4 mm² PVC 70 °C and silicone 180 °C; US 15: 18–10 AWG MTW/THHN, SF-2 silicone, SJT-class cord) | IEC 60204-1:2016 Table 6 column B2 at 40 °C (= IEC 60364-5-52 B.52.4 × 0.87); NFPA 79-2021 Table 12.5.1 / NEC 310.16 60 °C column; NEC 402.5 (fixture wire); NEC 400.5(A)(1) column B (cords). The silicone rows carry the PVC value as a floor (S-146) |
+| `earthing` | 4 (TN-S, TN-C-S, TT, IT) | IEC 60364-1 §312.2; IEC 60364-4-41 §411.4–411.6; IEC 61140 §7.2 (Class I) |
+| `wire_colours` | 15 (EU 9, US 6) | IEC 60445 / HD 308 S2 and IEC 60204-1 §13.2.4; NEC 200.6, 250.119, 310.6(C) and NFPA 79 §13.2.4 |
+
+### Wiring tables: `calckit.wiring`
+
+`napkin2factory.calckit.wiring` reads the three wiring tables into frozen dataclasses with
+pint quantities, for the electrical domain's checks and schedules (ELECTRICAL_STAGE E3).
+It is a loader, not a pack: it computes nothing, so it has no reference cases.
+`conductor(id)` returns a `Conductor` (`csa` in mm², `ampacity` in A, the `ambient` and
+`max_temp` in degC, the `basis` the ampacity assumes: installation method, column,
+conductor count); `conductors(region)` the region's rows (empty for a region not on file,
+which the caller warns about); `earthing(code)` an `Earthing` (what a Class I product must
+provide on a TN-S, TN-C-S, TT or IT supply); `colour(region, role)` a `WireColour` (`L`,
+`L1`–`L3`, `N`, `PE`, `control-ac`, `control-dc`, `interlock-external`). An id, code or
+pair not on file raises `ValueError` listing the known ones: a wiring model that names an
+unknown conductor has a typo, unlike a screening lookup. Ampacity is the number a wiring
+check fails on, so each row names the exact table and column; the values were transcribed
+without the standards at hand and are `[verify]` like every other row (S-146).
 
 **Unknown keys warn, never fail.** A region, process class or material class a table
 does not know returns a verdict instead of raising: `CircuitVerdict.status ==

@@ -38,6 +38,8 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
 v0.6 — `ELECTRICAL_STAGE.md` (the electrical domain through the v0.5 contract; the count of core edits is
 the headline), S-111; reconciled with the contract as built in S-141: planned, next. `docs/reviews/v0.6-independent-trial.md` is the
 outside model's brief for after it lands.
+- M0 baseline and tables (the kiln's electrical survey `docs/v06-baseline.md`, report 3.8 MB, cold build 69 s; the
+  conductor, earthing and wire-colour tables and `calckit.wiring`; E5: no parts-list seam, B-0128) — S-147, S-146, S-145.
 
 v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
 package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120; closed,

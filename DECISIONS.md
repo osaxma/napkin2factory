@@ -169,6 +169,9 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-142 | A domain's files in the release package (closes B-0099) | in force |
 | S-143 | A rule family can run before a named family (`before=`), so a manual reads a domain's outputs from the same build | in force |
 | S-144 | Interfaces are treated by their spec's type: a domain kind with a bolt-pattern spec gets the hole match and alignment (the seam E4 needs; a v0.5 defect) | in force |
+| S-145 | E5: the conductors stay in the electrical domain's own schedule; no parts-list seam in v0.6 (B-0128) | in force |
+| S-146 | The wiring tables in the calc kit: conductors (ampacity by cited table and column; silicone rows at the PVC floor), earthing arrangements, wire colours; `calckit.wiring` | in force |
+| S-147 | v0.6 M0 baseline: the kiln's electrical survey (`docs/v06-baseline.md`), its report size and build time; `make check-full` cited from S-140 | in force |
 
 ---
 
@@ -910,3 +913,29 @@ interface rows are byte-identical: built before and after, diffed). One party wi
 has no shape to check it against", alignment skipped (no example has such a joint). `BoltPatternSpec` is public (`docs/domains.md` §1,
 §3.9). A domain kind with a mating-face spec stays its own check's alone: the build records a face and the interference check allows
 contact only for the name `mating-face`, both outside this task (B-0127) [revisit].
+## S-145 — E5: the conductors stay in the electrical domain's own schedule; no parts-list seam in v0.6 (2026-11-02)
+Decided by the overseer (ELECTRICAL_STAGE E5, M0). v0.6 keeps the conductors in the electrical domain's own schedule;
+the parts-list seam (a `bom_lines` hook on the contract and `bom` running after the families that feed it) is not built
+in v0.6. Reasons: the conductor table can carry no honest prices, so cable lines would enter the parts list unpriced and
+muddy its cost rollups; the electrician's need is met by the schedule plus a per-conductor "cable to buy" total, which
+ship in the release package now that B-0099 has landed (S-142); it keeps the seam work of M0 to the defects gate F and
+S-132 already named. The ordering half exists since S-143 (a domain family may name `before=("bom",)`); the hook does
+not. Open as B-0128. DoD 2's "the conductor lines reach the parts list only if M0 adds the seam" takes the second branch. [revisit]
+## S-146 — The wiring tables in the calc kit and their typed loader (2026-11-02)
+`calckit/data/conductors.yaml` (25 rows: EU 0.75–4 mm² PVC 70 °C and silicone 180 °C; US 18–10 AWG MTW/THHN, SF-2 silicone,
+SJT-class cord), `earthing.yaml` (TN-S, TN-C-S, TT, IT, IEC 60364-1 §312.2 and what a Class I product needs), `wire_colours.yaml`
+(EU 9, US 6), read by `calckit/wiring.py` (`conductor`, `conductors`, `earthing`, `colour`; an unknown id raises listing the
+known ones, since a wiring model naming one is a typo). Ampacity bases, each cited per row: EU IEC 60204-1 Table 6 column B2
+at 40 °C (the lowest method; = IEC 60364-5-52 B.52.4 × 0.87); US the 60 °C column (NEC 110.14(C)) of NEC 310.16 / NFPA 79
+Table 12.5.1, NEC 402.5 for SF-2, NEC 400.5(A)(1) column B for cords [verify]. No silicone table could be read, so the EU
+silicone rows carry the PVC value as a floor, valid by B.52.14's square-root rule up to 150 °C ambient [verify] [revisit].
+All values were transcribed by the agent without the standards at hand; the vendor and standards sites refused reads [verify].
+## S-147 — v0.6 M0 baseline (2026-11-02)
+`docs/v06-baseline.md`: 12 electrical part files surveyed (the two controllers, contactor, SSR, door switch, thermocouple ×2,
+element, glands ×3, earth studs ×5, label, box, lid), their makers' ratings and terminals where readable: the contactor's
+(IEC 60947-4-1 marking), the SSR's (third-party pinout), the thermocouple's polarity; the two controllers and the door
+switch stay `terminals: []` (datasheets not readable here, §7 risk 3). The connections from the kiln's documents, each
+gland's circuit (the door switch and the four bonding leads have none), each stud's part, 4 of 9 custom metal parts bonded
+only through a joint, a proposed device list and three circuits for M5, and seven open points (one part with several
+instances, an upstream protective device that is no part, missing parts). Kiln cold build 69.1 s, report 3,796,445 bytes.
+`make check-full` not re-run: the code equals 29951e2's, so S-140's 29 min 14 s is the baseline.

@@ -73,6 +73,7 @@ entry that closed them. Ids are never reused.
 | B-0123 | Format 0 with no migration: `n2f init .` gives no next step | Gate F 20; say what to do (`core/model/migrate.py`) |
 | B-0124 | The README's "What you get" says nothing about scope or choices, the two things an owner newly sees in v0.5 | Gate F 21; a line each in `README.md` |
 | B-0127 | A domain interface kind whose spec subclasses the mating-face spec is not treated as a face: the build records a face (`geometry/build_part.py`) and the interference check allows contact (`core/checks/interference.py`) only for the kind named `mating-face` | S-144; key both on the spec's type, then let `check_interface` treat it as `mating-face` (`_core_checked`) and make `MatingFaceSpec` public |
+| B-0128 | A domain cannot add lines to the parts list, nor make `bom` run after it: cable bought by length is only in the domain's schedule | S-145 (E5); a `bom_lines` hook on `Domain` and an optional `after` on `bom` for installed families (the ordering half exists since S-143, `before=`), when a domain's consumables must be priced |
 
 ## Closed
 
