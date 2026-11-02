@@ -126,7 +126,7 @@ without a space or `#` (`L`, `PE`, `A1`, `13`, `+`, `TC-`, `1/L1`):
 | `device://<id>#<terminal>` | a device's terminal: the usual form |
 | `part://<id>#<terminal>` | shorthand, only when exactly one device names that part |
 | `supply://supply#<terminal>` | the supply's: `L`, `N`, `PE` for one phase; `L1`–`L3`, `N`, `PE` for three; `+`, `-`, `PE` for DC; or the supply's own `terminals:` |
-| `asm://<module>#<terminal>` | a module supplied from elsewhere (`build: external`), reached only through one of its ports |
+| `asm://<module>#<terminal>` | a module supplied, not built here (`build: external`), reached only through one of its ports |
 
 `n2f validate` refuses an end whose device does not exist or has no such terminal, naming the
 file, the connection and the terminals the device has.
@@ -191,7 +191,7 @@ sentence. Then the entry's own check runs: a circuit under `passes` that does no
 that has no connection going `via` this entry, fails; an empty `passes` is worth a look.
 Every connection that crosses the box names its entry with `via: iface://<id>`.
 
-## A box from elsewhere: a module with cable-entry ports
+## A box supplied, not built here: a module with cable-entry ports
 
 When the control box is bought wired (or another team builds it), the wiring's scope stays
 `in` and the box is a stand-in sub-assembly, `build: external`, with no children and its
@@ -219,7 +219,7 @@ spec: {diameter: param://mains-hole, passes: [circuit://power]}
 A circuit reaches the stand-in by its terminals, `asm://control-box#L`, and only through one
 of its ports (`via:`); anything else is a validation error naming the file, the port and the
 circuit. Each circuit's diagram draws the box as a dashed boundary with its terminals and
-nothing inside ("to the external control box, supplied from elsewhere: L, N, PE").
+nothing inside, said as every other surface says a stand-in: supplied, not built here.
 
 ## What a build writes
 
@@ -229,7 +229,7 @@ nothing inside ("to the external control box, supplied from elsewhere: L, N, PE"
 | file | what it is |
 |---|---|
 | `<circuit>/connections.json` | the circuit's record: devices, wires, entries, protection; everything below is drawn from it |
-| `<circuit>/diagram.svg` | the wiring diagram: devices as labelled boxes in columns from the supply, each wire labelled "id · size · colour", cable entries as dashed boxes, a module from elsewhere as a dashed boundary |
+| `<circuit>/diagram.svg` | the wiring diagram: devices as labelled boxes in columns from the supply, each wire labelled "id · size · colour", cable entries as dashed boxes, a module supplied, not built here as a dashed boundary |
 | `<circuit>/<circuit>.kicad_sch` | a text schematic export (never a source) |
 | `schedule.csv` | one row per wire: wire, circuit, from, to, conductor, cross-section, length, colour, via |
 | `labels.csv` | one terminal label per wire end (`<wire> <device>:<terminal>`) |

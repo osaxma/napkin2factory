@@ -306,7 +306,7 @@ terminals and the cable entries where wires cross a box (`roles/design.md`, "Wir
   be designed here, done by someone else (an electrician, or a control box bought ready
   wired), or left for later?" Record the answer as scope (above): `in`, `external` or
   `later`. A control box bought wired inside a product wired here keeps the wiring `in`; only
-  that box is supplied from elsewhere, and the designer models it as a stand-in.
+  that box is supplied, not built here, and the designer models it as a stand-in.
 - **The supply is a fact, not a choice.** Ask what it plugs into at intake (above). Never
   turn it into a trade-off there: how much of that circuit the product uses is a check's
   result, and it exists only once the wiring is in the model and built.

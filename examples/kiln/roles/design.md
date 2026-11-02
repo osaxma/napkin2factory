@@ -182,8 +182,8 @@ model. The system repo's `docs/electrical.md` has every field and a complete sma
 - **The joint between the box and the wiring is a cable entry**: an interface of kind
   `cable-entry`, the box first (it gets the hole), the gland or bushing second, `spec:
   {diameter: <hole>, passes: [circuit://<id>, …]}`: one hole per entry at its frame's origin,
-  no `pattern:`. Every connection that crosses the box names it with `via:`. A box supplied
-  from elsewhere is a stand-in (`build: external`, no children) whose `ports:` are its cable
+  no `pattern:`. Every connection that crosses the box names it with `via:`. A box supplied,
+  not built here is a stand-in (`build: external`, no children) whose `ports:` are its cable
   entries; connections reach it as `asm://<box>#<terminal>`, only through a port.
 - **Earth**: every custom part of a metal reaches the supply's earth by a conductor (an
   earth stud and a lead), or the circuit's `earth:` names the joint that bonds it to a part
