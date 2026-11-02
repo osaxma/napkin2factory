@@ -168,6 +168,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-141 | The v0.6 plan reconciled with the contract v0.5 built: devices as a family, cable entries as a bolt-pattern spec, the seam tasks named | in force |
 | S-142 | A domain's files in the release package (closes B-0099) | in force |
 | S-143 | A rule family can run before a named family (`before=`), so a manual reads a domain's outputs from the same build | in force |
+| S-144 | Interfaces are treated by their spec's type: a domain kind with a bolt-pattern spec gets the hole match and alignment (the seam E4 needs; a v0.5 defect) | in force |
 
 ---
 
@@ -899,3 +900,13 @@ cannot add an `after` to a mechanical family. `RuleFamily.before` names families
 and a `reads_all` family naming a producer is that error too. `rules_for_target`, `explain_build` and `n2f impact` follow
 unchanged (the first two read `target_kinds`, impact the recorded reads). No `before` anywhere: today's order, rule keys
 and goldens unchanged (a field is in no key). `tests/unit/test_family_before.py`, with the old order kept as a control.
+
+## S-144 — Interfaces are treated by their spec's type: a domain kind with a bolt-pattern spec gets the hole match and alignment (2026-11-02)
+A v0.5 defect (E10, B-0126) found by reading the code before v0.6 M1: the build cut a domain kind's bolt-pattern holes by the spec's type,
+but `check_interface` sent every non-core kind to its own check only, and the report, the fastener check and the alignment words keyed on
+the kind's name. Now a spec that is a `BoltPatternSpec` (a subclass too) gets the hole match, the alignment (P3) and then the kind's
+`check`: the worse status wins, the core's message first, the kind's result under `kind_check` (left out when empty, so the kiln's 13
+interface rows are byte-identical: built before and after, diffed). One party with no geometry: "the hole is cut in <part>; <other>
+has no shape to check it against", alignment skipped (no example has such a joint). `BoltPatternSpec` is public (`docs/domains.md` §1,
+§3.9). A domain kind with a mating-face spec stays its own check's alone: the build records a face and the interference check allows
+contact only for the name `mating-face`, both outside this task (B-0127) [revisit].

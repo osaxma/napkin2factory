@@ -1,5 +1,9 @@
 """Interface conformance (D16) in two stages, plus the coordinate-placement warning (P1).
 
+An interface is treated by its spec's type, not its kind's name (S-144): a domain's kind
+whose spec is a :class:`BoltPatternSpec` gets the same two stages as ``bolt-pattern``, then
+its own ``check``.
+
 1. **Patterns**: both parties recorded the same pattern in their own interface frames.
 2. **Alignment** (P3): placed in the lowest assembly that contains both parties, the two
    frames meet: origin plus ``offset`` along the normal, the same normal and the same
@@ -39,10 +43,16 @@ class InterfaceReport:
     message: str = ""
     parties: dict[str, Any] = field(default_factory=dict)
     alignment: dict[str, Any] = field(default_factory=dict)
+    # S-144: a domain kind's own check, when it runs after the core's (its status, message
+    # and parties); left out of the JSON when empty, so the core kinds' rows do not change
+    kind_check: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """JSON form."""
-        return dict(self.__dict__)
+        out = dict(self.__dict__)
+        if not out["kind_check"]:
+            del out["kind_check"]
+        return out
 
 
 def _basis(
@@ -144,6 +154,24 @@ def _within(worst: float) -> str:
 #: The kinds this module checks itself; any other is a domain's (core/data/interface_kinds.yaml).
 CORE_KINDS = ("bolt-pattern", "mating-face")
 
+#: Statuses from worst to best, to combine the core's row with a domain kind's check (S-144).
+_WORST_FIRST = ("fail", "choice", "warn", "needs-human", "skip", "signed", "pass")
+
+
+def _is_pattern(iface: Interface) -> bool:
+    """A joint with holes: its spec is a bolt pattern, whatever the kind is called (S-144)."""
+    return isinstance(iface.spec, BoltPatternSpec)
+
+
+def _core_checked(iface: Interface) -> bool:
+    """The core matches this joint's holes or faces itself (S-144).
+
+    The two core kinds, and a domain kind whose spec is a bolt pattern: the build cuts its
+    holes by the spec's type, so they can be matched and lined up.  A domain kind with a
+    mating-face spec is not: the build records a face only for ``mating-face`` (B-0127).
+    """
+    return iface.kind in CORE_KINDS or _is_pattern(iface)
+
 
 def _domain_kind_report(product: Product, iface: Interface, build_dir: Path) -> InterfaceReport:
     """A domain kind's own check (``InterfaceKind.check``), or "not checked"."""
@@ -160,19 +188,49 @@ def _domain_kind_report(product: Product, iface: Interface, build_dir: Path) -> 
     )
 
 
-def check_interface(product: Product, iface: Interface, build_dir: Path) -> InterfaceReport:
-    """Compare the parties' recorded patterns (bolt-pattern) or face records (mating-face).
+def _worse(a: str, b: str) -> str:
+    """The worse of two statuses; one the core does not know ranks with ``skip``."""
 
-    A domain's interface kind (F6) is checked by the kind's own ``check``; a kind without one
-    is reported as not checked.
+    def rank(s: str) -> int:
+        return _WORST_FIRST.index(s) if s in _WORST_FIRST else _WORST_FIRST.index("skip")
+
+    return a if rank(a) <= rank(b) else b
+
+
+def check_interface(product: Product, iface: Interface, build_dir: Path) -> InterfaceReport:
+    """Compare the parties' recorded patterns (a bolt pattern) or face records (mating-face).
+
+    A domain's interface kind (F6) whose spec is a bolt pattern gets the same comparison and
+    alignment, then its own ``check``: the worse status wins and both messages are kept, the
+    core's first (S-144).  Any other domain kind is checked by its own ``check`` alone; a
+    kind without one is reported as not checked.
     """
+    if not _core_checked(iface):
+        return _domain_kind_report(product, iface, build_dir)
+    rep = _core_report(product, iface, build_dir)
+    if iface.kind in CORE_KINDS:
+        return rep
+    from napkin2factory.core.registry import registry
+
+    kind = registry().interface_kind(iface.kind)
+    if kind.check is None:
+        return rep
+    own = _domain_kind_report(product, iface, build_dir)
+    rep.status = _worse(rep.status, own.status)
+    rep.message = "; ".join(m for m in (rep.message, own.message) if m)
+    rep.kind_check = {"status": own.status, "message": own.message, "parties": own.parties}
+    return rep
+
+
+def _core_report(product: Product, iface: Interface, build_dir: Path) -> InterfaceReport:
+    """The core's two stages for a joint with holes or faces (D16, P3)."""
     from napkin2factory.geometry.accessors import resolve_interface
 
-    if iface.kind not in CORE_KINDS:
-        return _domain_kind_report(product, iface, build_dir)
     iface = resolve_interface(product, iface)
+    holes = _is_pattern(iface)
     rep = InterfaceReport()
     patterns: dict[str, Any] = {}
+    shaped: list[str] = []  # the parties with geometry, by name
     for party in iface.parties:
         pid = party.id
         if party.scheme != "part":
@@ -186,13 +244,14 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
         if part is None or not part.has_geometry:
             rep.parties[str(party)] = {"status": "skip", "why": "no geometry (BOM-only part)"}
             continue
+        shaped.append(part.name)
         feats_path = build_dir / "parts" / pid / "features.json"
         if not feats_path.is_file():
             rep.status, rep.message = "skip", f"{part.name} has not been built yet"
             return rep
         feats = json.loads(feats_path.read_text(encoding="utf-8"))
         frame = iface.frame_for(str(party))
-        if iface.kind == "bolt-pattern":
+        if holes:
             pats = [p for p in feats.get("patterns", []) if p.get("interface") == iface.uri]
             if not pats:
                 rep.status, rep.message = (
@@ -226,7 +285,23 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
                 rep.parties[str(party)] = {"status": "pass", "face": faces[0]}
     if rep.status == "fail":
         return rep
-    if iface.kind == "bolt-pattern" and len(patterns) == 2:
+    if len(shaped) == 1 and len(rep.parties) == 2:
+        # one party is BOM-only (a bought gland in a box wall): nothing to match or line up
+        # the holes or the face against, so say what was done (S-144)
+        other = next(_name(product, u) for u, v in rep.parties.items() if v.get("status") == "skip")
+        done = (
+            f"{_holes_words(iface)} cut in {lower_name(shaped[0])}"
+            if holes
+            else f"the face is recorded on {lower_name(shaped[0])}"
+        )
+        them = "them" if iface.holes > 1 else "it"
+        rep.message = f"{done}; {lower_name(other)} has no shape to check {them} against"
+        rep.alignment = {
+            "status": "skip",
+            "message": f"where the parts meet is not checked: {lower_name(other)} has no shape",
+        }
+        return rep
+    if holes and len(patterns) == 2:
         (ua, a), (ub, b) = patterns.items()
         na, nb = _name(product, ua), _name(product, ub)
         if not _match(a["local"], b["local"], TOLERANCE_MM):
@@ -244,10 +319,13 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
                 "cut both from the joint's pattern"
             )
         else:
-            spec = iface.spec
-            n = spec.count if isinstance(spec, BoltPatternSpec) else len(a["local"])
-            rep.message = f"the {n} holes line up on both parts"
-    elif iface.kind == "mating-face":
+            n = iface.spec.count if isinstance(iface.spec, BoltPatternSpec) else len(a["local"])
+            rep.message = (
+                "the hole lines up on both parts"
+                if n == 1
+                else f"the {n} holes line up on both parts"
+            )
+    elif not holes:
         # contact between the two is allowed in the interference check (D29)
         rep.message = "the faces touch by design" + (
             "" if iface.hardware_items() else " (no loose fixings)"
@@ -258,9 +336,15 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
             rep.status = "fail"
             rep.message = rep.alignment["message"]
         elif rep.alignment["status"] == "pass":
-            joiner = ", and in " if iface.kind == "bolt-pattern" else "; they meet in "
+            joiner = ", and in " if holes else "; they meet in "
             rep.message += joiner + rep.alignment["message"]
     return rep
+
+
+def _holes_words(iface: Interface) -> str:
+    """Say "the hole is" or "the 4 holes are" for a bolt-pattern joint."""
+    n = iface.holes
+    return "the hole is" if n == 1 else f"the {n} holes are"
 
 
 # ---- stage 2: alignment in the assembly (P3) ---------------------------------------------
@@ -297,9 +381,9 @@ def _ok(m: dict[str, float]) -> bool:
     )
 
 
-def _miss_words(m: dict[str, float], kind: str) -> str:
+def _miss_words(m: dict[str, float], holes: bool) -> str:
     """How far off, in owner words, each with what is allowed."""
-    what = "holes" if kind == "bolt-pattern" else "faces"
+    what = "holes" if holes else "faces"
     parts = []
     if m["distance_mm"] > ALIGN_MM:
         parts.append(f"their {what} are {m['distance_mm']:.1f} mm apart ({ALIGN_MM:g} mm allowed)")
@@ -439,7 +523,7 @@ def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict
             failures.append(
                 f"{_occurrence_name(product, na, instances)} and "
                 f"{_occurrence_name(product, nb, instances)} do not line up "
-                f"{_joint_at(iface)}{where}: {_miss_words(p, iface.kind)}"
+                f"{_joint_at(iface)}{where}: {_miss_words(p, _is_pattern(iface))}"
             )
             out.setdefault("failures", []).append(
                 {
@@ -457,7 +541,7 @@ def check_alignment(product: Product, iface: Interface, build_dir: Path) -> dict
     checked = [v for v in out["assemblies"].values() if v["status"] != "skip"]
     if failures:
         out["status"] = "fail"
-        what = "holes" if iface.kind == "bolt-pattern" else "faces"
+        what = "holes" if _is_pattern(iface) else "faces"
         out["message"] = "; ".join(failures) + f". Move the {what} or the parts so they meet."
         # the offset, the ids and the world frames are evidence, not owner text (gate D)
         out["fix"] = (

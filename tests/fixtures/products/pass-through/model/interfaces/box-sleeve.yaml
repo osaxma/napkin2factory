@@ -1,0 +1,8 @@
+id: box-sleeve
+kind: pass-through
+parties: [part://box, part://sleeve]
+description: A bought sleeve in a hole of the box's top; it has no shape.
+frames:
+  part://box: {origin: [15, 0, 10], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://sleeve: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {pattern: rect, count: 1, diameter: 12 mm, passes: [one]}

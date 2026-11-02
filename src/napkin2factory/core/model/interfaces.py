@@ -153,6 +153,9 @@ def _drop_unset_hardware(data: Any) -> Any:
 class BoltPatternSpec(Model):
     """A rectangular or circular bolt pattern.
 
+    A domain's interface kind may subclass it (adding its own fields): the joint is then cut,
+    matched and lined up exactly like a ``bolt-pattern`` one, by the spec's type (S-144).
+
     The build cuts this pattern into every party automatically (S-013): holes along the
     frame normal, reaching ``depth`` on each side of the frame plane (default 10 mm, enough
     for a sheet or a lip without piercing the far wall of a box).
@@ -388,9 +391,9 @@ def validate_refs(product: Product, problems: Problems) -> None:
                         f"add iface://{iface.id} to the part's `interfaces:`",
                         rule="interface",
                     )
-        if iface.kind == "bolt-pattern":
-            spec = iface.spec
-            fastener = getattr(spec, "fastener", None)
+        # by the spec's type: a domain kind's bolt-pattern spec names a fastener too (S-144)
+        if isinstance(iface.spec, BoltPatternSpec):
+            fastener = iface.spec.fastener
             if fastener is not None and fastener.id not in product.parts:
                 problems.add(
                     product.files[iface.uri],

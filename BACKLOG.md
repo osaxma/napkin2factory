@@ -72,6 +72,7 @@ entry that closed them. Ids are never reused.
 | B-0122 | The overview tile "279 / 27 requirements OK" divides all OK checks by the requirement count | Gate F 18; `report/sections/overview.html.j2`, count requirements only |
 | B-0123 | Format 0 with no migration: `n2f init .` gives no next step | Gate F 20; say what to do (`core/model/migrate.py`) |
 | B-0124 | The README's "What you get" says nothing about scope or choices, the two things an owner newly sees in v0.5 | Gate F 21; a line each in `README.md` |
+| B-0127 | A domain interface kind whose spec subclasses the mating-face spec is not treated as a face: the build records a face (`geometry/build_part.py`) and the interference check allows contact (`core/checks/interference.py`) only for the kind named `mating-face` | S-144; key both on the spec's type, then let `check_interface` treat it as `mating-face` (`_core_checked`) and make `MatingFaceSpec` public |
 
 ## Closed
 
@@ -139,3 +140,4 @@ entry that closed them. Ids are never reused.
 | B-0097 | `concepts/build.py::summary_line` still says the supply and heat-up of a heated box (the rest of B-0086) | Closed 2026-11-02 (S-135): the summary says size, mass and cost; the kiln's screens add the supply and heat-up through `SUMMARY_PHRASES` |
 | B-0099 | A domain cannot put files in the release package: `ecr/release.py::make_bundle` copies fixed folders, so a domain's `build/<output_dir>` is never released | Closed 2026-11-02 (S-142): `Domain.release_files=(ReleaseFiles(folder, patterns, title),)`; the package holds them under `<domain>/` and the cover names the folder |
 | B-0125 | A domain's rule family could not run before a mechanical one: a manual page showing its outputs was a build behind | Closed 2026-11-02 (S-143): `RuleFamily.before`; the order and the targets count it as the named family's `after` |
+| B-0126 | A domain interface kind whose spec is a bolt pattern got no hole match, no alignment and its class name in the report: the check, the report's spec line and the fastener check keyed on the kind's name (a v0.5 defect, the seam ELECTRICAL_STAGE E4 needs) | Closed 2026-11-02 (S-144): treated by the spec's type, the kind's check after the core's |

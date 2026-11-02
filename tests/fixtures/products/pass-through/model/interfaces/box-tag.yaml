@@ -1,0 +1,5 @@
+id: box-tag
+kind: tag-joint
+parties: [part://box, part://cover]
+description: A plain domain kind on the same two parts; the core cuts and matches nothing.
+spec: {tag: blue}

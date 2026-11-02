@@ -108,7 +108,8 @@ change). Each name is described in §3 and §4.
 - `napkin2factory.core.model.base`: `Model`, `Slug`, `PartUri`, `AsmUri`, `ReqUri`,
   `ParamUri`, `IfaceUri`, `DocUri`, `CalcUri`, `UriField`, `Quantity`, `uri_of`.
 - `napkin2factory.core.model`: `RuleRow` (a napkin screen's row), `ConceptCard`, `Part`, `Verify`.
-- `napkin2factory.core.model.interfaces.InterfaceSpec`.
+- `napkin2factory.core.model.interfaces`: `InterfaceSpec`, `BoltPatternSpec` (a spec to
+  subclass, §3.9).
 - `napkin2factory.core.graph.rules`: `Rule`, `RuleBuild`, `RunContext`, `RunResult`.
 - `napkin2factory.core.graph.hashing`: `sha256_json(obj)`, `sha256_file(path)`, `sha256_text(s)`.
 - `napkin2factory.core.checks.results.CheckResult`.
@@ -476,6 +477,26 @@ InterfaceKind("toy-joint", "Toy snap joint", spec=ToySpec, check=check_toy_joint
   `check(product, iface, build_dir)` (no `check`: "not checked"). The interface file names
   two `parties` (part or assembly URIs), and each party part lists `iface://<id>` under its
   `interfaces:` (copy `tests/fixtures/products/toy/model/interfaces/plate-peg.yaml`).
+
+**A joint with holes: subclass `BoltPatternSpec`.** The core treats an interface by its spec's
+type, not its kind's name. A kind whose `spec` subclasses `BoltPatternSpec` (so its files carry
+`pattern`, `count`, `diameter` … plus your fields) gets everything `bolt-pattern` gets: the
+holes are cut in every party that has geometry, the two parties' holes are matched and the
+joint is lined up in the assembly; a party with no geometry (a bought part) is skipped and the
+row says the holes are cut in the other. Then your `check` runs, and the row combines the two:
+the worse status wins, the core's message first, yours after it; your check's own result is
+under `kind_check` in the row's detail. A `fastener:` must name a part, as for `bolt-pattern`.
+```python
+from napkin2factory.core.model.interfaces import BoltPatternSpec
+
+class EntrySpec(BoltPatternSpec):   # pattern: rect, count: 1, diameter: 20 mm, passes: [...]
+    passes: list[str] = []
+
+InterfaceKind("entry", "Entry hole", spec=EntrySpec, check=check_entry)
+```
+A spec subclassing `InterfaceSpec` gets none of this: the core cuts and matches nothing and the
+row is your `check`'s alone (copy `tests/unit/test_pattern_kinds.py`, which has one of each). A
+spec subclassing the mating-face spec is not treated as a face yet (B-0127, a domain kind with a mating-face spec).
 
 ### 3.10 Open sets (F6): processes, finishes, categories, drivers, style roles
 - `processes=(Process("toy-cast", "Toy casting"),)` — values of a part's `process:`.

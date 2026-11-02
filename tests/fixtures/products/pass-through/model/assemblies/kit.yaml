@@ -1,0 +1,8 @@
+id: kit
+rev: A
+name: Pass-through kit
+geometry: {module: geometry/kit.py}
+children:
+  - {part: part://box, qty: 1}
+  - {part: part://cover, qty: 1}
+  - {part: part://sleeve, qty: 1}

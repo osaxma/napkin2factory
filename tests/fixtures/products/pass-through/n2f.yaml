@@ -1,0 +1,7 @@
+schema: 1
+system: '>=0.5,<0.6'
+product:
+  id: pass-through
+  name: Pass-through box
+  description: A domain kind whose spec is a bolt pattern (tests/unit/test_pattern_kinds.py).
+units: metric

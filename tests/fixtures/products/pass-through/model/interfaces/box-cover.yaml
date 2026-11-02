@@ -1,0 +1,8 @@
+id: box-cover
+kind: pass-through
+parties: [part://box, part://cover]
+description: One hole through the box's top and the cover; two things pass through it.
+frames:
+  part://box: {origin: [0, 0, 10], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://cover: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {pattern: rect, count: 1, diameter: 8 mm, passes: [one, two]}

@@ -244,12 +244,14 @@ def _bom_by_uri(flat: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
 
 
 def _spec_summary(spec: Any) -> str:
-    kind = type(spec).__name__
-    if kind == "BoltPatternSpec":
+    from napkin2factory.core.model import BoltPatternSpec, MatingFaceSpec
+
+    # by the spec's type: a domain kind's spec may subclass the core's (S-144)
+    if isinstance(spec, BoltPatternSpec):
         return f"{spec.count} × ⌀{spec.diameter}, {spec.pattern}"
-    if kind == "MatingFaceSpec":
+    if isinstance(spec, MatingFaceSpec):
         return f"{spec.width} × {spec.depth}"
-    return kind
+    return type(spec).__name__
 
 
 def _build_steps(

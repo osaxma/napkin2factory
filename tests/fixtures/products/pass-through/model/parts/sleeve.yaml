@@ -1,0 +1,11 @@
+id: sleeve
+rev: A
+name: Sleeve
+kind: cots
+process: none
+geometry: none
+interfaces: [iface://box-sleeve]
+source: {vendor: Toy shop, mpn: SLEEVE-1, url: "https://example.com/sleeve", verified: true}
+cost: {unit: 0.1 USD, basis: catalog}
+lead_time: 1 d
+mass: 2 g
