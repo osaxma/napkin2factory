@@ -180,6 +180,8 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-153 | v0.6 M1: the electrical domain's package and wiring model (four families, connection ends parsed by the domain, the fields wave 2 needs, `model/` and `interfaces/` as folders so the `elec` code hash leaves out the owner's view) | in force |
 | S-154 | v0.6 M1: how the wiring model addresses instances, upstream protection, entries by voltage band (the overseer's decisions on the kiln survey; amends E2, E3, E6) | in force |
 | S-155 | v0.6 M1: a cable entry is one hole; the Design row "Wiring" blocks on unwired devices; tests that assumed one installed domain take the membership form | in force |
+| S-156 | v0.6 M2: the schedule rule's id is `elec-schedule`, so the key `rule:elec-schedule` the checks and manuals record is valued (the core reads `rule:<x>` as rule `<x>`'s output) | in force |
+| S-157 | v0.6 M2: the `elec` outputs (the record drawn and tabulated, a left-to-right diagram from the supply, colours never guessed, labels, the cable to buy, the text schematic kept) | in force |
 
 ---
 
@@ -1014,3 +1016,21 @@ Installing a second domain moved tests that assumed one: `test_domain_contract.p
 sets every other domain aside, the unknown-name lookups use `nonesuch` since `wiring` is now a section), `test_doctor.py`,
 `test_graph.py`, `test_report.py` (a section whose `show` is false is off the index), `test_family_before.py`, and
 `test_scope.py` ("Wiring: …" where it said "Electrical: …", as S-150 foresaw). `test_electrical_model.py`: 38 passed, 16 s.
+## S-156 — v0.6 M2: the schedule rule is `elec-schedule`, so `rule:elec-schedule` is valued (2026-11-02)
+The wave-2 brief named the aggregate rule `elec:_schedule` and its key `rule:elec-schedule`. The core values a `rule:<x>`
+read as the output hash of the rule whose id is `<x>` (`core/graph/values.py`, as `rule:asmsheet:<id>` is rule
+`asmsheet:<id>`'s), so with that id the key would read "unbuilt" forever and a manual or check recording it would never
+rerun on a schedule change, silently. The key is what M3 and M4 write in code, so the rule's id follows it: `elec-schedule`
+(kind `elec`; it cannot collide with `elec:<circuit>`). Its inputs hold the circuits' ids, so a circuit added or removed
+reruns it (it reads only the records it knew). `docs/domains.md` does not say how a `rule:` key is valued: B-0135. [revisit]
+## S-157 — v0.6 M2: the `elec` rule family's outputs (2026-11-02)
+`elec:<circuit>` writes `connections.json` (the wave-2 record, plus `dc`, a wire's `insulation`, a boundary's `name`),
+then draws `diagram.svg` and `<circuit>.kicad_sch` from that record alone, so diagram, record and tables cannot disagree.
+Diagram (judged by the maintainer: not yet): nodes in columns by their longest distance from the supply along the wires;
+an entry is a dashed box each wire passes through; a module from elsewhere a dashed box with its words above and nothing
+inside; each wire on its own track, labelled at its left end "id · size · colour"; columns offset half a row. [revisit]
+Colour: the connection's own, else the region's for PE, N or a line terminal, a control circuit's control colour, else
+"not given", never a guess. Labels `<wire> <device>:<terminal>`. `cables.csv` totals per conductor; one unknown length
+makes it "not given". Calc-kit tables are an input (the code hash skips the calc kit). An interface is recorded whole:
+the core values a field read as the whole joint, which impact does not match (B-0136). The text schematic (E1) is kept: a test parses it.
+Measured: minimal report 1,668,966 bytes (no Wiring section yet: M4); `test_electrical_outputs.py` 35 passed, 25 s (-n 4).

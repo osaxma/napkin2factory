@@ -1,0 +1,123 @@
+{
+  "circuit": "heater",
+  "name": "Heater",
+  "purpose": "power",
+  "voltage_v": 230.0,
+  "dc": false,
+  "protection": {
+    "ref": "supply",
+    "words": "the 10 A breaker of the socket circuit"
+  },
+  "devices": [
+    {
+      "uri": "device://switch",
+      "part": "part://switch",
+      "name": "Switch",
+      "instance": null,
+      "role": "control",
+      "terminals": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "uri": "device://heater",
+      "part": "part://heater",
+      "name": "Heater",
+      "instance": null,
+      "role": "load",
+      "terminals": [
+        "L",
+        "N",
+        "PE"
+      ]
+    }
+  ],
+  "wires": [
+    {
+      "id": "heater-1",
+      "from": "supply://supply#L",
+      "from_words": "the supply terminal L",
+      "to": "device://switch#1",
+      "to_words": "Switch terminal 1",
+      "conductor": "cu-1p5-pvc",
+      "conductor_label": "1.5 mm² PVC",
+      "csa_mm2": 1.5,
+      "insulation": "PVC, 70 °C (H07V-K class)",
+      "length_m": 0.4,
+      "colour": "brown",
+      "via": "iface://box-entry",
+      "via_words": "Supply cable into the box"
+    },
+    {
+      "id": "heater-2",
+      "from": "supply://supply#N",
+      "from_words": "the supply terminal N",
+      "to": "device://switch#3",
+      "to_words": "Switch terminal 3",
+      "conductor": "cu-1p5-pvc",
+      "conductor_label": "1.5 mm² PVC",
+      "csa_mm2": 1.5,
+      "insulation": "PVC, 70 °C (H07V-K class)",
+      "length_m": 0.4,
+      "colour": "blue",
+      "via": "iface://box-entry",
+      "via_words": "Supply cable into the box"
+    },
+    {
+      "id": "heater-3",
+      "from": "device://switch#2",
+      "from_words": "Switch terminal 2",
+      "to": "device://heater#L",
+      "to_words": "Heater terminal L",
+      "conductor": "cu-1p5-pvc",
+      "conductor_label": "1.5 mm² PVC",
+      "csa_mm2": 1.5,
+      "insulation": "PVC, 70 °C (H07V-K class)",
+      "length_m": 0.2,
+      "colour": "brown",
+      "via": null,
+      "via_words": null
+    },
+    {
+      "id": "heater-4",
+      "from": "device://switch#4",
+      "from_words": "Switch terminal 4",
+      "to": "device://heater#N",
+      "to_words": "Heater terminal N",
+      "conductor": "cu-1p5-pvc",
+      "conductor_label": "1.5 mm² PVC",
+      "csa_mm2": 1.5,
+      "insulation": "PVC, 70 °C (H07V-K class)",
+      "length_m": 0.2,
+      "colour": "blue",
+      "via": null,
+      "via_words": null
+    },
+    {
+      "id": "heater-5",
+      "from": "supply://supply#PE",
+      "from_words": "the supply terminal PE",
+      "to": "device://heater#PE",
+      "to_words": "Heater terminal PE",
+      "conductor": "cu-1p5-pvc",
+      "conductor_label": "1.5 mm² PVC",
+      "csa_mm2": 1.5,
+      "insulation": "PVC, 70 °C (H07V-K class)",
+      "length_m": 0.5,
+      "colour": "green-and-yellow",
+      "via": "iface://box-entry",
+      "via_words": "Supply cable into the box"
+    }
+  ],
+  "entries": [
+    {
+      "uri": "iface://box-entry",
+      "name": "Supply cable into the box",
+      "external": false
+    }
+  ],
+  "boundary": []
+}

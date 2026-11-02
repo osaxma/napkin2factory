@@ -75,6 +75,8 @@ entry that closed them. Ids are never reused.
 | B-0132 | A domain named like a fixed folder of the release package (`step`, `drawings`, `bom`, `manuals`, `flat-patterns`) merges its files into that folder | S-142 task; refuse such a domain name at `register`, or put domain folders under `domains/` in the package |
 | B-0133 | `n2f impact` names the checks for an edit of a scope entry's note, though the build does not rerun them (a field edit widened to the whole entry) | S-149 task; compare impact's widening of `manifest://scope` with the state-only read the checks record |
 | B-0134 | The report's header counts and its "only what is not OK" filter say nothing of rows left for later | S-149 task; count `later` rows in the header and keep them visible under the filter (`report/`) |
+| B-0135 | `docs/domains.md` §3.2 does not say how a `rule:<x>` key a family produces is valued: as the output hash of the rule whose id is `<x>`, else "unbuilt" forever (a mismatched id never reruns its readers, silently) | S-156; a sentence in §3.2 beside `also_produces`, or refuse at build a `rule:` key no rule's id answers |
+| B-0136 | A read of an interface field (`iface://x#name`, as `ctx.proxy` records it) is valued as the whole joint, but `n2f impact` matches it by field: a domain rule reading one field reruns on edits impact does not name (impact ⊉ rebuild) | S-157; value `iface://x#<path>` by its field in `core/graph/values.py` (a core seam), or say in `docs/domains.md` to record an interface whole |
 
 ## Closed
 

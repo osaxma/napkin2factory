@@ -9,3 +9,4 @@ tests/fixtures/concepts/promote-modules-golden recorded 2026-11-01 (N2F_PROMOTE_
 tests/fixtures/concepts/bracket-status-v01.json 2026-11-01: the Design gate's two blockers and the next step name the part and the assembly by name, not by id (review gate D, S-118); the v0.1 fields are unchanged
 goldens regenerated: review gate D (S-118): the driver built-as-unit reads 'put together and fitted as one piece' on the board's modules (kiln-board.json); no other golden changed
 tests/fixtures/concepts/promote-golden/style.yaml regenerated 2026-11-01 (N2F_PROMOTE_GOLDEN=1): the style roles' neutral words (F9, S-128): palette and finish keys door → opening, stand → support, same colours and finishes; no other golden changed
+electrical-minimal-heater.svg and .json recorded 2026-11-02: new goldens for the minimal wiring product's diagram and record (v0.6 M2, S-157), by `N2F_UPDATE_GOLDENS=1 uv run pytest tests/unit/test_electrical_outputs.py -k golden`; no other golden changed
