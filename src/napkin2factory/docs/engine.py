@@ -13,6 +13,7 @@ recorded value changed after the page was last rendered.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import jinja2
@@ -145,11 +146,14 @@ def render_doc(
     doc: Doc,
     rollups: dict[str, Any] | None = None,
     plan: dict[str, Any] | None = None,
+    build_dir: Path | None = None,
 ) -> Rendered:
     """Render one page's Markdown body with recording accessors.
 
     ``plan`` is the build plan the ``bom`` rule wrote (``build-plan.json``); without it the
-    plan is derived from the model, which gives the same steps.
+    plan is derived from the model, which gives the same steps. ``build_dir`` is the build
+    the page renders in (default: the product's own build folder), handed to the helpers as
+    ``h.build_dir`` (S-164).
     """
     from napkin2factory.core.registry import registry
 
@@ -163,6 +167,7 @@ def render_doc(
         plan=plan,
         proxy=lambda obj, uri: _Proxy(obj, uri, log),
         error=lambda msg: DocRenderError(f"doc://{doc.meta.id}: {msg}"),
+        build_dir=build_dir if build_dir is not None else product.paths.build,
         state={"iface": iface_accessor},
     )
     # every helper a page can call comes from the doc-helper registry (F5); each records

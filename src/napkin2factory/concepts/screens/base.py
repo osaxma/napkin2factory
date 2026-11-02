@@ -23,11 +23,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from napkin2factory.core.domain import SCREEN_PHASES
-from napkin2factory.core.model.concepts import ConceptCard, LabelledValue
 from napkin2factory.core.units import is_quantity
+
+if TYPE_CHECKING:
+    # Not at import: the schemas' package loads the installed domains (the registry), and a
+    # domain declaring its CardFields at import would find this module half-loaded (S-161).
+    from napkin2factory.core.model.concepts import ConceptCard, LabelledValue
 
 #: The phases a screen may run in, in order (see the module docstring).
 PHASES: tuple[str, ...] = SCREEN_PHASES
@@ -152,6 +156,8 @@ class Collector:
 
     def add(self, name: str, raw: Any, text: str, source: str, ref: str | None = None) -> None:
         """Record one value: ``source`` in the owner's words, ``ref`` for engineers."""
+        from napkin2factory.core.model.concepts import LabelledValue
+
         self.raw[name] = raw
         self.out[name] = LabelledValue(
             value=text,

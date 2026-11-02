@@ -34,6 +34,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from napkin2factory.core.checks.results import (
+    CHOICE,
+    OWNER_WORDS,
     example_signoff_why,
     example_signoff_words,
     is_example_signoff,
@@ -198,6 +200,17 @@ def scope_entries(product: Product) -> list[dict[str, Any]]:
             item["missing_stub"] = stubless[domain]
         out.append(item)
     return out
+
+
+def scope_entry(product: Product, domain: str) -> dict[str, Any] | None:
+    """One domain's scope entry as :func:`scope_entries` gives it, or ``None`` when undeclared.
+
+    The public way for a domain to say its own scope line (S-163): ``entry["line"]`` is
+    "Wiring: left for later (not designed here yet) — <note> (DEC-xxx)", in the words every
+    other surface uses; ``entry["state"]``, ``"decision"``, ``"note"`` and, for ``later``,
+    ``"left_for_later"`` (the requirements it leaves out) come with it.
+    """
+    return next((e for e in scope_entries(product) if e["domain"] == domain), None)
 
 
 def later_domains(product: Product) -> list[str]:
@@ -475,12 +488,38 @@ def _domain_rows(
     return rows, caveats
 
 
+#: The order :func:`check_rows_state` says the statuses in (``choice`` added in S-162; the
+#: others keep their v0.5 order, so a summary without a choice reads as before).
+ROW_ORDER: tuple[str, ...] = (
+    "pass",
+    "fail",
+    "choice",
+    "needs-human",
+    "warn",
+    "skip",
+    "signed",
+    "later",
+)
+
+
+def _counted(n: int, status: str, words: dict[str, str]) -> str:
+    """``"2 OK"``: a count with the domain's word for the status, else the core's."""
+    if status in words:
+        return f"{n} {words[status]}"
+    if status == CHOICE:  # the core's "a choice waiting on you", counted
+        return f"{n} choice{'' if n == 1 else 's'} waiting on you"
+    return f"{n} {OWNER_WORDS.get(status, status)}"
+
+
 def check_rows_state(build_dir: Path, kind: str, words: dict[str, str]) -> GateRowState | None:
     """A gate row from the ``checks.json`` rows of one ``kind`` (a helper for domains, F4).
 
-    "3 checks OK, 1 needs attention" in ``words`` (status → owner words); ``None`` when no
+    "3 checks: 2 OK, 1 needs attention" in ``words`` (status → owner words); ``None`` when no
     row of that kind exists or the checks have not run.  The failing rows block the Verify
-    gate on their own already, so the row adds no blocker.
+    gate on their own already, so the row adds no blocker.  Every status counted is said
+    (S-162): one ``words`` leaves out falls back to the core's owner words
+    (:data:`~napkin2factory.core.checks.results.OWNER_WORDS`), a choice as "1 choice waiting
+    on you", in the order of :data:`ROW_ORDER`, then any other status by name.
     """
     from napkin2factory.core.domain import GateRowState
 
@@ -494,8 +533,8 @@ def check_rows_state(build_dir: Path, kind: str, words: dict[str, str]) -> GateR
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["status"]] = counts.get(r["status"], 0) + 1
-    order = ("pass", "fail", "needs-human", "warn", "skip", "signed", "later")
-    parts = [f"{counts[k]} {words.get(k, k)}" for k in order if counts.get(k)]
+    order = [*ROW_ORDER, *sorted(k for k in counts if k not in ROW_ORDER)]
+    parts = [_counted(counts[k], k, words) for k in order if counts.get(k)]
     noun = "check" if len(rows) == 1 else "checks"
     return GateRowState(f"{len(rows)} {noun}: " + ", ".join(parts))
 

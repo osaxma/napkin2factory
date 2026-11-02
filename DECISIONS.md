@@ -184,6 +184,11 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-157 | v0.6 M2: the `elec` outputs (the record drawn and tabulated, a left-to-right diagram from the supply, colours never guessed, labels, the cable to buy, the text schematic kept) | in force |
 | S-158 | v0.6 M3: the wiring checks (rows per rule, the nets walked with contacts and coils, the controller's side for a limit, which materials conduct, the headroom choice, the circuit kind's figures under `#props.`) | in force |
 | S-159 | v0.6 M4: the owner's view of the wiring (the Wiring section with its diagrams made page-safe, the manual helpers, the Verify row, the words, the module context) | in force |
+| S-160 | v0.5 defect (v0.6 wave 2): a card field's `param` comes from any declaration naming one, not only the first; two different ones are an error naming both files | in force |
+| S-161 | v0.5 defect (v0.6 wave 2): the screen contract imports no schema at load, so a domain declaring `CardField`s at import loads whatever is imported first; `docs/domains.md` §1 says which public names are safe at a module's top (measured) | in force |
+| S-162 | v0.5 defect (v0.6 wave 2): `check_rows_state` says every status it counts ("1 choice waiting on you"), the core's owner word where the domain gives none | in force |
+| S-163 | v0.5 defect (v0.6 wave 2): `scope_entry(product, domain)` is the public way for a domain to say its scope line | in force |
+| S-164 | v0.5 defect (v0.6 wave 2): `HelperContext.build_dir`, the build folder a manual page renders in | in force |
 
 ---
 
@@ -1057,3 +1062,47 @@ own size, past which the card scrolls. Minimal report 1,722,207 bytes, renders o
 `table`), `cable_schedule()`, `terminal_labels()`, `cables_to_buy()` (added), each recording `circuit://<id>` and
 `rule:elec-schedule`; build folder from `h.product.paths.build` (B-0142). Verify row: "not checked yet" until rows exist,
 present with wiring or scope `in`. No owner word for `supply` (it would read "supply supply"), no `engineer` words (§9).
+
+## S-160 — v0.5 defect: a card field's parameter from any declaration (2026-11-02)
+Found in v0.6 wave 2 (E8, the supply screen moving into the wiring domain; E10 seam task). A card field's `param`
+came from its first declaration, and a domain's screens are declared before a product's own, so a domain declaring
+`envelope.power` without a `param` erased a product screen's `param=...`: promotion seeded `power` instead. Now
+`concepts/screens/runner.py::declared_fields` keeps the first declaration's unit, kind, example and words and takes
+`param` from any declaration that names one; two naming different parameters are a plain error naming both files
+(`screen_file`: `model/screens/<x>.py` for a product's pack, else the module's file). Raised wherever the fields
+are merged (skeleton, lint, screening, promotion): a field seeding two parameters is a fault in either place.
+B-0145. Tests: `tests/unit/test_screen_helper_seams.py`. `docs/domains.md` §1.
+
+## S-161 — v0.5 defect: the screen contract loads before the schemas (2026-11-02)
+Found in v0.6 wave 2 (E8): a domain whose `Screen` declares `CardField`s at import failed with "partially
+initialized module" when a process imported `napkin2factory.concepts.screens` first: `concepts/screens/base.py`
+imported `core.model.concepts`, whose package's first registry lookup imports the installed domains, which import
+`CardField` from the half-loaded screens package. `base.py` now imports the schema types under `TYPE_CHECKING` and
+`LabelledValue` where it is built. Measured with a probe domain on `INSTALLED` (first imports: `concepts.screens`,
+`core.model`, `core.loader`, `cli.app`): `core.domain`, `core.registry`, `core.model.base`, `.interfaces`,
+`.manifest`, `core.model`'s `RuleRow`/`ConceptCard`/`Part`, `core.graph.hashing`, `core.checks.results`, `core.units`
+and `concepts.screens` are safe at a domain module's top; `core.graph.rules`/`.runner`, `core.checks.stage`/`.choices`/
+`.evidence`, `core.model`'s `Verify`, `core.loader`, `core.context` are not. `docs/domains.md` §1 says so (B-0129's
+warning). B-0146, B-0129. Test: a fresh interpreter importing the screens first.
+
+## S-162 — v0.5 defect: a gate row says every status it counts (2026-11-02)
+Found in v0.6 wave 2 (M4, B-0143): `check_rows_state` counted a `choice` row in the total but listed no word for it
+("3 checks: 2 OK"), so the wiring's headroom choice (E11) vanished from its Verify row. The order is now pass, fail,
+choice, needs-human, warn, skip, signed, later (`ROW_ORDER`; the others keep their v0.5 order), then any other status
+by name; a status the domain's `words` leaves out takes the core's `OWNER_WORDS`, a choice counted as "1 choice
+waiting on you" / "2 choices waiting on you" (the CLI's own count). A row without such statuses reads as before (the
+toy's "1 check: 1 OK" unchanged); before, an unworded status printed its raw name ("1 needs-human").
+
+## S-163 — v0.5 defect: a domain's scope line is public (2026-11-02)
+Found in v0.6 wave 2 (M4, B-0144): the Wiring section imported `core.checks.stage.scope_entries`, outside the
+contract's import list. `core/checks/stage.py::scope_entry(product, domain)` returns that domain's entry (its
+`line`, `state`, `decision`, `note`, `left_for_later`) or `None`; §1 lists it with `core.model.manifest.scope_line`,
+`scope_words` and `SCOPE_WORDS` (already public names, now in the contract).
+
+## S-164 — v0.5 defect: a doc helper knows its build folder (2026-11-02)
+Found in v0.6 wave 2 (M4, B-0142): a helper reading its rule's files took `h.product.paths.build`, wrong for a build
+run in another folder. `HelperContext.build_dir` (required; only `docs/engine.py` builds one) is
+`render_doc(..., build_dir=)`, defaulting to the product's build folder. The docs rule (`core/graph/runs.py`) does not
+pass its `ctx.build_dir` yet: `core/graph/` was another seam task's while this one ran (B-0147). Every caller today
+builds a product into its own build folder (`ecr/diff.py` builds the other version at its own root), so the default
+is the build folder in fact; the one argument closes it.

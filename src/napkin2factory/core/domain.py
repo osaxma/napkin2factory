@@ -267,7 +267,9 @@ class HelperContext:
 
     ``log`` records reads (``log.add(key)``); ``proxy(obj, uri)`` wraps a model object so
     every attribute read is recorded as ``<uri>#<path>``; ``error(msg)`` builds the page's
-    render error; ``rollups`` and ``plan`` are the bom rule's outputs when built.
+    render error; ``rollups`` and ``plan`` are the bom rule's outputs when built;
+    ``build_dir`` is the build folder the page renders in, where a helper reads its own
+    rule's files (S-164: not ``product.paths.build``, which a build run elsewhere is not).
     """
 
     product: Product
@@ -277,6 +279,7 @@ class HelperContext:
     plan: dict[str, Any] | None
     proxy: Callable[[Any, str], Any]
     error: Callable[[str], Exception]
+    build_dir: Path
     state: dict[str, Any] = field(default_factory=dict)
 
 

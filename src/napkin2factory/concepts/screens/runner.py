@@ -18,6 +18,7 @@ step (gate F, S-137); the system's and the domains' screens fail as code does.
 from __future__ import annotations
 
 import datetime as dt
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -47,12 +48,47 @@ def installed_screens(root: Path | None = None) -> list[Screen]:
     return screens
 
 
+def screen_file(screen: Screen) -> str:
+    """Where a screen is declared, for a message: ``model/screens/shelf.py``, else its file."""
+    import sys
+
+    module_name = getattr(screen.run, "__module__", "") or ""
+    file = getattr(sys.modules.get(module_name), "__file__", None)
+    if not file:
+        return module_name or screen.name
+    path = Path(file)
+    if path.parent.name == "screens" and path.parent.parent.name == "model":
+        return f"model/screens/{path.name}"  # a product's own pack
+    return str(path)
+
+
 def declared_fields(screens: list[Screen]) -> list[CardField]:
-    """Every field the screens declare, once each (first declaration wins), in order."""
+    """Every field the screens declare, once each, in order.
+
+    The first declaration gives the unit, kind, example and words. The parameter an envelope
+    field seeds at promotion (``param``) comes from any declaration that names one, so a
+    domain declaring ``envelope.power`` first does not erase the product's
+    own ``param`` (S-160); two declarations naming different parameters are a
+    plain error naming both files.
+    """
     seen: dict[str, CardField] = {}
+    param_from: dict[str, Screen] = {}
     for s in screens:
         for f in fields_of(s):
-            seen.setdefault(f.name, f)
+            first = seen.setdefault(f.name, f)
+            if f.param is None:
+                continue
+            if f.name not in param_from:
+                param_from[f.name] = s
+                if first.param is None:
+                    seen[f.name] = replace(first, param=f.param)
+            elif seen[f.name].param != f.param:
+                raise N2FError(
+                    f"the card field {f.name} seeds two different parameters: "
+                    f"'{seen[f.name].param}' in {screen_file(param_from[f.name])} and "
+                    f"'{f.param}' in {screen_file(s)} → give it one `param` in both, or a "
+                    "new key in one of them"
+                )
     return list(seen.values())
 
 

@@ -85,8 +85,11 @@ with installed(toy.DOMAIN):
   `<section>.<key>` (`envelope.toys`). Two screens may read the same field, and both get the
   card's one value; the skeleton (`n2f concept new`) and `n2f concept lint` use the first
   declaration's unit, kind and example (the system's generic screens first, then the domains
-  in installation order, then the product's own). So reuse a key only when you mean the same
-  number in the same unit; otherwise pick a new key (§3.11).
+  in installation order, then the product's own). The parameter an envelope field seeds at
+  promotion (`param`) comes from any declaration that names one, so a domain declaring
+  `envelope.power` without a `param` leaves a product screen's `param` standing; two
+  declarations naming different parameters are an error naming both files. So reuse a key
+  only when you mean the same number in the same unit; otherwise pick a new key (§3.11).
 - **Do not assert the whole domain list.** The toy test asserts
   `[d.name for d in registry().domains] == ["mechanical", "toy"]`; yours should assert
   `"<name>" in [d.name for d in registry().domains]`, so both pass in any order.
@@ -113,7 +116,11 @@ change). Each name is described in §3 and §4.
 - `napkin2factory.core.graph.rules`: `Rule`, `RuleBuild`, `RunContext`, `RunResult`.
 - `napkin2factory.core.graph.hashing`: `sha256_json(obj)`, `sha256_file(path)`, `sha256_text(s)`.
 - `napkin2factory.core.checks.results.CheckResult`.
-- `napkin2factory.core.checks.stage.check_rows_state`.
+- `napkin2factory.core.checks.stage`: `check_rows_state` (§3.5), `scope_entry(product,
+  "<name>")` (your domain's scope entry, or `None` when `n2f.yaml` declares none; its
+  `"line"` is the scope line every other surface prints, §5).
+- `napkin2factory.core.model.manifest`: `scope_line`, `scope_words`, `SCOPE_WORDS` (the owner
+  words of §5, to say a state yourself).
 - `napkin2factory.core.checks.choices`: `offer`, `Option` (a check that hands the owner a choice).
 - `napkin2factory.core.units`: `parse_quantity`, `compare`, `format_quantity`, `is_quantity`,
   `magnitude_in`.
@@ -127,6 +134,20 @@ change). Each name is described in §3 and §4.
   `napkin2factory.core.model.style` (`STYLE_ROLES`, `STYLED_ROLES`, `ROLE_ALIASES`,
   `canonical_role`, `StyleFile`), `napkin2factory.cli.app.app`,
   `napkin2factory.cli.build.targets` (every `--target` name). Signatures in §8.
+
+**When to import it.** An installed domain is imported while the core's schemas load (the
+first registry lookup happens inside `napkin2factory.core.model`), so some of the names above
+are only half-loaded when your module's top runs. Measured with a domain on `INSTALLED`
+whose top imports each name, the process first importing `napkin2factory.concepts.screens`,
+`napkin2factory.core.model`, `napkin2factory.core.loader` or `napkin2factory.cli.app`:
+- **Safe at the top of a module:** `core.domain`, `core.registry`, `core.model.base`,
+  `core.model.interfaces`, `core.model.manifest`, `core.model`'s `RuleRow`, `ConceptCard`
+  and `Part`, `core.graph.hashing`, `core.checks.results`, `core.units` and
+  `concepts.screens` (declare your `CardField`s at import).
+- **Import inside the function that uses it** (or under `TYPE_CHECKING` for a type):
+  `core.graph.rules`, `core.graph.runner`, `core.checks.stage`, `core.checks.choices`,
+  `core.checks.evidence`, `core.model`'s `Verify`, `core.loader`, `core.context`. At the top
+  they fail with "cannot import name … from partially initialized module".
 
 ## 2. The toy, end to end
 
@@ -397,7 +418,10 @@ def toy_row(product, build_dir):
   sentence) keeps the gate open; each caveat holds it without blocking a release.
 - `check_rows_state(build_dir, kind, words)`: the summary of the `checks.json` rows of one
   `kind`, "3 checks: 2 OK, 1 needs attention" (`words`: status → owner words), or `None`
-  before the checks ran. It adds no blocker (failing rows block Verify on their own).
+  before the checks ran. Every status counted is said, in the order pass, fail, choice,
+  needs-human, warn, skip, signed, later: one `words` leaves out takes the core's owner word
+  ("1 choice waiting on you", "1 needs your sign-off", "1 left for later"). It adds no
+  blocker (failing rows block Verify on their own; an open choice holds what it says).
 - `n2f status --json` shows it as `{"title", "summary"}` in that gate's `detail.rows`.
 - Scope can take the row away: §5.
 
@@ -687,7 +711,9 @@ sentence; `message` what was found.
   (interface id → its check report), `rollups` (the bom totals when read).
 - `HelperContext` (a doc helper): `product`, `doc` (the page), `log` (`log.add(key)`),
   `proxy(obj, uri)`, `error(msg)` (raise what it returns), `rollups`, `plan` (the bom
-  rule's outputs when built), `state` (a dict for the page's render).
+  rule's outputs when built), `build_dir` (the build folder the page renders in: read your
+  rule's files under `h.build_dir / "<output_dir>"`, never `h.product.paths.build`, which a
+  build run in another folder is not), `state` (a dict for the page's render).
 
 ### 4.5 The product and its files
 `load_product(root)` returns the product: `root`, `manifest` (`n2f.yaml`), `operator`,

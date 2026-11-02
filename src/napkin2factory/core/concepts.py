@@ -46,7 +46,11 @@ def screen_fields(root: Path | None = None) -> list[Any]:
 
 
 def param_names(root: Path | None = None) -> dict[str, str]:
-    """Envelope keys that seed a parameter under another name, as their screens declare."""
+    """Envelope keys that seed a parameter under another name, as their screens declare.
+
+    Any screen declaring the field may name the parameter, not only the first: a domain's
+    screens are declared before the product's own (S-160, ``declared_fields``).
+    """
     return {f.key: f.param for f in screen_fields(root) if f.section == "envelope" and f.param}
 
 
