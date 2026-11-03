@@ -1,18 +1,20 @@
 # STATUS — napkin2factory
 
-**Version:** 0.5.0, ready to push and tag; not pushed, not tagged (last release 0.3.0, tag `v0.3.0`; 0.4.0 closed, untagged) · **Trunk:** `main`;
+**Version:** 0.6.0, ready to push and tag; not pushed, not tagged (last release 0.3.0, tag `v0.3.0`; 0.4.0 and 0.5.0 closed, untagged) · **Trunk:** `main`;
 work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:** `BACKLOG.md` ·
 **Why things are the way they are:** `DECISIONS.md` (index at the top) · **What shipped:**
-`HANDOFF-REPORT-v0.5.md` (v0.5), `HANDOFF-REPORT-v0.4.md` (v0.4), `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
+`HANDOFF-REPORT-v0.6.md` (v0.6), `HANDOFF-REPORT-v0.5.md` (v0.5), `HANDOFF-REPORT-v0.4.md` (v0.4), `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
 
 ## Where we are
-v0.5 (the seams, `FOUNDATION.md`) is closed: M0–M7 done, the count is 0 (a fresh agent added a
-domain without touching the core, S-134), gates E and F closed with their blockers fixed, version
-files and product pins at 0.5.0 / `>=0.5,<0.6` (S-140); `HANDOFF-REPORT-v0.5.md`. Measured at
-29951e2: `make check` 10 min 4 s (1,088 passed), `make check-full` from a clean clone 29 min 14 s,
-both green. Left to the maintainer: the visual judgment of the status output with a choice and the
-report's scope line (`docs/reviews/v0.5-*.png`), push, the first Linux nightly after S-121, and the
-`v0.5.0` tag (v0.4.0 was never tagged either). Next: v0.6 (`ELECTRICAL_STAGE.md`).
+v0.6 (the wiring, `ELECTRICAL_STAGE.md`) is closed: M0–M7 done, the domain milestone commits touched
+**0 files** in `core/`, `report/builder.py`, `docs/engine.py` or `cli/check.py` (the v0.5 contract
+seam tasks `S-142`–`S-144`, `S-148`–`S-152`, `S-160`–`S-167`, `S-180` are listed apart per E10),
+the DoD 7 owner simulation passed (S-176), gates G and H are closed with every blocker fixed
+(S-178, S-179, S-180), and version files and product pins are at 0.6.0 / `>=0.6,<0.7` (S-181);
+`HANDOFF-REPORT-v0.6.md`. Left to the maintainer: visual judgment of the wiring diagrams and report
+section (`docs/reviews/v0.6-*.png`, plus v0.5's `docs/reviews/v0.5-*.png`), push, the next Linux
+nightly (after S-175's portable `mktemp`), and the `v0.6.0` tag. Next: the independent outside-model
+trial (`docs/reviews/v0.6-independent-trial.md`).
 Releasing a version: bump the three version files and the pins (S-054, S-083), `make check` on
 `main`, push, wait for CI, tag `v<version>` on that green commit (S-072).
 
@@ -36,12 +38,12 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
 
 ## Milestones (one line each; detail in the entries named)
 v0.6 — `ELECTRICAL_STAGE.md` (the electrical domain through the v0.5 contract; the count of core edits is
-the headline), S-111; reconciled with the contract as built in S-141: in progress: M0–M4 landed; M5 and M6 green-lit by the maintainer 2026-11-02 (wave 3, then M7; the second overseer's ledger is `docs/v06-handoff/PROGRESS.md`); the overseer's temporary handoff is `docs/v06-handoff/README.md` (delete it at close).
-`docs/reviews/v0.6-independent-trial.md` is the outside model's brief for after it lands.
-Wave times on the host (measured, 2026-11-02): M0 (the baseline and five seam tasks at once) 07:00–07:55, 55 min;
+the headline), S-111; reconciled with the contract as built in S-141; closed, `HANDOFF-REPORT-v0.6.md`,
+version 0.6.0 (S-181). `docs/reviews/v0.6-independent-trial.md` is the outside model's brief for after it lands.
+Wave times on the host (measured, 2026-11-02 – 2026-11-03): M0 (the baseline and five seam tasks at once) 07:00–07:55, 55 min;
 M1 07:56–08:26. `make check` on `main`: 9 min 34 s at 4358ba6 (after M0, 1,135 passed), 9 min 40 s at 9bd5b3f
 (after M1, 1,173 passed); wave 2 (M2, M3, M4 at once, two seam tasks, M4b) 08:40–09:56; `make check` 10 min 53 s at e72704b
-(after wave 2, 1,290 passed, on a busy host); re-measured on an idle host at 1f81117: 7 min 39 s, green (1,290 passed, 141 goldens), under the 10 min 4 s budget, so nothing moved behind `-m full`. After wave 3, M7a, the diagram follow-up (S-174) and the nightly fix (S-175): 8 min 19 s at f346f14, green (1,323 passed, 141 goldens), idle host (2026-11-03). Linux: the push run of `make check` on 7f4d8d0 is green on ubuntu and macOS; the two nightlies since S-121 (2026-11-02, 2026-11-03, on the pushed 7f4d8d0) were red on one test, the kiln demos' BSD-only `mktemp` (fixed in S-175, not yet run on Linux: main is not pushed).
+(after wave 2, 1,290 passed, on a busy host); re-measured on an idle host at 1f81117: 7 min 39 s, green (1,290 passed, 141 goldens), under the 10 min 4 s budget, so nothing moved behind `-m full`. Wave 3 (M6, headroom follow-up S-171, M5) 76 min. After wave 3, M7a, the diagram follow-up (S-174) and the nightly fix (S-175): 8 min 19 s at f346f14, green (1,323 passed, 141 goldens), idle host (2026-11-03). Linux: the push run of `make check` on 7f4d8d0 is green on ubuntu and macOS; the two nightlies since S-121 (2026-11-02, 2026-11-03, on the pushed 7f4d8d0) passed S-121's sign-off evidence keys and failed only on BSD `mktemp` in `demo-napkin.sh` (fixed in S-175, verified in a Debian container; main is not pushed).
 - M0 seam tasks (v0.5 defects, counted apart from the domain): a domain's files in the release package (S-142,
   B-0099); a rule family runs `before=` a named one (S-143, B-0125); interfaces treated by their spec's type
   (S-144, B-0126); the scope words, a "left for later" status, the domain's own word, stand-ins (S-148–S-152,
@@ -55,11 +57,13 @@ M1 07:56–08:26. `make check` on `main`: 9 min 34 s at 4358ba6 (after M0, 1,135
   `cable-entry` kind, the Design row "Wiring", every other registration stubbed for wave 2; 0 core files) — S-153, S-154, S-155.
 - M2 the `elec` rules: per-circuit diagram, record and text schematic; schedule, labels, cables to buy — S-156, S-157.
 - M3 the wiring checks, the `circuit` verify kind, the supply-headroom choice, six fault fixtures — S-158.
-- M5 the kiln wired (four circuits, three cable entries, the manual's wiring generated, the headroom choice decided, `demo-electrical.sh`) — S-172.
-- M7a the docs for the wiring (`docs/electrical.md`, the guide, the three roles, vocabulary, `docs/domains.md`) — S-173.
-- M6 the external-box fixture (a box supplied from elsewhere, two cable-entry ports), the diff page's "<label>: added", the owner-session script — S-169, S-170.
 - M4 the Wiring report section, manual helpers, Verify row, owner words, module context (S-159); the supply screen
   moved from the kiln's pack into the domain (M4b, E8) — S-168.
+- M5 the kiln wired (EU 20 A/32 A circuit classes and `Supply.dedicated`, S-171; four circuits, three cable entries, the manual's wiring generated, the headroom choice decided, `demo-electrical.sh`, S-172; diagram readability follow-up, S-174).
+- M6 the external-box fixture (a box supplied from elsewhere, two cable-entry ports), the diff page's "<label>: added", the owner-session script — S-169, S-170.
+- M7a the docs for the wiring (`docs/electrical.md`, the guide, the three roles, vocabulary, `docs/domains.md`) — S-173; portable `mktemp` in demo scripts and bare-repo `--git-dir` in publish tests — S-175, S-177.
+- DoD 7 owner simulation passed (supply-headroom choice raised after first build with wiring, decided by the owner) — S-176.
+- Gate G (electrician read-through + engineering) — "Review gate G — outcome", blockers fixed in S-178, S-179, S-180; Gate H (UX, owner persona) — "Review gate H — outcome", blockers fixed in S-179, S-180; close-out, 0.6.0 — S-181. The maintainer's visual judgment is pending.
 
 v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
 package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120; closed,

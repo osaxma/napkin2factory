@@ -1,4 +1,4 @@
 schema: 1
-system: ">=0.5,<0.6"
+system: ">=0.6,<0.7"
 product: {id: weak, name: Weak intake}
 units: metric

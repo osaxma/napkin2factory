@@ -205,6 +205,9 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-178 | v0.6 gate G blockers 1–2: each conductor against the device that protects it (a new `conductor-protection` row), and the Class II shortcut only where no part that conducts meets mains wiring (else a warn) | in force |
 | S-179 | v0.6 M7: every wiring output carries the licensed-electrician note (diagram footer band with product, circuit and Revision or draft; `electrical/README.txt` shipped in the release package; manual helper's opening line; report headings by purpose; closes B-0157) | in force |
 | S-180 | Seam (gate H B1, C7; gate G blocker 3; B-0160): a design change request's patch dry-run in its impact report; `Domain.disclaimer` in the package `README.txt` and the report; the `later` → `in` cover line; `"an agent may decide it"` only when the area is delegated (closes B-0184, B-0160) | in force |
+| Gate G | Review gate G (electrician read-through, then engineering, v0.6) — outcome | outcome recorded; blockers fixed (S-178, S-179, S-180), the rest in BACKLOG |
+| Gate H | Review gate H (UX, owner persona, v0.6) — outcome | outcome recorded; blockers fixed (S-179, S-180), the rest in BACKLOG; the maintainer's visual judgment pending |
+| S-181 | v0.6 close-out: version 0.6.0, product pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` | in force |
 
 ---
 
@@ -1283,3 +1286,36 @@ in-scope domain's sentence to the package `README.txt` and the report's `#discla
 licensed-electrician line. (3) `ecr/release.py::scope_lines` reads the previous Revision's `release.json` and says
 `<Word>: included in this Revision; left for later in <prev>`. (4) `core/checks/choices.py` says `"an agent may decide it
 and say so"` only when `operator.yaml` delegates the choice's area and `model/intake.md` does not ask to be asked.
+
+## Review gate G (electrician read-through, then engineering) — outcome (2026-11-03)
+Reviewed at f67dc06 (report: `docs/reviews/v0.6-gate-g.md`; Part 1 read-through kept at `examples/kiln/reports/electrician-readthrough.md`):
+NOT READY on three blockers; the six fault fixtures fail or warn naming the part, circuit and fix, the kiln's load current and
+margins re-compute by hand through `calckit.power`, every table row is cited and `verify: true`, the domain stays generic and
+reads through the recording accessors, and an electrician could wire the kiln from the package with about a dozen calls to the
+maker. **Blockers fixed:** (1) a conductor rated below its protective device passed (`I_n <= I_z` unchecked) and (2) the Class II
+shortcut passed a mild-steel box carrying single-insulated mains conductors — S-178 (`conductor-protection` row, Class II shortcut
+restricted, fixtures `thin-under-breaker` and `class-two-metal`); (3) "not reviewed by a licensed electrician" never reached the
+package `README.txt`, the manual helpers or the diagram SVGs — S-179 (diagram footer, `electrical/README.txt`, manual helper) and
+S-180 (`Domain.disclaimer` in the package `README.txt`). Open in BACKLOG: concerns 1–14 (B-0161 … B-0173; 6 is B-0137, 15 closed by S-181).
+
+## Review gate H (UX in the owner persona) — outcome (2026-11-03)
+Reviewed at f67dc06 (report: `docs/reviews/v0.6-gate-h.md`): NOT READY on two blockers; "left for later" in status, report and
+the v1.0.0 cover, "Wiring: added" on the diff page, the Wiring section's banner and "a licensed electrician decides" warnings,
+plain refusals without stack traces, and zero wiring words on a product without wiring all read well. **Blockers fixed:** B1 the
+impact report for a `kind: design` change request with a patch (`ECR-003`) said "Impact of 0 change(s)" and "nothing is rebuilt" —
+S-180 (`compute_impact` dry-runs the patch in a scratch copy and reports files/entities, scope transitions and rebuilt artifacts,
+closes B-0184); B2 the wiring diagrams in the package carried no disclaimer, product name or revision (= gate G blocker 3) — S-179
+(diagram `<g id="footer">` band and `electrical/README.txt`). Concerns fixed: C3, C4 (S-179, closes B-0157), C7 and B-0160 (S-180).
+Open in BACKLOG: C1, C2, C5, C6, C8–C11 (B-0174 … B-0181). Visual exits (S-078): `docs/reviews/v0.6-diagram-*.png`,
+`v0.6-kiln-diagram-*.png` and `v0.6-report-wiring.png` — judged by the agent; the maintainer's visual judgment pending.
+
+## S-181 — v0.6 close-out: version 0.6.0, product pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` (2026-11-03)
+As S-140 did for 0.5: `pyproject.toml`, `packaging/n2f/pyproject.toml` (and its `napkin2factory==`) and
+`src/napkin2factory/__init__.py` read 0.6.0 (S-054); the pin moves to `>=0.6,<0.7` wherever S-083 put it:
+the manifest default and its error example (`core/model/manifest.py`), the template sources and
+`examples/{bracket,enclosure}` `n2f.yaml` and product CI workflows (synced with `make templates`), the kiln's
+`n2f.yaml` and workflows, every `tests/fixtures/**/n2f.yaml` (including `tests/fixtures/electrical/**` and
+`tests/fixtures/scope/**`), `tests/unit/test_version_pin.py` and the layout line in `docs/product-model.md`;
+`uv.lock` follows. Dated transcripts under `tests/e2e/` keep the pin they ran with. No schema change (E12,
+schema stays 1). `HANDOFF-REPORT-v0.6.md` records the E10 count (0 core files in domain commits; seam tasks
+listed apart), milestones M0–M7, DoD 1–10 and gates G and H; temporary `docs/v06-handoff/` removed.
