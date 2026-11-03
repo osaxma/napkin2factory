@@ -11,7 +11,7 @@ PY := $(UV) run
 EXAMPLES_FAST := examples/bracket examples/enclosure
 
 .PHONY: check check-fast check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos verify-list clean \
-	task land tasks abandon
+	task land tasks abandon health
 
 check: lint types unit golden examples-fast todo-grep
 
@@ -36,7 +36,7 @@ export N2F_OFFLINE ?= 1
 XDIST ?= -n auto --dist loadfile
 
 unit:
-	$(PY) pytest tests/smoke tests/unit tests/e2e -m "not full" $(XDIST) --cov=napkin2factory.core --cov=napkin2factory.calckit --cov-report=term-missing:skip-covered --cov-fail-under=80
+	$(PY) pytest tests/smoke tests/unit tests/e2e -m "not full" $(XDIST) --cov=napkin2factory.core --cov=napkin2factory.calckit --cov-report=term-missing:skip-covered --cov-report=xml:coverage.xml --cov-fail-under=80
 
 golden:
 	$(PY) pytest tests/golden $(XDIST)
@@ -91,6 +91,9 @@ todo-grep:
 
 verify-list:  # every engineering number still to be confirmed, as Markdown
 	@$(PY) python scripts/verify_list.py
+
+health:  # deterministic project health measures and trend
+	@$(PY) python scripts/health.py $(ARGS)
 
 clean:
 	rm -rf build dist examples/*/build .pytest_cache .mypy_cache .ruff_cache
