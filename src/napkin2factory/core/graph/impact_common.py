@@ -45,6 +45,7 @@ class ImpactReport:
     cost_note: str
     firm: bool  # True when the graph has been built at least once (otherwise estimates)
     kind: str = "parametric"
+    cost_complete: bool = True
     tasks: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     ports: list[dict[str, Any]] = field(default_factory=list)  # P12: the ports it crosses

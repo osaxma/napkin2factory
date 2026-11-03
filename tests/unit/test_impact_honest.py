@@ -274,3 +274,80 @@ def test_patch_impact_reports_files_entities_scope_and_rebuild_artifacts(tmp_pat
     assert rep.patch is not None and not rep.patch.applies and rep.patch.problem
     bad_md = summarize(rep, prod)
     assert "does not apply to the model as it is now" in bad_md
+
+
+def test_impact_cost_delta_edit_to_unpriced_part(kiln: Path, tmp_path: Path) -> None:
+    """An edit to an unpriced part flags the incomplete cost delta (S-187)."""
+    from napkin2factory.core.graph.impact import summarize
+
+    root = copy_product(kiln, tmp_path / "kiln-unpriced", git=False)
+    tray_file = root / "model/parts/door-tray.yaml"
+    text = tray_file.read_text(encoding="utf-8")
+    lines = [line for line in text.splitlines() if not line.startswith("cost:")]
+    tray_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    prod = load_product(root)
+    assert prod.parts["door-tray"].cost is None
+
+    rep = compute_impact(prod, [parse_set("part://door-tray#material.spec=2 mm CR4")])
+    assert rep.cost_delta == 0.0
+    assert rep.cost_complete is False
+    assert rep.to_dict()["cost_complete"] is False
+    assert (
+        "; 1 part(s) without a price: door-tray, so the cost change is incomplete" in rep.cost_note
+    )
+    md = summarize(rep, prod)
+    assert "at least +0.00 USD per unit" in md
+    assert rep.cost_note in md
+
+
+def test_impact_cost_delta_patch_adding_unpriced_part(kiln: Path, tmp_path: Path) -> None:
+    """A patch adding an unpriced part flags the incomplete cost delta (S-187)."""
+    from napkin2factory.core.graph.impact import summarize
+
+    root = copy_product(kiln, tmp_path / "kiln-patch", git=True)
+    patch_dir = root / "changes"
+    patch_dir.mkdir(exist_ok=True)
+    patch_file = patch_dir / "unpriced.patch"
+    patch_content = (
+        "--- /dev/null\n"
+        "+++ b/model/parts/bracket.yaml\n"
+        "@@ -0,0 +1,9 @@\n"
+        "+id: bracket\n"
+        "+rev: A\n"
+        "+name: Bracket\n"
+        "+kind: custom\n"
+        "+process: sheet-metal\n"
+        '+material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}\n'
+        "+finish: none\n"
+        "+tolerance_class: ISO2768-m\n"
+        "+geometry: none\n"
+    )
+    patch_file.write_text(patch_content, encoding="utf-8")
+
+    prod = load_product(root)
+    rep = compute_impact(prod, [], patch=patch_file)
+    assert rep.patch is not None and rep.patch.applies is True
+    assert rep.cost_delta == 0.0
+    assert rep.cost_complete is False
+    assert rep.to_dict()["cost_complete"] is False
+    assert "; 1 part(s) without a price: bracket, so the cost change is incomplete" in rep.cost_note
+    md = summarize(rep, prod)
+    assert "at least +0.00 USD per unit" in md
+    assert rep.cost_note in md
+
+
+def test_impact_cost_delta_priced_only_change(kiln: Path) -> None:
+    """A change touching only priced parts leaves cost_note and cost_complete clean (S-187)."""
+    from napkin2factory.core.graph.impact import summarize
+
+    prod = load_product(kiln)
+    rep = compute_impact(prod, [parse_set("part://door-tray#cost.unit=80 USD")])
+    assert rep.cost_delta == 20.0
+    assert rep.cost_complete is True
+    assert rep.to_dict()["cost_complete"] is True
+    assert rep.cost_note == "from declared unit costs × quantities"
+    md = summarize(rep, prod)
+    assert "**Cost:** +20.00 USD per unit (from declared unit costs × quantities)." in md
+    assert "at least" not in md
+    assert "incomplete" not in md

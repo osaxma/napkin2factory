@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from napkin2factory.core.graph.impact_common import PatchImpact
 from napkin2factory.core.graph.rules import Rule, build_rules
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import Edit
@@ -256,7 +257,7 @@ def hyp_bom_rollup(
     v = r.verify
     if v.target is None or not v.op or v.value is None or v.target.selector != ("total_cost",):
         return "re-check", ""
-    delta, _ = _cost_delta(
+    delta, _, _ = _cost_delta(
         product,
         [
             Edit(set=Uri.parse(k), to=val)
@@ -295,7 +296,12 @@ def _evidence_affected(evidence: str, affected: dict[str, str], affected_params:
     return family is not None and f"{family.name}:{ident}" in affected
 
 
-def _cost_delta(product: Product, edits: list[Edit], build_dir: Path) -> tuple[float, str]:
+def _cost_delta(
+    product: Product,
+    edits: list[Edit],
+    build_dir: Path,
+    patch: PatchImpact | None = None,
+) -> tuple[float, str, bool]:
     """Delta from declared unit costs × quantities; geometry-driven costs are not estimated."""
     import json
 
@@ -317,10 +323,56 @@ def _cost_delta(product: Product, edits: list[Edit], build_dir: Path) -> tuple[f
                 continue
             delta += (new - old) * qty.get(part.uri, 1)
             touched = True
+
+    # Custom parts whose declared unit cost is missing after the change (S-187)
+    candidate_ids: set[str] = {e.set.id for e in edits if e.set.scheme == "part"}
+    if patch is not None:
+        candidate_ids.update(
+            u.removeprefix("part://")
+            for u in patch.objects.get("added", [])
+            if u.startswith("part://")
+        )
+
+    unpriced: list[str] = []
+    for pid in sorted(candidate_ids):
+        candidate_part = product.parts.get(pid)
+        if candidate_part is not None and candidate_part.kind == "reference":
+            continue
+        has_cost = False
+        for e in edits:
+            if e.set.scheme == "part" and e.set.id == pid and e.set.selector == ("cost", "unit"):
+                try:
+                    parse_quantity(e.to, "USD")
+                    has_cost = True
+                    break
+                except UnitError:
+                    pass
+        if (
+            not has_cost
+            and candidate_part is not None
+            and candidate_part.cost is not None
+            and candidate_part.cost.unit is not None
+        ):
+            has_cost = True
+        if not has_cost:
+            unpriced.append(pid)
+
     if touched:
-        return round(delta, 2), "from declared unit costs × quantities"
-    return (
-        0.0,
-        "no declared costs change; cost effects of geometry changes are not estimated "
-        "(re-quote after rebuild)",
-    )
+        base_note = "from declared unit costs × quantities"
+    else:
+        base_note = (
+            "no declared costs change; cost effects of geometry changes are not estimated "
+            "(re-quote after rebuild)"
+        )
+
+    if unpriced:
+        names = ", ".join(unpriced)
+        note = (
+            f"{base_note}; {len(unpriced)} part(s) without a price: {names}, "
+            "so the cost change is incomplete"
+        )
+    else:
+        note = base_note
+
+    complete = len(unpriced) == 0
+    return (round(delta, 2) if touched else 0.0), note, complete

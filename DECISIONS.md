@@ -213,6 +213,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-184 | Six modules over 750 lines split, code moved verbatim, each file under 550 lines | in force |
 | S-185 | Structural F9 guard: AST string constants and qualified URIs replace blind text match (amends S-128) | in force |
 | S-186 | Fail n2f check when a made part's material density is assumed mild steel | in force |
+| S-187 | Cost delta names added or edited unpriced parts | in force |
 
 ---
 
@@ -1363,3 +1364,10 @@ A new public helper `density_is_assumed(material) -> bool` detects when this fal
 In `core/checks/engine.py`, `material://<part>` check rows verify that each made (`kind: custom`)
 part has a known material or an explicit declared density; assumed density fails with plain
 owner words naming the part and material, while bought (`kind: cots`) and reference parts are exempt.
+## S-187 — Cost delta names added or edited unpriced parts (2026-11-03)
+A change request editing or patch-adding parts without declared unit cost previously reported a bare
+delta of +$0.00, reading as complete to owners. `_cost_delta` in `core/graph/impact_reads.py` now
+tracks custom (non-reference, non-bought-with-price) parts whose cost remains missing after the change.
+When unpriced parts exist, the cost note appends `; N part(s) without a price: <names>, so the cost change is incomplete`,
+`cost_complete` in JSON is `false`, and the summary renders an incomplete delta as `at least +$X.XX` (or `−`).
+

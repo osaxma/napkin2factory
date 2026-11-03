@@ -29,7 +29,11 @@ def summarize(report: ImpactReport, product: Product) -> str:
             "Run `n2f build` once and re-run impact for the exact set."
         )
         lines.append("")
-    if report.cost_delta:
+    if not report.cost_complete:
+        sign = "+" if report.cost_delta >= 0 else "−"
+        amt = abs(report.cost_delta)
+        lines.append(f"**Cost:** at least {sign}{amt:.2f} USD per unit ({report.cost_note}).")
+    elif report.cost_delta:
         sign = "+" if report.cost_delta > 0 else ""
         lines.append(f"**Cost:** {sign}{report.cost_delta:.2f} USD per unit ({report.cost_note}).")
     elif patch is not None and patch.applies:

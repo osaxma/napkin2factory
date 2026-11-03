@@ -208,10 +208,12 @@ def compute_impact(
         return _impact(product, edits, build_dir, kind, tasks)
     with dry_run_patch(product, patch, build_dir) as (found, after):
         if after is None:
-            report = _impact(product, edits, build_dir, kind, tasks)
+            report = _impact(product, edits, build_dir, kind, tasks, patch=found)
         else:
             keys = _patch_keys(product, after, found)
-            report = _impact(after, edits, build_dir, kind, tasks, keys, found.rebuilds)
+            report = _impact(
+                after, edits, build_dir, kind, tasks, keys, found.rebuilds, patch=found
+            )
         report.patch = found
         return report
 
@@ -224,6 +226,7 @@ def _impact(
     tasks: list[str] | None,
     extra_keys: list[str] | None = None,
     seeded: dict[str, str] | None = None,
+    patch: PatchImpact | None = None,
 ) -> ImpactReport:
     """:func:`compute_impact` on one model; ``seeded``: rules known to rerun, with why."""
     manifest = Manifest.load(build_dir)
@@ -319,7 +322,7 @@ def _impact(
         if any(_evidence_affected(str(e), affected, affected_params) for e in s.evidence)
         or s.requirement.id in {q.id for q in reqs}
     )
-    cost_delta, cost_note = _cost_delta(product, edits, build_dir)
+    cost_delta, cost_note, cost_complete = _cost_delta(product, edits, build_dir, patch=patch)
     return ImpactReport(
         edits=[{"set": str(e.set), "to": e.to} for e in edits],
         edited_keys=edited_keys,
@@ -334,6 +337,7 @@ def _impact(
         signoffs_invalidated=signoffs,
         cost_delta=cost_delta,
         cost_note=cost_note,
+        cost_complete=cost_complete,
         firm=firm,
         kind=kind,
         tasks=list(tasks or []),
