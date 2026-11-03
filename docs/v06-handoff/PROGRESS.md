@@ -45,9 +45,9 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 
 ## Next step
 **Resuming after a cut-off (the third overseer stopped at the maintainer's word, 2026-11-03, near a usage limit):**
-1. `make tasks`: four tasks may be open — `gate-g-checks` (`brief-gate-g-checks.md`), `wiring-disclaimer`
+1. `make tasks`: three tasks may be open — `gate-g-checks` (`brief-gate-g-checks.md`), `wiring-disclaimer`
    (`brief-disclaimer.md`), `seam-impact` (`brief-seam-impact.md`; core edits, listed apart from the count),
-   `publish-bare-git` (tests only; the maintainer's yes). One that landed is gone from the list (check `git log`).
+   ~~`publish-bare-git`~~ landed as abe64c9 (S-177). One that landed is gone from the list (check `git log`).
    One still open: commit any unsaved change in its worktree as `WIP: <task>, as left at the cut-off`, then hand it
    to a fresh builder with `brief-common.md` + its brief and "resuming from that WIP".
 2. When all four land: verify the count (`git show --stat` on each domain commit: nothing under core/,
