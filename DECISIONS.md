@@ -200,6 +200,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-173 | v0.6 M7a: the docs for the wiring (`docs/electrical.md`, the guide, the three roles, the vocabulary, `docs/domains.md` read against the domain); an owner who asked to be asked decides every choice in that area, whatever it holds | in force |
 | S-174 | v0.6 follow-up: the wiring diagrams readable at the kiln's size (the box's side of each entry, labels never overprinted, titles by purpose, the core's boundary words; closes B-0152, B-0154) | in force |
 | S-175 | The kiln demos' `mktemp` calls take a template ending in X's (GNU and BSD alike), and a unit test keeps every script that way: the Linux nightly was red on BSD-only `mktemp -d -t name`; the napkin demo's test matches a promoted requirement by its line, not its id (closes B-0159) | in force |
+| S-176 | The wiring session simulation (DoD 7) passed on 2026-11-03: the supply-headroom choice raised after the first build with wiring, not in the interview, decided only with the owner's answer; no fix to `roles/pm.md`; B-0160 opened | in force |
 
 ---
 
@@ -1227,3 +1228,13 @@ Fix: every call is `mktemp -d "${TMPDIR:-/tmp}/<name>.XXXXXX"` (no other shell `
 script); `tests/unit/test_mktemp_portable.py` fails on `-t` or an X-less template in the Makefile, `scripts/`, `examples/` and
 the templates, so macOS catches it. Behind it, on both systems: the test expected "+ REQ-024 …", but S-172's wiring
 requirements moved the promoted ids to REQ-030–034; it now matches the line, not the id. Measured on macOS: 1 passed, 126 s.
+
+## S-176 — The wiring session simulation, DoD 7 (2026-11-03)
+Run by the third overseer from `tests/e2e/intake-transcripts/wiring-session.md` at c6f50fe, a fresh project-manager
+subagent continued line by line (the first run, 2026-11-02, was lost at owner line 2 when its session was cut off).
+Transcript: `wiring-session-2026-11-03.md`. All five criteria ticked: nothing about the circuit's room in the
+interview; the choice raised in full in the reply that reported the first build with wiring (5.2 A of 10 A, computed;
+both options with what each takes); one `n2f decide … --pick larger --by "Dana Whitfield"`, after owner line 5; DEC-005
+`made_by: human`; the PM then made the pick in the model, and the row reads `pass` at 16 A. No fix to `roles/pm.md`.
+Found: `n2f status` tells this owner "an agent may decide it" though they asked to be asked (B-0160, core wording, a seam
+task; not a blocker: the PM followed the owner). Step 3's role texts were named by path, not pasted (same text, 33 KB).
