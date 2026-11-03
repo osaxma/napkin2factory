@@ -32,6 +32,7 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 2026-11-03 | Owner simulation step 1 (fresh product in the session's scratch folder): validate, ECR-001 filed, status "Wiring: left for later", nothing waiting | as the protocol expects | — |
 | 2026-11-03 | **Owner simulation passed** (DoD 7): a fresh PM subagent, six owner lines; a–e all ticked; no `roles/pm.md` fix; B-0160 opened (status says "an agent may decide it" to an owner who asked to be asked; core wording) | transcript `tests/e2e/intake-transcripts/wiring-session-2026-11-03.md` | (this commit, S-176) |
 | 2026-11-03 | **Gate G reported: NOT READY**, 3 blockers: (1) a conductor below its protective device passes; (2) the Class II shortcut passes a metal box with mains wiring inside; (3) "not reviewed by a licensed electrician" never reaches the package or the diagrams (README says "licensed engineer", `ecr/release.py`). 15 concerns. Report kept as `docs/reviews/v0.6-gate-g.md`; Part 1 as `examples/kiln/reports/electrician-readthrough.md`. Fix task for 1–2 opened (`brief-gate-g-checks.md`); 3 waits for gate H (same owner-facing files) | — | (this commit) |
+| 2026-11-03 | **The mktemp fix checked on Linux** (Docker Desktop started with the maintainer's leave; `debian:stable-slim`, GNU coreutils 9.7): the old `mktemp -d -t n2f-kiln-napkin-out` → "too few X's" (exit 1), the five lines as now in the demo scripts all make their folders | — | — |
 
 ## In flight
 - **Publish tests read the bare remote with `--git-dir`** (the maintainer said yes, 2026-11-03; `FIX_CI_NIGHTLY.md`'s point, robustness under `safe.bareRepository=explicit`, not a CI failure): task `publish-bare-git`, `.worktrees/publish-bare-git`.
@@ -42,4 +43,4 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 ## Next step
 Gates G and H at once on the commit that records the simulation (`brief-gate-g.md`, `brief-gate-h.md`); fix blockers; close-out
 (version 0.6.0 + pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` count first, `make check-full` from
-a clean clone, delete `docs/v06-handoff/` last).
+a clean clone, and `make check-full` in a Linux container (Docker, the CI nightly's job) on the closing commit; delete `docs/v06-handoff/` last).
