@@ -210,6 +210,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-181 | v0.6 close-out: version 0.6.0, product pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` | in force |
 | S-182 | Loud failures for wrong param units, circular domain import, output dir escape; runtime Pillow (closes B-0163, B-0156, B-0105) | in force |
 | S-183 | v0.6.0 released: CI green on both platforms, tagged, published; wiring visuals judged by the maintainer | in force |
+| S-184 | Six modules over 750 lines split, code moved verbatim, each file under 550 lines | in force |
 
 ---
 
@@ -1335,3 +1336,12 @@ packages (build, pypi, pypi-alias all green). Visual exit (S-078): the maintaine
 `docs/reviews/v0.6-kiln-report-wiring.png` and `v0.6-kiln-diagram-power.png`; judged by the
 maintainer: "fine for now". The last nightly (2026-11-03 10:54) failed before S-175 landed; the
 next one is not yet run.
+## S-184 — Six long modules split, code moved verbatim (2026-11-03)
+Pre-v0.7 tidy-up (`docs/roadmap/pre-v0.7-todo.md` §4.3; S-080's reason: parallel agents collide in
+long files). Split, each resulting file ≤ 550 lines: `core/graph/impact.py` (1248) → `impact_common`,
+`impact_patch`, `impact_reads`, `impact_summary`; `report/builder.py` (811) → `builder_common`,
+`builder_plan`; `drawings/sheet.py` (756) → `sheet_views`; electrical `checks/stage.py` (1111) →
+`protection`, `rows`; `model/__init__.py` (978) → `refs`, `schemas`; `outputs/diagram.py` (926) →
+`diagram_layout`. The old modules re-export every name. Checked: every top-level def and class is
+AST-identical to before. Still over 550, under 750: `core/checks/stage.py`, `core/concepts.py`,
+`calckit/thermal_enclosure.py`, `core/checks/choices.py`, `electrical/checks/calcs.py`.

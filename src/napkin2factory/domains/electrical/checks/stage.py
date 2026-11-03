@@ -1,4 +1,4 @@
-"""The ``electrical`` check stage (E6 as refined by S-154; E11): the wiring's rows of ``n2f check``.
+"""The electrical check stage (E6, S-154, E11, S-184): wiring rows of ``n2f check``.
 
 One row per rule and what it is about, id ``elec-rule://<rule>@<circuit, part, entry,
 device or supply>`` (unique, stable while the thing keeps its id), kind ``electrical``
@@ -25,126 +25,48 @@ from napkin2factory.calckit import power
 from napkin2factory.core.units import magnitude_in
 from napkin2factory.domains.electrical.checks import nets
 from napkin2factory.domains.electrical.checks.calcs import (
-    EARTH_TERMINALS,
-    ConductorLoad,
     DeviceRec,
-    Figure,
     Wiring,
-    circuit_load,
-    circuit_voltage,
-    conductor_loads,
-    on_supply,
-    protective_device_id,
-    protective_rating,
-    protective_words,
     read_wiring,
     supply_load,
-    supply_protection,
 )
 from napkin2factory.domains.electrical.checks.pack import rule
+from napkin2factory.domains.electrical.checks.protection import (
+    _conductor_protection_row,
+    _conductor_row,
+    _feeds,
+    _protected_by,
+    _protection_row,
+    _wires_said,
+)
+from napkin2factory.domains.electrical.checks.rows import (
+    PROTECTED,
+    ROW_KIND,
+    ROW_SCHEME,
+    _a,
+    _band,
+    _cap,
+    _carries_mains,
+    _categories,
+    _class_two_row,
+    _contact_row,
+    _controller_side,
+    _device_rows,
+    _earth_rows,
+    _entry_rows,
+    _list,
+    _load_in,
+    _rating,
+    _Rows,
+    _safety_row,
+    _the,
+    row_id,
+)
 from napkin2factory.domains.electrical.model import circuits, has_content, supply
 
 if TYPE_CHECKING:  # an installed domain is imported while the core's schemas load (S-153)
     from napkin2factory.core.checks.results import CheckResult
     from napkin2factory.core.domain import StageContext
-
-#: The ``kind`` of every row this stage writes (the Verify gate row counts them).
-ROW_KIND = "electrical"
-#: A row's id: ``elec-rule://<rule>@<what it is about>``.
-ROW_SCHEME = "elec-rule"
-#: The circuit purposes that need a protective device (a sensing loop or an earth bond
-#: carries no supply current to protect; S-158).
-PROTECTED = ("power", "control")
-
-
-def row_id(rule_id: str, at: str) -> str:
-    """The id of a wiring row: ``elec-rule://<rule>@<at>``."""
-    return f"{ROW_SCHEME}://{rule_id}@{at}"
-
-
-def _a(q: Any) -> str:
-    return f"{magnitude_in(q, 'A'):.1f} A"
-
-
-def _rating(q: Any) -> str:
-    return f"{magnitude_in(q, 'A'):g} A"
-
-
-def _list(items: list[str]) -> str:
-    if len(items) <= 1:
-        return "".join(items)
-    return ", ".join(items[:-1]) + " and " + items[-1]
-
-
-def _the(words: str) -> str:
-    return words if words.startswith("the ") else f"the {words}"
-
-
-class _Rows:
-    """The rows of one run, each kept only when ``sctx.keep`` takes its home."""
-
-    def __init__(self, sctx: StageContext, w: Wiring) -> None:
-        self.sctx = sctx
-        self.w = w
-        self.out: list[CheckResult] = []
-
-    def add(
-        self,
-        rule_id: str,
-        at: str,
-        subject: str,
-        status: str,
-        finding: str,
-        *,
-        home: str | None,
-        circuit: str | None = None,
-        fix: str | None = None,
-        detail: dict[str, Any] | None = None,
-    ) -> CheckResult | None:
-        from napkin2factory.core.checks.results import CheckResult
-
-        if not self.sctx.keep(home):
-            return None
-        r = rule(rule_id)
-        message = finding
-        if status in ("fail", "warn"):
-            message = f"{finding} What to do: {fix or r.fix}."
-        row = CheckResult(
-            id=row_id(rule_id, at),
-            subject=subject,
-            status=status,
-            message=message,
-            kind=ROW_KIND,
-            title=r.title,
-            detail={
-                "rule": f"electrical-v0/{rule_id}",
-                **({"circuit": circuit} if circuit else {}),
-                **(detail or {}),
-            },
-        )
-        self.out.append(row)
-        return row
-
-    # ---- homes (where a row belongs for `n2f check --scope`) --------------------------------
-
-    def part_home(self, pid: str) -> str | None:
-        return self.sctx.modules.tree.home(f"part://{pid}")  # type: ignore[no-any-return]
-
-    def circuit_home(self, cid: str) -> str | None:
-        """The one assembly holding every device of the circuit, else ``None`` (the product)."""
-        tree = self.sctx.modules.tree
-        homes: set[str] = set()
-        for dev in self.w.circuit_devices(cid):
-            home = tree.home(f"part://{dev.part}")
-            if home is None:
-                return None
-            homes.add(home)
-        low = tree.lowest_common(homes) if homes else []
-        return low[0] if len(low) == 1 else None
-
-    def circuit_subject(self, cid: str) -> tuple[str, str | None]:
-        home = self.circuit_home(cid)
-        return (f"asm://{home}" if home else f"circuit://{cid}"), home
 
 
 def electrical_checks(sctx: StageContext) -> list[CheckResult]:
@@ -262,10 +184,6 @@ def _supply_rows(rows: _Rows, w: Wiring) -> None:
         detail=detail,
     )
     _headroom_row(rows, w, total, rating, load)
-
-
-def _cap(text: str) -> str:
-    return text[:1].upper() + text[1:]
 
 
 def _next_circuit(w: Wiring, rating_a: float) -> dict[str, Any] | None:
@@ -389,723 +307,38 @@ def _headroom_row(rows: _Rows, w: Wiring, total: Any, rating: Any, load: Any) ->
     )
 
 
-# ---- each circuit ------------------------------------------------------------------------------
-
-
-def _feeds(w: Wiring, cid: str) -> str:
-    loads = [f"the {d.words}" for d in w.circuit_devices(cid) if d.role == "load"]
-    return f" (feeding {_list(loads)})" if loads else ""
-
-
-def _protection_row(rows: _Rows, w: Wiring, cid: str) -> None:
-    c = w.circuits[cid]
-    if c.purpose not in PROTECTED:
-        return
-    subject, home = rows.circuit_subject(cid)
-    name = _cap(c.words)
-    if c.protection is None:
-        rows.add(
-            "protection",
-            cid,
-            subject,
-            "fail",
-            f"{name}{_feeds(w, cid)} names no protective device.",
-            home=home,
-            circuit=cid,
-        )
-        return
-    rated = protective_rating(w, cid)
-    by = protective_words(w, cid)
-    if c.protection == "supply" and rated is None:
-        rows.add(
-            "protection",
-            cid,
-            subject,
-            "fail",
-            f"{name}{_feeds(w, cid)} is protected by the supply's own device, but the "
-            "supply's rating is not given.",
-            home=home,
-            circuit=cid,
-            fix="give the supply's rating, or name the breaker or fuse that protects the circuit",
-        )
-        return
-    load = circuit_load(w, cid).total
-    if (
-        rated is not None
-        and load is not None
-        and magnitude_in(load.value, "A") > magnitude_in(rated.value, "A")
-    ):
-        rows.add(
-            "protection",
-            cid,
-            subject,
-            "fail",
-            f"{name}{_feeds(w, cid)} draws {_a(load.value)} ({load.words}), above the "
-            f"rating of {by} ({_rating(rated.value)}).",
-            home=home,
-            circuit=cid,
-            fix="use a protective device rated for the circuit's load, or lower the load",
-        )
-        return
-    rating = f" ({_rating(rated.value)})" if rated is not None else ""
-    rows.add(
-        "protection",
-        cid,
-        subject,
-        "pass",
-        f"{name} is protected by {by}{rating}.",
-        home=home,
-        circuit=cid,
-    )
-
-
-def _conductor_row(rows: _Rows, w: Wiring, t: nets.Topology, cid: str) -> None:
-    c = w.circuits[cid]
-    loads = conductor_loads(w, cid, t.earth)
-    if not loads:
-        return
-    subject, home = rows.circuit_subject(cid)
-    name = _cap(c.words)
-    load = circuit_load(w, cid)
-    if load.total is None:
-        verb = "has" if len(load.unknown) == 1 else "have"
-        why = (
-            f"{_list([f'the {d.words}' for d in load.unknown])} {verb} no rating"
-            if load.unknown
-            else "no device in it declares the current it draws"
-        )
-        rows.add(
-            "conductor-current",
-            cid,
-            subject,
-            "skip",
-            f"The current in {c.words}'s conductors is not known ({why}), so their size is "
-            "not checked.",
-            home=home,
-            circuit=cid,
-        )
-        return
-    current = load.total
-    thin = [r for r in loads if r.margin is not None and magnitude_in(r.margin, "A") < 0]
-    unnamed = [r for r in loads if r.wire.conductor is None]
-    unrated = [r for r in loads if r.wire.conductor is not None and r.rated is None]
-    detail = {"current_a": round(current.amps(), 3)}
-    if thin:
-        said = _list(
-            [
-                f"{r.wire.words} is {w.conductors[r.wire.conductor or ''].label}, rated "
-                f"{_a(r.rated)}"
-                for r in thin
-            ]
-        )
-        rows.add(
-            "conductor-current",
-            cid,
-            subject,
-            "fail",
-            f"{name} carries {_a(current.value)} ({current.words}), but {said}.",
-            home=home,
-            circuit=cid,
-            detail=detail,
-        )
-        return
-    if unnamed or unrated:
-        said = _list(
-            [f"{r.wire.words} names no conductor" for r in unnamed]
-            + [
-                f"{r.wire.words} uses {w.conductors[r.wire.conductor or ''].label}, whose rated "
-                "current is not on file"
-                for r in unrated
-            ]
-        )
-        rows.add(
-            "conductor-current",
-            cid,
-            subject,
-            "warn",
-            f"{name} carries {_a(current.value)} ({current.words}); {said}, so "
-            f"{'it is' if len(unnamed) + len(unrated) == 1 else 'they are'} not checked.",
-            home=home,
-            circuit=cid,
-            fix=(
-                "name each connection's conductor from the table on file, or add the "
-                "product's own conductor with its rated current and its source"
-            ),
-            detail=detail,
-        )
-        return
-    worst = min(loads, key=lambda r: magnitude_in(r.margin, "A"))
-    rows.add(
-        "conductor-current",
-        cid,
-        subject,
-        "pass",
-        f"{name} carries {_a(current.value)} ({current.words}); every conductor is rated for "
-        f"it (the least margin: {_a(worst.margin)}, {worst.wire.words}).",
-        home=home,
-        circuit=cid,
-        detail=detail,
-    )
-
-
-def _protected_by(
-    w: Wiring, t: nets.Topology, cid: str
-) -> list[tuple[ConductorLoad, Figure | None, str]]:
-    """Each rated-or-not conductor of a circuit with the device that protects it.
-
-    Downstream of the circuit's own device: that device (its rating ``None`` when not
-    given).  On the supply side of it (a lead from the supply's terminal block to a fuse):
-    the supply's own device, when nothing else of the product stands between; a lead fed
-    through another of the product's devices is left out [revisit] (S-178).  A conductor
-    no source reaches even with every contact closed (a controller's output to a relay's
-    input) carries no supply current and is left out too.
-    """
-    c = w.circuits[cid]
-    rated, by = protective_rating(w, cid), protective_words(w, cid)
-    sup_rated, sup_by = supply_protection(w)
-    feed: set[str] = set()
-    direct: set[str] = set()
-    pid = protective_device_id(w, cid)
-    if pid is not None:
-        feed = nets.line_side(t, pid)
-        protective = {d.id for d in w.devices.values() if d.role == "protection"}
-        direct = nets.fed_unprotected(t, protective)
-    powered = nets.fed_unprotected(t, set())
-    out: list[tuple[ConductorLoad, Figure | None, str]] = []
-    for r in conductor_loads(w, cid, t.earth):
-        ends = (r.wire.a, r.wire.b)
-        if not any(n in powered for n in ends):
-            continue
-        if c.protection != "supply" and any(n in feed for n in ends):
-            if any(n in direct for n in ends):
-                out.append((r, sup_rated, sup_by))
-            continue
-        out.append((r, rated, by))
-    return out
-
-
-def _wires_said(group: list[ConductorLoad], w: Wiring) -> str:
-    """``connection 1 (…) and connection 2 (…) are 0.75 mm² PVC, rated 8.5 A (from the table)``."""
-    row = w.conductors[group[0].wire.conductor or ""]
-    verb = "is" if len(group) == 1 else "are"
-    assert group[0].rated is not None
-    return (
-        f"{_list([g.wire.words for g in group])} {verb} {row.label}, rated "
-        f"{_rating(group[0].rated)} ({row.basis})"
-    )
-
-
-def _conductor_protection_row(rows: _Rows, w: Wiring, t: nets.Topology, cid: str) -> None:
-    """Gate G blocker 1 (S-178): each conductor rated at least its protective device.
-
-    I_n <= I_z: a device rated above a conductor lets through, without opening, a current the
-    conductor is not rated for.  Below it: ``fail`` (arithmetic); a device with no rating:
-    ``warn``.  A circuit that needs no device, or names none (the protection row fails it),
-    has no row.
-    """
-    c = w.circuits[cid]
-    if c.purpose not in PROTECTED or c.protection is None:
-        return
-    if c.protection == "supply" and protective_rating(w, cid) is None:
-        return  # the protection row fails it: the supply's rating is not given
-    judged = _protected_by(w, t, cid)
-    if not judged:
-        return
-    subject, home = rows.circuit_subject(cid)
-    name = _cap(c.words)
-    below: dict[tuple[str, str], list[ConductorLoad]] = {}
-    devices: dict[str, Figure] = {}
-    unrated_device: dict[str, list[ConductorLoad]] = {}
-    unknown: list[ConductorLoad] = []
-    worst: tuple[float, ConductorLoad, str, Figure] | None = None
-    for r, rated, by in judged:
-        if r.rated is None:
-            unknown.append(r)
-            continue
-        if rated is None:
-            unrated_device.setdefault(by, []).append(r)
-            continue
-        devices[by] = rated
-        spare = magnitude_in(r.rated, "A") - magnitude_in(rated.value, "A")
-        if spare < -1e-9:
-            below.setdefault((by, r.wire.conductor or ""), []).append(r)
-        if worst is None or spare < worst[0]:
-            worst = (spare, r, by, rated)
-    detail = {"protected_by": {by: magnitude_in(f.value, "A") for by, f in devices.items()}}
-    if below:
-        said = "; ".join(
-            f"{_wires_said(group, w)}, below {by} that protects "
-            f"{'it' if len(group) == 1 else 'them'} ({_rating(devices[by].value)}, given)"
-            for (by, _), group in below.items()
-        )
-        many = sum(len(g) for g in below.values())
-        least = min(magnitude_in(g.rated, "A") for gs in below.values() for g in gs)
-        most = max(magnitude_in(devices[by].value, "A") for by, _ in below)
-        rows.add(
-            "conductor-protection",
-            cid,
-            subject,
-            "fail",
-            f"In {c.words}, {said}: the device lets through, without opening, more current "
-            f"than {'the conductor is' if many == 1 else 'the conductors are'} rated for.",
-            home=home,
-            circuit=cid,
-            fix=(
-                f"use conductors rated at least {most:g} A, or a protective device rated no "
-                f"more than {least:g} A; a licensed electrician decides"
-            ),
-            detail=detail,
-        )
-        return
-    if unrated_device or unknown:
-        found = [
-            f"{name} is protected by {by}, whose rating is not given, so whether it protects "
-            f"{'its conductor' if len(group) == 1 else 'its conductors'} is not checked"
-            for by, group in unrated_device.items()
-        ]
-        if unknown:
-            words = _list(
-                [
-                    f"{r.wire.words} names no conductor"
-                    if r.wire.conductor is None
-                    else f"{r.wire.words} uses {w.conductors[r.wire.conductor].label}, whose "
-                    "rated current is not on file"
-                    for r in unknown
-                ]
-            )
-            lead = "" if found else f"In {c.words}, "
-            found.append(
-                f"{lead}{words}, so {'it is' if len(unknown) == 1 else 'they are'} "
-                f"not checked against the device that protects "
-                f"{'it' if len(unknown) == 1 else 'them'}"
-            )
-        fix = (
-            "give the protective device's rated current, read from its datasheet; "
-            "a licensed electrician decides"
-            if unrated_device
-            else "name each connection's conductor from the table on file, or add the "
-            "product's own conductor with its rated current and its source; a licensed "
-            "electrician decides"
-        )
-        rows.add(
-            "conductor-protection",
-            cid,
-            subject,
-            "warn",
-            "; ".join(found) + ".",
-            home=home,
-            circuit=cid,
-            fix=fix,
-            detail=detail,
-        )
-        return
-    assert worst is not None
-    _, r, by, rated = worst
-    rows.add(
-        "conductor-protection",
-        cid,
-        subject,
-        "pass",
-        f"Every conductor of {c.words} is rated at least as high as the device that protects "
-        f"it (the closest: {_wires_said([r], w)}, under {by}, rated {_rating(rated.value)}, "
-        "given).",
-        home=home,
-        circuit=cid,
-        detail=detail,
-    )
-
-
-# ---- earth -------------------------------------------------------------------------------------
-
-
-def _carries_mains(w: Wiring, t: nets.Topology, cid: str) -> bool:
-    """True when a circuit has a conductor (not an earth one) above extra-low voltage.
-
-    A circuit whose voltage is not known counts as mains (the safe error).
-    """
-    if all(x.a in t.earth or x.b in t.earth for x in w.circuits[cid].wires):
-        return False
-    return _band(w, cid) != "elv"
-
-
-def _class_two_row(
-    rows: _Rows, w: Wiring, t: nets.Topology, pid: str, material: str, mains: list[str]
-) -> None:
-    """Gate G blocker 2 (S-178): Class II devices in a part that conducts.
-
-    The product's own conductors are single-insulated wherever nothing says otherwise, so
-    every device being Class II does not make the product so; a person judges it (E6: warn).
-    """
-    name = w.parts.get(pid, pid)
-    through: dict[str, set[str]] = {}
-    for cid in mains:
-        for x in w.circuits[cid].wires:
-            if x.via is None or x.a in t.earth or x.b in t.earth:
-                continue
-            if pid in w.joints.get(x.via, ("", ()))[1]:
-                through.setdefault(x.via, set()).add(cid)
-    if through:
-        where = _list(
-            [
-                f"{_list([w.circuits[c].words for c in sorted(cids)])} at the cable entry "
-                f"“{w.entries.get(jid, jid)}”"
-                for jid, cids in sorted(through.items())
-            ]
-        )
-        runs = f"the product's own mains conductors pass through it ({where})"
-    else:
-        circuits_said = _list([w.circuits[c].words for c in mains])
-        runs = (
-            "nothing in the wiring says that the product's own mains conductors "
-            f"({circuits_said}) stay out of it"
-        )
-    rows.add(
-        "earth-path",
-        pid,
-        f"part://{pid}",
-        "warn",
-        f"Every device is Class II or III, but the {name} is {material}, which conducts, "
-        f"and {runs}: whether the product as a whole is Class II is a licensed "
-        "electrician's call.",
-        home=rows.part_home(pid),
-        fix=(
-            "have the product's own wiring confirmed double-insulated wherever it runs in "
-            "the part, or run an earth conductor to it (an earth stud on the part); a "
-            "licensed electrician decides"
-        ),
-    )
-
-
-def _earth_rows(rows: _Rows, w: Wiring, t: nets.Topology) -> None:
-    devs = list(w.devices.values())
-    class_two = bool(devs) and all(d.klass in ("II", "III") for d in devs)
-    mains_ids = [c for c in w.circuits if _carries_mains(w, t, c)]
-    maybe = [pid for pid, (conductive, _) in w.conductive.items() if conductive is not False]
-    if class_two and not (mains_ids and maybe):
-        why = (
-            "every circuit runs at extra-low voltage"
-            if not mains_ids
-            else "no part made here conducts"
-        )
-        rows.add(
-            "earth-path",
-            "product",
-            "supply://supply",
-            "pass",
-            "Every device is Class II or III (double-insulated, or extra-low voltage), and "
-            f"{why}, so no part needs a path to earth.",
-            home=None,
-        )
-        return
-    paths = nets.earth_paths(w, t)
-    mains = [w.circuits[c].words for c in w.circuits if on_supply(w, c)] or [
-        w.circuits[c].words for c in w.circuits
-    ]
-    for pid, (conductive, material) in sorted(w.conductive.items()):
-        if conductive is False:
-            continue
-        name = w.parts.get(pid, pid)
-        path = paths.get(pid)
-        subject, home = f"part://{pid}", rows.part_home(pid)
-        if path is not None and path.how == "wired":
-            via = _list([w.circuits[c].words for c in path.circuits])
-            rows.add(
-                "earth-path",
-                pid,
-                subject,
-                "pass",
-                f"The {name} reaches earth through an earth conductor of {via}.",
-                home=home,
-                circuit=path.circuits[0],
-            )
-            continue
-        if path is not None and path.how == "bonded":
-            joints = _list([w.joints[j][0] for j in path.joints if j in w.joints])
-            other = w.parts.get(path.via_part or "", path.via_part or "")
-            rows.add(
-                "earth-bonded",
-                pid,
-                subject,
-                "warn",
-                f"The {name} reaches earth only through {joints} (bonded to the {other}), as "
-                f"{w.circuits[path.circuits[0]].words} says.",
-                home=home,
-                circuit=path.circuits[0],
-            )
-            continue
-        if conductive and class_two:
-            _class_two_row(rows, w, t, pid, material, mains_ids)
-            continue
-        if conductive is None:
-            what = f"its material ({material})" if material else "no material is given for it"
-            rows.add(
-                "earth-path",
-                pid,
-                subject,
-                "warn",
-                f"Whether the {name} conducts is not known ({what}), and no circuit "
-                "connects it to earth.",
-                home=home,
-                fix=(
-                    "name its material; if it conducts, run an earth conductor to it; a "
-                    "licensed electrician decides"
-                ),
-            )
-            continue
-        claimed = ""
-        if path is not None:  # an earth entry whose joints reach no earthed part
-            joints = _list([w.joints[j][0] for j in path.joints if j in w.joints]) or "no joint"
-            claimed = (
-                f" {_cap(w.circuits[path.circuits[0]].words)} bonds it through {joints}, but "
-                "no part on the other side reaches earth."
-            )
-        rows.add(
-            "earth-path",
-            pid,
-            subject,
-            "fail",
-            f"The {name} is {material}, which conducts, and none of the circuits "
-            f"({_list(mains)}) connects it to the supply's earth.{claimed}",
-            home=home,
-            circuit=path.circuits[0] if path is not None else None,
-        )
-
-
-# ---- cable entries -----------------------------------------------------------------------------
-
-
-def _band(w: Wiring, cid: str) -> str | None:
-    """``elv`` or ``mains`` by the circuit's voltage (S-154 point 4), ``None`` unknown."""
-    volts, dc = circuit_voltage(w, cid)
-    if volts is None:
-        return None
-    limit = rule("entry-voltage").param("elv-dc" if dc else "elv-ac")
-    return "elv" if magnitude_in(volts, "V") <= magnitude_in(limit, "V") else "mains"
-
-
-def _entry_rows(rows: _Rows, w: Wiring, t: nets.Topology) -> None:
-    by_entry: dict[str, dict[str, set[str]]] = {}
-    for c in w.circuits.values():
-        for wire in c.wires:
-            if wire.via is None or wire.a in t.earth or wire.b in t.earth:
-                continue  # earth conductors may share any entry
-            band = _band(w, c.id) or "unknown"
-            by_entry.setdefault(wire.via, {}).setdefault(band, set()).add(c.id)
-    for jid, bands in sorted(by_entry.items()):
-        name = w.entries.get(jid, jid)
-        home = rows.sctx.modules.closing.get(jid)
-        subject = f"iface://{jid}"
-
-        def said(band: str, bands: dict[str, set[str]] = bands) -> str:
-            return _list([w.circuits[c].words for c in sorted(bands.get(band, set()))])
-
-        if "elv" in bands and "mains" in bands:
-            rows.add(
-                "entry-voltage",
-                jid,
-                subject,
-                "warn",
-                f"The cable entry “{name}” carries extra-low-voltage conductors "
-                f"({said('elv')}) beside mains ones ({said('mains')}).",
-                home=home,
-            )
-            continue
-        kind = "extra-low-voltage" if "elv" in bands else "mains"
-        if "unknown" in bands and len(bands) == 1:
-            kind = "unknown-voltage"
-        rows.add(
-            "entry-voltage",
-            jid,
-            subject,
-            "pass",
-            f"The cable entry “{name}” carries {kind} conductors only "
-            f"({_list([w.circuits[c].words for b in bands.values() for c in sorted(b)])}).",
-            home=home,
-        )
-
-
-# ---- devices: interlocks, limits, contacts, terminals --------------------------------------------
-
-
-def _device_rows(rows: _Rows, w: Wiring, t: nets.Topology) -> None:
-    base = nets.live(t)
-    stuck = _controller_side(w, t, base)
-    for dev in w.devices.values():
-        subject, home = f"part://{dev.part}", rows.part_home(dev.part)
-        if not dev.declared and dev.role != "passthrough":
-            rows.add(
-                "terminals-unsourced",
-                dev.id,
-                subject,
-                "warn",
-                f"The {dev.words}'s terminals are not listed yet, so nothing wired to it is "
-                "checked.",
-                home=home,
-            )
-        if dev.safety == "interlock":
-            _safety_row(rows, w, t, dev, base, "interlock-series", set(), subject, home)
-        elif dev.safety == "limit":
-            forced = stuck - {dev.id}
-            _safety_row(rows, w, t, dev, base, "limit-independent", forced, subject, home)
-        _contact_row(rows, w, t, dev, subject, home)
-
-
-def _controller_side(w: Wiring, t: nets.Topology, base: nets.Live) -> set[str]:
-    """The controller and the switching devices it drives: what a limit must not rely on.
-
-    A controller is a control device with a contact, no safety job and no contact in a power
-    circuit (it drives coils, it carries no load), whose opening takes power from a coil.
-    Its side is the controllers and every coil-driven device that loses power when they all
-    open (S-158).
-    """
-    in_power = {
-        n for c in w.circuits.values() if c.purpose == "power" for x in c.wires for n in (x.a, x.b)
-    }
-    candidates = {
-        d.id
-        for d in w.devices.values()
-        if d.role == "control"
-        and d.safety is None
-        and d.id in t.contacts
-        and not any(n in in_power for pair in t.contacts[d.id] for n in pair)
-    }
-    controllers = {d for d in candidates if base.coils - nets.live(t, opened={d}).coils}
-    if not controllers:
-        return set()
-    return controllers | set(base.coils - nets.live(t, opened=controllers).coils)
-
-
-def _safety_row(
-    rows: _Rows,
-    w: Wiring,
-    t: nets.Topology,
-    dev: DeviceRec,
-    base: nets.Live,
-    rule_id: str,
-    forced: set[str],
-    subject: str,
-    home: str | None,
-) -> None:
-    job = "interlock" if rule_id == "interlock-series" else "limit device"
-    if dev.id not in t.contacts:
-        rows.add(
-            rule_id,
-            dev.id,
-            subject,
-            "warn",
-            f"Which of the {dev.words}'s terminals its contact joins is not given, so the "
-            f"check cannot open the {job}.",
-            home=home,
-            fix=(
-                "say in the device's file which terminals its contact joins; a licensed "
-                "electrician decides"
-            ),
-        )
-        return
-    if not base.loads:
-        rows.add(
-            rule_id,
-            dev.id,
-            subject,
-            "warn",
-            f"No load gets power even with every contact closed, so the check cannot tell "
-            f"whether opening the {dev.words} stops one.",
-            home=home,
-        )
-        return
-    state = nets.live(t, opened={dev.id}, forced=forced)
-    still = sorted(base.loads & state.loads)
-    stopped = sorted(base.loads - state.loads)
-    loads = _list([_load_in(w, d) for d in still])
-    if still:
-        if rule_id == "limit-independent" and forced:
-            held = _list([f"the {w.devices[d].words}" for d in sorted(forced)])
-            finding = (
-                f"With {held} stuck on (the controller's side), opening the {dev.words} "
-                f"leaves {loads} with power: it switches the same device the controller does."
-            )
-        else:
-            verb = "gets" if len(still) == 1 else "get"
-            finding = f"With the {dev.words} open, {loads} still {verb} power."
-        rows.add(rule_id, dev.id, subject, "warn", finding, home=home)
-        return
-    rows.add(
-        rule_id,
-        dev.id,
-        subject,
-        "pass",
-        f"Opening the {dev.words} stops {_list([f'the {w.devices[d].words}' for d in stopped])}"
-        + (" even with the controller's side stuck on." if forced else "."),
-        home=home,
-    )
-
-
-def _load_in(w: Wiring, did: str) -> str:
-    """``the Heater (the Heater circuit)``: a load and the power circuit that feeds it."""
-    feeding = [
-        c.words
-        for c in w.circuits.values()
-        if c.purpose == "power" and any(d.id == did for d in w.circuit_devices(c.id))
-    ]
-    words = f"the {w.devices[did].words}"
-    return f"{words} ({_list(feeding)})" if feeding else words
-
-
-def _categories(rule_id: str, name: str) -> set[str]:
-    return {c.strip() for c in str(rule(rule_id).param(name)).split(",")}
-
-
-def _contact_row(
-    rows: _Rows, w: Wiring, t: nets.Topology, dev: DeviceRec, subject: str, home: str | None
-) -> None:
-    if dev.id not in t.contacts:
-        return
-    coils = [
-        e
-        for e in w.devices.values()
-        if e.id != dev.id
-        and e.coil
-        and nets.wired_to(t, dev.id, [f"device://{e.id}#{c}" for c in e.coil])
-    ]
-    inductive = [
-        e
-        for e in w.devices.values()
-        if e.id != dev.id
-        and e.inductive
-        and nets.wired_to(
-            t,
-            dev.id,
-            [f"device://{e.id}#{x}" for x in e.terminals if x not in EARTH_TERMINALS],
-        )
-    ]
-    if not coils and not inductive:
-        return
-    need: set[str] = set()
-    if coils:
-        need = _categories("contact-category", "coil")
-    if inductive:
-        ind = _categories("contact-category", "inductive")
-        need = need & ind if need else ind
-    what = _list(
-        [f"the coil of the {e.words}" for e in coils] + [f"the {e.words}" for e in inductive]
-    )
-    wanted = " or ".join(sorted(need))
-    if dev.category in need:
-        rows.add(
-            "contact-category",
-            dev.id,
-            subject,
-            "pass",
-            f"The {dev.words}'s contact switches {what}; it is rated {dev.category}.",
-            home=home,
-        )
-        return
-    rated = f"is rated {dev.category}" if dev.category else "has no category given"
-    rows.add(
-        "contact-category",
-        dev.id,
-        subject,
-        "warn",
-        f"The {dev.words}'s contact switches {what} and {rated}; such a contact needs {wanted}.",
-        home=home,
-    )
+__all__ = [
+    "PROTECTED",
+    "ROW_KIND",
+    "ROW_SCHEME",
+    "_Rows",
+    "_a",
+    "_band",
+    "_cap",
+    "_carries_mains",
+    "_categories",
+    "_class_two_row",
+    "_conductor_protection_row",
+    "_conductor_row",
+    "_contact_row",
+    "_controller_side",
+    "_device_rows",
+    "_earth_rows",
+    "_entry_rows",
+    "_feeds",
+    "_headroom_row",
+    "_list",
+    "_load_in",
+    "_load_words",
+    "_next_circuit",
+    "_protected_by",
+    "_protection_row",
+    "_rating",
+    "_safety_row",
+    "_supply_rows",
+    "_the",
+    "_wires_said",
+    "electrical_check_reads",
+    "electrical_checks",
+    "row_id",
+]
