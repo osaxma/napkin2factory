@@ -9,11 +9,16 @@ commit by commit from the snapshots (no patches are replayed, so nothing can con
 placeholder ever reaches ``main`` and every landed commit passes the journal check on its own
 (``git bisect`` relies on that).
 
+Every placeholder the task cites must be defined at the task tip (an index row starting
+``| S-NEW<n> |`` or a heading ``## S-NEW<n>`` in DECISIONS.md; a row starting ``| B-NEW<n> |``
+in BACKLOG.md); citing an undefined placeholder stops landing before history is rewritten.
+
 When ``--trailer KEY=VALUE`` is given, every task commit's message gets those trailers
 (replacing an existing trailer of the same key, never duplicating), rewriting history even
 when there are no placeholders.
 
-Why: S-097 (placeholders), S-099 (every commit, messages included), S-190 (trailers).
+Why: S-097 (placeholders), S-099 (every commit, messages included), S-190 (trailers),
+S-195 (refuse cited but undefined placeholders).
 
 Run it from inside the task's folder:
 ``python3 scripts/journal_ids.py [--base main] [--trailer KEY=VALUE ...]``.
@@ -124,6 +129,41 @@ def placeholder_messages(root: Path, base: str) -> dict[Path, str]:
     return {Path(f"<message {i}>"): text for i, text in enumerate(log.split("\0"))}
 
 
+def collect_placeholders(texts: dict[Path, str]) -> list[str]:
+    """Return every placeholder found in ``texts``, sorted by prefix and number."""
+    found: dict[str, set[int]] = {"S": set(), "B": set()}
+    for text in texts.values():
+        for prefix, number in PLACEHOLDER.findall(text):
+            found[prefix].add(int(number))
+    return [f"{p}-NEW{n}" for p in ("S", "B") for n in sorted(found[p])]
+
+
+def is_defined(root: Path, placeholder: str) -> bool:
+    """Return whether ``placeholder`` is defined at the task tip.
+
+    Why: S-195 (rule: DECISIONS.md has index row or heading; BACKLOG.md has row).
+    """
+    prefix = placeholder[0]
+    journal = root / JOURNAL.get(prefix, "")
+    if not journal.is_file():
+        return False
+    text = journal.read_text(encoding="utf-8")
+    row_pat = rf"^\s*\|\s*{re.escape(placeholder)}\s*\|"
+    if prefix == "S":
+        heading_pat = rf"^\s*##\s*{re.escape(placeholder)}(?!\d)\b"
+        return bool(
+            re.search(row_pat, text, re.MULTILINE) or re.search(heading_pat, text, re.MULTILINE)
+        )
+    if prefix == "B":
+        return bool(re.search(row_pat, text, re.MULTILINE))
+    return False
+
+
+def undefined_placeholders(root: Path, placeholders: list[str]) -> list[str]:
+    """Return placeholders from ``placeholders`` not defined at the task tip."""
+    return [ph for ph in placeholders if not is_defined(root, ph)]
+
+
 def rewrite_history(
     root: Path,
     base: str,
@@ -208,6 +248,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = Path(git("rev-parse", "--show-toplevel", cwd=Path.cwd()).strip())
     texts = changed_text_files(root, args.base) | placeholder_messages(root, args.base)
+    placeholders = collect_placeholders(texts)
+    missing = undefined_placeholders(root, placeholders)
+    if missing:
+        # Why: S-195 (refuse cited placeholders not defined by the task).
+        for ph in missing:
+            journal = JOURNAL[ph[0]]
+            print(
+                f"{ph} is cited but this task defines no {ph} entry in {journal}: "
+                "cite the landed id of the entry you mean instead",
+                file=sys.stderr,
+            )
+        return 1
     mapping = assign(root, texts)
     trailers = [parse_trailer(t) for t in args.trailer]
     if not mapping and not trailers:

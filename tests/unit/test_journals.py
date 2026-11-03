@@ -14,7 +14,13 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
-from scripts.journal_ids import apply_trailers, parse_trailer
+from scripts.journal_ids import (
+    apply_trailers,
+    collect_placeholders,
+    is_defined,
+    parse_trailer,
+    undefined_placeholders,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 ROW_ID = re.compile(r"^\|\s*([^|]+?)\s*\|")
@@ -234,3 +240,91 @@ def test_journal_ids_stamps_trailers_without_placeholders(tmp_path: Path) -> Non
     assert msg_retry.count("Task: work") == 1
     assert msg_retry.count("Task-conflicts:") == 1
     assert "Task-conflicts: 1" in msg_retry
+
+
+def test_collect_placeholders() -> None:
+    new = "-NEW"
+    s1, s2, b1 = f"S{new}1", f"S{new}2", f"B{new}1"
+    texts = {
+        Path("a.py"): f"cite {s2} and {s1}",
+        Path("b.py"): f"cite {b1} and {s1}",
+    }
+    assert collect_placeholders(texts) == [s1, s2, b1]
+
+
+def test_is_defined_decision(tmp_path: Path) -> None:
+    new = "-NEW"
+    s1, s2, s3, s10 = f"S{new}1", f"S{new}2", f"S{new}3", f"S{new}10"
+    (tmp_path / "DECISIONS.md").write_text(
+        f"| id | decision |\n|---|---|\n| {s1} | First |\n\n## {s2} — Second\n"
+    )
+    # s1 defined by index row
+    assert is_defined(tmp_path, s1)
+    # s2 defined by heading
+    assert is_defined(tmp_path, s2)
+    # s3 not defined
+    assert not is_defined(tmp_path, s3)
+    # s10 not defined (s1 index row must not match s10)
+    assert not is_defined(tmp_path, s10)
+
+
+def test_is_defined_backlog(tmp_path: Path) -> None:
+    new = "-NEW"
+    b1, b2, b10 = f"B{new}1", f"B{new}2", f"B{new}10"
+    (tmp_path / "BACKLOG.md").write_text(
+        f"| id | item | origin |\n|---|---|---|\n"
+        f"| {b1} | First | S-001 |\n| B-0001 | Other | {b2} |\n"
+    )
+    # the backlog placeholder is defined by a row that starts with it
+    assert is_defined(tmp_path, b1)
+    # b2 cited in column 3 (origin) is not defined by this task
+    assert not is_defined(tmp_path, b2)
+    # b10 not defined (b1 row must not match b10)
+    assert not is_defined(tmp_path, b10)
+
+
+def test_undefined_placeholders(tmp_path: Path) -> None:
+    new = "-NEW"
+    s1, s2, b1 = f"S{new}1", f"S{new}2", f"B{new}1"
+    (tmp_path / "DECISIONS.md").write_text(f"## {s1} — Title\n")
+    (tmp_path / "BACKLOG.md").write_text(f"| {b1} | Item |\n")
+    assert undefined_placeholders(tmp_path, [s1, s2, b1]) == [s2]
+
+
+def test_journal_ids_refuses_undefined_placeholder_cli(tmp_path: Path) -> None:
+    new = "-NEW"
+    s1 = f"S{new}1"
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+    (repo / "DECISIONS.md").write_text("# Decisions\n")
+    (repo / "file.txt").write_text("initial\n")
+    subprocess.run(["git", "add", "DECISIONS.md", "file.txt"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Initial commit"], cwd=repo, check=True)
+
+    subprocess.run(["git", "checkout", "-q", "-b", "task/work"], cwd=repo, check=True)
+    (repo / "file.txt").write_text(f"updated citing {s1}\n")
+    subprocess.run(["git", "commit", "-q", "-am", f"Task work citing {s1}"], cwd=repo, check=True)
+    head_before = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+    script = REPO / "scripts" / "journal_ids.py"
+    done = subprocess.run(
+        ["python3", str(script), "--base", "main"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+    )
+    assert done.returncode == 1
+    expected_msg = (
+        f"{s1} is cited but this task defines no {s1} entry in DECISIONS.md: "
+        "cite the landed id of the entry you mean instead"
+    )
+    assert expected_msg in done.stderr
+    head_after = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True, check=True
+    ).stdout.strip()
+    assert head_before == head_after

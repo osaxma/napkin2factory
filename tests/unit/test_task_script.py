@@ -403,3 +403,88 @@ def test_health_review_notice_threshold(repo: Path) -> None:
         "A health review is due: 2 tasks landed since the last one (docs/health/README.md)."
         in out4.stdout
     )
+
+
+def test_land_refuses_undefined_decision_placeholder(repo: Path) -> None:
+    """A task citing an undefined decision placeholder is refused and history is untouched."""
+    task(repo, "new", "cite-undef-s", "cite undefined decision")
+    folder = repo / ".worktrees" / "cite-undef-s"
+    (folder / "src" / "alpha.py").write_text(f"# Uses {S1}\n")
+    commit(folder, f"Use {S1}")
+    before = run(folder, "git", "rev-parse", "HEAD").stdout.strip()
+    done = task(folder, "land", ok=False)
+    assert done.returncode != 0
+    expected = (
+        f"{S1} is cited but this task defines no {S1} entry in DECISIONS.md: "
+        "cite the landed id of the entry you mean instead"
+    )
+    assert expected in done.stderr
+    # History is untouched: task HEAD is unchanged and main did not move
+    assert run(folder, "git", "rev-parse", "HEAD").stdout.strip() == before
+    assert run(repo, "git", "log", "--format=%s", "main").stdout.splitlines() == ["Start"]
+
+
+def test_land_refuses_undefined_backlog_placeholder(repo: Path) -> None:
+    """A task citing an undefined backlog placeholder is refused and history is untouched."""
+    task(repo, "new", "cite-undef-b", "cite undefined backlog item")
+    folder = repo / ".worktrees" / "cite-undef-b"
+    (folder / "src" / "alpha.py").write_text(f"# TODO({B1}): do something\n")
+    commit(folder, f"Use {B1}")
+    before = run(folder, "git", "rev-parse", "HEAD").stdout.strip()
+    done = task(folder, "land", ok=False)
+    assert done.returncode != 0
+    expected = (
+        f"{B1} is cited but this task defines no {B1} entry in BACKLOG.md: "
+        "cite the landed id of the entry you mean instead"
+    )
+    assert expected in done.stderr
+    # History is untouched: task HEAD is unchanged and main did not move
+    assert run(folder, "git", "rev-parse", "HEAD").stdout.strip() == before
+    assert run(repo, "git", "log", "--format=%s", "main").stdout.splitlines() == ["Start"]
+
+
+def test_task_defining_and_citing_decision_lands_as_before(repo: Path) -> None:
+    """A task defining and citing a decision placeholder lands as before."""
+    task(repo, "new", "def-cite-s", "define and cite S")
+    folder = repo / ".worktrees" / "def-cite-s"
+    index = (
+        f"| Gate 1 | Review gate 1 — outcome | recorded |\n| {S1} | custom decision | in force |\n"
+    )
+    text = (
+        (folder / "DECISIONS.md")
+        .read_text()
+        .replace("| Gate 1 | Review gate 1 — outcome | recorded |\n", index)
+    )
+    entry = f"\n## {S1} — custom decision (2026-11-01)\nBody.\n"
+    (folder / "DECISIONS.md").write_text(text + entry)
+    (folder / "src" / "alpha.py").write_text(f"# Implements {S1}\n")
+    commit(folder, f"Add custom ({S1})")
+    done = task(folder, "land")
+    assert "Landed 1 commit(s)" in done.stdout
+    main_msg = run(repo, "git", "log", "-1", "--format=%B", "main").stdout
+    assert "Add custom (S-002)" in main_msg
+    assert "## S-002 — custom decision" in (repo / "DECISIONS.md").read_text()
+    assert "# Implements S-002" in (repo / "src" / "alpha.py").read_text()
+
+
+def test_task_defining_and_citing_backlog_lands_as_before(repo: Path) -> None:
+    """A task defining and citing a backlog placeholder lands as before."""
+    task(repo, "new", "def-cite-b", "define and cite B")
+    folder = repo / ".worktrees" / "def-cite-b"
+    backlog = (
+        (folder / "BACKLOG.md")
+        .read_text()
+        .replace(
+            "| B-0001 | First | S-001 |\n",
+            f"| B-0001 | First | S-001 |\n| {B1} | custom item | S-001 |\n",
+        )
+    )
+    (folder / "BACKLOG.md").write_text(backlog)
+    (folder / "src" / "alpha.py").write_text(f"# TODO({B1}): finish item\n")
+    commit(folder, f"Add item ({B1})")
+    done = task(folder, "land")
+    assert "Landed 1 commit(s)" in done.stdout
+    main_msg = run(repo, "git", "log", "-1", "--format=%B", "main").stdout
+    assert "Add item (B-0002)" in main_msg
+    assert "| B-0002 | custom item | S-001 |" in (repo / "BACKLOG.md").read_text()
+    assert "# TODO(B-0002): finish item" in (repo / "src" / "alpha.py").read_text()

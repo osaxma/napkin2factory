@@ -221,6 +221,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-192 | The vision in the maintainer's words; "wherever" means any agent client; the tool's voice and one disclaimer | in force |
 | S-193 | The electrical domain's own disclaimer removed from every wiring output | in force |
 | S-194 | Generated output carries no AI mark; how a design was made is the sharer's to say | in force |
+| S-195 | `make land` refuses a placeholder the task cites but does not define | in force |
 
 ---
 
@@ -1444,3 +1445,10 @@ start, is the only one. Removed from the report, the shared pages, the compariso
 footers, drawing title blocks, the parts list's note row, the release cover; `Domain.disclaimer`
 and `domain_disclaimers()` (S-180) are gone. Product `AGENTS.md` rule 7 now says: say it once,
 never write it into files. A guard test checks no file under `build/` carries the mark.
+## S-195 — Landing refuses a cited but undefined placeholder (2026-11-04)
+Amends S-097's placeholder rule. Two parallel tasks (`make health`, the commit trailers) cited
+the health decision as `S-195` while a third task defined it; landing gave each the next free
+number, S-194, which names no decision, and 12 comments pointed at nothing (fixed to S-190).
+`scripts/journal_ids.py` now stops the landing, before any rewrite, when a task cites `S-NEW<n>`
+or `B-NEW<n>` without defining it (an index row or heading in `DECISIONS.md`, a row in
+`BACKLOG.md`). A task citing another task's decision waits for it to land and cites its real id.
