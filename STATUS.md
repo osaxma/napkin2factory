@@ -1,6 +1,6 @@
 # STATUS — napkin2factory
 
-**Version:** 0.6.0, ready to push and tag; not pushed, not tagged (last release 0.3.0, tag `v0.3.0`; 0.4.0 and 0.5.0 closed, untagged) · **Trunk:** `main`;
+**Version:** 0.6.0, released 2026-11-03 (tag `v0.6.0`, both packages on PyPI; 0.4.0 and 0.5.0 closed, untagged) · **Trunk:** `main`;
 work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:** `BACKLOG.md` ·
 **Why things are the way they are:** `DECISIONS.md` (index at the top) · **What shipped:**
 `HANDOFF-REPORT-v0.6.md` (v0.6), `HANDOFF-REPORT-v0.5.md` (v0.5), `HANDOFF-REPORT-v0.4.md` (v0.4), `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
@@ -11,9 +11,8 @@ v0.6 (the wiring, `ELECTRICAL_STAGE.md`) is closed: M0–M7 done, the domain mil
 seam tasks `S-142`–`S-144`, `S-148`–`S-152`, `S-160`–`S-167`, `S-180` are listed apart per E10),
 the DoD 7 owner simulation passed (S-176), gates G and H are closed with every blocker fixed
 (S-178, S-179, S-180), and version files and product pins are at 0.6.0 / `>=0.6,<0.7` (S-181);
-`HANDOFF-REPORT-v0.6.md`. Left to the maintainer: visual judgment of the wiring diagrams and report
-section (`docs/reviews/v0.6-*.png`, plus v0.5's `docs/reviews/v0.5-*.png`), push, the next Linux
-nightly (after S-175's portable `mktemp`), and the `v0.6.0` tag. Next: the independent outside-model
+`HANDOFF-REPORT-v0.6.md`. Released as `v0.6.0` (S-183; visuals judged by the maintainer: fine for now). Left: the
+next Linux nightly (after S-175's portable `mktemp`). Next: the independent outside-model
 trial (`docs/reviews/v0.6-independent-trial.md`).
 Releasing a version: bump the three version files and the pins (S-054, S-083), `make check` on
 `main`, push, wait for CI, tag `v<version>` on that green commit (S-072).

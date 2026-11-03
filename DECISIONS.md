@@ -209,6 +209,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | Gate H | Review gate H (UX, owner persona, v0.6) — outcome | outcome recorded; blockers fixed (S-179, S-180), the rest in BACKLOG; the maintainer's visual judgment pending |
 | S-181 | v0.6 close-out: version 0.6.0, product pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` | in force |
 | S-182 | Loud failures for wrong param units, circular domain import, output dir escape; runtime Pillow (closes B-0163, B-0156, B-0105) | in force |
+| S-183 | v0.6.0 released: CI green on both platforms, tagged, published; wiring visuals judged by the maintainer | in force |
 
 ---
 
@@ -1326,3 +1327,11 @@ Closes B-0163, B-0156, B-0105; addresses B-0072 (Pillow).
 2. `core/registry.py::Registry.ensure`: importing an installed domain while partially imported (or on `ImportError`) raises `RuntimeError` naming the module and asking to import `napkin2factory.core` first, preventing silent registration loss (B-0156).
 3. `core/graph/runner.py`: `run_build` validates `RunResult.outputs` and refuses paths resolving outside `build/<output_dir>`, raising `BuildError` naming the rule and path (B-0105).
 4. `pyproject.toml`: `pillow>=11.0` moved from dev dependency-group into `[project]` dependencies for runtime screenshot capability (B-0072).
+
+## S-183 — v0.6.0 released (2026-11-03)
+`make check` passed on `main` at the S-181 close-out commit, which was pushed; CI `ci` passed on
+Linux and macOS (15 min 7 s), then `v0.6.0` was tagged there and `publish.yml` published both
+packages (build, pypi, pypi-alias all green). Visual exit (S-078): the maintainer was sent
+`docs/reviews/v0.6-kiln-report-wiring.png` and `v0.6-kiln-diagram-power.png`; judged by the
+maintainer: "fine for now". The last nightly (2026-11-03 10:54) failed before S-175 landed; the
+next one is not yet run.
