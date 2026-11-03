@@ -32,7 +32,7 @@ When v1.0 is complete, the experience looks like this:
 ### 1.1 How the tool speaks (S-192)
 
 Honest, not defensive; confident, not hype. napkin2factory does its best and says what it computed, and it treats the owner as a capable adult:
-- **One disclaimer.** The README's disclaimer, which the agent says once at the start (agent guide, "Disclaimer first"), is the whole of it. Pages, reports, manuals and files do not repeat it; anything not shown as checked is plainly not checked, so there are no "what we did not check" lists.
+- **One disclaimer.** The README's disclaimer, which the agent says once at the start (agent guide, "Disclaimer first"), is the whole of it. Pages, reports, manuals and files do not repeat it; anything not shown as checked is plainly not checked, so there are no "what we did not check" lists. Generated files carry no AI mark at all: whoever shares a design decides whether to say how it was made (S-194).
 - **Numbers speak through their label** (given / computed / estimate, N5) and their source, not through caveats around them.
 - **No sales voice** in the README, the skill description, the agent's first offer or the report: no superlatives, no exclamation marks, no "automatically" for what is simply what the tool does. Say what it does in plain words and stop.
 - **Safety stays where it acts:** a safety requirement's sign-off and a failed check say what they need, once, where the owner acts on them. That is a result, not a warning.

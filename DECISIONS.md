@@ -204,7 +204,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-177 | The two publish tests read their temporary bare repository with `git --git-dir=<remote>`, not `cwd=<remote>`: robust under `safe.bareRepository=explicit` (tests only) | in force |
 | S-178 | v0.6 gate G blockers 1–2: each conductor against the device that protects it (a new `conductor-protection` row), and the Class II shortcut only where no part that conducts meets mains wiring (else a warn) | in force |
 | S-179 | v0.6 M7: every wiring output carries the licensed-electrician note (diagram footer band with product, circuit and Revision or draft; `electrical/README.txt` shipped in the release package; manual helper's opening line; report headings by purpose; closes B-0157) | amended by S-193 (the note removed; footer and README.txt kept) |
-| S-180 | Seam (gate H B1, C7; gate G blocker 3; B-0160): a design change request's patch dry-run in its impact report; `Domain.disclaimer` in the package `README.txt` and the report; the `later` → `in` cover line; `"an agent may decide it"` only when the area is delegated (closes B-0184, B-0160) | in force |
+| S-180 | Seam (gate H B1, C7; gate G blocker 3; B-0160): a design change request's patch dry-run in its impact report; `Domain.disclaimer` in the package `README.txt` and the report; the `later` → `in` cover line; `"an agent may decide it"` only when the area is delegated (closes B-0184, B-0160) | amended by S-194 (`Domain.disclaimer` removed) |
 | Gate G | Review gate G (electrician read-through, then engineering, v0.6) — outcome | outcome recorded; blockers fixed (S-178, S-179, S-180), the rest in BACKLOG |
 | Gate H | Review gate H (UX, owner persona, v0.6) — outcome | outcome recorded; blockers fixed (S-179, S-180), the rest in BACKLOG; the maintainer's visual judgment pending |
 | S-181 | v0.6 close-out: version 0.6.0, product pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` | in force |
@@ -220,6 +220,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-191 | The roadmap review: reproducible benchmark numbers, one change store, discovery, region, v1.0 contract | amended by S-192 |
 | S-192 | The vision in the maintainer's words; "wherever" means any agent client; the tool's voice and one disclaimer | in force |
 | S-193 | The electrical domain's own disclaimer removed from every wiring output | in force |
+| S-194 | Generated output carries no AI mark; how a design was made is the sharer's to say | in force |
 
 ---
 
@@ -1434,3 +1435,12 @@ pointed to, so it needs no warning. Removed from the Wiring section, the manual 
 table, the diagram footer (the band keeps product, circuit, Revision) and `electrical/README.txt`
 (it keeps what each file is); `Domain.disclaimer` stays unset for electrical (the field, S-180,
 stays in the contract). Kept: sign-offs and checks that name an electrician where the owner acts.
+
+## S-194 — Generated output carries no AI mark (2026-11-04)
+Decided by the maintainer, extending S-192 and S-193: whoever shares a design decides whether to
+say how it was made. A mark baked into every file takes that choice away and invites "it's AI, so
+it's wrong" dismissals of accurate work. The README's disclaimer, which the agent says once at the
+start, is the only one. Removed from the report, the shared pages, the comparison page, manual
+footers, drawing title blocks, the parts list's note row, the release cover; `Domain.disclaimer`
+and `domain_disclaimers()` (S-180) are gone. Product `AGENTS.md` rule 7 now says: say it once,
+never write it into files. A guard test checks no file under `build/` carries the mark.
