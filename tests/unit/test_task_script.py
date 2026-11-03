@@ -129,6 +129,14 @@ def test_two_tasks_land_with_distinct_ids(repo: Path) -> None:
     history = run(repo, "git", "log", "-p", "--format=%B", "main").stdout
     assert NEW not in history  # no landed commit ever held a placeholder (bisect-safe)
     assert run(repo, "git", "rev-list", "--merges", "--count", "main").stdout.strip() == "0"
+    beta_trailers = run(repo, "git", "log", "-1", "--format=%(trailers)", "main").stdout
+    assert "Task: beta" in beta_trailers
+    assert "Task-started:" in beta_trailers
+    assert "Task-conflicts: 0" in beta_trailers
+    alpha_trailers = run(repo, "git", "log", "-1", "--format=%(trailers)", "main~1").stdout
+    assert "Task: alpha" in alpha_trailers
+    assert "Task-started:" in alpha_trailers
+    assert "Task-conflicts: 0" in alpha_trailers
     decisions = (repo / "DECISIONS.md").read_text()
     assert "## S-002 — alpha" in decisions and "## S-003 — beta" in decisions
     assert "| S-002 | alpha |" in decisions and "| S-003 | beta |" in decisions
@@ -174,8 +182,17 @@ def test_land_stops_on_conflict(repo: Path) -> None:
     done = task(two, "land", ok=False)
     assert done.returncode != 0 and "git rebase --continue" in done.stderr
     assert "rebas" in run(two, "git", "status").stdout  # left in progress, for the agent to fix
+    assert run(two, "git", "config", "branch.task/two.conflicts").stdout.strip() == "1"
     again = task(two, "land", ok=False)
     assert "rebase is in progress" in again.stderr
+    (two / "src" / "shared.py").write_text("VALUE = 'resolved'\n")
+    run(two, "git", "add", "src/shared.py")
+    run(two, "env", "GIT_EDITOR=true", "git", "rebase", "--continue")
+    landed = task(two, "land")
+    assert "Landed 1 commit(s)" in landed.stdout
+    msg = run(repo, "git", "log", "-1", "--format=%B", "main").stdout
+    assert "Task: two" in msg
+    assert "Task-conflicts: 1" in msg
 
 
 def test_new_and_abandon_guard_rails(repo: Path) -> None:
@@ -239,6 +256,10 @@ def test_land_starts_again_when_main_moves_mid_land(repo: Path, tmp_path: Path) 
     backlog = (repo / "BACKLOG.md").read_text()
     assert "| B-0002 | beta | S-002 |" in backlog and "| B-0003 | alpha | S-003 |" in backlog
     assert NEW not in run(repo, "git", "log", "-p", "--format=%B", "main").stdout
+    alpha_msg = run(repo, "git", "log", "-1", "--format=%B", "main").stdout
+    assert alpha_msg.count("Task: alpha") == 1
+    assert alpha_msg.count("Task-started:") == 1
+    assert alpha_msg.count("Task-conflicts: 0") == 1
 
 
 def test_a_failed_gate_keeps_the_placeholders(repo: Path, tmp_path: Path) -> None:
@@ -307,3 +328,78 @@ def test_check_fast_runs_no_end_to_end_test_and_no_example() -> None:
     assert "tests/e2e" not in done.stdout and "tests/golden" not in done.stdout
     assert "examples/" not in done.stdout.replace("ruff check src tests scripts examples", "")
     assert "--cov" not in tests[0] and '-m "not full"' in tests[0]
+
+
+def test_cmd_new_records_started_and_fallback_to_author_date(repo: Path) -> None:
+    task(repo, "new", "stamp1", "goal stamp1")
+    folder1 = repo / ".worktrees" / "stamp1"
+    started = run(repo, "git", "config", "branch.task/stamp1.started").stdout.strip()
+    assert started.endswith("Z") and "T" in started
+    (folder1 / "src" / "stamp1.py").write_text("X = 1\n")
+    commit(folder1, "Commit 1")
+    task(folder1, "land")
+    msg1 = run(repo, "git", "log", "-1", "--format=%B", "main").stdout
+    assert f"Task: stamp1\nTask-started: {started}\nTask-conflicts: 0" in msg1
+
+    # Fallback when started config is absent: author date (UTC ISO) of the first task commit
+    task(repo, "new", "stamp2", "goal stamp2")
+    folder2 = repo / ".worktrees" / "stamp2"
+    (folder2 / "src" / "stamp2.py").write_text("X = 2\n")
+    commit(folder2, "Commit 2")
+    run(repo, "git", "config", "--unset", "branch.task/stamp2.started")
+    first_commit = run(folder2, "git", "rev-parse", "HEAD").stdout.strip()
+    author_date = run(
+        folder2,
+        "env",
+        "TZ=UTC",
+        "git",
+        "log",
+        "-1",
+        "--date=iso-strict-local",
+        "--format=%ad",
+        first_commit,
+    ).stdout.strip()
+    task(folder2, "land")
+    msg2 = run(repo, "git", "log", "-1", "--format=%B", "main").stdout
+    assert f"Task: stamp2\nTask-started: {author_date}\nTask-conflicts: 0" in msg2
+
+
+def test_health_review_notice_threshold(repo: Path) -> None:
+    task(repo, "new", "task1", "goal 1")
+    (repo / ".worktrees" / "task1" / "src" / "t1.py").write_text("T = 1\n")
+    commit(repo / ".worktrees" / "task1", "Work 1")
+    # HEALTH_EVERY=2, so 1 task is below threshold: notice not printed
+    out1 = run(repo / ".worktrees" / "task1", "env", "HEALTH_EVERY=2", "sh", str(TASK), "land")
+    assert "A health review is due" not in out1.stdout
+
+    task(repo, "new", "task2", "goal 2")
+    (repo / ".worktrees" / "task2" / "src" / "t2.py").write_text("T = 2\n")
+    commit(repo / ".worktrees" / "task2", "Work 2")
+    # Now 2 tasks landed since docs/health/trend.csv: threshold reached
+    out2 = run(repo / ".worktrees" / "task2", "env", "HEALTH_EVERY=2", "sh", str(TASK), "land")
+    assert (
+        "A health review is due: 2 tasks landed since the last one (docs/health/README.md)."
+        in out2.stdout
+    )
+
+    # Touching docs/health/trend.csv resets the count
+    (repo / "docs" / "health").mkdir(parents=True, exist_ok=True)
+    (repo / "docs" / "health" / "trend.csv").write_text("rev,tasks\n")
+    commit(repo, "Update trend.csv")
+
+    task(repo, "new", "task3", "goal 3")
+    (repo / ".worktrees" / "task3" / "src" / "t3.py").write_text("T = 3\n")
+    commit(repo / ".worktrees" / "task3", "Work 3")
+    # Only 1 task after trend.csv: below threshold again
+    out3 = run(repo / ".worktrees" / "task3", "env", "HEALTH_EVERY=2", "sh", str(TASK), "land")
+    assert "A health review is due" not in out3.stdout
+
+    task(repo, "new", "task4", "goal 4")
+    (repo / ".worktrees" / "task4" / "src" / "t4.py").write_text("T = 4\n")
+    commit(repo / ".worktrees" / "task4", "Work 4")
+    # 2 tasks after trend.csv: threshold reached
+    out4 = run(repo / ".worktrees" / "task4", "env", "HEALTH_EVERY=2", "sh", str(TASK), "land")
+    assert (
+        "A health review is due: 2 tasks landed since the last one (docs/health/README.md)."
+        in out4.stdout
+    )

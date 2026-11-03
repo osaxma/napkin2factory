@@ -14,6 +14,7 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
+from scripts.journal_ids import apply_trailers, parse_trailer
 
 REPO = Path(__file__).resolve().parents[2]
 ROW_ID = re.compile(r"^\|\s*([^|]+?)\s*\|")
@@ -95,3 +96,141 @@ def test_no_placeholder_ids_on_main() -> None:
         and PLACEHOLDER.search((REPO / f.decode()).read_bytes())
     ]
     assert hits == [], f"placeholder journal ids left (make land assigns them): {hits}"
+
+
+def test_parse_trailer() -> None:
+    assert parse_trailer("Task=foo") == ("Task", "foo")
+    assert parse_trailer("Task-started=2026-11-03T20:15:00Z") == (
+        "Task-started",
+        "2026-11-03T20:15:00Z",
+    )
+    assert parse_trailer("Task-conflicts=0") == ("Task-conflicts", "0")
+    assert parse_trailer("Task: foo") == ("Task", "foo")
+    with pytest.raises(ValueError, match="invalid trailer format"):
+        parse_trailer("invalid_trailer_arg")
+
+
+def test_apply_trailers() -> None:
+    trailers = [
+        ("Task", "my-slug"),
+        ("Task-started", "2026-11-03T20:15:00Z"),
+        ("Task-conflicts", "0"),
+    ]
+    # Single-line message
+    res1 = apply_trailers("Subject line", trailers)
+    assert (
+        res1
+        == "Subject line\n\nTask: my-slug\nTask-started: 2026-11-03T20:15:00Z\nTask-conflicts: 0\n"
+    )
+
+    # Multi-line message with body
+    res2 = apply_trailers("Subject line\n\nBody paragraph.", trailers)
+    expected_body = (
+        "Subject line\n\n"
+        "Body paragraph.\n\n"
+        "Task: my-slug\n"
+        "Task-started: 2026-11-03T20:15:00Z\n"
+        "Task-conflicts: 0\n"
+    )
+    assert res2 == expected_body
+
+    # Message with existing trailers: replaces matching keys in place, keeps others
+    msg_with_trailers = (
+        "Subject\n\n"
+        "Signed-off-by: Author <a@example.com>\n"
+        "Task: old-slug\n"
+        "Task-started: 2026-11-01T00:00:00Z\n"
+    )
+    res3 = apply_trailers(msg_with_trailers, trailers)
+    expected = (
+        "Subject\n\n"
+        "Signed-off-by: Author <a@example.com>\n"
+        "Task: my-slug\n"
+        "Task-started: 2026-11-03T20:15:00Z\n"
+        "Task-conflicts: 0\n"
+    )
+    assert res3 == expected
+
+    # Retry replaces values without duplicating
+    res4 = apply_trailers(
+        res3,
+        [
+            ("Task", "my-slug"),
+            ("Task-started", "2026-11-03T20:15:00Z"),
+            ("Task-conflicts", "1"),
+        ],
+    )
+    expected_retry = (
+        "Subject\n\n"
+        "Signed-off-by: Author <a@example.com>\n"
+        "Task: my-slug\n"
+        "Task-started: 2026-11-03T20:15:00Z\n"
+        "Task-conflicts: 1\n"
+    )
+    assert res4 == expected_retry
+
+
+def test_journal_ids_stamps_trailers_without_placeholders(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+    (repo / "file.txt").write_text("initial\n")
+    subprocess.run(["git", "add", "file.txt"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Initial commit"], cwd=repo, check=True)
+    subprocess.run(["git", "checkout", "-q", "-b", "task/work"], cwd=repo, check=True)
+    (repo / "file.txt").write_text("updated\n")
+    subprocess.run(["git", "commit", "-q", "-am", "Task work"], cwd=repo, check=True)
+
+    script = REPO / "scripts" / "journal_ids.py"
+    cmd = [
+        "python3",
+        str(script),
+        "--base",
+        "main",
+        "--trailer",
+        "Task=work",
+        "--trailer",
+        "Task-started=2026-11-03T20:15:00Z",
+        "--trailer",
+        "Task-conflicts=0",
+    ]
+    done = subprocess.run(cmd, cwd=repo, capture_output=True, text=True, check=True)
+    assert done.returncode == 0
+    msg = subprocess.run(
+        ["git", "log", "-1", "--format=%B", "HEAD"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert "Task: work" in msg
+    assert "Task-started: 2026-11-03T20:15:00Z" in msg
+    assert "Task-conflicts: 0" in msg
+
+    # Second pass with updated trailer replaces it
+    cmd_retry = [
+        "python3",
+        str(script),
+        "--base",
+        "main",
+        "--trailer",
+        "Task=work",
+        "--trailer",
+        "Task-started=2026-11-03T20:15:00Z",
+        "--trailer",
+        "Task-conflicts=1",
+    ]
+    done_retry = subprocess.run(cmd_retry, cwd=repo, capture_output=True, text=True, check=True)
+    assert done_retry.returncode == 0
+    msg_retry = subprocess.run(
+        ["git", "log", "-1", "--format=%B", "HEAD"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert msg_retry.count("Task: work") == 1
+    assert msg_retry.count("Task-conflicts:") == 1
+    assert "Task-conflicts: 1" in msg_retry

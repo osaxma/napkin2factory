@@ -9,9 +9,14 @@ commit by commit from the snapshots (no patches are replayed, so nothing can con
 placeholder ever reaches ``main`` and every landed commit passes the journal check on its own
 (``git bisect`` relies on that).
 
-Why: S-097 (placeholders), S-099 (every commit, messages included).
+When ``--trailer KEY=VALUE`` is given, every task commit's message gets those trailers
+(replacing an existing trailer of the same key, never duplicating), rewriting history even
+when there are no placeholders.
 
-Run it from inside the task's folder: ``python3 scripts/journal_ids.py [--base main]``.
+Why: S-097 (placeholders), S-099 (every commit, messages included), S-194 (trailers).
+
+Run it from inside the task's folder:
+``python3 scripts/journal_ids.py [--base main] [--trailer KEY=VALUE ...]``.
 """
 
 from __future__ import annotations
@@ -27,6 +32,46 @@ PLACEHOLDER = re.compile(r"\b([SB])-NEW(\d+)(?!\d)")
 REAL_ID = {"S": re.compile(r"\bS-(\d+)\b"), "B": re.compile(r"\bB-(\d+)\b")}
 JOURNAL = {"S": "DECISIONS.md", "B": "BACKLOG.md"}
 WIDTH = {"S": 3, "B": 4}
+
+
+def parse_trailer(arg: str) -> tuple[str, str]:
+    """Parse a trailer argument in KEY=VALUE or KEY: VALUE format."""
+    sep = "=" if "=" in arg else ":"
+    key, found, value = arg.partition(sep)
+    if not found or not key.strip():
+        raise ValueError(f"invalid trailer format {arg!r}, expected KEY=VALUE")
+    return key.strip(), value.strip()
+
+
+def apply_trailers(
+    message: str,
+    trailers: list[tuple[str, str]],
+    root: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> str:
+    """Stamp ``trailers`` on ``message`` using ``git interpret-trailers``.
+
+    Why: S-194 (trailers via git interpret-trailers).
+    """
+    if not trailers:
+        return message
+    # Git same_token() prefix-matches tokens; protect Task from colliding with Task-* (S-194).
+    protected_msg = re.sub(r"(?m)^Task:", "Task-name:", message)
+    args = ["interpret-trailers", "--if-exists", "replace"]
+    for k, v in trailers:
+        key = "Task-name" if k.lower() == "task" else k
+        args.extend(["--trailer", f"{key}: {v}"])
+    run_env = {**os.environ, **(env or {})}
+    done = subprocess.run(
+        ["git", *args],
+        cwd=root or Path.cwd(),
+        input=protected_msg,
+        env=run_env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return re.sub(r"(?m)^Task-name:", "Task:", done.stdout)
 
 
 def git(*args: str, cwd: Path) -> str:
@@ -79,8 +124,16 @@ def placeholder_messages(root: Path, base: str) -> dict[Path, str]:
     return {Path(f"<message {i}>"): text for i, text in enumerate(log.split("\0"))}
 
 
-def rewrite_history(root: Path, base: str, mapping: dict[str, str]) -> str:
-    """Rebuild each commit after ``base`` with ``mapping`` applied; return the new tip."""
+def rewrite_history(
+    root: Path,
+    base: str,
+    mapping: dict[str, str],
+    trailers: list[tuple[str, str]] | None = None,
+) -> str:
+    """Rebuild each commit after ``base`` with ``mapping`` and ``trailers`` applied.
+
+    Returns the new tip.
+    """
 
     def fix(text: str) -> str:
         return PLACEHOLDER.sub(lambda m: mapping.get(m.group(0), m.group(0)), text)
@@ -120,9 +173,10 @@ def rewrite_history(root: Path, base: str, mapping: dict[str, str]) -> str:
             meta = git("log", "-1", "--format=%an%x00%ae%x00%ad%x00%B", commit, cwd=root)
             name, email, date, message = meta.split("\0", 3)
             author = {"GIT_AUTHOR_NAME": name, "GIT_AUTHOR_EMAIL": email, "GIT_AUTHOR_DATE": date}
-            parent = git_env(
-                root, author, "commit-tree", tree, "-p", parent, "-m", fix(message).rstrip("\n")
-            ).strip()
+            msg = fix(message).rstrip("\n")
+            if trailers:
+                msg = apply_trailers(msg, trailers, root=root, env=env).rstrip("\n")
+            parent = git_env(root, author, "commit-tree", tree, "-p", parent, "-m", msg).strip()
     finally:
         index.unlink(missing_ok=True)
     return parent
@@ -145,14 +199,21 @@ def main(argv: list[str] | None = None) -> int:
     """Rewrite the placeholders through the task's history and print what became what."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--base", default="main", help="branch the task lands on")
+    parser.add_argument(
+        "--trailer",
+        action="append",
+        default=[],
+        help="trailer KEY=VALUE to stamp on each task commit message",
+    )
     args = parser.parse_args(argv)
     root = Path(git("rev-parse", "--show-toplevel", cwd=Path.cwd()).strip())
     texts = changed_text_files(root, args.base) | placeholder_messages(root, args.base)
     mapping = assign(root, texts)
-    if not mapping:
+    trailers = [parse_trailer(t) for t in args.trailer]
+    if not mapping and not trailers:
         print("journal ids: no placeholders")
         return 0
-    tip = rewrite_history(root, args.base, mapping)
+    tip = rewrite_history(root, args.base, mapping, trailers=trailers)
     git("reset", "-q", "--hard", tip, cwd=root)
     for old, new in mapping.items():
         print(f"journal ids: {old} -> {new}")
