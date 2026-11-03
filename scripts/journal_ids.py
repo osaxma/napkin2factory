@@ -13,7 +13,7 @@ When ``--trailer KEY=VALUE`` is given, every task commit's message gets those tr
 (replacing an existing trailer of the same key, never duplicating), rewriting history even
 when there are no placeholders.
 
-Why: S-097 (placeholders), S-099 (every commit, messages included), S-194 (trailers).
+Why: S-097 (placeholders), S-099 (every commit, messages included), S-190 (trailers).
 
 Run it from inside the task's folder:
 ``python3 scripts/journal_ids.py [--base main] [--trailer KEY=VALUE ...]``.
@@ -51,11 +51,11 @@ def apply_trailers(
 ) -> str:
     """Stamp ``trailers`` on ``message`` using ``git interpret-trailers``.
 
-    Why: S-194 (trailers via git interpret-trailers).
+    Why: S-190 (trailers via git interpret-trailers).
     """
     if not trailers:
         return message
-    # Git same_token() prefix-matches tokens; protect Task from colliding with Task-* (S-194).
+    # Git same_token() prefix-matches tokens; protect Task from colliding with Task-* (S-190).
     protected_msg = re.sub(r"(?m)^Task:", "Task-name:", message)
     args = ["interpret-trailers", "--if-exists", "replace"]
     for k, v in trailers:

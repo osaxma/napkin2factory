@@ -12,15 +12,15 @@ Periodic reviews use the health review brief at `docs/reviews/TEMPLATE-health.md
 
 2. **Collisions in the window** (`collisions`)
    - *Meaning:* Pairs of stamped tasks active simultaneously whose changed files intersect outside journals (`DECISIONS.md`, `BACKLOG.md`, `STATUS.md`).
-   - *Why tracked:* Detects concurrent development collisions across worktrees without relying on manual coordination (S-194, S-080).
+   - *Why tracked:* Detects concurrent development collisions across worktrees without relying on manual coordination (S-190, S-080).
 
 3. **Task conflicts** (`task_conflicts`)
    - *Meaning:* Sum of `Task-conflicts` recorded in stamped commit trailers across the window.
-   - *Why tracked:* Measures landing and rebasing friction encountered by agents before landing on `main` (S-194).
+   - *Why tracked:* Measures landing and rebasing friction encountered by agents before landing on `main` (S-190).
 
 4. **Unstamped commits** (`unstamped_commits`)
    - *Meaning:* Commits in the window lacking task provenance trailers (`Task`, `Task-started`, `Task-conflicts`).
-   - *Why tracked:* Ensures all task work is attributed and tracked through the landing gate (S-194).
+   - *Why tracked:* Ensures all task work is attributed and tracked through the landing gate (S-190).
 
 5. **E10 seam commits** (`e10_seam_commits`)
    - *Meaning:* Commits since the latest `v*` tag touching core and contract seam files (`core/`, `report/builder.py`, `docs/engine.py`, `cli/check.py`).

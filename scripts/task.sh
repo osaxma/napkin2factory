@@ -42,7 +42,7 @@ cmd_new() {
   git show-ref --verify --quiet "refs/heads/task/$slug" && die "task/$slug already exists: pick another name, or see make tasks"
   git worktree add -q "$top/.worktrees/$slug" -b "task/$slug" main
   git config "branch.task/$slug.description" "$goal"
-  # Record start time for commit trailers stamped at landing (S-194)
+  # Record start time for commit trailers stamped at landing (S-190)
   git config "branch.task/$slug.started" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   if [ -z "${N2F_TASK_NO_SYNC:-}" ]; then
     # Hardlinks, not uv's macOS default of clones: macOS scans every new native library on its
@@ -73,7 +73,7 @@ check_health() {
   else
     rev_range="main"
   fi
-  # Count distinct Task: trailers on main since last health review (S-194)
+  # Count distinct Task: trailers on main since last health review (S-190)
   n=$(git log "$rev_range" --format="%(trailers:key=Task,valueonly)" 2>/dev/null |
     awk 'NF { tasks[$1] = 1 } END { n = 0; for (k in tasks) n++; print n }')
   n=${n:-0}
@@ -103,7 +103,7 @@ cmd_land() {
   slug=${branch#task/}
   started=$(git config "branch.$branch.started" || true)
   if [ -z "$started" ]; then
-    # If started config is absent, use author date of the first task commit (S-194)
+    # If started config is absent, use author date of the first task commit (S-190)
     first=$(git rev-list --reverse "main..HEAD" | sed -n 1p)
     if [ -n "$first" ]; then
       started=$(TZ=UTC git log -1 --date=iso-strict-local --format=%ad "$first")
@@ -122,7 +122,7 @@ cmd_land() {
     tries=$((tries + 1))
     git reset -q --hard "$start"
     if ! git rebase -q main; then
-      # Count rebase conflict stops for the Task-conflicts trailer (S-194)
+      # Count rebase conflict stops for the Task-conflicts trailer (S-190)
       conflicts=$(git config "branch.$branch.conflicts" || true)
       conflicts=${conflicts:-0}
       git config "branch.$branch.conflicts" "$((conflicts + 1))"
