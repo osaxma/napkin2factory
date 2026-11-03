@@ -37,7 +37,7 @@ Task folder: `.worktrees/gate-g-checks` on `task/gate-g-checks` (created by the 
 4. The kiln: expect its control circuit's fuse (no rating) to raise the new `warn`; that is the
    honest result. Run `tests/e2e/test_kiln.py`; if a kiln test pins the count of warns, update
    only that count, and say so. No kiln model edit.
-5. DECISIONS.md: one entry (S-NEW1) citing gate G blockers 1–2; BACKLOG.md rows only if you
+5. DECISIONS.md: one entry (a placeholder id, as brief-common.md says) citing gate G blockers 1–2; BACKLOG.md rows only if you
    leave something.
 
 ## Owns
