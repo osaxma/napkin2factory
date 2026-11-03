@@ -10,8 +10,8 @@ name and the Revision, S-179), so a read of ``circuit://<circuit>`` changes when
 connection, device, conductor, entry or word of the circuit does, or what its footer says.
 
 ``elec-schedule`` runs after every circuit's rule and writes ``schedule.csv``,
-``labels.csv``, ``cables.csv`` and ``README.txt`` (the disclaimer and what each file the
-package's ``electrical/`` folder holds is, S-179) from the circuits' records; it produces the key
+``labels.csv``, ``cables.csv`` and ``README.txt`` (what each file the package's
+``electrical/`` folder holds is, S-179) from the circuits' records; it produces the key
 ``rule:elec-schedule``.  Its id is not ``elec:_schedule``: the core values a ``rule:<x>`` key
 as the output hash of the rule whose id is ``<x>``, so the key the checks and the manuals
 record is the rule's own id (S-156).

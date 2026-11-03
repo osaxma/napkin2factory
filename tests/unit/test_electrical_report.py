@@ -32,7 +32,6 @@ from napkin2factory.core.graph.runner import run_build
 from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.registry import registry
 from napkin2factory.core.uris import display_uri
-from napkin2factory.domains.electrical.outputs.diagram import DISCLAIMER
 from napkin2factory.domains.electrical.owner.common import SCHEDULE_KEY
 from napkin2factory.domains.electrical.owner.gates import design_row, verify_row
 from napkin2factory.domains.electrical.owner.report import show_wiring, wiring_report_data
@@ -188,7 +187,7 @@ def test_the_section_is_in_the_report_and_its_index(built: tuple[Path, Product])
     html = (root / "build/report/index.html").read_text(encoding="utf-8")
     section = _section(html)
     assert "Supply cable into the box" in section and "Switch terminal 1" in section
-    assert "not reviewed by a licensed electrician" in section
+    assert "to local code" not in section  # one disclaimer, the README's (S-193)
     # the diagram is inline exactly when the elec rule drew one (M2), whichever lands first
     drawn = (root / "build/electrical/heater/diagram.svg").is_file()
     assert ("<svg" in section) == drawn
@@ -301,9 +300,7 @@ def test_the_helpers_print_the_wiring_and_record_their_reads(built: tuple[Path, 
         "| Wire | From | To |" in page
         and "| heater-3 | Switch terminal 2 | Heater terminal L |" in page
     )
-    # the page's first wiring table opens with the disclaimer, once (S-179, gate G blocker 3)
-    assert page.count(DISCLAIMER) == 1
-    assert page.index(DISCLAIMER) < page.index("| Wire | From | To |")
+    assert "to local code" not in page  # one disclaimer, the README's (S-193)
     reads = json.loads((root / "build/docs/wiring/reads.json").read_text(encoding="utf-8"))
     assert {"circuit://heater#name", "circuit://heater#connections"} <= set(reads["reads"])
     assert {"circuit://heater", SCHEDULE_KEY, "part://heater#name"} <= set(reads["reads"])
@@ -312,15 +309,6 @@ def test_the_helpers_print_the_wiring_and_record_their_reads(built: tuple[Path, 
         r["id"]: r for r in json.loads((root / "build/checks/checks.json").read_text())["results"]
     }
     assert rows["doc://wiring"]["status"] == "pass"
-
-
-def test_the_disclaimer_is_said_once_however_many_tables(tmp_path: Path) -> None:
-    root = _copy(tmp_path)
-    twice = PAGE + '\n{{ circuit("heater").table }}\n'
-    _write(root, "model/docs/wiring.md", twice)
-    run_build(load_product(root), render=False, quiet=True)
-    page = (root / "build/docs/wiring/page.md").read_text(encoding="utf-8")
-    assert page.count(DISCLAIMER) == 1 and page.count("| Wire | From | To |") == 2
 
 
 def test_the_heading_says_the_circuit_once_by_purpose(built: tuple[Path, Product]) -> None:

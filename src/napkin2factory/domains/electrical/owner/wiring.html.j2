@@ -3,7 +3,6 @@
   {% if data.scope_line %}<p class="next">{{ data.scope_line }}</p>{% endif %}
   {% if data.circuits %}
   <p class="lead">What connects to what: each circuit's diagram and its wires, then the cable schedule, the cable to buy and the wiring checks. Lengths are the design's estimates (the electrician cuts to fit); cross-sections and colours come from the conductor table (to confirm); totals are computed.</p>
-  <div class="disclaimer">The wiring checks catch arithmetic and connection mistakes only. This wiring was not reviewed by a licensed electrician: a licensed electrician wires the product to local code and decides every point marked for an electrician.</div>
   {% for c in data.circuits %}
   <div class="step" id="wiring-{{ c.id }}">
     <h3>{{ c.title }}{% if c.detail %} <span class="muted small">{{ c.detail | join(' · ') }}</span>{% endif %}</h3>

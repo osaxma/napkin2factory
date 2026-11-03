@@ -9,9 +9,7 @@ diagrams:
 * ``cables.csv`` — per conductor type, the total length to buy; a wire with no length
   makes the total read "not given", never a guess (the parts list does not carry these
   lines in v0.6: S-145);
-* ``README.txt`` — the disclaimer and what each file of the package's ``electrical/``
-  folder is (S-179): a CSV takes no comment row (its readers would choke on one), so the
-  sentence travels beside the tables.
+* ``README.txt`` — what each file of the package's ``electrical/`` folder is (S-179).
 """
 
 from __future__ import annotations
@@ -20,8 +18,6 @@ import csv
 import io
 from pathlib import Path
 from typing import Any
-
-from napkin2factory.domains.electrical.outputs.diagram import DISCLAIMER
 
 #: The header rows, exactly as the wave-2 contract fixes them.
 SCHEDULE_COLUMNS = (
@@ -160,7 +156,7 @@ README = "README.txt"
 
 
 def readme_text(records: list[dict[str, Any]], product: str) -> str:
-    """``README.txt``: the disclaimer, then what each file the package ships is (S-179)."""
+    """``README.txt``: what each file the package ships is (S-179)."""
     circuits = "".join(
         f"- {rec['circuit']}/diagram.svg: the wiring diagram of the "
         f"{rec.get('name') or rec['circuit']} circuit.\n"
@@ -168,7 +164,6 @@ def readme_text(records: list[dict[str, Any]], product: str) -> str:
     )
     return (
         f"{product}: the wiring\n\n"
-        f"{DISCLAIMER}\n\n"
         "What each file is:\n"
         f"{circuits}"
         "- schedule.csv: every wire, one row each: the two terminals it joins, its conductor,\n"

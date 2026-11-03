@@ -73,8 +73,5 @@ DOMAIN = Domain(
     context=CONTEXT,
     release_files=RELEASE_FILES,
     bom_lines=BOM_LINES,
-    disclaimer=(
-        "Its wiring has not been reviewed by a licensed electrician: a licensed electrician "
-        "wires the product to local code."
-    ),
+    # no domain disclaimer: the README's, said once by the agent, is the one (S-193)
 )

@@ -31,8 +31,8 @@ words "extra-low-voltage signal" for a sensing circuit within the checks' extra-
 band, nothing for an earth circuit; "Protected by" only where the checks require a
 protective device.  Terminals are small circles (IEC 60617's terminal) where a wire lands.
 A footer band closes every diagram, as the title block closes a mechanical sheet
-(``drawings/sheet.py``): the product, the circuit, the Revision (or "draft") and
-:data:`DISCLAIMER`, so a printed diagram never travels without it (S-179).  Every
+(``drawings/sheet.py``): the product, the circuit and the Revision (or "draft"), so a
+printed diagram says what it belongs to (S-179; no disclaimer on it, S-193).  Every
 coordinate is rounded by the drawings' serialiser and nothing depends on time, so a
 golden holds it.  The SVG is self-contained (its font in a ``<style>``), as the
 ``file://`` report needs (D13).
@@ -102,12 +102,6 @@ from napkin2factory.drawings.svg import (
 MARGIN = 10.0
 TITLE_SIZE = 4.0
 PIN_R = 0.8
-#: The sentence every wiring output carries (S-179, gate G blocker 3, gate H B2): the
-#: diagram's footer, the package folder's README and the manual's wiring pages.
-DISCLAIMER = (
-    "Produced with an AI system; not reviewed by a licensed electrician: "
-    "a licensed electrician wires the product to local code."
-)
 #: The footer's Revision when the build is not a released Revision's (S-179).
 DRAFT = "draft"
 #: Footer geometry: the gap above it, a cell's label size, a row's height.
@@ -340,7 +334,7 @@ def _cell(x: float, y: float, w: float, label: str, value: str, bold: bool = Fal
 def _footer(
     record: dict[str, Any], sheet: dict[str, Any], x: float, y: float, w: float
 ) -> list[Prim]:
-    """The footer band under the drawing, at least ``w`` wide: product, circuit, Revision, note.
+    """The footer band under the drawing, at least ``w`` wide: product, circuit, Revision.
 
     ``sheet`` carries ``product`` (the product's name) and ``revision`` (a released
     Revision's name, else "draft"); a missing one reads "not given".
@@ -350,20 +344,14 @@ def _footer(
     revision = str(sheet.get("revision") or DRAFT)
     widths = [text_width(v, HEAD_SIZE) + 4 for v in (product, circuit)]
     rev_w = max(28.0, text_width(revision, HEAD_SIZE) + 4)
-    note_w = text_width(DISCLAIMER, LABEL_SIZE) + 4
-    width = max(w, sum(widths) + rev_w, note_w)
+    width = max(w, sum(widths) + rev_w)
     spare = width - sum(widths) - rev_w  # to the product's cell, so the row fills the band
     pw, cw = widths[0] + spare, widths[1]
     prims: list[Prim] = []
     prims += _cell(x, y, pw, "PRODUCT", product, bold=True)
     prims += _cell(x + pw, y, cw, "CIRCUIT", circuit)
     prims += _cell(x + pw + cw, y, rev_w, "REVISION", revision, bold=True)
-    yy = y + FOOTER_ROW
-    prims += [
-        Rect(x, yy, width, 6.0, cls="table"),
-        Text(x + 1.2, yy + 4.0, DISCLAIMER, size=LABEL_SIZE, anchor="start", cls="note"),
-        Rect(x, y, width, FOOTER_ROW + 6.0, cls="thin"),
-    ]
+    prims.append(Rect(x, y, width, FOOTER_ROW, cls="thin"))
     return prims
 
 
@@ -425,7 +413,6 @@ def circuit_svg(record: dict[str, Any], sheet: dict[str, Any] | None = None) -> 
 
 
 __all__ = [
-    "DISCLAIMER",
     "DRAFT",
     "FAN",
     "FOOTER_GAP",

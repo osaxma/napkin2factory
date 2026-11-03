@@ -326,13 +326,13 @@ def test_the_release_cover_says_what_is_not_included(later: Path, tmp_path: Path
     assert [(s["domain"], s["state"]) for s in record["scope"]] == [("electrical", "later")]
 
 
-def test_the_later_to_in_release_cover_says_so_and_carries_the_electrical_disclaimer(
+def test_the_later_to_in_release_cover_says_so(
     later: Path, built: Path, elsewhere: Path, tmp_path: Path
 ) -> None:
     """Gate H C7 & gate G 3 (S-180): v1.1.0 says Wiring is included where v1.0.0 left it out."""
     from napkin2factory.domains.electrical import DOMAIN as ELECTRICAL
 
-    assert ELECTRICAL.disclaimer is not None
+    assert ELECTRICAL.disclaimer is None  # one disclaimer, the README's (S-193)
     make_bundle(load_product(later), later / "build", "v1.0.0", tmp_path)
     pkg = make_bundle(load_product(built), built / "build", "v1.1.0", tmp_path)
     with zipfile.ZipFile(pkg) as zf:
@@ -341,10 +341,8 @@ def test_the_later_to_in_release_cover_says_so_and_carries_the_electrical_discla
         "Scope: Wiring: included in this Revision; left for later in v1.0.0 — The wiring inside "
         "the box is designed here (DEC-001)"
     ) in cover
-    assert f"not been reviewed by a licensed engineer. {ELECTRICAL.disclaimer}" in cover
-    assert ELECTRICAL.disclaimer in _report(built)
-    assert ELECTRICAL.disclaimer not in _report(later)
-    assert ELECTRICAL.disclaimer not in _report(elsewhere)
+    assert "to local code" not in cover
+    assert "to local code" not in _report(built)
 
 
 # ---- the diff page: a section the later Revision adds or drops (DoD 4, S-169) ---------------

@@ -35,7 +35,7 @@ from napkin2factory.core.loader import Product, load_product, validate
 from napkin2factory.core.registry import registry
 from napkin2factory.domains.electrical.model import Circuit, Connection
 from napkin2factory.domains.electrical.outputs import RELEASE_FILES
-from napkin2factory.domains.electrical.outputs.diagram import DISCLAIMER, circuit_svg
+from napkin2factory.domains.electrical.outputs.diagram import circuit_svg
 from napkin2factory.domains.electrical.outputs.export_kicad import kicad_schematic
 from napkin2factory.domains.electrical.outputs.rules import (
     SCHEDULE_KEY,
@@ -282,10 +282,10 @@ def test_an_empty_circuit_says_so() -> None:
     svg = circuit_svg({"circuit": "spare", "name": "Spare", "purpose": "control", "wires": []})
     assert "No connections yet." in svg
     ET.fromstring(svg)
-    assert DISCLAIMER in svg  # with no sheet given, the footer still carries it
+    assert "to local code" not in svg  # one disclaimer, the README's (S-193)
 
 
-# ---- the footer: product, circuit, Revision, disclaimer (S-179) ---------------------------------
+# ---- the footer: product, circuit, Revision (S-179) ---------------------------------------------
 
 
 def _footer_texts(svg: str) -> list[str]:
@@ -296,7 +296,7 @@ def _footer_texts(svg: str) -> list[str]:
 
 
 def test_every_diagram_carries_the_footer(built: tuple[Path, Product, Any]) -> None:
-    """Gate G blocker 3, gate H B2: a printed diagram names its product and carries the note."""
+    """Gate G blocker 3, gate H B2: a printed diagram names its product, circuit and Revision."""
     root, _, _ = built
     svg = (root / OUT / "heater/diagram.svg").read_text(encoding="utf-8")
     texts = _footer_texts(svg)
@@ -307,8 +307,6 @@ def test_every_diagram_carries_the_footer(built: tuple[Path, Product, Any]) -> N
         "Heater",
         "REVISION",
         "draft",  # the fixture's snapshot is no released Revision
-        "Produced with an AI system; not reviewed by a licensed electrician: a licensed "
-        "electrician wires the product to local code.",
     ]
     ns = "{http://www.w3.org/2000/svg}"
     groups = list(ET.fromstring(svg).iter(f"{ns}g"))
@@ -781,18 +779,18 @@ def test_the_release_package_ships_the_diagrams_and_tables(
         "v0.1.0/electrical/schedule.csv",
     ]
     assert packed == (root / OUT / "heater/diagram.svg").read_bytes()
-    assert DISCLAIMER.encode("utf-8") in packed
+    assert b"to local code" not in packed  # one disclaimer, the README's (S-193)
     assert "electrical/ (wiring diagrams, cable schedule, terminal labels)" in cover
     assert [r.folder for r in RELEASE_FILES] == ["electrical"]
 
 
-def test_the_wiring_folder_has_a_readme_with_the_disclaimer(
+def test_the_wiring_folder_has_a_readme_naming_its_files(
     built: tuple[Path, Product, Any],
 ) -> None:
-    """A CSV takes no comment row, so the README beside the tables says it (S-179)."""
+    """The README beside the tables says what each file is (S-179), and nothing else."""
     root, _, _ = built
     text = (root / OUT / "README.txt").read_text(encoding="utf-8")
-    assert text.startswith("Heated box: the wiring\n\n" + DISCLAIMER + "\n")
+    assert text.startswith("Heated box: the wiring\n\nWhat each file is:\n")
     assert "- heater/diagram.svg: the wiring diagram of the Heater circuit." in text
     for name in ("schedule.csv", "labels.csv", "cables.csv"):
         assert f"- {name}:" in text

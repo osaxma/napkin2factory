@@ -203,7 +203,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-176 | The wiring session simulation (DoD 7) passed on 2026-11-03: the supply-headroom choice raised after the first build with wiring, not in the interview, decided only with the owner's answer; no fix to `roles/pm.md`; B-0160 opened | in force |
 | S-177 | The two publish tests read their temporary bare repository with `git --git-dir=<remote>`, not `cwd=<remote>`: robust under `safe.bareRepository=explicit` (tests only) | in force |
 | S-178 | v0.6 gate G blockers 1–2: each conductor against the device that protects it (a new `conductor-protection` row), and the Class II shortcut only where no part that conducts meets mains wiring (else a warn) | in force |
-| S-179 | v0.6 M7: every wiring output carries the licensed-electrician note (diagram footer band with product, circuit and Revision or draft; `electrical/README.txt` shipped in the release package; manual helper's opening line; report headings by purpose; closes B-0157) | in force |
+| S-179 | v0.6 M7: every wiring output carries the licensed-electrician note (diagram footer band with product, circuit and Revision or draft; `electrical/README.txt` shipped in the release package; manual helper's opening line; report headings by purpose; closes B-0157) | amended by S-193 (the note removed; footer and README.txt kept) |
 | S-180 | Seam (gate H B1, C7; gate G blocker 3; B-0160): a design change request's patch dry-run in its impact report; `Domain.disclaimer` in the package `README.txt` and the report; the `later` → `in` cover line; `"an agent may decide it"` only when the area is delegated (closes B-0184, B-0160) | in force |
 | Gate G | Review gate G (electrician read-through, then engineering, v0.6) — outcome | outcome recorded; blockers fixed (S-178, S-179, S-180), the rest in BACKLOG |
 | Gate H | Review gate H (UX, owner persona, v0.6) — outcome | outcome recorded; blockers fixed (S-179, S-180), the rest in BACKLOG; the maintainer's visual judgment pending |
@@ -219,6 +219,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-190 | The periodic health review: trailers and due notice, make health, review brief | in force |
 | S-191 | The roadmap review: reproducible benchmark numbers, one change store, discovery, region, v1.0 contract | amended by S-192 |
 | S-192 | The vision in the maintainer's words; "wherever" means any agent client; the tool's voice and one disclaimer | in force |
+| S-193 | The electrical domain's own disclaimer removed from every wiring output | in force |
 
 ---
 
@@ -1425,3 +1426,11 @@ Browser-only chats need a hosted service and wait until after v1.0. The voice (�
 the maintainer: "honest but not defensive"): one disclaimer (README, said once by the agent), no
 repeated warnings or "not checked" lists, no sales voice. The electrical domain's repeated
 disclaimer (S-179) is B-0186.
+
+## S-193 — The electrical domain drops its own disclaimer (2026-11-04)
+Applies S-192 (one disclaimer, the README's, said once by the agent); amends S-179. Decided by
+the maintainer: a printed diagram is read by the electrician, the qualified person the note
+pointed to, so it needs no warning. Removed from the Wiring section, the manual helper's first
+table, the diagram footer (the band keeps product, circuit, Revision) and `electrical/README.txt`
+(it keeps what each file is); `Domain.disclaimer` stays unset for electrical (the field, S-180,
+stays in the contract). Kept: sign-offs and checks that name an electrician where the owner acts.
