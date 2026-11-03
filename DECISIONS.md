@@ -212,6 +212,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-183 | v0.6.0 released: CI green on both platforms, tagged, published; wiring visuals judged by the maintainer | in force |
 | S-184 | Six modules over 750 lines split, code moved verbatim, each file under 550 lines | in force |
 | S-185 | Structural F9 guard: AST string constants and qualified URIs replace blind text match (amends S-128) | in force |
+| S-186 | Fail n2f check when a made part's material density is assumed mild steel | in force |
 
 ---
 
@@ -1354,3 +1355,11 @@ inside f-strings) that are not docstrings and equal an example compound identifi
 (literal `"table"` stays legal). Check B (all text files): qualified URIs (`<scheme>://<id>` for any scheme), example
 requirement, decision, and change ids (REQ/DEC/ECR), and `examples/<product-folder>` paths. Comments, docstrings, and
 HTML/CSS prose are no longer scanned for plain identifiers. Real `src/` hits remain 0.
+
+## S-186 — Fail n2f check for made parts with assumed density (2026-11-03)
+`geometry/materials.py::density_kg_m3` falls back to mild steel (7850 kg/m³) when a part's
+material is unlisted and has no declared density, leaving mass and BOM cost guessed silently.
+A new public helper `density_is_assumed(material) -> bool` detects when this fallback triggers.
+In `core/checks/engine.py`, `material://<part>` check rows verify that each made (`kind: custom`)
+part has a known material or an explicit declared density; assumed density fails with plain
+owner words naming the part and material, while bought (`kind: cots`) and reference parts are exempt.

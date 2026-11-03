@@ -10,6 +10,7 @@ that resolve choices) so a change to any of them re-runs the checks.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -45,6 +46,8 @@ def checks_reads(product: Product) -> list[str]:
     for p in product.parts.values():
         reads.append(f"{p.uri}#role")  # the form pack picks parts by styling role
         reads.append(f"{p.uri}#name")  # messages name parts (hardware, joints)
+        reads.append(f"{p.uri}#kind")  # custom parts check density; bought parts exempt
+        reads.append(f"{p.uri}#material")  # material name and density
     for a in product.assemblies.values():
         reads.append(a.uri)
         # The asm rule's output hash does not move with `spare:`, `loose:`, `build:` or
@@ -252,6 +255,71 @@ def bom_validation_checks(build_dir: Path) -> list[CheckResult]:
     return out
 
 
+def part_density_checks(
+    product_or_ctx: Product | StageContext,
+    proxy: Callable[[Any, str], Any] | None = None,
+) -> list[CheckResult]:
+    """Check that every made part declares a known material or an explicit density.
+
+    Bought parts (``kind: cots``) and reference parts are exempt. Fails in plain
+    owner words when a made part's density would silently fall back to mild steel.
+    """
+    from napkin2factory.geometry.materials import density_is_assumed
+
+    if isinstance(product_or_ctx, Product):
+        product = product_or_ctx
+        _proxy = proxy or (lambda obj, uri: obj)
+    else:
+        product = product_or_ctx.product
+        _proxy = product_or_ctx.proxy
+
+    out: list[CheckResult] = []
+    for part in product.parts.values():
+        p = _proxy(part, part.uri)
+        if p.kind != "custom":
+            continue
+        assumed = density_is_assumed(p.material)
+        mat = p.material
+        mat_name = getattr(mat, "name", str(mat)) if mat is not None else None
+        if assumed:
+            if mat is None:
+                msg = (
+                    f"Part {p.name}: no material declared and has no density, "
+                    "so its mass and cost would be guessed as mild steel. "
+                    "Name a known material or give its density."
+                )
+            else:
+                msg = (
+                    f"Part {p.name}: material '{mat_name}' is not in the materials "
+                    "table and has no density, so its mass and cost would be "
+                    "guessed as mild steel. Name a known material or give its density."
+                )
+            status = "fail"
+        else:
+            if mat is not None and getattr(mat, "density", None) is not None:
+                msg = f"Part {p.name}: density declared on the part"
+            else:
+                msg = f"Part {p.name}: material '{mat_name}' is in the materials table"
+            status = "pass"
+
+        out.append(
+            CheckResult(
+                id=f"material://{part.id}",
+                subject=part.uri,
+                status=status,
+                kind="material",
+                title=f"{p.name}: material density",
+                message=msg,
+                detail={
+                    "part": part.uri,
+                    "material": mat_name,
+                    "density_assumed": assumed,
+                },
+            )
+        )
+    return out
+
+
 def build_matrix(
     product: Product, results: list[CheckResult], only_present: bool = False
 ) -> dict[str, Any]:
@@ -444,8 +512,8 @@ def docs_stage(sctx: StageContext) -> list[CheckResult]:
 
 
 def sourcing_stage(sctx: StageContext) -> list[CheckResult]:
-    """Bought parts' sourcing, from the BOM validation."""
-    return bom_validation_checks(sctx.build_dir)
+    """Bought parts' sourcing from BOM validation, and made parts' material density."""
+    return bom_validation_checks(sctx.build_dir) + part_density_checks(sctx)
 
 
 def run_all_checks(ctx: RunContext) -> RunResult:

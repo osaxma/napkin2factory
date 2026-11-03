@@ -69,6 +69,21 @@ def _match(material: Any) -> str | None:
     return next((key for key, _, _ in DENSITIES if key in name or key in spec), None)
 
 
+def density_is_assumed(material: Any) -> bool:
+    """Whether the density for ``material`` is assumed rather than known.
+
+    Returns True when :func:`density_kg_m3` would fall back to :data:`DEFAULT_DENSITY`
+    (mild steel) because no material is declared, or the material matches no known entry
+    in :data:`DENSITIES` and declares no explicit density.
+    """
+    if material is None:
+        return True
+    declared = getattr(material, "density", None)
+    if declared is not None:
+        return False
+    return _match(material) is None
+
+
 def density_kg_m3(material: Any) -> tuple[float, str]:
     """Density (kg/m³) and its source for a :class:`Material` or a name string."""
     if material is None:

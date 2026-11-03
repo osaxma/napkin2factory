@@ -125,7 +125,8 @@ The checks re-run when `style.yaml`'s form cues or a part's `role` change (`styl
 
 `iface://x` conformance, `interference://asm`, `count://asm` (instance counts equal YAML
 quantities), `doc://x` staleness (recorded reads vs current values), `bom://validation@part`
-(sourcing tiers: structural → link → curated catalog; unverified stays visible).
+(sourcing tiers: structural → link → curated catalog; unverified stays visible), `material://part`
+(made parts declare a known material or density, never assumed mild steel).
 
 `iface://x` has two stages. **Patterns**: both parties recorded the same holes (or mating
 face) in their own frames. **Alignment** (P3, S-106): in each lowest assembly containing both
