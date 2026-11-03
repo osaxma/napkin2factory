@@ -88,3 +88,25 @@
 >
 > So, still your choice: **1, keep the 10 A circuit for the box alone and move the kettle, or 2, have a new 16 A circuit fitted for the box?**
 
+**Owner (5)** (sent verbatim)
+
+**PM** (the folder after the reply: snapshot "Decide DEC-005: Room to spare on the supply's circuit: a 16 A dedicated circuit: …", i.e. `n2f decide elec-rule://supply-headroom@supply --pick larger --by "Dana Whitfield"` with the owner's reason as its note; DEC-005 `made_by: human`, source "choice elec-rule://supply-headroom@supply: option larger, chosen by Dana Whitfield", rationale "The kettle is sometimes on the kitchen socket; I'd rather have the bigger circuit put in. My friend can fit it."; then, as the designer, `param://supply-rating` 16 A, the supply `dedicated: true` and its upstream protection 16 A, rebuilt and checked; `n2f ecr close ECR-001` tried and refused on the two open sign-offs):
+> Done. I've recorded your choice in your name, with your reason: the kettle is sometimes on that socket, so you'd rather have the bigger circuit, and your friend can fit it.
+>
+> I've updated the design to match. The box now plugs into a new 16 A circuit that serves only the warming box. I rebuilt it and ran the checks again. The room-to-spare question is now settled in the design, and nothing failed.
+>
+> What's left is for your friend, because this is mains wiring and needs a licensed electrician:
+>
+> - **Fit the new 16 A circuit**, with cable sized for it, and confirm its breaker and its earthing. A licensed electrician has the final say on those.
+> - **Sign off two things**, once the box is wired:
+>   - that a licensed electrician has checked the wiring before it is first switched on;
+>   - that the heater's rating plate fits the supply.
+>
+>   I can't sign either one, and I won't.
+>
+> Until those two sign-offs are in, the "Add the wiring" change request stays open. I tried to close it and it said exactly that.
+>
+> One small thing in the checks: the probe's wiring is very low power, and its cable size isn't checked because the probe doesn't state how much current it draws. Your friend can confirm it from the probe's label when they wire it.
+>
+> **Can you confirm which country the box will be used in?** Your friend's drawing assumes a European supply, 230 V at 50 Hz.
+
