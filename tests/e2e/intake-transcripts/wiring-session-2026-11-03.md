@@ -72,3 +72,19 @@
 >
 > One more thing to confirm afterwards: your friend's drawing assumes a European supply (230 V, 50 Hz). I'll check your country with you once this is settled.
 
+**Owner (4)** (sent verbatim)
+
+**PM** (no `n2f decide`; noted in the design files that the kettle sometimes shares the socket):
+> Yes, it matters. Everything plugged into that socket shares the same 10 A breaker. The heater alone takes 5.2 A of it (computed from its rating). A kettle is usually one of the biggest things in a kitchen. If the kettle and the box run at the same time and together they need more than the breaker allows, the breaker cuts the power. The dough goes cold, and you might not notice.
+>
+> I don't know your kettle's draw, and I won't guess it. It's printed on the kettle's base or its label, usually in watts. I've noted in the design files that the kettle sometimes shares this socket.
+>
+> Both options I gave you settle the kettle question the same way: **the warming box gets a circuit of its own**, so the kettle never shares with it. The only difference is which circuit:
+>
+> 1. **The existing 10 A circuit, for the box alone.** The kettle moves to a socket on a different circuit. Your electrician can tell you which sockets share a breaker, and confirms that this one serves only the box.
+> 2. **A new 16 A circuit, just for the box.** Your electrician fits it with thicker cable. The kettle stays wherever you like, and there's room for a bigger load later. It's more work for the electrician.
+>
+> Either way, a licensed electrician has the last word on the circuit.
+>
+> So, still your choice: **1, keep the 10 A circuit for the box alone and move the kettle, or 2, have a new 16 A circuit fitted for the box?**
+
