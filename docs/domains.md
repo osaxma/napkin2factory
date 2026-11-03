@@ -745,6 +745,16 @@ ReleaseFiles("toy", ("*.json",), "toy glow records")
   domain is in scope (`scope: in`, or undeclared with content in its model families), e.g. a
   licensed-trade review requirement.
 
+### 3.15 Consumables — `bom_lines=callable`
+A domain contributes consumable lines to the parts list (S-188) via
+`bom_lines(product, reader) -> list[BomLine]`. The `bom` rule calls each domain's
+hook in installation order with a read-recording reader. Each `BomLine` carries
+`id`, `name`, `quantity` (float or `None`), `unit` (e.g. `"m"`), `unit_cost` (float
+or `None`), `domain`, and optional `source`. An unpriced consumable (`unit_cost` or
+`quantity` `None`) leaves `cost_complete` false in `rollups.json`; a priced one adds
+`quantity * unit_cost` to `total_cost`. Lines appear in `bom.csv` with `kind: consumable`
+and their `qty_unit`.
+
 ## 4. The objects you are handed (reference)
 
 ### 4.1 The contract's types (`napkin2factory.core.domain`)
@@ -752,8 +762,9 @@ ReleaseFiles("toy", ("*.json",), "toy glow records")
 Domain(name, root=Path(), title="", families=(), rule_families=(), verify_kinds=(),
        check_stages=(), gate_rows=(), report_sections=(), doc_helpers={}, vocabulary={},
        interface_kinds=(), processes=(), finishes=(), categories=(), drivers={},
-       style_roles=(), screens=(), context=(), release_files=(), disclaimer=None,
-       code=(), in_place=False)
+       style_roles=(), screens=(), context=(), release_files=(), bom_lines=None,
+       disclaimer=None, code=(), in_place=False)
+BomLine(id, name, quantity, unit, unit_cost, domain, source="")
 ModelFamily(name, schema, folder, validate_refs=None, scheme="", id_pattern=SLUG)
 RuleFamily(name, make_rules, after=(), before=(), produces="", also_produces=(), code=(),
            reads_all=False, targets=(), output_dir=None, static_reads=None)
@@ -1060,9 +1071,9 @@ electrical domain worked round the first two):
   a family of its own whose files name the object, as an electrical device file names its
   part (`part: part://<id>`), so the part stays one line of the parts list (ELECTRICAL_STAGE
   E2).
-- **Lines in the parts list**: a domain's rules write their own tables (the electrical
-  `cables.csv`) and ship them as release files (§3.14); the parts list takes no lines from a
-  domain (S-145, B-0128).
+- **Discreet parts in the parts list**: a domain adds consumables (cable by length, §3.15)
+  via `bom_lines` (S-188); discreet parts stay declared in `model/parts/` and owned by assemblies
+  (S-145, S-188).
 - **Gates of the stage ladder** (`intake → design → verify → released`): a domain adds rows
   under Design or Verify, never a rung (F4).
 - **The system's own words**: row statuses, severities, the labels `given` / `computed` /

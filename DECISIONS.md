@@ -169,7 +169,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-142 | A domain's files in the release package (closes B-0099) | in force |
 | S-143 | A rule family can run before a named family (`before=`), so a manual reads a domain's outputs from the same build | in force |
 | S-144 | Interfaces are treated by their spec's type: a domain kind with a bolt-pattern spec gets the hole match and alignment (the seam E4 needs; a v0.5 defect) | in force |
-| S-145 | E5: the conductors stay in the electrical domain's own schedule; no parts-list seam in v0.6 (B-0128) | in force |
+| S-145 | E5: the conductors stay in the electrical domain's own schedule; no parts-list seam in v0.6 (B-0128) | amended by S-188 |
 | S-146 | The wiring tables in the calc kit: conductors (ampacity by cited table and column; silicone rows at the PVC floor), earthing arrangements, wire colours; `calckit.wiring` | in force |
 | S-147 | v0.6 M0 baseline: the kiln's electrical survey (`docs/v06-baseline.md`), its report size and build time; `make check-full` cited from S-140 | in force |
 | S-148 | Seam (gate F 6): one table of scope words, "done here" / "left for later (not designed here yet)" / "done elsewhere (supplied, not built here)"; the cover's "Not included"; the kiln's electrical requirements tagged (closes B-0115) | in force |
@@ -214,6 +214,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-185 | Structural F9 guard: AST string constants and qualified URIs replace blind text match (amends S-128) | in force |
 | S-186 | Fail n2f check when a made part's material density is assumed mild steel | in force |
 | S-187 | Cost delta names added or edited unpriced parts | in force |
+| S-188 | A Domain bom_lines hook brings consumables to the parts list (amends S-145 E5, closes B-0128) | in force |
 
 ---
 
@@ -1371,3 +1372,12 @@ tracks custom (non-reference, non-bought-with-price) parts whose cost remains mi
 When unpriced parts exist, the cost note appends `; N part(s) without a price: <names>, so the cost change is incomplete`,
 `cost_complete` in JSON is `false`, and the summary renders an incomplete delta as `at least +$X.XX` (or `−`).
 
+## S-188 — A Domain bom_lines hook brings consumables to the parts list (2026-11-03)
+Amends S-145's E5; closes B-0128 (`docs/roadmap/pre-v0.7-todo.md` §3.3). A domain may register
+`bom_lines(product, reader) -> list[BomLine]`; the `bom` rule calls each one with a reader that
+records its reads. No rule ordering (B-0128's `after` half): wire lengths are read from the model
+(`Connection.length`), not from the domain's build outputs. Conductors carry no price, so the
+cable lands unpriced: `rollups.json` `"consumables"`, `cost_complete: false`; a priced line adds
+quantity × unit cost. `bom.csv`: one `kind: consumable` row per line, new last column `qty_unit`.
+Electrical builds its lines with `circuit_record` and `cable_rows`, the schedule's own code, so
+the parts list and `build/wiring/cables.csv` cannot disagree on a length.

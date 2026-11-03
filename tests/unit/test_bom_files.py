@@ -50,6 +50,7 @@ def test_csv(built: Path) -> None:
     assert float(bracket["unit_cost_usd"]) == 4.00
     assert float(bracket["ext_cost_usd"]) == pytest.approx(2 * 4.00)
     assert int(bracket["total_qty"]) == 2
+    assert bracket["qty_unit"] == ""
     base = next(r for r in rows if r["id"] == "base")
     assert base["uri"] == "part://base" and base["manufacturer"]
 

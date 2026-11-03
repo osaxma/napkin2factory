@@ -36,6 +36,7 @@ COLUMNS = [
     "sourcing_status",
     "source",
     "manufacturer",
+    "qty_unit",
 ]
 
 TOTALS = [
@@ -74,6 +75,7 @@ _WIDTHS = {
     "sourcing_status": 15,
     "source": 28,
     "manufacturer": 60,
+    "qty_unit": 10,
 }
 
 
@@ -125,6 +127,36 @@ def line_row(ln: dict[str, Any]) -> dict[str, Any]:
         "sourcing_status": ln.get("sourcing_status", ""),
         "source": ln.get("source", ""),
         "manufacturer": ln.get("manufacturer", ""),
+        "qty_unit": "",
+    }
+
+
+def consumable_row(c: dict[str, Any]) -> dict[str, Any]:
+    """Map a consumable line dict onto :data:`COLUMNS` (S-188)."""
+    qty = c.get("quantity")
+    unit_cost = c.get("unit_cost")
+    ext_cost = None if (unit_cost is None or qty is None) else round(unit_cost * qty, 6)
+    return {
+        "level": 0,
+        "uri": c.get("uri", ""),
+        "id": c.get("id", ""),
+        "rev": "",
+        "name": c.get("name", ""),
+        "kind": "consumable",
+        "qty": qty,
+        "total_qty": qty,
+        "process": "",
+        "material": "",
+        "finish": "",
+        "tolerance_class": "",
+        "unit_cost_usd": unit_cost,
+        "ext_cost_usd": ext_cost,
+        "lead_time_days": None,
+        "mass_kg": None,
+        "sourcing_status": "",
+        "source": c.get("source", ""),
+        "manufacturer": "",
+        "qty_unit": c.get("unit", "m"),
     }
 
 
@@ -151,6 +183,9 @@ def write_csv(path: Path, rollups: dict[str, Any]) -> Path:
         writer.writerow(COLUMNS)
         for ln in iter_lines(rollups):
             row = line_row(ln)
+            writer.writerow([_csv_value(row[c]) for c in COLUMNS])
+        for c in rollups.get("consumables", []):
+            row = consumable_row(c)
             writer.writerow([_csv_value(row[c]) for c in COLUMNS])
         writer.writerow([])
         for label, key in TOTALS:
@@ -292,6 +327,13 @@ def write_xlsx(path: Path, rollups: dict[str, Any], plan: dict[str, Any] | None 
             ws.cell(r, col).number_format = "0.00"
         ws.cell(r, mass_col).number_format = "0.000"
         ws.cell(r, name_col).alignment = Alignment(indent=int(row["level"] or 0))
+    for c in rollups.get("consumables", []):
+        row = consumable_row(c)
+        ws.append([row[c] for c in COLUMNS])
+        r = ws.max_row
+        for col in money:
+            ws.cell(r, col).number_format = "0.00"
+        ws.cell(r, mass_col).number_format = "0.000"
     ws.freeze_panes = "A2"
     for i, col in enumerate(COLUMNS, start=1):
         ws.column_dimensions[get_column_letter(i)].width = _WIDTHS.get(col, 12)

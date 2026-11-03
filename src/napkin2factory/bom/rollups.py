@@ -244,12 +244,47 @@ def compute_rollups(
             total_mass += agg["mass_kg"] * agg["total_qty"]
         if agg["lead_time_days"] is not None:
             max_lead = max(max_lead, agg["lead_time_days"])
+    # Domain consumables (S-188): call each installed domain's hook with recorded reads.
+    from napkin2factory.core.expr import ExprError
+    from napkin2factory.core.registry import UnknownName, registry
+    from napkin2factory.core.uris import UriError
+
+    reg = registry()
+    reg.ensure()
+
+    def reader(key: str) -> Any:
+        log.add(key)
+        if key.startswith("param://"):
+            slug = key.removeprefix("param://").split("#")[0]
+            try:
+                return product.parameter_value(slug)
+            except (KeyError, ExprError, UnknownName):
+                pass
+        try:
+            return product.select(key)
+        except (KeyError, AttributeError, UriError, UnknownName):
+            try:
+                return product.resolve(key)
+            except (KeyError, UriError, UnknownName):
+                return None
+
+    consumables: list[dict[str, Any]] = []
+    for d in reg.domains:
+        if d.bom_lines is None:
+            continue
+        for bl in d.bom_lines(product, reader):
+            consumables.append(_consumable_to_dict(bl))
+            if bl.unit_cost is None or bl.quantity is None:
+                cost_known = False
+            else:
+                total_cost += bl.quantity * bl.unit_cost
     # Parts in no assembly still count for sourcing but not for totals.
     orphans = sorted(p.uri for p in product.parts.values() if p.uri not in per_part)
     return {
         "top_assemblies": [f"asm://{t}" for t in tops],
         "structure": structure,
         "parts": dict(sorted(per_part.items())),
+        "consumables": consumables,
         "orphans": orphans,
         "total_cost": round(total_cost, 2),
         "total_cost_unit": "USD",
@@ -265,6 +300,26 @@ def compute_rollups(
         "max_lead_time_unit": "d",
         "reads": log.keys,
     }
+
+
+def _consumable_to_dict(bl: Any) -> dict[str, Any]:
+    """Serialize a domain consumable BOM line (S-188)."""
+    if isinstance(bl, dict):
+        d = dict(bl)
+    else:
+        d = {
+            "id": bl.id,
+            "name": bl.name,
+            "quantity": bl.quantity,
+            "unit": bl.unit,
+            "unit_cost": bl.unit_cost,
+            "domain": bl.domain,
+            "source": getattr(bl, "source", ""),
+        }
+    qty = d.get("quantity")
+    uc = d.get("unit_cost")
+    d["ext_cost"] = None if (qty is None or uc is None) else round(qty * uc, 6)
+    return d
 
 
 def line_to_dict(ln: BomLine) -> dict[str, Any]:

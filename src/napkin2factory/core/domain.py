@@ -391,6 +391,47 @@ class ReleaseFiles:
 
 
 @dataclass(frozen=True)
+class BomLine:
+    """A consumable line a domain adds to the bill of materials (S-188).
+
+    Called by the ``bom`` rule via :attr:`Domain.bom_lines`.
+    """
+
+    id: str
+    name: str
+    quantity: float | None
+    unit: str
+    unit_cost: float | None
+    domain: str
+    source: str = ""
+
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        quantity: float | None,
+        unit: str,
+        unit_cost: float | None,
+        domain: str,
+        source: str = "",
+        *,
+        source_note: str | None = None,
+    ) -> None:
+        object.__setattr__(self, "id", id)
+        object.__setattr__(self, "name", name)
+        object.__setattr__(self, "quantity", quantity)
+        object.__setattr__(self, "unit", unit)
+        object.__setattr__(self, "unit_cost", unit_cost)
+        object.__setattr__(self, "domain", domain)
+        object.__setattr__(self, "source", source if source_note is None else source_note)
+
+    @property
+    def source_note(self) -> str:
+        """Alias for :attr:`source`."""
+        return self.source
+
+
+@dataclass(frozen=True)
 class Domain:
     """Everything one domain brings (F1). Only ``name`` is required.
 
@@ -399,7 +440,8 @@ class Domain:
     relative to it.  ``code`` lists the folders hashed as the domain's code (empty: all of
     ``root``).  ``in_place`` is for the mechanical domain only (F2): its code lives in the
     system package and each of its families already hashes its own folders, so its
-    registrations add no ``domain:`` input to the rules that read them.
+    registrations add no ``domain:`` input to the rules that read them.  ``bom_lines`` is
+    called by the ``bom`` rule to collect consumable lines for the parts list (S-188).
     """
 
     name: str
@@ -422,6 +464,7 @@ class Domain:
     screens: tuple[Screen, ...] = ()
     context: tuple[ContextContribution, ...] = ()
     release_files: tuple[ReleaseFiles, ...] = ()
+    bom_lines: Callable[[Any, Callable[[str], Any]], list[BomLine]] | None = None
     disclaimer: str | None = None
     code: tuple[str, ...] = ()
     in_place: bool = False

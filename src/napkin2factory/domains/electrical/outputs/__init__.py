@@ -14,6 +14,9 @@ owner's view (``owner/``) or the checks (``checks/``) reruns no ``elec:`` rule.
 from __future__ import annotations
 
 from napkin2factory.core.domain import ReleaseFiles, RuleFamily
+from napkin2factory.domains.electrical.outputs.consumables import (
+    electrical_bom_lines as BOM_LINES,
+)
 from napkin2factory.domains.electrical.outputs.rules import elec_rules, elec_static_reads
 
 RULE_FAMILIES = (
@@ -38,3 +41,9 @@ RELEASE_FILES = (
         "wiring diagrams, cable schedule, terminal labels",
     ),
 )
+
+__all__ = [
+    "BOM_LINES",
+    "RELEASE_FILES",
+    "RULE_FAMILIES",
+]

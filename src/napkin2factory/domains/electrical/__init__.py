@@ -30,7 +30,11 @@ from napkin2factory.domains.electrical.model import (
     Supply,
     validate_refs,
 )
-from napkin2factory.domains.electrical.outputs import RELEASE_FILES, RULE_FAMILIES
+from napkin2factory.domains.electrical.outputs import (
+    BOM_LINES,
+    RELEASE_FILES,
+    RULE_FAMILIES,
+)
 from napkin2factory.domains.electrical.owner import (
     CONTEXT,
     DOC_HELPERS,
@@ -68,6 +72,7 @@ DOMAIN = Domain(
     screens=SCREENS,
     context=CONTEXT,
     release_files=RELEASE_FILES,
+    bom_lines=BOM_LINES,
     disclaimer=(
         "Its wiring has not been reviewed by a licensed electrician: a licensed electrician "
         "wires the product to local code."
