@@ -28,12 +28,15 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 2026-11-03 | Linux CI look | push runs green (latest pushed 7f4d8d0); **the two nightlies since S-121 are red** (2026-11-02 11:11, 2026-11-03 10:54), both `test_demo_napkin`: "mktemp: too few X's in template 'n2f-kiln-napkin-out'" (GNU mktemp; the kiln's demo scripts use the BSD-only `mktemp -d -t name`). Fix task opened (B-0073 reopened). `FIX_CI_NIGHTLY.md`'s bare-repository diagnosis is not what CI shows | — |
 | 2026-11-03 | **Diagram follow-up landed** (resumed from bd1ac7a; gate 3 min 58 s): no overprint, devices past a cable entry drawn outside, titles by purpose, control returns through gaps, "supplied, not built here" (B-0152, B-0154 closed); only `electrical-minimal-heater.svg` moved; kiln report 3,916,749 B. Opened B-0156 (domain import order), B-0157 (report heading line "not given"/"51 mV"), B-0158 (what still reads poorly: control busy, earth-7 loop). Overseer's read: earth clear, control busy but traceable (judged by the agent; the maintainer's judgment pending) | **count: 0 core files** | 5708b44 (S-174) |
 | 2026-11-03 | **Nightly fix landed** (gate 378 s): `mktemp` templates portable; a unit test guards them; `test_demo_napkin` also expected REQ-024, moved by S-172 (would have failed next). Not run on Linux yet. `make land` refused on the untracked `FIX_CI_NIGHTLY.md`: listed in `.git/info/exclude` (local, uncommitted; remove at close); the file is untouched. Its own diagnosis (publish tests under `safe.bareRepository=explicit`) checked: true only where that setting is on (reproduced by forcing it), not on CI or this host; the maintainer was asked whether to fix the tests | — | 1c518e7 (S-175, B-0159) |
+| 2026-11-03 | `make check` on main, idle host | **8 min 19 s, green** at f346f14 (1,323 passed, 4 skipped; goldens 141 passed) | — |
+| 2026-11-03 | Owner simulation step 1 (fresh product in the session's scratch folder): validate, ECR-001 filed, status "Wiring: left for later", nothing waiting | as the protocol expects | — |
 
 ## In flight
+- **Owner simulation** (`wiring-session.md`): steps 2–3, a fresh PM agent; transcript to `tests/e2e/intake-transcripts/wiring-session-2026-11-03.md`.
 - `FIX_CI_NIGHTLY.md` at the repo root is untracked and not the overseer's: never commit, move or delete it.
 
 ## Next step
-`make check` on main at 1c518e7 (time it; record in STATUS); then the owner simulation (`wiring-session.md`, fresh PM agent); then gates G and
+Finish the owner simulation (`wiring-session.md`, fresh PM agent); then gates G and
 H at once on that commit (`brief-gate-g.md`, `brief-gate-h.md`); fix blockers; close-out
 (version 0.6.0 + pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` count first, `make check-full` from
 a clean clone, delete `docs/v06-handoff/` last).

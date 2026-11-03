@@ -41,8 +41,7 @@ the headline), S-111; reconciled with the contract as built in S-141: in progres
 Wave times on the host (measured, 2026-11-02): M0 (the baseline and five seam tasks at once) 07:00–07:55, 55 min;
 M1 07:56–08:26. `make check` on `main`: 9 min 34 s at 4358ba6 (after M0, 1,135 passed), 9 min 40 s at 9bd5b3f
 (after M1, 1,173 passed); wave 2 (M2, M3, M4 at once, two seam tasks, M4b) 08:40–09:56; `make check` 10 min 53 s at e72704b
-(after wave 2, 1,290 passed, on a busy host); re-measured on an idle host at 1f81117: 7 min 39 s, green (1,290 passed, 141 goldens), under the 10 min 4 s budget, so nothing moved behind `-m full`. Linux: the push run of `make check` on 7f4d8d0 is green on ubuntu and macOS; no nightly
-has run since S-121 (the latest, 2026-11-01 10:28, predates it).
+(after wave 2, 1,290 passed, on a busy host); re-measured on an idle host at 1f81117: 7 min 39 s, green (1,290 passed, 141 goldens), under the 10 min 4 s budget, so nothing moved behind `-m full`. After wave 3, M7a, the diagram follow-up (S-174) and the nightly fix (S-175): 8 min 19 s at f346f14, green (1,323 passed, 141 goldens), idle host (2026-11-03). Linux: the push run of `make check` on 7f4d8d0 is green on ubuntu and macOS; the two nightlies since S-121 (2026-11-02, 2026-11-03, on the pushed 7f4d8d0) were red on one test, the kiln demos' BSD-only `mktemp` (fixed in S-175, not yet run on Linux: main is not pushed).
 - M0 seam tasks (v0.5 defects, counted apart from the domain): a domain's files in the release package (S-142,
   B-0099); a rule family runs `before=` a named one (S-143, B-0125); interfaces treated by their spec's type
   (S-144, B-0126); the scope words, a "left for later" status, the domain's own word, stand-ins (S-148–S-152,
