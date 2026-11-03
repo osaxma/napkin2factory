@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 > **Stage Theme:** *"From a Simple Table to an Industrial Kiln"*
 >
-> **Goal:** Make `napkin2factory` just as natural, accurate, and fast for a 5-part everyday oak-and-steel table (`examples/desk`) or a 12-part benchtop electromechanical machine (`examples/test-stand`) as it is for the 35-part, 1200 °C furnace (`examples/kiln`)—while establishing a **deterministic, spec-driven benchmark suite** (`SPEC.md` + `SPEC.oracle.yaml`) across all three complexity tiers.
+> **Goal:** Make `napkin2factory` just as natural, accurate, and fast for a 5-part everyday oak-and-steel table (`examples/table`) or an 11-part benchtop electromechanical machine (`examples/test-stand`) as it is for the 30+-part, 1200 °C furnace (`examples/kiln`)—while establishing a **deterministic, spec-driven benchmark suite** (`SPEC.md` + `SPEC.oracle.yaml`) across all three complexity tiers.
 
 ---
 
@@ -15,7 +15,7 @@ Through v0.6, `napkin2factory` forged a rock-solid core architecture using `exam
    [`calckit`](../../src/napkin2factory/calckit) has thermal steady-state/heat-up (`thermal_enclosure.py`), electrical sizing (`power.py`, `wiring.py`), and mass/cost (`mass_cost.py`), but **zero structural mechanics**—no beam bending deflection, no Euler column buckling, no center-of-gravity tip-over stability, and no fastener shear/pullout checks.
 2. **Narrow Material, Process & Cost Vocabularies:**
    - [`calckit/data/materials.yaml`](../../src/napkin2factory/calckit/data/materials.yaml) has only 3 entries (`K-23 insulating firebrick`, `ceramic fiber board (Kaowool 1260)`, `mild steel`).
-   - [`geometry/materials.py`](../../src/napkin2factory/geometry/materials.py#L72-L84) (`density_kg_m3`) lacks hardwoods (`white-oak`, `maple`, `walnut`), softwoods (`pine`, `birch`), engineering plastics (`polycarbonate`, `pom`, `petg`, `pla`), and aluminum extrusions (`aluminum-6063-t5`), and silently falls back to `DEFAULT_DENSITY = 7850.0` (mild steel!) on unknown names.
+   - [`geometry/materials.py`](../../src/napkin2factory/geometry/materials.py) (`density_kg_m3`) lacks hardwoods (`white-oak`, `maple`, `walnut`), softwoods (`pine`, `birch`), engineering plastics (`polycarbonate`, `pom`, `petg`, `pla`), and aluminum extrusions (`aluminum-6063-t5`). (Its silent mild-steel fallback for unknown names is already gone: S-186, strict density.)
    - [`core/data/processes.yaml`](../../src/napkin2factory/core/data/processes.yaml) and [`calckit/data/cost_bands.yaml`](../../src/napkin2factory/calckit/data/cost_bands.yaml) lack `woodworking`, `cnc-routing`, `laser-cutting`, and `extrusion-cut`.
 3. **Kit & Interface Constraints on Simple Structures:**
    - [`geometry/kit/frame.py`](../../src/napkin2factory/geometry/kit/frame.py#L99-L115) requires `top_rails` or `bottom_rails` to be `True` and only supports `"square-tube"` and `"angle"` profiles.
@@ -47,7 +47,9 @@ flowchart LR
 ```
 
 > [!NOTE]
-> **Prerequisite from `pre-v0.7-todo.md`:** Replacing the blind word grep in [`test_no_example_identifiers.py`](../../tests/unit/test_no_example_identifiers.py) with AST/URI-scoped checks during the pre-v0.7 housecleaning lets us name Tier 1 `examples/table` directly without colliding with HTML `<table>` tags in package templates.
+> **Prerequisite (done, S-185):** the AST/URI-scoped guard in [`test_no_example_identifiers.py`](../../tests/unit/test_no_example_identifiers.py) lets Tier 1 be named `examples/table` without colliding with HTML `<table>` tags in package templates.
+>
+> **Numbers in §2.2 and §2.3 (S-191, the roadmap review):** the first draft stated exact deflections, masses and costs that did not follow from its own geometry. A rough hand check of the draft table found C-002's mass near 53 kg before hardware (oak top alone ≈ 33.6 kg) against a 55 kg limit and a stated 46 kg, its sag nearer 1.7 mm than the stated 0.62 mm, and C-001's sag nearer 20 mm than 6.8 mm (rough figures, not run through n2f). So the cards below give the intended outcome and the reason only; each `SPEC.md` derives the figures in a worked hand calculation and moves any card that lands within 30 % of its threshold (road-to-v1.0 §4.1).
 
 ### 2.1 How Spec-Driven Deterministic Testing Works
 
@@ -66,16 +68,17 @@ Each benchmark carries:
 
 ---
 
-### 2.2 Tier 1 Specification: `examples/desk` (Heavy-Duty Oak & Steel Workshop Table)
+### 2.2 Tier 1 Specification: `examples/table` (Heavy-Duty Oak & Steel Workshop Table)
 
-- **Brief:** A $1600 \times 800 \times 750\text{ mm}$ workshop/dining table with a solid white-oak butcher-block top on a powder-coated steel base, supporting a $150\text{ kg}$ ($1471.5\text{ N}$) center payload with mid-span sag $\delta \le 2.5\text{ mm}$ ($L/640$), edge-load tip-over safety factor $\ge 2.0$ under a $50\text{ kg}$ ($490.5\text{ N}$) vertical load on the front overhang, total mass $\le 55\text{ kg}$, and BOM cost $\le \$450$.
+- **Brief:** A $1600 \times 800 \times 750\text{ mm}$ workshop/dining table with a solid white-oak butcher-block top on a powder-coated steel base, supporting a $150\text{ kg}$ ($1471.5\text{ N}$) center payload with mid-span sag $\delta \le 2.5\text{ mm}$ ($L/640$), edge-load tip-over safety factor $\ge 2.0$ under a $50\text{ kg}$ ($490.5\text{ N}$) vertical load on the front overhang, total mass $\le 55\text{ kg}$, and BOM cost $\le \$450$ (cost band region and date stated in the spec, `[verify]`). The brief also states the dimensions every result depends on: leg inset from each edge, front overhang, rail orientation.
 - **Concept Board (3 Deterministic Cards):**
-  - **`C-001` (Four Corner Tube Legs, No Apron, `22 mm` Pine Top):** Cheapest ($\sim \$180$, $24\text{ kg}$), but without steel apron rails the $22\text{ mm}$ softwood span ($E = 9.0\text{ GPa}$) sags $\delta \approx 6.8\text{ mm} > 2.5\text{ mm}$ under $150\text{ kg}$. **Rejected by `structural` screen.**
-  - **`C-002` (Perimeter Steel Tube Apron Frame + `35 mm` White Oak Top):** $50 \times 50 \times 2\text{ mm}$ square-tube legs with $50 \times 25 \times 2\text{ mm}$ top apron rails and a $35\text{ mm}$ white-oak top ($E = 12.5\text{ GPa}$, $\rho = 750\text{ kg/m}^3$) fastened via M8 threaded inserts (`threaded-insert`). Composite mid-span deflection $\delta \approx 0.62\text{ mm} \le 2.5\text{ mm}$, Euler leg buckling $FS > 25$, tip-over $FS = 2.4 \ge 2.0$, mass $46\text{ kg}$, cost $\sim \$340$. **Promoted (`chosen`).**
-  - **`C-003` (Heavy Welded Plate Trestle + `45 mm` Oak Top):** Passes deflection ($\delta \approx 0.35\text{ mm}$), but total mass is $74\text{ kg} > 55\text{ kg}$ (fails two-person stair carry) and cost is $\$590 > \$450$. **Rejected by `mass-cost` screen.**
-- **Parts & Interfaces (5 parts, flat assembly, `ceremony: lite`):**
+  - **`C-001` (Four Corner Tube Legs, No Apron, `22 mm` Pine Top):** Cheapest and lightest, but with no apron the $22\text{ mm}$ softwood top spans the full length between corner legs and sags several times the $2.5\text{ mm}$ limit under $150\text{ kg}$ (figure from the spec's worked calculation). **Rejected by `structural` screen.**
+  - **`C-002` (Perimeter Steel Tube Apron Frame + `35 mm` White Oak Top):** $50 \times 50 \times 2\text{ mm}$ square-tube legs with $50 \times 25 \times 2\text{ mm}$ top apron rails and a $35\text{ mm}$ white-oak top ($E = 12.5\text{ GPa}$, $\rho = 750\text{ kg/m}^3$) fastened via M8 threaded inserts (`threaded-insert`) in **slotted** apron tabs so the top can move across its grain with the seasons. Passes sag, leg buckling, tip-over, racking and insert pull-out with margin. Mass is the binding limit: the draft's geometry lands near $53\text{ kg}$ before hardware against $55\text{ kg}$, so the spec either thins the top (e.g. $30\text{ mm}$) or lightens the rails until mass clears its limit by the §4.1 margin. **Promoted (`chosen`).**
+  - **`C-003` (Heavy Welded Plate Trestle + `45 mm` Oak Top):** Stiffest, but well over both the mass limit (two-person stair carry) and the budget. **Rejected by `mass-cost` screen.**
+- **Safety:** tip-over under the edge load is an injury hazard (furniture tip-over standards such as ASTM F2057 exist for this reason, `[verify]` which clause applies), so `REQ` tip-over carries `safety: true` and needs one sign-off even in `lite`.
+- **Parts & Interfaces (5 parts, flat assembly, derived `ceremony: lite`):**
   1. `top-board` (`cut-sheet` / `woodworking`, `white-oak`, $1600 \times 800 \times 35\text{ mm}$, 8× M8 threaded-insert ports on underside)
-  2. `apron-frame` (`welding`, `mild-steel`, `geometry.kit.frame` with `top_rails: true`, `bottom_rails: false`, 8× matching bolt-clearance tabs)
+  2. `apron-frame` (`welding`, `mild-steel`, `geometry.kit.frame` with `top_rails: true`, `bottom_rails: false`, 8× matching slotted bolt-clearance tabs for wood movement)
   3. `leveling-foot` (COTS × 4, M10 adjustable glide)
   4. `wood-insert-m8` (COTS × 8, M8×20 flanged threaded wood insert)
   5. `mounting-bolt-m8` (COTS × 8, M8×35 button-head hex screw + washer)
@@ -85,16 +88,16 @@ Each benchmark carries:
 ### 2.3 Tier 2 Specification: `examples/test-stand` (2 kN Benchtop Motorized Compression Test Stand)
 
 - **Why `test-stand` is the ideal middle benchmark:**
-  - Sits cleanly between `desk` (passive, flat, 5 parts) and `kiln` (industrial 10 kW thermal, 5 sub-assemblies, 32+ parts).
+  - Sits cleanly between `table` (passive, flat, 5 parts) and `kiln` (industrial 10 kW thermal, 5 sub-assemblies, 32+ parts).
   - **Zero thermal/refractory overlap with the kiln**, proving `napkin2factory` is not a heated-box tool.
   - Exercises **sub-assemblies (`place_by` + `ports`), structural stiffness calcs, and low-voltage + mains electrical (`motor`, `psu`, `e-stop`, `sensor`, `interlock`)** in a compact 11-part design that builds in $<15\text{ s}$.
 - **Brief:** A benchtop motorized force test frame for compression-testing springs and snap-fits up to $F_{\max} = 2000\text{ N}$ ($204\text{ kgf}$).
-  - **Mechanical & Structural Requirements:** Vertical daylight $250\text{ mm}$, throat depth $150\text{ mm}$, bench footprint $\le 400 \times 350\text{ mm}$, total mass $\le 25\text{ kg}$ (single-person benchtop lift, OSHA/ISO manual handling limit), and **frame elastic deflection at the load axis $\delta_{\text{frame}} \le 0.20\text{ mm}$ at $2000\text{ N}$** so displacement measurements remain accurate.
-  - **Electrical & Safety Requirements:** Standard 120V AC 60Hz plug-in (`IEC C14` inlet, $\le 3\text{ A}$), internal $24\text{ V DC}$ $150\text{ W}$ DIN-rail PSU, $24\text{ V DC}$ $96\text{ W}$ geared stepper/ball-screw actuator (`motor`), motion controller (`controller`), $2\text{ kN}$ S-beam load cell (`sensor`), upper & lower over-travel limit switches (`sensor`), front-panel mushroom `e-stop` cutting $24\text{ V}$ motor power, and a hinged polycarbonate fragment shield with a positive-opening guard `interlock` switch. Class I earthing of all exposed metal sub-assemblies.
+  - **Mechanical & Structural Requirements:** Vertical daylight $250\text{ mm}$, throat depth $150\text{ mm}$, bench footprint $\le 400 \times 350\text{ mm}$, total mass $\le 25\text{ kg}$ (single-person lift: the ISO 11228-1 reference mass, `[verify]`; OSHA sets no lift limit), and **frame elastic deflection at the load axis $\delta_{\text{frame}} \le 0.20\text{ mm}$ at $2000\text{ N}$** so displacement measurements remain accurate. The stand compresses parts repeatedly, so the frame and fasteners also carry a fatigue check at the rated load and a stated cycle count. Column height and crosshead section are stated in the brief, since the stiffness outcome depends on them.
+  - **Electrical & Safety Requirements:** Standard 120V AC 60Hz plug-in (deliberately the other supply region from the kiln's 50 Hz, so the electrical tables are exercised for both regions; §3.5) (`IEC C14` inlet, $\le 3\text{ A}$), internal $24\text{ V DC}$ $150\text{ W}$ DIN-rail PSU, $24\text{ V DC}$ $96\text{ W}$ geared stepper/ball-screw actuator (`motor`), motion controller (`controller`), $2\text{ kN}$ S-beam load cell (`sensor`), upper & lower over-travel limit switches (`sensor`), front-panel mushroom `e-stop` cutting $24\text{ V}$ motor power, and a hinged polycarbonate fragment shield with a positive-opening guard `interlock` switch. Class I earthing of all exposed metal sub-assemblies.
 - **Concept Board (3 Deterministic Cards):**
-  - **`C-001` (Single-Column Cantilever C-Frame):** $60 \times 60 \times 4\text{ mm}$ steel column cantilevered from base with $150\text{ mm}$ throat overhang. Under $F = 2000\text{ N}$, combined column bending ($ML^2 / 2EI$) and overhang deflection yields $\delta_{\text{tip}} = 0.64\text{ mm} > 0.20\text{ mm}$ limit. **Rejected by `structural` stiffness screen.**
-  - **`C-002` (Twin-Column Symmetric Portal Frame):** Two vertical $40 \times 40\text{ mm}$ steel/aluminum columns ($300\text{ mm}$ span) bridged by a $60 \times 40 \times 5\text{ mm}$ top crosshead beam. Columns carry pure axial tension ($1000\text{ N}$ each); top bridge in simple center-point bending deflects $\delta = \frac{FL^3}{48EI} + \delta_{\text{axial}} = 0.09\text{ mm} \le 0.20\text{ mm}$. Total mass $19.4\text{ kg} \le 25\text{ kg}$, cost $\sim \$620 \le \$800$. **Promoted (`chosen`).**
-  - **`C-003` (Monolithic Machined Steel Plate Gantry):** $25\text{ mm}$ solid Blanchard-ground steel side plates. Deflection $\delta = 0.02\text{ mm}$ (passes), but mass is $38.5\text{ kg} > 25\text{ kg}$ (exceeds single-person lift limit) and machined plate cost is $\$1,150 > \$800$. **Rejected by `mass-cost` screen.**
+  - **`C-001` (Single-Column Cantilever C-Frame):** $60 \times 60 \times 4\text{ mm}$ steel column cantilevered from base with $150\text{ mm}$ throat overhang. Under $F = 2000\text{ N}$, combined column bending ($ML^2 / 2EI$) and overhang deflection must exceed the $0.20\text{ mm}$ limit by the §4.1 margin; a rough check with a $400\text{ mm}$ column gives about $0.2\text{ mm}$, right at the limit, so the spec sizes the column (or lengthens it) until the rejection is clear. **Rejected by `structural` stiffness screen.**
+  - **`C-002` (Twin-Column Symmetric Portal Frame):** Two vertical $40 \times 40\text{ mm}$ steel/aluminum columns ($300\text{ mm}$ span) bridged by a $60 \times 40 \times 5\text{ mm}$ top crosshead beam. Columns carry pure axial tension ($1000\text{ N}$ each); top bridge in simple center-point bending deflects $\delta = \frac{FL^3}{48EI} + \delta_{\text{axial}}$, well under $0.20\text{ mm}$; mass and cost under their limits ($25\text{ kg}$, $\$800$), figures from the spec's worked calculation. **Promoted (`chosen`).**
+  - **`C-003` (Monolithic Machined Steel Plate Gantry):** $25\text{ mm}$ solid Blanchard-ground steel side plates. Stiffest, but well over the single-person lift mass and the budget. **Rejected by `mass-cost` screen.**
 - **Modular Structure (3 Sub-Assemblies, 11 Parts):**
   1. `asm://base-console`: Sheet-metal electronics enclosure + $12\text{ mm}$ steel base plate + lower compression platen + IEC C14 inlet + 24V PSU + controller + front E-stop.
   2. `asm://portal-gantry`: Left column + right column + top crosshead bridge + motorized linear actuator + load cell + upper/lower limit switches (mounted to `base-console` via two `bolt-pattern` column-foot interfaces and one `cable-entry` grommet).
@@ -118,25 +121,34 @@ Add a pure-function, unit-checked (`pint`) structural mechanics module in [`src/
 | `euler_buckling_load(E, I_min, length, k_factor)` | $P_{cr} = \frac{\pi^2 E I_{\min}}{(KL)^2}$, $FS_{\text{buckle}} = \frac{P_{cr}}{P}$ | Table legs, vertical columns, struts |
 | `tip_over_safety_factor(mass, cg_x, edge_load, overhang_x)` | $\frac{M_{\text{restoring}}}{M_{\text{overturning}}} = \frac{m g \cdot x_{\text{support}}}{F_{\text{edge}} \cdot x_{\text{overhang}}}$ | Free-standing tables, carts, cabinets, test rigs |
 | `fastener_group_shear(shear_force, count, bolt_area, shear_strength)` | $\tau = \frac{V}{n A_s}$, $FS_{\text{shear}} = \frac{\tau_{\text{allow}}}{\tau}$ | Bolted brackets, leg mounts, column bases |
+| `insert_pullout(insert, substrate, count)` | Withdrawal capacity of threaded inserts / wood screws from catalogue or wood-handbook tables | Tops and panels fixed to frames |
+| `joint_moment_capacity(joint, section)` | Moment a welded or bolted corner carries before yield | Leg-to-apron corners, column feet |
+| `frame_racking(frame, lateral_load)` | Lateral sway of an unbraced frame from its joint stiffness | Tables, stands and racks without diagonal bracing |
+| `wood_creep_deflection(elastic_deflection, load_duration, moisture)` | Elastic sag × creep factor (≈ 1.5–2 for sustained load, `[verify]` against the source) | Shelves and tables under long-term load |
+| `wood_movement(width, species, humidity_range)` | Across-grain change in width over a humidity range | Sizing slots and gaps where wood meets steel |
+| `fatigue_margin(stress_amplitude, mean, material, cycles)` | Endurance margin from a cited S-N or endurance-limit source | Test rigs and anything loaded cyclically |
+
+Joints fail before members in furniture and frames, so the joint rows are as much the pack as the beam rows. Printed plastics are excluded from these checks (their strength depends on print direction) unless a part declares a derated property with its source.
+
+**Load cases and factors of safety:** a cited table in `calckit/data/` (`load_cases.yaml`) holds the default factor of safety per check and load kind (static, sustained, cyclic, human-applied edge load) with its source. A requirement may tighten a factor, never silently loosen it. No factor in a `SPEC.md` is free-standing.
 
 - **New Generic Screen (`structural` in [`concepts/screens/`](../../src/napkin2factory/concepts/screens)):**
-  When a concept card declares `loads:` (e.g., `payload_mass`, `max_deflection`, `throat_overhang`, `edge_load`), the `structural` screen evaluates deflection, yield safety factor, column buckling, and tip-over stability automatically on the Concept Board!
+  When a concept card declares `loads:` in the screen's own generic fields (`point_load`, `distributed_load`, `edge_load`, `load_offset`, `max_deflection`, `cycles`), the `structural` screen evaluates deflection, yield safety factor, column buckling and tip-over on the Concept Board. A product-specific word (the test stand's throat, a table's overhang) is the example's name for one of these fields, never a field of the package (F9, S-128).
 
 ---
 
 ### 3.2 Expand Materials, Processes, Cost Bands & Strict Density Validation
 
-1. **Eliminate Silent Steel Density Fallback ([`geometry/materials.py`](../../src/napkin2factory/geometry/materials.py#L72-L84)):**
-   - Change `density_kg_m3` and the `materials` check stage so an unknown material name is **never** silently priced/weighed as mild steel (`7850 kg/m³`).
-   - Either the material resolves in [`calckit/data/materials.yaml`](../../src/napkin2factory/calckit/data/materials.yaml) / `DENSITIES`, or the part explicitly declares `material.density_kg_m3` with a source citation, or `n2f check` fails with an actionable error listing known materials.
+1. **Strict density (done, S-186):** an unknown material name fails with the list of known ones instead of being weighed as mild steel. New materials below go into the same table.
 2. **Populate [`calckit/data/materials.yaml`](../../src/napkin2factory/calckit/data/materials.yaml) with Cited Engineering Properties ($\rho, E, \sigma_y, k$):**
    - **Metals:** `mild-steel` (A36 / S235), `stainless-304`, `stainless-316`, `aluminum-6061-t6`, `aluminum-6063-t5` (extrusions), `aluminum-5052-h32` (sheet), `brass-c360`.
    - **Woods & Sheet Goods:** `white-oak`, `hard-maple`, `walnut`, `southern-yellow-pine`, `baltic-birch-plywood`, `mdf`.
-   - **Polymers & 3D Print:** `polycarbonate`, `acrylic-pmma`, `acetal-pom`, `hdpe`, `nylon-pa6`, `pla-printed`, `petg-printed`, `abs-printed`.
+   - **Polymers & 3D Print:** `polycarbonate`, `acrylic-pmma`, `acetal-pom`, `hdpe`, `nylon-pa6`, `pla-printed`, `petg-printed`, `abs-printed` (printed entries carry density and cost only; see §3.1).
+   - Wood properties vary with moisture content and grain direction: each wood row states its moisture basis and cites its source (a wood handbook), `[verify]`.
    - **Refractories (existing):** `K-23 insulating firebrick`, `ceramic fiber board (Kaowool 1260)`.
 3. **Expand [`core/data/processes.yaml`](../../src/napkin2factory/core/data/processes.yaml) & [`calckit/data/cost_bands.yaml`](../../src/napkin2factory/calckit/data/cost_bands.yaml):**
    - Add `woodworking` (saw/plane/glue-up), `cnc-routing` (2.5D sheet/panel routing), `laser-cutting` (flat sheet/acrylic/wood), and `extrusion-cut` (cut-to-length linear profile).
-   - Add corresponding low/mid/high cost bands in `cost_bands.yaml` (e.g., $/bd-ft or $/kg for timber, $/m for T-slot extrusion, $/kg for filament).
+   - Add corresponding low/mid/high cost bands in `cost_bands.yaml` (e.g., $/bd-ft or $/kg for timber, $/m for T-slot extrusion, $/kg for filament). Every band states its **region, currency and date**; the report shows them next to the cost, and a band older than a stated age reads as stale (§3.5).
 
 ---
 
@@ -156,21 +168,33 @@ Add a pure-function, unit-checked (`pint`) structural mechanics module in [`src/
 
 To ensure simple designs don't drown in industrial paperwork while preserving 100% of `napkin2factory`'s epistemic honesty:
 
-| Feature | `ceremony: lite` (Default for 1-domain non-hazardous products) | `ceremony: standard` (Default when `safety: true` or hazardous energy is present) |
+**The ceremony is derived, not chosen.** `n2f` works it out from the model: `standard` when any domain declares hazardous energy (mains, stored pressure, high temperature, moving machinery) or the product has more than one domain; `lite` otherwise. `n2f.yaml` may raise it to `standard`, never lower it. When an edit adds a hazard to a `lite` product (a motor on the table), `n2f check` says the product is now `standard` and lists what that newly requires; going back down happens only when the hazard is gone. A safety requirement keeps its sign-off in either ceremony.
+
+| Feature | `ceremony: lite` (derived: one domain, no hazardous energy) | `ceremony: standard` (derived: hazardous energy or several domains; or raised in `n2f.yaml`) |
 | :--- | :--- | :--- |
 | **Provenance (`given`/`computed`/`estimate`)** | **Enforced** (honesty never scales down) | **Enforced** |
 | **3D World-Frame & Port Alignment** | **Enforced** | **Enforced** |
-| **Part `tolerance_class`** | Auto-defaults by process (`woodworking` → `±1.0 mm`, `3d-print` → `±0.3 mm`, `sheet-metal` → `ISO2768-m`) when omitted | Explicit per custom part |
+| **Part `tolerance_class`** | Auto-defaults by process (`woodworking`, `3d-print`, `sheet-metal` → `ISO2768-m`) when omitted; the wood and print defaults come from a cited table, `[verify]` | Explicit per custom part |
 | **Manuals (`model/docs/`)** | Single `build-and-care.md` (or optional if build plan covers assembly) | Full `safety.md`, `operating-manual.md`, `maintenance.md` |
-| **Safety Sign-offs (`model/signoffs/`)** | Only required if a requirement carries `safety: true` | Required for all `safety: true` requirements + domain safety gates |
+| **Safety Sign-offs (`model/signoffs/`)** | Required for every requirement carrying `safety: true` (the table's tip-over has one) | Required for all `safety: true` requirements + domain safety gates |
 | **Report Sections** | Automatically omits empty enterprise sections (no empty Sign-offs, Sub-assemblies, or Change Log tables before first ECR) | Full engineering dossier |
+
+---
+
+### 3.5 Region: supply, electrical tables, units and costs
+
+"Anyone, anywhere" means a product is checked against the owner's region, not the kiln's:
+1. **Supply region** in the product (`n2f.yaml` or the supply file): nominal voltage, frequency and the wiring rules it follows (for example an IEC-based or an NEC-based table set). The conductor, earthing and wire-colour tables (S-145, S-146) gain a region column; a table without the owner's region fails loudly instead of being used. The test stand (120 V / 60 Hz) and the kiln (50 Hz) cover two regions in the benchmarks.
+2. **Units of entry:** parameters may be given in inches (pint already converts); reports show the owner's chosen unit first.
+3. **Costs:** every band carries region, currency and date (§3.2).
 
 ---
 
 ## 4. Milestones & Exit Gate for Track A
 
-1. **M1 (Statics Calc Pack & Materials):** `calckit/structural.py` + reference cases + expanded `materials.yaml`, `processes.yaml`, `cost_bands.yaml`, and strict density check in `geometry/materials.py`.
+0. **M0 (Open the track):** turn this document into `docs/stages/v0.7-everyday-breadth.md` with its decision entry and backlog rows (road-to-v1.0 §5), after the v0.6 independent outside-model trial's findings are in.
+1. **M1 (Statics & Joints Calc Pack, Materials, Load Cases):** `calckit/structural.py` (members, joints, racking, creep, wood movement, fatigue) + reference cases + `load_cases.yaml` + expanded `materials.yaml`, `processes.yaml`, dated and regional `cost_bands.yaml`.
 2. **M2 (Kit, Interfaces & `structural` Screen):** Upgraded `frame.py` (round tube, T-slot, mounting tabs/ports), `threaded-insert`/`t-slot-joint` interfaces, and generic `structural` napkin screen.
-3. **M3 (Progressive Ceremony):** `ceremony: lite | standard` support in `n2f.yaml`, process-based default tolerances, and conditional doc/report requirements.
-4. **M4 (Tier 1 & Tier 2 Benchmarks):** Build `examples/desk` (`SPEC.md` + `SPEC.oracle.yaml`) and `examples/test-stand` (`SPEC.md` + `SPEC.oracle.yaml`), plus retrofit `SPEC.md` onto `examples/kiln`.
-5. **Gate A (Fresh-Agent Spec Reproduction Trial):** Hand a cold agent *only* `examples/desk/SPEC.md` and `examples/test-stand/SPEC.md` and verify it produces valid, green-checked designs matching `SPEC.oracle.yaml`.
+3. **M3 (Derived Ceremony & Region):** ceremony derived from the model (raise-only override, the upgrade notice), process-based default tolerances, conditional doc/report requirements, and the §3.5 region fields with their migration (`docs/schema-policy.md`).
+4. **M4 (Tier 1 & Tier 2 Benchmarks):** Build `examples/table` and `examples/test-stand`, each with a `SPEC.md` holding its worked hand calculation and a `SPEC.oracle.yaml` built from it (road-to-v1.0 §4.1–4.2), plus retrofit `SPEC.md` onto `examples/kiln`.
+5. **Gate A (Fresh-Agent Spec Reproduction Trial):** Hand cold agents from **at least two model vendors** *only* `examples/table/SPEC.md` and `examples/test-stand/SPEC.md` in an empty folder and verify each produces valid, green-checked designs matching `SPEC.oracle.yaml`. Record the road-to-v1.0 §2.1 measures (the first measurement sets the targets) and the count of `core/` files the track's milestones touched.

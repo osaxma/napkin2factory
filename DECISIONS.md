@@ -217,6 +217,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-188 | A Domain bom_lines hook brings consumables to the parts list (amends S-145 E5, closes B-0128) | in force |
 | S-189 | Reorganize root docs into docs/stages/, docs/handoffs/, docs/roadmap/ | in force |
 | S-190 | The periodic health review: trailers and due notice, make health, review brief | in force |
+| S-191 | The roadmap review: reproducible benchmark numbers, one change store, discovery, region, v1.0 contract | in force |
 
 ---
 
@@ -1404,3 +1405,13 @@ building gets dropped; the maintainer asked for a routine review instead. Three 
 3. A review brief (`docs/reviews/TEMPLATE-health.md`) guides a fresh reviewing agent.
 Initial thresholds (15 tasks, 550 lines) are to be tuned by reviews. Its first run corrected
 S-184: 11 modules are over 550 lines, not the five S-184 listed from a cut-off listing (B-0185).
+
+## S-191 — The roadmap review applied to `docs/roadmap/` (2026-11-04)
+The maintainer asked for gaps against the v1.0 vision and then for the fixes. Checked against
+the code: Track B planned a second snapshot store though products version through `core/vcs.py`
+(now: checkpoints are snapshots); Track D reused `n2f serve` (taken) for a daemon (now: the MCP
+process is the warm engine) and repeated fixed packaging claims; Track A's numbers did not follow
+from its geometry (table C-002 near its 55 kg limit; rough hand checks, not run). Added: worked hand
+calculations and a 30 % margin for benchmarks, joint/racking/creep/wood-movement/fatigue checks,
+derived (raise-only) ceremony, region-tagged supply and costs, two-vendor trials and a prompt set,
+measures, the v1.0 contract, a trust model, a thin MCP in v0.8 (B-0036), phone layout. Index: §6.

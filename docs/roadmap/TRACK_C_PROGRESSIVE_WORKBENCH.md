@@ -19,7 +19,7 @@ While the data inside those 15 sections is remarkably rich, the presentation fig
 2. **Information about a Single Part Is Scattered Across 7 Sections:**
    To understand one part (e.g., `heater-plate` or `top-board`), the user must jump between `3D Model`, `Parts & BOM`, `Drawings`, `Interfaces`, `Build Plan`, `Wiring`, and `Rules`.
 3. **Simple Designs Drown in Enterprise Scaffolding:**
-   A 5-part table (`examples/desk`) gets the same sprawling multi-section layout as the 35-part `examples/kiln`.
+   A 5-part table (`examples/table`) gets the same sprawling multi-section layout as the 30+-part `examples/kiln`.
 4. **Wide Schematics Overflow Narrow Scroll Boxes (Gate H C5):**
    In [`wiring.html.j2`](../../src/napkin2factory/domains/electrical/owner/wiring.html.j2#L10), ladder and harness SVGs render at native pixel width (~2313 px) inside a 694 px container with horizontal scrollbars instead of fit-to-width scaling with pan/zoom.
 
@@ -95,7 +95,7 @@ Instead of rendering 15 sections stacked vertically, top-bar tabs switch the mai
 3. **Lens 3: Build & BOM** — Interactive **Step-by-Step Assembly Player** (stepping `Step 1 → Step N` highlights the active parts and fasteners in the 3D viewer alongside the A3 step drawing!) + full **Priced BOM**, **Sheet/Tube/Timber Cut Lists**, **Fastener Schedule**, and **Cable Schedule**.
 4. **Lens 4: Verification & Safety** — Requirements verification matrix, physics calculation breakdowns (`given` / `computed` / `estimate` formulas & margins), domain check rules, hash-bound human **Safety Sign-offs**, and **Owner Manuals** (`safety.md`, `operating-manual.md`, `maintenance.md`).
 5. **Lens 5: History & Concepts** — Side-by-side **Napkin Concept Board** comparison (showing why the current concept won, plus any `parked` concepts from Track B), **Architecture Decisions (`DEC-xxx`)**, and **Visual ECR Diff Cards** (before/after 3D renders, mass/cost deltas).
-   - *Adaptive Hiding:* On a simple project (`examples/desk` with `ceremony: lite` and no electrical domain or ECRs yet), unused domain tabs/badges stay out of the way automatically.
+   - *Adaptive Hiding:* On a simple project (`examples/table` with `ceremony: lite` and no electrical domain or ECRs yet), unused domain tabs/badges stay out of the way automatically.
 
 ---
 
@@ -110,9 +110,21 @@ When an owner or fabricator presses `Cmd+P` / `Ctrl+P` (or exports PDF), a dedic
 
 ---
 
+### 3.5 Phone Layout, Accessibility & Interaction Tests
+
+The maintainer and many owners read the report on a phone, and a 3-pane workbench does not fit one.
+1. **Phone layout (below ~768 px):** the 3D viewport fills the screen; the assembly tree and the inspector become bottom sheets (tap a part → the inspector sheet slides up); lenses move to a bottom tab bar; drawings open full-screen with pinch-zoom. Touch replaces hover everywhere (no information only on hover).
+2. **Performance budget:** the kiln's report must open and orbit smoothly on a mid-range phone; measured at Gate C (load time, frame rate), and the GLB level of detail lowered for small screens if it does not.
+3. **Accessibility:** every lens works by keyboard (tree navigation with arrows, Enter to inspect, Escape to clear); the tree, inspector, BOM and verification tables carry proper roles and labels for screen readers; the 3D selection is mirrored by the tree so nothing is reachable only by clicking a mesh; colour is never the only carrier of a status (PASS / BLOCKED carry words).
+4. **Interaction tests:** Playwright tests drive the self-contained report (`file://`) on all three tiers: pick a part in 3D and in the tree, check the inspector's content against `inspector_index`, step the build player, follow a deep link, pan/zoom a schematic, and repeat the core path at phone width. They run in `make check` for Tier 1 and in `make check-full` for the others.
+
+---
+
 ## 4. Milestones & Exit Gate for Track C
 
+0. **M0 (Open the track):** stage plan, decision entry and backlog rows (road-to-v1.0 §5). M1 and M2 touch only `report/` and may start while Track B is under way; M3's History lens waits for Track B.
 1. **M1 (3D Viewer Picking, Isolation, Explode & Section Cuts):** Upgrade [`report/viewer.js`](../../src/napkin2factory/report/viewer.js) with raycast selection, double-click isolate/ghosting, explode slider, and XYZ clipping plane.
 2. **M2 (Manifest-Backed Inspector Index):** Extend [`report/builder.py`](../../src/napkin2factory/report/builder.py) to compile `inspector_index` linking every assembly, part, joint, and electrical device to its drawings, BOM row, requirements, and checks.
 3. **M3 (Workbench UI, 5 Task Lenses & Pan/Zoom SVG Viewer):** Build the new [`report.html.j2`](../../src/napkin2factory/report/templates/report.html.j2) layout, pan/zoom schematic viewer ([`wiring.html.j2`](../../src/napkin2factory/domains/electrical/owner/wiring.html.j2)), interactive Build Step Player, and `@media print` shop packet stylesheet.
-4. **Gate C (Visual & Owner UX Review Across All 3 Tiers):** Capture full-page and interactive state screenshots on `examples/desk`, `examples/test-stand`, and `examples/kiln`; verify with maintainer review (`S-078`) that both the 5-part table and the 35-part kiln feel effortless to explore.
+4. **M4 (Phone Layout, Accessibility & Interaction Tests):** §3.5.
+5. **Gate C (Visual & Owner UX Review Across All 3 Tiers):** Capture full-page and interactive state screenshots on `examples/table`, `examples/test-stand`, and `examples/kiln`, at desktop and phone width; verify with maintainer review (`S-078`) that both the 5-part table and the 30+-part kiln feel effortless to explore, including on the maintainer's phone. Record the §3.5 performance measures and the road-to-v1.0 §2.1 measures.
