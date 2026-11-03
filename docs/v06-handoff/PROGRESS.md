@@ -24,12 +24,16 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 14:55 | **Wave 3 closed**: M5, M6 and the headroom follow-up; the count over wave 3 is 0 core files. Overseer's visual read of the kiln diagrams: power clear; control busy; earth labels overprint and its title says 230 V / "Protected by: not given"; sensing draws the limit probe on the box's side of its entry. Diagram follow-up opened before the gates | — | — |
 | 15:05 | **M7a landed** (14:17–15:05): `docs/electrical.md`, the guide's wiring paragraph, the three roles (pm: the supply asked as a fact, the headroom choice only after the first build with wiring, an owner who asked to be asked decides every choice there [revisit]), ten vocabulary words, `docs/domains.md` read against the domain, the §3 amendment line; boundary words "supplied, not built here" | Markdown only (no code); B-0155 (calckit.md row count) | a73f9b9, 4c5c535 (S-173) |
 
+| 2026-11-03 | **Third overseer resumed** after the cut-off (2026-11-02 15:07, API credit). The owner simulation had started (step 1, owner line 2 sent) but its temp folders are gone: it is re-run from step 1 after the diagram follow-up lands | diagram builder's uncommitted change saved as WIP; handed to a fresh builder | bd1ac7a (task branch) |
+
 ## In flight
 - **Diagram follow-up** (B-0154, B-0152): task `wiring-diagrams`, `.worktrees/wiring-diagrams`
-  (from d4c6ffe, 14:59); last WIP: none yet.
+  (from d4c6ffe); last WIP: bd1ac7a "WIP: diagram follow-up, as left at the cut-off" (the cut-off
+  builder's change, unverified); a fresh builder resumed it 2026-11-03.
+- `FIX_CI_NIGHTLY.md` at the repo root is untracked and not the overseer's: never commit, move or delete it.
 
 ## Next step
-When M7a and the diagram follow-up land: `make check` on main (time it; record in STATUS), the
+When the diagram follow-up lands: `make check` on main (time it; record in STATUS), the
 Linux CI look; then the owner simulation (`wiring-session.md`, fresh PM agent); then gates G and
 H at once on that commit (`brief-gate-g.md`, `brief-gate-h.md`); fix blockers; close-out
 (version 0.6.0 + pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` count first, `make check-full` from
