@@ -8,7 +8,10 @@ diagrams:
 * ``labels.csv`` — one row per wire end: the label the shop puts on it;
 * ``cables.csv`` — per conductor type, the total length to buy; a wire with no length
   makes the total read "not given", never a guess (the parts list does not carry these
-  lines in v0.6: S-145).
+  lines in v0.6: S-145);
+* ``README.txt`` — the disclaimer and what each file of the package's ``electrical/``
+  folder is (S-179): a CSV takes no comment row (its readers would choke on one), so the
+  sentence travels beside the tables.
 """
 
 from __future__ import annotations
@@ -17,6 +20,8 @@ import csv
 import io
 from pathlib import Path
 from typing import Any
+
+from napkin2factory.domains.electrical.outputs.diagram import DISCLAIMER
 
 #: The header rows, exactly as the wave-2 contract fixes them.
 SCHEDULE_COLUMNS = (
@@ -149,3 +154,37 @@ def write_tables(
         path.write_text(csv_text(columns, rows), encoding="utf-8")
         paths.append(path)
     return {name: rows for name, (_, rows) in tables.items()}, paths
+
+
+README = "README.txt"
+
+
+def readme_text(records: list[dict[str, Any]], product: str) -> str:
+    """``README.txt``: the disclaimer, then what each file the package ships is (S-179)."""
+    circuits = "".join(
+        f"- {rec['circuit']}/diagram.svg: the wiring diagram of the "
+        f"{rec.get('name') or rec['circuit']} circuit.\n"
+        for rec in records
+    )
+    return (
+        f"{product}: the wiring\n\n"
+        f"{DISCLAIMER}\n\n"
+        "What each file is:\n"
+        f"{circuits}"
+        "- schedule.csv: every wire, one row each: the two terminals it joins, its conductor,\n"
+        "  cross-section (mm²), length (m), colour and the cable entry it passes through.\n"
+        "- labels.csv: the label for each end of each wire, and the terminal it lands on.\n"
+        "- cables.csv: the cable to buy: each conductor's total length and the wires cut\n"
+        "  from it.\n\n"
+        "Lengths are estimates; the electrician cuts to fit. Cross-sections and colours come\n"
+        "from the conductor table and are to be confirmed. A length the model does not give\n"
+        'reads "not given", and so does the total it is part of.\n'
+    )
+
+
+def write_readme(records: list[dict[str, Any]], product: str, folder: Path) -> Path:
+    """Write ``README.txt`` into ``folder``; return its path."""
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / README
+    path.write_text(readme_text(records, product), encoding="utf-8")
+    return path

@@ -19,8 +19,10 @@ from pathlib import Path
 from typing import Any
 
 from napkin2factory.core.domain import ReportSection, SectionContext
-from napkin2factory.core.units import format_quantity, is_quantity
+from napkin2factory.core.units import format_quantity, is_quantity, magnitude_in
+from napkin2factory.domains.electrical.checks.stage import PROTECTED
 from napkin2factory.domains.electrical.model import circuits, has_content, parse_end
+from napkin2factory.domains.electrical.outputs.diagram import carries
 from napkin2factory.domains.electrical.owner.common import (
     CABLES_CSV,
     LABELS_CSV,
@@ -148,6 +150,24 @@ def _protection_words(product: Any, record: dict[str, Any] | None, prot: Any, lo
     return text
 
 
+def _carries(record: dict[str, Any] | None, c: Any) -> str:
+    """What the circuit carries, in the diagram title's words (S-174): by its purpose.
+
+    From the built record when there is one; before the first build, from the model's own
+    voltage (none for an earth circuit, nothing when the circuit gives none).
+    """
+    if record is not None:
+        return carries(record)
+    purpose = str(c.purpose)
+    voltage = c.voltage
+    if purpose == "earth" or voltage is None:
+        return ""
+    if not is_quantity(voltage):
+        return _quantity(voltage)
+    volts = round(float(magnitude_in(voltage, "V")), 6)
+    return carries({"purpose": purpose, "voltage_v": volts, "dc": bool(c.dc)})
+
+
 def _check_rows(build_dir: Path) -> list[dict[str, str]]:
     """The ``electrical`` rows of ``build/checks/checks.json``, failing ones first."""
     path = Path(build_dir) / "checks" / "checks.json"
@@ -183,14 +203,22 @@ def wiring_report_data(sctx: SectionContext) -> dict[str, Any]:
             _wires_from_build(record) if record else _wires_from_model(product, c, cid, sctx.log)
         )
         boundary = [str(b.get("words", "")) for b in (record or {}).get("boundary", [])]
-        voltage = c.voltage
+        purpose = str(c.purpose)
+        # the heading says what the diagram's title says, by purpose (S-174, gate H C3): the
+        # circuit once, what it carries, and "protected by" only where the checks need it
+        protection = _protection_words(product, record, c.protection, sctx.log)
+        what = _carries(record, c)
+        protected = purpose in PROTECTED
+        detail = [w for w in (what, f"protected by {protection}" if protected else "") if w]
         shown.append(
             {
                 "id": cid,
                 "title": circuit_title(c),
-                "purpose": PURPOSE_WORDS.get(str(c.purpose), str(c.purpose)),
-                "voltage": f"{_quantity(voltage)}{' DC' if c.dc else ''}" if voltage else "",
-                "protection": _protection_words(product, record, c.protection, sctx.log),
+                "purpose": PURPOSE_WORDS.get(purpose, purpose),
+                "voltage": what,
+                "protection": protection,
+                "protected": protected,
+                "detail": detail,
                 "notes": c.notes or "",
                 "svg": inline_svg(read_diagram(build_dir, cid), f"wiring-{cid}"),
                 "wires": wires,

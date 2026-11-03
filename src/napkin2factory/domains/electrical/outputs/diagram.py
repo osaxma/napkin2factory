@@ -30,7 +30,10 @@ The title says what the circuit carries: the voltage for a circuit the supply fe
 words "extra-low-voltage signal" for a sensing circuit within the checks' extra-low-voltage
 band, nothing for an earth circuit; "Protected by" only where the checks require a
 protective device.  Terminals are small circles (IEC 60617's terminal) where a wire lands.
-Every coordinate is rounded by the drawings' serialiser and nothing depends on time, so a
+A footer band closes every diagram, as the title block closes a mechanical sheet
+(``drawings/sheet.py``): the product, the circuit, the Revision (or "draft") and
+:data:`DISCLAIMER`, so a printed diagram never travels without it (S-179).  Every
+coordinate is rounded by the drawings' serialiser and nothing depends on time, so a
 golden holds it.  The SVG is self-contained (its font in a ``<style>``), as the
 ``file://`` report needs (D13).
 """
@@ -55,6 +58,7 @@ from napkin2factory.drawings.svg import (
     Text,
     bbox_of,
     f,
+    fit_size,
     group,
     text_width,
 )
@@ -84,6 +88,18 @@ LABEL_STEP = 2.6
 FAN = 2
 #: The device roles a circuit with no supply terminal starts from (its sources).
 SOURCE_ROLES = ("supply", "sensor")
+#: The sentence every wiring output carries (S-179, gate G blocker 3, gate H B2): the
+#: diagram's footer, the package folder's README and the manual's wiring pages.
+DISCLAIMER = (
+    "Produced with an AI system; not reviewed by a licensed electrician: "
+    "a licensed electrician wires the product to local code."
+)
+#: The footer's Revision when the build is not a released Revision's (S-179).
+DRAFT = "draft"
+#: Footer geometry: the gap above it, a cell's label size, a row's height.
+FOOTER_GAP = 6.0
+FOOTER_LABEL = 1.8
+FOOTER_ROW = 9.0
 
 
 @dataclass
@@ -806,13 +822,64 @@ def _title(record: dict[str, Any]) -> list[Prim]:
     return prims
 
 
+def _cell(x: float, y: float, w: float, label: str, value: str, bold: bool = False) -> list[Prim]:
+    """A footer cell: its label small at the top, its value below (the title block's form)."""
+    return [
+        Rect(x, y, w, FOOTER_ROW, cls="table"),
+        Text(x + 1.2, y + 2.6, label, size=FOOTER_LABEL, anchor="start", cls="tblabel"),
+        Text(
+            x + 1.2,
+            y + FOOTER_ROW - 2.0,
+            value,
+            size=fit_size(value, w - 2.4, HEAD_SIZE),
+            anchor="start",
+            bold=bold,
+            cls="tbvalue",
+        ),
+    ]
+
+
+def _footer(
+    record: dict[str, Any], sheet: dict[str, Any], x: float, y: float, w: float
+) -> list[Prim]:
+    """The footer band under the drawing, at least ``w`` wide: product, circuit, Revision, note.
+
+    ``sheet`` carries ``product`` (the product's name) and ``revision`` (a released
+    Revision's name, else "draft"); a missing one reads "not given".
+    """
+    product = str(sheet.get("product") or NOT_GIVEN)
+    circuit = str(record.get("name") or record.get("circuit") or NOT_GIVEN)
+    revision = str(sheet.get("revision") or DRAFT)
+    widths = [text_width(v, HEAD_SIZE) + 4 for v in (product, circuit)]
+    rev_w = max(28.0, text_width(revision, HEAD_SIZE) + 4)
+    note_w = text_width(DISCLAIMER, LABEL_SIZE) + 4
+    width = max(w, sum(widths) + rev_w, note_w)
+    spare = width - sum(widths) - rev_w  # to the product's cell, so the row fills the band
+    pw, cw = widths[0] + spare, widths[1]
+    prims: list[Prim] = []
+    prims += _cell(x, y, pw, "PRODUCT", product, bold=True)
+    prims += _cell(x + pw, y, cw, "CIRCUIT", circuit)
+    prims += _cell(x + pw + cw, y, rev_w, "REVISION", revision, bold=True)
+    yy = y + FOOTER_ROW
+    prims += [
+        Rect(x, yy, width, 6.0, cls="table"),
+        Text(x + 1.2, yy + 4.0, DISCLAIMER, size=LABEL_SIZE, anchor="start", cls="note"),
+        Rect(x, y, width, FOOTER_ROW + 6.0, cls="thin"),
+    ]
+    return prims
+
+
 def _gid(uri: str) -> str:
     """``device://switch`` → ``switch``: the node's id within its kind."""
     return uri.split("://", 1)[-1].replace("#", "-").replace("/", "-")
 
 
-def circuit_svg(record: dict[str, Any]) -> str:
-    """The circuit's wiring diagram as SVG text, from its record (``connections.json``)."""
+def circuit_svg(record: dict[str, Any], sheet: dict[str, Any] | None = None) -> str:
+    """The circuit's wiring diagram as SVG text, from its record (``connections.json``).
+
+    ``sheet`` is what the footer says besides the record: ``product`` (the product's name)
+    and ``revision`` (a released Revision's name, else "draft"), S-179.
+    """
     nodes, legs = _nodes_and_legs(record)
     title = _title(record)
     groups: list[tuple[str, list[Prim], dict[str, str]]] = []
@@ -837,12 +904,16 @@ def circuit_svg(record: dict[str, Any]) -> str:
     else:
         title.append(Text(0, 4.0, "No connections yet.", size=MARK_SIZE, anchor="start"))
     every: list[Prim] = title + [p for _, prims, _ in groups for p in prims]
-    box = bbox_of(every)
-    assert box is not None  # the title is always there
+    drawn = bbox_of(every)
+    assert drawn is not None  # the title is always there
+    footer = _footer(record, sheet or {}, drawn.x0, drawn.y1 + FOOTER_GAP, drawn.w)
+    box = bbox_of(every + footer)
+    assert box is not None
     dx, dy = MARGIN - box.x0, MARGIN - box.y0
     width, height = box.w + 2 * MARGIN, box.h + 2 * MARGIN
     body = [group("title", title, dx, dy)]
     body += [group(gid, prims, dx, dy, **attrs) for gid, prims, attrs in groups]
+    body.append(group("footer", footer, dx, dy))
     circuit = quoteattr(str(record.get("circuit", "")))
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" '

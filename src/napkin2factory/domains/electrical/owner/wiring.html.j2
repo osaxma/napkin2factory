@@ -2,11 +2,11 @@
   {{ h2('wiring', 'Wiring') }}
   {% if data.scope_line %}<p class="next">{{ data.scope_line }}</p>{% endif %}
   {% if data.circuits %}
-  <p class="lead">What connects to what: each circuit's diagram and its wires, then the cable schedule, the cable to buy and the wiring checks. Lengths are given in the wiring model; cross-sections and colours come from the conductor table (to confirm); totals are computed.</p>
+  <p class="lead">What connects to what: each circuit's diagram and its wires, then the cable schedule, the cable to buy and the wiring checks. Lengths are the design's estimates (the electrician cuts to fit); cross-sections and colours come from the conductor table (to confirm); totals are computed.</p>
   <div class="disclaimer">The wiring checks catch arithmetic and connection mistakes only. This wiring was not reviewed by a licensed electrician: a licensed electrician wires the product to local code and decides every point marked for an electrician.</div>
   {% for c in data.circuits %}
   <div class="step" id="wiring-{{ c.id }}">
-    <h3>{{ c.title }} <span class="muted small">{{ c.purpose }} circuit{% if c.voltage %} · {{ c.voltage }}{% endif %} · protected by {{ c.protection }}</span></h3>
+    <h3>{{ c.title }}{% if c.detail %} <span class="muted small">{{ c.detail | join(' · ') }}</span>{% endif %}</h3>
     {% if c.svg %}<figure id="wiring-diagram-{{ c.id }}"><div class="scroll">{{ c.svg | safe }}</div><figcaption>Wiring diagram of the {{ c.title }} circuit · in the package as <span class="mono">electrical/{{ c.id }}/diagram.svg</span></figcaption></figure>
     {% else %}<p class="muted small">The diagram is drawn by the next build.</p>{% endif %}
     {% if c.boundary %}<p class="small">{% for b in c.boundary %}{{ b }}{% if not loop.last %}; {% endif %}{% endfor %}</p>{% endif %}

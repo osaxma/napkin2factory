@@ -3,8 +3,9 @@
 One rule per circuit, after the parts (it reads the devices and the cable entries) and
 before the manuals (``before=("doc",)``, S-143: a manual page that shows the wiring reads
 this build's files).  Outputs under ``build/electrical/``: ``<circuit>/diagram.svg``,
-``<circuit>/connections.json``, ``schedule.csv``, ``labels.csv``, ``cables.csv``; the
-diagrams, the schedule and the labels go in the release package (S-142).
+``<circuit>/connections.json``, ``schedule.csv``, ``labels.csv``, ``cables.csv``,
+``README.txt``; the diagrams, the tables and the README (the disclaimer and what each file
+is, S-179) go in the release package (S-142).
 
 The family's code is ``outputs/``, ``model/`` and ``interfaces/`` (S-153): an edit of the
 owner's view (``owner/``) or the checks (``checks/``) reruns no ``elec:`` rule.
@@ -33,7 +34,7 @@ RULE_FAMILIES = (
 RELEASE_FILES = (
     ReleaseFiles(
         "electrical",
-        ("*/diagram.svg", "schedule.csv", "labels.csv", "cables.csv"),
+        ("*/diagram.svg", "schedule.csv", "labels.csv", "cables.csv", "README.txt"),
         "wiring diagrams, cable schedule, terminal labels",
     ),
 )

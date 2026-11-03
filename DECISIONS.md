@@ -203,6 +203,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-176 | The wiring session simulation (DoD 7) passed on 2026-11-03: the supply-headroom choice raised after the first build with wiring, not in the interview, decided only with the owner's answer; no fix to `roles/pm.md`; B-0160 opened | in force |
 | S-177 | The two publish tests read their temporary bare repository with `git --git-dir=<remote>`, not `cwd=<remote>`: robust under `safe.bareRepository=explicit` (tests only) | in force |
 | S-178 | v0.6 gate G blockers 1–2: each conductor against the device that protects it (a new `conductor-protection` row), and the Class II shortcut only where no part that conducts meets mains wiring (else a warn) | in force |
+| S-179 | v0.6 M7: every wiring output carries the licensed-electrician note (diagram footer band with product, circuit and Revision or draft; `electrical/README.txt` shipped in the release package; manual helper's opening line; report headings by purpose; closes B-0157) | in force |
 
 ---
 
@@ -1258,3 +1259,15 @@ Class II: the shortcut passes only with no custom part that conducts or no circu
 else each such part with no earth path warns, naming the mains circuits through its cable entries, or saying nothing keeps them out.
 Fixtures `thin-under-breaker`, `class-two-metal`; the six DoD 3 fixtures keep their rows (thin-conductor gains a second fail). Kiln,
 unedited: `conductor-protection@control` warns (its fuse has no rating), `@power` passes. `docs/electrical.md`: B-0183.
+## S-179 — v0.6 M7: every wiring output carries the disclaimer (2026-11-03)
+Closes gate G blocker 3 and gate H B2, C3, C4 (closes B-0157); 0 core files (E10).
+1. Every `electrical/<circuit>/diagram.svg` carries a `<g id="footer">` band below `bbox_of` (`outputs/diagram.py::_footer`):
+`PRODUCT`, `CIRCUIT`, `REVISION` (the tag at a clean released snapshot via `outputs/rules.py::build_revision`, else `draft`, an input
+of every `elec:` rule) and `DISCLAIMER` ("Produced with an AI system; not reviewed by a licensed electrician: a licensed electrician
+wires the product to local code.").
+2. `build/electrical/README.txt` (`outputs/schedule.py::readme_text`, shipped via `RELEASE_FILES`, S-142) carries the disclaimer,
+what each file is, and that lengths are estimates; CSVs stay comment-free for parsers.
+3. `circuit(id).table` (`owner/docs_helpers.py`) prepends `**{DISCLAIMER}**` once per rendered manual page (`h.state`); the kiln's
+two sign-offs citing `doc://installation` (`REQ-008`, `REQ-018`) re-keyed for that line.
+4. Report (`owner/report.py`, `owner/wiring.html.j2`): circuit heading says the circuit once, `carries(record)`, and "protected by"
+only for `PROTECTED` (C3, B-0157); lead says lengths are the design's estimates (C4). Golden: minimal `.svg` only; kiln PNGs re-rendered.

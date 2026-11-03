@@ -32,6 +32,7 @@ from napkin2factory.core.graph.runner import run_build
 from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.registry import registry
 from napkin2factory.core.uris import display_uri
+from napkin2factory.domains.electrical.outputs.diagram import DISCLAIMER
 from napkin2factory.domains.electrical.owner.common import SCHEDULE_KEY
 from napkin2factory.domains.electrical.owner.gates import design_row, verify_row
 from napkin2factory.domains.electrical.owner.report import show_wiring, wiring_report_data
@@ -300,6 +301,9 @@ def test_the_helpers_print_the_wiring_and_record_their_reads(built: tuple[Path, 
         "| Wire | From | To |" in page
         and "| heater-3 | Switch terminal 2 | Heater terminal L |" in page
     )
+    # the page's first wiring table opens with the disclaimer, once (S-179, gate G blocker 3)
+    assert page.count(DISCLAIMER) == 1
+    assert page.index(DISCLAIMER) < page.index("| Wire | From | To |")
     reads = json.loads((root / "build/docs/wiring/reads.json").read_text(encoding="utf-8"))
     assert {"circuit://heater#name", "circuit://heater#connections"} <= set(reads["reads"])
     assert {"circuit://heater", SCHEDULE_KEY, "part://heater#name"} <= set(reads["reads"])
@@ -308,6 +312,51 @@ def test_the_helpers_print_the_wiring_and_record_their_reads(built: tuple[Path, 
         r["id"]: r for r in json.loads((root / "build/checks/checks.json").read_text())["results"]
     }
     assert rows["doc://wiring"]["status"] == "pass"
+
+
+def test_the_disclaimer_is_said_once_however_many_tables(tmp_path: Path) -> None:
+    root = _copy(tmp_path)
+    twice = PAGE + '\n{{ circuit("heater").table }}\n'
+    _write(root, "model/docs/wiring.md", twice)
+    run_build(load_product(root), render=False, quiet=True)
+    page = (root / "build/docs/wiring/page.md").read_text(encoding="utf-8")
+    assert page.count(DISCLAIMER) == 1 and page.count("| Wire | From | To |") == 2
+
+
+def test_the_heading_says_the_circuit_once_by_purpose(built: tuple[Path, Product]) -> None:
+    """Gate H C3, C4: no "Power power circuit", "protected by" only where the checks need it."""
+    root, product = built
+    section = _section((root / "build/report/index.html").read_text(encoding="utf-8"))
+    assert "power circuit" not in section
+    heading = section.split('id="wiring-heater"', 1)[1].split("</h3>", 1)[0]
+    assert "230 V AC · protected by the 10 A breaker of the socket circuit" in heading
+    assert "Lengths are the design's estimates (the electrician cuts to fit)" in section
+    assert "Lengths are given" not in section
+    # an earth circuit and an extra-low-voltage sensing one say neither voltage nor protection
+    data = wiring_report_data(SectionContext(product, root / "build"))
+    (c,) = data["circuits"]
+    assert c["detail"] == ["230 V AC", "protected by the 10 A breaker of the socket circuit"]
+
+
+def test_earth_and_sensing_headings_leave_out_protection(tmp_path: Path) -> None:
+    from napkin2factory.domains.electrical.owner.report import _carries
+
+    class _C:
+        def __init__(self, purpose: str, voltage: Any = None, dc: bool = False) -> None:
+            self.purpose, self.voltage, self.dc = purpose, voltage, dc
+
+    earth = {"purpose": "earth", "voltage_v": 230.0, "dc": False}
+    sensing = {"purpose": "sensing", "voltage_v": 0.051, "dc": True}
+    assert _carries(earth, _C("earth")) == ""
+    assert _carries(sensing, _C("sensing")) == "extra-low-voltage signal"
+    assert _carries(None, _C("earth", "230 V")) == ""
+    root = _copy(tmp_path)
+    _edit(root, CIRCUIT, "purpose: power", "purpose: earth")
+    product = load_product(root)
+    run_build(product, target="elec", render=False, quiet=True)
+    data = wiring_report_data(SectionContext(product, root / "build"))
+    (c,) = data["circuits"]
+    assert c["detail"] == [] and not c["protected"]
 
 
 def test_a_page_is_stale_after_a_wire_edit_and_fresh_after_one_build(tmp_path: Path) -> None:

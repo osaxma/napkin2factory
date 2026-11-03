@@ -5,11 +5,13 @@ parts' names, the cable entries it crosses and the conductor rows it names, all 
 recording accessor (``ctx.proxy``) or ``ctx.log.add`` (D5), and writes under
 ``build/electrical/<circuit>/``: ``connections.json`` (the circuit's record, the wave-2
 contract), ``diagram.svg`` and ``<circuit>.kicad_sch`` (a text export, never source, E1).
-Its output hash is ``sha256_json(record)``, so a read of ``circuit://<circuit>`` changes when
-any connection, device, conductor, entry or word of the circuit does.
+Its output hash is ``sha256_json`` of the record and the diagram's footer (the product's
+name and the Revision, S-179), so a read of ``circuit://<circuit>`` changes when any
+connection, device, conductor, entry or word of the circuit does, or what its footer says.
 
 ``elec-schedule`` runs after every circuit's rule and writes ``schedule.csv``,
-``labels.csv`` and ``cables.csv`` from the circuits' records; it produces the key
+``labels.csv``, ``cables.csv`` and ``README.txt`` (the disclaimer and what each file the
+package's ``electrical/`` folder holds is, S-179) from the circuits' records; it produces the key
 ``rule:elec-schedule``.  Its id is not ``elec:_schedule``: the core values a ``rule:<x>`` key
 as the output hash of the rule whose id is ``<x>``, so the key the checks and the manuals
 record is the rule's own id (S-156).
@@ -34,9 +36,9 @@ from napkin2factory.domains.electrical.model import (
     product_conductors,
     supply,
 )
-from napkin2factory.domains.electrical.outputs.diagram import circuit_svg, title_inputs
+from napkin2factory.domains.electrical.outputs.diagram import DRAFT, circuit_svg, title_inputs
 from napkin2factory.domains.electrical.outputs.export_kicad import kicad_schematic
-from napkin2factory.domains.electrical.outputs.schedule import write_tables
+from napkin2factory.domains.electrical.outputs.schedule import write_readme, write_tables
 
 if TYPE_CHECKING:  # an installed domain is imported while the core's schemas load (S-153)
     from napkin2factory.core.graph.rules import Rule, RuleBuild, RunContext, RunResult
@@ -50,6 +52,8 @@ SCHEDULE_KEY = f"rule:{SCHEDULE_RULE}"
 #: input of every rule, so a corrected row reruns them (the domain's code hash does not
 #: cover the calc kit).
 _TABLES = ("conductors.yaml", "wire_colours.yaml")
+#: The product's name as a recorded read: the diagram's footer and the README say it.
+PRODUCT_NAME = "manifest://product#name"
 #: What a value the model does not give reads as, in the files (never a guess).
 NOT_GIVEN = "not given"
 
@@ -57,6 +61,29 @@ NOT_GIVEN = "not given"
 def _tables_hash() -> str:
     data = Path(wiring.__file__).resolve().parent / "data"
     return sha256_text("".join(sha256_file(data / name) for name in _TABLES))
+
+
+def build_revision(product: Any) -> str:
+    """The Revision the diagrams' footer names: a released Revision's, else "draft" (S-179).
+
+    The Revision's name when the product folder is its own project root, its current
+    snapshot is exactly a released Revision and nothing is unsaved (the report's rule,
+    gate-2 B4); else "draft".  A product's release workflow re-packages a Revision from its
+    own snapshot (S-095), so that package's diagrams carry its name.  ``n2f release`` builds
+    before it makes the Revision, so the package it writes says "draft" until the next
+    build [revisit] (B-0184: the build is not told the Revision it is building).
+    """
+    from napkin2factory.core.vcs import Vcs  # every git call goes through core/vcs.py (D31)
+
+    try:
+        vcs = Vcs(product.root)
+        if vcs.is_repo_root():
+            tag = vcs.tag_for_head()
+            if tag and vcs.is_clean():
+                return tag
+    except Exception:  # no git, or an unreadable folder: a draft
+        return DRAFT
+    return DRAFT
 
 
 def elec_rules(b: RuleBuild) -> list[Rule]:
@@ -74,6 +101,7 @@ def elec_rules(b: RuleBuild) -> list[Rule]:
         return []
     built = {r.id for r in b.rules}
     tables = _tables_hash()
+    revision = build_revision(product)
     rules: list[Rule] = []
     for cid, circuit in sorted(circs.items()):
         deps = sorted(
@@ -85,9 +113,10 @@ def elec_rules(b: RuleBuild) -> list[Rule]:
                 kind="elec",
                 produces=f"circuit://{cid}",
                 # the core adds the family's code hash; the title reads the checks' protected
-                # purposes and extra-low-voltage band, outside that code (S-174)
-                inputs={"tables": tables, "title": title_inputs()},
-                run=_make_circuit_run(cid),
+                # purposes and extra-low-voltage band, outside that code (S-174); the footer
+                # names the Revision, which no model field holds (S-179)
+                inputs={"tables": tables, "title": title_inputs(), "revision": revision},
+                run=_make_circuit_run(cid, revision),
                 description=f"wiring diagram and connection record of circuit://{cid}",
                 depends_on=deps,
             )
@@ -133,12 +162,13 @@ def elec_static_reads(product: Any, rule: Rule) -> list[str]:
     conductor rows.  The schedule: every circuit's record.
     """
     if rule.id == SCHEDULE_RULE:
-        return [f"circuit://{cid}" for cid in sorted(circuits(product))]
+        return [f"circuit://{cid}" for cid in sorted(circuits(product))] + [PRODUCT_NAME]
     cid = rule.id.split(":", 1)[1]
     circuit = circuits(product).get(cid)
     if circuit is None:
         return []
     reads = [f"circuit://{cid}#{f}" for f in Circuit.model_fields if f != "id"]
+    reads.append(PRODUCT_NAME)
     sup = supply(product)
     if sup is not None:
         reads += [f"supply://supply#{f}" for f in Supply.model_fields if f != "id"]
@@ -189,21 +219,30 @@ def _param(value: Any) -> bool:
 # ---- elec:<circuit> ----------------------------------------------------------------------
 
 
-def _make_circuit_run(cid: str) -> Any:
+def product_name(ctx: RunContext) -> str:
+    """The product's name, a recorded read (``manifest://product#name``)."""
+    return str(ctx.proxy(ctx.product.manifest.product, "manifest://product").name)
+
+
+def _make_circuit_run(cid: str, revision: str) -> Any:
     def run(ctx: RunContext) -> RunResult:
         from napkin2factory.core.graph.rules import RunResult
 
         record = circuit_record(ctx, cid)
+        # the footer's words beside the record, which stays the wave-2 contract (S-179)
+        sheet = {"product": product_name(ctx), "revision": revision}
         folder = ctx.build_dir / OUT / cid
         folder.mkdir(parents=True, exist_ok=True)
         paths = {
             folder / "connections.json": json.dumps(record, indent=2, ensure_ascii=False) + "\n",
-            folder / "diagram.svg": circuit_svg(record),
+            folder / "diagram.svg": circuit_svg(record, sheet),
             folder / f"{cid}.kicad_sch": kicad_schematic(record),
         }
         for path, text in paths.items():
             path.write_text(text, encoding="utf-8")
-        return RunResult(reads=[], outputs=list(paths), output_hash=sha256_json(record))
+        # the footer is in the hash, so the report's inline copy follows a new Revision
+        digest = sha256_json({"record": record, "sheet": sheet})
+        return RunResult(reads=[], outputs=list(paths), output_hash=digest)
 
     return run
 
@@ -490,4 +529,5 @@ def _run_schedule(ctx: RunContext) -> RunResult:
         path = ctx.build_dir / OUT / cid / "connections.json"
         records.append(json.loads(path.read_text(encoding="utf-8")))
     rows, outputs = write_tables(records, ctx.build_dir / OUT)
+    outputs.append(write_readme(records, product_name(ctx), ctx.build_dir / OUT))
     return RunResult(reads=[], outputs=outputs, output_hash=sha256_json(rows))

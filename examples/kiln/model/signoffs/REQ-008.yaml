@@ -8,6 +8,6 @@ evidence:
 - doc://installation
 - asm://controls
 evidence_keys:
-  doc://installation: sha256:773b295e8b1a73512069978c4469a57ff24de45973867cb59801be5115cac075
+  doc://installation: sha256:f15e363cef5d3c1217720dd63e279e1af1a876d82274341beb1e930db18e9c24
   asm://controls: inv:{"counts":{"part://contactor":1,"part://controller-box":1,"part://controller-lid":1,"part://limit-controller":1,"part://pid-controller":1,"part://ssr":1},"placements":[{"node":"part://contactor#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[100.0,0.0,2.0],"uri":"part://contactor"},{"node":"part://controller-box#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[0.0,0.0,0.0],"uri":"part://controller-box"},{"node":"part://controller-lid#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[0.0,0.0,160.0],"uri":"part://controller-lid"},{"node":"part://limit-controller#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[-10.0,0.0,76.0],"uri":"part://limit-controller"},{"node":"part://pid-controller#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[-70.0,0.0,76.0],"uri":"part://pid-controller"},{"node":"part://ssr#1","parent":null,"rotation":[0.0,0.0,0.0,1.0],"translation":[45.0,-20.0,2.0],"uri":"part://ssr"}]}
 example: true

@@ -35,11 +35,12 @@ from napkin2factory.core.loader import Product, load_product, validate
 from napkin2factory.core.registry import registry
 from napkin2factory.domains.electrical.model import Circuit, Connection
 from napkin2factory.domains.electrical.outputs import RELEASE_FILES
-from napkin2factory.domains.electrical.outputs.diagram import circuit_svg
+from napkin2factory.domains.electrical.outputs.diagram import DISCLAIMER, circuit_svg
 from napkin2factory.domains.electrical.outputs.export_kicad import kicad_schematic
 from napkin2factory.domains.electrical.outputs.rules import (
     SCHEDULE_KEY,
     SCHEDULE_RULE,
+    build_revision,
     elec_static_reads,
 )
 from napkin2factory.domains.electrical.outputs.schedule import (
@@ -259,7 +260,7 @@ def test_the_diagram_is_drawn_from_the_record_alone(built: tuple[Path, Product, 
     root, _, _ = built
     record = json.loads((root / OUT / "heater/connections.json").read_text(encoding="utf-8"))
     svg = (root / OUT / "heater/diagram.svg").read_text(encoding="utf-8")
-    assert circuit_svg(record) == svg
+    assert circuit_svg(record, {"product": "Heated box", "revision": "draft"}) == svg
     assert not re.search(r"(href|url\()", svg)
     tree = ET.fromstring(svg)
     ids = {g.get("id") for g in tree.iter("{http://www.w3.org/2000/svg}g")}
@@ -281,6 +282,82 @@ def test_an_empty_circuit_says_so() -> None:
     svg = circuit_svg({"circuit": "spare", "name": "Spare", "purpose": "control", "wires": []})
     assert "No connections yet." in svg
     ET.fromstring(svg)
+    assert DISCLAIMER in svg  # with no sheet given, the footer still carries it
+
+
+# ---- the footer: product, circuit, Revision, disclaimer (S-179) ---------------------------------
+
+
+def _footer_texts(svg: str) -> list[str]:
+    tree = ET.fromstring(svg)
+    ns = "{http://www.w3.org/2000/svg}"
+    (footer,) = [g for g in tree.iter(f"{ns}g") if g.get("id") == "footer"]
+    return [t.text or "" for t in footer.iter(f"{ns}text")]
+
+
+def test_every_diagram_carries_the_footer(built: tuple[Path, Product, Any]) -> None:
+    """Gate G blocker 3, gate H B2: a printed diagram names its product and carries the note."""
+    root, _, _ = built
+    svg = (root / OUT / "heater/diagram.svg").read_text(encoding="utf-8")
+    texts = _footer_texts(svg)
+    assert texts == [
+        "PRODUCT",
+        "Heated box",
+        "CIRCUIT",
+        "Heater",
+        "REVISION",
+        "draft",  # the fixture's snapshot is no released Revision
+        "Produced with an AI system; not reviewed by a licensed electrician: a licensed "
+        "electrician wires the product to local code.",
+    ]
+    ns = "{http://www.w3.org/2000/svg}"
+    groups = list(ET.fromstring(svg).iter(f"{ns}g"))
+    (footer,) = [g for g in groups if g.get("id") == "footer"]
+    band = footer.find(f"{ns}rect")
+    assert band is not None
+    lowest = max(
+        float(t.get("y", 0)) for g in groups if g is not footer for t in g.iter(f"{ns}text")
+    )
+    assert lowest < float(band.get("y", 0))  # the band sits below the whole drawing
+
+
+def test_a_released_revision_names_itself_in_the_footer(tmp_path: Path) -> None:
+    """A clean snapshot that is a released Revision prints its name; an edit makes it a draft."""
+    from napkin2factory.core.vcs import Vcs
+
+    root = copy_product(MINIMAL, tmp_path / "hb", git=False)
+    _write(root, ".gitignore", "build/\n")
+    vcs = Vcs(root)
+    vcs.init()
+    vcs.snapshot("Start")
+    assert build_revision(load_product(root)) == "draft"
+    vcs.tag("v1.0.0", "Revision v1.0.0")
+    product = load_product(root)
+    assert build_revision(product) == "v1.0.0"
+    run_build(product, target="elec", render=False, quiet=True)
+    svg = (root / OUT / "heater/diagram.svg").read_text(encoding="utf-8")
+    assert _footer_texts(svg)[5] == "v1.0.0"
+    _edit(root, CIRCUIT, "length: 0.5 m", "length: 0.9 m")
+    product = load_product(root)
+    assert build_revision(product) == "draft"
+    ran = run_build(product, target="elec", render=False, quiet=True)["ran"]
+    assert "elec:heater" in ran
+    svg = (root / OUT / "heater/diagram.svg").read_text(encoding="utf-8")
+    assert _footer_texts(svg)[5] == "draft"
+
+
+def test_a_product_inside_a_larger_tracked_folder_is_a_draft(tmp_path: Path) -> None:
+    """The folder's own Revisions only: a tag of an enclosing project is not the product's."""
+    from napkin2factory.core.vcs import Vcs
+
+    outer = tmp_path / "outer"
+    outer.mkdir()
+    root = copy_product(MINIMAL, outer / "hb", git=False)
+    vcs = Vcs(outer)
+    vcs.init()
+    vcs.snapshot("Start")
+    vcs.tag("v9.0.0", "not the product's")
+    assert build_revision(load_product(root)) == "draft"
 
 
 # ---- the text schematic export (E1) --------------------------------------------------------------
@@ -697,14 +774,35 @@ def test_the_release_package_ships_the_diagrams_and_tables(
         cover = zf.read("v0.1.0/README.txt").decode("utf-8")
         packed = zf.read("v0.1.0/electrical/heater/diagram.svg")
     assert names == [
+        "v0.1.0/electrical/README.txt",
         "v0.1.0/electrical/cables.csv",
         "v0.1.0/electrical/heater/diagram.svg",
         "v0.1.0/electrical/labels.csv",
         "v0.1.0/electrical/schedule.csv",
     ]
     assert packed == (root / OUT / "heater/diagram.svg").read_bytes()
+    assert DISCLAIMER.encode("utf-8") in packed
     assert "electrical/ (wiring diagrams, cable schedule, terminal labels)" in cover
     assert [r.folder for r in RELEASE_FILES] == ["electrical"]
+
+
+def test_the_wiring_folder_has_a_readme_with_the_disclaimer(
+    built: tuple[Path, Product, Any],
+) -> None:
+    """A CSV takes no comment row, so the README beside the tables says it (S-179)."""
+    root, _, _ = built
+    text = (root / OUT / "README.txt").read_text(encoding="utf-8")
+    assert text.startswith("Heated box: the wiring\n\n" + DISCLAIMER + "\n")
+    assert "- heater/diagram.svg: the wiring diagram of the Heater circuit." in text
+    for name in ("schedule.csv", "labels.csv", "cables.csv"):
+        assert f"- {name}:" in text
+    assert "Lengths are estimates; the electrician cuts to fit." in text
+    for name in ("schedule.csv", "labels.csv", "cables.csv"):  # the tables stay plain CSV
+        assert (
+            (root / OUT / name)
+            .read_text(encoding="utf-8")
+            .startswith(("wire,", "label,", "conductor,"))
+        )
 
 
 def test_the_report_stays_small(built: tuple[Path, Product, Any]) -> None:

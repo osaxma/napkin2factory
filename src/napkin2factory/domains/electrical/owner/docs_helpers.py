@@ -3,8 +3,9 @@
 * ``circuit("power")`` — the circuit as a page prints it: ``.name`` (its owner words),
   ``.purpose``, ``.protection``, ``.devices`` (each ``.name``, ``.role``, ``.terminals``),
   ``.wires`` (each ``.id``, ``.from_words``, ``.to_words``, ``.conductor``, ``.csa``,
-  ``.length``, ``.colour``, ``.via``) and ``.table`` (the wires as a Markdown table).
-  ``{{ circuit("power") }}`` prints its name.
+  ``.length``, ``.colour``, ``.via``) and ``.table`` (the wires as a Markdown table; the
+  page's first one opens with the disclaimer, so the wiring pages state it once at their
+  head, S-179).  ``{{ circuit("power") }}`` prints its name.
 * ``cable_schedule()``, ``terminal_labels()``, ``cables_to_buy()`` — the rows of
   ``build/electrical/schedule.csv``, ``labels.csv`` and ``cables.csv`` as dicts keyed by
   their header (``row.wire``, ``row.label`` …).
@@ -26,6 +27,7 @@ from typing import Any
 from napkin2factory.core.domain import HelperContext
 from napkin2factory.core.units import format_quantity, is_quantity
 from napkin2factory.domains.electrical.model import circuits, devices
+from napkin2factory.domains.electrical.outputs.diagram import DISCLAIMER
 from napkin2factory.domains.electrical.owner.common import (
     CABLES_CSV,
     LABELS_CSV,
@@ -39,6 +41,9 @@ from napkin2factory.domains.electrical.owner.common import (
     read_table,
 )
 from napkin2factory.domains.electrical.owner.vocabulary import PURPOSE_WORDS, ROLE_WORDS
+
+#: The page-render state key that says the disclaimer is already on the page (S-179).
+_SAID = "electrical-disclaimer"
 
 
 def _build_dir(h: HelperContext) -> Path:
@@ -163,8 +168,16 @@ class CircuitView:
 
     @property
     def table(self) -> str:
-        """The wires as a Markdown table."""
-        return _markdown_table(self.wires)
+        """The wires as a Markdown table; the page's first opens with the disclaimer (S-179).
+
+        A manual page lives in the product's folder, so the helper, not the page, makes sure
+        the wiring pages say it: once per page, before the first wiring table it prints.
+        """
+        table = _markdown_table(self.wires)
+        if self._h.state.get(_SAID):
+            return table
+        self._h.state[_SAID] = True
+        return f"**{DISCLAIMER}**\n\n{table}"
 
     @property
     def devices(self) -> list[Row]:
