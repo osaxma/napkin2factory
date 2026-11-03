@@ -169,7 +169,7 @@ def _drawn_points(tree: ET.Element) -> list[tuple[float, float]]:
 def test_each_diagram_draws_the_boundary_and_nothing_inside(
     built: Path, circuit: str, terminals: str, entry: str
 ) -> None:
-    words = f"to the external control box, supplied from elsewhere: {terminals}"
+    words = f"to the external control box, supplied, not built here: {terminals}"
     out = built / "build" / "electrical" / circuit
     record = json.loads((out / "connections.json").read_text(encoding="utf-8"))
     assert record["boundary"] == [

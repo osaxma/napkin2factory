@@ -644,7 +644,7 @@ def test_a_module_from_elsewhere_is_a_dashed_boundary_with_nothing_inside(tmp_pa
         {
             "assembly": "asm://control-unit",
             "name": "Control unit",
-            "words": "to the control unit, supplied from elsewhere: S1, S2, PE",
+            "words": "to the control unit, supplied, not built here: S1, S2, PE",
         }
     ]
     assert {
@@ -661,7 +661,7 @@ def test_a_module_from_elsewhere_is_a_dashed_boundary_with_nothing_inside(tmp_pa
     x0, y0 = float(rect.get("x", 0)), float(rect.get("y", 0))
     box = (x0, y0, x0 + float(rect.get("width", 0)), y0 + float(rect.get("height", 0)))
     words = [t.text for t in boundary.iter(f"{ns}text")]
-    assert "to the control unit, supplied from elsewhere: S1, S2, PE" in words
+    assert "to the control unit, supplied, not built here: S1, S2, PE" in words
     # nothing anywhere in the drawing lies inside the boundary: no text, pin or line
     points: list[tuple[float, float]] = []
     for el in tree.iter():

@@ -34,7 +34,7 @@ from napkin2factory.domains.electrical.model import (
     product_conductors,
     supply,
 )
-from napkin2factory.domains.electrical.outputs.diagram import circuit_svg
+from napkin2factory.domains.electrical.outputs.diagram import circuit_svg, title_inputs
 from napkin2factory.domains.electrical.outputs.export_kicad import kicad_schematic
 from napkin2factory.domains.electrical.outputs.schedule import write_tables
 
@@ -84,7 +84,9 @@ def elec_rules(b: RuleBuild) -> list[Rule]:
                 id=f"elec:{cid}",
                 kind="elec",
                 produces=f"circuit://{cid}",
-                inputs={"tables": tables},  # the core adds the family's code hash
+                # the core adds the family's code hash; the title reads the checks' protected
+                # purposes and extra-low-voltage band, outside that code (S-174)
+                inputs={"tables": tables, "title": title_inputs()},
                 run=_make_circuit_run(cid),
                 description=f"wiring diagram and connection record of circuit://{cid}",
                 depends_on=deps,
@@ -352,7 +354,8 @@ def _end_words(
             modules[ident] = {
                 "assembly": f"asm://{ident}",
                 "name": name,
-                "words": f"to the {name[:1].lower() + name[1:]}, supplied from elsewhere",
+                # the core's words for a stand-in (S-152, S-174)
+                "words": f"to the {name[:1].lower() + name[1:]}, supplied, not built here",
                 "terminals": [],
             }
         if terminal not in modules[ident]["terminals"]:

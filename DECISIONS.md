@@ -181,7 +181,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-154 | v0.6 M1: how the wiring model addresses instances, upstream protection, entries by voltage band (the overseer's decisions on the kiln survey; amends E2, E3, E6) | in force |
 | S-155 | v0.6 M1: a cable entry is one hole; the Design row "Wiring" blocks on unwired devices; tests that assumed one installed domain take the membership form | in force |
 | S-156 | v0.6 M2: the schedule rule's id is `elec-schedule`, so the key `rule:elec-schedule` the checks and manuals record is valued (the core reads `rule:<x>` as rule `<x>`'s output) | in force |
-| S-157 | v0.6 M2: the `elec` outputs (the record drawn and tabulated, a left-to-right diagram from the supply, colours never guessed, labels, the cable to buy, the text schematic kept) | in force |
+| S-157 | v0.6 M2: the `elec` outputs (the record drawn and tabulated, a left-to-right diagram from the supply, colours never guessed, labels, the cable to buy, the text schematic kept) | in force (layout amended by S-174) |
 | S-158 | v0.6 M3: the wiring checks (rows per rule, the nets walked with contacts and coils, the controller's side for a limit, which materials conduct, the headroom choice, the circuit kind's figures under `#props.`) | in force |
 | S-159 | v0.6 M4: the owner's view of the wiring (the Wiring section with its diagrams made page-safe, the manual helpers, the Verify row, the words, the module context) | in force |
 | S-160 | v0.5 defect (v0.6 wave 2): a card field's `param` comes from any declaration naming one, not only the first; two different ones are an error naming both files | in force |
@@ -194,10 +194,11 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-167 | Seam (v0.6 wave 2, v0.5 defects): a `rule:<x>` key is rule `<x>`'s output, refused when no rule answers; a verify kind's figure is `#props.<figure>`; the docs rule hands helpers its build folder (closes B-0135, B-0139, B-0147) | in force |
 | S-168 | v0.6 M4 (E8): the supply screen is the wiring's (`circuit-available`, phase `check`); the kiln's pack reads its fields | in force |
 | S-169 | v0.6 M6: the diff page says a report section the later Revision's package adds or drops ("Wiring: added"); a domain left for later or done elsewhere counts as not there | in force |
-| S-170 | v0.6 M6: the external-box fixture (a control box supplied from elsewhere, two cable-entry ports), the scope words tested with the wiring's owner word, the owner-session script for DoD 7 on that fixture | in force |
+| S-170 | v0.6 M6: the external-box fixture (a control box supplied from elsewhere, two cable-entry ports), the scope words tested with the wiring's owner word, the owner-session script for DoD 7 on that fixture | in force (boundary words amended by S-174) |
 | S-171 | v0.6 M5 follow-up: cited EU 20 A and 32 A circuit classes, so a European 16 A supply raises the supply-headroom choice; `dedicated: true` on the supply is the `dedicated` pick made in the model (closes B-0149, B-0151) | in force |
 | S-172 | v0.6 M5: the kiln wired (four circuits, earth points named by the metal they earth, three cable entries in the gland holes' places, five bought parts, two studs), its manual's wiring generated, the headroom choice decided, `demo-electrical.sh` | in force |
 | S-173 | v0.6 M7a: the docs for the wiring (`docs/electrical.md`, the guide, the three roles, the vocabulary, `docs/domains.md` read against the domain); an owner who asked to be asked decides every choice in that area, whatever it holds | in force |
+| S-174 | v0.6 follow-up: the wiring diagrams readable at the kiln's size (the box's side of each entry, labels never overprinted, titles by purpose, the core's boundary words; closes B-0152, B-0154) | in force |
 
 ---
 
@@ -1204,3 +1205,15 @@ the designer. Written in the role's own words, not the M6 script's. Design gains
 and verdict items renumbered 7, 8). The guide drops the kiln's stale part count (21; 46 part files now), its demo time is S-172's 492 s. `docs/domains.md`:
 the electrical package as the third example; §1's sample no longer names a "wiring" domain; `CardField(hint=)`, `later`, §9's two
 work-rounds. Vocabulary: ten wiring words. B-0155. Tests: agent docs, templates, vocabulary, journals, the role-reading e2e files.
+
+## S-174 — v0.6 follow-up: the wiring diagrams readable at the kiln's size (2026-11-03)
+Closes B-0154, B-0152; amends S-157's layout, S-170's words; only `outputs/diagram.py`, `outputs/rules.py` (words, one input).
+Sides: cut at its entries the circuit falls into pieces, a wire through an entry puts its end pieces on opposite sides; the box
+is the half with no source (supply, sensor, module from elsewhere), else the larger; a device beyond an entry is drawn past it,
+the box's own before it (the kiln's limit probe now outside, the lid and enclosure studs inside). Labels: "id · size · colour"
+once, at an end whose terminal holds no other conductor on that side; the id again at the other end (free, or shared by two:
+one above the line, one below) for a wire through an entry or over 60 mm [revisit]; a run skipping columns crosses them in a free
+band between their boxes, else below. Titles: voltage for power and control, "extra-low-voltage signal" for sensing in the checks'
+ELV band, nothing for earth; "Protected by" only for the checks' `PROTECTED`, read through `title_inputs()`, an input of every
+`elec:` rule (`checks/` is not the family's code). Boundary: "supplied, not built here" (S-152). Golden: minimal `.svg` only. Kiln report 3,916,749 B.
+Judged by the agent, the maintainer's pending: power, sensing clean; earth-7 loops below; control busy (B-0158); report line B-0157.
