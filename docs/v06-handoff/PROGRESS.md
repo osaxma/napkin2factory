@@ -25,11 +25,13 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 15:05 | **M7a landed** (14:17–15:05): `docs/electrical.md`, the guide's wiring paragraph, the three roles (pm: the supply asked as a fact, the headroom choice only after the first build with wiring, an owner who asked to be asked decides every choice there [revisit]), ten vocabulary words, `docs/domains.md` read against the domain, the §3 amendment line; boundary words "supplied, not built here" | Markdown only (no code); B-0155 (calckit.md row count) | a73f9b9, 4c5c535 (S-173) |
 
 | 2026-11-03 | **Third overseer resumed** after the cut-off (2026-11-02 15:07, API credit). The owner simulation had started (step 1, owner line 2 sent) but its temp folders are gone: it is re-run from step 1 after the diagram follow-up lands | diagram builder's uncommitted change saved as WIP; handed to a fresh builder | bd1ac7a (task branch) |
+| 2026-11-03 | Linux CI look | push runs green (latest pushed 7f4d8d0); **the two nightlies since S-121 are red** (2026-11-02 11:11, 2026-11-03 10:54), both `test_demo_napkin`: "mktemp: too few X's in template 'n2f-kiln-napkin-out'" (GNU mktemp; the kiln's demo scripts use the BSD-only `mktemp -d -t name`). Fix task opened (B-0073 reopened). `FIX_CI_NIGHTLY.md`'s bare-repository diagnosis is not what CI shows | — |
 
 ## In flight
 - **Diagram follow-up** (B-0154, B-0152): task `wiring-diagrams`, `.worktrees/wiring-diagrams`
   (from d4c6ffe); last WIP: bd1ac7a "WIP: diagram follow-up, as left at the cut-off" (the cut-off
   builder's change, unverified); a fresh builder resumed it 2026-11-03.
+- **Nightly fix** (mktemp templates, B-0073): task `nightly-mktemp`, `.worktrees/nightly-mktemp`; builder started 2026-11-03.
 - `FIX_CI_NIGHTLY.md` at the repo root is untracked and not the overseer's: never commit, move or delete it.
 
 ## Next step
