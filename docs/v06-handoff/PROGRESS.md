@@ -26,17 +26,14 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 
 | 2026-11-03 | **Third overseer resumed** after the cut-off (2026-11-02 15:07, API credit). The owner simulation had started (step 1, owner line 2 sent) but its temp folders are gone: it is re-run from step 1 after the diagram follow-up lands | diagram builder's uncommitted change saved as WIP; handed to a fresh builder | bd1ac7a (task branch) |
 | 2026-11-03 | Linux CI look | push runs green (latest pushed 7f4d8d0); **the two nightlies since S-121 are red** (2026-11-02 11:11, 2026-11-03 10:54), both `test_demo_napkin`: "mktemp: too few X's in template 'n2f-kiln-napkin-out'" (GNU mktemp; the kiln's demo scripts use the BSD-only `mktemp -d -t name`). Fix task opened (B-0073 reopened). `FIX_CI_NIGHTLY.md`'s bare-repository diagnosis is not what CI shows | — |
+| 2026-11-03 | **Diagram follow-up landed** (resumed from bd1ac7a; gate 3 min 58 s): no overprint, devices past a cable entry drawn outside, titles by purpose, control returns through gaps, "supplied, not built here" (B-0152, B-0154 closed); only `electrical-minimal-heater.svg` moved; kiln report 3,916,749 B. Opened B-0156 (domain import order), B-0157 (report heading line "not given"/"51 mV"), B-0158 (what still reads poorly: control busy, earth-7 loop). Overseer's read: earth clear, control busy but traceable (judged by the agent; the maintainer's judgment pending) | **count: 0 core files** | 5708b44 (S-174) |
+| 2026-11-03 | **Nightly fix landed** (gate 378 s): `mktemp` templates portable; a unit test guards them; `test_demo_napkin` also expected REQ-024, moved by S-172 (would have failed next). Not run on Linux yet. `make land` refused on the untracked `FIX_CI_NIGHTLY.md`: listed in `.git/info/exclude` (local, uncommitted; remove at close); the file is untouched. Its own diagnosis (publish tests under `safe.bareRepository=explicit`) checked: true only where that setting is on (reproduced by forcing it), not on CI or this host; the maintainer was asked whether to fix the tests | — | 1c518e7 (S-175, B-0159) |
 
 ## In flight
-- **Diagram follow-up** (B-0154, B-0152): task `wiring-diagrams`, `.worktrees/wiring-diagrams`
-  (from d4c6ffe); last WIP: bd1ac7a "WIP: diagram follow-up, as left at the cut-off" (the cut-off
-  builder's change, unverified); a fresh builder resumed it 2026-11-03.
-- **Nightly fix** (mktemp templates, B-0073): task `nightly-mktemp`, `.worktrees/nightly-mktemp`; builder started 2026-11-03.
 - `FIX_CI_NIGHTLY.md` at the repo root is untracked and not the overseer's: never commit, move or delete it.
 
 ## Next step
-When the diagram follow-up lands: `make check` on main (time it; record in STATUS), the
-Linux CI look; then the owner simulation (`wiring-session.md`, fresh PM agent); then gates G and
+`make check` on main at 1c518e7 (time it; record in STATUS); then the owner simulation (`wiring-session.md`, fresh PM agent); then gates G and
 H at once on that commit (`brief-gate-g.md`, `brief-gate-h.md`); fix blockers; close-out
 (version 0.6.0 + pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` count first, `make check-full` from
 a clean clone, delete `docs/v06-handoff/` last).
