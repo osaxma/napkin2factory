@@ -33,6 +33,7 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 2026-11-03 | **Owner simulation passed** (DoD 7): a fresh PM subagent, six owner lines; a–e all ticked; no `roles/pm.md` fix; B-0160 opened (status says "an agent may decide it" to an owner who asked to be asked; core wording) | transcript `tests/e2e/intake-transcripts/wiring-session-2026-11-03.md` | (this commit, S-176) |
 
 ## In flight
+- **Gates G and H** on f67dc06, started 2026-11-03: fresh reviewers given only the filled briefs (the text after `---` in `brief-gate-g.md` / `brief-gate-h.md`, commit f67dc06); reports at `/tmp/n2f-gate-g/gate-g-report.md` and `/tmp/n2f-gate-h/gate-h-report.md` (written as they go). Keep: `docs/reviews/v0.6-gate-{g,h}.md`, Part 1 of G as `examples/kiln/reports/electrician-readthrough.md`.
 - `FIX_CI_NIGHTLY.md` at the repo root is untracked and not the overseer's: never commit, move or delete it.
 
 ## Next step
