@@ -34,6 +34,7 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 | 2026-11-03 | **Gate G reported: NOT READY**, 3 blockers: (1) a conductor below its protective device passes; (2) the Class II shortcut passes a metal box with mains wiring inside; (3) "not reviewed by a licensed electrician" never reaches the package or the diagrams (README says "licensed engineer", `ecr/release.py`). 15 concerns. Report kept as `docs/reviews/v0.6-gate-g.md`; Part 1 as `examples/kiln/reports/electrician-readthrough.md`. Fix task for 1–2 opened (`brief-gate-g-checks.md`); 3 waits for gate H (same owner-facing files) | — | (this commit) |
 
 ## In flight
+- **Publish tests read the bare remote with `--git-dir`** (the maintainer said yes, 2026-11-03; `FIX_CI_NIGHTLY.md`'s point, robustness under `safe.bareRepository=explicit`, not a CI failure): task `publish-bare-git`, `.worktrees/publish-bare-git`.
 - **Gate G fix, blockers 1–2**: task `gate-g-checks`, `.worktrees/gate-g-checks`; brief `brief-gate-g-checks.md`.
 - **Gate H** on f67dc06 (G done), started 2026-11-03: fresh reviewers given only the filled briefs (the text after `---` in `brief-gate-g.md` / `brief-gate-h.md`, commit f67dc06); reports at `/tmp/n2f-gate-g/gate-g-report.md` and `/tmp/n2f-gate-h/gate-h-report.md` (written as they go). Keep: `docs/reviews/v0.6-gate-{g,h}.md`, Part 1 of G as `examples/kiln/reports/electrician-readthrough.md`.
 - `FIX_CI_NIGHTLY.md` at the repo root is untracked and not the overseer's: never commit, move or delete it.
