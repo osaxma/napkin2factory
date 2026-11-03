@@ -94,6 +94,7 @@ def test_the_minimal_product_passes_or_warns_as_expected() -> None:
         HEADROOM: "pass",
         "elec-rule://protection@heater": "pass",
         "elec-rule://conductor-current@heater": "pass",
+        "elec-rule://conductor-protection@heater": "pass",
         "elec-rule://entry-voltage@box-entry": "pass",
     }
     load = rows["elec-rule://supply-load@supply"]
@@ -185,7 +186,7 @@ def test_over_supply_also_fails_the_circuits_protection() -> None:
 
 def test_no_row_text_holds_a_uri_scheme_or_an_example_id() -> None:
     banned = forbidden()
-    for fixture in ["minimal", *FAULTS]:
+    for fixture in ["minimal", "thin-under-breaker", "class-two-metal", *FAULTS]:
         for row in _rows(ELEC / fixture).values():
             text = f"{row.title} {row.message} {json.dumps(row.detail.get('options', []))}"
             assert "://" not in text, (fixture, text)
@@ -235,6 +236,7 @@ def test_scope_keeps_the_circuits_whose_devices_sit_in_the_module(tmp_path: Path
     unit = _rows(root, within="heater-unit")
     assert sorted(unit) == [
         "elec-rule://conductor-current@heater",
+        "elec-rule://conductor-protection@heater",
         "elec-rule://protection@heater",
     ]
     # the supply's rows are the whole product's; the entry closes in the top assembly
@@ -315,12 +317,153 @@ def test_a_material_nobody_can_place_asks_a_person(tmp_path: Path) -> None:
     assert "Whether the Box conducts is not known (its material (unobtainium))" in row.message
 
 
-def test_class_two_devices_only_need_no_earth(tmp_path: Path) -> None:
-    root = _steel_box(tmp_path)
+def test_class_two_devices_in_a_plastic_box_need_no_earth(tmp_path: Path) -> None:
+    root = _copy(tmp_path)
     _edit(root, HEATER, "class: I\n", "class: II\n")
     rows = _rows(root)
     assert "elec-rule://earth-path@box" not in rows
-    assert rows["elec-rule://earth-path@product"].status == "pass"
+    row = rows["elec-rule://earth-path@product"]
+    assert row.status == "pass"
+    assert "and no part made here conducts, so no part needs a path to earth" in row.message
+
+
+def test_class_two_devices_in_a_metal_box_ask_an_electrician() -> None:
+    """Gate G blocker 2 (S-178): the product's own mains wiring runs in the steel box."""
+    rows = _rows(ELEC / "class-two-metal")
+    assert "elec-rule://earth-path@product" not in rows
+    row = rows["elec-rule://earth-path@box"]
+    assert row.status == "warn", row.message  # a code's judgment, never a fail (E6)
+    assert row.message.startswith(
+        "Every device is Class II or III, but the Box is mild steel, which conducts, and the "
+        "product's own mains conductors pass through it (the Heater circuit at the cable "
+        "entry “Supply cable into the box”): whether the product as a whole is Class II is a "
+        "licensed electrician's call."
+    )
+    assert "or run an earth conductor to it" in row.message
+    assert row.message.endswith("a licensed electrician decides.")
+    assert not [i for i, r in rows.items() if r.status == "fail"]
+
+
+def test_class_two_in_metal_with_no_entry_through_it_still_asks(tmp_path: Path) -> None:
+    """Where the model cannot tell where the conductors run, a conductive part still warns."""
+    root = _copy(tmp_path, ELEC / "class-two-metal")
+    _edit(root, "model/parts/box.yaml", 'name: mild steel, spec: "DC01"', "name: polycarbonate")
+    _write(
+        root,
+        "model/parts/frame.yaml",
+        "id: frame\nrev: A\nname: Frame\nkind: custom\nprocess: cut-block\n"
+        'material: {name: aluminium, spec: "6061-T6"}\nfinish: none\n'
+        "tolerance_class: ISO2768-m\n"
+        "geometry: {kit: block, args: {length: 40 mm, width: 20 mm, height: 10 mm}}\n"
+        "cost: {unit: 3 USD, basis: estimate}\nlead_time: 2 d\n",
+    )
+    _edit(
+        root,
+        "model/assemblies/heated-box.yaml",
+        "  - {part: part://switch, qty: 1}",
+        "  - {part: part://switch, qty: 1}\n  - {part: part://frame, qty: 1}",
+    )
+    _, problems = validate(root)
+    assert not problems.errors, [str(p) for p in problems.errors]
+    row = _rows(root)["elec-rule://earth-path@frame"]
+    assert row.status == "warn"
+    assert (
+        "the Frame is aluminium, which conducts, and nothing in the wiring says that the "
+        "product's own mains conductors (the Heater circuit) stay out of it" in row.message
+    )
+
+
+def test_class_two_at_extra_low_voltage_needs_no_earth(tmp_path: Path) -> None:
+    root = _copy(tmp_path, ELEC / "class-two-metal")
+    _edit(root, "model/electrical/supply.yaml", "voltage: 230 V", "voltage: 24 V")
+    _edit(root, HEATER, "voltage: 230 V", "voltage: 24 V")
+    row = _rows(root)["elec-rule://earth-path@product"]
+    assert row.status == "pass"
+    assert "and every circuit runs at extra-low voltage" in row.message
+
+
+# ---- gate G blocker 1: each conductor against the device that protects it ----------------------
+
+
+def test_a_conductor_below_its_breaker_fails() -> None:
+    """The reviewer's case: every conductor 0.75 mm² (8.5 A) on a 32 A breaker (S-178)."""
+    _, problems = validate(ELEC / "thin-under-breaker")
+    assert not problems.errors, [str(p) for p in problems.errors]
+    rows = _rows(ELEC / "thin-under-breaker")
+    # the load is small, so the load check passes: that is what hid the fault
+    assert rows["elec-rule://conductor-current@heater"].status == "pass"
+    row = rows["elec-rule://conductor-protection@heater"]
+    assert row.status == "fail"
+    for said in (
+        "In the Heater circuit, connection 1 (the supply's L to Switch terminal 1)",
+        "connection 4 (Switch terminal 4 to Heater terminal N) are 0.75 mm² PVC, rated 8.5 A "
+        "(from the table), below the 32 A breaker of the site circuit that protects them "
+        "(32 A, given)",
+        "What to do: use conductors rated at least 32 A, or a protective device rated no "
+        "more than 8.5 A; a licensed electrician decides.",
+    ):
+        assert said in row.message, (said, row.message)
+    assert "connection 5" not in row.message  # the earth conductor carries no load current
+    assert row.detail["circuit"] == "heater"
+
+
+def test_the_thin_conductor_also_fails_its_breaker() -> None:
+    row = _rows(ELEC / "thin-conductor")["elec-rule://conductor-protection@heater"]
+    assert row.status == "fail"
+    assert "connection 3 (Switch terminal 2 to Heater terminal L) is 0.75 mm² PVC" in row.message
+    assert "connection 1 " not in row.message
+
+
+def _fused(tmp_path: Path, rating: str | None) -> Path:
+    """The minimal box with its own fuse in the line, rated ``rating`` (or not rated)."""
+    root = _copy(tmp_path)
+    _cots(root, "fuse", "Fuse")
+    rated = f"rating: {{voltage: 250 V, current: {rating}}}\n" if rating else ""
+    _write(
+        root,
+        "model/electrical/devices/fuse.yaml",
+        f"id: fuse\npart: part://fuse\nrole: protection\n{rated}"
+        'terminals: ["1", "2"]\nthrough: [["1", "2"]]\n',
+    )
+    _edit(root, CIRCUIT, "protection: supply", "protection: device://fuse")
+    _edit(
+        root,
+        CIRCUIT,
+        '  - {from: "supply://supply#L", to: "device://switch#1", conductor: cu-1p5-pvc',
+        '  - {from: "supply://supply#L", to: "device://fuse#1", conductor: cu-1p5-pvc, '
+        "length: 0.1 m, via: iface://box-entry}\n"
+        '  - {from: "device://fuse#2", to: "device://switch#1", conductor: cu-0p75-pvc',
+    )
+    _, problems = validate(root)
+    assert not problems.errors, [str(p) for p in problems.errors]
+    return root
+
+
+def test_a_fuse_with_no_rating_asks_an_electrician(tmp_path: Path) -> None:
+    rows = _rows(_fused(tmp_path, None))
+    row = rows["elec-rule://conductor-protection@heater"]
+    assert row.status == "warn"
+    assert row.message.startswith(
+        "The Heater circuit is protected by the Fuse, whose rating is not given, so whether "
+        "it protects its conductors is not checked."
+    )
+    assert row.message.endswith("a licensed electrician decides.")
+    assert not [i for i, r in rows.items() if r.status == "fail"]
+
+
+def test_a_fuse_judges_what_it_feeds_and_the_supply_its_lead(tmp_path: Path) -> None:
+    rows = _rows(_fused(tmp_path, "6 A"))
+    row = rows["elec-rule://conductor-protection@heater"]
+    assert row.status == "pass", row.message
+    # the 0.75 mm² lead after the fuse is the closest; the 1.5 mm² lead before it is the
+    # supply's (10 A): neither is below its device
+    assert "connection 2 (Fuse terminal 2 to Switch terminal 1) is 0.75 mm² PVC" in row.message
+    assert "under the Fuse, rated 6 A, given" in row.message
+    rows = _rows(_fused(tmp_path / "b", "10 A"))
+    row = rows["elec-rule://conductor-protection@heater"]
+    assert row.status == "fail"
+    assert "connection 2 (Fuse terminal 2 to Switch terminal 1) is 0.75 mm² PVC" in row.message
+    assert "connection 1 " not in row.message  # 1.5 mm² before the fuse, under the 10 A supply
 
 
 @pytest.mark.parametrize(

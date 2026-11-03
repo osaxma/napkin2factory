@@ -182,7 +182,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-155 | v0.6 M1: a cable entry is one hole; the Design row "Wiring" blocks on unwired devices; tests that assumed one installed domain take the membership form | in force |
 | S-156 | v0.6 M2: the schedule rule's id is `elec-schedule`, so the key `rule:elec-schedule` the checks and manuals record is valued (the core reads `rule:<x>` as rule `<x>`'s output) | in force |
 | S-157 | v0.6 M2: the `elec` outputs (the record drawn and tabulated, a left-to-right diagram from the supply, colours never guessed, labels, the cable to buy, the text schematic kept) | in force (layout amended by S-174) |
-| S-158 | v0.6 M3: the wiring checks (rows per rule, the nets walked with contacts and coils, the controller's side for a limit, which materials conduct, the headroom choice, the circuit kind's figures under `#props.`) | in force |
+| S-158 | v0.6 M3: the wiring checks (rows per rule, the nets walked with contacts and coils, the controller's side for a limit, which materials conduct, the headroom choice, the circuit kind's figures under `#props.`) | in force (amended by S-178: a conductor against its protective device, the Class II shortcut) |
 | S-159 | v0.6 M4: the owner's view of the wiring (the Wiring section with its diagrams made page-safe, the manual helpers, the Verify row, the words, the module context) | in force |
 | S-160 | v0.5 defect (v0.6 wave 2): a card field's `param` comes from any declaration naming one, not only the first; two different ones are an error naming both files | in force |
 | S-161 | v0.5 defect (v0.6 wave 2): the screen contract imports no schema at load, so a domain declaring `CardField`s at import loads whatever is imported first; `docs/domains.md` §1 says which public names are safe at a module's top (measured) | in force |
@@ -202,6 +202,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-175 | The kiln demos' `mktemp` calls take a template ending in X's (GNU and BSD alike), and a unit test keeps every script that way: the Linux nightly was red on BSD-only `mktemp -d -t name`; the napkin demo's test matches a promoted requirement by its line, not its id (closes B-0159) | in force |
 | S-176 | The wiring session simulation (DoD 7) passed on 2026-11-03: the supply-headroom choice raised after the first build with wiring, not in the interview, decided only with the owner's answer; no fix to `roles/pm.md`; B-0160 opened | in force |
 | S-177 | The two publish tests read their temporary bare repository with `git --git-dir=<remote>`, not `cwd=<remote>`: robust under `safe.bareRepository=explicit` (tests only) | in force |
+| S-178 | v0.6 gate G blockers 1–2: each conductor against the device that protects it (a new `conductor-protection` row), and the Class II shortcut only where no part that conducts meets mains wiring (else a warn) | in force |
 
 ---
 
@@ -1246,3 +1247,14 @@ directory (exit 128), so `test_send_online_to_a_bare_copy` and `test_online_send
 the product was right. Reproduce: `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=explicit
 uv run pytest` on those two tests. Fix, tests only: `_bare_git` and the e2e `git()` pass `--git-dir=<remote>`. The setting
 is never weakened.
+## S-178 — Gate G blockers 1–2: a conductor against its protective device; Class II in a part that conducts (2026-11-03)
+From `docs/reviews/v0.6-gate-g.md` §9 (at f67dc06); amends S-158 and E6's fail list. A new rule and row per power or control circuit,
+`conductor-protection`, not inside `conductor-current`: another pair (the device's rated current against the conductor's, I_n <= I_z,
+IEC 60364-4-43 433.1 [verify]) whose unknown (a device with no rating: `warn`) must not hide the load check, and `#conductor_margin`
+stays the load's. Below: `fail` naming the connections, both ratings (given / from the table), the fix. A lead on the supply side of
+the circuit's device (the side reaching a source with it open) is judged against the supply's; a lead fed through another product
+device, a conductor no source reaches (a controller's output to a relay's input) and earth conductors are left out [revisit] (B-0182).
+Class II: the shortcut passes only with no custom part that conducts or no circuit above extra-low voltage (unknown counts as mains);
+else each such part with no earth path warns, naming the mains circuits through its cable entries, or saying nothing keeps them out.
+Fixtures `thin-under-breaker`, `class-two-metal`; the six DoD 3 fixtures keep their rows (thin-conductor gains a second fail). Kiln,
+unedited: `conductor-protection@control` warns (its fuse has no rating), `@power` passes. `docs/electrical.md`: B-0183.

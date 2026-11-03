@@ -1,0 +1,10 @@
+id: switch
+rev: A
+name: Switch
+kind: cots
+process: none
+geometry: none
+source: {vendor: Switch maker, mpn: SWITCH-2P, url: "https://example.com/switch", verified: true}
+cost: {unit: 2 USD, basis: catalog}
+lead_time: 1 d
+mass: 15 g

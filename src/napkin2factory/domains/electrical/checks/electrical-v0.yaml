@@ -23,6 +23,20 @@ rules:
       each conductor of a circuit against the current the circuit's loads draw, using the
       conductor's rated current from the calc kit's table (or the product's own row)
     fix: use a thicker conductor whose rated current is at least the circuit's load current
+  # Gate G blocker 1 (S-178): the device must open before the conductor overheats, I_n <= I_z
+  # (IEC 60364-4-43 clause 433.1, the first of its two conditions) [verify]; a comparison, no
+  # number of its own.
+  - id: conductor-protection
+    title: Each conductor is protected by its device
+    severity: fail
+    does: >-
+      each conductor of a power or control circuit, its rated current from the calc kit's
+      table (or the product's own row), against the rated current of the protective device
+      upstream of it (the circuit's own device, or the supply's on the supply side of it);
+      a device with no rating is a warn
+    fix: >-
+      use a thicker conductor rated at least the protective device's current, or a
+      protective device rated no more than the conductor; a licensed electrician decides
   - id: earth-path
     title: Each metal part has a path to earth
     severity: fail

@@ -1,0 +1,8 @@
+voltage: 230 V
+phases: 1
+frequency: 50 Hz
+rating: param://supply-rating
+earthing: TN-S
+region: EU
+protection: {upstream: "the 32 A breaker of the site circuit", rating: 32 A}
+notes: A 32 A site circuit; the electrician confirms its breaker and its earthing.

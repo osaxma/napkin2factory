@@ -204,6 +204,46 @@ def wired_to(t: Topology, dev_id: str, nodes: tuple[str, ...] | list[str]) -> bo
     return any(u.find(n) in ends for n in nodes)
 
 
+def line_side(t: Topology, dev_id: str) -> set[str]:
+    """The nodes on the supply side of a device's contacts (a fuse's, a breaker's).
+
+    With the device open and every other contact closed, the side of each of its contacts
+    whose net reaches a source feeds it; the nodes of those nets are its line side.  A
+    contact with both sides or neither reaching a source says nothing (the walk cannot
+    tell which side feeds it), so an empty set means "every conductor is downstream".
+    """
+    pairs = t.contacts.get(dev_id, [])
+    if not pairs:
+        return set()
+    u = t.components({d for d in t.contacts if d != dev_id})
+    fed = {u.find(s) for s in t.sources}
+    roots = set()
+    for a, b in pairs:
+        ra, rb = u.find(a), u.find(b)
+        if (ra in fed) != (rb in fed):
+            roots.add(ra if ra in fed else rb)
+    return {n for n in _nodes(t) if u.find(n) in roots}
+
+
+def fed_unprotected(t: Topology, protective: set[str]) -> set[str]:
+    """The nodes that reach a source with every ``protective`` device open.
+
+    What only the supply's own protective device stands between and the supply; with none
+    open, every node the supply can reach at all.
+    """
+    u = t.components({d for d in t.contacts if d not in protective})
+    fed = {u.find(s) for s in t.sources}
+    return {n for n in _nodes(t) if u.find(n) in fed}
+
+
+def _nodes(t: Topology) -> set[str]:
+    return (
+        {n for pair in t.wires + t.joins for n in pair}
+        | {n for pairs in t.contacts.values() for pair in pairs for n in pair}
+        | set(t.sources)
+    )
+
+
 # ---- earth -------------------------------------------------------------------------------------
 
 

@@ -106,6 +106,8 @@ entry that closed them. Ids are never reused.
 | B-0179 | The napkin card's "230V-16A … fits with a fifth to spare" reads as contradicting the later wiring check's "more than half of it" | gate H (`docs/reviews/v0.6-gate-h.md`); C9; the supply screen says what it compares (the load against the rating, not the headroom rule) |
 | B-0180 | `id="wiring"` appears twice in the report | gate H (`docs/reviews/v0.6-gate-h.md`); C10; one of the anchors renamed |
 | B-0181 | A refusal prints the known ids as a Python list | gate H (`docs/reviews/v0.6-gate-h.md`); C11; `core/product.py:235`, a comma-separated list |
+| B-0182 | `conductor-protection` checks I_n <= I_z only: not I_2 <= 1.45 I_z (a fuse's conventional fusing current), not an earth conductor's size against the device that must clear its fault (IEC 60364-5-54), not a lead fed through another of the product's devices | S-178; cited rows in a table of the calc kit and the walk extended (`domains/electrical/checks/`) |
+| B-0183 | `docs/electrical.md`'s rules table lacks `conductor-protection` and says the Class II case is "one pass row" | S-178; two lines in the table (`docs/electrical.md`, the docs task's file) |
 
 ## Closed
 

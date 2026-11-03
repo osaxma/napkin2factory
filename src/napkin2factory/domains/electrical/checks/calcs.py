@@ -155,6 +155,12 @@ class ConductorRec:
     label: str
     ampacity: Qty | None
     source: str
+    own: bool = False
+
+    @property
+    def basis(self) -> str:
+        """Where its rated current comes from, in owner words (N5)."""
+        return "given" if self.own else "from the table"
 
 
 @dataclass
@@ -397,7 +403,7 @@ def _conductors(
         if cid in own:
             r = read(own[cid], f"conductor://{cid}")
             amp = _quantity(product, r.ampacity, "A", log)
-            out[cid] = ConductorRec(cid, str(r.label), amp, str(r.source))
+            out[cid] = ConductorRec(cid, str(r.label), amp, str(r.source), own=True)
             continue
         try:
             row = wiring.conductor(cid)
@@ -568,6 +574,18 @@ def supply_margin(w: Wiring) -> Figure | None:
     return Figure(margin, f"{_amps(w.supply.rating.value)} rating less {_amps(load.total)} load")
 
 
+def protective_device_id(w: Wiring, cid: str) -> str | None:
+    """The id of the product's device protecting a circuit (``None``: the supply's, or none)."""
+    ref = w.circuits[cid].protection
+    if ref is None or ref == "supply":
+        return None
+    scheme, _, ident = ref.partition("://")
+    if scheme == "device":
+        return ident if ident in w.devices else None
+    named = [d for d in w.devices.values() if d.part == ident]
+    return named[0].id if len(named) == 1 else None
+
+
 def protective_rating(w: Wiring, cid: str) -> Figure | None:
     """The rated current of the device protecting a circuit (the supply's for ``supply``)."""
     ref = w.circuits[cid].protection
@@ -575,15 +593,18 @@ def protective_rating(w: Wiring, cid: str) -> Figure | None:
         return None
     if ref == "supply":
         return w.supply.rating if w.supply is not None else None
-    scheme, _, ident = ref.partition("://")
-    if scheme == "device":
-        dev = w.devices.get(ident)
-    else:
-        named = [d for d in w.devices.values() if d.part == ident]
-        dev = named[0] if len(named) == 1 else None
+    did = protective_device_id(w, cid)
+    dev = w.devices.get(did) if did is not None else None
     if dev is None or dev.current is None:
         return None
     return Figure(dev.current, f"the rating of the {dev.words}")
+
+
+def supply_protection(w: Wiring) -> tuple[Figure | None, str]:
+    """The supply's own protective device: its rating (``None`` unknown) and its words."""
+    if w.supply is None:
+        return None, "the supply's own protective device"
+    return w.supply.rating, w.supply.upstream or "the supply's own protective device"
 
 
 def protective_words(w: Wiring, cid: str) -> str:

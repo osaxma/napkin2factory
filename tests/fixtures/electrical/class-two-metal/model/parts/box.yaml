@@ -1,0 +1,12 @@
+id: box
+rev: A
+name: Box
+kind: custom
+process: cut-block
+material: {name: mild steel, spec: "DC01"}
+finish: none
+tolerance_class: ISO2768-m
+geometry: {kit: block, args: {length: 80 mm, width: 60 mm, height: 40 mm}}
+interfaces: [iface://box-entry]
+cost: {unit: 4 USD, basis: estimate}
+lead_time: 2 d
