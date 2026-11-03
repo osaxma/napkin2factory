@@ -34,3 +34,21 @@
 >
 > My first question: is adding that wiring, from your friend's drawing, what you'd like to do now? Or is there something else you want to look at first?
 
+**Owner (2)** (sent verbatim)
+
+**PM** (10 tool calls; the folder after the reply: `operator.yaml` gained `domains: {… electrical: novice …}`, `delegation: balanced`; `model/intake.md` written; `param://supply-rating` 10 A now `owner: intake`; `links:` added to DEC-002 and DEC-003; no build, no snapshot):
+> Thanks, Dana. That tells me how to work with you. Anything about the electrics or what the box plugs into, I'll ask you first. Everything else I'll decide myself and then tell you what I chose.
+>
+> Here's what I've written down, and nothing more:
+>
+> - **About you:** you bake at home and you're not an engineer, so I'll keep things in plain words.
+> - **Your electrics rule:** it's in your words, so whoever works on this after me follows it too.
+> - **Your socket:** it's a kitchen socket, and its breaker reads 10 A. That number is yours, the one you gave me. The design files already had 10 A for the supply. They now record that it came from you.
+> - **A tidy-up:** two of the older notes in the files didn't say which part of the design they were about, so I linked them. It's housekeeping and changes nothing about the box.
+>
+> I haven't touched the cabinet or the wiring. Your friend's wiring drawing is still only a draft.
+>
+> Because the heater runs on mains power (230 V), the safety point from before still holds: a licensed electrician checks the wiring before the box is first switched on.
+>
+> You didn't say yet whether you want to add the wiring now. That's an electrics decision, so it's yours. **Shall I bring the wiring into the design now, using your friend's drawing?** "Not yet" is fine too. After that I have two quick questions about the socket: which country you're in, and whether anything else is plugged into that same circuit.
+
