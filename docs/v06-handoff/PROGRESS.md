@@ -44,6 +44,19 @@ report's last section; checkpoint after every step (this file, README §1, STATU
 - `FIX_CI_NIGHTLY.md` at the repo root is untracked and not the overseer's: never commit, move or delete it.
 
 ## Next step
-Gates G and H at once on the commit that records the simulation (`brief-gate-g.md`, `brief-gate-h.md`); fix blockers; close-out
-(version 0.6.0 + pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` count first, `make check-full` from
-a clean clone, and `make check-full` in a Linux container (Docker, the CI nightly's job) on the closing commit; delete `docs/v06-handoff/` last).
+**Resuming after a cut-off (the third overseer stopped at the maintainer's word, 2026-11-03, near a usage limit):**
+1. `make tasks`: four tasks may be open — `gate-g-checks` (`brief-gate-g-checks.md`), `wiring-disclaimer`
+   (`brief-disclaimer.md`), `seam-impact` (`brief-seam-impact.md`; core edits, listed apart from the count),
+   `publish-bare-git` (tests only; the maintainer's yes). One that landed is gone from the list (check `git log`).
+   One still open: commit any unsaved change in its worktree as `WIP: <task>, as left at the cut-off`, then hand it
+   to a fresh builder with `brief-common.md` + its brief and "resuming from that WIP".
+2. When all four land: verify the count (`git show --stat` on each domain commit: nothing under core/,
+   report/builder.py, docs/engine.py, cli/check.py; the seam task's commit listed apart), `make check` on main
+   (timed, into STATUS.md), then re-run only the gate checks that found blockers (gate G Q9 and Q10, gate H Q1
+   and the diagram) on copies, or a short fresh-context re-check of the five blockers; record the gates'
+   outcome entries in DECISIONS.md ("Review gate G — outcome", "Review gate H — outcome").
+3. Close-out: version 0.6.0 in the three version files + product pins `>=0.6,<0.7` (S-054, S-083);
+   `HANDOFF-REPORT-v0.6.md`, the count as its first line; `make check-full` from a clean clone (timed) and
+   `make check-full` in a Linux container (Docker Desktop, started with the maintainer's leave: e.g.
+   `python:3.13` image, `uv sync`, `make check-full`); STATUS.md; take `/FIX_CI_NIGHTLY.md` back out of
+   `.git/info/exclude` (two lines the overseer added); delete `docs/v06-handoff/` last. No push, no tag.
