@@ -204,6 +204,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-177 | The two publish tests read their temporary bare repository with `git --git-dir=<remote>`, not `cwd=<remote>`: robust under `safe.bareRepository=explicit` (tests only) | in force |
 | S-178 | v0.6 gate G blockers 1–2: each conductor against the device that protects it (a new `conductor-protection` row), and the Class II shortcut only where no part that conducts meets mains wiring (else a warn) | in force |
 | S-179 | v0.6 M7: every wiring output carries the licensed-electrician note (diagram footer band with product, circuit and Revision or draft; `electrical/README.txt` shipped in the release package; manual helper's opening line; report headings by purpose; closes B-0157) | in force |
+| S-180 | Seam (gate H B1, C7; gate G blocker 3; B-0160): a design change request's patch dry-run in its impact report; `Domain.disclaimer` in the package `README.txt` and the report; the `later` → `in` cover line; `"an agent may decide it"` only when the area is delegated (closes B-0184, B-0160) | in force |
 
 ---
 
@@ -1271,3 +1272,14 @@ what each file is, and that lengths are estimates; CSVs stay comment-free for pa
 two sign-offs citing `doc://installation` (`REQ-008`, `REQ-018`) re-keyed for that line.
 4. Report (`owner/report.py`, `owner/wiring.html.j2`): circuit heading says the circuit once, `carries(record)`, and "protected by"
 only for `PROTECTED` (C3, B-0157); lead says lengths are the design's estimates (C4). Golden: minimal `.svg` only; kiln PNGs re-rendered.
+## S-180 — Seam: patch impact, domain disclaimer, `later` → `in` cover line, delegated choice wording (2026-11-03)
+Closes B-0184, B-0160; gate H B1 and C7 (`docs/reviews/v0.6-gate-h.md`), gate G blocker 3's README half
+(`docs/reviews/v0.6-gate-g.md`). (1) `compute_impact(product, edits, patch=…)` and `ecr_impact` dry-run a `kind: design`
+change request's patch in a temporary copy, turn its file diff into touched keys (`set://<family>`, object and field
+keys, `manifest://scope`), and report files/objects added, changed or removed, scope changes in owner words, and the
+artifacts that rebuild (or say plainly when the patch does not apply); `ecr.impact` stores patch-only URIs without `://`
+so `load_product` validates before and after apply. (2) `Domain.disclaimer` (`docs/domains.md` §3.14, §4.1) appends each
+in-scope domain's sentence to the package `README.txt` and the report's `#disclaimer`; the electrical domain sets its
+licensed-electrician line. (3) `ecr/release.py::scope_lines` reads the previous Revision's `release.json` and says
+`<Word>: included in this Revision; left for later in <prev>`. (4) `core/checks/choices.py` says `"an agent may decide it
+and say so"` only when `operator.yaml` delegates the choice's area and `model/intake.md` does not ask to be asked.

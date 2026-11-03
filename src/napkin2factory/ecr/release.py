@@ -174,11 +174,14 @@ def make_bundle(
         shutil.copyfile(checks, stage / "checks.json")
     if product.paths.changelog.is_file():
         shutil.copyfile(product.paths.changelog, stage / "CHANGELOG.md")
+    from napkin2factory.core.domain import domain_disclaimers
+
     domain_folders = "".join(
         f"{name}/ ({title}), " if title else f"{name}/, "
         for name, title in copy_domain_files(build_dir, stage)
     )
-    lines = scope_lines(product)
+    lines = scope_lines(product, build_dir, version, out_dir)
+    disclaimers = "".join(f" {d}" for d in domain_disclaimers(product))
     (stage / "README.txt").write_text(
         f"{product.manifest.product.name} — Revision {version}\n\n"
         + "".join(f"{para}\n\n" for para in cover_notes(product, example_ids or []))
@@ -186,7 +189,7 @@ def make_bundle(
         + "Contents: step/ (3D models), drawings/ (SVG + drawings.pdf), flat-patterns/ (DXF for\n"
         f"laser or punch), bom/ (bom.xlsx, bom.csv), manuals/ (PDF + HTML), {domain_folders}"
         "report.html, checks.json, release.json.\n\nThis design was produced with an AI system "
-        "and has not been reviewed by a licensed engineer.\n",
+        f"and has not been reviewed by a licensed engineer.{disclaimers}\n",
         encoding="utf-8",
     )
     record = release_record(product, version)
@@ -313,11 +316,115 @@ def not_included(product: Product) -> list[str]:
     return out
 
 
-def scope_lines(product: Product) -> list[str]:
-    """The package cover's scope lines (F11): one per declared domain, owner words."""
-    from napkin2factory.core.checks.stage import scope_entries
+def _ver_key(version: str) -> tuple[int, ...]:
+    """Comparable integer tuple for a ``vX.Y.Z`` Revision tag."""
+    return tuple(int(x) for x in version[1:].split("."))
 
-    return [e["line"] for e in scope_entries(product)]
+
+def _read_zip_record(zpath: Path, records: dict[str, dict[str, Any]]) -> None:
+    """Read ``<ver>/release.json`` from a release package zip into ``records`` if valid."""
+    try:
+        with zipfile.ZipFile(zpath) as zf:
+            names = [n for n in zf.namelist() if n.endswith("/release.json")]
+            if not names:
+                return
+            rec = json.loads(zf.read(names[0]))
+    except (zipfile.BadZipFile, json.JSONDecodeError, OSError):
+        return
+    rev = str(rec.get("revision", ""))
+    if VERSION_RE.match(rev):
+        records.setdefault(rev, rec)
+
+
+def _previous_release_record(
+    product: Product,
+    build_dir: Path | None = None,
+    version: str | None = None,
+    out_dir: Path | None = None,
+) -> dict[str, Any] | None:
+    """The most recent earlier Revision's ``release.json`` record, if any exists."""
+    bdir = build_dir or product.paths.build
+    limit = _ver_key(version) if version and VERSION_RE.match(version) else None
+    records: dict[str, dict[str, Any]] = {}
+    roots = [bdir / "release", bdir / "site"]
+    if out_dir is not None:
+        roots.extend([out_dir, out_dir.parent])
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for sub in sorted(root.iterdir()):
+            if not sub.is_dir() or not VERSION_RE.match(sub.name):
+                continue
+            rfile = sub / "release.json"
+            if rfile.is_file():
+                try:
+                    rec = json.loads(rfile.read_text(encoding="utf-8"))
+                    rev = str(rec.get("revision", sub.name))
+                    if VERSION_RE.match(rev):
+                        records.setdefault(rev, rec)
+                except (json.JSONDecodeError, OSError):
+                    pass
+            for zpath in sorted(sub.glob("*.zip")):
+                _read_zip_record(zpath, records)
+        for zpath in sorted(root.glob("*.zip")):
+            _read_zip_record(zpath, records)
+    earlier = [rev for rev in records if limit is None or _ver_key(rev) < limit]
+    if not earlier:
+        return None
+    return records[max(earlier, key=_ver_key)]
+
+
+def scope_lines(
+    product: Product,
+    build_dir: Path | None = None,
+    version: str | None = None,
+    out_dir: Path | None = None,
+) -> list[str]:
+    """The package cover's scope lines (F11): one per declared domain, owner words.
+
+    When a domain's scope was ``later`` in the previous Revision's release record and is
+    ``in`` now, its cover line says so ("Wiring: included in this Revision; left for later
+    in v1.0.0", S-180).
+    """
+    from napkin2factory.core.checks.stage import domain_word, scope_entries
+
+    prev = _previous_release_record(product, build_dir, version, out_dir)
+    prev_rev = str(prev.get("revision", "")) if prev else ""
+    prev_scope = {str(s["domain"]): str(s["state"]) for s in prev.get("scope", [])} if prev else {}
+    out: list[str] = []
+    seen: set[str] = set()
+    for e in scope_entries(product):
+        dom = str(e["domain"])
+        seen.add(dom)
+        if e["state"] == "in" and prev_rev and prev_scope.get(dom) == "later":
+            word = domain_word(dom)
+            dec = product.decisions.get(e["decision"]) if e.get("decision") else None
+            note = e.get("note") or (dec.title if dec is not None else None)
+            line = f"{word}: included in this Revision; left for later in {prev_rev}"
+            if note:
+                line += f" — {note}"
+            if e.get("decision"):
+                line += f" ({e['decision']})"
+            out.append(line)
+        else:
+            out.append(str(e["line"]))
+    if prev_rev:
+        from napkin2factory.core.registry import registry
+
+        reg = registry()
+        reg.ensure()
+        by_name = {d.name: d for d in reg.domains}
+        for dom, old_state in prev_scope.items():
+            if dom in seen or old_state != "later":
+                continue
+            d = by_name.get(dom)
+            if d is not None and any(
+                bool(dict.keys(product.families.get(f.name, {}))) for f in d.families
+            ):
+                out.append(
+                    f"{domain_word(dom)}: included in this Revision; left for later in {prev_rev}"
+                )
+    return out
 
 
 def release_record(product: Product, version: str) -> dict[str, Any]:

@@ -740,6 +740,10 @@ ReleaseFiles("toy", ("*.json",), "toy glow records")
   folder (`""`, `"."`) is refused at `register`, naming your domain.
 - A real one: `ReleaseFiles("electrical", ("*/diagram.svg", "schedule.csv", "labels.csv",
   "cables.csv"), "wiring diagrams, cable schedule, terminal labels")`.
+- `disclaimer: str | None = None` on `Domain`: one sentence appended after the general
+  disclaimer in the release package's `README.txt` and the report's disclaimer box whenever the
+  domain is in scope (`scope: in`, or undeclared with content in its model families), e.g. a
+  licensed-trade review requirement.
 
 ## 4. The objects you are handed (reference)
 
@@ -748,7 +752,8 @@ ReleaseFiles("toy", ("*.json",), "toy glow records")
 Domain(name, root=Path(), title="", families=(), rule_families=(), verify_kinds=(),
        check_stages=(), gate_rows=(), report_sections=(), doc_helpers={}, vocabulary={},
        interface_kinds=(), processes=(), finishes=(), categories=(), drivers={},
-       style_roles=(), screens=(), context=(), release_files=(), code=(), in_place=False)
+       style_roles=(), screens=(), context=(), release_files=(), disclaimer=None,
+       code=(), in_place=False)
 ModelFamily(name, schema, folder, validate_refs=None, scheme="", id_pattern=SLUG)
 RuleFamily(name, make_rules, after=(), before=(), produces="", also_produces=(), code=(),
            reads_all=False, targets=(), output_dir=None, static_reads=None)

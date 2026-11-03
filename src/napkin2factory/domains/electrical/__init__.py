@@ -68,4 +68,8 @@ DOMAIN = Domain(
     screens=SCREENS,
     context=CONTEXT,
     release_files=RELEASE_FILES,
+    disclaimer=(
+        "Its wiring has not been reviewed by a licensed electrician: a licensed electrician "
+        "wires the product to local code."
+    ),
 )

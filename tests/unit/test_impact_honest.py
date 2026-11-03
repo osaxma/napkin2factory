@@ -197,3 +197,80 @@ def test_a_table_edit_moves_the_keys_of_the_rules_that_read_it(
     assert roles  # the kiln names roles, so the style-role case is not empty
     expected = (moves - {"roles"}) | (roles if "roles" in moves else set())
     assert {rid for rid in before if before[rid] != after[rid]} == expected
+
+
+# ---- S-180: a change request's patch in its impact report (gate H B1) ------------------------
+
+
+def test_patch_impact_reports_files_entities_scope_and_rebuild_artifacts(tmp_path: Path) -> None:
+    """Gate H B1: a design ECR with a patch lists its files, entities, scope change and rebuild."""
+    import subprocess
+
+    from napkin2factory.core.graph.impact import summarize
+    from napkin2factory.ecr.lifecycle import new_ecr, run_impact
+    from tests.conftest import FIXTURES
+
+    root = copy_product(FIXTURES / "scope" / "external-box", tmp_path / "box", git=True)
+    # take the wiring out to `later`, keeping the reverse diff as the change request's patch
+    shutil.rmtree(root / "model" / "electrical")
+    for name in ("mains-entry.yaml", "control-entry.yaml"):
+        p = root / "model" / "interfaces" / name
+        p.write_text(
+            p.read_text(encoding="utf-8")
+            .replace("passes: [circuit://power]", "passes: []")
+            .replace("passes: [circuit://control]", "passes: []"),
+            encoding="utf-8",
+        )
+    manifest = root / "n2f.yaml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            "electrical: {state: in, decision: DEC-001}",
+            "electrical: {state: later, decision: DEC-001}",
+        ),
+        encoding="utf-8",
+    )
+    patch_dir = root / "changes"
+    patch_dir.mkdir(exist_ok=True)
+    diff = subprocess.run(
+        ["git", "--no-pager", "diff", "--no-color", "-R"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    (patch_dir / "wiring.patch").write_text(diff, encoding="utf-8")
+    run_build(load_product(root), render=False, quiet=True)
+    new_ecr(
+        load_product(root),
+        title="Add the wiring",
+        reason="Wire the heater and probe to the control box.",
+        requested_by="human",
+        kind="design",
+        patch="changes/wiring.patch",
+    )
+    report_obj, md = run_impact(load_product(root), "ECR-001")
+    impact = report_obj.to_dict()
+    assert impact["patch"]["applies"] is True
+    assert "model/electrical/supply.yaml" in impact["patch"]["files"]["added"]
+    assert "n2f.yaml" in impact["patch"]["files"]["changed"]
+    assert {"supply://supply", "circuit://power", "circuit://control"} <= set(
+        impact["patch"]["objects"]["added"]
+    )
+    assert "iface://mains-entry" in impact["patch"]["objects"]["changed"]
+    assert [s["words"] for s in impact["patch"]["scope"]] == ["Wiring: left for later → done here"]
+    assert {"elec:power", "elec:control", "checks", "report"} <= set(impact["rules"])
+    assert "Impact of 0 change(s)" not in md
+    assert (
+        "This change request carries the designer's work as a patch (`changes/wiring.patch`)" in md
+    )
+    assert "## What the patch changes" in md
+    assert "- Wiring: left for later → done here" in md
+    assert "- Wiring: 2 output(s): `control`, `power`" in md
+    # an unapplicable patch reports why instead of crashing or silently claiming 0 changes
+    bad = patch_dir / "bad.patch"
+    bad.write_text("--- a/n2f.yaml\n+++ b/n2f.yaml\n@@ -1,1 +1,1 @@\n-not-there\n+x\n", "utf-8")
+    prod = load_product(root)
+    rep = compute_impact(prod, [], patch=bad)
+    assert rep.patch is not None and not rep.patch.applies and rep.patch.problem
+    bad_md = summarize(rep, prod)
+    assert "does not apply to the model as it is now" in bad_md

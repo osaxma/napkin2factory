@@ -52,13 +52,51 @@ WAITING = "a choice is waiting on you"
 UNAPPLIED = "a choice is decided but not yet in the design"
 #: Who makes a decided pick, in owner text (gate F, concern 13): the owner's agent.
 AGENT_WORDS = "your agent"
+#: Words when a choice holds no gate and its area is not delegated to an agent (B-0160, S-180).
+HOLDS_NOTHING = "it holds nothing"
+#: Words when a choice holds no gate and the owner delegated its area (F13, B-0160, S-180).
+HOLDS_DELEGATED = "it holds nothing; an agent may decide it and say so"
+
+
+class _Blocks(str):
+    """A ``blocks`` value carrying whether the owner delegated the choice's area (B-0160)."""
+
+    delegated: bool
+
+    def __new__(cls, value: str, delegated: bool = True) -> _Blocks:
+        s = super().__new__(cls, value)
+        s.delegated = delegated
+        return s
+
+
+class _HoldsWords(dict[str, str]):
+    """Gate-holding words per ``blocks`` value; ``none`` adds delegation only when delegated."""
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key == "none" and not getattr(key, "delegated", True):
+            return HOLDS_NOTHING
+        return super().get(key, default)
+
+
 #: What ``n2f status`` and the gates call a gate a choice holds, in owner words.
-HOLDS_WORDS = {
-    "design": "it holds the Design gate",
-    "verify": "it holds the Verify gate",
-    "release": "it holds the release",
-    "none": "it holds nothing; an agent may decide it and say so",
-}
+HOLDS_WORDS: dict[str, str] = _HoldsWords(
+    {
+        "design": "it holds the Design gate",
+        "verify": "it holds the Verify gate",
+        "release": "it holds the release",
+        "none": HOLDS_DELEGATED,
+    }
+)
+
+_ASK_OWNER_RE = re.compile(
+    r"\b("
+    r"ask\s+(?:me|the\s+owner|before|first|her|him|them)"
+    r"|before\s+(?:you\s+)?decid\w*"
+    r"|(?:do\s+not|don't|never)\s+decide"
+    r"|(?:owner|my|her|his|their)\s+(?:decides|call|choice)"
+    r")\b",
+    re.IGNORECASE,
+)
 
 _CHOICE_LINE = re.compile(r"^choice (?P<check>\S+): option (?P<option>\S+), chosen by (?P<by>.+)$")
 _EVIDENCE_LINE = re.compile(r"^evidence (?P<uri>\S+) (?P<key>\S+)$")
@@ -318,9 +356,116 @@ def load_choices(build_dir: Path) -> list[dict[str, Any]]:
     return data if isinstance(data, list) else []
 
 
+def choice_domain(row: dict[str, Any]) -> str:
+    """The domain a choice row belongs to, from its stage or the schemes of its URIs."""
+    if row.get("domain"):
+        return str(row["domain"])
+    from napkin2factory.core.registry import registry
+
+    reg = registry()
+    reg.ensure()
+    stage = str(row.get("stage") or "")
+    if stage and any(s.name == stage for d in reg.domains for s in d.check_stages):
+        return reg.owner("check stage", stage).name
+    uris = [str(row.get("id") or ""), str(row.get("subject") or "")]
+    uris.extend(str(k) for k in (row.get("evidence_keys") or {}))
+    schemes = {u.split("://", 1)[0] for u in uris if "://" in u}
+    for d in reg.domains:
+        if d.in_place:
+            continue
+        owned = {f.uri_scheme for f in d.families}
+        owned |= {f.produces.removesuffix("://") for f in d.rule_families if f.produces}
+        if schemes & owned or any(s.startswith(d.name[:4]) for s in schemes):
+            return d.name
+    return "mechanical"
+
+
+def _intake_asks_owner(root: Path, area: str) -> bool:
+    """True when ``model/intake.md`` records that the owner asked to be asked in ``area``."""
+    intake = root / "model" / "intake.md"
+    if not intake.is_file():
+        return False
+    from napkin2factory.core.checks.stage import domain_word
+
+    text = intake.read_text(encoding="utf-8")
+    tokens = {area.lower(), domain_word(area).lower()}
+    if area == "electrical":
+        tokens |= {"electrics", "electric", "wiring", "socket", "circuit", "plugs into"}
+    for para in re.split(r"\n\s*\n|\n(?=[-*>#])", text):
+        low = para.lower()
+        if any(t in low for t in tokens) and _ASK_OWNER_RE.search(para):
+            return True
+    return False
+
+
+def area_delegated(root_or_product: Path | Product, area: str) -> bool:
+    """True when the owner delegated ``area`` in ``operator.yaml`` (and ``model/intake.md``).
+
+    Follows the PM role's reading (B-0160, S-180): ``delegation: conservative`` or an
+    ``intake.md`` rule asking to be asked in ``area`` never delegates; ``delegation:
+    autonomous`` delegates; ``delegation: balanced`` (when set in ``operator.yaml``)
+    delegates a ``novice`` area and leaves ``intermediate``/``expert`` areas to the owner.
+    """
+    from napkin2factory.core.yamlio import read_yaml
+
+    root = root_or_product if isinstance(root_or_product, Path) else root_or_product.root
+    op_path = root / "operator.yaml"
+    if not op_path.is_file() or _intake_asks_owner(root, area):
+        return False
+    try:
+        raw = read_yaml(op_path)
+    except Exception:
+        return False
+    if not isinstance(raw, dict):
+        return False
+    delegation = str(raw.get("delegation", ""))
+    if delegation == "conservative":
+        return False
+    if delegation == "autonomous":
+        return True
+    if delegation != "balanced":
+        return False
+    domains = raw.get("domains")
+    level = str(domains.get(area, "novice")) if isinstance(domains, dict) else "novice"
+    return level == "novice"
+
+
+def choice_delegated(root_or_product: Path | Product, row: dict[str, Any]) -> bool:
+    """True when the owner delegated the domain of choice ``row`` (B-0160)."""
+    return area_delegated(root_or_product, choice_domain(row))
+
+
+def holds_words(
+    blocks: str,
+    root_or_product: Path | Product | None = None,
+    row: dict[str, Any] | None = None,
+    *,
+    delegated: bool | None = None,
+) -> str:
+    """What a choice's ``blocks`` value means in owner words (B-0160, S-180)."""
+    if blocks != "none":
+        return HOLDS_WORDS.get(blocks, "")
+    if delegated is None and root_or_product is not None:
+        delegated = (
+            choice_delegated(root_or_product, row)
+            if row is not None
+            else area_delegated(root_or_product, "mechanical")
+        )
+    if delegated is False or not getattr(blocks, "delegated", True):
+        return HOLDS_NOTHING
+    return HOLDS_DELEGATED
+
+
 def open_choices(build_dir: Path) -> list[dict[str, Any]]:
     """The choices waiting on the owner (not decided, or reopened)."""
-    return [c for c in load_choices(build_dir) if c.get("status") == CHOICE]
+    out: list[dict[str, Any]] = []
+    for c in load_choices(build_dir):
+        if c.get("status") != CHOICE:
+            continue
+        if c.get("blocks") == "none":
+            c = {**c, "blocks": _Blocks("none", choice_delegated(build_dir.parent, c))}
+        out.append(c)
+    return out
 
 
 def decide_command(choice: dict[str, Any], option: str | None = None) -> str:

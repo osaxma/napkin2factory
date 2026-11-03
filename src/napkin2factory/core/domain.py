@@ -422,5 +422,34 @@ class Domain:
     screens: tuple[Screen, ...] = ()
     context: tuple[ContextContribution, ...] = ()
     release_files: tuple[ReleaseFiles, ...] = ()
+    disclaimer: str | None = None
     code: tuple[str, ...] = ()
     in_place: bool = False
+
+
+def domain_disclaimers(product: Any) -> list[str]:
+    """Each in-scope domain's ``disclaimer`` sentence, in registry order (F1, F11, S-180).
+
+    A domain is in scope when ``n2f.yaml``'s ``scope`` marks it ``in``, or when ``scope``
+    does not mention it and the product has content in any of its model families; a ``later``
+    or ``external`` domain's work is not in the package or report, so its sentence is omitted.
+    """
+    from napkin2factory.core.registry import registry
+
+    reg = registry()
+    reg.ensure()
+    scope = getattr(getattr(product, "manifest", None), "scope", {}) or {}
+    families = getattr(product, "families", {}) or {}
+    out: list[str] = []
+    for d in reg.domains:
+        if not d.disclaimer:
+            continue
+        entry = scope.get(d.name)
+        in_scope = (
+            entry.state == "in"
+            if entry is not None
+            else any(bool(dict.keys(families.get(f.name, {}))) for f in d.families)
+        )
+        if in_scope:
+            out.append(d.disclaimer)
+    return out

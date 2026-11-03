@@ -6,10 +6,19 @@ are affected, with hypothetical verdicts where they can be evaluated from declar
 parts touched (revision bumps implied); docs with affected reads; interfaces whose parties
 are affected, and which of them are ports (a joint between modules, P4, P12); sign-offs that
 would be invalidated; and a cost delta from declared costs.  Nothing in the model changes.
+
+A design change request's patch (D7) is part of the change: :func:`compute_impact` applies it
+to a scratch copy of the product (:func:`dry_run_patch`), lists the files, model objects and
+scope states it changes, and takes the rebuild set from the build's own dry run of the copy
+against this build (S-180).  A patch that does not apply says so plainly.
 """
 
 from __future__ import annotations
 
+import shutil
+import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -60,12 +69,55 @@ class ImpactReport:
     tasks: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     ports: list[dict[str, Any]] = field(default_factory=list)  # P12: the ports it crosses
+    patch: PatchImpact | None = None  # a design change request's patch (D7, S-180)
+
+    @property
+    def change_count(self) -> int:
+        """The changes the heading counts: the edits, plus what the patch changes."""
+        return len(self.edits) + (self.patch.count if self.patch is not None else 0)
+
+    def to_dict(self) -> dict[str, Any]:
+        """JSON form (stored in the change request; ``patch`` only when there is one)."""
+        d = dict(self.__dict__)
+        d["requirements"] = [r.__dict__ for r in self.requirements]
+        # an impact without a patch keeps the stored form it had before S-180
+        if self.patch is None:
+            d.pop("patch")
+        else:
+            d["patch"] = self.patch.to_dict()
+        return d
+
+
+@dataclass
+class PatchImpact:
+    """What a design change request's patch changes, from a dry run on a scratch copy.
+
+    ``files`` and ``objects`` map ``added`` / ``changed`` / ``removed`` to product-relative
+    paths and model URIs; ``scope`` lists each domain whose scope state moves (``words`` in
+    owner words); ``revs`` an added part's revision; ``rebuilds`` the rules the build would
+    run after the patch and not before it (rule id → why); ``stale`` the rules already out
+    of date before it.  ``applies`` is false when the patch does not fit the model or the
+    patched model does not load; ``problem`` then says why.
+    """
+
+    path: str
+    applies: bool
+    problem: str = ""
+    files: dict[str, list[str]] = field(default_factory=dict)
+    objects: dict[str, list[str]] = field(default_factory=dict)
+    scope: list[dict[str, str]] = field(default_factory=list)
+    revs: dict[str, str] = field(default_factory=dict)
+    rebuilds: dict[str, str] = field(default_factory=dict)
+    stale: list[str] = field(default_factory=list)
+
+    @property
+    def count(self) -> int:
+        """Model objects added, changed or removed, plus scope states moved."""
+        return sum(len(v) for v in self.objects.values()) + len(self.scope)
 
     def to_dict(self) -> dict[str, Any]:
         """JSON form."""
-        d = dict(self.__dict__)
-        d["requirements"] = [r.__dict__ for r in self.requirements]
-        return d
+        return dict(self.__dict__)
 
 
 def next_rev(rev: str) -> str:
@@ -239,12 +291,43 @@ def compute_impact(
     build_dir: Path | None = None,
     kind: str = "parametric",
     tasks: list[str] | None = None,
+    patch: Path | None = None,
 ) -> ImpactReport:
-    """The impact of ``edits`` on the current build state (nothing is modified)."""
+    """The impact of ``edits`` (and of a design change request's ``patch``) on this build.
+
+    Nothing is modified.  With ``patch``, the patch is applied to a scratch copy
+    (:func:`dry_run_patch`) and the impact is computed on the patched model against this
+    build: what it adds, changes and removes, and what the build would run for it.
+    """
     build_dir = build_dir or product.paths.build
+    if patch is None:
+        return _impact(product, edits, build_dir, kind, tasks)
+    with dry_run_patch(product, patch, build_dir) as (found, after):
+        if after is None:
+            report = _impact(product, edits, build_dir, kind, tasks)
+        else:
+            keys = _patch_keys(product, after, found)
+            report = _impact(after, edits, build_dir, kind, tasks, keys, found.rebuilds)
+        report.patch = found
+        return report
+
+
+def _impact(
+    product: Product,
+    edits: list[Edit],
+    build_dir: Path,
+    kind: str,
+    tasks: list[str] | None,
+    extra_keys: list[str] | None = None,
+    seeded: dict[str, str] | None = None,
+) -> ImpactReport:
+    """:func:`compute_impact` on one model; ``seeded``: rules known to rerun, with why."""
     manifest = Manifest.load(build_dir)
     rules = build_rules(product)
     edited_keys, overrides = _edit_keys(product, edits)
+    for k in extra_keys or []:
+        if k not in edited_keys:
+            edited_keys.append(k)
     edited = set(edited_keys)
     firm = bool(manifest.entries)
     affected: dict[str, str] = {}
@@ -261,6 +344,12 @@ def compute_impact(
         entry = manifest.entries.get(rule.id)
         if rule.kind == "validate":
             affected[rule.id] = "always re-validates"
+            continue
+        if seeded and rule.id in seeded:  # the build's own dry run of the patched copy
+            affected[rule.id] = seeded[rule.id]
+            for produced in rule.produced:
+                produced_affected.add(produced)
+                produced_affected.add(produced.split("#")[0])
             continue
         if rule.kind in added_to:
             # its domain makes its rules from the family and records no listing (S-165)
@@ -347,6 +436,254 @@ def compute_impact(
         notes=notes,
         ports=ports,
     )
+
+
+# ---- a design change request's patch (D7, S-180) ----------------------------------------
+
+#: The core's model collections a patch can touch, by URI scheme (signoffs and change
+#: requests are records, not design: a patch over ``model/`` does not carry them).
+_COLLECTIONS: tuple[tuple[str, str], ...] = (
+    ("part", "parts"),
+    ("asm", "assemblies"),
+    ("iface", "interfaces"),
+    ("req", "requirements"),
+    ("param", "parameters"),
+    ("dec", "decisions"),
+    ("doc", "docs"),
+)
+#: How the owner says each core kind of object, singular and plural.
+_NOUNS: dict[str, tuple[str, str]] = {
+    "part": ("part", "parts"),
+    "asm": ("assembly", "assemblies"),
+    "iface": ("joint", "joints"),
+    "req": ("requirement", "requirements"),
+    "param": ("size or setting", "sizes and settings"),
+    "dec": ("decision", "decisions"),
+    "doc": ("manual page", "manual pages"),
+}
+#: The folders of a product a scratch copy leaves out: its build and its change tracking.
+_NOT_COPIED = frozenset({"build", ".git"})
+
+
+@contextmanager
+def dry_run_patch(
+    product: Product, patch: Path, build_dir: Path
+) -> Iterator[tuple[PatchImpact, Product | None]]:
+    """Apply ``patch`` to a scratch copy of ``product``; yield what it changes and the copy.
+
+    The copy is the product folder without ``build/`` and its change tracking; the patch is
+    applied there through the vcs wrapper (D31), exactly as ``n2f ecr apply`` applies it, and
+    the copy is loaded.  The yielded product is ``None`` when the patch does not apply or the
+    patched model does not load (``PatchImpact.problem`` says why).  The copy is removed when
+    the block ends, so use the patched product inside it.
+    """
+    from napkin2factory.core.errors import ModelError
+    from napkin2factory.core.loader import load_product
+    from napkin2factory.core.vcs import Vcs, VcsError
+
+    shown = _relative(patch, product.root)
+    if not patch.is_file():
+        yield PatchImpact(shown, False, f"the patch file {shown} is not there"), None
+        return
+    with tempfile.TemporaryDirectory(prefix="n2f-patch-") as tmp:
+        copy = Path(tmp) / product.root.name
+        root = product.root.resolve()
+        shutil.copytree(
+            root,
+            copy,
+            ignore=lambda d, names: (
+                [n for n in names if n in _NOT_COPIED]
+                if Path(d).resolve() == root
+                else [n for n in names if n == "__pycache__"]
+            ),
+        )
+        vcs = Vcs(copy)
+        try:
+            vcs.init()  # its own root, so the patch's paths are read from the copy's top
+            vcs.apply_patch(patch.resolve())
+        except VcsError as exc:
+            yield PatchImpact(shown, False, str(exc)), None
+            return
+        try:
+            after = load_product(copy)
+        except ModelError as exc:
+            problem = f"the model does not load after the patch: {exc}"
+            yield PatchImpact(shown, False, problem), None
+            return
+        found = PatchImpact(shown, True)
+        found.files = _file_changes(root, copy)
+        found.objects, found.revs = _object_changes(product, after)
+        found.scope = _scope_changes(product, after)
+        found.rebuilds, found.stale = _patch_rebuilds(product, after, build_dir)
+        yield found, after
+
+
+def _relative(path: Path, root: Path) -> str:
+    """``path`` relative to ``root`` when it is inside it, else as given."""
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _files_of(root: Path) -> dict[str, bytes]:
+    """Every file of a product folder (no ``build/``, no change tracking) → its bytes."""
+    out: dict[str, bytes] = {}
+    for p in sorted(root.rglob("*")):
+        rel = p.relative_to(root)
+        if rel.parts[0] in _NOT_COPIED or "__pycache__" in rel.parts or not p.is_file():
+            continue
+        out[rel.as_posix()] = p.read_bytes()
+    return out
+
+
+def _file_changes(before: Path, after: Path) -> dict[str, list[str]]:
+    """The product-relative files the patch adds, changes and removes."""
+    a, b = _files_of(before), _files_of(after)
+    return {
+        "added": sorted(set(b) - set(a)),
+        "changed": sorted(k for k in set(a) & set(b) if a[k] != b[k]),
+        "removed": sorted(set(a) - set(b)),
+    }
+
+
+def _objects_of(product: Product) -> dict[str, Any]:
+    """Every model object of ``product`` by its URI (the core's, then each domain family's)."""
+    from napkin2factory.core.registry import registry
+
+    out: dict[str, Any] = {}
+    for scheme, name in _COLLECTIONS:
+        for oid, obj in getattr(product, name).items():
+            out[f"{scheme}://{oid}"] = obj
+    for fam in registry().model_families():
+        # dict.items: listing a family outside a rule records nothing, and needs not to (S-165)
+        for oid, obj in dict.items(product.families.get(fam.name, {})):
+            out[f"{fam.uri_scheme}://{oid}"] = obj
+    return out
+
+
+def _dump(obj: Any) -> dict[str, Any]:
+    """An object's fields as plain data, to compare two versions of it."""
+    from napkin2factory.core.product import Doc
+
+    if isinstance(obj, Doc):
+        return {"meta": obj.meta.model_dump(mode="json"), "body": obj.body}
+    if hasattr(obj, "model_dump"):
+        dumped: dict[str, Any] = obj.model_dump(mode="json")
+        return dumped
+    return {"value": repr(obj)}
+
+
+def _changed_fields(before: Any, after: Any) -> list[str]:
+    """The top-level fields that differ between two versions of one object."""
+    a, b = _dump(before), _dump(after)
+    return sorted(k for k in set(a) | set(b) if a.get(k) != b.get(k))
+
+
+def _object_changes(
+    product: Product, after: Product
+) -> tuple[dict[str, list[str]], dict[str, str]]:
+    """URIs added, changed and removed by the patch; each added part's revision."""
+    a, b = _objects_of(product), _objects_of(after)
+    changed = sorted(u for u in set(a) & set(b) if _changed_fields(a[u], b[u]))
+    added = sorted(set(b) - set(a))
+    revs = {
+        u[len("part://") :]: after.parts[u[len("part://") :]].rev
+        for u in added
+        if u.startswith("part://")
+    }
+    return (
+        {"added": added, "changed": changed, "removed": sorted(set(a) - set(b))},
+        revs,
+    )
+
+
+def _scope_changes(product: Product, after: Product) -> list[dict[str, str]]:
+    """Each domain whose scope state the patch moves, in owner words (F11).
+
+    "Wiring: left for later → done here"; a domain the model did not declare before reads
+    "not declared".
+    """
+    from napkin2factory.core.checks.stage import domain_word
+    from napkin2factory.core.model.manifest import SCOPE_WORDS
+
+    old, new = product.manifest.scope, after.manifest.scope
+    out = []
+    for domain in [*old, *(d for d in new if d not in old)]:
+        was = old[domain].state if domain in old else ""
+        now = new[domain].state if domain in new else ""
+        if was == now:
+            continue
+        words = (
+            f"{domain_word(domain)}: {SCOPE_WORDS.get(was, 'not declared')} → "
+            f"{SCOPE_WORDS.get(now, 'not declared')}"
+        )
+        out.append({"domain": domain, "before": was, "after": now, "words": words})
+    return out
+
+
+def _patch_keys(product: Product, after: Product, found: PatchImpact) -> list[str]:
+    """The dependency keys the patch touches, as edits of the same objects would name them.
+
+    A changed object: each changed field (``part://x#material``), a parameter whole and the
+    parameters computed from it; an added or removed one: its URI and its family's
+    membership key (``set://parts``, a domain family's ``set://<family>``); a moved scope
+    state: ``manifest://scope#<domain>``; the product's name and the like:
+    ``manifest://product#<field>``.
+    """
+    from napkin2factory.core.graph.recording import membership_key
+    from napkin2factory.core.graph.values import MEMBERSHIP_BY_SCHEME, SCOPE_KEY
+    from napkin2factory.core.registry import registry
+
+    members = dict(MEMBERSHIP_BY_SCHEME)
+    for fam in registry().model_families():
+        members.setdefault(fam.uri_scheme, membership_key(fam.name))
+    a, b = _objects_of(product), _objects_of(after)
+    keys: list[str] = []
+    for uri in found.objects.get("changed", []):
+        scheme, slug = uri.split("://", 1)
+        if scheme == "param":
+            keys += [uri, *(f"param://{d}" for d in dependent_params(after, slug))]
+        elif scheme == "doc":
+            keys.append(uri)
+        else:
+            keys += [f"{uri}#{f}" for f in _changed_fields(a[uri], b[uri])]
+    for uri in found.objects.get("added", []) + found.objects.get("removed", []):
+        keys.append(uri)
+        scheme = uri.split("://", 1)[0]
+        if scheme in members:
+            keys.append(members[scheme])
+    keys += [f"{SCOPE_KEY}#{s['domain']}" for s in found.scope]
+    keys += [
+        f"manifest://product#{f}"
+        for f in _changed_fields(product.manifest.product, after.manifest.product)
+    ]
+    return list(dict.fromkeys(keys))
+
+
+def _patch_rebuilds(
+    product: Product, after: Product, build_dir: Path
+) -> tuple[dict[str, str], list[str]]:
+    """The rules the build would run after the patch and not before it; those stale already.
+
+    Both from the build's own dry run (:func:`explain_build`, a superset of what a build
+    reruns) against this build, so the list is what ``n2f build`` would do, not a guess.  A
+    rule the patch brings is "added with the change"; a rule that would run anyway (the
+    model moved since the last build) is left out and listed as stale.
+    """
+    from napkin2factory.core.graph.runner import explain_build
+
+    def would_run(p: Product) -> dict[str, str]:
+        return {rid: why for rid, run, why in explain_build(p, "all", build_dir, False) if run}
+
+    before = would_run(product)
+    known = {r.id for r in build_rules(product)}
+    rebuilds = {
+        rid: ("added with the change" if rid not in known else why)
+        for rid, why in would_run(after).items()
+        if rid not in before and rid != "validate"
+    }
+    return rebuilds, sorted(r for r in before if r != "validate")
 
 
 def crossed_ports(product: Product, iface_ids: list[str]) -> list[dict[str, Any]]:
@@ -711,10 +1048,14 @@ def summarize(report: ImpactReport, product: Product) -> str:
     stored impact (``to_dict``) keeps them whole.
     """
     persona = product.operator.persona
-    lines = [f"# Impact of {len(report.edits)} change(s)", ""]
+    patch = report.patch
+    lines = [f"# Impact of {report.change_count} change(s)", ""]
     for e in report.edits:
         lines.append(f"- set `{display_uri(e['set'], persona)}` to **{e['to']}**")
-    lines.append("")
+    if report.edits:
+        lines.append("")
+    if patch is not None:
+        lines += _patch_lines(patch, persona)
     if not report.firm:
         lines.append(
             "> Not built yet here: this is the full list, not the exact one. "
@@ -724,17 +1065,23 @@ def summarize(report: ImpactReport, product: Product) -> str:
     if report.cost_delta:
         sign = "+" if report.cost_delta > 0 else ""
         lines.append(f"**Cost:** {sign}{report.cost_delta:.2f} USD per unit ({report.cost_note}).")
+    elif patch is not None and patch.applies:
+        parts = [u for k in ("added", "changed") for u in patch.objects.get(k, [])]
+        parts = [u for u in parts if u.startswith("part://")]
+        lines.append(
+            "**Cost:** known after the rebuild: the patch "
+            + (f"touches {len(parts)} part(s)" if parts else "changes no part")
+            + "; re-quote after `n2f build`."
+        )
     else:
         lines.append(f"**Cost:** no change from declared costs ({report.cost_note}).")
     lines.append("")
     lines.append("## What gets rebuilt" if persona == "engineer" else "## What changes")
+    added = set(patch.objects.get("added", [])) if patch is not None else set()
     if report.parts:
         lines.append(
             f"- {len(report.parts)} part(s): "
-            + ", ".join(
-                f"`{p}` (rev {product.parts[p].rev} → {next_rev(product.parts[p].rev)})"
-                for p in report.parts
-            )
+            + ", ".join(_part_words(p, product, patch, added) for p in report.parts)
         )
     if report.assemblies:
         lines.append(
@@ -765,10 +1112,18 @@ def summarize(report: ImpactReport, product: Product) -> str:
                 for p in between
             )
         )
+    outputs = _domain_outputs(report.rules)
+    for word, ids in outputs.items():
+        lines.append(f"- {word}: {len(ids)} output(s): " + ", ".join(f"`{i}`" for i in ids))
     if "bom" in report.rules:
         lines.append("- the bill of materials")
-    if not (report.parts or report.assemblies or report.docs or "bom" in report.rules):
+    if not (report.parts or report.assemblies or report.docs or outputs or "bom" in report.rules):
         lines.append("- nothing is rebuilt: no artifact reads what you are changing")
+    if patch is not None and patch.applies and patch.stale:
+        lines.append(
+            f"- {len(patch.stale)} more output(s) were out of date before this change and "
+            "rebuild anyway"
+        )
     lines.append("")
     if report.requirements:
         lines.append("## Requirements")
@@ -811,3 +1166,83 @@ def summarize(report: ImpactReport, product: Product) -> str:
     for n in report.notes:
         lines.append(f"_{n}_")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _part_words(pid: str, product: Product, patch: PatchImpact | None, added: set[str]) -> str:
+    """A part in the rebuild list: its revision step, or "added (rev A)" for a new one."""
+    if f"part://{pid}" in added and patch is not None:
+        return f"`{pid}` (added, rev {patch.revs.get(pid, 'A')})"
+    if pid in product.parts:
+        rev = product.parts[pid].rev
+        return f"`{pid}` (rev {rev} → {next_rev(rev)})"
+    return f"`{pid}`"
+
+
+def _patch_lines(patch: PatchImpact, persona: str) -> list[str]:
+    """The impact page's account of a patch: what it carries, or why it does not apply."""
+    if not patch.applies:
+        return [
+            f"> The patch (`{patch.path}`) does not apply to the model as it is now, so "
+            f"nothing below counts its changes: {patch.problem}",
+            "",
+        ]
+    files = patch.files
+    counts = [
+        f"{len(files.get(k, []))} file(s) {k}"
+        for k in ("added", "changed", "removed")
+        if files.get(k)
+    ]
+    out = [
+        f"This change request carries the designer's work as a patch (`{patch.path}`): "
+        + (", ".join(counts) if counts else "no file changes")
+        + ". The rebuild list and the verdicts below are firm only after `n2f build`.",
+        "",
+        "## What the patch changes",
+    ]
+    out += [f"- {s['words']}" for s in patch.scope]
+    for state in ("added", "changed", "removed"):
+        groups = _grouped(patch.objects.get(state, []), persona)
+        if groups:
+            out.append(f"- {state}: " + "; ".join(groups))
+    if not patch.count:
+        out.append("- no model object changes (the files it touches hold no design)")
+    out.append("")
+    return out
+
+
+def _grouped(uris: list[str], persona: str, shown: int = 8) -> list[str]:
+    """URIs grouped by kind in owner words: "5 part(s): `a`, `b` …" (at most ``shown`` each)."""
+    from napkin2factory.core.registry import registry
+
+    nouns = dict(_NOUNS)
+    for d in registry().domains:
+        words = d.vocabulary.get("owner", {})
+        for fam in d.families:
+            word = words.get(fam.name, fam.name)
+            nouns.setdefault(fam.uri_scheme, (word, f"{word}(s)"))
+    by: dict[str, list[str]] = {}
+    for u in uris:
+        by.setdefault(u.split("://", 1)[0], []).append(u.split("://", 1)[1])
+    out = []
+    for scheme, ids in by.items():
+        one, many = nouns.get(scheme, (scheme, scheme))
+        names = ", ".join(f"`{i}`" for i in ids[:shown])
+        more = f" and {len(ids) - shown} more" if len(ids) > shown else ""
+        out.append(f"{len(ids)} {one if len(ids) == 1 else many}: {names}{more}")
+    return out
+
+
+def _domain_outputs(rule_ids: list[str]) -> dict[str, list[str]]:
+    """A domain's rules among ``rule_ids``, by the domain's owner word ("Wiring": ids)."""
+    from napkin2factory.core.checks.stage import domain_word
+    from napkin2factory.core.registry import registry
+
+    owner = {
+        rf.name: d.name for d in registry().domains if not d.in_place for rf in d.rule_families
+    }
+    out: dict[str, list[str]] = {}
+    for rid in rule_ids:
+        kind, _, ident = rid.partition(":")
+        if kind in owner:
+            out.setdefault(domain_word(owner[kind]), []).append(ident or rid)
+    return out

@@ -107,25 +107,46 @@ def run_impact(product: Product, ecr_id: str, write: bool = True) -> tuple[Impac
     ecr = _require(product, ecr_id)
     if ecr.status not in ("draft", "impact"):
         raise EcrError(f"{ecr.id} is {ecr.status}; impact is assessed on draft change requests")
-    report = compute_impact(product, list(ecr.edits), kind=ecr.kind, tasks=list(ecr.tasks))
+    # a design change request's patch is part of the change: its impact is the patched
+    # model's (S-180)
+    patch = product.root / ecr.patch if ecr.kind == "design" and ecr.patch else None
+    report = compute_impact(
+        product, list(ecr.edits), kind=ecr.kind, tasks=list(ecr.tasks), patch=patch
+    )
     md = summarize(report, product)
     if write:
-        _transition(product, ecr, "impact", impact=_plain(report.to_dict()))
+        removed = set(report.patch.objects.get("removed", [])) if report.patch else set()
+        _transition(product, ecr, "impact", impact=_plain(report.to_dict(), product, removed))
         out = product.paths.build / "changes" / f"{ecr.id}-impact.md"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(md, encoding="utf-8")
     return report, md
 
 
-def _plain(obj: Any) -> Any:
-    """Make an impact dict YAML-safe (no tuples, no Uri objects)."""
+def _plain(obj: Any, product: Product | None = None, removed: set[str] | None = None) -> Any:
+    """Make an impact dict YAML-safe and free of unapplied/removed URIs (S-180).
+
+    ``Product.all_uris`` walks ``ecr.impact`` and requires every ``<scheme>://<id>`` string to
+    exist in the loaded model; a patch's added objects do not exist before ``apply``, and its
+    removed ones do not exist after it.
+    """
+    from napkin2factory.core.uris import find_uris
+
     if isinstance(obj, dict):
-        return {str(k): _plain(v) for k, v in obj.items()}
+        return {
+            _plain(str(k), product, removed): _plain(v, product, removed) for k, v in obj.items()
+        }
     if isinstance(obj, (list, tuple)):
-        return [_plain(v) for v in obj]
-    if isinstance(obj, (str, int, float, bool)) or obj is None:
+        return [_plain(v, product, removed) for v in obj]
+    if isinstance(obj, str):
+        if "://" in obj and product is not None:
+            for u in find_uris(obj):
+                if not product.exists(u.base) or (removed and u.base in removed):
+                    obj = obj.replace(f"{u.scheme}://{u.id}", f"{u.scheme}:{u.id}")
         return obj
-    return str(obj)
+    if isinstance(obj, (int, float, bool)) or obj is None:
+        return obj
+    return _plain(str(obj), product, removed)
 
 
 def approve(product: Product, ecr_id: str, by: str, note: str | None = None) -> None:

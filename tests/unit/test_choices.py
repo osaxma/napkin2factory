@@ -371,6 +371,54 @@ def test_owner_words() -> None:
     assert "2 choices waiting on you" in render_summary({"choice": 2}, "engineer")
 
 
+def test_holds_nothing_says_an_agent_may_decide_only_when_delegated(tmp_path: Path) -> None:
+    """B-0160 (S-180): ``blocks: none`` says an agent may decide only when the owner delegated."""
+    from napkin2factory.cli.check import waiting_on_you
+    from napkin2factory.core.checks.choices import HOLDS_DELEGATED, HOLDS_NOTHING
+    from napkin2factory.report.builder import waiting_on_you as report_waiting
+
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "p", git=False)
+    build = root / "build"
+    (build / "checks").mkdir(parents=True)
+    row = {
+        "id": "elec-rule://supply-headroom@supply",
+        "subject": "supply://supply",
+        "title": "Room to spare on the supply's circuit",
+        "status": "choice",
+        "blocks": "none",
+        "message": "5.2 A of the 10 A circuit.",
+        "options": [
+            {"id": "dedicated", "summary": "dedicated 10 A", "what_it_takes": "keep alone"},
+            {"id": "larger", "summary": "16 A circuit", "what_it_takes": "fit 16 A"},
+        ],
+    }
+    (build / "checks" / "choices.json").write_text(json.dumps([row]), encoding="utf-8")
+    # bracket's operator.yaml has delegation: balanced and electrical: novice, no intake opt-out
+    assert waiting_on_you(load_product(root))[0]["holds"] == HOLDS_DELEGATED
+    assert report_waiting(build)[0]["holds"] == HOLDS_DELEGATED
+    # when the owner asked to be asked about electrics in model/intake.md (wiring-session):
+    intake = root / "model" / "intake.md"
+    intake.write_text(
+        "# Intake\n\nAnything about the electrics or what it plugs into, ask me before you "
+        "decide it.\n",
+        encoding="utf-8",
+    )
+    assert waiting_on_you(load_product(root))[0]["holds"] == HOLDS_NOTHING
+    assert report_waiting(build)[0]["holds"] == HOLDS_NOTHING
+    # when intake has no opt-out, conservative delegation or expert domain level also withholds it
+    intake.write_text("# Intake\n\nStandard home use.\n", encoding="utf-8")
+    op = root / "operator.yaml"
+    op.write_text("persona: owner\ndelegation: conservative\n", encoding="utf-8")
+    assert waiting_on_you(load_product(root))[0]["holds"] == HOLDS_NOTHING
+    op.write_text(
+        "persona: owner\ndomains: {electrical: expert}\ndelegation: balanced\n",
+        encoding="utf-8",
+    )
+    assert waiting_on_you(load_product(root))[0]["holds"] == HOLDS_NOTHING
+    op.write_text("persona: owner\ndelegation: autonomous\n", encoding="utf-8")
+    assert waiting_on_you(load_product(root))[0]["holds"] == HOLDS_DELEGATED
+
+
 def test_a_stub_party_is_named_not_its_uri() -> None:
     """B-0082 (S-127): the hardware row says a ``build: external`` stub by its name."""
     product = load_product(EXAMPLES / "enclosure")
