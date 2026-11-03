@@ -216,6 +216,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-187 | Cost delta names added or edited unpriced parts | in force |
 | S-188 | A Domain bom_lines hook brings consumables to the parts list (amends S-145 E5, closes B-0128) | in force |
 | S-189 | Reorganize root docs into docs/stages/, docs/handoffs/, docs/roadmap/ | in force |
+| S-190 | The periodic health review: trailers and due notice, make health, review brief | in force |
 
 ---
 
@@ -1392,3 +1393,14 @@ docs/handoffs/; roadmap docs (road-to-v1.0, pre-v0.7-todo, TRACK_*) → docs/roa
 review → docs/reviews/v0.6-architecture-review.md. Root keeps only 5 canonical living files:
 `README.md`, `AGENTS.md`, `STATUS.md`, `DECISIONS.md`, `BACKLOG.md` (+ `LICENSE`, untracked files).
 History keeps old paths: `docs/history/` and existing `DECISIONS.md` entries remain unchanged.
+
+## S-190 — The periodic health review (2026-11-03)
+Agents keep no memory between sessions, and tracking drift, file sizes, or collisions while
+building gets dropped; the maintainer asked for a routine review instead. Three parts:
+1. `make land` stamps commit trailers (`Task`, `Task-started`, `Task-conflicts`) and prints a
+   notice when a review is due every 15 landed tasks; every version close includes one.
+2. `make health` (`scripts/health.py`) computes measures; `make health ARGS=--record`
+   appends a row to `docs/health/trend.csv`.
+3. A review brief (`docs/reviews/TEMPLATE-health.md`) guides a fresh reviewing agent.
+Initial thresholds (15 tasks, 550 lines) are to be tuned by reviews. Its first run corrected
+S-184: 11 modules are over 550 lines, not the five S-184 listed from a cut-off listing (B-0185).

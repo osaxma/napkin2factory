@@ -136,6 +136,9 @@ Two kinds of agent come here; never mix their documents up.
   persona) found the bugs the builders could not see. Write the brief from
   `docs/reviews/TEMPLATE.md`, keep the report in `docs/reviews/` and the outcome in
   `DECISIONS.md`, so the next gate starts from the last one's findings (S-078).
+- Periodic health reviews: agents do not track health while working; `make land` says when a
+  review is due (every 15 landed tasks) and every version close includes one; the brief is
+  `docs/reviews/TEMPLATE-health.md` (S-190).
 - Large work: split it into tasks with disjoint files, one task per agent or subagent, each in
   its own worktree; decide the design yourself and hand each a written brief.
 - Judge every visual artifact yourself, then send the maintainer the board screenshot and one or
@@ -163,6 +166,7 @@ make check-full              # + kiln + demos + timing (N2F_TIMING=1)
 make templates               # sync examples/{bracket,enclosure} + _common → templates/
 make goldens REASON="..."    # regenerate golden props, logged
 make verify-list             # every number a human still has to confirm
+make health                  # repository health measures (ARGS=--record appends to trend)
 ```
 Layout: `docs/stages/v0.1-grand-plan.md` §3.1. One kit generator per file under `geometry/kit/`, one CLI verb per
 module under `cli/`, schemas under `core/model/`, the napkin stage under `concepts/`, the calc

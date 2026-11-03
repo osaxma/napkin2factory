@@ -1,5 +1,18 @@
 # Pre-v0.7 Housecleaning & Foundation Tidy-Up Plan (`pre-v0.7-todo.md`)
 
+> [!NOTE]
+> **Status (2026-11-03): done**
+> - §1 (Replace blind token matching in `test_no_example_identifiers.py`): landed in S-185.
+> - §2 (Repository root & `docs/` reorganization): landed in S-189; OWNER-TODO items (token rotation, PyPI environments) left to the owner.
+> - §3.1 (Stop silent mild-steel density fallback): landed in S-186.
+> - §3.2 (Stop silent `UnitError` swallowing, B-0163): landed in S-182.
+> - §3.3 (Include electrical cables in BOM rollups, B-0128): landed in S-188.
+> - §3.4 (Flag unpriced parts in ECR impact deltas): landed in S-187.
+> - §4.1 (Runtime dependencies): Pillow landed in S-182; widening `requires-python` to `>=3.12` declined (rests on a wrong premise: `pyproject.toml` already says `>=3.13,<3.15` and B-0072 holds the Python plan).
+> - §4.2 (Fix domain circular import B-0156 & rule output path validation B-0105): landed in S-182.
+> - §4.3 (Split overgrown modules): landed in S-184 (B-0185 for the modules still over 550 lines).
+> (v0.6.0 release landed in S-183.)
+
 > [!IMPORTANT]
 > **When to Execute:** Immediately **after** v0.6 is closed and tagged (`v0.6.0`), and **before** starting Track A (`v0.7`). Waiting until v0.6 lands avoids merge conflicts with the three active v0.6 worktrees (`gate-g-checks`, `seam-impact`, `wiring-disclaimer`).
 
