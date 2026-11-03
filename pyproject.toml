@@ -32,6 +32,7 @@ dependencies = [
   "markdown-it-py>=3.0",
   "rich>=13.0",
   "packaging>=24.0",
+  "pillow>=11.0",
 ]
 
 [project.scripts]
@@ -55,7 +56,6 @@ dev = [
   "types-PyYAML",
   "types-openpyxl",
   "playwright>=1.48",
-  "pillow>=11.0",
 ]
 
 [build-system]

@@ -130,19 +130,37 @@ class Registry:
 
     domains: list[Domain] = field(default_factory=list)
     _loaded: bool = False
+    _loading: bool = False
 
     # ---- installation ------------------------------------------------------------------
 
     def ensure(self) -> None:
         """Register the installed domains (``domains/__init__.py``) on first use."""
-        if self._loaded:
+        if self._loaded or self._loading:
             return
-        self._loaded = True
-        from napkin2factory.domains import INSTALLED
+        self._loading = True
+        try:
+            from napkin2factory.domains import INSTALLED
 
-        for module_name in INSTALLED:
-            module = importlib.import_module(module_name)
-            self.register(module.DOMAIN)
+            for module_name in INSTALLED:
+                try:
+                    module = importlib.import_module(module_name)
+                except ImportError as exc:
+                    raise RuntimeError(
+                        f"installed domain module {module_name!r} failed to import; "
+                        "import napkin2factory.core first"
+                    ) from exc
+                try:
+                    domain = getattr(module, "DOMAIN")
+                except AttributeError as exc:
+                    raise RuntimeError(
+                        f"installed domain module {module_name!r} is only partially imported "
+                        "(missing DOMAIN); import napkin2factory.core first"
+                    ) from exc
+                self.register(domain)
+            self._loaded = True
+        finally:
+            self._loading = False
 
     def register(self, domain: Domain) -> None:
         """Add ``domain`` after the ones registered; a second domain of a name is an error."""

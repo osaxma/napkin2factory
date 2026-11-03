@@ -197,22 +197,40 @@ class Wiring:
 # ---- reading the model -----------------------------------------------------------------------
 
 
-def _quantity(product: Any, value: Any, unit: str, log: Any) -> Qty | None:
+def _quantity(product: Any, value: Any, unit: str, log: Any, field: str = "") -> Qty | None:
     """A quantity field's value in ``unit``'s dimension, else ``None``.
 
     A ``param://`` is resolved and logged as a read.
     """
     if value is None:
         return None
+    param_id: str | None = None
     if isinstance(value, Uri):
+        param_id = value.id
         log.add(f"param://{value.id}")
         try:
             value = product.parameter_value(value.id)
-        except (KeyError, ValueError):
+        except KeyError:
             return None
+        except ValueError as exc:
+            if isinstance(exc, UnitError):
+                field_part = f" for {field}" if field else ""
+                raise ValueError(
+                    f"parameter {param_id} has wrong dimension{field_part}: {exc}"
+                ) from exc
+            return None
+    if value is None:
+        return None
     try:
         magnitude_in(value, unit)
-    except (UnitError, AttributeError, TypeError, ValueError):
+    except UnitError as exc:
+        if param_id is not None:
+            field_part = f" for {field}" if field else ""
+            raise ValueError(
+                f"parameter {param_id} has wrong dimension{field_part}: {exc}"
+            ) from exc
+        return None
+    except (AttributeError, TypeError, ValueError):
         return None
     return value
 
@@ -245,9 +263,9 @@ def read_wiring(product: Any, read: Reader | None = None, log: Any = None) -> Wi
         rating = d.rating
         volts = amps = watts = None
         if rating is not None:
-            volts = _quantity(product, rating.voltage, "V", log)
-            amps = _quantity(product, rating.current, "A", log)
-            watts = _quantity(product, rating.power, "W", log)
+            volts = _quantity(product, rating.voltage, "V", log, "voltage")
+            amps = _quantity(product, rating.current, "A", log, "current")
+            watts = _quantity(product, rating.power, "W", log, "power")
         contact = d.contact
         devs[did] = DeviceRec(
             id=did,
@@ -274,8 +292,8 @@ def read_wiring(product: Any, read: Reader | None = None, log: Any = None) -> Wi
     sup: SupplyRec | None = None
     if sup_raw is not None:
         s = read(sup_raw, "supply://supply")
-        volts = _quantity(product, s.voltage, "V", log)
-        rating_q = _quantity(product, s.rating, "A", log)
+        volts = _quantity(product, s.voltage, "V", log, "voltage")
+        rating_q = _quantity(product, s.rating, "A", log, "rating")
         prot = s.protection
         upstream: str | None = None
         prot_ref: str | None = None
@@ -284,7 +302,7 @@ def read_wiring(product: Any, read: Reader | None = None, log: Any = None) -> Wi
             prot_ref = f"{prot.scheme}://{prot.id}"
         elif prot is not None:
             upstream = str(prot.upstream)
-            up_q = _quantity(product, prot.rating, "A", log)
+            up_q = _quantity(product, prot.rating, "A", log, "rating")
             if rating is None and up_q is not None:
                 rating = Figure(up_q, f"the rating of {upstream}")
         rating_ref = s.rating
@@ -344,7 +362,7 @@ def read_wiring(product: Any, read: Reader | None = None, log: Any = None) -> Wi
         c = read(raw, f"circuit://{cid}")
         name = c.name
         words = f"the {name} circuit" if name else f"the {cid} circuit"
-        own_v = _quantity(product, c.voltage, "V", log)
+        own_v = _quantity(product, c.voltage, "V", log, "voltage")
         prot = c.protection
         prot_ref = None if prot is None else ("supply" if prot == "supply" else str(prot))
         wires = []
@@ -402,7 +420,7 @@ def _conductors(
     for cid in sorted(used):
         if cid in own:
             r = read(own[cid], f"conductor://{cid}")
-            amp = _quantity(product, r.ampacity, "A", log)
+            amp = _quantity(product, r.ampacity, "A", log, "ampacity")
             out[cid] = ConductorRec(cid, str(r.label), amp, str(r.source), own=True)
             continue
         try:

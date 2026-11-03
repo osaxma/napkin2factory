@@ -163,6 +163,24 @@ def _own_families(kind: str) -> frozenset[str]:
     return frozenset() if domain.in_place else frozenset(f.name for f in domain.families)
 
 
+def _check_outputs(rule: Rule, outputs: list[Path], build_dir: Path) -> None:
+    """Refuse any output path that resolves outside build/<that rule's output_dir> (B-0105)."""
+    from napkin2factory.core.registry import UnknownName, registry
+
+    try:
+        family = registry().rule_family(rule.kind)
+        out_dir_name = family.output_dir
+    except UnknownName:
+        out_dir_name = None
+
+    expected_base = (build_dir / out_dir_name).resolve() if out_dir_name else build_dir.resolve()
+    for p in outputs:
+        resolved = Path(p).resolve()
+        if not resolved.is_relative_to(expected_base):
+            target = f"build/{out_dir_name}" if out_dir_name else "build/"
+            raise BuildError(f"rule {rule.id}: output path {p} resolves outside {target}")
+
+
 def run_build(
     product: Product,
     target: str = "all",
@@ -241,6 +259,7 @@ def run_build(
         result.reads = _merged(result.reads, ctx.log.keys)
         if result.payload is not None:
             ctx.payloads[rule.id] = result.payload
+        _check_outputs(rule, result.outputs, build_dir)
         outputs = {str(p.relative_to(build_dir)): sha256_file(p) for p in result.outputs}
         values = read_values(result.reads, product, manifest, build_dir)
         key = compute_key(rule, result.reads, product, manifest, build_dir, values)

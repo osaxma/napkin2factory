@@ -14,6 +14,9 @@ from __future__ import annotations
 import dataclasses
 import json
 import shutil
+import subprocess
+import sys
+import types
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -651,3 +654,75 @@ def test_a_calc_kit_change_reruns_the_checks_and_no_part(
     moved = {rid for rid in before if before[rid] != after[rid]}
     assert moved == {"checks"}
     assert before["checks"]["code"] != after["checks"]["code"]
+
+
+def test_partially_imported_domain_raises_runtime_error() -> None:
+    """B-0156: ensure() raises RuntimeError if an INSTALLED domain is partially imported."""
+    res = subprocess.run(
+        [sys.executable, "-c", "import napkin2factory.domains.electrical"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert res.returncode != 0
+    assert "RuntimeError" in res.stderr
+    assert "napkin2factory.domains.electrical" in res.stderr
+    assert "import napkin2factory.core first" in res.stderr
+
+
+def test_ensure_with_missing_domain_attr_or_import_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """B-0156: ensure() raises RuntimeError naming the module and saying to import core first."""
+    from napkin2factory.core.registry import Registry
+
+    # Test missing DOMAIN attribute
+    fake_mod = types.ModuleType("napkin2factory.domains.broken")
+    reg = Registry()
+    monkeypatch.setattr("napkin2factory.domains.INSTALLED", ("napkin2factory.domains.broken",))
+    monkeypatch.setitem(sys.modules, "napkin2factory.domains.broken", fake_mod)
+    with pytest.raises(
+        RuntimeError, match="napkin2factory.domains.broken.*import napkin2factory.core first"
+    ):
+        reg.ensure()
+    assert not reg._loaded
+
+    # Test ImportError
+    reg2 = Registry()
+    monkeypatch.setattr("napkin2factory.domains.INSTALLED", ("napkin2factory.domains.nonexistent",))
+    with pytest.raises(
+        RuntimeError, match="napkin2factory.domains.nonexistent.*import napkin2factory.core first"
+    ):
+        reg2.ensure()
+    assert not reg2._loaded
+
+
+def test_rule_writing_outside_output_dir_is_refused(tmp_path: Path) -> None:
+    """B-0105: refuse any RunResult output path that resolves outside build/<output_dir>."""
+    from napkin2factory.core.domain import Domain, RuleFamily
+    from napkin2factory.core.graph.rules import Rule, RunContext, RunResult
+    from napkin2factory.core.graph.runner import BuildError
+
+    def fake_make_rules(rb: Any) -> list[Rule]:
+        def fake_run(ctx: RunContext) -> RunResult:
+            csv_path = ctx.build_dir / "bom" / "bom.csv"
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+            csv_path.write_text("evil,clobber\n", encoding="utf-8")
+            return RunResult(reads=[], outputs=[csv_path], output_hash="fake-hash")
+
+        return [
+            Rule(id="fake:evil", kind="fake", produces="rule:fake:evil", inputs={}, run=fake_run)
+        ]
+
+    fake_domain = Domain(
+        name="fake",
+        title="Fake",
+        rule_families=(RuleFamily("fake", fake_make_rules, output_dir="fake"),),
+    )
+
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "bracket", git=False)
+    product = load_product(root)
+    with installed(fake_domain):
+        with pytest.raises(BuildError) as exc:
+            run_build(product, target="fake", render=False, quiet=True)
+        msg = str(exc.value)
+        assert "fake:evil" in msg
+        assert "bom.csv" in msg

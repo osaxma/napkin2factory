@@ -208,6 +208,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | Gate G | Review gate G (electrician read-through, then engineering, v0.6) — outcome | outcome recorded; blockers fixed (S-178, S-179, S-180), the rest in BACKLOG |
 | Gate H | Review gate H (UX, owner persona, v0.6) — outcome | outcome recorded; blockers fixed (S-179, S-180), the rest in BACKLOG; the maintainer's visual judgment pending |
 | S-181 | v0.6 close-out: version 0.6.0, product pins `>=0.6,<0.7`, `HANDOFF-REPORT-v0.6.md` | in force |
+| S-182 | Loud failures for wrong param units, circular domain import, output dir escape; runtime Pillow (closes B-0163, B-0156, B-0105) | in force |
 
 ---
 
@@ -1319,3 +1320,9 @@ the manifest default and its error example (`core/model/manifest.py`), the templ
 `uv.lock` follows. Dated transcripts under `tests/e2e/` keep the pin they ran with. No schema change (E12,
 schema stays 1). `HANDOFF-REPORT-v0.6.md` records the E10 count (0 core files in domain commits; seam tasks
 listed apart), milestones M0–M7, DoD 1–10 and gates G and H; temporary `docs/v06-handoff/` removed.
+## S-182 — Loud errors for param units, circular imports, output directories; runtime Pillow (2026-11-03)
+Closes B-0163, B-0156, B-0105; addresses B-0072 (Pillow).
+1. `domains/electrical/checks/calcs.py::_quantity`: a `param://` of the wrong dimension raises `ValueError` naming the parameter and field instead of swallowing `UnitError` into None (B-0163).
+2. `core/registry.py::Registry.ensure`: importing an installed domain while partially imported (or on `ImportError`) raises `RuntimeError` naming the module and asking to import `napkin2factory.core` first, preventing silent registration loss (B-0156).
+3. `core/graph/runner.py`: `run_build` validates `RunResult.outputs` and refuses paths resolving outside `build/<output_dir>`, raising `BuildError` naming the rule and path (B-0105).
+4. `pyproject.toml`: `pillow>=11.0` moved from dev dependency-group into `[project]` dependencies for runtime screenshot capability (B-0072).

@@ -815,3 +815,30 @@ def test_the_evidence_key_follows_the_circuit_not_an_unrelated_part(tmp_path: Pa
     _edit(root, CIRCUIT, "length: 0.2 m}\n  - {from: \"device://switch#4\"", "length: 0.3 m}\n  - {from: \"device://switch#4\"")  # fmt: skip  # noqa: E501
     run_build(load_product(root), render=False, quiet=True)
     assert _evaluate(load_product(root), root).evidence_keys["circuit://heater"] != first
+
+
+def test_parameter_of_wrong_dimension_raises_validation_error(tmp_path: Path) -> None:
+    """B-0163: a param:// of wrong dimension raises a validation error naming param and field."""
+    root = _copy(tmp_path)
+    params_file = root / "model" / "parameters.yaml"
+    params_file.write_text(
+        params_file.read_text(encoding="utf-8")
+        + "  heater-power: {value: 500, unit: kg, description: Heater rating in kg}\n",
+        encoding="utf-8",
+    )
+    _edit(root, HEATER, "power: 500 W", "power: param://heater-power")
+    product = load_product(root)
+    with pytest.raises(ValueError) as exc:
+        read_wiring(product)
+    msg = str(exc.value)
+    assert "heater-power" in msg
+    assert "power" in msg
+
+    # None/missing stays None
+    _edit(root, HEATER, "power: param://heater-power", "power: param://missing-param")
+    w_missing = read_wiring(load_product(root))
+    assert w_missing.devices["heater"].power is None
+
+    _edit(root, HEATER, "power: param://missing-param", "")
+    w_none = read_wiring(load_product(root))
+    assert w_none.devices["heater"].power is None
