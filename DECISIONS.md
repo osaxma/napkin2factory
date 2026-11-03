@@ -150,7 +150,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-125 | v0.5 M2: schema policy and migrations (`core/model/migrate.py`, `n2f init .`), calc reference cases (`calc-case` rows, L16) | in force |
 | S-126 | v0.5 M2b: the checks rule hashes the calc kit (closes B-0078) | in force |
 | S-127 | v0.5 M4b: scope is a recorded value (`manifest://scope`, read by the report of a product that declares one); external stubs in the build plan | in force |
-| S-128 | v0.5 M3: the kiln out of the package: screens declare their fields, the heated-box screens are the kiln's own pack (`model/screens/`), product rule packs, `site.width`, neutral style roles, the F9 guard | in force |
+| S-128 | v0.5 M3: the kiln out of the package: screens declare their fields, the heated-box screens are the kiln's own pack (`model/screens/`), product rule packs, `site.width`, neutral style roles, the F9 guard | in force; its guard amended by S-185 |
 | S-129 | v0.5 gaps: `--target` and prose URIs from the registries, `manifest://` URIs, part keys read their density row, stubs get no module row, no example ids, screens declare fields and phase, domain style roles; B-0081, B-0087 kept open | in force |
 | S-130 | v0.5 M5: choices (`choice` status, `build/checks/choices.json`, `n2f decide` writes a `DEC-`, reopened on evidence); the kiln's bolts-into-a-spacer choice (DEC-022) | in force |
 | S-131 | v0.5 M6: splits and the fast gate (`validate_refs` beside each schema, `concepts/promote/`, `build_part`/`build_asm`, `make check-fast` as the land gate) | in force |
@@ -211,6 +211,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-182 | Loud failures for wrong param units, circular domain import, output dir escape; runtime Pillow (closes B-0163, B-0156, B-0105) | in force |
 | S-183 | v0.6.0 released: CI green on both platforms, tagged, published; wiring visuals judged by the maintainer | in force |
 | S-184 | Six modules over 750 lines split, code moved verbatim, each file under 550 lines | in force |
+| S-185 | Structural F9 guard: AST string constants and qualified URIs replace blind text match (amends S-128) | in force |
 
 ---
 
@@ -1345,3 +1346,11 @@ long files). Split, each resulting file ≤ 550 lines: `core/graph/impact.py` (1
 `diagram_layout`. The old modules re-export every name. Checked: every top-level def and class is
 AST-identical to before. Still over 550, under 750: `core/checks/stage.py`, `core/concepts.py`,
 `calckit/thermal_enclosure.py`, `core/checks/choices.py`, `electrical/checks/calcs.py`.
+## S-185 — Structural F9 guard: AST string constants and qualified URIs replace blind text match (2026-11-03)
+Amends S-128's guard. Everyday examples (v0.7 `examples/table`) with parts like `base-plate` or `top-rail` would cause
+the blind full-text scan to flag `<table>`, `"gate table"`, and ordinary comments across ~70 package files. F9 cares
+about the package depending on an example, not English words. Check A (.py files via AST): string constants (including
+inside f-strings) that are not docstrings and equal an example compound identifier exactly; product names are excluded
+(literal `"table"` stays legal). Check B (all text files): qualified URIs (`<scheme>://<id>` for any scheme), example
+requirement, decision, and change ids (REQ/DEC/ECR), and `examples/<product-folder>` paths. Comments, docstrings, and
+HTML/CSS prose are no longer scanned for plain identifiers. Real `src/` hits remain 0.
