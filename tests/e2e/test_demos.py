@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -104,7 +105,9 @@ def test_demo_napkin(tmp_path: Path) -> None:
     assert "correctness render" not in out  # the styled pictures were taken (N6)
     # promotion reconciled with the model: the 11 envelope numbers and the 2 door numbers
     assert "Seeded 0 parameters (13 already declared)" in out
-    assert "+ REQ-024 The open door keeps to its room beside the hinge" in out
+    # The promoted ids follow the kiln's last requirement, so they move when the kiln gains one
+    # (S-172 took them from REQ-024 to REQ-031; S-175): match the line, not the number.
+    assert re.search(r"\+ REQ-\d{3} The open door keeps to its room beside the hinge", out)
     work = tmp_path / "demo"
     board = work / "build/concepts/board.html"
     assert board.is_file() and board.stat().st_size <= 20 * 1024 * 1024

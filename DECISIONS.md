@@ -199,6 +199,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-172 | v0.6 M5: the kiln wired (four circuits, earth points named by the metal they earth, three cable entries in the gland holes' places, five bought parts, two studs), its manual's wiring generated, the headroom choice decided, `demo-electrical.sh` | in force |
 | S-173 | v0.6 M7a: the docs for the wiring (`docs/electrical.md`, the guide, the three roles, the vocabulary, `docs/domains.md` read against the domain); an owner who asked to be asked decides every choice in that area, whatever it holds | in force |
 | S-174 | v0.6 follow-up: the wiring diagrams readable at the kiln's size (the box's side of each entry, labels never overprinted, titles by purpose, the core's boundary words; closes B-0152, B-0154) | in force |
+| S-175 | The kiln demos' `mktemp` calls take a template ending in X's (GNU and BSD alike), and a unit test keeps every script that way: the Linux nightly was red on BSD-only `mktemp -d -t name`; the napkin demo's test matches a promoted requirement by its line, not its id (closes B-0159) | in force |
 
 ---
 
@@ -1217,3 +1218,12 @@ band between their boxes, else below. Titles: voltage for power and control, "ex
 ELV band, nothing for earth; "Protected by" only for the checks' `PROTECTED`, read through `title_inputs()`, an input of every
 `elec:` rule (`checks/` is not the family's code). Boundary: "supplied, not built here" (S-152). Golden: minimal `.svg` only. Kiln report 3,916,749 B.
 Judged by the agent, the maintainer's pending: power, sensing clean; earth-7 loops below; control busy (B-0158); report line B-0157.
+## S-175 — Portable `mktemp` templates: the Linux nightly's one failure (2026-11-03)
+Cause: the kiln's four demo scripts made folders with `mktemp -d -t name`, a BSD form; GNU mktemp wants a template ending in
+at least three X's, so only Linux saw it. Measured: the nightlies of 2026-11-02 and 2026-11-03 (runs 41434734224, 41623136649)
+each failed one test, `test_demo_napkin`: "mktemp: too few X's in template 'n2f-kiln-napkin-out'" (`demo-napkin.sh`'s second
+call; the test sets `DEMO_DIR`). The rest of `check-full` passed (1,092 + 141 tests, the kiln's check): S-121's (B-0073) proof.
+Fix: every call is `mktemp -d "${TMPDIR:-/tmp}/<name>.XXXXXX"` (no other shell `mktemp` needed it; the templates hold no
+script); `tests/unit/test_mktemp_portable.py` fails on `-t` or an X-less template in the Makefile, `scripts/`, `examples/` and
+the templates, so macOS catches it. Behind it, on both systems: the test expected "+ REQ-024 …", but S-172's wiring
+requirements moved the promoted ids to REQ-030–034; it now matches the line, not the id. Measured on macOS: 1 passed, 126 s.

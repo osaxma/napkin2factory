@@ -6,7 +6,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 SYSTEM="$(cd "$HERE/../.." && pwd)"
 N2F="${N2F:-uv run --project $SYSTEM n2f}"
 export N2F_OFFLINE="${N2F_OFFLINE:-1}"
-export DEMO_DIR="${DEMO_DIR:-$(mktemp -d -t n2f-kiln-demo-design)}"
+# GNU mktemp needs a template ending in XXXXXX; BSD -t name is macOS-only (S-175).
+export DEMO_DIR="${DEMO_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/n2f-kiln-demo-design.XXXXXX")}"
 "$HERE/demo.sh"
 cd "$DEMO_DIR"
 
