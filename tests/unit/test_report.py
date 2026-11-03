@@ -16,6 +16,9 @@ from napkin2factory.core.loader import load_product
 from napkin2factory.core.model import StyleFile
 from tests.conftest import EXAMPLES, copy_product, real_page_errors
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_report")
+
 EXTERNAL = re.compile(r"\b(?:src|href)\s*=\s*['\"]?(?:https?:)?//", re.IGNORECASE)
 
 

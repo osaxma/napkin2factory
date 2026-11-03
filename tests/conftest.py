@@ -19,6 +19,25 @@ EXAMPLES = ROOT / "examples"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Let `--dist loadgroup` see the ``xdist_group`` marks under pytest 9 (S-196).
+
+    pytest-xdist 3.8 groups a test by appending ``@<group>`` to ``item._nodeid``, which
+    pytest 9.2 no longer reads (an item's id lives in ``item._id``): without this, a marked
+    module is spread over the workers and each one builds its shared product again, and
+    modules whose tests build on each other fail. A no-op when xdist's write took effect.
+    """
+    if not getattr(config.option, "loadgroup", False):
+        return
+    for item in items:
+        grouped = vars(item).get("_nodeid")  # where xdist's write lands: Node has __slots__
+        if grouped and grouped != item.nodeid:
+            from _pytest.nodeid import NodeId  # pytest >= 9.2 only
+
+            item._id = NodeId.parse(grouped)
+
+
 def is_swiftshader_flake(message: str) -> bool:
     """True for SwiftShader's shader-validation hiccup (B-0024), which is not a page defect.
 

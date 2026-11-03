@@ -31,6 +31,9 @@ from napkin2factory.concepts.screenshot import (
 from napkin2factory.core.model.concepts import ConceptCard
 from napkin2factory.core.model.style import StyleFile
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_layout_marks")
+
 
 def _card(layout: dict[str, str], *names: str) -> ConceptCard:
     massing = [

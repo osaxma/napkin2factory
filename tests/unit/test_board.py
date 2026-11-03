@@ -21,6 +21,9 @@ from napkin2factory.core import concepts as cm
 from tests.conftest import EXAMPLES, copy_product, real_page_errors
 from tests.unit.test_promote import overlay_cards
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_board")
+
 CHROMIUM_ARGS = ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"]
 
 

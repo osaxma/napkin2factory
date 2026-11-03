@@ -50,6 +50,9 @@ from napkin2factory.domains.electrical.outputs.schedule import (
 )
 from tests.conftest import FIXTURES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_electrical_outputs")
+
 MINIMAL = FIXTURES / "electrical" / "minimal"
 CIRCUIT = "model/electrical/circuits/heater.yaml"
 GOLDENS = Path(__file__).resolve().parents[1] / "golden" / "goldens"

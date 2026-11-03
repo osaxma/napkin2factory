@@ -39,6 +39,9 @@ from napkin2factory.domains.electrical.owner.svg import inline_svg
 from napkin2factory.report.builder import render_report, sections
 from tests.conftest import EXAMPLES, FIXTURES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_electrical_report")
+
 MINIMAL = FIXTURES / "electrical" / "minimal"
 CIRCUIT = "model/electrical/circuits/heater.yaml"
 

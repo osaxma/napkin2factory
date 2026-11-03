@@ -30,6 +30,9 @@ from napkin2factory.core.model import Requirement
 from napkin2factory.core.vcs import Vcs
 from tests.conftest import EXAMPLES, FIXTURES, copy_product, n2f
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_promote")
+
 NOW = dt.datetime(2026, 10, 31, 12, 0, 0)
 GOLDEN = FIXTURES / "concepts" / "promote-golden"
 CARD_SETS = (

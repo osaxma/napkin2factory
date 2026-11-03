@@ -10,10 +10,44 @@ UV ?= uv
 PY := $(UV) run
 EXAMPLES_FAST := examples/bracket examples/enclosure
 
-.PHONY: check check-fast check-full lint types unit golden templates goldens todo-grep examples-fast kiln demos verify-list clean \
+.PHONY: check check-fast check-full lint types tests golden templates goldens todo-grep examples-fast kiln demos verify-list clean \
 	task land tasks abandon health
 
-check: lint types unit golden examples-fast todo-grep
+# One test run at a time per clone (S-196). Every folder of this clone (main and each task
+# folder) shares one lock in git's common directory; a second run waits and says which folder
+# holds it. Two suites side by side share 8 cores: each takes about twice as long and their
+# timings mean nothing. A heavy target re-runs itself under scripts/test_lock.py, which sets
+# N2F_TEST_LOCK_HELD=1, so `make check` holds the lock once across all its steps and the land
+# gate (`make check-fast`, called by scripts/task.sh) is covered too. N2F_TEST_LOCK=0 skips it.
+LOCK := python3 scripts/test_lock.py
+LOCKED := check check-fast check-full tests golden goldens examples-fast kiln demos
+TAKE_LOCK := 1
+ifeq ($(N2F_TEST_LOCK_HELD),1)
+TAKE_LOCK :=
+endif
+ifeq ($(N2F_TEST_LOCK),0)
+TAKE_LOCK :=
+endif
+
+export N2F_OFFLINE ?= 1
+
+# Parallel test runs (pytest-xdist). One worker per logical CPU (S-196: on the 8-core,
+# 16-thread host the four suites took 406 s with 16 workers and 432 s with 8, the many
+# subprocesses and browsers leaving cores idle). `--dist loadgroup` spreads tests one by one,
+# except that a module whose tests share a product built in a module-scoped fixture is marked
+# `xdist_group` and stays on one worker, so the product is built once and tests that build on
+# each other keep their order (S-196: 432 s against 456 s for `--dist loadfile`, which kept
+# whole files together). tests/conftest.py makes the marks work under pytest 9.
+# `make check XDIST=` runs serially; the timing tests in check-full stay serial because they
+# measure wall-clock.
+XDIST ?= -n logical --dist loadgroup
+
+ifdef TAKE_LOCK
+$(LOCKED):
+	@$(LOCK) $(MAKE) --no-print-directory $@
+else
+
+check: lint types tests examples-fast todo-grep
 
 # The default `make land` gate (S-131, FOUNDATION §6): what a task can break in a minute or
 # three. The end-to-end tests, the goldens, the examples and the coverage floor stay in
@@ -21,22 +55,12 @@ check: lint types unit golden examples-fast todo-grep
 check-fast: lint types todo-grep
 	$(PY) pytest tests/smoke tests/unit -m "not full" $(XDIST) -q
 
-lint:
-	$(PY) ruff check src tests scripts examples
-	$(PY) ruff format --check src tests scripts examples
-
-types:
-	$(PY) mypy src/napkin2factory/core src/napkin2factory/calckit
-
-export N2F_OFFLINE ?= 1
-
-# Parallel test runs (pytest-xdist). One worker per core; `--dist loadfile` keeps a module's
-# shared product build on one worker. `make check XDIST=` runs serially; the timing tests in
-# check-full stay serial because they measure wall-clock.
-XDIST ?= -n auto --dist loadfile
-
-unit:
-	$(PY) pytest tests/smoke tests/unit tests/e2e -m "not full" $(XDIST) --cov=napkin2factory.core --cov=napkin2factory.calckit --cov-report=term-missing:skip-covered --cov-report=xml:coverage.xml --cov-fail-under=80
+# One pytest call for every suite (S-196): one worker pool, no idle tail between suites, one
+# coverage run. The floor counts core and calckit only; --durations shows what got slow.
+tests:
+	$(PY) pytest tests/smoke tests/unit tests/e2e tests/golden -m "not full" $(XDIST) --durations=15 \
+	  --cov=napkin2factory.core --cov=napkin2factory.calckit --cov-report=term-missing:skip-covered \
+	  --cov-report=xml:coverage.xml --cov-fail-under=80
 
 golden:
 	$(PY) pytest tests/golden $(XDIST)
@@ -77,13 +101,22 @@ kiln:
 demos:  # demo.sh, demo-design.sh, demo-napkin.sh and demo-electrical.sh, each in a temp copy (D23)
 	N2F_TIMING=1 $(PY) pytest tests/e2e/test_demos.py -q -n 4
 
-templates:
-	$(PY) python -m napkin2factory.templates.sync
-
 goldens:
 	@test -n "$(REASON)" || (echo "make goldens REASON='why'" && exit 1)
 	N2F_UPDATE_GOLDENS=1 $(PY) pytest tests/golden -q
 	@echo "goldens regenerated: $(REASON)" >> tests/golden/REGENERATION_LOG.md
+
+endif
+
+lint:
+	$(PY) ruff check src tests scripts examples
+	$(PY) ruff format --check src tests scripts examples
+
+types:
+	$(PY) mypy src/napkin2factory/core src/napkin2factory/calckit
+
+templates:
+	$(PY) python -m napkin2factory.templates.sync
 
 todo-grep:
 	@! grep -rnE "TODO|FIXME" src/ --include=*.py --include=*.js --include=*.yaml --include=*.md --include=*.html --include=*.j2 \

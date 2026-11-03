@@ -28,6 +28,9 @@ from napkin2factory.core.style import load_style
 from napkin2factory.geometry.render import image_variance
 from tests.conftest import EXAMPLES, FIXTURES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_screenshot")
+
 CONCEPTS = FIXTURES / "concepts" / "product-green-red" / "concepts"
 TIMING = os.environ.get("N2F_TIMING") == "1"
 RED = "#c0392b"

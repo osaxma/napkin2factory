@@ -12,6 +12,9 @@ import pytest
 from napkin2factory.bom.files import COLUMNS, SOURCING_NOTE
 from tests.conftest import EXAMPLES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_bom_files")
+
 
 @pytest.fixture(scope="module")
 def built(tmp_path_factory: pytest.TempPathFactory) -> Path:

@@ -13,6 +13,9 @@ from selectolax.lexbor import LexborHTMLParser
 
 from tests.conftest import EXAMPLES, copy_product, n2f
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_publish")
+
 os.environ.setdefault("N2F_OFFLINE", "1")
 EXTERNAL = re.compile(r"\b(?:src|href)\s*=\s*['\"]?(?:https?:)?//", re.IGNORECASE)
 GIT_WORDS = ("fatal:", "git ", "branch", "commit", "merge", "repository", "push")

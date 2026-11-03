@@ -36,6 +36,9 @@ from napkin2factory.domains.electrical.checks.verify import SELECTORS, figure
 from tests.conftest import EXAMPLES, FIXTURES, copy_product
 from tests.unit.test_no_example_identifiers import forbidden
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_electrical_checks")
+
 ELEC = FIXTURES / "electrical"
 MINIMAL = ELEC / "minimal"
 CIRCUIT = "model/electrical/circuits/heater.yaml"

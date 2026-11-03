@@ -11,6 +11,9 @@ from lxml import etree
 
 from tests.conftest import EXAMPLES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_drawings")
+
 SVG_NS = "{http://www.w3.org/2000/svg}"
 
 

@@ -39,6 +39,9 @@ from napkin2factory.core.registry import installed
 from tests.conftest import EXAMPLES, FIXTURES, copy_product
 from tests.fixtures.domains import toy
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_scope")
+
 SCOPE = FIXTURES / "scope"
 
 

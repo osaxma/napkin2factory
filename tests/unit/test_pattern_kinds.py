@@ -30,6 +30,9 @@ from napkin2factory.core.registry import installed
 from napkin2factory.report.builder import _spec_summary
 from tests.conftest import FIXTURES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_pattern_kinds")
+
 PRODUCT = FIXTURES / "products" / "pass-through"
 
 

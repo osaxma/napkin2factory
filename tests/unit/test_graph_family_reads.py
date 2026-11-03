@@ -32,6 +32,9 @@ from napkin2factory.core.registry import installed
 from tests.conftest import FIXTURES, copy_product
 from tests.fixtures.domains import tally, toy
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_graph_family_reads")
+
 A = "id: a\nname: First\ncount: 2\n"
 B = "id: b\nname: Second\ncount: 3\n"
 PAGE = "---\nid: folder\ntitle: Folder\naudience: [owner]\n---\n\nBuilt in {{ tally_folder() }}.\n"

@@ -17,6 +17,9 @@ from napkin2factory.core.graph.runner import explain_build, run_build
 from napkin2factory.core.loader import load_product
 from tests.conftest import EXAMPLES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_invalidation")
+
 FULL = [
     "validate",
     "part:base",

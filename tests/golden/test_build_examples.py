@@ -16,6 +16,9 @@ from napkin2factory.geometry.render import image_variance
 from tests.conftest import EXAMPLES, copy_product
 from tests.validate_outputs import validate_outputs
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_build_examples")
+
 
 @pytest.fixture(scope="module")
 def built_enclosure(tmp_path_factory: pytest.TempPathFactory) -> Path:

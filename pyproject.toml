@@ -99,7 +99,7 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 # pytest's defaults plus the task folders (make task)
 norecursedirs = ["*.egg", ".*", "_darcs", "build", "CVS", "dist", "node_modules", "venv", "{arch}", ".worktrees"]
-addopts = "-q -p no:cacheprovider"
+addopts = "-q"
 markers = [
   "timing: timing assertions (only under N2F_TIMING=1)",
   "full: kiln and demo end-to-end tests, run by make check-full (D27)",

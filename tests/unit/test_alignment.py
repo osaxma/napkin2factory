@@ -25,6 +25,9 @@ from napkin2factory.geometry.build import _load_module, instance_records
 from napkin2factory.geometry.exporters import write_json
 from tests.conftest import EXAMPLES
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_alignment")
+
 
 class _StandIn:
     """A built part with no geometry (``place_by`` needs only frames)."""

@@ -28,6 +28,9 @@ from napkin2factory.docs.engine import DocRenderError, render_doc
 from tests.conftest import EXAMPLES, FIXTURES, copy_product
 from tests.validate_outputs_full import validate_full
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_build_plan")
+
 UNITS = FIXTURES / "units"
 
 

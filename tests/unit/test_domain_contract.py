@@ -36,6 +36,9 @@ from napkin2factory.core.registry import UnknownName, installed, registry
 from tests.conftest import EXAMPLES, FIXTURES, copy_product
 from tests.fixtures.domains import toy
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_domain_contract")
+
 TOY_PRODUCT = FIXTURES / "products" / "toy"
 SRC = Path(__file__).resolve().parents[2] / "src" / "napkin2factory"
 

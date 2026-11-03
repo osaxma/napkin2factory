@@ -17,6 +17,9 @@ from napkin2factory.core.loader import load_product
 from napkin2factory.core.yamlio import read_yaml, write_yaml
 from tests.conftest import FIXTURES, copy_product, n2f
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_modules")
+
 POD_ONLY = ["validate", "part:plate", "part:rail", "asm:pod", "drawing:plate", "drawing:rail"]
 
 

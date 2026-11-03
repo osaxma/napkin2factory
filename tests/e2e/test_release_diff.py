@@ -14,6 +14,9 @@ from selectolax.lexbor import LexborHTMLParser
 
 from tests.conftest import EXAMPLES, copy_product, is_swiftshader_flake, n2f
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_release_diff")
+
 os.environ.setdefault("N2F_OFFLINE", "1")
 GIT_WORDS = ("fatal:", "git ", "branch", "commit", "merge", "repository", "tag ")
 

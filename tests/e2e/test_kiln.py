@@ -23,7 +23,7 @@ from tests.conftest import EXAMPLES, copy_product, n2f
 from tests.golden.test_build_examples import check_kiln_board_golden, kiln_board_fingerprint
 from tests.validate_outputs import validate_outputs
 
-pytestmark = pytest.mark.full  # make check-full (D27)
+pytestmark = [pytest.mark.full, pytest.mark.xdist_group("test_kiln")]  # make check-full (D27)
 
 os.environ.setdefault("N2F_OFFLINE", "1")
 TIMING = os.environ.get("N2F_TIMING") == "1"

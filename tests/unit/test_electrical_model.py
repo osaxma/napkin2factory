@@ -41,6 +41,9 @@ from napkin2factory.domains.electrical.model import (
 from napkin2factory.domains.electrical.owner.gates import design_row, verify_row
 from tests.conftest import EXAMPLES, FIXTURES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_electrical_model")
+
 MINIMAL = FIXTURES / "electrical" / "minimal"
 CIRCUIT = "model/electrical/circuits/heater.yaml"
 

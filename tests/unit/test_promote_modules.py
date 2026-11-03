@@ -27,6 +27,9 @@ from napkin2factory.core.loader import load_product
 from napkin2factory.core.model import ConceptCard
 from tests.conftest import EXAMPLES, FIXTURES, copy_product, n2f
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_promote_modules")
+
 NOW = dt.datetime(2026, 11, 1, 12, 0, 0)
 CARDS = FIXTURES / "concepts" / "promote-modules" / "concepts"
 GOLDEN = FIXTURES / "concepts" / "promote-modules-golden"

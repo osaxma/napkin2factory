@@ -21,6 +21,9 @@ from napkin2factory.core.graph.impact import crossed_ports
 from napkin2factory.core.loader import load_product
 from tests.conftest import EXAMPLES, FIXTURES, ROOT, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_joints_between_units")
+
 KILN = EXAMPLES / "kiln"
 
 

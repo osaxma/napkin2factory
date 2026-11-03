@@ -46,6 +46,9 @@ from napkin2factory.core.checks.stage import compute_stage
 from napkin2factory.core.loader import load_product
 from tests.conftest import EXAMPLES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_choices")
+
 KILN_CHOICE = "fastening://m6-standoff-25/m6x16-bolt"
 CHOICE = "fastening://m4-spacer/m4x10-screw"
 

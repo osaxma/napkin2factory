@@ -33,6 +33,9 @@ from napkin2factory.core.graph.runner import explain_build, run_build
 from napkin2factory.core.loader import load_product
 from tests.conftest import EXAMPLES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_impact_honest")
+
 
 @pytest.fixture(scope="module")
 def kiln(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:

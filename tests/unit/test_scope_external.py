@@ -48,6 +48,9 @@ from napkin2factory.ecr.diff import (
 from napkin2factory.ecr.release import export_data, make_bundle
 from tests.conftest import FIXTURES, copy_product
 
+# the module's shared product is built once, on one worker (S-196)
+pytestmark = pytest.mark.xdist_group("test_scope_external")
+
 BOX = FIXTURES / "scope" / "external-box"
 STUB = "model/assemblies/control-box.yaml"
 GOLDENS = Path(__file__).resolve().parents[1] / "golden" / "goldens"
