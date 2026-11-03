@@ -3,20 +3,39 @@
 > [!IMPORTANT]
 > **Purpose of This Document:** This is the **master index and global North Star** for taking `napkin2factory` from v0.6 to v1.0. Each track document holds its own technical deliverables; this document holds the product vision, the four quality pillars, the measures that say whether the vision is reached, the v1.0 contract, the cross-track order, the shared benchmark contract and the review loop between tracks.
 >
-> **Revised 2026-11-04 (S-191, the roadmap review):** stale "today" claims corrected against the code, benchmark numbers made reproducible, and discovery, region, trust, the v1.0 contract and ease-of-use measures added. Section 6 lists every finding and where it now lives.
+> **Revised 2026-11-04 (S-191, the roadmap review; S-192, the vision in the maintainer's words and the tool's voice):** stale "today" claims corrected against the code, benchmark numbers made reproducible, and discovery, region, trust, the v1.0 contract and ease-of-use measures added. Section 6 lists every finding and where it now lives.
 
 ---
 
 ## 1. The North Star Vision
 
-`napkin2factory` exists so **anyone, anywhere, using any AI agent** can turn an idea into a verified, buildable physical product—without starting from scratch and without guessing numbers.
+`napkin2factory` exists so **anyone, using whatever agent they already work with, wherever that agent runs**, can turn an idea into a verified, buildable physical product—without starting from scratch and without guessing numbers.
+
+The maintainer's own statement of it, which this document serves (quoted as written):
+
+> What I care about:
+> - Robustness
+> - Reliablity
+> - Accuracy
+> - Ease of Use (Impeccable user expierience)
+>   - I want this tool to be flexible, useful and easy to use to everyone. I want people to be able to use it wherever and with whatever agent to transform their ideas into buildable designs. I vision that the tool should be able to carry simple design (e.g. a simple table) as well as complex designs (e.g. the kiln example in the repo). Similarly, I vision the tool to be able to present those design in a progressive disclosure style where the heart of it is the design itself but everything is reachable and available to them (i.e. drawings, schematics, etc.). Think of a user trying to design something, and the agent immediately suggest using napkin2factory because it would help them (both the agent and the user) to make a reliable design easily without starting everything from scratch. Both the user and the agent would be able to iterate over the design forward and backward with ease and accuracy. This is what I envision and this is what I want the tool to be and this is what I mean by impeccable expierience.
+
+"Wherever" means **any agent client**: the agent runs the tool, so napkin2factory works in whatever terminal agent, IDE agent or desktop chat app the person already uses. It does not mean a geographic region (supply regions are an accuracy matter, Track A §3.5).
 
 When v1.0 is complete, the experience looks like this:
 1. **Proactive Agent Suggestion:** A user tells their agent *"I want to build a sturdy oak-and-steel table"* (or a motorized test rig, or a 1200 °C kiln). Once napkin2factory is installed—or discoverable from a public registry the agent searches—the agent suggests it without the user naming it, because it gives both of them a structured napkin-to-CAD-to-shop-floor path. It does **not** suggest it for things it would not help with (a question about a part, a decorative trinket).
 2. **Scales from a Simple Table to an Industrial Kiln:** A 5-part table starts in a lightweight mode (`ceremony: lite`) and builds in seconds; a 30+-part industrial furnace gets full multi-domain thermal/electrical verification and hash-bound human safety sign-offs (`ceremony: standard`). The ceremony follows from what the model contains (energy sources, domains, safety requirements), never from a preference to skip work.
-3. **Anywhere, in the owner's terms:** Mains supply, electrical tables, units of entry (mm or inch) and cost bands carry their region and date, so a product designed in one country is not silently checked against another's rules or priced at another year's rates.
+3. **Any agent, any client:** the same product folder works from a terminal agent, an IDE agent or a desktop chat app, through the CLI or the MCP server, with whichever model the person uses. Nothing in the flow depends on one client's features (S-076, S-077). Chat apps that run only in a browser, with no local command or local MCP server, need a hosted service; that is a decision for after v1.0, not part of it.
 4. **Design-Centric Progressive Disclosure:** Opening the report puts the **interactive 3D design front and center**. Every part, sub-assembly, 2D shop drawing, flat pattern, wiring schematic, BOM line and physics check is one click away in a context-sensitive inspector—on a laptop and on a phone.
 5. **Effortless Forward & Backward Iteration:** Both the human and the agent can push the design forward (live draft ECRs with automatic 3D/BOM/check impact diffs) or step backward (`n2f undo`, `n2f rollback`, or `n2f concept switch` back to the Napkin Board) with zero lost work.
+
+### 1.1 How the tool speaks (S-192)
+
+Honest, not defensive; confident, not hype. napkin2factory does its best and says what it computed, and it treats the owner as a capable adult:
+- **One disclaimer.** The README's disclaimer, which the agent says once at the start (agent guide, "Disclaimer first"), is the whole of it. Pages, reports, manuals and files do not repeat it; anything not shown as checked is plainly not checked, so there are no "what we did not check" lists.
+- **Numbers speak through their label** (given / computed / estimate, N5) and their source, not through caveats around them.
+- **No sales voice** in the README, the skill description, the agent's first offer or the report: no superlatives, no exclamation marks, no "automatically" for what is simply what the tool does. Say what it does in plain words and stop.
+- **Safety stays where it acts:** a safety requirement's sign-off and a failed check say what they need, once, where the owner acts on them. That is a result, not a warning.
 
 ---
 
@@ -24,7 +43,7 @@ When v1.0 is complete, the experience looks like this:
 
 | Pillar | What It Means in Practice |
 | :--- | :--- |
-| **1. Accuracy** | • Zero silent fallbacks (unknown materials fail with a named list since S-186; `UnitError`s surface since S-182).<br>• Every number carries provenance (`given`, `computed`, `estimate`) and cites a handbook reference case.<br>• Every benchmark number is reproducible from a worked hand calculation in its `SPEC.md` (§4).<br>• BOM and ECR deltas account for every part and cable, flagging unpriced items (S-187, S-188). |
+| **1. Accuracy** | • Zero silent fallbacks (unknown materials fail with a named list since S-186; `UnitError`s surface since S-182).<br>• Every number carries provenance (`given`, `computed`, `estimate`) and cites a handbook reference case.<br>• Every benchmark number is reproducible from a worked hand calculation in its `SPEC.md` (§4).<br>• BOM and ECR deltas account for every part and cable, flagging unpriced items (S-187, S-188).<br>• Electrical tables and cost bands state their supply region and date (Track A §3.5). |
 | **2. Robustness** | • 100% self-contained `file://` HTML bundles (`≤ 20 MB`).<br>• Strict schema validation with forward migrations (`docs/schema-policy.md`); every format change on the road to v1.0 ships its migration and old fixture.<br>• Structural AST/URI guards instead of word bans (S-185). |
 | **3. Reliability** | • Runtime-recorded dependency DAG (`build/.n2f/manifest.json`) drives incremental rebuilds and impact predictions.<br>• Every state transition is reversible through the product's own change tracking (`core/vcs.py`: snapshots, draft lines, Revisions; D31)—one store, not a second one beside it.<br>• Studio rendering works identically on macOS and Linux. |
 | **4. Ease of Use (measured)** | • Progressive ceremony (`lite` → `standard`) matches rigor to product complexity.<br>• Progressive disclosure UI keeps the 3D design as the hero.<br>• Warm rebuilds and single-call MCP tools (`n2f mcp`).<br>• Judged by the §2.1 measures, not by adjectives. |
@@ -40,7 +59,7 @@ Each track gate records these per benchmark tier, with the cold-agent trial that
 | Size of `docs/agent-guide.md` plus the product `AGENTS.md`, in tokens | Context the using-agent must load; it grows with every track | Stays under a budget set at Gate A |
 | Warm incremental rebuild time after a one-parameter change, per tier | Iteration speed | Tier 1 under 1 s; tiers 2 and 3 set from measurement |
 | Skill suggestion rate on the prompt set (§4.3): should-trigger and should-not-trigger | Proactive discovery without nagging | Set at the first trial of the thin skill (Track B) |
-| Oracle pass rate of cold-agent reproduction trials, per model vendor | "Any agent" is true, not one model's luck | Every tier passes with at least two vendors' models |
+| Oracle pass rate of cold-agent reproduction trials, per model vendor and per client kind | "Whatever agent, wherever" is true, not one setup's luck | Every tier passes with at least two vendors' models and three client kinds (terminal agent, IDE agent, desktop chat app over MCP) |
 
 ---
 
@@ -99,7 +118,7 @@ Across all four tracks, every feature is verified against three benchmark produc
 The oracle asserts outcomes, not identifiers: which concept is promoted and why each other is rejected, the computed figures within stated tolerances, the gate statuses. A cold agent's own product names its parts differently and must still pass.
 
 ### 4.3 Cold-agent trials (every gate)
-- **At least two model vendors** per trial; a gate that passes with one is not passed (§2.1).
+- **At least two model vendors and three client kinds** (terminal agent, IDE agent, desktop chat app over MCP) per trial; a gate that passes with one setup is not passed (§2.1).
 - **A prompt set, not one prompt:** for Track D's gate and the thin skill's trial, a versioned set of plain user prompts (`docs/reviews/prompt-set.yaml`) with prompts that should trigger the skill (a workbench, a bracket, a test rig) and prompts that should not (a question about a bolt grade, a decorative trinket, software work), so both missed and unwanted suggestions are counted.
 - **Outside the repository:** the trial agent starts in an empty folder with only what an owner would have.
 
@@ -132,9 +151,11 @@ At the end of each track (`v0.7` → `v0.8` → `v0.9` → `v1.0`):
 | Benchmark numbers not reproducible from their own geometry; C-002's mass near its limit | Track A §2, §4.1 here |
 | Wood movement, creep, racking, joint moment, insert pull-out, fatigue, safety-factor basis missing | Track A §3.1 |
 | `lite` ceremony could be chosen to skip checks; tip-over is a safety hazard | Track A §3.4 |
-| Region: mains, electrical tables, units, dated cost bands | Track A §3.2, §3.5; §1 here |
+| Region: mains, electrical tables, units, dated cost bands (an accuracy matter; S-192 corrected S-191, which read the vision's "anywhere" as geography) | Track A §3.2, §3.5; §2 pillar 1 here |
 | Discovery needs the tool installed first; the trial pre-enabled the skill | Track D §3.1, Gate D |
 | "Any agent" tested with one model and one prompt | §4.3 here, Track D Gate D |
+| "Wherever" means any agent client; browser-only chats need a hosted service (after v1.0) | §1 here, Track D §2 |
+| The tool's voice: one disclaimer, plain words, no sales voice, no repeated warnings | §1.1 here; B-0186 for the electrical domain's repeats |
 | No v1.0 contract or migration path | §3.1 here |
 | No trust model for running a shared product's geometry scripts | Track D §3.4 |
 | No ease-of-use measures | §2.1 here |

@@ -68,7 +68,7 @@ Upgrade `n2fCreateViewer` in [`report/viewer.js`](../../src/napkin2factory/repor
    - Double-clicking a part smoothly animates the camera (`OrbitControls.target`) to frame that part and ghosts the rest of the assembly (`opacity: 0.12`, `depthWrite: false`).
    - Clicking empty canvas background returns to the full assembly view and shows the Product Root overview in the Inspector.
 2. **Interactive Explode Slider & Clipping Plane:**
-   - **Explode slider (`0%` → `100%`):** Displaces parts radially or along their `place_by` assembly insertion axes (already computed for [`assembly_sheet.py`](../../src/napkin2factory/drawings/assembly_sheet.py)!).
+   - **Explode slider (`0%` → `100%`):** Displaces parts radially or along their `place_by` assembly insertion axes (already computed for [`assembly_sheet.py`](../../src/napkin2factory/drawings/assembly_sheet.py)).
    - **Section Cut toggle (`X` / `Y` / `Z` plane + offset slider):** Uses `THREE.Plane` local clipping so owners can look straight inside enclosed products like `examples/kiln` or `examples/test-stand`'s electronics console.
 
 ---
@@ -92,7 +92,7 @@ Instead of rendering 15 sections stacked vertically, top-bar tabs switch the mai
 1. **Lens 1: Workbench (Default)** — 3-pane layout (`Tree` + `3D Canvas` + `Context Inspector`).
 2. **Lens 2: Drawings & Schematics** — Filterable grid of all 2D part sheets, flat patterns, A3 assembly sheets, and domain schematics (Electrical Ladder & Harness diagrams).
    - **Pan/Zoom Vector Viewer:** Every SVG renders fit-to-width (`width: 100%; height: auto`) with an interactive pan/zoom toolbar (`+`, `-`, `Reset`, `Fullscreen`) and clickable callouts that jump back to the part in 3D (resolving Gate H C5).
-3. **Lens 3: Build & BOM** — Interactive **Step-by-Step Assembly Player** (stepping `Step 1 → Step N` highlights the active parts and fasteners in the 3D viewer alongside the A3 step drawing!) + full **Priced BOM**, **Sheet/Tube/Timber Cut Lists**, **Fastener Schedule**, and **Cable Schedule**.
+3. **Lens 3: Build & BOM** — Interactive **Step-by-Step Assembly Player** (stepping `Step 1 → Step N` highlights the active parts and fasteners in the 3D viewer alongside the A3 step drawing) + full **Priced BOM**, **Sheet/Tube/Timber Cut Lists**, **Fastener Schedule**, and **Cable Schedule**.
 4. **Lens 4: Verification & Safety** — Requirements verification matrix, physics calculation breakdowns (`given` / `computed` / `estimate` formulas & margins), domain check rules, hash-bound human **Safety Sign-offs**, and **Owner Manuals** (`safety.md`, `operating-manual.md`, `maintenance.md`).
 5. **Lens 5: History & Concepts** — Side-by-side **Napkin Concept Board** comparison (showing why the current concept won, plus any `parked` concepts from Track B), **Architecture Decisions (`DEC-xxx`)**, and **Visual ECR Diff Cards** (before/after 3D renders, mass/cost deltas).
    - *Adaptive Hiding:* On a simple project (`examples/table` with `ceremony: lite` and no electrical domain or ECRs yet), unused domain tabs/badges stay out of the way automatically.

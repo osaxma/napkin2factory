@@ -9,7 +9,7 @@
 
 ## 1. Vision & Problem Statement
 
-Your ultimate UX vision is simple and powerful:
+The maintainer's vision (quoted in full in road-to-v1.0 §1):
 > *"A user tries to design something, and the agent immediately suggests using `napkin2factory` because it helps both the agent and the user make a reliable design easily without starting from scratch."*
 
 Today, five barriers stand between v0.6 and that experience:
@@ -32,7 +32,7 @@ While strictly preserving the repository's vendor-neutrality rules (`S-076`, `S-
 
 ```mermaid
 flowchart TB
-    subgraph Clients["Any AI Agent Client (CLI, IDE, Desktop Chat, Web)"]
+    subgraph Clients["Any agent client that can run a local command or MCP server (terminal, IDE, desktop chat)"]
         Discovery["1. Global Agent Skill (SKILL.md)\nTriggers when user mentions designing/building hardware\nAgent proactively suggests napkin2factory"]
         MCP["2. MCP Client Connection\n(n2f mcp over stdio / SSE)"]
         Shell["3. Standard CLI\n(n2f build, n2f check, ...)"]
@@ -75,7 +75,7 @@ Create a vendor-neutral skill specification in `src/napkin2factory/skill/SKILL.m
    The wording is tuned against the prompt set (road-to-v1.0 §4.3): should-trigger and should-not-trigger rates are measured per model vendor, not assumed.
 2. **Low-Friction First Turn Behavior:**
    When triggered, the skill instructs the agent to:
-   - Offer `napkin2factory` in one natural sentence (*"We can design this in `napkin2factory` so you get an interactive 3D model, structural/electrical checks, a priced BOM, and shop drawings automatically—want me to sketch 3 options on a concept board?"*),
+   - Offer `napkin2factory` in one natural sentence in the tool's plain voice (road-to-v1.0 §1.1), for example *"I can work this out with napkin2factory: a few options on a concept board first, then a 3D model, the checks, a parts list with prices and shop drawings. Shall I start with the options?"*,
    - Start in `ceremony: lite` for simple objects (like a table, shelf, or bracket) and scale up to `standard` only if multi-domain or hazardous energy is involved,
    - Use `n2f context <uri>` to keep its context window lean.
 3. **`n2f skill install [--global]`:**
@@ -92,13 +92,13 @@ Create a vendor-neutral skill specification in `src/napkin2factory/skill/SKILL.m
 
 Implement `src/napkin2factory/mcp/server.py` (invoked via `n2f mcp`), exposing high-leverage composite tools that minimize agent round-trips and context bloat:
 
-| MCP Tool | What It Does in One Call | Why Agents Love It |
+| MCP Tool | What It Does in One Call | Why It Helps |
 | :--- | :--- | :--- |
 | **`n2f_init_product`** | Initializes a product folder (`lite` or `standard`), sets `operator.yaml`, and returns the next-step checklist. | Zero boilerplate file creation. |
 | **`n2f_napkin_sync`** | Runs `concept lint` + `concept build --all` + `concept board`, returning screening pass/fail tables, rejection reasons, and board screenshot paths. | 1 tool call instead of 4 shell commands. |
 | **`n2f_promote_or_switch`** | Promotes a concept (`promote`), forks the built CAD model back to the board (`fork-from-model`), or switches active concepts (`concept switch`). | Seamless forward/backward architecture exploration. |
 | **`n2f_context`** | Returns the focused slice (`n2f context <uri> --json`) for any `asm://`, `part://`, `ifc://`, `req://`, or `domain://`. | Prevents agents from reading 20 YAML files when editing 1 module. |
-| **`n2f_sync`** | Runs `validate` + `lint` + incremental `build` + `check` in one warm in-process pass; returns gate statuses, any failing checks, open `choices`, and the updated `build/report/index.html` path. | The heartbeat tool of the design loop—sub-second when warm! |
+| **`n2f_sync`** | Runs `validate` + `lint` + incremental `build` + `check` in one warm in-process pass; returns gate statuses, any failing checks, open `choices`, and the updated `build/report/index.html` path. | The heartbeat tool of the design loop—sub-second when warm |
 | **`n2f_decide`** | Records a choice decision (`n2f decide <id> <option>`) and immediately re-evaluates blocked gates. | Structured human-in-the-loop trade-offs. |
 | **`n2f_ecr`** | Drives `start`, `impact`, `approve`, `close`, `abort`, `undo`, `redo`, and `rollback`, returning structured before/after mass, cost, and check deltas. | Accurate iteration without unified-diff strings. |
 
@@ -137,6 +137,7 @@ Eliminate the per-command cold-start tax during active design sessions, without 
 5. **Gate D (The "Cold User Prompt" v1.0 Trial):**
    - **Install path:** on a clean machine, an owner who has only the README's one-line instruction gets the skill and MCP server working; record the steps and minutes.
    - **Triggering:** run the full prompt set (road-to-v1.0 §4.3) with agents from at least two model vendors; record should-trigger and should-not-trigger rates against the targets set at M0.
+   - **Client kinds:** the flow below runs in a terminal agent, an IDE agent and a desktop chat app over MCP; each passes.
    - **The flow:** start a fresh agent session with the global skill + MCP server enabled and give it a plain, unprompted user request that **never mentions `napkin2factory`**:
      > *"I need a sturdy workbench for my garage (1600x800mm) that can hold a 150kg engine block without sagging, and I have a $450 budget."*
    - **Pass Criteria:**

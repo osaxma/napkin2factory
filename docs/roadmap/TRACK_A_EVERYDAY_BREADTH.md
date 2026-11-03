@@ -9,7 +9,7 @@
 
 ## 1. Vision & Problem Statement
 
-Through v0.6, `napkin2factory` forged a rock-solid core architecture using `examples/kiln` as its proving ground. However, because the kiln is an industrial thermal/electrical machine, the system's data tables, kit generators, physics screens, and project ceremony still carry four kiln-shaped blind spots:
+Through v0.6, `napkin2factory` built its core architecture using `examples/kiln` as its proving ground. However, because the kiln is an industrial thermal/electrical machine, the system's data tables, kit generators, physics screens, and project ceremony still carry four kiln-shaped blind spots:
 
 1. **Missing Everyday Physics (Statics & Structural Mechanics):**
    [`calckit`](../../src/napkin2factory/calckit) has thermal steady-state/heat-up (`thermal_enclosure.py`), electrical sizing (`power.py`, `wiring.py`), and mass/cost (`mass_cost.py`), but **zero structural mechanics**—no beam bending deflection, no Euler column buckling, no center-of-gravity tip-over stability, and no fastener shear/pullout checks.
@@ -155,7 +155,7 @@ Joints fail before members in furniture and frames, so the joint rows are as muc
 ### 3.3 Kit & Interface Expansion
 
 1. **Upgrade [`geometry/kit/frame.py`](../../src/napkin2factory/geometry/kit/frame.py):**
-   - Allow `bottom_rails: false` (which already works for apron tables) AND support `apron_offset_top_mm` (recessed apron or flush top rails) plus mounting tab ears (`mounting_tabs`) with pre-drilled bolt holes and auto-exported `ports`!
+   - Allow `bottom_rails: false` (which already works for apron tables) AND support `apron_offset_top_mm` (recessed apron or flush top rails) plus mounting tab ears (`mounting_tabs`) with pre-drilled bolt holes and auto-exported `ports`
    - Add `"round-tube"` and `"t-slot"` (simplified square profile with slot grooves) to `ProfileKind`.
 2. **Add `geometry/kit/panel.py` (or extend `plate.py`):**
    - Support rectangular/rounded tabletops, shelves, and viewing windows (`polycarbonate`, `white-oak`, `plywood`) with edge chamfers/fillets and bottom/face hole patterns that export matching `ports` for `place_by`.
@@ -181,9 +181,9 @@ To ensure simple designs don't drown in industrial paperwork while preserving 10
 
 ---
 
-### 3.5 Region: supply, electrical tables, units and costs
+### 3.5 Supply Region, Units and Dated Costs (accuracy)
 
-"Anyone, anywhere" means a product is checked against the owner's region, not the kiln's:
+A product is checked against its own supply and priced at its own rates, never silently at the kiln's:
 1. **Supply region** in the product (`n2f.yaml` or the supply file): nominal voltage, frequency and the wiring rules it follows (for example an IEC-based or an NEC-based table set). The conductor, earthing and wire-colour tables (S-145, S-146) gain a region column; a table without the owner's region fails loudly instead of being used. The test stand (120 V / 60 Hz) and the kiln (50 Hz) cover two regions in the benchmarks.
 2. **Units of entry:** parameters may be given in inches (pint already converts); reports show the owner's chosen unit first.
 3. **Costs:** every band carries region, currency and date (§3.2).

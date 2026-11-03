@@ -217,7 +217,8 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-188 | A Domain bom_lines hook brings consumables to the parts list (amends S-145 E5, closes B-0128) | in force |
 | S-189 | Reorganize root docs into docs/stages/, docs/handoffs/, docs/roadmap/ | in force |
 | S-190 | The periodic health review: trailers and due notice, make health, review brief | in force |
-| S-191 | The roadmap review: reproducible benchmark numbers, one change store, discovery, region, v1.0 contract | in force |
+| S-191 | The roadmap review: reproducible benchmark numbers, one change store, discovery, region, v1.0 contract | amended by S-192 |
+| S-192 | The vision in the maintainer's words; "wherever" means any agent client; the tool's voice and one disclaimer | in force |
 
 ---
 
@@ -1415,3 +1416,12 @@ from its geometry (table C-002 near its 55 kg limit; rough hand checks, not run)
 calculations and a 30 % margin for benchmarks, joint/racking/creep/wood-movement/fatigue checks,
 derived (raise-only) ceremony, region-tagged supply and costs, two-vendor trials and a prompt set,
 measures, the v1.0 contract, a trust model, a thin MCP in v0.8 (B-0036), phone layout. Index: §6.
+
+## S-192 — The vision in the maintainer's words, and how the tool speaks (2026-11-04)
+Amends S-191. The maintainer's own statement of the vision is now quoted in `road-to-v1.0.md` §1,
+so no plan paraphrases it again. "Wherever" means any agent client (terminal, IDE, desktop chat
+app), not geography: S-191 misread it; supply region stays as an accuracy item (Track A §3.5).
+Browser-only chats need a hosted service and wait until after v1.0. The voice (§1.1, judged by
+the maintainer: "honest but not defensive"): one disclaimer (README, said once by the agent), no
+repeated warnings or "not checked" lists, no sales voice. The electrical domain's repeated
+disclaimer (S-179) is B-0186.

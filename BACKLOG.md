@@ -103,6 +103,7 @@ entry that closed them. Ids are never reused.
 | B-0182 | `conductor-protection` checks I_n <= I_z only: not I_2 <= 1.45 I_z (a fuse's conventional fusing current), not an earth conductor's size against the device that must clear its fault (IEC 60364-5-54), not a lead fed through another of the product's devices | S-178; cited rows in a table of the calc kit and the walk extended (`domains/electrical/checks/`) |
 | B-0183 | `docs/electrical.md`'s rules table lacks `conductor-protection` and says the Class II case is "one pass row" | S-178; two lines in the table (`docs/electrical.md`, the docs task's file) |
 | B-0185 | Eleven modules over 550 lines after S-184 (`make health` lists them; the longest `core/checks/stage.py`, 734) | S-184 split only those over 750 and its list of five came from a cut-off listing (S-190); long files are where parallel tasks collide (S-080). Split one when a task next touches it, `core/checks/stage.py` first (every new check passes through it); health reviews track the count |
+| B-0186 | One disclaimer: the electrical domain repeats its own on the Wiring section, the first manual page, the diagrams and `README.txt` (S-179) | S-192, the tool's voice; decide with the maintainer whether a file that leaves the report alone (a printed diagram handed to an electrician) keeps one line |
 
 ## Closed
 

@@ -57,7 +57,7 @@ Replace embedded `patch:` strings in [`ecr/lifecycle.py`](../../src/napkin2facto
    - Allocates `changes/ECR-xxx.yaml` in state `draft` (`active: true`).
    - Takes a baseline snapshot through [`core/vcs.py`](../../src/napkin2factory/core/vcs.py) and records its id in `changes/ECR-xxx.yaml` (`baseline:`). Unsaved edits present before `start` are snapshotted first, so they are never counted as part of the ECR.
    - If `--set` flags are passed, applies those parameter changes immediately to `model/parameters.yaml`.
-   - For structural/design changes, the agent simply edits `model/parts/`, `model/geometry/`, `model/assemblies/`, or `model/electrical/` using normal file-editing tools!
+   - For structural/design changes, the agent simply edits `model/parts/`, `model/geometry/`, `model/assemblies/`, or `model/electrical/` using normal file-editing tools
 2. **`n2f ecr impact [ECR-xxx]` (Unified Live Diff Engine in [`core/graph/impact.py`](../../src/napkin2factory/core/graph/impact.py)):**
    - Compares the current live `model/` directory against the ECR's baseline snapshot.
    - Detects **all** changes automatically:
@@ -103,7 +103,7 @@ Break the one-way wall in [`concepts/promote/verb.py`](../../src/napkin2factory/
 
 1. **`n2f concept fork-from-model <new-card-id> --title "<name>"` (Design → Napkin):**
    - Reads the current built `model/` and `build/bom/rollups.json` / `build/geometry/props.json`.
-   - Creates a new concept card `concepts/<new-card-id>.yaml` populated with the **actual CAD-verified** envelope, mass, cost, and parameters (tagged `computed` from the detailed model rather than rough napkin estimates!).
+   - Creates a new concept card `concepts/<new-card-id>.yaml` populated with the **actual CAD-verified** envelope, mass, cost, and parameters (tagged `computed` from the detailed model rather than rough napkin estimates).
    - Re-renders the Concept Board (`build/concepts/board.html`) so the owner can compare the *real built design* side-by-side against the original napkin concepts.
 2. **`n2f concept switch <card-id>` (Switching Directions Safely):**
    - **What belongs to a concept, what to the product:** a concept owns its detailed design (`model/parts/`, `model/geometry/`, `model/assemblies/`, domain files such as `model/electrical/`, parameters it seeded). The product owns what holds across directions: requirements, `concepts/`, decisions about the problem (not the chosen design), operator settings, `changes/` history. Sign-offs belong to the concept whose model they hashed. The stage plan lists every folder in one of the two columns before code starts.
