@@ -4,7 +4,7 @@
 
 ## 1. What works, per definition-of-done item
 
-| # | item (`NAPKIN_STAGE.md` §1.3) | status | evidence |
+| # | item (`../stages/v0.2-napkin-stage.md` §1.3) | status | evidence |
 |---|---|---|---|
 | 1 | `uv sync && make check` green; `make check-full` green | done | `make check` at 1ebca03 (parallel, S-070): 634 passed, 4 skipped in 5 min 33 s, coverage 90.2 % on `core` + `calckit`; goldens 132 passed in 72 s. `make check-full` at M6 (serial): same 634 + 132 (20 min 17 s + 83 s), kiln validate/lint/build/check, kiln cards + board, `test_kiln.py` 8 passed, `test_demos.py` 3 passed, timing + concept-build timing 6 passed, exit 0. CI on `v0.2-build`: green on every push from M2 through the xdist commit (1ebca03); the gate B commit's run was in progress when this was written. Clean clone of `eab10b1` (2026-10-31): `uv sync`, `n2f doctor` all green, `make check-full` exit 0 in 28 min 01 s — 642 passed, 4 skipped, coverage 90.2 %; goldens 132; bracket, enclosure, kiln and the kiln's napkin scratch copy all "artifacts complete and parseable" |
 | 2 | fresh bracket product: two concepts + board, self-contained, `file://`-clean, < 60 s warm | done | `tests/e2e/test_timing.py::test_two_concepts_and_board_under_a_minute_warm` under `N2F_TIMING=1`: 4.8 s warm (STATUS M6). `tests/unit/test_board.py`: self-contained and within budget; opens from `file://` with every viewer and no console errors |
@@ -86,7 +86,7 @@ napkin stage; off camera). Screen seconds for the GIF; wall time on this host in
    REQ-023 "Fits the alcove with the door open" … REQ-026 "Controls where they were sketched" (6 s) [2.5 s].
 6. `n2f build && n2f check` · `n2f status` — "6 example sign-offs (not reviews) · 226 OK ·
    3 not checked · 60 worth a look"; "✓ Napkin ✓ Intake ✓ Design ○ Verify" (5 s) [≈ 88 s, cut].
-7. Then continue with v0.1's steps 1–7 (`HANDOFF-REPORT.md` §4: release v1.0.0 → change request
+7. Then continue with v0.1's steps 1–7 (`docs/handoffs/HANDOFF-REPORT-v0.1.md` §4: release v1.0.0 → change request
    → impact → apply → rebuild → re-sign → release v1.1.0 → diff page): napkin to factory on one screen.
 
 Pages to show: `build/concepts/board.html`, `build/concepts/C-001/renders/styled-iso.png`,
@@ -115,7 +115,7 @@ and eleven concerns; the blockers and ten concerns are fixed on `v0.2-build` (DE
 
 ## 6. Recommended next steps for v0.3
 
-1. **MCP server and share mode** (`NAPKIN_STAGE.md` §1.2: v0.3): wrap the CLI verbs, concept verbs
+1. **MCP server and share mode** (`../stages/v0.2-napkin-stage.md` §1.2: v0.3): wrap the CLI verbs, concept verbs
    included, as tools; `n2f publish` turns `build/site/` and the board into pages.
 2. **Screening honesty:** the door-swing angle (B-0029), skin-temperature and chamber-volume rules
    (B-0025), narrower cost bands from quotes (B-0022), hollow-section massing mass (B-0021), the
@@ -216,7 +216,7 @@ margin, not discovering a shortfall.
   M2 · `2b5ed1b` M3 · `b6a3589` M4 · `82df19c` M5 · `7478a11` brand (design assets only, another session's work; not wired into the product) · `9a84cc8` M6 · `1ebca03` M7 xdist · `eab10b1` M7 gate B fixes · the close-out commit that carries this report.
 - **Rules and journals:** `AGENTS.md` (= `CLAUDE.md`), `STATUS.md` (state and pointers), `DECISIONS.md`
   (index at the top; S-055…S-073 and the gate A/B outcomes), `BACKLOG.md` (all open work, B-0019 onward;
-  plan leftovers B-0035+); contracts `NAPKIN_STAGE.md` and `GRAND_PLAN.md`.
+  plan leftovers B-0035+); contracts `../stages/v0.2-napkin-stage.md` and `../stages/v0.1-grand-plan.md`.
 - **Docs:** `docs/napkin.md`, `docs/calckit.md`, `docs/render-checklist.md`, README (napkin act first).
 - **Code:** `src/napkin2factory/concepts/` (build, massing, screening, screenshot, board, promote),
   `calckit/` and `calckit/data/`, `rulepacks/concept-v0.yaml`, `rulepacks/form-v0.yaml`,

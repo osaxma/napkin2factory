@@ -125,7 +125,7 @@ Pages to show: `build/report/index.html` (section index on the left; every URI i
 
 ## 6. Recommended next steps for v0.2
 
-_Superseded 2026-10-31: the owner chose the napkin stage for v0.2 (`NAPKIN_STAGE.md`);
+_Superseded 2026-10-31: the owner chose the napkin stage for v0.2 (`../stages/v0.2-napkin-stage.md`);
 the items below move to v0.3 (MCP server, share mode) and v0.4 (electrical, manufacturer
 profiles, stack-up)._ See §9 for where to continue.
 
@@ -195,12 +195,12 @@ v0.1 is closed: released as `v0.1.0` on `main`, published to PyPI (§7), CI gree
 and macOS. The next agent continues with **v0.2** on a new branch `v0.2-build` cut from
 `main`.
 
-**The contract is `NAPKIN_STAGE.md`** (the napkin stage: concept cards, massing fidelity,
+**The contract is `../stages/v0.2-napkin-stage.md`** (the napkin stage: concept cards, massing fidelity,
 calc kit, screening, styled screenshots, `style.yaml`, the board, promotion, the PM-skill
-napkin protocol, the kiln retrofit), with `GRAND_PLAN.md` §0/§8/§9 still in force. It
+napkin protocol, the kiln retrofit), with `../stages/v0.1-grand-plan.md` §0/§8/§9 still in force. It
 already folds in B-0008, B-0015, B-0016 and B-0017. Start at its M0.
 
-Also in v0.2, not covered by `NAPKIN_STAGE.md` (log each outcome in `DECISIONS.md`):
+Also in v0.2, not covered by `../stages/v0.2-napkin-stage.md` (log each outcome in `DECISIONS.md`):
 
 1. **Version pin across the 0.1 → 0.2 boundary (D20).** Every `n2f.yaml` (examples and
    `templates/`) declares `system: ">=0.1,<0.2"`, and the product CI templates
@@ -225,7 +225,7 @@ Also in v0.2, not covered by `NAPKIN_STAGE.md` (log each outcome in `DECISIONS.m
 
 **Owner-side, not agent work:** the kiln's parked product decisions (DEC-011 alcove width,
 DEC-012 cost target, DEC-004 heat-up time, B-0013 K26 hot face) are for the owner to answer
-(`NAPKIN_STAGE.md` §8); the M6 retrofit tells their "minute five" story either way.
+(`../stages/v0.2-napkin-stage.md` §8); the M6 retrofit tells their "minute five" story either way.
 Account chores (token rotation, environment tag rules) are in the owner's own to-do list,
 not in this repository's scope.
 

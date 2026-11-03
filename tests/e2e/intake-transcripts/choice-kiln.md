@@ -1,6 +1,6 @@
 # A choice raised after the first build: the kiln's bolts (v0.5 DoD 6, the simulation)
 
-`FOUNDATION.md` §1.3 item 6 ends with a scripted owner session: the system hands the project
+`docs/stages/v0.5-foundation.md` §1.3 item 6 ends with a scripted owner session: the system hands the project
 manager the moment and the words of a trade-off (F12, F13), and a fresh agent playing that
 role must use them well. The kiln has one real choice, produced by a rule once the model is
 built: the M6 bolts driven into both ends of its 25 mm spacers meet inside them, and two

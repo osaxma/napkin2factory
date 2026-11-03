@@ -2,9 +2,9 @@
 
 > **Next agent:** v0.4 is closed on `main` with version 0.4.0 and the product pins `>=0.4,<0.5`;
 > it is **not tagged**. Tagging, the clean-clone `make check-full` and the maintainer's visual
-> judgment (DoD 7) are the maintainer's. Then continue with v0.5, `FOUNDATION.md` (§9).
+> judgment (DoD 7) are the maintainer's. Then continue with v0.5, `../stages/v0.5-foundation.md` (§9).
 
-Plan: `PRODUCT_STRUCTURE.md` (decisions P1–P14). Every number below is copied from the decision
+Plan: `../stages/v0.4-product-structure.md` (decisions P1–P14). Every number below is copied from the decision
 entry named beside it, or was measured for this report on 2026-11-01 (macOS host, Intel,
 `N2F_OFFLINE=1`, a fresh tracked copy of `examples/kiln` at e1fc18e plus the version bump);
 where neither holds, it says "not measured".
@@ -13,7 +13,7 @@ where neither holds, it says "not measured".
 
 A modularity review on 2026-11-01 (S-103, v0.4 is the product's structure) asked whether
 napkin2factory builds one monolithic assembly or sub-assemblies joined together. Its five findings
-(`PRODUCT_STRUCTURE.md` §0, measured on the kiln then):
+(`../stages/v0.4-product-structure.md` §0, measured on the kiln then):
 
 1. **The tree is flat and the manual knows more than the model.** 34 child lines at the top and
    one sub-assembly (the door, 8 lines); the hand-written manual describes five units.
@@ -36,7 +36,7 @@ Electrical (B-0035), manufacturer profiles (B-0038) and stack-up (B-0039) moved 
 
 | milestone | what it delivered | entry | commit |
 |---|---|---|---|
-| plan | `PRODUCT_STRUCTURE.md`, P1–P14 | S-103, v0.4 is the product's structure | 92ed777 |
+| plan | `../stages/v0.4-product-structure.md`, P1–P14 | S-103, v0.4 is the product's structure | 92ed777 |
 | M0 | baseline: every kiln frame pair surveyed in the world, the hardware reconciled by hand, the shared-hole rule, `docs/v04-baseline.md` | S-105, the M0 baseline | acdc2c3 |
 | M1 | `place_by` places a part by its interface frame; frames and offsets take expressions; the alignment stage in the assembly (0.5 mm / 0.5°); the 18 frame-only helpers removed | S-106, interfaces place parts | 1bc995b |
 | M2 | `ports:` on sub-assemblies, a part's home, `place_by` for sub-assemblies; `asm://` parties refused (closes B-0005) | S-107, sub-assemblies have ports | 1e52083 |
@@ -54,7 +54,7 @@ Landed alongside, not part of the plan: S-104 (closed versions' entries in `docs
 S-108 (a styled screenshot whose shader fails under load is rendered once more), S-109 (a landing
 that stops after giving out ids puts the task's commits back), S-111 (the v0.5 and v0.6 plans).
 
-## 3. Definition of done, item by item (`PRODUCT_STRUCTURE.md` §1.3)
+## 3. Definition of done, item by item (`../stages/v0.4-product-structure.md` §1.3)
 
 | # | item | status | evidence |
 |---|---|---|---|
@@ -186,7 +186,7 @@ both joint messages.
 | verify | The controller lid screw | S-113 | choose and size it |
 | open | The kiln's rivets are in no parts list | B-0065, DEC-023 | choose, count and list them |
 
-v0.2's `[revisit]` and `[verify]` list (`HANDOFF-REPORT-v0.2.md` §3) stands; `make verify-list`
+v0.2's `[revisit]` and `[verify]` list (`docs/handoffs/HANDOFF-REPORT-v0.2.md` §3) stands; `make verify-list`
 prints every one.
 
 ## 8. Open after v0.4
@@ -209,12 +209,12 @@ Also open:
 ## 9. What v0.5 inherits
 
 S-111 (v0.5 is the foundation, v0.6 the first domain as its proof):
-- **v0.5, `FOUNDATION.md` (F1–F16):** one domain contract with registries (rule families,
+- **v0.5, `../stages/v0.5-foundation.md` (F1–F16):** one domain contract with registries (rule families,
   verify kinds, check stages, report sections, doc helpers, vocabulary, interface kinds, …), a toy
   domain, the kiln's words out of the package, a schema policy and migration hook, scope as data,
   choices (`n2f decide`), the five files over 700 lines split, calcs with reference cases. Its
   F16 keeps v0.4 behaviour as the default and moves the pin to `>=0.5,<0.6`.
-- **v0.6, `ELECTRICAL_STAGE.md` (E1–E12):** the electrical domain built through that contract;
+- **v0.6, `../stages/v0.6-electrical-stage.md` (E1–E12):** the electrical domain built through that contract;
   the count of core edits is its headline. `docs/reviews/v0.6-independent-trial.md` briefs an
   outside model afterwards.
 - From v0.4 itself: ports, scopes and `n2f context` are what F's "scope as data" builds on; the
@@ -267,7 +267,7 @@ Left to the maintainer: `make check-full` from a clean clone of `main`, push, CI
   e2dcb17 M3a · f162da1 M5 · 3967e42 M3b · 920c058 M4 · 016689b M6 · a19a2e9 simulation ·
   0bff573 gate C fixes · e1fc18e gate D fixes · the close-out commit that carries this report.
 - **Journals:** `STATUS.md`; `DECISIONS.md` S-103–S-118, gates C and D, S-119; `BACKLOG.md`
-  B-0063 onward; plan `PRODUCT_STRUCTURE.md`; baseline `docs/v04-baseline.md`; gate reports
+  B-0063 onward; plan `../stages/v0.4-product-structure.md`; baseline `docs/v04-baseline.md`; gate reports
   `docs/reviews/v0.4-gate-{c,d}.md`.
 - **Code:** `core/frames.py`, `core/tree.py`, `core/build_units.py`, `core/reach.py`,
   `core/context.py`, `core/checks/modules.py`, `core/checks/interface.py` (alignment),

@@ -176,7 +176,7 @@ written before (or beside) the design. `id: C-001, title, status, based_on?, ref
 under concepts/], layout: {word: word}, envelope: {name: quantity | [quantities]}, site:
 {key: quantity | word}, style: {…}, modules?: {name: {driver: [...], build: unit | phantom}},
 massing: [{kit, as, args, at?, module?}], notes, screening,
-decision` (schema: `core/model/concepts.py`; the full example is in `NAPKIN_STAGE.md` §3).
+decision` (schema: `core/model/concepts.py`; the full example is in `stages/v0.2-napkin-stage.md` §3).
 `envelope` and `site` take any named quantity or word; the fields screening reads are
 declared by the installed screens (the system's, a domain's, the product's own
 `model/screens/`), and `n2f concept new` writes them into the skeleton. The system's read

@@ -3,15 +3,15 @@
 **Version:** 0.6.0, released 2026-11-03 (tag `v0.6.0`, both packages on PyPI; 0.4.0 and 0.5.0 closed, untagged) · **Trunk:** `main`;
 work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:** `BACKLOG.md` ·
 **Why things are the way they are:** `DECISIONS.md` (index at the top) · **What shipped:**
-`HANDOFF-REPORT-v0.6.md` (v0.6), `HANDOFF-REPORT-v0.5.md` (v0.5), `HANDOFF-REPORT-v0.4.md` (v0.4), `HANDOFF-REPORT-v0.2.md` (v0.2), `HANDOFF-REPORT.md` (v0.1)
+`docs/handoffs/HANDOFF-REPORT-v0.6.md` (v0.6), `docs/handoffs/HANDOFF-REPORT-v0.5.md` (v0.5), `docs/handoffs/HANDOFF-REPORT-v0.4.md` (v0.4), `docs/handoffs/HANDOFF-REPORT-v0.2.md` (v0.2), `docs/handoffs/HANDOFF-REPORT-v0.1.md` (v0.1)
 
 ## Where we are
-v0.6 (the wiring, `ELECTRICAL_STAGE.md`) is closed: M0–M7 done, the domain milestone commits touched
+v0.6 (the wiring, `docs/stages/v0.6-electrical-stage.md`) is closed: M0–M7 done, the domain milestone commits touched
 **0 files** in `core/`, `report/builder.py`, `docs/engine.py` or `cli/check.py` (the v0.5 contract
 seam tasks `S-142`–`S-144`, `S-148`–`S-152`, `S-160`–`S-167`, `S-180` are listed apart per E10),
 the DoD 7 owner simulation passed (S-176), gates G and H are closed with every blocker fixed
 (S-178, S-179, S-180), and version files and product pins are at 0.6.0 / `>=0.6,<0.7` (S-181);
-`HANDOFF-REPORT-v0.6.md`. Released as `v0.6.0` (S-183; visuals judged by the maintainer: fine for now). Left: the
+`docs/handoffs/HANDOFF-REPORT-v0.6.md`. Released as `v0.6.0` (S-183; visuals judged by the maintainer: fine for now). Left: the
 next Linux nightly (after S-175's portable `mktemp`). Next: the independent outside-model
 trial (`docs/reviews/v0.6-independent-trial.md`).
 Releasing a version: bump the three version files and the pins (S-054, S-083), `make check` on
@@ -36,8 +36,8 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
   (`tests.conftest.copy_product`). Templates are synced with `make templates`, never hand-edited.
 
 ## Milestones (one line each; detail in the entries named)
-v0.6 — `ELECTRICAL_STAGE.md` (the electrical domain through the v0.5 contract; the count of core edits is
-the headline), S-111; reconciled with the contract as built in S-141; closed, `HANDOFF-REPORT-v0.6.md`,
+v0.6 — `docs/stages/v0.6-electrical-stage.md` (the electrical domain through the v0.5 contract; the count of core edits is
+the headline), S-111; reconciled with the contract as built in S-141; closed, `docs/handoffs/HANDOFF-REPORT-v0.6.md`,
 version 0.6.0 (S-181). `docs/reviews/v0.6-independent-trial.md` is the outside model's brief for after it lands.
 Wave times on the host (measured, 2026-11-02 – 2026-11-03): M0 (the baseline and five seam tasks at once) 07:00–07:55, 55 min;
 M1 07:56–08:26. `make check` on `main`: 9 min 34 s at 4358ba6 (after M0, 1,135 passed), 9 min 40 s at 9bd5b3f
@@ -64,9 +64,9 @@ M1 07:56–08:26. `make check` on `main`: 9 min 34 s at 4358ba6 (after M0, 1,135
 - DoD 7 owner simulation passed (supply-headroom choice raised after first build with wiring, decided by the owner) — S-176.
 - Gate G (electrician read-through + engineering) — "Review gate G — outcome", blockers fixed in S-178, S-179, S-180; Gate H (UX, owner persona) — "Review gate H — outcome", blockers fixed in S-179, S-180; close-out, 0.6.0 — S-181. The maintainer's visual judgment is pending.
 
-v0.5 — `FOUNDATION.md` (the seams: domain contract and registries, toy domain, the kiln out of the
+v0.5 — `docs/stages/v0.5-foundation.md` (the seams: domain contract and registries, toy domain, the kiln out of the
 package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120; closed,
-`HANDOFF-REPORT-v0.5.md`, version 0.5.0 (S-140);
+`docs/handoffs/HANDOFF-REPORT-v0.5.md`, version 0.5.0 (S-140);
 its prerequisite B-0073 (platform-stable sign-off evidence keys) is fixed in S-121: the push run of
 `make check` on 4c8d66c is green on ubuntu and macOS; no nightly has run on a commit after S-121
 yet (the latest, 10:28 on 2026-11-01, predates it), and `main` is not pushed during v0.5.
@@ -93,8 +93,8 @@ fixes, three tasks at once, 01:40–02:50.
   domains, the tables hashed) and S-139. Gate F (UX, owner persona) — "Review gate F — outcome"; blockers fixed in S-137
   (the napkin stage for any product) and S-139 (the release and choices). The maintainer's visual judgment is pending.
 
-v0.4 — `PRODUCT_STRUCTURE.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
-`HANDOFF-REPORT-v0.4.md`:
+v0.4 — `docs/stages/v0.4-product-structure.md` (sub-assemblies, ports, parts placed by interfaces), S-103; closed,
+`docs/handoffs/HANDOFF-REPORT-v0.4.md`:
 - M0 baseline and reconciliation (`docs/v04-baseline.md`) — S-105.
 - M1 interfaces place parts (`place_by`), frame expressions, alignment checked in the assembly — S-106.
 - M2 sub-assemblies have ports (`ports:`, a part's home, `place_by` for sub-assemblies) — S-107.
@@ -109,7 +109,7 @@ v0.3 — released 0.3.0 on 2026-11-01: journals, README for people and the agent
 S-073–S-084. Landed after the tag and shipped with 0.4.0: the v0.2 leftovers and share mode
 `n2f publish` (S-085–S-096), one trunk and a worktree per task (S-097–S-102).
 
-v0.2 — `NAPKIN_STAGE.md`:
+v0.2 — `docs/stages/v0.2-napkin-stage.md`:
 - M0 folds and ratifications — S-055–S-061.
 - M1 concept cards, loader, lint, optional Napkin gate — S-062.
 - M2 massing fidelity, calc kit, screening — S-063, S-064, S-065.
@@ -121,6 +121,6 @@ v0.2 — `NAPKIN_STAGE.md`:
 - Parallel `make check` — S-070. Gate B (UX, owner persona) — "Review gate B — outcome".
 - M7 close-out, release, CI gate — S-071, S-072.
 
-v0.1 — `GRAND_PLAN.md`, closed 2026-10-31: M0–M9 and gates 1–4 — S-001–S-054 and the four gate
-entries; `HANDOFF-REPORT.md`. The former milestone paragraphs are kept verbatim in
+v0.1 — `docs/stages/v0.1-grand-plan.md`, closed 2026-10-31: M0–M9 and gates 1–4 — S-001–S-054 and the four gate
+entries; `docs/handoffs/HANDOFF-REPORT-v0.1.md`. The former milestone paragraphs are kept verbatim in
 `docs/history/STATUS-through-v0.2.md`.

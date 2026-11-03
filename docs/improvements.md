@@ -34,8 +34,8 @@ the maintainer whether the scratch copies still exist; if not, reconstruct the f
 the two outcome entries and the backlog rows they opened, and say so at the top). Add
 `docs/reviews/TEMPLATE.md`: the reviewer's standing rules (fresh context, read-only, work on
 copies, quote exact text, verdict per question, blockers vs concerns with file:line) and the two
-question sets (architecture/honesty; UX in the owner persona) as they stand in `NAPKIN_STAGE.md`
-§5 ("Review gate A", "Review gate B") and `GRAND_PLAN.md` §8. Add one line to `AGENTS.md` under
+question sets (architecture/honesty; UX in the owner persona) as they stand in `stages/v0.2-napkin-stage.md`
+§5 ("Review gate A", "Review gate B") and `stages/v0.1-grand-plan.md` §8. Add one line to `AGENTS.md` under
 "Working style": gate reports live in `docs/reviews/`, outcomes in `DECISIONS.md`.
 
 ## 2. Run the demos in parallel in `make check-full` (B-0054)
@@ -158,7 +158,7 @@ they move. Estimates are guesses, not measurements; most of each is waiting on `
 `requires-python >=3.11,<3.15`; our `<3.15` copies it. The OCP wheels (`cadquery-ocp-novtk`
 7.9.3.1.1 and 8.0.1.1.0) exist for cp311–cp314 only, no cp315. Also without cp315 wheels:
 PyYAML 6.0.3 (would build from source) and `py-lib3mf` 2.5.0 (Linux aarch64 only). 3.13 itself
-comes from D2 (`GRAND_PLAN.md`, OCP wheel maturity) and S-002 ("3.14 not tried"). **Python 3.14
+comes from D2 (`stages/v0.1-grand-plan.md`, OCP wheel maturity) and S-002 ("3.14 not tried"). **Python 3.14
 is possible now:** every package in `uv.lock` has cp314 wheels for macOS x86_64 and arm64, Linux
 and Windows. 3.15's draw for us is PEP 810 lazy imports (CLI start-up; the code defers imports
 by hand today); wait for cp315 OCP wheels and build123d lifting its cap.

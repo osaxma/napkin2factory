@@ -4,7 +4,7 @@ Surveyed by hand on 2026-11-02 on `main` at `7f4d8d0` (S-141), macOS host, from
 `examples/kiln/model/` (`parts/*.yaml`, `docs/installation.md`, `docs/assembly.md`,
 `docs/maintenance.md`, `decisions.yaml`, `requirements.yaml`, `parameters.yaml`,
 `interfaces/`, `assemblies/`). Nothing in the kiln was changed. This is the evidence M5
-(`ELECTRICAL_STAGE.md` §5) types the kiln's wiring from; this file is outside the package, so
+(`stages/v0.6-electrical-stage.md` §5) types the kiln's wiring from; this file is outside the package, so
 the kiln's ids are used freely. Every vendor fact below is `[verify]`: nobody has checked it
 against the part in hand.
 

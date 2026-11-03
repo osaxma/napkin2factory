@@ -1,6 +1,6 @@
 # napkin2factory v0.6 — handoff report ("the wiring")
 
-**The count (`ELECTRICAL_STAGE.md` E10, DoD 1): 0 files** changed under `src/napkin2factory/core/`,
+**The count (`../stages/v0.6-electrical-stage.md` E10, DoD 1): 0 files** changed under `src/napkin2factory/core/`,
 `src/napkin2factory/report/builder.py`, `src/napkin2factory/docs/engine.py`, or
 `src/napkin2factory/cli/check.py` across every `domains/electrical/` milestone commit (`M0`–`M7`,
 including the gate-fix commits `d391e71` S-178 and `241ce74` S-179). Every core edit in
@@ -14,15 +14,15 @@ listed apart in §1 and §2).
 > v0.5's `docs/reviews/v0.5-*.png`) is pending (§10). The outside-model trial brief is
 > `docs/reviews/v0.6-independent-trial.md` (§9).
 
-Plan: `ELECTRICAL_STAGE.md` (decisions E1–E12, reconciled with the v0.5 contract in S-141). Run by
+Plan: `../stages/v0.6-electrical-stage.md` (decisions E1–E12, reconciled with the v0.5 contract in S-141). Run by
 overseer agents and one subagent per task, each in its own task worktree, landing with `make land`
 (§8 of the plan). Every number below is copied from the decision entry named beside it, or was
 measured on the macOS host; where neither holds, it says "not measured".
 
 ## 1. What v0.6 set out to do, and the E10 count
 
-v0.6 had two goals (`ELECTRICAL_STAGE.md` §0):
-1. **Prove the v0.5 domain contract (`FOUNDATION.md`)** with a real domain (`electrical`, under
+v0.6 had two goals (`../stages/v0.6-electrical-stage.md` §0):
+1. **Prove the v0.5 domain contract (`../stages/v0.5-foundation.md`)** with a real domain (`electrical`, under
    `src/napkin2factory/domains/electrical/`) that nobody built the seams for in advance, counting
    every core edit required along the way (E10).
 2. **Complete the kiln's manufacturer package**: wire its 18 devices across power, control, sensing
@@ -63,7 +63,7 @@ v0.6 had two goals (`ELECTRICAL_STAGE.md` §0):
 
 | milestone | what | entry |
 |---|---|---|
-| Plan & M0 | v0.6 plan reconciled with v0.5 (`ELECTRICAL_STAGE.md`); kiln electrical baseline survey (`docs/v06-baseline.md`); `calckit/data/{conductors,earthing,wire_colours}.yaml` and `calckit.wiring`; E5 decided (no parts-list seam in v0.6) | S-141, S-145, S-146, S-147 |
+| Plan & M0 | v0.6 plan reconciled with v0.5 (`../stages/v0.6-electrical-stage.md`); kiln electrical baseline survey (`docs/v06-baseline.md`); `calckit/data/{conductors,earthing,wire_colours}.yaml` and `calckit.wiring`; E5 decided (no parts-list seam in v0.6) | S-141, S-145, S-146, S-147 |
 | M0 seams | `Domain.release_files` (B-0099); `RuleFamily.before` (B-0125); interfaces checked by spec type `BoltPatternSpec` (B-0126); scope words table, `later` check status, domain owner word, missing stand-in in status, stand-in joint words (B-0115–B-0119) | S-142, S-143, S-144, S-148–S-152 |
 | M1 | `domains/electrical/` installed: `supply`, `device`, `circuit` and product `conductor` model families; connection-end parser; `cable-entry` interface kind (one-hole `BoltPatternSpec` + `passes:`); Design gate row "Wiring" and Verify gate row "Wiring checks"; minimal fixture (`tests/fixtures/electrical/minimal/`) | S-153, S-154, S-155 |
 | M2 | `elec:<circuit>` and `elec-schedule` rules: per-circuit `connections.json`, ladder `diagram.svg` and `.kicad_sch` text schematic; `schedule.csv`, `labels.csv`, `cables.csv` | S-156, S-157 |
@@ -74,7 +74,7 @@ v0.6 had two goals (`ELECTRICAL_STAGE.md` §0):
 | M5 & follow-ups | Cited EU 20 A and 32 A dedicated circuit classes and `Supply.dedicated` (`S-171`); the kiln wired (18 devices, power/control/sensing/earth circuits, three cable entries, five bought parts, `scope.electrical: in` DEC-025, headroom decided `dedicated` DEC-026, generated manual section, `demo-electrical.sh` + `ECR-003`); kiln diagram layout readability (`S-174`) | S-171, S-172, S-174 |
 | M7 & close-out | `docs/electrical.md`, agent guide, roles (`pm.md`, `design.md`, `verifier.md`), vocabulary, `docs/domains.md` (`S-173`); portable `mktemp` for Linux nightly (`S-175`); DoD 7 owner simulation passed (`S-176`); publish tests bare-repo `--git-dir` (`S-177`); gates G and H and their blocker fixes (`S-178`, `S-179`, `S-180`, Gate G, Gate H); version 0.6.0, pins `>=0.6,<0.7`, this report (`S-181`) | S-173, S-175–S-180, Gate G, Gate H, S-181 |
 
-## 3. Definition of done, item by item (`ELECTRICAL_STAGE.md` §1.3)
+## 3. Definition of done, item by item (`../stages/v0.6-electrical-stage.md` §1.3)
 
 1. **The count.** Verified in §1 above: **0 files** under `src/napkin2factory/core/`,
    `report/builder.py`, `docs/engine.py`, or `cli/check.py` in the electrical domain's milestone
@@ -130,7 +130,7 @@ v0.6 had two goals (`ELECTRICAL_STAGE.md` §0):
 10. **Docs, report and pins.** `docs/electrical.md`, `docs/agent-guide.md`, the three roles
     (`roles/{pm,design,verifier}.md`, synced with `make templates`), `docs/vocabulary.md` (10 wiring
     terms), `docs/domains.md` updated with the electrical domain as its third example (S-173);
-    `HANDOFF-REPORT-v0.6.md` with the count first; version `0.6.0` and product pins `>=0.6,<0.7`
+    `docs/handoffs/HANDOFF-REPORT-v0.6.md` with the count first; version `0.6.0` and product pins `>=0.6,<0.7`
     (S-181).
 
 ## 4. Measured numbers
@@ -193,7 +193,7 @@ read well.
 
 ## 6. Departures from the plan, decided on the way
 
-- **Plan §3 examples amended (`ELECTRICAL_STAGE.md` §3):** a requirement's `value` is a quantity
+- **Plan §3 examples amended (`../stages/v0.6-electrical-stage.md` §3):** a requirement's `value` is a quantity
   (`0 A` against `#props.supply_margin`), never `param://`; a `cable-entry` spec is a one-hole
   `BoltPatternSpec` (`count: 1`, `diameter`, `passes`, no `pattern: circle`); connection ends name
   `device://<id>#<terminal>` so multiple instances of one part have distinct devices (S-154, S-158,
@@ -261,7 +261,7 @@ of the contract.
      returns and earth-7's loop (B-0158) be reworked first? Recorded as "judged by the agent; the
      maintainer's visual judgment pending" in "Review gate H — outcome".
    - v0.5 visual exits (`docs/reviews/v0.5-status-choice.png`, `docs/reviews/v0.5-report-scope.png`),
-     still pending from `HANDOFF-REPORT-v0.5.md` §10.
+     still pending from `docs/handoffs/HANDOFF-REPORT-v0.5.md` §10.
 2. **Push** `main` (unpushed since `7f4d8d0`), then check the next scheduled Linux nightly run.
 3. **Tag** `v0.6.0` (and `v0.4.0` / `v0.5.0` if desired) on the green CI commit (S-072);
    `publish.yml` checks `pyproject.toml`, `packaging/n2f/pyproject.toml` and
@@ -272,7 +272,7 @@ of the contract.
 
 ## 11. Where things are
 
-- Plan: `ELECTRICAL_STAGE.md`; baseline: `docs/v06-baseline.md`; domain guide: `docs/electrical.md`;
+- Plan: `../stages/v0.6-electrical-stage.md`; baseline: `docs/v06-baseline.md`; domain guide: `docs/electrical.md`;
   contract: `docs/domains.md`.
 - Decisions: `DECISIONS.md` `S-141`–`S-181`, "Review gate G — outcome", "Review gate H — outcome";
   open work: `BACKLOG.md`.

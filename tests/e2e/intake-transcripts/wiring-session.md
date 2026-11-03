@@ -1,6 +1,6 @@
 # The wiring's choice raised at the right time: the warming box (v0.6 DoD 7, the simulation)
 
-`ELECTRICAL_STAGE.md` §1.3 item 7 ends with a scripted owner session: once the wiring is first
+`docs/stages/v0.6-electrical-stage.md` §1.3 item 7 ends with a scripted owner session: once the wiring is first
 built, the supply-headroom check (E11) finds the load above half of the circuit it plugs into
 and offers the owner a choice: keep the circuit for this product alone, or have a larger
 circuit fitted. The project manager must **not** raise it in the interview (the wiring, and so

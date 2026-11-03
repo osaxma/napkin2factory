@@ -28,9 +28,9 @@ from napkin2factory.core.model import BoltPatternSpec, Interface
 from napkin2factory.core.tree import AssemblyTree
 
 TOLERANCE_MM = 0.5
-# P3 alignment tolerances: a design choice (PRODUCT_STRUCTURE.md P3, S-106), not a measured
-# fit. Loose enough for float noise and rounded instance transforms, tight enough that a part
-# moved by a few millimetres or turned by a degree fails.
+# P3 alignment tolerances: a design choice (docs/stages/v0.4-product-structure.md P3, S-106),
+# not a measured fit. Loose enough for float noise and rounded instance transforms, tight enough
+# that a part moved by a few millimetres or turned by a degree fails.
 ALIGN_MM = 0.5
 ALIGN_DEG = 0.5
 

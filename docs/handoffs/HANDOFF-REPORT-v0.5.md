@@ -3,9 +3,9 @@
 > **Next agent:** v0.5 is closed on `main` with version 0.5.0 and the product pins `>=0.5,<0.6`
 > (S-140); it is **not pushed and not tagged**: both are the maintainer's. The maintainer's visual
 > judgment of the status output with a choice and the report's scope line is pending (§10). Then
-> continue with v0.6, `ELECTRICAL_STAGE.md` (§9).
+> continue with v0.6, `../stages/v0.6-electrical-stage.md` (§9).
 
-Plan: `FOUNDATION.md` (decisions F1–F17). Run by one overseer agent and one subagent per
+Plan: `../stages/v0.5-foundation.md` (decisions F1–F17). Run by one overseer agent and one subagent per
 milestone, each in its own task worktree, landing with `make land` (§8 of the plan). Every number
 below is copied from the decision entry named beside it, or was measured for this report on
 2026-11-02 on the macOS host; where neither holds, it says "not measured".
@@ -13,7 +13,7 @@ below is copied from the decision entry named beside it, or was measured for thi
 ## 1. What v0.5 set out to do
 
 A review on 2026-11-01 (S-111) measured what adding a step (a domain such as electrical or
-analysis) cost, and found the seams missing (`FOUNDATION.md` §0.2, re-measured in M0, S-122):
+analysis) cost, and found the seams missing (`../stages/v0.5-foundation.md` §0.2, re-measured in M0, S-122):
 1. **A new step edited 10 files, 7 of them in the core** (the M0 dry run: a no-op rule family,
    verify kind, check stage, report section and doc helper, each reached by a build).
 2. **The example had become the schema:** the concept card had `alcove_*` and `chamber` keys,
@@ -44,7 +44,7 @@ domain, a kiln that lives only in `examples/`, and a count of zero.
 | M6 | the splits (`validate_refs` beside each schema, `concepts/promote/` one seeder per family, `build_part`/`build_asm`) and `make check-fast`, the land gate | S-131 |
 | M7 | docs, `n2f doctor` lists the domains, the two simulation protocols; the two simulations; gates E and F and their fixes; 0.5.0 | S-132, S-134, S-136, S-137–S-140 |
 
-## 3. Definition of done, item by item (`FOUNDATION.md` §1.3)
+## 3. Definition of done, item by item (`../stages/v0.5-foundation.md` §1.3)
 
 1. **Nothing moved.** Goldens unchanged since v0.4 (gate E: `git diff --stat a9bea31 HEAD --
    tests/golden/goldens` empty; one regeneration-log line, the promote golden's `door → opening`,
@@ -181,7 +181,7 @@ chosen; the demo borrows the M6 x 16's price). `make verify-list` prints them.
 
 ## 9. What v0.6 inherits
 
-`ELECTRICAL_STAGE.md` (E1–E12) builds the electrical domain through this contract; the count of
+`../stages/v0.6-electrical-stage.md` (E1–E12) builds the electrical domain through this contract; the count of
 core edits is its headline. It starts from `docs/domains.md`, the toy and gadget examples
 (`tests/fixtures/domains/toy/`; the gadget lives in its transcript), the recording accessor
 (S-138), scope (the kiln's `electrical: later` becomes `in`), the `model/loads/` slot, and
@@ -203,7 +203,7 @@ B-0099/B-0100 above. `docs/reviews/v0.6-independent-trial.md` briefs an outside 
 
 ## 11. Where things are
 
-- Plan: `FOUNDATION.md`; decisions: `DECISIONS.md` S-122–S-140, "Review gate E — outcome",
+- Plan: `../stages/v0.5-foundation.md`; decisions: `DECISIONS.md` S-122–S-140, "Review gate E — outcome",
   "Review gate F — outcome"; open work: `BACKLOG.md`.
 - The contract: `docs/domains.md`; `src/napkin2factory/core/domain.py`, `core/registry.py`,
   `domains/`; the toy: `tests/fixtures/domains/toy/`, `tests/unit/test_domain_contract.py`.

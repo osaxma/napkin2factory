@@ -1,4 +1,4 @@
-"""The electrical domain (ELECTRICAL_STAGE.md, v0.6): the product's wiring, as data.
+"""The electrical domain (v0.6, docs/stages/v0.6-electrical-stage.md): product wiring as data.
 
 Registered through the domain contract (``docs/domains.md``) and nothing else: the core
 knows the contract, never this package.  The owner's word for it is "wiring".  This file

@@ -1,6 +1,6 @@
 # Backlog — every piece of open work, in one place
 
-Bugs, deferred items, what the plans (`GRAND_PLAN.md`, `NAPKIN_STAGE.md`) left out, non-goals that may return,
+Bugs, deferred items, what the plans (`docs/stages/v0.1-grand-plan.md`, `docs/stages/v0.2-napkin-stage.md`) left out, non-goals that may return,
 and risks worth watching. One line per row; the detail lives in the `DECISIONS.md` entry that opened or closed
 it. `src/` may reference an id in a `TODO(B-xxxx)` comment. Closed rows move to the table at the bottom with the
 entry that closed them. Ids are never reused.

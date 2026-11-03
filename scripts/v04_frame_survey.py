@@ -8,7 +8,7 @@ world frame, the door's group transform included: ``geometry/assembly.py::flatte
   cut with (``geometry/kit/hole_pattern.py::frame_basis``) and the frames resolved through
   ``geometry/accessors.py::resolve_interface``;
 * whether the two normals point the same way in the world (the P1 convention of
-  ``PRODUCT_STRUCTURE.md``) or face each other, and whether the x axes agree;
+  ``docs/stages/v0.4-product-structure.md``) or face each other, and whether the x axes agree;
 * the signed offset along the first party's normal from the first party's origin to the
   second's, and the in-plane miss between the two origins;
 * the worst in-plane miss between the two parties' hole centres (nearest-neighbour pairing),

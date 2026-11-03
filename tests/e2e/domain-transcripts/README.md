@@ -1,6 +1,6 @@
 # A step is a folder: the gadget simulation (v0.5 DoD 2, the count)
 
-`FOUNDATION.md` §1.3 item 2 asks whether a fresh agent, given only the contract
+`docs/stages/v0.5-foundation.md` §1.3 item 2 asks whether a fresh agent, given only the contract
 (`docs/domains.md`), can add a domain without touching the core. A fresh agent gets the
 contract's text, the path of a fresh copy of the repository and one scripted request: add a
 second toy domain, `gadget`, with one of every kind of thing a domain brings, installed for a

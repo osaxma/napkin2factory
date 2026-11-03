@@ -18,8 +18,9 @@ agent needs, write it here, in `STATUS.md`, or in a decision entry. `AGENTS.md` 
    Resume one if it is yours to finish; never start a duplicate.
 3. For your task only: the `BACKLOG.md` rows and `DECISIONS.md` entries it touches (the index
    table at the top of `DECISIONS.md` names them; open an entry only when you change what it
-   decides). `GRAND_PLAN.md` (v0.1, D-series), `NAPKIN_STAGE.md` (v0.2, N-series) and
-   `PRODUCT_STRUCTURE.md` (v0.4, P-series) are the plans those entries amend.
+   decides). `docs/stages/v0.1-grand-plan.md` (v0.1, D-series), `docs/stages/v0.2-napkin-stage.md` (v0.2, N-series) and
+   `docs/stages/v0.4-product-structure.md` (v0.4, P-series) are the plans those entries amend.
+   `docs/roadmap/road-to-v1.0.md` is the plan after v0.6.
 Do not run `make check` to "see where things stand": CI's result for `main` says that.
 
 ## How work flows (S-097)
@@ -163,6 +164,6 @@ make templates               # sync examples/{bracket,enclosure} + _common → t
 make goldens REASON="..."    # regenerate golden props, logged
 make verify-list             # every number a human still has to confirm
 ```
-Layout: `GRAND_PLAN.md` §3.1. One kit generator per file under `geometry/kit/`, one CLI verb per
+Layout: `docs/stages/v0.1-grand-plan.md` §3.1. One kit generator per file under `geometry/kit/`, one CLI verb per
 module under `cli/`, schemas under `core/model/`, the napkin stage under `concepts/`, the calc
 kit under `calckit/` (data tables in `calckit/data/`), the logo package in `brand/`.

@@ -1,7 +1,7 @@
 # v0.4 baseline: the kiln's frames, hardware and placement code before M1 (M0, S-105)
 
 Measured on 2026-11-01 on `main` at `92ed777` (S-103, the v0.4 plan), macOS host. This is the
-evidence M1–M3 of `PRODUCT_STRUCTURE.md` start from. Nothing in the kiln was changed: M3 applies
+evidence M1–M3 of `stages/v0.4-product-structure.md` start from. Nothing in the kiln was changed: M3 applies
 the hardware reconciliation and logs each kiln fix as a `DEC-` in the product.
 
 ## 1. Interface frames in the world (P1, P2)

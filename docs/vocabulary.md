@@ -21,7 +21,7 @@ templates for the right-hand words.
 | **scratch copy of a Revision** | a worktree | `n2f diff` builds older Revisions in one |
 | **online copy** (send to it) | the GitHub remote (push), plus its `gh-pages` branch that GitHub Pages serves | `n2f publish --online` |
 
-## Napkin words (the concept stage, NAPKIN_STAGE.md)
+## Napkin words (the concept stage, docs/stages/v0.2-napkin-stage.md)
 
 These have no version-control counterpart; they are listed so every role uses the same
 words with the owner.
@@ -38,7 +38,7 @@ words with the owner.
 | **set aside** / rejected | a direction not taken; the card is kept as a record | `n2f concept reject` |
 | **interpretation card** | the PM's playback, in words, of what it read in a sketch or photo, corrected by the owner before any card is written | the project manager role, `roles/pm.md` (N9) |
 
-## Structure words (the build plan, PRODUCT_STRUCTURE.md P7–P9)
+## Structure words (the build plan, docs/stages/v0.4-product-structure.md P7–P9)
 
 No version-control counterpart either; the owner reads the left column in the report, the
 manuals and the assembly sheets, the field names stay in the files and in `--json` (N5).
@@ -81,7 +81,7 @@ package, the fields stay in the files and in `--json`.
 | **decided** ("decided in DEC-0xx: shorter bolts at both ends (chosen by <name>)") | the owner picked an option; the row reads OK with the decision until what it was decided on changes, then the choice opens again | `n2f decide <check> --pick <option> --by "<name>"`, a `DEC-` entry |
 | **how it is checked** (a verify method) | the way a requirement is checked, chosen once and logged; the stronger one is offered when a mistake would cost much or the owner knows the area well | `verify.kind` on a requirement; `n2f doctor` lists the installed kinds |
 
-## Wiring words (the electrical domain, v0.6, ELECTRICAL_STAGE.md)
+## Wiring words (the electrical domain, v0.6, docs/stages/v0.6-electrical-stage.md)
 
 No version-control counterpart. The owner reads the left column in `n2f status`, the report's
 Wiring section, the manuals and the check messages; the fields and URIs stay in the files and

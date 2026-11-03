@@ -1,6 +1,6 @@
 # One module, one agent: the door simulation (v0.4 DoD 5)
 
-`PRODUCT_STRUCTURE.md` §1.3 item 5 asks whether an agent that knows only one module can change
+`docs/stages/v0.4-product-structure.md` §1.3 item 5 asks whether an agent that knows only one module can change
 it alone. A fresh agent gets the design role, the output of `n2f context asm://door` and the
 door's geometry code (one file, the *bundle*), then makes one scripted change to the door. It
 passes when the door's own checks and the whole kiln's checks have no failure and every file it

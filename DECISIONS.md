@@ -215,6 +215,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-186 | Fail n2f check when a made part's material density is assumed mild steel | in force |
 | S-187 | Cost delta names added or edited unpriced parts | in force |
 | S-188 | A Domain bom_lines hook brings consumables to the parts list (amends S-145 E5, closes B-0128) | in force |
+| S-189 | Reorganize root docs into docs/stages/, docs/handoffs/, docs/roadmap/ | in force |
 
 ---
 
@@ -1381,3 +1382,13 @@ cable lands unpriced: `rollups.json` `"consumables"`, `cost_complete: false`; a 
 quantity × unit cost. `bom.csv`: one `kind: consumable` row per line, new last column `qty_unit`.
 Electrical builds its lines with `circuit_record` and `cable_rows`, the schedule's own code, so
 the parts list and `build/wiring/cables.csv` cannot disagree on a length.
+
+## S-189 — Reorganize root docs into docs/stages/, docs/handoffs/, docs/roadmap/ (2026-11-03)
+Clean up repository root: 14 root files mixed living entry points with historical stage plans
+and handoff reports, and the roadmap lived outside the repo where no other agent could read it.
+Old→new path map: root stage plans (GRAND_PLAN, NAPKIN_STAGE, PRODUCT_STRUCTURE, FOUNDATION,
+ELECTRICAL_STAGE) → docs/stages/v0.{1,2,4,5,6}-<slug>; root handoff reports (v0.1–v0.6) →
+docs/handoffs/; roadmap docs (road-to-v1.0, pre-v0.7-todo, TRACK_*) → docs/roadmap/; architecture
+review → docs/reviews/v0.6-architecture-review.md. Root keeps only 5 canonical living files:
+`README.md`, `AGENTS.md`, `STATUS.md`, `DECISIONS.md`, `BACKLOG.md` (+ `LICENSE`, untracked files).
+History keeps old paths: `docs/history/` and existing `DECISIONS.md` entries remain unchanged.
