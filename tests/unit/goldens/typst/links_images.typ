@@ -11,5 +11,3 @@ Cross reference to installation stays as its label.
 Exploded view of the enclosure
 
 missing-without-alt.png
-
-#text(size: 8pt, style: "italic")[This design was produced with an AI system and has not been reviewed by a licensed engineer.]

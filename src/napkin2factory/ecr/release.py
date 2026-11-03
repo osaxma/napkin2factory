@@ -174,22 +174,19 @@ def make_bundle(
         shutil.copyfile(checks, stage / "checks.json")
     if product.paths.changelog.is_file():
         shutil.copyfile(product.paths.changelog, stage / "CHANGELOG.md")
-    from napkin2factory.core.domain import domain_disclaimers
-
     domain_folders = "".join(
         f"{name}/ ({title}), " if title else f"{name}/, "
         for name, title in copy_domain_files(build_dir, stage)
     )
     lines = scope_lines(product, build_dir, version, out_dir)
-    disclaimers = "".join(f" {d}" for d in domain_disclaimers(product))
+    # no AI mark on the cover: how the design was made is the owner's to say (S-194)
     (stage / "README.txt").write_text(
         f"{product.manifest.product.name} — Revision {version}\n\n"
         + "".join(f"{para}\n\n" for para in cover_notes(product, example_ids or []))
         + ("".join(f"Scope: {line}\n" for line in lines) + "\n" if lines else "")
         + "Contents: step/ (3D models), drawings/ (SVG + drawings.pdf), flat-patterns/ (DXF for\n"
         f"laser or punch), bom/ (bom.xlsx, bom.csv), manuals/ (PDF + HTML), {domain_folders}"
-        "report.html, checks.json, release.json.\n\nThis design was produced with an AI system "
-        f"and has not been reviewed by a licensed engineer.{disclaimers}\n",
+        "report.html, checks.json, release.json.\n",
         encoding="utf-8",
     )
     record = release_record(product, version)
@@ -642,8 +639,7 @@ def write_site_index(
         f"<h1>{product.manifest.product.name}</h1><p><a href='index.html'>Latest report</a></p>"
         f"<h2>Released Revisions</h2><ul>{rows or '<li>none yet</li>'}</ul>"
         f"<h2>Change pages</h2><ul>{drows or '<li>none yet</li>'}</ul>"
-        "<p><small>This design was produced with an AI system and has not been reviewed "
-        "by a licensed engineer.</small></p></body></html>\n",
+        "</body></html>\n",
         encoding="utf-8",
     )
     return site / "index.html"

@@ -15,5 +15,3 @@ Literal characters: \# \* \_ \@ref \$5 \<tag-like\> \[brackets\] back\\slash \~a
 1\. not numbered
 
 Email me at user\@example.com for \#hashtags.
-
-#text(size: 8pt, style: "italic")[This design was produced with an AI system and has not been reviewed by a licensed engineer.]

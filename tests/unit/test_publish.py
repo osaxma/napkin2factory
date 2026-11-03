@@ -64,7 +64,8 @@ def test_folder_holds_every_shared_page(tmp_path: Path) -> None:
     assert links and all((pub / href).is_file() for href in links), links
     assert not any(h.startswith(("/", "http", "file:")) for h in links)  # relative only
     assert not EXTERNAL.search(html)
-    assert "Widget" in html and "licensed engineer" in html
+    assert "Widget" in html
+    assert "AI system" not in html  # no AI mark in generated output (S-194)
     assert links.index("v1.1.0/index.html") < links.index("v1.0.0/index.html")  # newest first
     notes = " ".join(n["note"] for n in out["notes"])
     assert "v1.2.0 was a trial run" in notes and "v1.0.0 → working" in notes

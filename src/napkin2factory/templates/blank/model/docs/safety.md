@@ -12,11 +12,6 @@ depends_on: []
 This section is mandatory in every manual set and is always shown, whatever the
 reader's persona.
 
-## Disclaimer
-
-This design was produced with an AI system and has not been reviewed by a licensed
-engineer. Have it checked by a qualified person before building, powering, or using it.
-
 ## Hazards
 
 (List every hazard the product presents: electrical, thermal, mechanical, lifting,

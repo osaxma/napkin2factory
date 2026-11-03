@@ -13,5 +13,3 @@ Second quoted paragraph.
 #line(length: 100%)
 
 After the rule.
-
-#text(size: 8pt, style: "italic")[This design was produced with an AI system and has not been reviewed by a licensed engineer.]

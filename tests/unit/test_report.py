@@ -70,7 +70,19 @@ def test_every_uri_and_requirement_present(report: tuple[Path, str]) -> None:
     )
     assert "data-n2f-glb" in html
     assert 'id="drawing-base"' in html and "<svg" in html
-    assert "Disclaimer" in html and "not been reviewed by a licensed engineer" in html
+    assert "AI system" not in html  # no AI mark in generated output (S-194)
+
+
+def test_no_generated_file_carries_an_ai_mark(report: tuple[Path, str]) -> None:
+    """No generated text file says how the design was made: the owner decides that (S-194)."""
+    root, _ = report
+    suffixes = {".html", ".svg", ".md", ".csv", ".txt", ".typ"}
+    files = [p for p in (root / "build").rglob("*") if p.is_file() and p.suffix in suffixes]
+    assert {".html", ".svg", ".csv"} <= {p.suffix for p in files}  # the guard is not vacuous
+    for path in files:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for mark in ("AI system", "licensed engineer"):
+            assert mark not in text, f"{path.relative_to(root)}: {mark!r}"
 
 
 def test_navigation_and_links_without_toggle(report: tuple[Path, str]) -> None:

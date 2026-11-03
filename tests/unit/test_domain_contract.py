@@ -322,42 +322,6 @@ def test_release_package_without_domain_files_is_unchanged(
         assert CONTENTS in zf.read("v0.1.0/README.txt").decode("utf-8")
 
 
-def test_in_scope_domain_disclaimer_appears_in_package_and_report(
-    toy_built: tuple[Path, Any, Any], tmp_path: Path
-) -> None:
-    """S-180: ``Domain.disclaimer`` is appended in the package README and report when in scope."""
-    import zipfile
-
-    from napkin2factory.ecr.release import make_bundle
-    from napkin2factory.report.builder import render_report
-
-    sentence = "Its toys have not been checked by a toy inspector."
-    with_disclaimer = dataclasses.replace(toy.DOMAIN, disclaimer=sentence)
-    registry_mod.unregister("toy")
-    try:
-        registry_mod.register(with_disclaimer)
-        root, _, _ = toy_built
-        product = load_product(root)
-        zip_path = make_bundle(product, root / "build", "v0.1.0", tmp_path / "toy_out")
-        with zipfile.ZipFile(zip_path) as zf:
-            cover = zf.read("v0.1.0/README.txt").decode("utf-8")
-        assert f"not been reviewed by a licensed engineer. {sentence}\n" in cover
-        html = render_report(product, root / "build", "today")
-        assert f"powering, or using it. {sentence}</div>" in html
-        # a product without toy content omits the toy disclaimer
-        b_root = copy_product(EXAMPLES / "bracket", tmp_path / "bracket_d", git=False)
-        (b_root / "build").mkdir()
-        b_prod = load_product(b_root)
-        b_zip = make_bundle(b_prod, b_root / "build", "v0.1.0", tmp_path / "b_out")
-        with zipfile.ZipFile(b_zip) as zf:
-            b_cover = zf.read("v0.1.0/README.txt").decode("utf-8")
-        assert sentence not in b_cover
-        assert sentence not in render_report(b_prod, b_root / "build", "today")
-    finally:
-        registry_mod.unregister("toy")
-        registry_mod.register(toy.DOMAIN)
-
-
 @pytest.mark.parametrize(
     ("folder", "patterns"),
     [

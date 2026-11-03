@@ -335,13 +335,10 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     else:
         revision_label = f"draft · saved {snapshot_date}"
 
-    from napkin2factory.core.domain import domain_disclaimers
-
     return {
         "product": product.manifest.product,
         "persona": persona,
         "words": VOCAB[persona],
-        "disclaimers": domain_disclaimers(product),
         "sections": sections(product),
         "anchors": anchors,
         "stage": stage,

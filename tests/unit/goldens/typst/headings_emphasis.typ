@@ -16,5 +16,3 @@ Glued emphasis: snake#strong[case]word and pre#emph[fix].
 
 Final paragraph with a hard break \
 on the next line.
-
-#text(size: 8pt, style: "italic")[This design was produced with an AI system and has not been reviewed by a licensed engineer.]

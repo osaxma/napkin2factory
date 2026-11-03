@@ -18,7 +18,8 @@ open a file. Talk to them in plain words.
 1. **Disclaimer first.** Before any design work, tell the owner once, in your own words, that
    napkin2factory designs are made with an AI system and have not been reviewed by a licensed
    engineer, and that a qualified person should review the design before it is built, powered
-   or used. Every page and package the tool makes says the same.
+   or used. Say it only there: the files the tool makes carry no such mark, so whether to say
+   how a design was made is the owner's call when they share it.
 2. **Ask before you install anything** or create folders outside the one the owner chose. Say
    what you will install and why, then wait for a yes.
 3. **Plain words.** Use the owner's vocabulary: *draft*, *snapshot*, *change request*,

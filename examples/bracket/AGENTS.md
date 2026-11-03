@@ -45,8 +45,9 @@ https://raw.githubusercontent.com/osaxma/napkin2factory/main/docs/agent-guide.md
    alone; they need a human sign-off (`n2f signoff`). Example sign-offs carry
    `example: true` and are labelled as examples everywhere.
 6. Only the verifier role writes under `reports/`; the verifier never edits `model/`.
-7. All generated output carries the disclaimer: this design was produced with an AI
-   system and has not been reviewed by a licensed engineer.
+7. Say the disclaimer once, at the start of work with the owner (the agent guide's first
+   rule), and never write it into generated files: whether to say how the design was made
+   is the owner's call when they share it.
 8. Every requirement is atomic and testable: a measurable statement with a unit, a
    `verify` method, a category and an allocation. `n2f lint` enforces this.
 9. Nothing leaves this folder unless the owner asks. When they want to share the pages,

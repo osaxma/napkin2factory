@@ -61,6 +61,7 @@ AI client (or none) is driving (D6).
 
 ## Safety floor
 
-The disclaimer appears on every report, manual and package. Hazards are stated in plain
-words to every reader. Example products ship sign-offs flagged `example: true`, which the
+The disclaimer is said once, by the agent, at the start of work; generated files carry no AI
+mark, so whether to say how a design was made is the owner's call when they share it.
+Hazards are stated in plain words to every reader. Example products ship sign-offs flagged `example: true`, which the
 report labels "EXAMPLE SIGN-OFF, NOT A REVIEW".

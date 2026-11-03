@@ -15,7 +15,6 @@ from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
 from napkin2factory.core.loader import heading_anchor
-from napkin2factory.docs.typst import DISCLAIMER
 
 AnchorFn = Callable[[str], str]
 LinkFn = Callable[[str, str], str]
@@ -36,8 +35,6 @@ code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.
 pre { background: #f6f6f6; padding: 0.75rem; overflow-x: auto; }
 blockquote { border-left: 3px solid #ccc; margin-left: 0; padding-left: 1rem; color: #444; }
 img { max-width: 100%; }
-footer { margin-top: 3rem; border-top: 1px solid #ddd; padding-top: 0.75rem; color: #555;
-  font-size: 0.85rem; font-style: italic; }
 """.strip()
 
 
@@ -99,7 +96,7 @@ def render_html(
     banner: str = "",
     link_fn: LinkFn | None = None,
 ) -> str:
-    """Render Markdown to a standalone HTML document with inline CSS and the disclaimer.
+    """Render Markdown to a standalone HTML document with inline CSS.
 
     Args:
         markdown_text: The (already templated) Markdown body.
@@ -130,9 +127,6 @@ def render_html(
     if subtitle:
         top.append(f'<p class="subtitle">{esc(subtitle)}</p>')
     body = render_fragment(markdown_text, anchor_fn, link_fn)
-    foot = [
-        f'<footer><p class="disclaimer">{esc(DISCLAIMER)}</p></footer>',
-        "</body>",
-        "</html>",
-    ]
+    # no footer line: generated output carries no AI mark (S-194)
+    foot = ["</body>", "</html>"]
     return "\n".join([*head, *top, "<main>", body.rstrip("\n"), "</main>", *foot]) + "\n"

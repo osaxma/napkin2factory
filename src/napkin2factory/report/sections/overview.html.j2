@@ -1,6 +1,6 @@
 <section class="card" id="overview">
   {{ h2('overview', 'Overview') }}
-  <div class="disclaimer" id="disclaimer"><strong>Disclaimer.</strong> This design was produced with an AI system and has not been reviewed by a licensed engineer. Calculations and checks are computed, not certified. Have a qualified person review it before building, powering, or using it.{% for d in disclaimers %} {{ d }}{% endfor %}</div>
+  {# no AI mark in generated output: how the design was made is the owner's to say (S-194) #}
   <div class="tiles">
     <a class="tile" href="#parts"><div class="v">{{ rollups.total_cost | round(2) }} USD</div><div class="k">per unit, from declared costs{% if not rollups.cost_complete %} · incomplete{% endif %}</div></a>
     <a class="tile" href="#parts"><div class="v">{{ rollups.part_count }} parts</div><div class="k">{{ rollups.custom_count }} custom · {{ rollups.total_mass | round(2) }} kg</div></a>

@@ -187,8 +187,6 @@ def validate_full(root: Path, product, problems: list[str]) -> None:  # type: ig
         for aid in units:
             if f'id="step-{aid}"' not in html:
                 problems.append(f"report: build plan step for asm://{aid} missing")
-        if "not been reviewed by a licensed engineer" not in html:
-            problems.append("report: disclaimer missing")
         for s in product.signoffs.values():
             if s.example and "EXAMPLE SIGN-OFF, NOT A REVIEW" not in html:
                 problems.append(f"report: example sign-off {s.requirement} is not labelled")

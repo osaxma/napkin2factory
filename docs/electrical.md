@@ -337,8 +337,8 @@ after the first build with wiring, never in the interview (`roles/pm.md`).
   Verify, **Wiring checks** ("6 checks: 5 OK, 1 for an electrician to confirm"). Neither row
   exists for a product with no wiring and no scope entry for it.
 - The report's **Wiring** section (Product, after the joints): each circuit's diagram and its
-  wires, the schedule, the cable to buy, the wiring check rows (failing first) and the
-  disclaimer; for `later` or `external`, the scope line.
+  wires, the schedule, the cable to buy, the wiring check rows (failing first); for
+  `later` or `external`, the scope line.
 - `n2f check --scope asm://<unit>` keeps the circuit rows whose devices sit in that unit;
   `n2f context asm://<unit>` lists "Wiring in this module": the circuits that reach a device
   in it, their connections in owner words, and the cable entries on its parts or ports.

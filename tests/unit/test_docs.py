@@ -12,7 +12,6 @@ from selectolax.lexbor import LexborHTMLParser
 from napkin2factory.core.loader import heading_anchor
 from napkin2factory.docs.html import render_fragment, render_html
 from napkin2factory.docs.typst import (
-    DISCLAIMER,
     TypstError,
     compile_pdf,
     escape_text,
@@ -87,7 +86,8 @@ def test_emitter_constructs() -> None:
     assert '#link("https://e.com")[l]' in source
     assert "`c`" in source and "#strike[s]" in source
     assert "#line(length: 100%)" in source
-    assert source.rstrip().endswith(f'#text(size: 8pt, style: "italic")[{DISCLAIMER}]')
+    assert source.rstrip().endswith("#line(length: 100%)")
+    assert "AI system" not in source  # no AI mark in generated output (S-194)
     assert '#set page(paper: "a4", margin: 2cm)' in source
     assert warnings == []
 
@@ -125,7 +125,7 @@ def test_compile_error_raises_typst_error(tmp_path: Path) -> None:
         compile_pdf('#image("/does-not-exist.png")', tmp_path)
 
 
-def test_render_html_anchors_tables_disclaimer() -> None:
+def test_render_html_anchors_tables_no_ai_mark() -> None:
     md = (
         "# Power & wiring\n\nText.\n\n## Fit the *lid*\n\n"
         "| a | b |\n|---|---|\n| 1 | 2 |\n\n<script>alert(1)</script>\n"
@@ -138,8 +138,8 @@ def test_render_html_anchors_tables_disclaimer() -> None:
     assert h1.attributes["id"] == "power-wiring"
     assert h2 is not None and h2.attributes["id"] == heading_anchor("Fit the *lid*")
     assert len(tree.css("table th")) == 2 and len(tree.css("table td")) == 2
-    footer = tree.css_first("footer")
-    assert footer is not None and DISCLAIMER in footer.text()
+    assert tree.css_first("footer") is None
+    assert "AI system" not in page  # no AI mark in generated output (S-194)
     assert tree.css_first("title").text() == "Install"  # type: ignore[union-attr]
     assert tree.css_first(".banner").text() == "SAFETY — read before use"  # type: ignore[union-attr]
     assert tree.css("script") == []  # raw HTML is escaped, not passed through

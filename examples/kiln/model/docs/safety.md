@@ -9,12 +9,6 @@ depends_on: [req://REQ-003, req://REQ-007, req://REQ-008, req://REQ-009, req://R
 
 # Safety
 
-## Disclaimer
-
-This design was produced with an AI system and has not been reviewed by a licensed
-engineer. A kiln is a mains-powered appliance that reaches {{ P["max-temperature"] }}.
-Have the design, the wiring and the finished kiln checked by qualified people before use.
-
 ## Hazards
 
 - **Burns.** The firing chamber reaches {{ P["max-temperature"] }}. The inner shell and the

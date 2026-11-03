@@ -18,10 +18,6 @@ from pathlib import Path
 from markdown_it import MarkdownIt
 from markdown_it.tree import SyntaxTreeNode
 
-DISCLAIMER = (
-    "This design was produced with an AI system and has not been reviewed by a licensed engineer."
-)
-
 # Characters with markup meaning in Typst text.  ``/`` is handled separately (only ``//``
 # and ``/*`` start comments).
 _SPECIAL = set("\\#*_@$<>[]`~")
@@ -358,7 +354,7 @@ def markdown_to_typst(
     body = emitter.blocks(tree.children)
     if body:
         sections.append(body)
-    sections.append(f'#text(size: 8pt, style: "italic")[{escape_text(DISCLAIMER)}]')
+    # no AI mark in generated output: how the design was made is the owner's to say (S-194)
     return "\n\n".join(sections) + "\n", warnings
 
 

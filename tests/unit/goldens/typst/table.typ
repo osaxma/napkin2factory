@@ -12,5 +12,3 @@
   [Bracket], [2], [_4.00_ USD],
   [M4 x 10 screw], [4], [],
 )
-
-#text(size: 8pt, style: "italic")[This design was produced with an AI system and has not been reviewed by a licensed engineer.]

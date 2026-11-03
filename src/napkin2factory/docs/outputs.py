@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING, Any
 from napkin2factory.core.loader import heading_anchor
 from napkin2factory.docs.html import CSS, render_html
 from napkin2factory.docs.typst import (
-    DISCLAIMER,
     TypstError,
     compile_pdf,
     markdown_parser,
@@ -202,7 +201,6 @@ def write_index(ctx: RunContext) -> Path:
             '<ul class="pages">',
             *rows,
             "</ul>",
-            f'<footer><p class="disclaimer">{esc(DISCLAIMER)}</p></footer>',
             "</body>",
             "</html>",
         ]

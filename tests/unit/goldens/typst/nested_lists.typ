@@ -19,5 +19,3 @@ A separate list:
 
 4. Starts at four
 + Then five
-
-#text(size: 8pt, style: "italic")[This design was produced with an AI system and has not been reviewed by a licensed engineer.]

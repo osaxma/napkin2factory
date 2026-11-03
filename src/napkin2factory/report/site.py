@@ -252,13 +252,11 @@ h1{font-size:1.25rem;margin:0}main{max-width:52rem;margin:0 auto;padding:1rem 1.
 section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem}h2{font-size:1.05rem;margin:.1rem 0 .6rem}
 ul{margin:0;padding-left:1.2rem}li{margin:.25rem 0}a{color:var(--accent)}.muted{color:var(--muted)}
 .big{font-size:1.05rem;font-weight:600}
-.disclaimer{background:#fff4e5;border:1px solid #f0c27a;border-radius:8px;padding:.6rem .9rem;font-size:.9rem}
 </style>
 </head>
 <body>
 <header><h1>{{ name }}</h1><span class="muted">Shared pages, put together on {{ made_on }}</span></header>
 <main>
-<div class="disclaimer"><strong>Disclaimer.</strong> This design was produced with an AI system and has not been reviewed by a licensed engineer.</div>
 <section id="latest"><h2>Latest design</h2>
 <p><a class="big" href="{{ latest }}">Open the latest report</a>{% if latest != 'latest/index.html' %} <span class="muted">(Revision {{ latest.split('/')[0] }})</span>{% endif %} <span class="muted">— 3D view, drawings, parts list with what to tell the manufacturer, and the checks</span></p>
 </section>

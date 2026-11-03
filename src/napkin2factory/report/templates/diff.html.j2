@@ -17,15 +17,12 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}.mono{font-family:ui-m
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.viewer{height:420px;background:#f4f4f2;border-radius:8px;overflow:hidden}
 figure{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}figcaption{padding:.4rem .6rem;font-size:.85rem;color:var(--muted);border-top:1px solid var(--line)}
 .legend span{display:inline-block;width:.9rem;height:.9rem;border-radius:2px;vertical-align:middle;margin-right:.3rem}
-.disclaimer{background:#fff4e5;border:1px solid #f0c27a;border-radius:8px;padding:.6rem .9rem;font-size:.9rem}
 </style>
 </head>
 <body>
 <header><h1>{{ product.name }}</h1><span class="mono">{{ ref_a }} → {{ ref_b }}</span>
 <span class="muted">{{ delta.parts | length }} part(s) differ · {{ delta.params | length }} parameter(s) · {{ delta.requirements | length }} requirement verdict(s)</span></header>
 <main>
-<div class="disclaimer"><strong>Disclaimer.</strong> This design was produced with an AI system and has not been reviewed by a licensed engineer.</div>
-
 <section id="summary"><h2>What this change means</h2>
 <p><strong>Cost per unit:</strong> {{ '%.2f' % (delta.totals.cost_a or 0) }} → {{ '%.2f' % (delta.totals.cost_b or 0) }} USD (<span class="{{ 'old' if delta.totals.cost_delta > 0 else 'new' }}">{{ '%+.2f' % delta.totals.cost_delta }} USD</span>) ·
 <strong>Mass:</strong> {{ '%.3f' % (delta.totals.mass_a or 0) }} → {{ '%.3f' % (delta.totals.mass_b or 0) }} kg ({{ '%+.3f' % delta.totals.mass_delta }} kg) ·

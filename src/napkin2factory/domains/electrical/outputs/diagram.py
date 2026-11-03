@@ -32,7 +32,7 @@ band, nothing for an earth circuit; "Protected by" only where the checks require
 protective device.  Terminals are small circles (IEC 60617's terminal) where a wire lands.
 A footer band closes every diagram, as the title block closes a mechanical sheet
 (``drawings/sheet.py``): the product, the circuit and the Revision (or "draft"), so a
-printed diagram says what it belongs to (S-179; no disclaimer on it, S-193).  Every
+printed diagram says what it belongs to (S-179).  Every
 coordinate is rounded by the drawings' serialiser and nothing depends on time, so a
 golden holds it.  The SVG is self-contained (its font in a ``<style>``), as the
 ``file://`` report needs (D13).

@@ -322,7 +322,7 @@ def test_the_release_cover_says_what_is_not_included(later: Path, tmp_path: Path
         "",
         "Scope: Wiring: left for later (not designed here yet) — The wiring comes later (DEC-003)",
     ]
-    assert "licensed electrician" not in cover.splitlines()[-1]
+    assert "AI system" not in cover  # no AI mark in generated output (S-194)
     assert [(s["domain"], s["state"]) for s in record["scope"]] == [("electrical", "later")]
 
 
@@ -330,9 +330,6 @@ def test_the_later_to_in_release_cover_says_so(
     later: Path, built: Path, elsewhere: Path, tmp_path: Path
 ) -> None:
     """Gate H C7 & gate G 3 (S-180): v1.1.0 says Wiring is included where v1.0.0 left it out."""
-    from napkin2factory.domains.electrical import DOMAIN as ELECTRICAL
-
-    assert ELECTRICAL.disclaimer is None  # one disclaimer, the README's (S-193)
     make_bundle(load_product(later), later / "build", "v1.0.0", tmp_path)
     pkg = make_bundle(load_product(built), built / "build", "v1.1.0", tmp_path)
     with zipfile.ZipFile(pkg) as zf:
