@@ -154,6 +154,13 @@ def _product(tmp_path: Path) -> tuple[Vcs, Path]:
     return v, remote
 
 
+def _bare_git(remote: Path, *args: str) -> str:
+    """Read a bare repository with `--git-dir`, never `cwd=` (S-177, safe.bareRepository)."""
+    return subprocess.run(
+        ["git", f"--git-dir={remote}", *args], capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+
 def _git(where: Path, *args: str) -> str:
     return subprocess.run(
         ["git", *args], cwd=where, capture_output=True, text=True, check=True
@@ -175,14 +182,15 @@ def test_send_online_to_a_bare_copy(tmp_path: Path) -> None:
     sha = v.snapshot_of_folder(pages, "Shared pages")
     assert v.is_clean() and _git(v.root, "branch", "--list") == "* main"  # nothing local moved
     v.send_online("origin", "main", sha)
-    assert _git(remote, "rev-parse", "main") == v.head()
-    assert _git(remote, "tag", "--list") == "v1.0.0"
-    assert _git(remote, "ls-tree", "--name-only", PAGES_LINE).split() == [".nojekyll", "index.html"]
+    assert _bare_git(remote, "rev-parse", "main") == v.head()
+    assert _bare_git(remote, "tag", "--list") == "v1.0.0"
+    pages_files = _bare_git(remote, "ls-tree", "--name-only", PAGES_LINE).split()
+    assert pages_files == [".nojekyll", "index.html"]
     # A second send replaces the pages line, with no history behind it.
     _page(pages / "index.html", "shared again")
     v.send_online("origin", "main", v.snapshot_of_folder(pages, "Shared pages"))
-    assert _git(remote, "rev-list", "--count", PAGES_LINE) == "1"
-    assert "shared again" in _git(remote, "show", f"{PAGES_LINE}:index.html")
+    assert _bare_git(remote, "rev-list", "--count", PAGES_LINE) == "1"
+    assert "shared again" in _bare_git(remote, "show", f"{PAGES_LINE}:index.html")
 
 
 def test_online_copy_with_newer_snapshots_refuses(tmp_path: Path) -> None:

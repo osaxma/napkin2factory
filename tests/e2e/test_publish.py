@@ -87,8 +87,9 @@ def test_online_sends_to_the_online_copy(shared: Path, tmp_path: Path) -> None:
         assert out["online"] == {"sent": True, "web_address": None}
 
         def git(*args: str) -> str:
+            # --git-dir, not cwd=remote: safe.bareRepository=explicit refuses the latter (S-177).
             return subprocess.run(
-                ["git", *args], cwd=remote, capture_output=True, text=True, check=True
+                ["git", f"--git-dir={remote}", *args], capture_output=True, text=True, check=True
             ).stdout
 
         assert git("tag", "--list").split() == ["v1.0.0", "v1.1.0"]

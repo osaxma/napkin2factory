@@ -201,6 +201,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-174 | v0.6 follow-up: the wiring diagrams readable at the kiln's size (the box's side of each entry, labels never overprinted, titles by purpose, the core's boundary words; closes B-0152, B-0154) | in force |
 | S-175 | The kiln demos' `mktemp` calls take a template ending in X's (GNU and BSD alike), and a unit test keeps every script that way: the Linux nightly was red on BSD-only `mktemp -d -t name`; the napkin demo's test matches a promoted requirement by its line, not its id (closes B-0159) | in force |
 | S-176 | The wiring session simulation (DoD 7) passed on 2026-11-03: the supply-headroom choice raised after the first build with wiring, not in the interview, decided only with the owner's answer; no fix to `roles/pm.md`; B-0160 opened | in force |
+| S-177 | The two publish tests read their temporary bare repository with `git --git-dir=<remote>`, not `cwd=<remote>`: robust under `safe.bareRepository=explicit` (tests only) | in force |
 
 ---
 
@@ -1238,3 +1239,10 @@ both options with what each takes); one `n2f decide … --pick larger --by "Dana
 `made_by: human`; the PM then made the pick in the model, and the row reads `pass` at 16 A. No fix to `roles/pm.md`.
 Found: `n2f status` tells this owner "an agent may decide it" though they asked to be asked (B-0160, core wording, a seam
 task; not a blocker: the PM followed the owner). Step 3's role texts were named by path, not pasted (same text, 33 KB).
+
+## S-177 (2026-11-03) The publish tests read a bare repository with `--git-dir`
+Under `safe.bareRepository=explicit` (set in some sandboxes) git refuses to run with a bare repository as the working
+directory (exit 128), so `test_send_online_to_a_bare_copy` and `test_online_sends_to_the_online_copy` failed there though
+the product was right. Reproduce: `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=explicit
+uv run pytest` on those two tests. Fix, tests only: `_bare_git` and the e2e `git()` pass `--git-dir=<remote>`. The setting
+is never weakened.
