@@ -98,6 +98,8 @@ def scope_line(
 class Manifest(Model):
     """``n2f.yaml``.
 
+    ``region`` (W7) is the product's target region code for electrical and cost lookups.
+    ``units`` (W8) sets display units for reports and the board (``metric`` or ``imperial``).
     ``scope`` (F11) records, per domain, whether its work is ``in`` this product, done
     elsewhere (``external``) or ``later``.  A domain not listed is ``in`` when the product
     has content for it and absent otherwise; the field is optional and changes nothing
@@ -107,9 +109,22 @@ class Manifest(Model):
     schema_version: int = Field(default=1, alias="schema")
     system: str = ">=0.6,<0.7"
     product: ProductInfo
-    units: Literal["metric"] = "metric"
+    region: str | None = None  # W7
+    units: Literal["metric", "imperial"] = "metric"  # W8
     manufacturer_profile: str | None = None
     scope: dict[Slug, ScopeEntry] = Field(default_factory=dict)
+
+    @field_validator("region")
+    @classmethod
+    def _known_region(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        from napkin2factory.calckit.wiring import known_regions
+
+        regions = known_regions()
+        if v not in regions:
+            raise ValueError(f"unknown region {v!r}; known regions: {', '.join(regions)}")
+        return v
 
     @field_validator("system")
     @classmethod

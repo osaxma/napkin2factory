@@ -278,6 +278,10 @@ A requirement on a circuit's figure uses `verify: {kind: circuit, target:
 "circuit://<id>#props.supply_margin", op: ">", value: 0 A}`; the wiring's safety requirements
 stay a person's sign-off.
 
+**Product settings (`n2f.yaml`).**
+- `region`: the target region code for electrical and cost table lookups (`EU`, `US`, `UK`, `SA`, `AU`).
+- `units`: display units for reports and the board (`metric` or `imperial`, defaults to `metric`).
+
 **Scope: what this product covers.** When the owner says a step is done elsewhere or comes
 later ("the electrician wires it"), record it once in `n2f.yaml` with the decision behind it:
 `scope: {electrical: {state: later, decision: DEC-xxx, note: "…"}}` (`in`, `external` with

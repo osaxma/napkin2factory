@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -13,6 +15,7 @@ from napkin2factory.core.model import (
     Requirement,
     Signoff,
 )
+from napkin2factory.core.yamlio import load_roundtrip
 
 
 def test_requirement_round_trip():
@@ -154,10 +157,51 @@ def test_manifest_operator_signoff_decision():
         {"schema": 1, "system": ">=0.1,<0.2", "product": {"id": "kiln", "name": "Kiln"}}
     )
     assert m.schema_version == 1
+    assert m.region is None
+    assert m.units == "metric"
     with pytest.raises(ValidationError, match="version range"):
         Manifest.model_validate(
             {"schema": 1, "system": "latest", "product": {"id": "kiln", "name": "Kiln"}}
         )
+
+    # W7 region validation and W8 units
+    m_us = Manifest.model_validate(
+        {
+            "schema": 1,
+            "system": ">=0.6,<0.7",
+            "product": {"id": "stand", "name": "Test stand"},
+            "region": "US",
+            "units": "imperial",
+        }
+    )
+    assert m_us.region == "US"
+    assert m_us.units == "imperial"
+
+    with pytest.raises(ValidationError, match="unknown region 'XX'.*AU, EU, SA, UK, US"):
+        Manifest.model_validate(
+            {
+                "schema": 1,
+                "system": ">=0.6,<0.7",
+                "product": {"id": "p", "name": "P"},
+                "region": "XX",
+            }
+        )
+
+    with pytest.raises(ValidationError, match="Input should be 'metric' or 'imperial'"):
+        Manifest.model_validate(
+            {
+                "schema": 1,
+                "system": ">=0.6,<0.7",
+                "product": {"id": "p", "name": "P"},
+                "units": "fathoms",
+            }
+        )
+
+    # v0.6 fixture loads unchanged (schema policy rule 1, W11)
+    v1_path = Path(__file__).resolve().parents[1] / "fixtures" / "schema" / "v1" / "n2f.yaml"
+    v1_manifest = Manifest.model_validate(load_roundtrip(v1_path))
+    assert v1_manifest.region is None
+    assert v1_manifest.units == "metric"
     assert Operator().domains["thermal"] == "novice"
     s = Signoff.model_validate(
         {

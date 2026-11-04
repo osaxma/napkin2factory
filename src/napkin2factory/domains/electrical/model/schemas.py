@@ -240,6 +240,15 @@ class Supply(Model):
             wiring.earthing(v)  # a ValueError listing the known arrangements
         return v
 
+    @field_validator("region")
+    @classmethod
+    def _known_region(cls, v: str | None) -> str | None:
+        if v is not None:
+            regions = wiring.known_regions()
+            if v not in regions:
+                raise ValueError(f"unknown region {v!r}; known regions: {', '.join(regions)}")
+        return v
+
     @field_validator("frequency")
     @classmethod
     def _hertz(cls, v: Any) -> Any:
@@ -256,6 +265,8 @@ class Supply(Model):
             raise ValueError("a DC supply has no frequency: remove `frequency:` or `dc: true`")
         if self.dc and self.phases != 1:
             raise ValueError("a DC supply has no phases: remove `phases:`")
+        if self.earthing is not None and self.region is not None:
+            wiring.earthing(self.earthing, region=self.region)
         _unique_terminals(self.terminals or [])
         return self
 

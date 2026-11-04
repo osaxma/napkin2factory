@@ -136,7 +136,8 @@ file, the connection and the terminals the device has.
 **Supply** (`supply.yaml`): `voltage` (required), `phases` (1 or 3), `frequency`, `dc`,
 `rating` (the supply circuit's current, a quantity or `param://`), `earthing` (TN-S, TN-C-S,
 TT or IT, from `calckit/data/earthing.yaml`), `region` (EU, US, UK, SA, AU: the key into the
-circuit and conductor tables), `protection` (the site's device, `{upstream: "<words>",
+circuit and conductor tables; defaults to `region` in `n2f.yaml` when omitted, and validation
+refuses a disagreement when both are given), `protection` (the site's device, `{upstream: "<words>",
 rating: 16 A}`, or `part://`/`device://` of a protective device the product ships),
 `terminals`, `dedicated` (true: the supply circuit serves this product alone, which is how
 the model records that pick of the supply-headroom choice, S-171) and `notes`.

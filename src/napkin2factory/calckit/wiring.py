@@ -13,11 +13,9 @@ its ``source`` and ``verify: true`` and ``make verify-list`` prints it (S-146):
 * ``calckit/data/wire_colours.yaml`` — conductor colours by region and role (IEC 60445,
   HD 308, IEC 60204-1; NEC 200.6, 250.119, NFPA 79) [verify].
 
-An id, code or (region, role) the tables do not hold raises :class:`ValueError` naming the
-known ones: unlike a screening lookup, a wiring model that names a conductor nobody has
-on file is a typo in the model, and the message says what to write instead. A region with
-no conductors returns an empty list, as :func:`napkin2factory.calckit.power.circuit_rows`
-does; the caller warns.
+An id, code, (region, role) or region the tables do not hold raises :class:`ValueError` naming the
+table and the known ones (W7): unlike a screening lookup, a wiring model that names a conductor,
+earthing arrangement or region nobody has on file is an error, and the message says what to write.
 """
 
 from __future__ import annotations
@@ -72,7 +70,8 @@ class Earthing:
     """One system earthing arrangement of ``earthing.yaml``.
 
     Attributes:
-        code: the IEC letter code (``TN-S``, ``TN-C-S``, ``TT``, ``IT``).
+        region: the region code whose standards define it (``EU``, ``UK``, ``US``).
+        code: the arrangement code (``TN-S``, ``TN-C-S``, ``TT``, ``IT``, ``solidly-grounded``).
         label: the code as printed for the owner.
         description: one line on how the arrangement is built.
         class_i: what a Class I product must provide on such a supply.
@@ -80,6 +79,7 @@ class Earthing:
         verify: the row still needs a person's confirmation.
     """
 
+    region: str
     code: str
     label: str
     description: str
@@ -150,15 +150,33 @@ def conductor(conductor_id: str) -> Conductor:
 
 
 def conductors(region: str) -> list[Conductor]:
-    """The conductors rated by ``region``'s tables (case-insensitive); may be empty."""
+    """The conductors rated by ``region``'s tables (case-insensitive).
+
+    Raises:
+        ValueError: table has no rows for ``region``; names the table and its known regions (W7).
+    """
+    rows = all_conductors()
     code = region.strip().upper()
-    return [c for c in all_conductors() if c.region.upper() == code]
+    matched = [c for c in rows if c.region.upper() == code]
+    if not matched:
+        known = sorted({c.region for c in rows})
+        msg = (
+            f"table 'conductors' has no rows for region {region!r}; "
+            f"known regions: {', '.join(known)}"
+        )
+        raise ValueError(msg)
+    return matched
 
 
-def all_earthing() -> list[Earthing]:
-    """Every row of ``earthing.yaml``, in file order."""
-    return [
+def all_earthing(region: str | None = None) -> list[Earthing]:
+    """Every row of ``earthing.yaml``, in file order, optionally filtered by ``region`` (W7).
+
+    Raises:
+        ValueError: when ``region`` is given and ``earthing.yaml`` holds no rows for it.
+    """
+    rows = [
         Earthing(
+            region=str(r["region"]),
             code=str(r["code"]),
             label=str(r["label"]),
             description=str(r["description"]),
@@ -168,22 +186,41 @@ def all_earthing() -> list[Earthing]:
         )
         for r in load_table("earthing")
     ]
+    if region is None:
+        return rows
+    code = region.strip().upper()
+    matched = [e for e in rows if e.region.upper() == code]
+    if not matched:
+        known = sorted({e.region for e in rows})
+        raise ValueError(
+            f"table 'earthing' has no rows for region {region!r}; known regions: {', '.join(known)}"
+        )
+    return matched
 
 
-def earthing(code: str) -> Earthing:
-    """The earthing arrangement ``code`` (``TN-S``, ``tn-c-s`` …; case-insensitive).
+def earthing(code: str, region: str | None = None) -> Earthing:
+    """The earthing arrangement ``code``, optionally within ``region`` (case-insensitive, W7).
+
+    A product with no region specified keeps today's behaviour by searching across all
+    known earthing arrangements (W11).
 
     Raises:
-        ValueError: the code is not on file; the message lists the known codes.
+        ValueError: the region is unknown to ``earthing.yaml``, or the code is not on file.
     """
-    rows = all_earthing()
+    rows = all_earthing(region)
     wanted = code.strip().upper()
     for e in rows:
         if e.code.upper() == wanted:
             return e
+    if region is not None:
+        known_codes = sorted({e.code for e in rows})
+        raise ValueError(
+            f"no earthing arrangement {code!r} on file for region {region!r}; known arrangements: "
+            f"{', '.join(known_codes)}"
+        )
+    all_codes = sorted({e.code for e in rows})
     raise ValueError(
-        f"no earthing arrangement {code!r} on file; known arrangements: "
-        f"{', '.join(e.code for e in rows)}"
+        f"no earthing arrangement {code!r} on file; known arrangements: {', '.join(all_codes)}"
     )
 
 
@@ -203,17 +240,42 @@ def all_colours() -> list[WireColour]:
 
 
 def colour(region: str, role: str) -> WireColour:
-    """The conductor colour for ``role`` in ``region`` (region case-insensitive, role exact).
+    """The conductor colour for ``role`` in ``region`` (region case-insensitive, role exact, W7).
 
     Raises:
-        ValueError: no row for that pair; the message lists the pairs on file.
+        ValueError: no rows for that region, or no colour for that role in the region.
     """
     rows = all_colours()
     code = region.strip().upper()
-    for c in rows:
-        if c.region.upper() == code and c.role == role:
+    region_rows = [c for c in rows if c.region.upper() == code]
+    if not region_rows:
+        known = sorted({c.region for c in rows})
+        msg = (
+            f"table 'wire_colours' has no rows for region {region!r}; "
+            f"known regions: {', '.join(known)}"
+        )
+        raise ValueError(msg)
+    for c in region_rows:
+        if c.role == role:
             return c
     raise ValueError(
-        f"no conductor colour for role {role!r} in region {region!r}; known: "
-        f"{', '.join(f'{c.region} {c.role}' for c in rows)}"
+        f"no conductor colour for role {role!r} in region {region!r}; known for this region: "
+        f"{', '.join(c.role for c in region_rows)}"
     )
+
+
+def known_regions() -> list[str]:
+    """All region codes known across the wiring and circuit tables, sorted (W7)."""
+    regions: set[str] = set()
+    regions.update(c.region for c in all_conductors())
+    regions.update(c.region for c in all_colours())
+    regions.update(e.region for e in all_earthing())
+    try:
+        from napkin2factory.calckit._tables import load_table
+
+        for row in load_table("circuits"):
+            if "region" in row:
+                regions.add(str(row["region"]))
+    except Exception:
+        pass
+    return sorted(regions)

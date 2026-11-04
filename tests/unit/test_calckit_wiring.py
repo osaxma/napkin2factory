@@ -46,7 +46,8 @@ def test_regions_and_sizes() -> None:
     assert {c.csa.to("mm**2").magnitude for c in eu} == {0.75, 1.0, 1.5, 2.5, 4.0}
     assert {c.awg for c in us} == {18, 16, 14, 12, 10}
     assert len(eu) == 10 and len(us) == 15
-    assert wiring.conductors("XX") == []
+    with pytest.raises(ValueError, match="table 'conductors' has no rows for region 'XX'.*EU, US"):
+        wiring.conductors("XX")
 
 
 def test_ampacity_rises_with_size_within_a_class() -> None:
@@ -83,12 +84,27 @@ def test_unknown_conductor_lists_the_known_ids() -> None:
 
 def test_earthing() -> None:
     rows = wiring.all_earthing()
-    assert [e.code for e in rows] == ["TN-S", "TN-C-S", "TT", "IT"]
+    assert {e.region for e in rows} == {"AU", "EU", "SA", "UK", "US"}
+    assert all(e.verify and len(e.source.strip()) > 20 for e in rows)
     tt = wiring.earthing("tt")
     assert "residual-current device" in tt.class_i and "411.5" in tt.source
-    assert all("IEC 60364-1" in e.source and e.verify for e in rows)
-    with pytest.raises(ValueError, match="no earthing arrangement 'TN-C'.*TN-S, TN-C-S, TT, IT"):
+    with pytest.raises(ValueError, match="no earthing arrangement 'TN-C' on file"):
         wiring.earthing("TN-C")
+
+    # per-region filtering and US grounding
+    eu_rows = wiring.all_earthing("EU")
+    assert [e.code for e in eu_rows] == ["TN-S", "TN-C-S", "TT", "IT"]
+    assert wiring.earthing("TN-S", region="EU").code == "TN-S"
+    assert wiring.earthing("solidly-grounded", region="US").code == "solidly-grounded"
+    assert wiring.earthing("grounded", region="US").code == "grounded"
+
+    with pytest.raises(ValueError, match="no earthing arrangement 'TN-C' on file for region 'US'"):
+        wiring.earthing("TN-C", region="US")
+    with pytest.raises(
+        ValueError,
+        match="table 'earthing' has no rows for region 'XX'.*known regions: AU, EU, SA, UK, US",
+    ):
+        wiring.earthing("TN-S", region="XX")
 
 
 def test_colours() -> None:
@@ -100,5 +116,13 @@ def test_colours() -> None:
     assert "200.6" in wiring.colour("US", "N").source
     pairs = [(c.region, c.role) for c in wiring.all_colours()]
     assert len(pairs) == len(set(pairs)) == 15
-    with pytest.raises(ValueError, match="no conductor colour for role 'PE' in region 'AU'.*EU PE"):
+    with pytest.raises(
+        ValueError, match="table 'wire_colours' has no rows for region 'AU'.*EU, US"
+    ):
         wiring.colour("AU", "PE")
+    with pytest.raises(
+        ValueError, match="table 'wire_colours' has no rows for region 'XX'.*EU, US"
+    ):
+        wiring.colour("XX", "PE")
+    with pytest.raises(ValueError, match="no conductor colour for role 'hot' in region 'US'"):
+        wiring.colour("US", "hot")

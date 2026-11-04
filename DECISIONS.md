@@ -226,6 +226,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-197 | v0.7 opens: Track A as `docs/stages/v0.7-everyday-breadth.md`, W-series decisions, waves | in force |
 | S-198 | Structural calc pack: members | in force |
 | S-199 | One materials table, everyday materials, dated regional cost bands | in force |
+| S-200 | Product region and display units field | in force |
 
 ---
 
@@ -1497,3 +1498,12 @@ check preserved. `core/data/processes.yaml` gains `woodworking`, `cnc-routing`, 
 with dated regional fields (`low`, `high`, `currency`, `region`, `as_of`); `mass_cost.cost_band` exposes
 dated regional lookups, failing loudly on unknown regions and marking rows >24 months old as stale.
 The board's cost-band line names region, date, and staleness in plain words. Closes B-0189.
+## S-200 — Product region and display units field (2026-11-04)
+Manifest (`n2f.yaml`) gains optional `region` validated against the regions the tables know
+(AU, EU, SA, UK, US) and `units: Literal["metric", "imperial"] = "metric"` per W7/W8 and schema
+policy rule 1. The electrical supply's region defaults to the manifest's when omitted from
+`supply.yaml`, and validation fails naming both when they disagree. `earthing.yaml` gains its
+`region` column (AU, EU, SA, UK, US) with cited standards and `verify: true`. `calckit/wiring.py` lookups
+(`conductors`, `colour`, `earthing`) take region and fail loudly naming the table and its known
+regions when a region has no rows, never falling back silently. Products with no region anywhere
+retain legacy behaviour. Backlog row B-0193 remains open for report display unit integration.

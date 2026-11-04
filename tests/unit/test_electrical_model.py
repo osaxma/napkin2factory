@@ -350,6 +350,12 @@ def test_unsourced_terminals_are_a_warning_never_an_error(tmp_path: Path) -> Non
     ("schema", "data", "words"),
     [
         (Supply, {"voltage": "230 V", "earthing": "XY"}, "no earthing arrangement 'XY' on file"),
+        (Supply, {"voltage": "120 V", "region": "XX"}, "unknown region 'XX'"),
+        (
+            Supply,
+            {"voltage": "120 V", "region": "US", "earthing": "MEN"},
+            "no earthing arrangement 'MEN' on file for region 'US'",
+        ),
         (
             Supply,
             {"voltage": "24 V", "dc": True, "frequency": "50 Hz"},

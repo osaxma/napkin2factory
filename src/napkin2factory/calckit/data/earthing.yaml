@@ -1,32 +1,178 @@
-# System earthing arrangements (calckit.wiring; ELECTRICAL_STAGE E3, the supply's `earthing:`).
+# System earthing arrangements (calckit.wiring; ELECTRICAL_STAGE E3, W7).
 # NOT VERIFIED by the project: every row is the owner's (or their electrician's) to confirm;
-# DECISIONS.md lists the table as [verify] (S-146). Which arrangement a site has is the
+# DECISIONS.md lists the table as [verify] (S-146, W7). Which arrangement a site has is the
 # electrician's answer, never the product's: a product declares the one it was designed for.
-# Columns: code (the IEC letter code), label, description (one line), class_i (what a Class I
-# product, one whose shock protection relies on its protective conductor, must provide there).
+# Columns: region, code, label, description (one line), class_i (what a Class I product, one
+# whose shock protection relies on its protective conductor, must provide there).
 table: earthing
 rows:
-  - code: TN-S
+  # --- EU: IEC 60364-1 §312.2 / CENELEC HD 60364 --------------------------------------------
+  - region: EU
+    code: TN-S
     label: "TN-S"
     description: "The source is earthed at one point; separate neutral and protective (PE) conductors run all the way to the installation."
     class_i: "A protective conductor from every exposed metal part to the supply's PE terminal; a fault to the case is cleared by the circuit's protective device (or a residual-current device) within the disconnection time the wiring rules set."
     verify: true
     source: "IEC 60364-1:2005 §312.2.1 (TN systems, TN-S figure); IEC 60364-4-41:2005 §411.4 (protection by automatic disconnection in TN systems); IEC 61140:2016 §7.2 (Class I equipment)"
-  - code: TN-C-S
+  - region: EU
+    code: TN-C-S
     label: "TN-C-S"
     description: "Neutral and protective functions share one PEN conductor in part of the system (usually the supply network) and separate at or before the installation (PME in the UK)."
     class_i: "A protective conductor from every exposed metal part to the installation's PE terminal, never to the neutral; some wiring rules restrict TN-C-S supplies outdoors or for equipment in contact with the ground, which the electrician judges."
     verify: true
     source: "IEC 60364-1:2005 §312.2.1 (TN-C-S figure); IEC 60364-4-41:2005 §411.4; IEC 61140:2016 §7.2; restrictions per national rules (e.g. BS 7671 Regulation 722.411.4 for TN-C-S at EV charge points)"
-  - code: TT
+  - region: EU
+    code: TT
     label: "TT"
     description: "The source is earthed; the installation's exposed metal parts are earthed by its own local electrode, independent of the source's earth."
     class_i: "A protective conductor from every exposed metal part to the installation's earth terminal; the earth-fault current is usually too small to trip an overcurrent device, so protection relies on a residual-current device (RCD) on the circuit."
     verify: true
     source: "IEC 60364-1:2005 §312.2.2 (TT systems); IEC 60364-4-41:2005 §411.5 (TT: an RCD is normally used for fault protection); IEC 61140:2016 §7.2"
-  - code: IT
+  - region: EU
+    code: IT
     label: "IT"
     description: "The source is isolated from earth, or earthed through a high impedance; the installation's exposed metal parts are earthed locally. Rare in homes."
     class_i: "A protective conductor from every exposed metal part to the installation's earth terminal; a first fault does not disconnect and is signalled by an insulation monitoring device, a second fault must be cleared, which the installation provides."
     verify: true
     source: "IEC 60364-1:2005 §312.2.3 (IT systems); IEC 60364-4-41:2005 §411.6 (IT: first fault signalled, insulation monitoring); IEC 61140:2016 §7.2"
+
+  # --- UK: BS 7671 (IET Wiring Regulations) -------------------------------------------------
+  - region: UK
+    code: TN-S
+    label: "TN-S"
+    description: "Separate neutral and protective conductors throughout the supply network and installation."
+    class_i: "A protective conductor from every exposed metal part to the installation's main earthing terminal (MET); earth fault loop impedance clears overcurrent devices within disconnection time."
+    verify: true
+    source: "BS 7671:2018+A2:2022 §312.2.1 (TN-S arrangement); BS 7671 §411.4; BS EN 61140:2016 §7.2"
+  - region: UK
+    code: TN-C-S
+    label: "TN-C-S"
+    description: "Combined neutral and protective conductor in supply network (PME), separated at the installation's service head."
+    class_i: "A protective conductor from every exposed metal part to the installation's PE terminal; bonding to extraneous conductive parts required; PME restrictions apply outdoors (Regulation 722.411.4)."
+    verify: true
+    source: "BS 7671:2018+A2:2022 §312.2.1 (TN-C-S / PME arrangement); Regulation 411.4, 543.1.1; BS EN 61140:2016 §7.2"
+  - region: UK
+    code: TT
+    label: "TT"
+    description: "The supply transformer is earthed; the installation is earthed locally via an earth electrode."
+    class_i: "A protective conductor from every exposed metal part to the installation's earth electrode terminal; protection by residual-current device (RCD) per Regulation 411.5."
+    verify: true
+    source: "BS 7671:2018+A2:2022 §312.2.2 (TT arrangement); BS 7671 Regulation 411.5; BS EN 61140:2016 §7.2"
+  - region: UK
+    code: IT
+    label: "IT"
+    description: "Source isolated or impedance-earthed; installation locally earthed. Special installations only."
+    class_i: "A protective conductor from every exposed metal part to the earth terminal; insulation monitoring device signals first fault (Regulation 411.6)."
+    verify: true
+    source: "BS 7671:2018+A2:2022 §312.2.3 (IT arrangement); BS 7671 Regulation 411.6; BS EN 61140:2016 §7.2"
+
+  # --- US: NFPA 70 (NEC), NFPA 79 & IEEE 142 ------------------------------------------------
+  - region: US
+    code: solidly-grounded
+    label: "Solidly grounded"
+    description: "The utility service transformer neutral is solidly grounded and bonded to the equipment grounding conductor at the service disconnect."
+    class_i: "An equipment grounding conductor (EGC, bare or green) bonded from every exposed conductive part to the service equipment grounding bus (NEC 250.4(A)(3), 250.110, NFPA 79 §8.2); overcurrent devices clear line-to-ground faults."
+    verify: true
+    source: "NFPA 70 (NEC) Article 250.20(B), 250.24, 250.110, 250.118; NFPA 79:2021 §8.2 (equipment grounding and bonding); UL 508A §14"
+  - region: US
+    code: grounded
+    label: "Grounded"
+    description: "AC premises wiring system solidly grounded at the service equipment with an equipment grounding conductor bonded to all conductive enclosures."
+    class_i: "An equipment grounding conductor (EGC) bonded from every exposed metal part to the service equipment grounding bus (NEC 250.4(A)(3), 250.110, NFPA 79 §8.2); overcurrent devices clear faults."
+    verify: true
+    source: "NFPA 70 (NEC) Article 250.20(B), 250.24, 250.110, 250.118; NFPA 79:2021 §8.2 (equipment grounding and bonding); UL 508A §14"
+  - region: US
+    code: TN-S
+    label: "TN-S"
+    description: "Solidly grounded system with separate neutral and equipment grounding conductor throughout (US industrial and separately derived systems)."
+    class_i: "An equipment grounding conductor (EGC) from every exposed conductive part to the ground bus; overcurrent protection clears faults."
+    verify: true
+    source: "NFPA 79:2021 §8.2.1; IEEE 142-2007 §1.4.1 (TN-S system in North American industrial plants); NEC Article 250"
+  - region: US
+    code: TN-C-S
+    label: "TN-C-S"
+    description: "Neutral and ground bonded at service entrance disconnect; separate neutral and equipment grounding conductors downstream."
+    class_i: "An equipment grounding conductor (EGC) bonded to equipment enclosure; grounded conductor (neutral) kept isolated past the main bonding jumper."
+    verify: true
+    source: "NFPA 79:2021 §8.2.2; IEEE 142-2007 §1.4.2; NEC Article 250.24(C)"
+  - region: US
+    code: TT
+    label: "TT"
+    description: "Source earthed; installation equipment grounded through independent ground electrode without connection to source ground."
+    class_i: "Equipment grounding conductor connected to local grounding electrode; ground fault protection required."
+    verify: true
+    source: "NFPA 79:2021 §8.2.3; IEEE 142-2007 §1.4.3"
+  - region: US
+    code: IT
+    label: "IT"
+    description: "Ungrounded or high-impedance grounded source; equipment grounded locally."
+    class_i: "Ground detector or insulation monitor required to signal first fault; second fault cleared by overcurrent protection."
+    verify: true
+    source: "NFPA 79:2021 §8.2.4; IEEE 142-2007 §1.4.4; NEC Article 250.21, 250.36"
+
+  # --- AU: AS/NZS 3000 (Wiring Rules) -------------------------------------------------------
+  - region: AU
+    code: MEN
+    label: "MEN"
+    description: "Multiple Earthed Neutral system: neutral conductor earthed at multiple points including the consumer's switchboard with separate neutral and PE conductors within the installation."
+    class_i: "A protective earthing conductor from every exposed metal part to the main earthing terminal/bar; automatic disconnection of supply (AS/NZS 3000 §5.3)."
+    verify: true
+    source: "AS/NZS 3000:2018 §5.3 (Multiple Earthed Neutral (MEN) system); AS/NZS 3000 §5.1, §5.2"
+  - region: AU
+    code: TN-C-S
+    label: "TN-C-S"
+    description: "Neutral and protective functions combined in network (MEN system in Australia/New Zealand), separated at the consumer switchboard."
+    class_i: "A protective earthing conductor connected to the earth bar; bonding of extraneous conductive parts per AS/NZS 3000 §5.6."
+    verify: true
+    source: "AS/NZS 3000:2018 §5.3 (MEN system equivalent to IEC TN-C-S); AS/NZS 3000 §1.4.110"
+  - region: AU
+    code: TN-S
+    label: "TN-S"
+    description: "Separate neutral and protective earthing conductors throughout source and installation."
+    class_i: "A protective conductor from every exposed metal part to the installation's earth terminal (AS/NZS 3000 §5.1)."
+    verify: true
+    source: "AS/NZS 3000:2018 §5.1, §5.3.1; AS/NZS 3000 §1.4.111"
+  - region: AU
+    code: TT
+    label: "TT"
+    description: "Source earthed; installation exposed metal parts connected to local earth electrode independent of the source earth."
+    class_i: "Protective conductor to local earth electrode; RCD protection mandatory (AS/NZS 3000 §5.4)."
+    verify: true
+    source: "AS/NZS 3000:2018 §5.4; AS/NZS 3000 §2.6 (RCD requirements)"
+  - region: AU
+    code: IT
+    label: "IT"
+    description: "Source isolated or impedance earthed; installation locally earthed. Used in hospitals and special facilities."
+    class_i: "Protective conductor to earth terminal; insulation monitoring device required (AS/NZS 3000 §5.4.3)."
+    verify: true
+    source: "AS/NZS 3000:2018 §5.4.3; AS/NZS 3003 (electrical installations in patient areas)"
+
+  # --- SA: SANS 10142-1 (Wiring of Premises) -----------------------------------------------
+  - region: SA
+    code: TN-S
+    label: "TN-S"
+    description: "Separate neutral and protective conductors throughout the supply and installation."
+    class_i: "A protective conductor from every exposed metal part to the consumer's earth terminal (SANS 10142-1 §6.12)."
+    verify: true
+    source: "SANS 10142-1:2021 §6.12.2 (TN-S system)"
+  - region: SA
+    code: TN-C-S
+    label: "TN-C-S"
+    description: "Combined neutral and protective conductor in supply network, separated at installation service entrance."
+    class_i: "A protective conductor from every exposed conductive part to the installation's earth terminal; neutral-earth bonding at service entrance (SANS 10142-1 §6.12.3)."
+    verify: true
+    source: "SANS 10142-1:2021 §6.12.3 (TN-C-S system)"
+  - region: SA
+    code: TT
+    label: "TT"
+    description: "Source earthed; installation exposed conductive parts earthed via independent earth electrode."
+    class_i: "Protective conductor to local earth electrode; earth leakage protection (30 mA RCD) required (SANS 10142-1 §6.12.4)."
+    verify: true
+    source: "SANS 10142-1:2021 §6.12.4 (TT system)"
+  - region: SA
+    code: IT
+    label: "IT"
+    description: "Source isolated or impedance earthed; installation locally earthed."
+    class_i: "Protective conductor to earth electrode; insulation monitoring device required (SANS 10142-1 §6.12.5)."
+    verify: true
+    source: "SANS 10142-1:2021 §6.12.5 (IT system)"

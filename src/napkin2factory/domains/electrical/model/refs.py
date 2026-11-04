@@ -27,7 +27,12 @@ from napkin2factory.domains.electrical.model.schemas import (
 
 def supply(product: Any) -> Supply | None:
     """The product's supply, or ``None``."""
-    return product.families.get("supply", {}).get("supply")  # type: ignore[no-any-return]
+    sup: Supply | None = product.families.get("supply", {}).get("supply")
+    if sup is not None and sup.region is None:
+        manifest = getattr(product, "manifest", None)
+        if manifest is not None and getattr(manifest, "region", None) is not None:
+            sup.region = manifest.region  # W7: default to manifest region
+    return sup
 
 
 def devices(product: Any) -> dict[str, Device]:
@@ -162,17 +167,47 @@ def _validate_supply_family(product: Any, problems: Any, sup: Supply | None) -> 
     prot = sup.protection
     if isinstance(prot, Uri):
         _check_protective(product, problems, file, "supply://supply", prot)
-    if sup.region is not None and not wiring.conductors(sup.region):
+
+    manifest = getattr(product, "manifest", None)
+    manifest_region = getattr(manifest, "region", None) if manifest is not None else None
+    if sup.region is None and manifest_region is not None:
+        sup.region = manifest_region  # W7: default to manifest region
+    elif sup.region is not None and manifest_region is not None and sup.region != manifest_region:
         problems.add(
             file,
             "supply://supply",
-            f"region {sup.region!r} has no conductor table on file, so no conductor can be "
-            "checked against it",
-            "name a region the calc kit rates (" + ", ".join(_regions()) + "), or add your "
-            "own conductor rows under model/electrical/conductors/ with their source",
-            severity="warn",
+            f"supply region {sup.region!r} disagrees with product region {manifest_region!r}",
+            "use the same region in both, or omit 'region:' from the supply file so it defaults "
+            "to the product's",
             rule=RULE,
         )
+
+    if sup.region is not None:
+        try:
+            wiring.conductors(sup.region)
+        except ValueError as exc:
+            problems.add(
+                file,
+                "supply://supply",
+                str(exc),
+                "name a region the calc kit rates (" + ", ".join(_regions()) + "), or add your "
+                "own conductor rows under model/electrical/conductors/ with their source",
+                severity="warn",
+                rule=RULE,
+            )
+
+    if sup.earthing is not None:
+        try:
+            wiring.earthing(sup.earthing, region=sup.region)
+        except ValueError as exc:
+            problems.add(
+                file,
+                "supply://supply",
+                str(exc),
+                "choose an earthing arrangement on file"
+                + (f" for region {sup.region!r}" if sup.region is not None else ""),
+                rule=RULE,
+            )
 
 
 def _regions() -> list[str]:
