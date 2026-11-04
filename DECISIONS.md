@@ -251,6 +251,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-222 | The test-stand benchmark product | in force |
 | S-223 | Benchmark follow-ups: the oracle reads unsigned safety requirements | in force |
 | S-224 | Review gate I (v0.7) — outcome: NOT READY; two blockers (fixed-base racking, region not reaching costs), twelve concerns | in force |
+| S-225 | Review gate J (v0.7) — outcome: NOT READY; four blockers (an unrun structural check reads as an all-clear, costs without region and date, metric manuals in an imperial product, dimension groups half converted) | in force |
 
 ---
 
@@ -1721,3 +1722,11 @@ would crash). Held: eleven hand-checked formulas, the three benchmarks green on 
 oracle judging outcomes not ids, ceremony relaxing paperwork only. Concerns go to the fix task (C1,
 C2, C9: provenance wording, stale texts) or to rows B-0220–B-0226; C8 (the table top's cross-grain
 load path, near its sag margin) is a benchmark fix before the close.
+## S-225 — Review gate J (v0.7) — outcome (2026-11-05)
+UX in the owner persona (a US hobby woodworker), fresh context, at 3139a00 (`docs/reviews/v0.7-gate-j.md`).
+NOT READY. Blockers, fixed before the close: a card whose structural check did not run shows "holds
+up"; costs never name region or date (the same defect as gate I's second blocker); manuals render N,
+kg and mm in an imperial product; "50 x 50 x 1.5 mm" displays as "50 x 50 x 0.0591 in". Held: inches
+first on the board and the report tables, a visibly shorter lite report, the budget row, one
+disclaimer and no lecture. Concerns C1, C5, C8 go to the fix task; the rest are rows B-0227–B-0232
+(phone-width overflow belongs with the workbench, Track C).

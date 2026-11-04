@@ -133,6 +133,12 @@ entry that closed them. Ids are never reused.
 | B-0224 | Derived ceremony trusts the hazard tag: a mains motor tagged tip-over stays lite; an unreadable supply voltage gives lite | gate I C10 (S-224); a lint warn on mains words without a raising tag; an unreadable voltage as a reason |
 | B-0225 | Several US cost bands are one product's estimates (two with low = high); bought machine parts priced in the controls band | gate I C11 (S-224); label them as estimates from one product |
 | B-0226 | Example content in package strings: kiln part names in cost-band sources, the table benchmark in calc cases, "crosshead" in `joints/frames.py` | gate I C12 (S-224); move example-derived cases to the example's `model/calcs/` |
+| B-0227 | Board: a passing card's structural figures hide behind "more numbers" as bare factors; a failing card's row carries formulas, a file path and [verify] but no fix hint; a 0.04 in limit comes back as 0.0402 in | gate J C2, C3 (S-225) |
+| B-0228 | Rule findings repeat each vendor or parts-list issue three times (9 rows for 3 parts) and list unset style values as "not checked" | gate J C4 (S-225) |
+| B-0229 | Safety sign-off wording is engineer text and never says what to inspect; the report overview prints the full command | gate J C6 (S-225) |
+| B-0230 | Promotion drops the card's loads, sag limit, tip-over and budget (0 parameters seeded), writes 150 lb as 68.0389 kg, adds an unchosen style requirement and pastes a red card's formula text into the decision | gate J C7 (S-225) |
+| B-0231 | Imperial gaps and discoverability: litres for volume, terminal output in mm/N/kg, "drawings stay in mm" said only in the agent guide, no `n2f init --units --region`, the PM role never asks for units | gate J C9, C10 (S-225) |
+| B-0232 | Report overview does not lead with the design (no description, no picture before Safety; a run-on sign-off line); at 390 px the page scrolls sideways and safety columns clip | gate J C11 (S-225); Track C's workbench |
 
 ## Closed
 
