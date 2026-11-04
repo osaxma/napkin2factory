@@ -22,7 +22,7 @@ geometry:
 | `hole_pattern` | plate carrying a bolt pattern (shared math for interfaces) | yes | plate_width, plate_depth, thickness, pattern, count, diameter, spacing, pitch_circle, interface |
 | `bracket_l` | L-bracket with one bend and holes per leg | yes, with bend line | length, height, width, thickness, bend_radius, holes{diameter,spacing,inset,count} |
 | `enclosure` | open-top tray: four bent walls, optional lip, reliefs, cutouts, vent | yes, cross with bend lines | length, width, height, thickness, bend_radius, flange, relief, cutouts[], vent{face,pattern,count,size,pitch,inset} |
-| `frame` | welded stand of square tube or angle: legs, top/bottom rails | no (cut list) | length, width, height, member{profile,size,wall}, top_rails, bottom_rails, bottom_rail_height, overhang |
+| `frame` | welded stand of square/rect/round tube, angle or T-slot: legs, rails, apron offset, tabs | no (cut list) | length, width, height, member{profile,size,size2,wall,slot_width,slot_depth}, rail_member, top_rails, bottom_rails, bottom_rail_height, apron_offset_top, overhang, mounting_tabs[] |
 
 ## What a generator returns
 

@@ -228,6 +228,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-199 | One materials table, everyday materials, dated regional cost bands | in force |
 | S-200 | Product region and display units field | in force |
 | S-201 | Structural calc pack: joints, wood, fatigue, load cases | in force |
+| S-202 | Frame kit: rectangular, round and T-slot profiles, rail section, slotted tabs | in force |
 
 ---
 
@@ -1518,3 +1519,14 @@ from `calckit/data/wood_movement.yaml` (USDA Wood Handbook Table 4-4 [verify]); 
 Modified Goodman (Shigley Ch. 6, failing loudly when non-ferrous materials omit S-N strength); load-case
 table `calckit/data/load_cases.yaml` [verify] with `factor_of_safety` enforcing tightening-only (W1).
 Tests in `tests/unit/test_joint_calcs.py` (33 passed, mypy clean).
+
+## S-202 — Frame kit: rectangular, round and T-slot profiles, rail section, slotted tabs (2026-11-04)
+Track A §3.3 item 1 (M2a): `geometry.kit.frame` gains `"rect-tube"` (size × size2 × wall),
+`"round-tube"` (outside diameter, wall) and `"t-slot"` (simplified square extrusion with 4
+centered grooves of `slot_width` and `slot_depth`, supporting `process: extrusion-cut`).
+`Args` gains `rail_member` (rails use it when given; legs keep `member`), `apron_offset_top`
+(top rails recessed while legs keep full height), and `mounting_tabs` (`TabSpec` with through
+slots across the rail for wood movement, listed in `props["mounting_tabs"]` and notes).
+Profile cross-section helpers moved to `_profiles.py` to keep `frame.py` under 550 lines.
+All defaults preserved; existing frame outputs, goldens, and volumes remain unchanged.
+Measured: relative volume diff < 1e-15 on tabs, < 1e-5 on round tubes, 7 unit tests pass in 10 s.
