@@ -1,0 +1,79 @@
+# Reference cases of structure.py (F17): each calc reproduces the figure SPEC.md section 4.1 works
+# by hand from the same dimensions (checked twice, SPEC.md header). A case runs the calc on its own
+# inputs, never on the product's current parameters, so it checks the formula, not the design.
+inputs:
+  table-length: 1600 mm
+  table-width: 800 mm
+  table-height: 750 mm
+  top-thickness: 30 mm
+  frame-length: 1500 mm
+  frame-width: 700 mm
+  frame-height: 700 mm
+  leg-pitch-x: 1450 mm
+  leg-pitch-y: 650 mm
+  tube-size: 50 mm
+  tube-wall: 1.5 mm
+  tab-size: 40 mm
+  tab-thickness: 4 mm
+  tab-row-spacing: 560 mm
+  slot-length: 22 mm
+  insert-hole: 9 mm
+  centre-load: 1471.5 N
+  sustained-load: 490.5 N
+  edge-load: 490.5 N
+  lateral-push: 300 N
+  humidity-low: 30 percent
+  humidity-high: 70 percent
+  weld-efficiency: 0.7 dimensionless
+  glide-mass: 0.080 kg
+  insert-mass: 0.010 kg
+  screw-mass: 0.020 kg
+cases:
+  centre_load_sag:
+    - expect: 1.58 mm
+      abs: 0.01
+      source: "SPEC.md 4.1: point 1.378 mm + self weight 0.202 mm; EI total 6.78e10 N mm2 over a 1450 mm span"
+  long_term_sag:
+    - expect: 0.754 mm
+      abs: 0.005
+      source: "SPEC.md 4.1: EI_final 5.9515e10 N mm2 with k_def 0.60 on the oak only (EN 1995-1-1 2.3.2.2)"
+  top_yield_factor:
+    - expect: 34.0
+      abs: 0.2
+      source: "SPEC.md 4.1: 1.62 MPa in the top against the oak's 55.2 MPa"
+  rail_yield_factor:
+    - expect: 5.69
+      abs: 0.03
+      source: "SPEC.md 4.1: 43.9 MPa in the rails against 250 MPa"
+  member_yield_factor:
+    - expect: 5.69
+      abs: 0.03
+      source: "SPEC.md 4.1: the rails govern (5.69 against the top's 34.0)"
+  leg_buckling_factor:
+    - expect: 38.3
+      abs: 0.2
+      source: "SPEC.md 4.1: Johnson parabola, K L / r = 72.7, P_cr 60 578 N over 1 583 N"
+  tip_over_factor:
+    - expect: 3.92
+      abs: 0.02
+      source: "SPEC.md 4.1: 444.2 N x 0.325 m over 490.5 N x 0.075 m; the end edge gives 8.75"
+  racking_sway:
+    - expect: 1.50 mm
+      abs: 0.02
+      source: "SPEC.md 4.1: 0.751 mm under a 150 N share, times the racking factor 2.0"
+  corner_moment_factor:
+    - expect: 15.3
+      abs: 0.1
+      source: "SPEC.md 4.1: 799 353 N mm over 75 N x 695 mm"
+  insert_pullout_factor:
+    - expect: 84.5
+      abs: 0.5
+      source: "SPEC.md 4.1: 2 x 6800 N over the base's 161.0 N"
+  wood_movement_at_slot:
+    - expect: 7.05 mm
+      abs: 0.05
+      source: "SPEC.md 4.1: 280 mm x 0.00365 per % x 6.9 points of moisture content (FPL-GTR-190 Ch. 4)"
+  slot_clearance:
+    - expect: 5.95 mm
+      abs: 0.05
+      source: "SPEC.md 4.1: slot free travel 22 - 9 = 13 mm less 7.05 mm"

@@ -247,6 +247,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-218 | The kiln's benchmark spec, retrofitted from its model | in force |
 | S-219 | Display units: the owner's unit first | in force |
 | S-220 | Automated tests do not require example sign-offs to stay current | in force |
+| S-221 | The table benchmark product | in force |
 
 ---
 
@@ -1680,3 +1681,15 @@ text voids them; 11 commits did so after the hand renewal on Nov 3, and the kiln
 nightly, so every landing stayed green. A sign-off is a person's call, not a test's: the kiln test
 now asserts no failed check and no real sign-off (S-047), not that the example sign-offs are current.
 The sign-off mechanism stays tested in `test_signoffs.py`, which signs at test time.
+
+## S-221 — The table benchmark product (2026-11-04)
+M4a / W9: `examples/table` from its `SPEC.md`: 3 cards (C-002, oak on a steel apron frame, promoted), 15
+requirements (tip-over the one safety requirement, ceremony `lite`), 5 parts, 3 insert interfaces, 12 calcs
+with SPEC 4.1 reference cases, one manual, one EXAMPLE sign-off. 0 package files (W10). Product screens (F10)
+carry what the package lacks: the hardware set (mass, 36 USD), a mass limit, and sag, stress and tip-over rows
+for C-001 and C-003 (the frame kit refuses bare legs; the structural screen reads only a frame with a top or a
+column with an arm). Wanted: legs without rails; trestle ends in the structural screen.
+Measured: oracle on a copy 46 pass, 0 fail, 5 pending as written. Product: sag 1.580 mm, long-term 0.754, yield
+5.69, buckling 38.3, tip-over 3.92, sway 1.50 mm, corner 15.3, pull-out 84.5, 45.2 kg, 980.35 USD. Not exact:
+napkin C-002 sag 1.54, yield 34.7, tip-over 3.88, buckling 29.6 (screen adds the edge load); movement 7.07 mm;
+frame 15.90 kg. The oracle cannot parse an unsigned safety message (the dash after `>= 2` reads as a unit): re-sign REQ-009 after any edit to its evidence.

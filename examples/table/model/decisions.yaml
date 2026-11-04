@@ -1,0 +1,62 @@
+# Every choice made on the owner's behalf, with rationale and links.
+decisions:
+  - id: DEC-001
+    date: 2026-11-04
+    title: 'Design direction: Perimeter steel apron frame, 30 mm white-oak top'
+    context: 'Chosen among 3 concept direction(s) compared on the concept board by owner. Other ideas considered:
+      C-001 "Four corner tube legs, no apron, 22 mm pine top" (red: the top sags 14.3 mm (computed), beyond
+      the 2.5 mm limit on the card (limit ÷ sag is 0.175, 1 needed, static case) — FL^3 / (48*E*I) + 5*w*L^4
+      / (384*E*I) on the 800 mm wide, 22 mm thick top over a 1560 mm span between the supports, self weight
+      163 N; Roark''s Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1d; southern-yellow-pine
+      in calckit/data/materials.yaml [verify]) — set aside: four corner legs under a 22 mm pine top sag
+      14.3 mm against the 2.5 mm limit (the top spans 1560 mm with nothing stiffening it); strength, weight
+      and cost are all fine, so this is a stiffness failure; C-003 "Heavy welded plate trestles, 45 mm white-oak
+      top" (red: even the low end of the cost, 2415 USD, is over the 1600 USD budget; with the hardware
+      even the low end of the cost, 2451 USD, is over the 1600 USD budget; the table weighs 148 kg (estimate),
+      over the 70 kg limit on the card) — set aside: weighs 148 kg against the 70 kg limit and costs 2450
+      to 3010 USD against the 1600 USD budget (its low end alone is 53 % over); the sag is fine at 0.84
+      mm, so this is weight and money, not stiffness.'
+    decision: 'Take C-002 (Perimeter steel apron frame, 30 mm white-oak top) forward as the design direction:
+      its envelope seeds 0 parameters, its site constraints and style choices become 1 requirement, and
+      style.yaml takes its look.'
+    rationale: 'Screening of C-002 (green): width 1600 mm (computed); depth 800 mm (computed); height 750
+      mm (computed); mass 44.7 kg (computed); total mass 45.3 kg (estimate); cost low 606 USD (estimate);
+      cost high 981 USD (estimate); lift class equipment (estimate).'
+    links: ['req://REQ-001', part://top-board, part://apron-frame]
+    made_by: human
+    disclosed: true
+    verify: true
+    sources: [concepts/C-002.yaml, concepts/C-001.yaml, concepts/C-003.yaml]
+  - id: DEC-002
+    date: 2026-11-04
+    title: Slotted fixings on the long rails, round holes on the short rails
+    context: A solid oak top moves across its grain with the seasons (20.1 mm over its 800 mm width between 30 % and 70 % relative humidity); fixed rigidly along both long edges it would crack.
+    decision: Fix the top to the frame with eight M8 inserts and screws on tabs welded to the rails. The six tabs on the long rails have a 9 x 22 mm slot across the width; the two on the short rails have a round 9 mm hole and sit on the top's centreline, which does not move across the grain.
+    rationale: At a long-rail fixing, 280 mm from the centreline, the oak moves 7.05 mm against 13 mm of free travel in the slot (slot length less screw clearance), a margin of 45.8 %. The slotted fixings carry no shear, so the top and rails add their stiffness without composite action (the sag calc assumes this).
+    links: [iface://top-fixing-long, iface://top-fixing-short, req://REQ-013, param://slot-length, part://top-board, part://apron-frame]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["SPEC.md sections 3, 4.1 and 8; USDA Wood Handbook FPL-GTR-190 Ch. 4 (dimensional change coefficient 0.00365 per % for white oak, tangential)"]
+  - id: DEC-003
+    date: 2026-11-04
+    title: Loads, limits and weld efficiency the spec chose
+    context: The owner gave the centre load (150 kg), the edge load (50 kg), the 2.5 mm sag limit, 70 kg and 1600 USD. Nothing in the request fixes the lateral push, the sway limit, the sustained load or the weld efficiency.
+    decision: Take a 300 N lateral push at top level, a 3.0 mm sway limit under 2.0 times it, a sustained load of 490.5 N (a vise and tools) plus self weight, and a weld efficiency of 0.7 for the fillet-welded thin-wall corners.
+    rationale: These are the spec's own choices, each conservative or well inside its limit (sway 1.50 mm against 3.0 mm; corner factor 15.3 against 2.0). The factors of safety (yield 1.5, buckling 2.0, tip-over 2.0, pull-out 2.5, racking 2.0, deflection 1.0) are the calc kit's defaults per check and load kind.
+    links: [param://lateral-push, param://sway-limit, param://sustained-load, param://weld-efficiency, req://REQ-010, req://REQ-011, req://REQ-006]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["SPEC.md sections 1 and 4.0; ANSI/BIFMA X5.5 and EN 15372 horizontal-load clauses (to be checked); AISC 360-16; EN 1995-1-1 Table 3.2 (k_def 0.60)"]
+  - id: DEC-004
+    date: 2026-11-04
+    title: Hardware and cost figures are estimates, costed at the high end
+    context: The bought parts have no order code yet and the US cost bands (woodworking 9 to 22 USD/kg, welding 19.5 USD/kg) are estimates from 2026-10 and 2026-11.
+    decision: Declare each custom part's cost at the high end of its band (top 28.8 kg x 22 USD/kg = 633.60 USD; frame 15.94 kg x 19.5 USD/kg = 310.75 USD) and the hardware at the spec's estimates (glide 0.080 kg and 4.00 USD; insert 0.010 kg and 1.50 USD; screw with washer 0.020 kg and 1.00 USD).
+    rationale: The budget requirement is held against the high end of the band, so the total, 980.35 USD, is the worst case the owner should expect against 1600 USD (38.7 % to spare). The hardware masses are also parameters (glide-mass, insert-mass, screw-mass) the calcs read; they repeat the parts' mass fields.
+    links: [req://REQ-014, req://REQ-001, part://top-board, part://apron-frame, part://leveling-foot, part://wood-insert-m8, part://mounting-bolt-m8]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["SPEC.md section 4.0 (cost bands and hardware); calckit/data/cost_bands.yaml"]

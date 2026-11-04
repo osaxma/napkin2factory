@@ -1,0 +1,33 @@
+# style.yaml: how the product looks (preset, colours and finishes by part role, shape cues).
+# These are the starting defaults. `n2f concept promote` fills it from the chosen concept;
+# you may also edit it by hand. Presets: industrial | appliance | lab.
+# Edited by hand: the body role is the oak top, the support role the black steel base.
+preset: industrial
+palette:
+  body: '#b5895a'
+  opening: '#3f444a'
+  support: '#1c1e20'
+  controls: '#e07a2e'
+  trim: '#8c9196'
+  lining: '#cfc6b6'
+  fastener: '#9ba1a7'
+  default: '#5b6167'
+finish:
+  body: painted
+  opening: powder-coat
+  support: powder-coat
+  controls: plastic
+  trim: brushed-steel
+  lining: ceramic
+  fastener: brushed-steel
+  default: powder-coat
+accent: null
+background: '#f4f4f2'
+radius_scale: 1.0
+reveal: 2 mm
+fastener_visibility: visible
+corner_radius: 0 mm
+chamfer: 0 mm
+overhang: 0 mm
+vent_pattern: slots
+layout: {stand: apron frame}

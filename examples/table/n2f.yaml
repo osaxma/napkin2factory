@@ -1,0 +1,9 @@
+schema: 1
+system: ">=0.6,<0.7"
+product:
+  id: table
+  name: Oak-and-steel workshop table
+  description: A 1.6 m by 0.8 m solid white-oak table on a black steel apron frame, for a workshop that doubles as a dining table. The tier 1 benchmark product.
+units: metric
+region: US
+manufacturer_profile: null

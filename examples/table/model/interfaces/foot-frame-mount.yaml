@@ -1,0 +1,14 @@
+id: foot-frame-mount
+kind: threaded-insert
+parties: [part://leveling-foot, part://apron-frame]
+description: Four M10 levelling glides, one under each leg; the glide's 20 mm stem threads into the insert in the tube end (SPEC sections 3 and 5).
+frames:
+  part://leveling-foot: {origin: [0, 0, param://glide-height], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://apron-frame: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec:
+  pattern: rect
+  count: 4
+  spacing: [param://leg-pitch-x, param://leg-pitch-y]
+  thread: M10
+  insert_length: param://glide-height
+  insert_part: part://leveling-foot

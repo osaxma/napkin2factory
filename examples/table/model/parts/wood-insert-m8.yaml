@@ -1,0 +1,11 @@
+id: wood-insert-m8
+rev: A
+name: M8 x 20 flanged threaded wood insert
+kind: cots
+process: none
+geometry: none
+source: {vendor: McMaster-Carr, mpn: "M8 x 20 flanged threaded insert for wood (RAMPA Type SK class)", url: "https://www.mcmaster.com/", verified: false, note: "the pull-out rating in the calc kit is from the RAMPA SK documentation; the spec names the type and size, not an order code: pick the catalogue part and confirm it [verify]"}
+cost: {unit: 1.50 USD, basis: estimate, note: "the spec's estimate, US, 2026-11 [verify]"}
+lead_time: 3 d
+mass: 0.010 kg
+satisfies: [req://REQ-012]

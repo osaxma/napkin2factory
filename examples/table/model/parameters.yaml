@@ -1,0 +1,42 @@
+# Named values with units. Geometry, calcs and docs reference these by name, never raw numbers.
+# Sources: SPEC.md sections 1 (the owner's figures) and 3 to 4.0 (the design's).
+parameters:
+  # --- what the owner asked for ---
+  table-length:      {value: 1600, unit: mm, description: "Top length, along the grain", owner: intake}
+  table-width:       {value: 800, unit: mm, description: "Top width, across the grain", owner: intake}
+  table-height:      {value: 750, unit: mm, description: "Floor to top surface", owner: intake}
+  centre-load:       {value: 1471.5, unit: N, description: "Short-term load at the middle of the top (150 kg)", owner: intake}
+  edge-load:         {value: 490.5, unit: N, description: "Downward load at the middle of any edge of the empty table (50 kg)", owner: intake}
+  sustained-load:    {value: 490.5, unit: N, description: "Load left at the middle (50 kg: a vise and tools), plus self weight; SPEC choice", owner: intake}
+  lateral-push:      {value: 300, unit: N, description: "Horizontal push at top level, either direction; SPEC choice [verify] against ANSI/BIFMA X5.5 and EN 15372", owner: intake}
+  humidity-low:      {value: 30, unit: percent, description: "Lowest relative humidity over the year (indoor, about 21 degC)", owner: intake}
+  humidity-high:     {value: 70, unit: percent, description: "Highest relative humidity over the year", owner: intake}
+  # --- the design ---
+  top-thickness:     {value: 30, unit: mm, description: "White-oak top thickness (C-002)"}
+  glide-height:      {value: 20, unit: mm, description: "Levelling glide set height, floor to leg bottom"}
+  frame-inset:       {value: 50, unit: mm, description: "How far the frame sits in from each edge of the top"}
+  frame-length:      {expr: "table-length - 2 * frame-inset", unit: mm, description: "Apron frame outside length"}
+  frame-width:       {expr: "table-width - 2 * frame-inset", unit: mm, description: "Apron frame outside width"}
+  frame-height:      {expr: "table-height - top-thickness - glide-height", unit: mm, description: "Apron frame height, leg length"}
+  tube-size:         {value: 50, unit: mm, description: "Frame tube outside side (square tube)"}
+  leg-pitch-x:       {expr: "frame-length - tube-size", unit: mm, description: "Leg centre to leg centre along the length (the sag span)"}
+  leg-pitch-y:       {expr: "frame-width - tube-size", unit: mm, description: "Leg centre to leg centre across the width"}
+  tube-wall:         {value: 1.5, unit: mm, description: "Frame tube wall"}
+  tab-size:          {value: 40, unit: mm, description: "Fixing tab, square side"}
+  tab-thickness:     {value: 4, unit: mm, description: "Fixing tab plate thickness"}
+  slot-length:       {value: 22, unit: mm, description: "Slot length in a long-rail tab, across the width; sized from the 7.05 mm movement (SPEC section 8)"}
+  tab-pitch:         {value: 600, unit: mm, description: "Pitch of the three fixing tabs along each long rail"}
+  tab-row-spacing:   {value: 560, unit: mm, description: "Distance between the two rows of long-rail tabs (each tab centre is 20 mm in from its rail's inner face)"}
+  short-tab-pitch:   {value: 1360, unit: mm, description: "Distance between the two round-hole tabs on the short rails"}
+  insert-hole:       {value: 9, unit: mm, description: "M8 clearance hole and slot width in the tabs"}
+  insert-bore:       {value: 12, unit: mm, description: "Bore for the M8 x 20 threaded insert in the oak"}
+  insert-depth:      {value: 20, unit: mm, description: "Insert length, and the depth of its bore"}
+  weld-efficiency:   {value: 0.7, unit: dimensionless, description: "Efficiency of the fillet-welded thin-wall corner (full-perimeter weld assumed); SPEC choice [verify]"}
+  glide-mass:        {value: 0.080, unit: kg, description: "One levelling glide (same as the part's mass); SPEC estimate [verify]"}
+  insert-mass:       {value: 0.010, unit: kg, description: "One M8 insert (same as the part's mass); SPEC estimate [verify]"}
+  screw-mass:        {value: 0.020, unit: kg, description: "One M8 x 25 screw with washer (same as the part's mass); SPEC estimate [verify]"}
+  # --- limits ---
+  deflection-limit:  {value: 2.5, unit: mm, description: "Largest mid-span sag, L/640 of 1600 mm", owner: intake}
+  sway-limit:        {value: 3.0, unit: mm, description: "Largest sway at top level; SPEC choice (about H/230) [verify]"}
+  mass-limit:        {value: 70, unit: kg, description: "Largest assembled mass", owner: intake}
+  budget:            {value: 1600, unit: USD, description: "Largest unit cost, at the high end of the cost band", owner: intake}

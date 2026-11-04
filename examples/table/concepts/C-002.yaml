@@ -1,0 +1,85 @@
+id: C-002
+title: Perimeter steel apron frame, 30 mm white-oak top
+status: promoted
+refs: []
+layout:
+  stand: apron frame
+site:
+  point_load: 1471.5 N
+  edge_load: 490.5 N
+  edge_offset: 75 mm
+  max_deflection: 2.5 mm
+  mass_limit: 70 kg
+  budget: 1600 USD
+massing:
+  - kit: frame
+    as: apron-frame
+    role: support
+    material: mild steel
+    process_class: welding
+    at: {z: 20 mm}
+    args:
+      length: 1500 mm
+      width: 700 mm
+      height: 700 mm
+      member: {profile: square-tube, size: 50 mm, wall: 1.5 mm}
+      top_rails: true
+      bottom_rails: false
+      process: welding
+      mounting_tabs:
+        - {rail: x, x: -600 mm, y: 280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: x, x: 0 mm, y: 280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: x, x: 600 mm, y: 280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: x, x: -600 mm, y: -280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: x, x: 0 mm, y: -280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: x, x: 600 mm, y: -280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: y, x: -680 mm, y: 0 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 9 mm, slot_width: 9 mm}
+        - {rail: y, x: 680 mm, y: 0 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 9 mm, slot_width: 9 mm}
+  - {kit: tube, as: glide-1, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: 725 mm, y: 325 mm}}
+  - {kit: tube, as: glide-2, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: -725 mm, y: 325 mm}}
+  - {kit: tube, as: glide-3, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: -725 mm, y: -325 mm}}
+  - {kit: tube, as: glide-4, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: 725 mm, y: -325 mm}}
+  - {kit: block, as: top, material: white-oak, role: body, process_class: woodworking, args: {length: 1600 mm, width: 800 mm, height: 30 mm}, at: {z: 720 mm}}
+notes: |
+  One welded frame of 50 x 50 x 1.5 mm tube, 1500 x 700 mm outside and inset 50 mm from every
+  edge of the top; six slotted fixing tabs on the long rails, two round ones on the short rails
+  (SPEC section 3). The 20 mm levelling glides are drawn as 10 mm rods
+  under the legs so the table stands at its real height.
+screening:
+  given:
+    budget: {value: 1600 USD, label: given, source: on the card, ref: site.budget}
+    point_load: {value: 1472 N, label: given, source: on the card, ref: site.point_load}
+    edge_load: {value: 490 N, label: given, source: on the card, ref: site.edge_load}
+    mass_limit: {value: 70 kg, label: given, source: on the card, ref: site.mass_limit}
+  computed:
+    width: {value: 1600 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (x)}
+    depth: {value: 800 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (y)}
+    height: {value: 750 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (z)}
+    volume: {value: 55.5 L, label: computed, source: the space the rough shapes fill, ref: sum of the massing silhouettes}
+    mass: {value: 44.7 kg, label: computed, source: from the rough shapes and their materials, ref: silhouette volume × density per call; frames and tubes by member section × cut length (geometry/materials.py)}
+    deflection: {value: 1.54 mm, label: computed, source: computed from the card and the massing, ref: "FL^3 / (48*E*I) + 5*w*L^4 / (384*E*I) on the 800 mm wide, 30 mm thick top over a 1450 mm span between its supports, with the two long top rails sharing it (E·I of top + rails), self weight 282 N; Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1d; white-oak in calckit/data/materials.yaml [verify]"}
+    yield_factor: {value: '34.7', label: computed, source: computed from the card and the massing, ref: "M = F·L/4 + W·L/8, the top's share; σ = M / Z, FS = σ_y / σ; Roark's Formulas for Stress and Strain, 7th ed., Chapter 8, Section 8.1; white-oak in calckit/data/materials.yaml [verify]"}
+    buckling_factor: {value: '29.6', label: computed, source: computed from the card and the massing, ref: "Johnson (P_cr = A * (S_y - (S_y * KL/r / (2*pi))^2 / E)); slenderness 70.7, K 2 (sway); Johnson parabola: Shigley's Mechanical Engineering Design, 11th ed., §4-12 (intermediate columns); AISC 360 Commentary Table C-A-7.1 for K; mild steel in calckit/data/materials.yaml [verify]"}
+    tip_over_factor: {value: '3.88', label: computed, source: computed from the card and the massing, ref: 'FS = (mass * g * cg_x) / (edge_load * overhang_x); Static equilibrium, restoring vs overturning moment (Track A §3.1)'}
+  estimates:
+    total_mass: {value: 45.3 kg, label: estimate, source: 'the rough shapes plus the hardware set (4 glides, 8 inserts, 8 screws)', ref: 'massing mass + SPEC.md section 4.0 hardware set [verify]'}
+    cost_low: {value: 606 USD, label: estimate, source: 'rough cost of the rough shapes from the cost bands, plus the hardware set (4 glides, 8 inserts, 8 screws); to be checked', ref: 'mass_cost.cost_estimate + SPEC.md section 4.0 hardware set [verify]'}
+    cost_high: {value: 981 USD, label: estimate, source: 'rough cost of the rough shapes from the cost bands, plus the hardware set (4 glides, 8 inserts, 8 screws); to be checked', ref: 'mass_cost.cost_estimate + SPEC.md section 4.0 hardware set [verify]'}
+    lift_class: {value: equipment, label: estimate, source: from the mass and the lifting limits; to be checked, ref: 'mass_cost.lift_class (HSE guideline weights) [verify]'}
+  rules:
+    - {id: fits-site-width, title: Fits the space width, severity: fail, status: skip, message: no space width on the card, relies_on: []}
+    - {id: fits-site-depth, title: Fits the space depth, severity: fail, status: skip, message: no space depth on the card, relies_on: []}
+    - {id: fits-site-height, title: Fits the space height, severity: fail, status: skip, message: no space height on the card, relies_on: []}
+    - {id: mass-vs-lift-class, title: How it can be lifted and moved, severity: warn, status: warn, message: 'about 45 kg: equipment handling (a trolley or lifting aid), not a two-person lift', relies_on: [estimate]}
+    - {id: blank-vs-stock-sheet, title: Every sheet fits a stock size, severity: fail, status: skip, message: no folded sheet-metal shapes on the card, relies_on: []}
+    - {id: walls-fit-envelope, title: The walls fit inside the body, severity: fail, status: skip, message: no inner size and wall thickness from a screen, relies_on: []}
+    - {id: cost-vs-budget, title: Within the budget, severity: fail, status: pass, message: 'the cost, 570 USD to 945 USD, is within the 1600 USD budget', relies_on: [given, estimate]}
+    - {id: structural-deflection, title: Sag stays within the limit, severity: fail, status: pass, message: "the top sags 1.54 mm (computed), within the 2.5 mm limit on the card (limit ÷ sag is 1.62, 1 needed, static case) — FL^3 / (48*E*I) + 5*w*L^4 / (384*E*I) on the 800 mm wide, 30 mm thick top over a 1450 mm span between its supports, with the two long top rails sharing it (E·I of top + rails), self weight 282 N; Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1d; white-oak in calckit/data/materials.yaml [verify]", relies_on: [computed]}
+    - {id: structural-yield, title: Stress stays under yield, severity: fail, status: pass, message: "the top carries 1.59 MPa of bending stress (191 N·m): factor 34.7 (computed), at least the 1.5 needed (static case) — M = F·L/4 + W·L/8, the top's share; σ = M / Z, FS = σ_y / σ; Roark's Formulas for Stress and Strain, 7th ed., Chapter 8, Section 8.1; white-oak in calckit/data/materials.yaml [verify]", relies_on: [computed]}
+    - {id: structural-buckling, title: Legs or column do not buckle, severity: fail, status: pass, message: "one leg carrying its share of total weight plus applied loads (2072 N) over 700 mm: factor 29.6 (computed), at least the 2 needed (static case) — Johnson (P_cr = A * (S_y - (S_y * KL/r / (2*pi))^2 / E)); slenderness 70.7, K 2 (sway); Johnson parabola: Shigley's Mechanical Engineering Design, 11th ed., §4-12 (intermediate columns); AISC 360 Commentary Table C-A-7.1 for K; mild steel in calckit/data/materials.yaml [verify]", relies_on: [computed]}
+    - {id: structural-tip-over, title: It does not tip over, severity: fail, status: pass, message: "44.7 kg (the rough shapes' weight) with its centre 325 mm inside the leg line, under 490 N acting 75 mm beyond it: factor 3.88 (computed), at least the 2 needed (edge load case) — FS = (mass * g * cg_x) / (edge_load * overhang_x); Static equilibrium, restoring vs overturning moment (Track A §3.1)", relies_on: [computed]}
+    - {id: hardware-cost-vs-budget, title: Within the budget with the hardware, severity: fail, status: pass, message: 'with the hardware the cost, 606 USD to 981 USD, is within the 1600 USD budget', relies_on: [given, estimate]}
+    - {id: mass-limit, title: Total mass within the limit, severity: fail, status: pass, message: 'the table weighs 45.3 kg (estimate), within the 70 kg limit on the card', relies_on: [given, estimate]}
+  verdict: green
+  at: '2026-11-04T18:19:10'
+decision: {dec: DEC-001, at: '2026-11-04T17:51:37'}

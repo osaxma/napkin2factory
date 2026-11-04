@@ -1,0 +1,13 @@
+id: leveling-foot
+rev: A
+name: M10 levelling glide
+kind: cots
+process: none
+material: {name: nylon, spec: "M10 levelling glide, nylon base pad, with its tube-end insert"}
+geometry: none
+source: {vendor: McMaster-Carr, mpn: "M10 levelling glide with tube-end insert, 20 mm stem", url: "https://www.mcmaster.com/", verified: false, note: "the spec names the type and size, not an order code: pick the catalogue part and confirm it [verify]"}
+cost: {unit: 4.00 USD, basis: estimate, note: "the spec's estimate, US, 2026-11 [verify]"}
+lead_time: 3 d
+mass: 0.080 kg
+interfaces: [iface://foot-frame-mount]
+satisfies: [req://REQ-004, req://REQ-009]

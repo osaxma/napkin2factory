@@ -1,0 +1,32 @@
+id: apron-frame
+rev: A
+name: Steel apron frame
+kind: custom
+process: welding
+material: {name: mild steel, spec: "50 x 50 x 1.5 mm square tube, S235"}
+finish: powder coat, black
+role: support
+geometry:
+  kit: frame
+  args:
+    length: param://frame-length
+    width: param://frame-width
+    height: param://frame-height
+    member: {profile: square-tube, size: param://tube-size, wall: param://tube-wall}
+    top_rails: true
+    bottom_rails: false
+    process: welding
+    mounting_tabs:
+      - {rail: x, x: -600 mm, y: 280 mm, width: param://tab-size, length: param://tab-size, thickness: param://tab-thickness, slot_length: param://slot-length, slot_width: param://insert-hole}
+      - {rail: x, x: 0 mm, y: 280 mm, width: param://tab-size, length: param://tab-size, thickness: param://tab-thickness, slot_length: param://slot-length, slot_width: param://insert-hole}
+      - {rail: x, x: 600 mm, y: 280 mm, width: param://tab-size, length: param://tab-size, thickness: param://tab-thickness, slot_length: param://slot-length, slot_width: param://insert-hole}
+      - {rail: x, x: -600 mm, y: -280 mm, width: param://tab-size, length: param://tab-size, thickness: param://tab-thickness, slot_length: param://slot-length, slot_width: param://insert-hole}
+      - {rail: x, x: 0 mm, y: -280 mm, width: param://tab-size, length: param://tab-size, thickness: param://tab-thickness, slot_length: param://slot-length, slot_width: param://insert-hole}
+      - {rail: x, x: 600 mm, y: -280 mm, width: param://tab-size, length: param://tab-size, thickness: param://tab-thickness, slot_length: param://slot-length, slot_width: param://insert-hole}
+      - {rail: y, x: -680 mm, y: 0 mm, width: param://tab-size, length: param://tab-size, thickness: param://tab-thickness, slot_length: param://insert-hole, slot_width: param://insert-hole}
+      - {rail: y, x: 680 mm, y: 0 mm, width: param://tab-size, length: param://tab-size, thickness: param://tab-thickness, slot_length: param://insert-hole, slot_width: param://insert-hole}
+interfaces: [iface://top-fixing-long, iface://top-fixing-short, iface://foot-frame-mount]
+satisfies: [req://REQ-004, req://REQ-005, req://REQ-006, req://REQ-007, req://REQ-008, req://REQ-009, req://REQ-010, req://REQ-011, req://REQ-012, req://REQ-013, req://REQ-015]
+cost: {unit: 310.75 USD, basis: estimate, note: "US welding band 19.5 USD/kg x 15.94 kg of tube and tabs (2026-10) [verify]"}
+lead_time: 15 d
+manufacturer_notes: One weldment, all members cut from the one 50 x 50 x 1.5 mm tube; the tabs are 40 x 40 x 4 mm plate welded to the rails' inner faces, top faces flush with the rails. Six tabs on the long rails have a 9 x 22 mm slot across the width, the two on the short rails a round 9 mm hole. Fit an M10 insert in each leg end for the glides. Powder coat black.

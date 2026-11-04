@@ -1,0 +1,19 @@
+requirement: req://REQ-009
+by: Example Reviewer (not a real review)
+role: human
+date: '2026-11-04'
+statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
+  against the built table.
+evidence:
+- calc://structure.tip_over_factor
+- part://top-board
+- part://apron-frame
+- part://leveling-foot
+- param://edge-load
+evidence_keys:
+  calc://structure.tip_over_factor: sha256:38c414f978b841477fa07117d3fdd22a228f46987e31d52f767c433f547c8527
+  part://top-board: inv:{"area":2710031.858,"bbox":[1600.0,800.0,30.0],"centroid":[0.0,-0.0,15.0024],"counts":[22,36,1],"features":"sha256:e658d6562cae12cd6d14b307fca639e1894f5d7b39e9183414c936f1e936ab07","volume":38381904.426}
+  part://apron-frame: inv:{"area":2665666.903,"bbox":[1500.0,700.0,700.0],"centroid":[-0.0,-0.0,544.7662],"counts":[123,330,1],"features":"sha256:5352740008eac60148685e4ddbdd8a623be18c29230f49694522b5f1d39e2e0b","volume":2025156.248}
+  part://leveling-foot: sha256:57cbc0dda3efee4a2633aa82631b5a115c2f064ee950bdab82710bc63f90928a
+  param://edge-load: sha256:eed6b5277f49e131e07983aecc995739e5913e60dc265cff72940411724a9bfd
+example: true

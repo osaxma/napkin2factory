@@ -1,0 +1,20 @@
+id: top-fixing-short
+kind: threaded-insert
+parties: [part://top-board, part://apron-frame]
+description: Two M8 threaded inserts on the top's centreline, screwed to the tabs on the short rails through round holes; they hold the top's centreline in place while the rest of the top moves (SPEC sections 3 and 5).
+frames:
+  part://top-board: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://apron-frame: {origin: [0, 0, param://frame-height], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec:
+  pattern: rect
+  count: 2
+  spacing: [param://short-tab-pitch]
+  thread: M8
+  insert_length: param://insert-depth
+  insert_part: part://top-board
+  diameter: param://insert-hole
+  bore_diameter: param://insert-bore
+  depth: param://insert-depth
+  hardware:
+    - {part: part://wood-insert-m8, per_hole: 1}
+    - {part: part://mounting-bolt-m8, per_hole: 1}

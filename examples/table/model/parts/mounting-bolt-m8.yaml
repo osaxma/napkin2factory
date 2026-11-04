@@ -1,0 +1,11 @@
+id: mounting-bolt-m8
+rev: A
+name: M8 x 25 button-head screw with washer
+kind: cots
+process: none
+geometry: none
+source: {vendor: McMaster-Carr, mpn: "M8 x 25 button-head hex socket screw, ISO 7380, with ISO 7089 washer", url: "https://www.mcmaster.com/", verified: false, note: "the spec names the type and size, not an order code: pick the catalogue part and confirm it [verify]"}
+cost: {unit: 1.00 USD, basis: estimate, note: "the spec's estimate, US, 2026-11 [verify]"}
+lead_time: 3 d
+mass: 0.020 kg
+satisfies: [req://REQ-012]

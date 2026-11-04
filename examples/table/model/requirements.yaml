@@ -1,0 +1,138 @@
+# Requirements: atomic, testable, each with a verify method and an allocation.
+# Run `n2f lint` after editing. See roles/pm.md for the intake protocol.
+# Figures and where they come from: SPEC.md sections 1, 2 and 4.
+requirements:
+  - id: REQ-001
+    title: Light enough to move as planned
+    statement: The assembled product weighs less than 70 kg.
+    category: mass
+    priority: must
+    verify: {kind: bom_rollup, target: "bom://rollups#total_mass", op: "<=", value: 70 kg}
+    allocation: [asm://table, param://mass-limit]
+    rationale: Two people must be able to move the table (the owner's words); 70 kg is the limit the owner accepted when the draft 55 kg proved unreachable (SPEC section 8). site.mass_limit on C-002.
+    source: concept C-002 site constraint
+  - id: REQ-002
+    title: Top length
+    statement: The top is 1600 mm long, within 2 mm.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: "part://top-board#props.bbox.x", op: "==", value: 1600 mm}
+    allocation: [part://top-board, param://table-length]
+    rationale: The owner asked for about 1.6 m by 0.8 m. The model is exact; the 2 mm is the manufacturing tolerance.
+    source: intake
+  - id: REQ-003
+    title: Top width
+    statement: The top is 800 mm wide, within 2 mm.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: "part://top-board#props.bbox.y", op: "==", value: 800 mm}
+    allocation: [part://top-board, param://table-width]
+    source: intake
+  - id: REQ-004
+    title: Table height
+    statement: The top surface is 750 mm above the floor with the glides at their 20 mm set height, adjustable by 10 mm.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: "asm://table#props.bbox.z", op: "==", value: 730 mm}
+    allocation: [asm://table, part://apron-frame, part://leveling-foot, param://table-height, param://glide-height]
+    rationale: Normal table height (the owner). The assembly drawing holds the frame and the top, not the bought glides, so its height is 750 mm less the 20 mm glide set height.
+    source: intake
+  - id: REQ-005
+    title: Sag under the centre load
+    statement: The mid-span sag under 1471.5 N at the middle, plus the weight of the top and the two long rails, is at most 2.5 mm.
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://structure.centre_load_sag, op: "<=", value: 2.5 mm}
+    allocation: [part://top-board, part://apron-frame, param://centre-load, param://deflection-limit]
+    rationale: The owner asked for no visible sag under 150 kg; 2.5 mm is L/640 of the 1600 mm length.
+    source: intake
+  - id: REQ-006
+    title: Long-term sag
+    statement: The final sag under 490.5 N left at the middle plus self weight, timber creep included, is at most 2.5 mm.
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://structure.long_term_sag, op: "<=", value: 2.5 mm}
+    allocation: [part://top-board, part://apron-frame, param://sustained-load, param://deflection-limit]
+    rationale: A vise and tools may stay on the table for years; only the oak creeps (EN 1995-1-1, k_def 0.60).
+    source: intake
+  - id: REQ-007
+    title: Strength of the spanning members
+    statement: The lowest yield factor of the top and the long rails under the centre load is at least 1.5 (150 %).
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://structure.member_yield_factor, op: ">=", value: 1.5}
+    allocation: [part://top-board, part://apron-frame]
+    rationale: 1.5 is the default factor for a static load (calckit load cases, AISC 360-16); a requirement may tighten it, never loosen it.
+    source: design
+  - id: REQ-008
+    title: Leg buckling
+    statement: The buckling factor of a leg carrying the whole centre load plus a quarter of the table's weight is at least 2.0 (200 %).
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://structure.leg_buckling_factor, op: ">=", value: 2}
+    allocation: [part://apron-frame]
+    source: design
+  - id: REQ-009
+    title: The table does not tip over
+    statement: The tip-over factor under 490.5 N downward at the middle of any edge of the empty table is at least 2.0 (200 %).
+    category: safety
+    priority: must
+    safety: true
+    tags: [hazard:tip-over]
+    verify: {kind: calc, target: calc://structure.tip_over_factor, op: ">=", value: 2}
+    allocation: [part://top-board, part://apron-frame, part://leveling-foot, param://edge-load]
+    rationale: Someone leans or sits on the edge (the owner). Furniture tip-over standards such as ASTM F2057 exist for this reason; which clause applies to a table is [verify]. The factor 2.0 is the default for an edge load (ANSI/BIFMA X5.5).
+    source: intake
+  - id: REQ-010
+    title: Racking sway
+    statement: The sway at top level under 2.0 times a 300 N lateral push is at most 3.0 mm.
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://structure.racking_sway, op: "<=", value: 3 mm}
+    allocation: [part://apron-frame, param://lateral-push, param://sway-limit]
+    rationale: The push (300 N) and the limit (about height / 230) are the spec's own choices [verify] against ANSI/BIFMA X5.5 and EN 15372 (DEC-003).
+    source: design
+  - id: REQ-011
+    title: Welded corners
+    statement: The welded leg-to-rail corner moment factor under the 300 N push is at least 2.0 (200 %).
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://structure.corner_moment_factor, op: ">=", value: 2}
+    allocation: [part://apron-frame, param://lateral-push, param://weld-efficiency]
+    source: design
+  - id: REQ-012
+    title: Top fixing
+    statement: The insert pull-out factor when the assembled table is lifted by its top is at least 2.5 (250 %).
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://structure.insert_pullout_factor, op: ">=", value: 2.5}
+    allocation: [part://wood-insert-m8, part://mounting-bolt-m8, iface://top-fixing-long, iface://top-fixing-short]
+    rationale: Two people lift the table by its top. The factor 2.5 is the default for a human pull or pry (ANSI/BIFMA X5.5).
+    source: design
+  - id: REQ-013
+    title: The top is free to move
+    statement: The free travel of each slotted fixing less the across-grain movement of the top at that fixing, from 30 % to 70 % relative humidity, is at least 0 mm.
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://structure.slot_clearance, op: ">=", value: 0 mm}
+    allocation: [part://top-board, part://apron-frame, iface://top-fixing-long, param://slot-length, param://humidity-low, param://humidity-high]
+    rationale: A solid oak top that cannot move with the seasons cracks (the owner). The two round-hole fixings sit on the centreline, which does not move across the grain.
+    source: intake
+  - id: REQ-014
+    title: Unit cost
+    statement: The bill of materials, at the high end of the cost band, totals at most 1600 USD.
+    category: cost
+    priority: must
+    verify: {kind: bom_rollup, target: "bom://rollups#total_cost", op: "<=", value: 1600 USD}
+    allocation: [asm://table, param://budget]
+    rationale: Under about 1600 dollars (the owner). Part costs are the high end of the US cost bands of 2026-10 and 2026-11 (estimates, [verify]); the budget leaves 38.7 % over the high end.
+    source: intake
+  - id: REQ-015
+    title: Leg room
+    statement: The apron frame weighs at most 16 kg, the weight of its four legs, four apron rails and eight tabs, so no member runs between the legs below the apron.
+    category: usability
+    priority: must
+    verify: {kind: geometry_prop, target: "part://apron-frame#props.mass", op: "<=", value: 16 kg}
+    allocation: [part://apron-frame]
+    rationale: No stretcher or rail between the legs below the apron (the owner). The frame's 15.94 kg is the tube and tabs of SPEC.md section 4.1 (6800 mm of tube and eight tabs); a rail added below the apron would add about 3 kg.
+    source: intake
