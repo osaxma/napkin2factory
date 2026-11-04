@@ -12,7 +12,9 @@ family also hashes the calc kit (S-126).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from napkin2factory.core.domain import (
     CheckStage,
@@ -207,9 +209,28 @@ CHECK_STAGES = (
 )
 
 
-def _section(sid: str, label: str, group: str) -> ReportSection:
+def _section(
+    sid: str, label: str, group: str, show: Callable[[Any], bool] | None = None
+) -> ReportSection:
     """A section whose data the report builder gathers (``report/builder.py::gather``)."""
-    return ReportSection(sid, label, group, f"report/sections/{sid}.html.j2")
+    return ReportSection(sid, label, group, f"report/sections/{sid}.html.j2", show=show)
+
+
+def _full_or(has: Callable[[Any], bool]) -> Callable[[Any], bool]:
+    """A section shown at `standard`, and at `lite` only once it has something to say (W6)."""
+
+    def show(product: Any) -> bool:
+        from napkin2factory.core.ceremony import derive_ceremony
+
+        return derive_ceremony(product).level == "standard" or has(product)
+
+    return show
+
+
+def _has_sub_assemblies(product: Any) -> bool:
+    from napkin2factory.core.tree import AssemblyTree
+
+    return len(product.assemblies) > len(AssemblyTree(product.assemblies).tops())
 
 
 #: The report's sections in reading order (anchor, side-index label, group).
@@ -221,13 +242,13 @@ REPORT_SECTIONS = (
     _section("drawings", "Drawings", "Product"),
     _section("interfaces", "Interfaces", "Product"),
     _section("build", "Build plan", "Product"),
-    _section("joints", "Joints between units", "Product"),
+    _section("joints", "Joints between units", "Product", _full_or(_has_sub_assemblies)),
     _section("requirements", "Requirements", "Verification"),
     _section("rules", "Rule checks", "Verification"),
-    _section("signoffs", "Sign-offs", "Verification"),
+    _section("signoffs", "Sign-offs", "Verification", _full_or(lambda p: bool(p.signoffs))),
     _section("parameters", "Parameters", "Design record"),
     _section("decisions", "Decisions", "Design record"),
-    _section("changes", "Change requests", "Design record"),
+    _section("changes", "Change requests", "Design record", _full_or(lambda p: bool(p.ecrs))),
     _section("manuals", "Manuals", ""),
 )
 
@@ -256,6 +277,12 @@ FAMILIES = (
     ),
 )
 
+
+def _has_content(product: Any) -> bool:
+    """The product holds parts or assemblies (W6: counts toward "more than one domain")."""
+    return bool(product.parts or product.assemblies)
+
+
 DOMAIN = Domain(
     name="mechanical",
     title="Parts, assemblies, drawings, the parts list, manuals and the report",
@@ -268,4 +295,5 @@ DOMAIN = Domain(
     in_place=True,
     families=FAMILIES,
     interface_kinds=INTERFACE_KINDS,
+    has_content=_has_content,
 )

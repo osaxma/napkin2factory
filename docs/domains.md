@@ -751,6 +751,14 @@ or `None`), `domain`, and optional `source`. An unpriced consumable (`unit_cost`
 `quantity * unit_cost` to `total_cost`. Lines appear in `bom.csv` with `kind: consumable`
 and their `qty_unit`.
 
+### 3.16 The ceremony — `has_content=callable`, `hazards=callable`
+Two optional hooks feed the derived ceremony (W6, S-205). `has_content(product) -> bool`
+says the product holds anything of your domain (no hook: it never counts); two domains with
+content make the product `standard`. `hazards(product) -> list[str]` returns, in owner words,
+the hazardous energy your content shows (no hook: none); any entry makes the product
+`standard`. The wiring's says "it runs on mains" for a supply above extra-low voltage,
+reading the cited limits of its `entry-voltage` rule.
+
 ## 4. The objects you are handed (reference)
 
 ### 4.1 The contract's types (`napkin2factory.core.domain`)
@@ -759,7 +767,7 @@ Domain(name, root=Path(), title="", families=(), rule_families=(), verify_kinds=
        check_stages=(), gate_rows=(), report_sections=(), doc_helpers={}, vocabulary={},
        interface_kinds=(), processes=(), finishes=(), categories=(), drivers={},
        style_roles=(), screens=(), context=(), release_files=(), bom_lines=None,
-       code=(), in_place=False)
+       has_content=None, hazards=None, code=(), in_place=False)
 BomLine(id, name, quantity, unit, unit_cost, domain, source="")
 ModelFamily(name, schema, folder, validate_refs=None, scheme="", id_pattern=SLUG)
 RuleFamily(name, make_rules, after=(), before=(), produces="", also_produces=(), code=(),

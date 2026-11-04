@@ -138,6 +138,10 @@ def value_of(
         return sha256_file(product.paths.signoffs / f"{key[len('signoff:') :]}.yaml")
     if key == SCOPE_KEY or key.startswith(SCOPE_KEY + "#"):
         return scope_value(product, key)
+    if key == "manifest://ceremony":  # W6: the derived level (core/ceremony.py CEREMONY_KEY)
+        from napkin2factory.core.ceremony import ceremony_value
+
+        return ceremony_value(product)
     if key.startswith("manifest://product"):
         sel = key.split("#", 1)[1] if "#" in key else ""
         obj: Any = product.manifest.product

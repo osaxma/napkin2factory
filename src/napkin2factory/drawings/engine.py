@@ -20,6 +20,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from napkin2factory import __version__
+from napkin2factory.core.ceremony import (
+    CEREMONY_KEY,
+    default_tolerance,
+    derive_ceremony,
+    tolerance_label,
+)
 from napkin2factory.core.graph.hashing import sha256_json, sha256_text
 from napkin2factory.drawings.sheet import SheetInput, TitleFields, compose
 from napkin2factory.drawings.views import ALL_VIEWS, ORTHO_VIEWS, ortho_extents, project_shape
@@ -110,6 +116,7 @@ def make_drawing(ctx: RunContext, part_id: str) -> RunResult:
             ) from exc
         if name in ORTHO_VIEWS:
             ortho_extents(views[name], lo, hi)  # type: ignore[arg-type]
+    default_tol = default_tolerance(ctx.product, part, derive_ceremony(ctx.product))  # W6
     has_flat = bool(flat and flat.get("outline"))  # any flat part gets a DXF (cut-sheet too)
     thickness = feats.get("thickness") or (flat or {}).get("thickness")
     inp = SheetInput(
@@ -120,7 +127,7 @@ def make_drawing(ctx: RunContext, part_id: str) -> RunResult:
             material=_material_text(part),
             process=part.process,
             finish=part.finish or "—",
-            tolerance=part.tolerance_class or "—",
+            tolerance=tolerance_label(part, default_tol) or "—",
             version=__version__,
             date=ctx.snapshot_date,
         ),
@@ -170,4 +177,6 @@ def make_drawing(ctx: RunContext, part_id: str) -> RunResult:
         sheet.hash_text + (sha256_json(flat) if has_flat and flat is not None else "")
     )
     reads = [uri] + [f"{uri}#{k}" for k in TITLE_FIELDS]
+    if default_tol:  # W6: the class on the title block came from the process and the ceremony
+        reads.append(CEREMONY_KEY)
     return RunResult(reads=reads, outputs=outputs, output_hash=output_hash)

@@ -4,3 +4,4 @@ product:
   id: fx
   name: Fixture
 units: metric
+ceremony: standard  # W6: a lite product would take the process default

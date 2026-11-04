@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from markupsafe import Markup
 
+from napkin2factory.core.ceremony import CEREMONY_KEY
 from napkin2factory.core.loader import Product
 from napkin2factory.core.style import STYLE_LOOK_KEY
 from napkin2factory.core.uris import display_uri
@@ -152,6 +153,7 @@ def report_reads(ctx: RunContext) -> list[str]:
         "set://params",
         "set://ifaces",
         "manifest://product#name",
+        CEREMONY_KEY,  # W6: a lite report leaves out its empty sections
     ]
     reads += scope_reads(product)
     from napkin2factory.core.registry import registry

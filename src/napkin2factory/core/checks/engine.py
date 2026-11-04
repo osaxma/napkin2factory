@@ -14,6 +14,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from napkin2factory.core.ceremony import CEREMONY_KEY
 from napkin2factory.core.checks.evaluators import EvalContext, evaluate_requirement
 from napkin2factory.core.checks.hardware import hardware_checks
 from napkin2factory.core.checks.interface import check_interface, coordinate_placement_warnings
@@ -48,6 +49,8 @@ def checks_reads(product: Product) -> list[str]:
         reads.append(f"{p.uri}#name")  # messages name parts (hardware, joints)
         reads.append(f"{p.uri}#kind")  # custom parts check density; bought parts exempt
         reads.append(f"{p.uri}#material")  # material name and density
+        if p.kind == "custom" and p.tolerance_class is None:
+            reads.append(CEREMONY_KEY)  # W6: a lite product takes the process's default class
     for a in product.assemblies.values():
         reads.append(a.uri)
         # The asm rule's output hash does not move with `spare:`, `loose:`, `build:` or

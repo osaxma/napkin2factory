@@ -473,7 +473,12 @@ class Registry:
         """Process id → its declaration."""
         self.ensure()
         out = {
-            row["id"]: Process(row["id"], row.get("title", ""), bool(row.get("declared", True)))
+            row["id"]: Process(
+                row["id"],
+                row.get("title", ""),
+                bool(row.get("declared", True)),
+                row.get("default_tolerance_class"),
+            )
             for row in _table("processes")
         }
         for d in self.domains:

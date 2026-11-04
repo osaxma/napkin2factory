@@ -28,6 +28,7 @@ from napkin2factory.domains.electrical.model import (
     Device,
     ProductConductor,
     Supply,
+    has_content,
     validate_refs,
 )
 from napkin2factory.domains.electrical.outputs import (
@@ -43,6 +44,7 @@ from napkin2factory.domains.electrical.owner import (
     SCREENS,
     VOCABULARY,
 )
+from napkin2factory.domains.electrical.owner.hazards import hazards
 
 ROOT = Path(__file__).resolve().parent
 
@@ -73,4 +75,6 @@ DOMAIN = Domain(
     context=CONTEXT,
     release_files=RELEASE_FILES,
     bom_lines=BOM_LINES,
+    has_content=has_content,  # W6: counts toward "more than one domain"
+    hazards=hazards,  # W6: mains raises the ceremony
 )

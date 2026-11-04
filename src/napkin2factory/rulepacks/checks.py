@@ -160,16 +160,21 @@ def custom_part_complete(
     """process, material, finish, tolerance_class on custom parts."""
     if part.kind != "custom":
         return []
+    from napkin2factory.core.ceremony import default_tolerance, derive_ceremony
     from napkin2factory.core.registry import registry
 
     process = registry().processes().get(part.process)  # F6: the processes table says
+    # W6: a lite product takes the process's default class for a part that names none
+    tolerance_ok = part.tolerance_class is not None or (
+        default_tolerance(product, part, derive_ceremony(product)) is not None
+    )
     missing = [
         k
         for k, v in (
             ("process", process is not None and process.declared),
             ("material", part.material is not None),
             ("finish", bool(part.finish)),
-            ("tolerance_class", part.tolerance_class is not None),
+            ("tolerance_class", tolerance_ok),
         )
         if not v
     ]

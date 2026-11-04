@@ -46,7 +46,10 @@ interference | count | interface | manual | rule`; the target scheme must match 
 (count), `iface://`, `rule://<pack>/<rule>`; `rule` takes no `op`/`value` — see
 [checks.md](checks.md)). `tags: [electrical]` ties a requirement to a domain for scope. `n2f lint` adds:
 a measurable value with a unit in the statement (unless the kind is binary), a verify block,
-an allocation, and `safety: true` requirements need verify.
+an allocation, and `safety: true` requirements need verify and a tag `hazard:<kind>` (kinds
+in `core/data/hazards.yaml`, each classed as raising the ceremony or not; `L4-hazard-tag`).
+`n2f.yaml` may carry `ceremony: standard`; the level is otherwise derived from the model
+(docs/agent-guide.md, "Ceremony").
 
 **parameters.yaml** — `parameters: {slug: {value, unit, description} | {expr, unit}}`.
 Expressions are arithmetic over other parameter slugs (write `a - b` with spaces, since

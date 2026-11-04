@@ -9,6 +9,12 @@ from __future__ import annotations
 
 import re
 
+from napkin2factory.core.ceremony import (
+    default_tolerance,
+    derive_ceremony,
+    hazard_problems,
+    manuals_problem,
+)
 from napkin2factory.core.errors import Problems
 from napkin2factory.core.loader import Product
 from napkin2factory.core.units import UnitError, parse_quantity
@@ -35,9 +41,13 @@ def lint(product: Product) -> Problems:
     rf = paths.requirements
     # kinds whose statement need not carry a number: the verify kinds that say so (F3)
     binary = [k for k, v in registry().verify_kinds().items() if v.binary]
+    ceremony = derive_ceremony(product)  # W6: lite relaxes the tolerance class and the manuals
 
     for r in product.requirements.values():
         subject = f"req://{r.id}"
+        # L4b (W6): a safety requirement names its hazard, so the ceremony follows from the model.
+        for message, fix in hazard_problems(r):
+            problems.add(rf, subject, message, fix, rule="L4-hazard-tag")
         # L1: measurable statement with a unit, unless a binary check.
         kind = r.verify.kind if r.verify else None
         if kind not in binary:
@@ -174,7 +184,7 @@ def lint(product: Product) -> Problems:
                     rule="L7-cots-source",
                 )
         else:
-            if p.tolerance_class is None:
+            if p.tolerance_class is None and default_tolerance(product, p, ceremony) is None:
                 problems.add(
                     f,
                     p.uri,
@@ -328,6 +338,13 @@ def lint(product: Product) -> Problems:
             )
 
     _lint_scope(product, problems)
+
+    # L18 (W6): the manual set is the one safety page; `lite` accepts a build-and-care page.
+    missing = manuals_problem(product, ceremony)
+    if missing is not None:
+        problems.add(
+            paths.docs, "manuals", missing[0], missing[1], severity="warn", rule="L18-manuals"
+        )
 
     # L16: every product calc carries a reference case (F17, S-125).
     if product.calcs:

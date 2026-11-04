@@ -1,0 +1,51 @@
+# Hazard kinds a safety requirement names with a `hazard:<kind>` tag (W6, S-205).
+# `raises: true` means a product carrying that hazard runs the `standard` ceremony; `false`
+# means the requirement keeps its sign-off but the ceremony stays as the rest of the model
+# says. The classification is qualitative (no number): the source names the standard whose
+# hazard list the row follows. Every row is `verify: true` until a person has checked the
+# clause against the standard itself. Add a row here to add a kind (a core data change).
+- id: mains
+  title: Mains voltage
+  raises: true
+  verify: true
+  source: "IEC 61140:2016 (protection against electric shock) with IEC 60449 voltage band I: above 50 V AC or 120 V DC is not extra-low voltage"
+- id: high-temperature
+  title: High temperature
+  raises: true
+  verify: true
+  source: "ISO 12100:2010 Annex B (thermal hazards: burns and scalds from contact with hot surfaces); EN ISO 13732-1:2008 (touch temperatures of hot surfaces)"
+- id: moving-machinery
+  title: Moving machinery
+  raises: true
+  verify: true
+  source: "ISO 12100:2010 Annex B (mechanical hazards: crushing, shearing, entanglement by driven parts); ISO 14120:2015 (guards)"
+- id: stored-energy
+  title: Stored energy
+  raises: true
+  verify: true
+  source: "ISO 12100:2010 Annex B (pressure, springs, stored electrical energy); ISO 14118:2017 (prevention of unexpected start-up)"
+- id: tip-over
+  title: Tip-over
+  raises: false
+  verify: true
+  source: "ISO 12100:2010 Annex B (mechanical hazards: loss of stability); an everyday product's stability check keeps its sign-off without raising the ceremony (W6)"
+- id: structural-failure
+  title: Structural failure
+  raises: false
+  verify: true
+  source: "ISO 12100:2010 Annex B (mechanical hazards: break-up during operation); an everyday product's strength check keeps its sign-off without raising the ceremony (W6)"
+- id: sharp-edge
+  title: Sharp edge
+  raises: false
+  verify: true
+  source: "ISO 12100:2010 Annex B (mechanical hazards: cutting or severing, sharp edges and corners)"
+- id: pinch
+  title: Pinch point
+  raises: false
+  verify: true
+  source: "ISO 12100:2010 Annex B (mechanical hazards: crushing of a finger by a slow, hand-driven closing part)"
+- id: chemical-exposure
+  title: Chemical exposure
+  raises: false
+  verify: true
+  source: "ISO 12100:2010 Annex B (hazards from contact with or inhalation of substances)"

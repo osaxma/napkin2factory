@@ -241,7 +241,11 @@ Then write, in this order, running `n2f validate` after each file:
   measurable statement **with a unit**, a `verify` block whose target is a real URI (or
   `kind: manual` for things only a person can check), `category`, `priority`, an
   `allocation` (parts/parameters it will be satisfied by, or `unallocated` until design),
-  and `safety: true` for anything that can hurt someone. Binary checks (`manual`,
+  and `safety: true` for anything that can hurt someone, with a tag `hazard:<kind>` naming
+  the hazard (`n2f lint` lists the kinds: `tip-over`, `sharp-edge`, `pinch`, `mains`,
+  `high-temperature`, `moving-machinery`, `stored-energy`, …). A mains, hot, moving or
+  stored-energy hazard makes the product `standard` instead of `lite`; do not hide one to
+  keep it lite. Binary checks (`manual`,
   `interference`, `interface`) need no number. **The method is chosen by consequence**:
   `verify.kind` must be an installed kind (`n2f doctor` lists them, with what each targets).
   Offer the stronger method (a computed check over a person's look, a calc over a rule of
@@ -251,7 +255,10 @@ Then write, in this order, running `n2f validate` after each file:
 - `model/decisions.yaml` — one `DEC-xxx` for every choice you made on the owner's behalf,
   with `links:` and `sources:`; `verify: true` for numbers taken from a reference.
 - `model/intake.md` — the conversation summary in eight short paragraphs (the headings above).
-- `model/docs/safety.md` is mandatory and already there: fill its Hazards list.
+- `model/docs/safety.md` is mandatory and already there: fill its Hazards list. A `lite`
+  product (`n2f check` names the ceremony) may keep that one page, or rename it
+  `build-and-care.md` with `safety: true`, as its whole manual set; a `standard` one keeps
+  `safety.md` and adds a page for each way of using or servicing it.
 Finish with `n2f validate && n2f lint`; fix every finding. Then hand over to the designer
 role (`roles/design.md`) for the first silhouette, and show the owner the iso render.
 

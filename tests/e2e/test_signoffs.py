@@ -120,6 +120,7 @@ def test_signoff_binds_parts_without_geometry(tmp_path: Path) -> None:
     statement: The lid screws are the stainless A2 screws named in the BOM.
     category: safety
     safety: true
+    tags: [hazard:structural-failure]
     priority: must
     verify: {kind: manual, note: "Check the screw packaging against the BOM line."}
     allocation: [part://m4x10-screw]

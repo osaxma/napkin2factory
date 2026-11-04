@@ -3,7 +3,7 @@ requirements:
     title: Wired by a licensed electrician
     statement: A licensed electrician checks the wiring before the box is first switched on.
     category: safety
-    tags: [electrical]
+    tags: [electrical, hazard:mains]
     safety: true
     priority: must
     verify: {kind: manual, note: "The electrician signs off after the first inspection."}

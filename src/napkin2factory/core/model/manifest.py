@@ -100,6 +100,7 @@ class Manifest(Model):
 
     ``region`` (W7) is the product's target region code for electrical and cost lookups.
     ``units`` (W8) sets display units for reports and the board (``metric`` or ``imperial``).
+    ``ceremony`` (W6) may raise the derived ceremony to ``standard``; it never lowers it.
     ``scope`` (F11) records, per domain, whether its work is ``in`` this product, done
     elsewhere (``external``) or ``later``.  A domain not listed is ``in`` when the product
     has content for it and absent otherwise; the field is optional and changes nothing
@@ -111,8 +112,19 @@ class Manifest(Model):
     product: ProductInfo
     region: str | None = None  # W7
     units: Literal["metric", "imperial"] = "metric"  # W8
+    ceremony: Literal["standard"] | None = None  # W6: raise-only
     manufacturer_profile: str | None = None
     scope: dict[Slug, ScopeEntry] = Field(default_factory=dict)
+
+    @field_validator("ceremony", mode="before")
+    @classmethod
+    def _raise_only(cls, v: object) -> object:
+        if v == "lite":
+            raise ValueError(
+                "ceremony can only be raised: write `ceremony: standard`, or leave the line "
+                "out and n2f works it out from the model (W6, S-205)"
+            )
+        return v
 
     @field_validator("region")
     @classmethod

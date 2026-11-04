@@ -6,3 +6,4 @@ requirements:
   allocation:
   - part://plate
   safety: true
+  tags: [hazard:sharp-edge]

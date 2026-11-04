@@ -92,14 +92,35 @@ def check(
         data = scoped_checks(product, scope)
     else:
         data = _ensure_checks(product)
+    from napkin2factory.core.ceremony import derive_ceremony, note_level
+
+    ceremony = derive_ceremony(product)  # W6: the level, and once when it rose since the last check
+    rose = note_level(product)
+    data = {**data, **ceremony.to_dict(), **({"ceremony_raised": rose} if rose else {})}
     if json_out or format == "json":
         emit_json(data)
     elif format == "md":
         typer.echo(render_md(data))
     else:
         render_table(data, product.operator.persona, all_rows)
+        print_ceremony(ceremony, rose)
     if data["summary"].get("fail", 0):
         raise CheckFailed(f"{data['summary']['fail']} check(s) failed")
+
+
+def print_ceremony(ceremony, rose: dict | None) -> None:  # type: ignore[no-untyped-def,type-arg]
+    """The ceremony in one line, and what a rise to `standard` now requires (W6, S-205)."""
+    if ceremony.level == "lite":
+        console.print("[dim]Ceremony: lite (an everyday product; n2f works the level out)[/dim]")
+        return
+    console.print(f"[bold]Ceremony: standard[/bold] — {escape('; '.join(ceremony.reasons))}")
+    if rose:
+        console.print(
+            "[yellow]This product was lite at the last check and is now standard.[/yellow] "
+            "It now needs:"
+        )
+        for item in rose["now_requires"]:
+            console.print(f"  [dim]•[/dim] {escape(item)}")
 
 
 def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ignore[type-arg]

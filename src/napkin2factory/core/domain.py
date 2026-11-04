@@ -300,11 +300,16 @@ class InterfaceKind:
 
 @dataclass(frozen=True)
 class Process:
-    """A manufacturing process (F6); ``declared`` false means "not decided yet" (``none``)."""
+    """A manufacturing process (F6); ``declared`` false means "not decided yet" (``none``).
+
+    ``default_tolerance_class`` is the ISO 2768 class a ``lite`` product's custom part gets
+    when it names none (W6, S-205); ``None``: the part must name one in every ceremony.
+    """
 
     id: str
     title: str
     declared: bool = True
+    default_tolerance_class: str | None = None
 
 
 #: The napkin-stage phases a screen may run in, in order (``concepts/screens/base.py`` says
@@ -442,6 +447,9 @@ class Domain:
     system package and each of its families already hashes its own folders, so its
     registrations add no ``domain:`` input to the rules that read them.  ``bom_lines`` is
     called by the ``bom`` rule to collect consumable lines for the parts list (S-188).
+    ``has_content(product)`` says whether the product holds anything of this domain (no hook:
+    never counts), and ``hazards(product)`` returns, in owner words, the hazardous energy the
+    domain finds in its content (no hook: none); both feed the derived ceremony (W6, S-205).
     """
 
     name: str
@@ -465,5 +473,7 @@ class Domain:
     context: tuple[ContextContribution, ...] = ()
     release_files: tuple[ReleaseFiles, ...] = ()
     bom_lines: Callable[[Any, Callable[[str], Any]], list[BomLine]] | None = None
+    has_content: Callable[[Product], bool] | None = None
+    hazards: Callable[[Product], list[str]] | None = None
     code: tuple[str, ...] = ()
     in_place: bool = False

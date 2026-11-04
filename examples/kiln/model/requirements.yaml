@@ -23,6 +23,7 @@ requirements:
     statement: Every surface a user can touch during operation (body guard, door guard and latch) stays below 60 degC at steady state with the chamber at 1200 degC.
     category: safety
     safety: true
+    tags: [hazard:high-temperature]
     priority: must
     verify: {kind: calc, target: calc://thermal.max_touch_temperature, op: "<", value: 60 degC}
     allocation: [part://guard-shell, part://door-guard, part://door-tray, param://fiber-thickness, param://guard-gap]
@@ -61,6 +62,7 @@ requirements:
     statement: The controller enclosure hangs on 40 mm standoffs outside the touch guard with its lid fitted, and its inside stays below 50 degC.
     category: safety
     safety: true
+    tags: [hazard:high-temperature, hazard:mains]
     priority: must
     verify: {kind: manual, note: "Check the box hangs on four 40 mm standoffs with the lid screwed on. After one hour with the chamber at 1200 degC, measure the air inside the box (probe through a gland, lid closed); it must read below 50 degC."}
     allocation: [asm://controls, part://controller-box, part://controller-lid, part://m6-standoff-40, param://controller-standoff, iface://controller-mount]
@@ -70,7 +72,7 @@ requirements:
     title: Dedicated circuit disclosed
     statement: The installation manual states that a dedicated 16 A circuit installed by a licensed electrician is required, and a rating label on the controller box says so.
     category: safety
-    tags: [electrical]
+    tags: [electrical, hazard:mains]
     safety: true
     priority: must
     verify: {kind: manual, note: "Read the installation manual's power section and the rating label riveted to the controller box front; both name the dedicated 16 A circuit and the licensed electrician."}
@@ -80,7 +82,7 @@ requirements:
     title: Door latch and door switch
     statement: The door has a positive latch that holds it closed against a 50 N pull, and a door switch drops the contactor (cutting element power) whenever the door is not closed.
     category: safety
-    tags: [electrical]
+    tags: [electrical, hazard:mains, hazard:high-temperature]
     safety: true
     priority: must
     verify: {kind: manual, note: "Pull the closed, latched door outward with 50 N (a luggage scale); it stays shut. With the controller calling for heat, open the door: the contactor must drop out (audible click, element voltage zero at the terminals, measured by the electrician) and stay out until the door is closed."}
@@ -158,7 +160,7 @@ requirements:
     title: Independent over-temperature cut-out
     statement: An independent limit controller on its own thermocouple opens a contactor in series with the solid-state relay when the chamber exceeds 1250 degC, and power stays off until the limit controller is reset by hand.
     category: safety
-    tags: [electrical]
+    tags: [electrical, hazard:high-temperature]
     safety: true
     priority: must
     verify: {kind: manual, note: "With the electrician: set the limit controller's trip point temporarily below the chamber temperature during a low firing (or warm its thermocouple with a heat gun); the contactor must drop out, the element voltage must fall to zero, and power must stay off after the temperature falls until the reset key is pressed. Restore the trip point afterwards and record it."}
@@ -169,7 +171,7 @@ requirements:
     title: Earth bonding
     statement: The inner shell, the guard, the door guard, the stand and the controller box are each bonded to protective earth with a resistance below 0.1 ohm to the earth terminal.
     category: safety
-    tags: [electrical]
+    tags: [electrical, hazard:mains]
     safety: true
     priority: must
     verify: {kind: manual, note: "The electrician measures with a low-resistance ohmmeter from the earth terminal in the controller box to bare metal at each earth stud (inner shell, guard, door guard, stand, controller box); each reading is below 0.1 ohm."}

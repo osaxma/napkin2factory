@@ -28,6 +28,7 @@ requirements:
     statement: All exposed sheet edges are deburred before powder coating.
     category: safety
     safety: true
+    tags: [hazard:sharp-edge]
     priority: must
     verify: {kind: manual, note: "Inspect every edge by hand after coating; sign off with n2f signoff REQ-004."}
     allocation: [part://base, part://lid, part://bracket]

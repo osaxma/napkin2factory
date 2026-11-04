@@ -17,6 +17,6 @@ requirements:
     statement: The harness bonds the frame to earth below 0.1 ohm.
     category: safety
     safety: true
-    tags: [wiring]
+    tags: [wiring, hazard:mains]
     allocation: [asm://controls]
     verify: {kind: manual, note: "Measure frame to earth terminal."}

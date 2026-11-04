@@ -231,6 +231,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-202 | Frame kit: rectangular, round and T-slot profiles, rail section, slotted tabs | in force |
 | S-203 | Four mechanical interface kinds through the mechanical domain (amends W5) | in force |
 | S-204 | The table benchmark spec: worked figures, Track A's mass limit and budget moved by the physics | in force |
+| S-205 | Ceremony derived from the model (W6) | in force |
 
 ---
 
@@ -1552,3 +1553,7 @@ mass limit is 70 kg, the budget 1600 USD, the top 30 mm (ECR-1 takes it to 32 mm
 50×50×1.5 tube, bolts M8×25. The re-derivation's findings were fixed before landing (ECR-1's
 margin, seven modelling choices now stated). The check also found four calc-pack defects
 (short columns, moisture constants, composite creep, no budget check), fixed in their own task.
+## S-205 — Ceremony derived from the model (W6) (2026-11-04)
+`derive_ceremony(product)` (`core/ceremony.py`) gives `standard` for a hazard a domain with content reports (`Domain.hazards`; the wiring: supply above 50 V AC / 120 V DC, the cited `entry-voltage` limits), content in more than one domain (`Domain.has_content`), a requirement tag `hazard:<kind>` the table `core/data/hazards.yaml` classes as raising (mains, high-temperature, moving-machinery, stored-energy; tip-over, sharp-edge, pinch, structural-failure, chemical-exposure do not), or `ceremony: standard` in `n2f.yaml` (raise-only; `lite` there is an error). Lint `L4-hazard-tag`: a `safety: true` requirement names a known hazard. `lite` relaxes only: `tolerance_class` from the process's `default_tolerance_class` (labelled "(default)" in the parts list and title block), one `build-and-care` page as the manual (`L18-manuals`), and no empty Sign-offs, Joints between units or Change requests sections; provenance, alignment and sign-offs never relax. `n2f check` and `--json` (`ceremony`, `ceremony_reasons`, `ceremony_raised`) name the level and, once, a rise since the last check (`build/.n2f/ceremony.json`).
+Existing safety requirements (kiln, enclosure, fixtures) gained tags; the kiln derives `standard`, the bracket and enclosure `lite`. Hazard rows are classifications only (no numbers) and `verify: true` against ISO 12100 Annex B, IEC 61140, ISO 14118/14120.
+Core files touched (planned, W10): `core/ceremony.py` (new), `core/data/hazards.yaml` (new), `core/domain.py` (two hooks, `Process.default_tolerance_class`), `core/registry.py`, `core/model/manifest.py`, `core/lint.py`, `core/graph/values.py` (`manifest://ceremony` read), `core/checks/engine.py` (one read). Not measured: a cold build of the kiln with the new reads.

@@ -18,6 +18,7 @@ from typing import Any
 import yaml
 
 from napkin2factory.catalog import CATALOG_DIR
+from napkin2factory.core.ceremony import default_tolerance, derive_ceremony
 from napkin2factory.core.loader import Product
 
 CACHE_TTL = 7 * 24 * 3600
@@ -74,6 +75,7 @@ def validate_bom(product: Product, build_dir: Path, offline: bool | None = None)
         json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.is_file() else {}
     )
     rows: dict[str, Any] = {}
+    ceremony = derive_ceremony(product)  # W6: lite accepts a process-default tolerance class
     for part in product.parts.values():
         row: dict[str, Any] = {
             "uri": part.uri,
@@ -93,7 +95,11 @@ def validate_bom(product: Product, build_dir: Path, offline: bool | None = None)
                 for k, ok in (
                     ("process", part.process != "none"),
                     ("material", part.material is not None),
-                    ("tolerance_class", part.tolerance_class is not None),
+                    (
+                        "tolerance_class",
+                        part.tolerance_class is not None
+                        or default_tolerance(product, part, ceremony) is not None,
+                    ),
                 )
                 if not ok
             ]

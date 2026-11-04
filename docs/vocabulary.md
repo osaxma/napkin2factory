@@ -138,3 +138,14 @@ the report badge and `n2f ecr close` all say it this way; `--json` carries it as
 `operator.yaml` `persona: owner | engineer` picks the words in the CLI and the report (the
 status table above). There is no toggle: the report has one layout for everyone, and its
 safety content is identical for both personas.
+
+## Ceremony words (W6, S-205)
+
+No version-control counterpart. The owner reads these in `n2f check`; the tags stay in the
+files and in `--json`.
+
+| say | meaning | field, where you meet it |
+|---|---|---|
+| **lite** / **standard** (the ceremony) | how much paperwork the product carries: an everyday product is lite; one with mains power, heat, moving or stored energy, or work in more than one field is standard. n2f works it out from the model; the owner can only raise it | `n2f check` ("Ceremony: standard — it runs on mains…"); `ceremony: standard` in `n2f.yaml` |
+| **a hazard it names** | the kind of harm a safety requirement guards against; a sign-off is needed either way, some kinds also make the product standard | `tags: [hazard:<kind>]` on a requirement; `core/data/hazards.yaml` |
+| **(default)** after a tolerance class | the class came from the part's process, not from the part's file; only on a lite product | the parts list, the drawing's title block |

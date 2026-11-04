@@ -10,6 +10,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from napkin2factory.core.ceremony import (
+    CEREMONY_KEY,
+    default_tolerance,
+    derive_ceremony,
+    tolerance_label,
+)
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import Part
 from napkin2factory.core.units import format_quantity, parse_quantity
@@ -62,8 +68,8 @@ def _props_mass(build_dir: Path | None, part: Part) -> tuple[float | None, str]:
     return float(data["mass"]), str(data.get("mass_source", "computed"))
 
 
-def manufacturer_column(part: Part, qty: int) -> str:
-    """The "what to tell the manufacturer" text for a row."""
+def manufacturer_column(part: Part, qty: int, tolerance: str | None = None) -> str:
+    """The "what to tell the manufacturer" text for a row (``tolerance``: a labelled default)."""
     if part.kind == "reference":
         return f"supplied by the owner / already exists: {part.name} ({qty}×); not quoted"
     if part.kind == "cots":
@@ -74,8 +80,8 @@ def manufacturer_column(part: Part, qty: int) -> str:
         bits.append(part.material.spec or part.material.name)
     if part.finish:
         bits.append(part.finish)
-    if part.tolerance_class:
-        bits.append(part.tolerance_class)
+    if tolerance or part.tolerance_class:
+        bits.append(tolerance or str(part.tolerance_class))
     bits.append(f"qty {qty}")
     if part.manufacturer_notes:
         bits.append(part.manufacturer_notes)
@@ -105,6 +111,7 @@ def build_lines(
 ) -> list[BomLine]:
     """Indented lines for one assembly, recursing into sub-assemblies."""
     asm = product.assemblies[asm_id]
+    ceremony = derive_ceremony(product)
     log.add(f"asm://{asm_id}#children")
     lines: list[BomLine] = []
     for child in asm.children:
@@ -126,6 +133,10 @@ def build_lines(
             ):
                 log.add(f"{part.uri}#{sel}")
             mass, mass_src = _props_mass(build_dir, part)
+            default_tol = default_tolerance(product, part, ceremony)
+            if default_tol:  # W6: the class comes from the process and the ceremony
+                log.add(CEREMONY_KEY)
+            tolerance = tolerance_label(part, default_tol)
             log.add(f"{part.uri}#geometry")
             if part.mass is None and part.has_geometry:
                 log.add(f"{part.uri}#props.mass")
@@ -141,7 +152,7 @@ def build_lines(
                     process=part.process,
                     material=(part.material.spec or part.material.name) if part.material else "",
                     finish=part.finish or "",
-                    tolerance_class=part.tolerance_class or "",
+                    tolerance_class=tolerance or "",
                     unit_cost=float(part.cost.unit.to("USD").magnitude) if part.cost else None,
                     cost_basis=part.cost.basis if part.cost else "",
                     lead_time_days=float(part.lead_time.to("day").magnitude)
@@ -151,7 +162,7 @@ def build_lines(
                     mass_source=mass_src,
                     source=f"{part.source.vendor} {part.source.mpn}" if part.source else "",
                     sourcing_status=sourcing_status(part),
-                    manufacturer=manufacturer_column(part, child.qty * multiplier),
+                    manufacturer=manufacturer_column(part, child.qty * multiplier, tolerance),
                     rev=part.rev,
                 )
             )
