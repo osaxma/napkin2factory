@@ -110,8 +110,6 @@ entry that closed them. Ids are never reused.
 | B-0195 | Real-world validation: build the table from its report, or a fabricator quote accepts its files | road-to-v1.0 §4.4; before the v1.0 tag |
 | B-0196 | Imperial units on drawings and exported files | v0.7 W8 non-goal |
 | B-0197 | A change request that removes a part, parameter or joint leaves the product unloadable; a sign-off citing the removed part becomes a validation error | trial 2 blocker 1 and C3 (S-208); fix in `ecr/lifecycle.py`, the impact names the files to delete |
-| B-0199 | Wiring checks apply the whole circuit's current to every conductor (a fan branch fails); a cable entry with `passes: []` fails its requirement though the docs say to leave it for later | trial 2 C9, C1 (S-208) |
-| B-0198 | `n2f discard` deletes a filed and approved change request and its patch (no snapshot after `ecr new`/`approve`) | trial 2 C2 (S-208) |
 | B-0200 | Docs and words from the trials: massing origin of `bracket_l`, `vent.size`, the frame profile, `{expr:}` refused in kit args, first kernel load time, Playwright in the tool environment, "Rejected alternatives" wording | trial 2 C5–C7, C10, C13, C15 (S-208) |
 | B-0201 | The impact report mispredicts re-sign-offs (6 listed, 3 needed; 5 listed, 7 needed) | trial 2 C4 (S-208) |
 | B-0202 | UK region: circuits on file but no conductor table | trial 2 C8 (S-208); W7 now fails loudly instead of guessing |
@@ -126,6 +124,7 @@ entry that closed them. Ids are never reused.
 | B-0198 | `n2f discard` deletes a filed and approved change request and its patch (no snapshot after `ecr new`/`approve`) | closed by S-212 |
 | B-0200 | Docs and words from the trials: massing origin of `bracket_l`, `vent.size`, the frame profile, `{expr:}` refused in kit args, first kernel load time, Playwright in the tool environment | Closed 2026-11-04 (S-213): massing origins per generator in pm.md/napkin.md/kit.md; vent.size and member.profile in kit.md; helper-parameter pattern for kit args; kernel load timing and Playwright install in agent guide |
 | B-0199 | Wiring checks apply the whole circuit's current to every conductor (a fan branch fails); a cable entry with `passes: []` fails its requirement though the docs say to leave it for later | closed by S-214 |
+| B-0198 | `n2f discard` deletes a filed and approved change request and its patch (no snapshot after `ecr new`/`approve`) | closed by S-212 |
 | B-0191 | A generic `structural` napkin screen (deflection, yield, buckling, tip-over) | closed by S-206 |
 | B-0188 | Structural calc pack: members and joints, wood, fatigue, cited load cases | closed by S-201 (members in S-198) |
 | B-0192 | Ceremony derived from the model (`lite`/`standard`, raise-only), hazard tags on safety requirements | Closed 2026-11-04 (S-205): `core/ceremony.py` derives the level; hazard tags on safety requirements (lint `L4-hazard-tag`); `lite` relaxations for tolerance classes, manuals and empty report sections; `n2f check` names the ceremony and a rise |
