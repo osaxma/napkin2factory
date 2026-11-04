@@ -1,0 +1,49 @@
+# Dimensional change coefficients for wood species across relative humidity changes.
+# Dimensional change formula (USDA Wood Handbook, Ch. 13 & Ch. 4):
+#   Delta_W = W_0 * C * Delta_M
+# where C is tangential_coeff or radial_coeff per 1% change in moisture content below FSP (30%),
+# and Delta_M is change in moisture content (percentage points) calculated from relative humidity.
+# Every row is [verify] in DECISIONS.md.
+table: wood_movement
+rows:
+  - species: white-oak
+    tangential_coeff: 0.00365
+    radial_coeff: 0.00180
+    verify: true
+    source: "USDA Forest Products Laboratory Wood Handbook (FPL-GTR-190, 2010), Chapter 4, Table 4-4: Dimensional change coefficients for domestic woods (Quercus alba)"
+
+  - species: hard-maple
+    tangential_coeff: 0.00353
+    radial_coeff: 0.00165
+    verify: true
+    source: "USDA Forest Products Laboratory Wood Handbook (FPL-GTR-190, 2010), Chapter 4, Table 4-4: Dimensional change coefficients for domestic woods (Acer saccharum)"
+
+  - species: walnut
+    tangential_coeff: 0.00274
+    radial_coeff: 0.00190
+    verify: true
+    source: "USDA Forest Products Laboratory Wood Handbook (FPL-GTR-190, 2010), Chapter 4, Table 4-4: Dimensional change coefficients for domestic woods (Juglans nigra)"
+
+  - species: southern-yellow-pine
+    tangential_coeff: 0.00263
+    radial_coeff: 0.00171
+    verify: true
+    source: "USDA Forest Products Laboratory Wood Handbook (FPL-GTR-190, 2010), Chapter 4, Table 4-4: Dimensional change coefficients for domestic woods (Pinus palustris)"
+
+  - species: douglas-fir
+    tangential_coeff: 0.00267
+    radial_coeff: 0.00149
+    verify: true
+    source: "USDA Forest Products Laboratory Wood Handbook (FPL-GTR-190, 2010), Chapter 4, Table 4-4: Dimensional change coefficients for domestic woods (Pseudotsuga menziesii)"
+
+  - species: baltic-birch-plywood
+    tangential_coeff: 0.00015
+    radial_coeff: 0.00015
+    verify: true
+    source: "APA - The Engineered Wood Association & USDA Wood Handbook Ch. 12: In-plane dimensional stability of cross-laminated birch plywood panels"
+
+  - species: mdf
+    tangential_coeff: 0.00050
+    radial_coeff: 0.00050
+    verify: true
+    source: "Composite Panel Association (CPA) Technical Bulletin & USDA Wood Handbook Ch. 12: In-plane linear expansion coefficient for standard medium density fiberboard"

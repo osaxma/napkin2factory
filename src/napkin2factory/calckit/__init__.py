@@ -19,11 +19,12 @@ calcs), so both fidelities share one source. Tables live under
 
 from __future__ import annotations
 
-from napkin2factory.calckit import mass_cost, power, structural, thermal_enclosure
+from napkin2factory.calckit import joints, mass_cost, power, structural, thermal_enclosure
 from napkin2factory.calckit._tables import TableError, load_table, table_names
 
 __all__ = [
     "TableError",
+    "joints",
     "load_table",
     "mass_cost",
     "power",

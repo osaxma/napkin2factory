@@ -1,0 +1,78 @@
+# Default factors of safety per check and load kind (calckit.joints.factor_of_safety).
+# Structural load cases: static, sustained, cyclic, and human-applied edge load.
+# Each row cites a published structural standard or design manual (AISC 360, Shigley,
+# Eurocode, NDS, ANSI/BIFMA). A product requirement may tighten a factor, never loosen it (W1).
+# Every row is [verify] in DECISIONS.md.
+table: load_cases
+rows:
+  - {check: yield, load_kind: static, factor: 1.5, verify: true,
+     source: "AISC 360-16 Specification for Structural Steel Buildings / Shigley 11th ed. Table 1-5: static yield safety factor for ductile materials"}
+  - {check: yield, load_kind: sustained, factor: 2.0, verify: true,
+     source: "Eurocode 0 (EN 1990) / AISC 360-16 Section B3: sustained dead + live load combination safety factor"}
+  - {check: yield, load_kind: cyclic, factor: 2.0, verify: true,
+     source: "Shigley Mechanical Engineering Design 11th ed. Section 1-10: design safety factor under fluctuating/cyclic fatigue load"}
+  - {check: yield, load_kind: edge_load, factor: 2.5, verify: true,
+     source: "ANSI/BIFMA X5.5 Desk and Table Products Section 4 / OSHA 1910: proof edge loading for human interaction and impact"}
+
+  - {check: buckling, load_kind: static, factor: 2.0, verify: true,
+     source: "AISC 360-16 Chapter E: nominal safety factor on Euler critical column buckling load Omega_c = 1.67 to 2.0"}
+  - {check: buckling, load_kind: sustained, factor: 2.5, verify: true,
+     source: "Eurocode 3 (EN 1993-1-1) Section 6.3: column stability under sustained dead and gravity loads"}
+  - {check: buckling, load_kind: cyclic, factor: 3.0, verify: true,
+     source: "AISC / Shigley: column buckling safety factor under dynamic/cyclic loading to prevent fatigue-induced lateral instability"}
+  - {check: buckling, load_kind: edge_load, factor: 2.5, verify: true,
+     source: "AISC 360-16 / ANSI/BIFMA X5.5: column strut safety against human-applied eccentric edge load"}
+
+  - {check: tip_over, load_kind: static, factor: 1.5, verify: true,
+     source: "ANSI/BIFMA X5.5-2021 Section 4.3: ratio of restoring moment to overturning moment under static eccentric load"}
+  - {check: tip_over, load_kind: sustained, factor: 1.75, verify: true,
+     source: "UL 962 / ANSI/BIFMA X5.5: sustained eccentric load stability margin"}
+  - {check: tip_over, load_kind: cyclic, factor: 2.0, verify: true,
+     source: "ANSI/BIFMA X5.5: dynamic / cyclic edge disturbance margin against tipping"}
+  - {check: tip_over, load_kind: edge_load, factor: 2.0, verify: true,
+     source: "ANSI/BIFMA X5.5-2021 Section 4.3: overturning safety factor under 490 N human edge load"}
+
+  - {check: pullout, load_kind: static, factor: 2.0, verify: true,
+     source: "ANSI/AWC NDS-2018 National Design Specification for Wood Construction Section 12.2 / catalogue pull-out design factor"}
+  - {check: pullout, load_kind: sustained, factor: 2.5, verify: true,
+     source: "ANSI/AWC NDS-2018 Table 2.3.2: load duration factor derating for permanent sustained loads"}
+  - {check: pullout, load_kind: cyclic, factor: 3.0, verify: true,
+     source: "AWI Quality Standards / NDS: cyclic withdrawal and fastener loosening prevention factor"}
+  - {check: pullout, load_kind: edge_load, factor: 2.5, verify: true,
+     source: "ANSI/BIFMA X5.5: fastener retention under human edge pull/pry load"}
+
+  - {check: fastener_shear, load_kind: static, factor: 1.67, verify: true,
+     source: "AISC 360-16 Table J3.2: safety factor for bolt shear under static load"}
+  - {check: fastener_shear, load_kind: sustained, factor: 2.0, verify: true,
+     source: "AISC 360-16 / Eurocode 3: long-term shear load on mechanical fasteners"}
+  - {check: fastener_shear, load_kind: cyclic, factor: 2.5, verify: true,
+     source: "Shigley Mechanical Engineering Design 11th ed. Section 8-5: bolted joints in shear fatigue"}
+  - {check: fastener_shear, load_kind: edge_load, factor: 2.0, verify: true,
+     source: "AISC 360-16 / ANSI/BIFMA X5.5: bracket and bolt group shear under human-applied load"}
+
+  - {check: fatigue, load_kind: static, factor: 1.0, verify: true,
+     source: "Shigley Mechanical Engineering Design 11th ed. Section 6-11: baseline static endurance ratio"}
+  - {check: fatigue, load_kind: sustained, factor: 1.2, verify: true,
+     source: "Shigley Mechanical Engineering Design 11th ed. Section 6-11: mean stress Goodman correction factor"}
+  - {check: fatigue, load_kind: cyclic, factor: 1.5, verify: true,
+     source: "Shigley Mechanical Engineering Design 11th ed. Section 6-11: Goodman fatigue margin design factor"}
+  - {check: fatigue, load_kind: edge_load, factor: 1.5, verify: true,
+     source: "ANSI/BIFMA X5.5 / Shigley: cyclic human contact load fatigue margin"}
+
+  - {check: deflection, load_kind: static, factor: 1.0, verify: true,
+     source: "AISC 360-16 / IBC Table 1604.3: deflection limit serviceability ratio"}
+  - {check: deflection, load_kind: sustained, factor: 1.5, verify: true,
+     source: "USDA Wood Handbook / Eurocode 5: creep deflection multiplier for sustained load"}
+  - {check: deflection, load_kind: cyclic, factor: 1.25, verify: true,
+     source: "Machine design serviceability under dynamic deflection"}
+  - {check: deflection, load_kind: edge_load, factor: 1.0, verify: true,
+     source: "ANSI/BIFMA X5.5 serviceability limit under human edge load"}
+
+  - {check: racking, load_kind: static, factor: 1.5, verify: true,
+     source: "Eurocode 3 / ANSI/BIFMA: portal frame sway serviceability margin"}
+  - {check: racking, load_kind: sustained, factor: 2.0, verify: true,
+     source: "Long-term frame drift margin under sustained lateral force"}
+  - {check: racking, load_kind: cyclic, factor: 2.0, verify: true,
+     source: "Dynamic sway and cycle loosening margin"}
+  - {check: racking, load_kind: edge_load, factor: 2.0, verify: true,
+     source: "ANSI/BIFMA X5.5 Section 7: racking stability under lateral user push"}

@@ -227,6 +227,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-198 | Structural calc pack: members | in force |
 | S-199 | One materials table, everyday materials, dated regional cost bands | in force |
 | S-200 | Product region and display units field | in force |
+| S-201 | Structural calc pack: joints, wood, fatigue, load cases | in force |
 
 ---
 
@@ -1507,3 +1508,13 @@ policy rule 1. The electrical supply's region defaults to the manifest's when om
 (`conductors`, `colour`, `earthing`) take region and fail loudly naming the table and its known
 regions when a region has no rows, never falling back silently. Products with no region anywhere
 retain legacy behaviour. Backlog row B-0193 remains open for report display unit integration.
+## S-201 — Structural calc pack: joints, wood, fatigue, load cases (2026-11-04)
+W1 / M1b: `calckit/joints.py` adds pure-function pint structural mechanics for joint and fastening
+limits before members fail. NDS-2018 Section 12.2 wood/lag screw withdrawal; threaded insert pull-out
+with safety factor from RAMPA catalogue rows [verify]; welded and bolted corner moment capacity before
+yield (Shigley Section 8-5); unbraced portal frame racking sway with rigid/semi-rigid corners (Roark
+Table 8.2); wood creep sag (Eurocode 5 Table 3.2 / USDA Wood Handbook Ch. 5); across-grain wood movement
+from `calckit/data/wood_movement.yaml` (USDA Wood Handbook Table 4-4 [verify]); fatigue safety margin via
+Modified Goodman (Shigley Ch. 6, failing loudly when non-ferrous materials omit S-N strength); load-case
+table `calckit/data/load_cases.yaml` [verify] with `factor_of_safety` enforcing tightening-only (W1).
+Tests in `tests/unit/test_joint_calcs.py` (33 passed, mypy clean).
