@@ -1,0 +1,8 @@
+id: controller
+part: part://controller
+role: control
+rating: {voltage: 24 V, current: 5 A}
+terminals: ["+24V", GND, DRV_PWR, "MOT+", "MOT-", LIMIT_UP, LIMIT_DN, ESTOP_MON, DOOR_MON, "LC_EXC+", "LC_EXC-", "LC_SIG+", "LC_SIG-"]
+through: [[DRV_PWR, "MOT+"], [GND, "MOT-"]]
+class: III
+notes: Stepper drive, load-cell amplifier and inputs. The drive's power comes in at DRV_PWR through the E-stop and the guard interlock; the logic supply stays on, so the controller can read the stop.

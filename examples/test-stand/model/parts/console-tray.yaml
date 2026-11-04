@@ -1,0 +1,15 @@
+id: console-tray
+rev: A
+name: Console tray
+kind: custom
+role: body
+process: sheet-metal
+material: {name: aluminum-5052-h32, spec: "2 mm 5052-H32 sheet"}
+finish: powder coat
+tolerance_class: ISO2768-m
+geometry: {kit: enclosure, args: {length: param://console-width, width: param://console-depth, height: param://console-height, thickness: param://sheet-thickness, cutouts: [{face: base, center: [-150 mm, -120 mm], width: 6.6 mm, height: 6.6 mm, corner_radius: 3.3 mm, label: bench-anchor-1}, {face: base, center: [150 mm, -120 mm], width: 6.6 mm, height: 6.6 mm, corner_radius: 3.3 mm, label: bench-anchor-2}, {face: base, center: [-150 mm, 120 mm], width: 6.6 mm, height: 6.6 mm, corner_radius: 3.3 mm, label: bench-anchor-3}, {face: base, center: [150 mm, 120 mm], width: 6.6 mm, height: 6.6 mm, corner_radius: 3.3 mm, label: bench-anchor-4}]}}
+cost: {unit: 59.5 USD, basis: estimate, note: "mid-point of the sheet-metal band (8.0-67.6 USD per kg, cost_bands.yaml, US, 2026-10) x 1.574 kg [verify]; a quote replaces it"}
+lead_time: 10 d
+interfaces: []
+satisfies: [req://REQ-006, req://REQ-007, req://REQ-015, req://REQ-019]
+manufacturer_notes: Folded 2 mm 5052-H32 tray, 380 x 350 x 110 mm. Four 6.6 mm holes in the floor for the M6 bench-anchor bolts, and an M6 earth stud. The bench-anchor holes sit 150 mm to each side and 120 mm to the front and back of the centre.

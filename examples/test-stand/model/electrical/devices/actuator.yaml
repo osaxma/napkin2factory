@@ -1,0 +1,8 @@
+id: actuator
+part: part://actuator
+role: load
+rating: {voltage: 24 V, current: 4 A}
+terminals: ["PWR+", "PWR-", PE]
+class: I
+inductive: true
+notes: Motorized ball-screw linear actuator with stepper motor.

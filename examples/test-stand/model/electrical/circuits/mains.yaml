@@ -1,0 +1,8 @@
+id: mains
+purpose: power
+name: Mains supply
+protection: device://inlet
+connections:
+  - {from: "device://inlet#L-out", to: "device://psu#L", conductor: awg18-mtw, length: 0.3 m, colour: black}
+  - {from: "device://inlet#N-out", to: "device://psu#N", conductor: awg18-mtw, length: 0.3 m, colour: white}
+notes: 120 V AC 60 Hz from the inlet to the power supply, 18 AWG MTW; protected by the T2.5 A fuse in the inlet.

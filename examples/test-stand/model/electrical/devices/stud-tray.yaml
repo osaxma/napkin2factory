@@ -1,0 +1,6 @@
+id: stud-tray
+part: part://console-tray
+instance: earth stud
+role: earth
+terminals: [PE]
+notes: M6 protective earth bonding stud in console tray.

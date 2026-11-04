@@ -1,0 +1,12 @@
+id: load-cell
+rev: A
+name: S-beam load cell, 2 kN
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 30 mm, width: 20 mm, height: param://load-cell-height}}
+source: {vendor: "AutomationDirect catalogue (example supplier)", mpn: "S-beam load cell, 2 kN, 4-wire, shielded cable", url: "https://www.automationdirect.com/", verified: false, note: "the kind of part, not a chosen one; a person picks the catalogue part"}
+cost: {unit: 77.5 USD, basis: estimate, note: "mid-point of the cots-controls band (35-120 USD per item, cost_bands.yaml, US, 2026-10) [verify]; a quote replaces it"}
+mass: 0.350 kg
+lead_time: 14 d
+satisfies: [req://REQ-002]
+notes: 65 mm tall [verify]; the 30 x 20 mm footprint is a stand-in for the picture.

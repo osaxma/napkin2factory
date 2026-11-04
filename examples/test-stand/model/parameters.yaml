@@ -1,0 +1,76 @@
+# Parameters for the 2 kN motorized compression test stand (Tier 2).
+# Every value is the spec's (SPEC.md section 1, the stack of 3.2, the inputs of 4.1); the
+# materials' stiffness and yield strength are read from the shared materials table by the
+# calcs, not repeated here. [verify] marks what a person must still confirm.
+parameters:
+  # --- the owner's limits (SPEC section 1) ---
+  rated-load: {value: 2000, unit: N, description: "Rated compressive load", owner: intake}
+  test-cycles: {value: 1000000, description: "Test cycles over the life (200 a day, 250 days a year, 20 years)", owner: spec}
+  max-deflection: {value: 0.20, unit: mm, description: "Most the frame may deflect at the load axis", owner: intake}
+  daylight-min: {value: 250, unit: mm, description: "Least daylight between the platens with the rod retracted", owner: intake}
+  clear-width-min: {value: 200, unit: mm, description: "Least clear width between frame members at the load axis", owner: spec}
+  stroke: {value: 200, unit: mm, description: "Actuator stroke", owner: spec}
+  bench-width-limit: {value: 400, unit: mm, description: "Widest bench footprint", owner: intake}
+  bench-depth-limit: {value: 350, unit: mm, description: "Deepest bench footprint", owner: intake}
+
+  # --- the vertical stack (SPEC section 3.2) ---
+  foot-height: {value: 10, unit: mm, description: "Rubber foot height", owner: spec}
+  foot-diameter: {value: 20, unit: mm, description: "Rubber foot diameter", owner: spec}
+  foot-inset: {value: 10, unit: mm, description: "Foot centre in from each console edge", owner: spec}
+  console-width: {value: 380, unit: mm, description: "Console tray width", owner: spec}
+  console-depth: {value: 350, unit: mm, description: "Console tray depth", owner: spec}
+  console-height: {value: 110, unit: mm, description: "Console tray height", owner: spec}
+  sheet-thickness: {value: 2, unit: mm, description: "Console sheet-metal thickness", owner: spec}
+  beam-length: {value: 340, unit: mm, description: "Crosshead and base beam cut length", owner: spec}
+  beam-height: {value: 60, unit: mm, description: "Beam section height", owner: spec}
+  beam-width: {value: 40, unit: mm, description: "Beam section width", owner: spec}
+  beam-wall: {value: 5, unit: mm, description: "Beam section wall", owner: spec}
+  column-size: {value: 40, unit: mm, description: "Column section outer side", owner: spec}
+  column-wall: {value: 3, unit: mm, description: "Column section wall", owner: spec}
+  column-length: {value: 760, unit: mm, description: "Column length, beam face to beam face", owner: spec}
+  span: {value: 300, unit: mm, description: "Distance between the column centre lines", owner: spec}
+  lower-platen-width: {value: 100, unit: mm, description: "Lower platen width and depth", owner: spec}
+  lower-platen-thickness: {value: 15, unit: mm, description: "Lower platen thickness", owner: spec}
+  upper-platen-width: {value: 80, unit: mm, description: "Upper platen width and depth", owner: spec}
+  upper-platen-thickness: {value: 10, unit: mm, description: "Upper platen thickness", owner: spec}
+  load-cell-height: {value: 65, unit: mm, description: "Load cell height [verify against the catalogue part]", owner: spec}
+  adapter-height: {value: 20, unit: mm, description: "Rod-end adapter height", owner: spec}
+  actuator-length: {value: 400, unit: mm, description: "Actuator length with the rod retracted, allowance for a 200 mm stroke [verify]", owner: spec}
+  base-z: {expr: "foot-height + console-height + sheet-thickness", unit: mm, description: Underside of the base beam above the bench}
+  column-x: {expr: "span / 2", unit: mm, description: Column centre line from the load axis}
+  crosshead-z: {expr: "base-z + beam-height + column-length", unit: mm, description: Underside of the crosshead above the bench}
+  lower-platen-top-z: {expr: "base-z + beam-height + lower-platen-thickness", unit: mm, description: Top of the lower platen above the bench}
+
+  # --- the guard (SPEC section 3.3) ---
+  guard-thickness: {value: 5, unit: mm, description: "Polycarbonate shield thickness", owner: spec}
+  guard-height: {value: 400, unit: mm, description: "Guard height", owner: spec}
+  guard-width: {value: 350, unit: mm, description: "Guard back and door width", owner: spec}
+  guard-depth: {value: 160, unit: mm, description: "Guard side depth (the shroud spans y = -80 to +80 mm)", owner: spec}
+
+  # --- the supply and the power supply unit (SPEC section 4.3) ---
+  mains-voltage: {value: 120, unit: V, description: "Supply voltage", owner: intake}
+  mains-frequency: {value: 60, unit: Hz, description: "Supply frequency", owner: intake}
+  psu-power: {value: 150, unit: W, description: "Power supply output at full load", owner: spec}
+  psu-voltage: {value: 24, unit: V, description: "DC bus voltage", owner: spec}
+  psu-efficiency: {value: 0.88, description: "Power supply efficiency at full load [verify datasheet]", owner: spec}
+  psu-power-factor: {value: 0.95, description: "Power factor of a power supply with active correction [verify datasheet]", owner: spec}
+  motor-power: {value: 96, unit: W, description: "Actuator motor power on the 24 V branch", owner: spec}
+  fuse-rating: {value: 2.5, unit: A, description: "Inlet fuse rating (time-delay T2.5 A)", owner: spec}
+  fuse-margin: {value: 1.25, description: "Fuse least size over the input current", owner: spec}
+  conductor-limit: {value: 7, unit: A, description: "Current limit of the 18 AWG internal conductor (conductors.yaml row awg18-mtw)", owner: spec}
+  thrust: {value: 3000, unit: N, description: "Chosen actuator rated thrust", owner: spec}
+  load-cell-capacity: {value: 2000, unit: N, description: "Chosen load cell rated capacity", owner: spec}
+
+  # --- the fatigue inputs (SPEC section 4.1; ASM Handbook Vol 2 / MatWeb, Shigley Table 8-17) [verify] ---
+  beam-sut: {value: 186, unit: MPa, description: "Tensile strength of 6063-T5 (S_ut)", owner: spec}
+  beam-sf: {value: 68.9, unit: MPa, description: "Fatigue strength of 6063-T5 at 5e8 cycles, used at 1e6 (S_f), conservative", owner: spec}
+  bolt-sut: {value: 800, unit: MPa, description: "Tensile strength of an M8 class 8.8 bolt (ISO 898-1)", owner: spec}
+  bolt-sp: {value: 580, unit: MPa, description: "Proof strength of an M8 class 8.8 bolt (ISO 898-1)", owner: spec}
+  bolt-se: {value: 129, unit: MPa, description: "Endurance limit of a rolled-thread bolt (Shigley Table 8-17)", owner: spec}
+  bolt-area: {value: 36.6, unit: mm**2, description: "Tensile stress area of an M8 bolt (ISO 898-1)", owner: spec}
+  bolts-per-joint: {value: 2, description: "Bolts in each column-end joint", owner: spec}
+
+  # --- the tip-over check (SPEC section 4.3; IEC 61010-1 section 7.3 [verify clause]) ---
+  tilt: {value: 10, unit: degree, description: "Tilt the stand must survive without overbalancing", owner: spec}
+  tip-half-width: {value: 165, unit: mm, description: "Tipping edge from the console centre, front and back (foot centres)", owner: spec}
+  tip-half-length: {value: 180, unit: mm, description: "Tipping edge from the console centre, left and right (foot centres)", owner: spec}

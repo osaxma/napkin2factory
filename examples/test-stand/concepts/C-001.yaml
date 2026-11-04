@@ -1,0 +1,70 @@
+# Concept card C-001 of the 2 kN test stand: Single-column C-frame. Every dimension is the spec's (SPEC.md
+# sections 3.1 and 3.2); the loads, the budget and the limits are section 1.
+id: C-001
+title: Single-column C-frame
+status: rejected
+refs: []
+layout: {frame: c-frame}
+envelope: {}
+site:
+  width: 400 mm
+  depth: 350 mm
+  budget: 2400 USD
+  mass_limit: 25 kg
+  lift_class: one-person
+  point_load: 2000 N
+  max_deflection: 0.20 mm
+  cycles: 1000000
+style: {}
+modules: {}
+massing:
+  - {kit: enclosure, as: console-tray, material: aluminum-5052-h32, process_class: sheet-metal, args: {length: 380 mm, width: 350 mm, height: 110 mm, thickness: 2 mm}, at: {z: 10 mm}}
+  - {kit: plate, as: console-lid, material: aluminum-5052-h32, process_class: sheet-metal, args: {width: 380 mm, depth: 350 mm, thickness: 2 mm}, at: {z: 120 mm}}
+  - {kit: tube, as: column, material: aluminum-6063-t5, process_class: welding, args: {shape: square, size: 60 mm, wall: 4 mm, length: 880 mm}, at: {y: -145 mm, z: 122 mm}}
+  - {kit: tube, as: upper-arm, material: aluminum-6063-t5, process_class: welding, args: {shape: square, size: 60 mm, wall: 4 mm, length: 190 mm, axis: y}, at: {y: -155 mm, z: 972 mm}}
+  - {kit: tube, as: lower-arm, material: aluminum-6063-t5, process_class: welding, args: {shape: square, size: 60 mm, wall: 4 mm, length: 190 mm, axis: y}, at: {y: -155 mm, z: 152 mm}}
+  - {kit: plate, as: lower-platen, material: mild steel, process_class: machining, args: {width: 100 mm, depth: 100 mm, thickness: 15 mm}, at: {y: 35 mm, z: 182 mm}}
+  - {kit: plate, as: upper-platen, material: mild steel, process_class: machining, args: {width: 80 mm, depth: 80 mm, thickness: 10 mm}, at: {y: 35 mm, z: 447 mm}}
+  - {kit: block, as: guard-back, material: polycarbonate, process_class: cnc-routing, args: {length: 350 mm, width: 5 mm, height: 400 mm}, at: {y: -42.5 mm, z: 182 mm}}
+  - {kit: block, as: guard-side-left, material: polycarbonate, process_class: cnc-routing, args: {length: 5 mm, width: 160 mm, height: 400 mm}, at: {x: -172.5 mm, y: 35 mm, z: 182 mm}}
+  - {kit: block, as: guard-side-right, material: polycarbonate, process_class: cnc-routing, args: {length: 5 mm, width: 160 mm, height: 400 mm}, at: {x: 172.5 mm, y: 35 mm, z: 182 mm}}
+  - {kit: block, as: guard-door, material: polycarbonate, process_class: cnc-routing, args: {length: 350 mm, width: 5 mm, height: 400 mm}, at: {y: 117.5 mm, z: 182 mm}}
+notes: >-
+  One column at the back (its back face flush with the console), 180 mm behind the load axis (a 150 mm throat plus half the 60 mm column), with an arm over and an arm under the load axis, welded. The column is 880 mm long, the arms 190 mm. Spec section 3.1 and 4.4: the column turns under the moment F x a and the frame sags 1.90 mm against 0.20 mm.
+screening:
+  given:
+    budget: {value: 2400 USD, label: given, source: on the card, ref: site.budget}
+    point_load: {value: 2000 N, label: given, source: on the card, ref: site.point_load}
+  computed:
+    width: {value: 380 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (x)}
+    depth: {value: 350 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (y)}
+    height: {value: 992 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (z)}
+    volume: {value: 7.64 L, label: computed, source: the space the rough shapes fill, ref: sum of the massing silhouettes}
+    mass: {value: 9.44 kg, label: computed, source: from the rough shapes and their materials, ref: silhouette volume × density per call; frames and tubes by member section × cut length (geometry/materials.py)}
+    deflection: {value: 1.82 mm, label: computed, source: computed from the card and the massing, ref: "FL_a^3 / (3*E*I_a) + FL_a^2*H / (E*I_c) for an arm reaching 180 mm from the column's centre line, 850 mm above its foot; Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Cases 1a & 3a (Track A §3.1); aluminum-6063-t5 in calckit/data/materials.yaml [verify]"}
+    yield_factor: {value: '6.32', label: computed, source: computed from the card and the massing, ref: "M = F·reach; σ = M / Z, FS = σ_y / σ; Roark's Formulas for Stress and Strain, 7th ed., Chapter 8, Section 8.1; aluminum-6063-t5 in calckit/data/materials.yaml [verify]"}
+    buckling_factor: {value: '42.4', label: computed, source: computed from the card and the massing, ref: "Johnson (P_cr = A * (S_y - (S_y * KL/r / (2*pi))^2 / E)); slenderness 80.6, K 2.1 (fixed-free); Johnson parabola: Shigley's Mechanical Engineering Design, 11th ed., §4-12 (intermediate columns); AISC 360 Commentary Table C-A-7.1 for K; aluminum-6063-t5 in calckit/data/materials.yaml [verify]"}
+  estimates:
+    total_mass: {value: 16.1 kg, label: estimate, source: the rough shapes plus the bought-in parts (an allowance each), ref: 'massing mass + SPEC.md 4.6 [verify]'}
+    cost_low: {value: 460 USD, label: estimate, source: 'rough cost of the console (2 pieces), column, upper (3 pieces), lower (3 pieces), actuator, load cell, power supply, controller, E stop, mains inlet and guard interlock from cost bands per process; the guard (4 pieces) is not counted; to be checked; with the guard-back, guard-side-left, guard-side-right, guard-door priced here per metre or per square metre', ref: 'mass_cost.cost_estimate [verify]'}
+    cost_high: {value: 1558 USD, label: estimate, source: 'rough cost of the console (2 pieces), column, upper (3 pieces), lower (3 pieces), actuator, load cell, power supply, controller, E stop, mains inlet and guard interlock from cost bands per process; the guard (4 pieces) is not counted; to be checked; with the guard-back, guard-side-left, guard-side-right, guard-door priced here per metre or per square metre', ref: 'mass_cost.cost_estimate [verify]'}
+    lift_class: {value: one-person, label: estimate, source: from the mass and the lifting limits; to be checked, ref: 'mass_cost.lift_class (HSE guideline weights) [verify]'}
+  rules:
+    - {id: fits-site-width, title: Fits the space width, severity: fail, status: pass, message: 380 mm wide fits the 400 mm space, relies_on: [computed]}
+    - {id: fits-site-depth, title: Fits the space depth, severity: fail, status: pass, message: 350 mm deep fits the 350 mm space, relies_on: [computed]}
+    - {id: fits-site-height, title: Fits the space height, severity: fail, status: skip, message: no space height on the card, relies_on: []}
+    - {id: mass-vs-lift-class, title: How it can be lifted and moved, severity: warn, status: pass, message: 'about 16 kg: a one-person lift', relies_on: [estimate]}
+    - {id: blank-vs-stock-sheet, title: Every sheet fits a stock size, severity: fail, status: pass, message: every sheet-metal blank fits a stock sheet (console-tray 600 × 570 mm on 1000 x 2000 mm; console-lid 380 × 350 mm on 1000 x 2000 mm; lower-platen 100 × 100 mm on 1000 x 2000 mm; upper-platen 80 × 80 mm on 1000 x 2000 mm), relies_on: [computed]}
+    - {id: walls-fit-envelope, title: The walls fit inside the body, severity: fail, status: skip, message: no inner size and wall thickness from a screen, relies_on: []}
+    - {id: cost-vs-budget, title: Within the budget, severity: fail, status: pass, message: 'the cost, 446 USD to 1509 USD, is within the 2400 USD budget', relies_on: [given, estimate]}
+    - {id: cost-vs-budget-complete, title: 'Within the budget, counting the frame and the guard', severity: fail, status: pass, message: 'the cost, 460 USD to 1558 USD, is within the 2400 USD budget', relies_on: [given, estimate]}
+    - {id: mass-limit, title: Total mass within the limit, severity: fail, status: pass, message: 'total mass 16.1 kg (estimate), within the 25 kg limit on the card', relies_on: [given, estimate]}
+    - {id: structural-deflection, title: Sag stays within the limit, severity: fail, status: fail, message: "the arm's tip deflects 1.82 mm (computed), beyond the 0.2 mm limit on the card (limit ÷ sag is 0.11, 1.25 needed, cyclic case) — FL_a^3 / (3*E*I_a) + FL_a^2*H / (E*I_c) for an arm reaching 180 mm from the column's centre line, 850 mm above its foot; Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Cases 1a & 3a (Track A §3.1); aluminum-6063-t5 in calckit/data/materials.yaml [verify]", relies_on: [computed]}
+    - {id: structural-yield, title: Stress stays under yield, severity: fail, status: pass, message: "the column carries 22.9 MPa of bending stress (360 N·m): factor 6.32 (computed), at least the 2 needed (cyclic case) — M = F·reach; σ = M / Z, FS = σ_y / σ; Roark's Formulas for Stress and Strain, 7th ed., Chapter 8, Section 8.1; aluminum-6063-t5 in calckit/data/materials.yaml [verify]", relies_on: [computed]}
+    - {id: structural-buckling, title: Legs or column do not buckle, severity: fail, status: pass, message: "the column under 2000 N over 880 mm: factor 42.4 (computed), at least the 3 needed (cyclic case) — Johnson (P_cr = A * (S_y - (S_y * KL/r / (2*pi))^2 / E)); slenderness 80.6, K 2.1 (fixed-free); Johnson parabola: Shigley's Mechanical Engineering Design, 11th ed., §4-12 (intermediate columns); AISC 360 Commentary Table C-A-7.1 for K; aluminum-6063-t5 in calckit/data/materials.yaml [verify]", relies_on: [computed]}
+  verdict: red
+  at: '2026-11-04T18:11:23'
+  notes:
+    - the cost row above counts what the package prices, per kilogram and per item; the cost band and the budget row below also count the guard-back, guard-side-left, guard-side-right, guard-door, priced here per metre or per square metre (the package's cost screen does not yet do that)
+    - the card gives a cycle count, so the cyclic safety factors apply; the endurance check itself is not part of this screen
+decision: {reason: "The frame sags 1.82 mm at the load axis against the 0.20 mm limit: a single column turns under the moment of the load (the screen counts the column and the upper arm; SPEC 4.4 adds the base arm and the column's stretch for 1.90 mm). Mass and cost pass.", at: '2026-11-04T18:11:58'}

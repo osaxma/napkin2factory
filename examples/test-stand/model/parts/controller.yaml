@@ -1,0 +1,12 @@
+id: controller
+rev: A
+name: Motion controller (stepper drive, load-cell amplifier, inputs and outputs)
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 120 mm, width: 80 mm, height: 50 mm}}
+source: {vendor: "AutomationDirect catalogue (example supplier)", mpn: "stepper drive and load-cell amplifier board with inputs and outputs, 24 V logic", url: "https://www.automationdirect.com/", verified: false, note: "the kind of part, not a chosen one; a person picks the catalogue part"}
+cost: {unit: 77.5 USD, basis: estimate, note: "mid-point of the cots-controls band (35-120 USD per item, cost_bands.yaml, US, 2026-10) [verify]; a quote replaces it"}
+mass: 0.400 kg
+lead_time: 14 d
+satisfies: [req://REQ-016]
+notes: 50 mm tall [verify].

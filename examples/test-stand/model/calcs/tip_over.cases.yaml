@@ -1,0 +1,25 @@
+# Reference cases of tip_over.py (F17): the centre-of-gravity table of SPEC.md section 4.3.
+inputs:
+  foot-height: 10 mm
+  sheet-thickness: 2 mm
+  console-height: 110 mm
+  console-width: 380 mm
+  console-depth: 350 mm
+  beam-height: 60 mm
+  base-z: 122 mm
+  column-length: 760 mm
+  crosshead-z: 942 mm
+  actuator-length: 400 mm
+  adapter-height: 20 mm
+  load-cell-height: 65 mm
+  upper-platen-thickness: 10 mm
+  lower-platen-thickness: 15 mm
+  guard-height: 400 mm
+  guard-depth: 160 mm
+  tip-half-width: 165 mm
+  tilt: 10 degree
+cases:
+  tip_over_factor:
+    - expect: 2.12
+      rel: 0.01
+      source: "hand computation (SPEC.md 4.3): m = 16.519 kg, z_cg = 436.6 mm, y_cg = +1.5 mm; 163.5 / (436.6 x tan 10 deg)"

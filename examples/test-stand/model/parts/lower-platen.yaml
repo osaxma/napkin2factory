@@ -1,0 +1,15 @@
+id: lower-platen
+rev: A
+name: Lower platen
+kind: custom
+role: support
+process: machining
+material: {name: mild steel, spec: "100 x 100 x 15 mild steel plate, ground"}
+finish: brushed-steel
+tolerance_class: ISO2768-m
+geometry: {kit: plate, args: {width: param://lower-platen-width, depth: param://lower-platen-width, thickness: param://lower-platen-thickness, process: machining}}
+cost: {unit: 94.6 USD, basis: estimate, note: "mid-point of the machining band (31.8-128.9 USD per kg, cost_bands.yaml, US, 2026-10) x 1.178 kg [verify]; a quote replaces it"}
+lead_time: 10 d
+interfaces: [iface://lower-platen-mount]
+satisfies: [req://REQ-004]
+manufacturer_notes: 100 x 100 x 15 mm ground steel plate, two countersunk M6 holes.

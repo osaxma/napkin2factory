@@ -1,0 +1,16 @@
+id: earth
+purpose: earth
+name: Protective earth bonding
+connections:
+  - {from: "supply://supply#PE", to: "device://inlet#PE", conductor: awg14-cord, length: 1.8 m}
+  - {from: "device://inlet#PE", to: "device://stud-tray#PE", conductor: awg18-mtw, length: 0.2 m, colour: green}
+  - {from: "device://stud-tray#PE", to: "device://stud-lid#PE", conductor: awg18-mtw, length: 0.3 m, colour: green}
+  - {from: "device://stud-tray#PE", to: "device://psu#PE", conductor: awg18-mtw, length: 0.3 m, colour: green}
+  - {from: "device://stud-tray#PE", to: "device://stud-beam#PE", conductor: awg18-mtw, length: 0.5 m, colour: green, via: iface://harness-cable-entry}
+  - {from: "device://stud-beam#PE", to: "device://actuator#PE", conductor: awg18-mtw, length: 0.8 m, colour: green}
+  - {from: "device://actuator#PE", to: "device://stud-upper-platen#PE", conductor: awg18-mtw, length: 0.6 m, colour: green}
+earth:
+  - {part: part://column, bonded_via: [iface://column-base-left]}
+  - {part: part://top-crosshead, bonded_via: [iface://column-top-left]}
+  - {part: part://lower-platen, bonded_via: [iface://lower-platen-mount]}
+notes: Protective earth bonding system (Class I equipment). Exposed metal parts bonded <= 0.1 ohm.

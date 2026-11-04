@@ -1,0 +1,11 @@
+id: rubber-foot
+rev: A
+name: Rubber foot, 20 mm
+kind: cots
+process: none
+geometry: {kit: tube, args: {shape: round, size: param://foot-diameter, wall: 0 mm, length: param://foot-height}}
+source: {vendor: "McMaster-Carr catalogue (example supplier)", mpn: "rubber foot, 20 mm diameter, 10 mm tall", url: "https://www.mcmaster.com/", verified: false, note: "the kind of part, not a chosen one; a person picks the catalogue part"}
+mass: 0.025 kg
+lead_time: 14 d
+satisfies: [req://REQ-014]
+notes: Four under the console, 10 mm in from each edge; no cost band on file, so no cost.

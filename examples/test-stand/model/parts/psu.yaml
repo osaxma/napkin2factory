@@ -1,0 +1,12 @@
+id: psu
+rev: A
+name: Power supply, 24 V 150 W, DIN rail, active power-factor correction
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 100 mm, width: 60 mm, height: 90 mm}}
+source: {vendor: "AutomationDirect catalogue (example supplier)", mpn: "24 V 150 W DIN-rail switching supply, 120 V in, active PFC", url: "https://www.automationdirect.com/", verified: false, note: "the kind of part, not a chosen one; a person picks the catalogue part"}
+cost: {unit: 77.5 USD, basis: estimate, note: "mid-point of the cots-controls band (35-120 USD per item, cost_bands.yaml, US, 2026-10) [verify]; a quote replaces it"}
+mass: 0.600 kg
+lead_time: 14 d
+satisfies: [req://REQ-016]
+notes: 90 mm tall [verify]; efficiency 0.88 and power factor 0.95 are the spec's choices [verify the datasheet].

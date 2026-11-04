@@ -1,0 +1,15 @@
+id: column
+rev: A
+name: Column
+kind: custom
+role: support
+process: extrusion-cut
+material: {name: aluminum-6063-t5, spec: "6063-T5 square hollow section 40 x 40 x 3"}
+finish: anodized
+tolerance_class: ISO2768-m
+geometry: {kit: tube, args: {shape: square, size: param://column-size, wall: param://column-wall, length: param://column-length, process: extrusion-cut}}
+cost: {unit: 22.8 USD, basis: estimate, note: "mid-point of the extrusion-cut band (15-45 USD per m, cost_bands.yaml, US, 2026-11) x 0.76 m [verify]; a quote replaces it"}
+lead_time: 10 d
+interfaces: [iface://column-base-left, iface://column-base-right, iface://column-top-left, iface://column-top-right, iface://guard-column-left, iface://guard-column-right]
+satisfies: [req://REQ-003, req://REQ-004, req://REQ-005, req://REQ-010, req://REQ-012, req://REQ-013]
+manufacturer_notes: Square hollow section 40 x 40 x 3 cut to 760 mm. A tapped plug at each end takes two M8 class 8.8 bolts.

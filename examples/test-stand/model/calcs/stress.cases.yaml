@@ -1,0 +1,22 @@
+# Reference cases of stress.py (F17): the hand computation of SPEC.md section 4.3.
+inputs:
+  rated-load: 2000 N
+  span: 300 mm
+  beam-width: 40 mm
+  beam-height: 60 mm
+  beam-wall: 5 mm
+  column-size: 40 mm
+  column-wall: 3 mm
+cases:
+  beam_bending_stress:
+    - expect: 11.04 MPa
+      rel: 0.002
+      source: "hand computation (SPEC.md 4.3): M = 2000 N x 0.300 m / 4 = 150 N m; Z = 13 583 mm^3; 150 / 13 583e-9"
+  column_axial_stress:
+    - expect: 2.252 MPa
+      rel: 0.002
+      source: "hand computation (SPEC.md 4.3): 1000 N / 444 mm^2"
+  yield_factor:
+    - expect: 13.13
+      rel: 0.003
+      source: "hand computation (SPEC.md 4.3): 145 MPa / 11.04 MPa; the columns' 64.4 is higher, so the beams govern"

@@ -1,0 +1,9 @@
+id: column-base-right
+kind: bolt-pattern
+parties: [part://base-beam, part://column]
+name: Column to base beam, right
+description: Two M8 class 8.8 bolts through the top flange of the base beam into the column's tapped end plug (SPEC 5.2).
+frames:
+  part://base-beam: {origin: [150, 0, 60], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://column: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {pattern: line, count: 2, diameter: 9 mm, spacing: [20 mm], depth: 10 mm, hardware: []}

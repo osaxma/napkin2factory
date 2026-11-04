@@ -1,0 +1,253 @@
+# Requirements of the 2 kN motorized compression test stand (Tier 2), from SPEC.md section 2.
+# The spec's 20 rows become 23 atomic ones: the footprint is two (width, depth), the fatigue
+# check is two (frame beams, column-end bolts) and the inlet fuse is two (not too small, not
+# above the conductor). Every safety one names its hazard (W6).
+requirements:
+  - id: REQ-001
+    title: Actuator rated thrust
+    statement: The chosen actuator's rated thrust is at least the rated test force of 2000 N.
+    category: performance
+    priority: must
+    verify: {kind: param_bound, target: "param://thrust", op: ">=", value: 2000 N}
+    allocation: [part://actuator, param://thrust, param://rated-load]
+    rationale: SPEC row 1. The chosen part has 3000 N, so a rated load up to 3000 N needs no new actuator.
+    source: intake
+
+  - id: REQ-002
+    title: Load cell rated capacity
+    statement: The chosen load cell's rated capacity is at least the rated test force of 2000 N.
+    category: performance
+    priority: must
+    verify: {kind: param_bound, target: "param://load-cell-capacity", op: ">=", value: 2000 N}
+    allocation: [part://load-cell, param://load-cell-capacity, param://rated-load]
+    rationale: SPEC row 2. A change of the rated load to 2500 N makes this fail until the cell is swapped for a 3 kN one (SPEC section 6, CR-1).
+    source: intake
+
+  - id: REQ-003
+    title: Frame deflection at the load axis
+    statement: The frame deflects at most 0.20 mm at the load axis under the rated 2000 N load.
+    category: performance
+    priority: must
+    verify: {kind: calc, target: "calc://deflection.frame_deflection", op: "<=", value: 0.20 mm}
+    allocation: [part://top-crosshead, part://base-beam, part://column, param://span, param://column-length, param://rated-load]
+    rationale: Measurement accuracy (SPEC row 3). The two beams as simply supported beams plus the stretch of the two columns (SPEC section 4.3).
+    source: intake
+
+  - id: REQ-004
+    title: Daylight between the platens
+    statement: The daylight between the lower and the upper platen, rod retracted, is at least 250 mm.
+    category: geometry
+    priority: must
+    verify: {kind: calc, target: "calc://geometry.daylight", op: ">=", value: 250 mm}
+    allocation: [part://lower-platen, part://upper-platen, part://column, part://load-cell, part://actuator, param://column-length, param://actuator-length]
+    rationale: SPEC row 4 and the stack of section 3.2.
+    source: intake
+
+  - id: REQ-005
+    title: Clear width between frame members
+    statement: The clear width between the frame members at the load axis is at least 200 mm.
+    category: geometry
+    priority: must
+    verify: {kind: calc, target: "calc://geometry.clear_width", op: ">=", value: 200 mm}
+    allocation: [part://column, param://span, param://column-size]
+    rationale: The largest specimen is 200 mm wide (SPEC row 5).
+    source: intake
+
+  - id: REQ-006
+    title: Footprint width
+    statement: The stand is at most 400 mm wide on the bench.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: "asm://test-stand#props.bbox.x", op: "<=", value: 400 mm}
+    allocation: [asm://test-stand, part://console-tray]
+    source: intake
+
+  - id: REQ-007
+    title: Footprint depth
+    statement: The stand is at most 350 mm deep on the bench.
+    category: geometry
+    priority: must
+    verify: {kind: geometry_prop, target: "asm://test-stand#props.bbox.y", op: "<=", value: 350 mm}
+    allocation: [asm://test-stand, part://console-tray]
+    source: intake
+
+  - id: REQ-008
+    title: Total mass
+    statement: The complete stand has a mass of at most 25 kg, so one person can lift it onto the bench.
+    category: mass
+    priority: must
+    verify: {kind: bom_rollup, target: "bom://rollups#total_mass", op: "<=", value: 25 kg}
+    allocation: [asm://test-stand, part://actuator, part://column]
+    rationale: HSE INDG143 guideline weight for lifting close to the body, row one-person of lift_classes.yaml [verify]. The parts list carries no mass for the fasteners, plugs and wiring the spec allows 0.60 kg for.
+    source: intake
+
+  - id: REQ-009
+    title: Parts cost
+    statement: The parts of the stand cost at most 2400 USD in all (US, 2026-11).
+    category: cost
+    priority: must
+    verify: {kind: bom_rollup, target: "bom://rollups#total_cost", op: "<=", value: 2400 USD}
+    allocation: [asm://test-stand, part://actuator, part://load-cell, part://controller]
+    rationale: The high end of the cost band of SPEC section 4.7 must fit the budget; the part costs here are band mid-points, an estimate [verify].
+    source: intake
+
+  - id: REQ-010
+    title: Frame yield factor
+    statement: The yield safety factor of every frame member under the rated 2000 N load is at least 2.
+    category: safety
+    safety: true
+    tags: [hazard:structural-failure]
+    priority: must
+    verify: {kind: calc, target: "calc://stress.yield_factor", op: ">=", value: '2'}
+    allocation: [part://top-crosshead, part://base-beam, part://column, param://rated-load]
+    rationale: Cyclic load, row yield/cyclic of load_cases.yaml (Shigley section 1-10). The calc takes the lower of the beams (bending) and the columns (tension).
+    source: spec
+
+  - id: REQ-011
+    title: Beam fatigue factor
+    statement: The fatigue safety factor of the crosshead and base beam at 1000000 cycles of 0 to 2000 N is at least 1.5.
+    category: safety
+    safety: true
+    tags: [hazard:structural-failure]
+    priority: must
+    verify: {kind: calc, target: "calc://fatigue.beam_fatigue_factor", op: ">=", value: '1.5'}
+    allocation: [part://top-crosshead, part://base-beam, param://test-cycles, param://rated-load]
+    rationale: Modified Goodman, calckit.joints.fatigue_margin (Shigley chapter 6). The aluminium strength at 5e8 cycles is used at 1e6, conservative.
+    source: spec
+
+  - id: REQ-012
+    title: Column-end bolt fatigue factor
+    statement: The fatigue safety factor of the preloaded M8 bolts at the column ends at 1000000 cycles of 0 to 2000 N is at least 1.5.
+    category: safety
+    safety: true
+    tags: [hazard:structural-failure]
+    priority: must
+    verify: {kind: calc, target: "calc://fatigue.bolt_fatigue_factor", op: ">=", value: '1.5'}
+    allocation: [part://column, iface://column-base-left, iface://column-top-left, param://test-cycles, param://rated-load]
+    rationale: A hand check for a preloaded bolt (Shigley section 8-11 [verify equation number]); calckit.joints.fatigue_margin has no preload term.
+    source: spec
+
+  - id: REQ-013
+    title: Column buckling factor
+    statement: The columns' buckling safety factor under the rated load reversed (a pull test, 1000 N each) is at least 3.
+    category: performance
+    priority: must
+    verify: {kind: calc, target: "calc://buckling.buckling_factor", op: ">=", value: '3'}
+    allocation: [part://column, param://column-length, param://rated-load]
+    rationale: The columns are in tension under the rated load and go into compression only if the stand pulls; K = 2.1 for the sway mode (AISC Table C-A-7.1).
+    source: spec
+
+  - id: REQ-014
+    title: Tip-over factor
+    statement: The restoring moment over the overturning moment at a 10 degree tilt, door closed, is at least 1.5.
+    category: safety
+    safety: true
+    tags: [hazard:tip-over]
+    priority: must
+    verify: {kind: calc, target: "calc://tip_over.tip_over_factor", op: ">=", value: '1.5'}
+    allocation: [part://console-tray, part://top-crosshead, part://column, part://actuator, part://guard-door, param://tilt]
+    rationale: IEC 61010-1 section 7.3, equipment must not overbalance at a 10 degree tilt [verify clause]; row tip_over/static of load_cases.yaml.
+    source: spec
+
+  - id: REQ-015
+    title: Bench anchoring instruction
+    statement: The manual tells the owner to bolt the stand to the bench with 4 M6 bolts through the holes in the tray floor.
+    category: safety
+    safety: true
+    tags: [hazard:tip-over]
+    priority: must
+    verify: {kind: manual}
+    allocation: [part://console-tray]
+    rationale: Unanchored, a horizontal push of about 26 N at the top of the crosshead tips the stand over (SPEC section 4.3).
+    source: spec
+
+  - id: REQ-016
+    title: Mains input current
+    statement: The mains input current at the full 150 W output of the power supply, at 120 V, is at most 3 A.
+    category: electrical
+    priority: must
+    verify: {kind: calc, target: "calc://current.input_current", op: "<=", value: 3 A}
+    allocation: [part://psu, param://psu-power, param://mains-voltage]
+    rationale: A circuit on a 15 A NEMA 5-15 receptacle (circuits.yaml) shared with other bench equipment.
+    source: intake
+
+  - id: REQ-017
+    title: Inlet fuse not too small
+    statement: The inlet fuse rating is at least 1.25 times the mains input current, so the rating less 1.25 times the current is at least 0 A.
+    category: safety
+    safety: true
+    tags: [hazard:mains]
+    priority: must
+    verify: {kind: calc, target: "calc://current.fuse_surplus", op: ">=", value: 0 A}
+    allocation: [part://inlet, param://fuse-rating, param://fuse-margin]
+    rationale: A fuse that opens on the normal input current is a nuisance and gets bridged.
+    source: spec
+
+  - id: REQ-018
+    title: Inlet fuse protects the conductor
+    statement: The inlet fuse rating is at most 7 A, the current the 18 AWG internal conductor carries.
+    category: safety
+    safety: true
+    tags: [hazard:mains]
+    priority: must
+    verify: {kind: param_bound, target: "param://fuse-rating", op: "<=", value: 7 A}
+    allocation: [part://inlet, param://fuse-rating, param://conductor-limit]
+    rationale: conductors.yaml row awg18-mtw, NFPA 79 Table 12.5.1 [verify].
+    source: spec
+
+  - id: REQ-019
+    title: Protective earth bonding
+    statement: Every exposed metal part is bonded to the inlet's ground pin with a resistance of at most 0.1 ohm.
+    category: safety
+    safety: true
+    tags: [hazard:mains]
+    priority: must
+    verify: {kind: manual}
+    allocation: [part://inlet, part://console-tray, part://console-lid, part://base-beam, part://actuator]
+    rationale: Class I equipment, IEC 61010-1 section 6.5.2 [verify]. Checked by inspection and the bond test of the manual.
+    source: spec
+
+  - id: REQ-020
+    title: E-stop cuts motor power
+    statement: The red mushroom E-stop has positive-opening contacts that cut the 24 V motor power directly (stop category 0).
+    category: safety
+    safety: true
+    tags: [hazard:moving-machinery]
+    priority: must
+    verify: {kind: manual}
+    allocation: [part://e-stop, part://actuator]
+    rationale: NFPA 79 section 9.2.2 [verify]. A back-driven screw lets a compressed specimen relax, the safe direction.
+    source: spec
+
+  - id: REQ-021
+    title: Guard interlock cuts motor power
+    statement: Opening the guard door operates a positive-opening switch that cuts the 24 V motor power.
+    category: safety
+    safety: true
+    tags: [hazard:pinch]
+    priority: must
+    verify: {kind: manual}
+    allocation: [part://interlock, part://guard-door]
+    rationale: ISO 14119 [verify].
+    source: spec
+
+  - id: REQ-022
+    title: Fragment shield
+    statement: A 5 mm polycarbonate shield closes the test zone on four sides.
+    category: safety
+    safety: true
+    tags: [hazard:stored-energy]
+    priority: must
+    verify: {kind: manual}
+    allocation: [part://guard-shroud, part://guard-door]
+    rationale: A shattered specimen or spring releases its stored energy sideways; the impact rating of the polycarbonate is still to be confirmed [verify].
+    source: spec
+
+  - id: REQ-023
+    title: Limit switches stop motion
+    statement: The upper and the lower limit switch each stop the motion before the actuator reaches its end stop.
+    category: performance
+    priority: must
+    verify: {kind: manual}
+    allocation: [part://limit-switch, part://actuator]
+    source: spec

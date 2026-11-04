@@ -1,0 +1,8 @@
+id: inlet
+part: part://inlet
+role: protection
+rating: {voltage: 250 V, current: 2.5 A}
+terminals: [L-in, L-out, N-in, N-out, PE]
+class: I
+through: [[L-in, L-out], [N-in, N-out]]
+notes: IEC C14 inlet module with a rocker switch in the line and neutral and the T2.5 A time-delay fuse in the line. The rating is the fuse's.

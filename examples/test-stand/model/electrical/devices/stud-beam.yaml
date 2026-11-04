@@ -1,0 +1,6 @@
+id: stud-beam
+part: part://base-beam
+instance: earth stud
+role: earth
+terminals: [PE]
+notes: M6 protective earth bonding screw into base beam.

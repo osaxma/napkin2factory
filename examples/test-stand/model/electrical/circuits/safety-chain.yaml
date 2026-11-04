@@ -1,0 +1,11 @@
+id: safety-chain
+purpose: control
+name: Motor power safety chain
+voltage: 24 V
+dc: true
+protection: device://psu
+connections:
+  - {from: "device://psu#+V", to: "device://e-stop#1", conductor: awg18-mtw, length: 0.4 m, colour: blue}
+  - {from: "device://e-stop#2", to: "device://interlock#11", conductor: awg18-mtw, length: 1.0 m, colour: blue, via: iface://harness-cable-entry}
+  - {from: "device://interlock#12", to: "device://controller#DRV_PWR", conductor: awg18-mtw, length: 1.0 m, colour: blue}
+notes: "+24 V, the E-stop contact 1, the guard interlock contact, then the drive's power input. Opening either removes the motor power directly (stop category 0, SPEC 5.3); a back-driven screw lets a compressed specimen relax, the safe direction. The wire back to the drive also passes the harness grommet; it is listed without `via` because the wiring diagram cannot draw a circuit that returns through its cable entry (B-0213)."

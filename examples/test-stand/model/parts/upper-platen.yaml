@@ -1,0 +1,15 @@
+id: upper-platen
+rev: A
+name: Upper platen
+kind: custom
+role: support
+process: machining
+material: {name: mild steel, spec: "80 x 80 x 10 mild steel plate, ground"}
+finish: brushed-steel
+tolerance_class: ISO2768-m
+geometry: {kit: plate, args: {width: param://upper-platen-width, depth: param://upper-platen-width, thickness: param://upper-platen-thickness, process: machining}}
+cost: {unit: 40.4 USD, basis: estimate, note: "mid-point of the machining band (31.8-128.9 USD per kg, cost_bands.yaml, US, 2026-10) x 0.502 kg [verify]; a quote replaces it"}
+lead_time: 10 d
+interfaces: []
+satisfies: [req://REQ-004]
+manufacturer_notes: 80 x 80 x 10 mm ground steel plate; threaded stud to the load cell.

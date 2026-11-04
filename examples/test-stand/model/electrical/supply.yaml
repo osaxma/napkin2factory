@@ -1,0 +1,10 @@
+voltage: 120 V
+phases: 1
+frequency: 60 Hz
+rating: 15 A
+earthing: solidly-grounded
+region: US
+dedicated: false
+protection: {upstream: "standard 15 A branch circuit breaker", rating: 15 A}
+notes: >-
+  Standard US 120 V / 60 Hz 15 A grounded branch circuit (NEMA 5-15R receptacle).

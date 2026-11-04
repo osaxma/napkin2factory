@@ -1,0 +1,6 @@
+id: stud-upper-platen
+part: part://upper-platen
+instance: earth stud
+role: earth
+terminals: [PE]
+notes: M6 protective earth stud on the upper platen; a flexible lead bonds it past the load cell, which must carry no side load.

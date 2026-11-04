@@ -1,0 +1,9 @@
+id: actuator-crosshead-mount
+kind: bolt-pattern
+parties: [part://top-crosshead, part://actuator]
+name: Actuator flange to the crosshead
+description: Four M6 bolts through the crosshead's bottom flange into the actuator's flange; the pattern follows the flange of the chosen actuator [verify] (SPEC 5.2).
+frames:
+  part://top-crosshead: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://actuator: {origin: [0, 0, 400], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {pattern: rect, count: 4, diameter: 6.6 mm, spacing: [60 mm, 20 mm], depth: 10 mm, hardware: []}

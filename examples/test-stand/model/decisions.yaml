@@ -1,0 +1,101 @@
+decisions:
+- id: DEC-001
+  date: 2026-11-04
+  title: 'Design direction: Twin-column portal'
+  context: 'Chosen among 3 concept direction(s) compared on the concept board. Other ideas considered:
+    C-001 "Single-column C-frame" (red: the arm''s tip deflects 1.82 mm (computed), beyond the 0.2 mm
+    limit on the card (limit ÷ sag is 0.11, 1.25 needed, cyclic case) — FL_a^3 / (3*E*I_a) + FL_a^2*H
+    / (E*I_c) for an arm reaching 180 mm from the column''s centre line, 850 mm above its foot; Roark''s
+    Formulas for Stress and Strain, 7th ed., Table 8.1, Cases 1a & 3a (Track A §3.1); aluminum-6063-t5
+    in calckit/data/materials.yaml [verify]) — set aside: The frame sags 1.82 mm at the load axis against
+    the 0.20 mm limit: a single column turns under the moment of the load (the screen counts the column
+    and the upper arm; SPEC 4.4 adds the base arm and the column''s stretch for 1.90 mm). Mass and cost
+    pass.; C-003 "Plate gantry" (red: even the low end of the cost, 3462 USD, is over the 2400 USD budget;
+    even the low end of the cost, 3476 USD, is over the 2400 USD budget; total mass 110 kg (estimate),
+    over the 25 kg limit on the card) — set aside: Mass and cost: 110 kg against the 25 kg limit, and
+    even the low end of the cost, 3476 USD, is over the 2400 USD budget. The plate gantry is the stiffest
+    frame (SPEC 4.5: 0.0162 mm) but the steel is not affordable or liftable..'
+  decision: Take C-002 (Twin-column portal) forward as the design direction. Its site constraints are
+    already requirements here (the footprint, the mass and the cost limits), so promotion seeded nothing
+    new; style.yaml takes its look.
+  rationale: 'Screening of C-002 (green): width 380 mm (computed); depth 350 mm (computed); height 992
+    mm (computed); mass 9.86 kg (computed); total mass 16.5 kg (estimate); cost low 434 USD (estimate);
+    cost high 1598 USD (estimate); lift class one-person (estimate).'
+  links:
+  - req://REQ-006
+  - req://REQ-007
+  - req://REQ-008
+  - req://REQ-009
+  made_by: agent
+  disclosed: true
+  verify: true
+  sources:
+  - concepts/C-002.yaml
+  - concepts/C-001.yaml
+  - concepts/C-003.yaml
+  - SPEC.md
+- id: DEC-002
+  date: '2026-11-04'
+  title: Part costs are mid-points of the cost bands
+  context: The parts list needs a unit cost for each part, and no quote exists yet.
+  decision: Each custom part carries the mid-point of its process's band times its mass, length or area;
+    each bought-in control carries the mid-point of the cots-controls band; hinges and feet carry none.
+  rationale: 'SPEC section 4.7 prices the stand by band only. Mid-points keep every number sourced (cost_bands.yaml,
+    US, as_of 2026-10 or 2026-11, all verify: true) instead of inventing a quote. The total, 1016.7 USD,
+    lies inside the spec''s 434 - 1599 USD band. A quote replaces each number.'
+  links:
+  - req://REQ-009
+  - part://actuator
+  - part://load-cell
+  made_by: agent
+  disclosed: true
+  verify: true
+  sources:
+  - SPEC.md
+- id: DEC-003
+  date: '2026-11-04'
+  title: The mains cord is a 14 AWG detachable cord set
+  context: The spec fixes the internal wiring (18 AWG MTW behind the inlet) but not the cord from the
+    wall socket to the inlet.
+  decision: The cord is a 14 AWG cord (SJT class, rated 18 A in conductors.yaml), so it carries what the
+    15 A branch breaker lets through; the T2.5 A fuse in the inlet protects the 18 AWG behind it.
+  rationale: 'An 18 AWG cord, rated 10 A, would sit below the 15 A breaker that protects it, which the
+    wiring check fails on. The cord table row is verify: true.'
+  links:
+  - req://REQ-017
+  - req://REQ-018
+  made_by: agent
+  disclosed: true
+  verify: true
+  sources:
+  - SPEC.md
+- id: DEC-004
+  date: '2026-11-04'
+  title: The 24 V branches are protected by the power supply's own current limit
+  context: SPEC section 4.3 gives the motor branch 4.0 A on 18 AWG (7 A) and the trunk 6.25 A on 16 AWG
+    (10 A) but names no 24 V fuse.
+  decision: The power supply (150 W / 24 V = 6.25 A at full output) is the protective device of every
+    24 V circuit; no fuse is added.
+  rationale: 6.25 A is below the 7 A of the 18 AWG motor branch and the 10 A of the 16 AWG trunk, so both
+    are protected. A person confirms that the chosen supply limits its output current [verify the datasheet].
+  links:
+  - req://REQ-016
+  made_by: agent
+  disclosed: true
+  verify: true
+  sources:
+  - SPEC.md
+- id: DEC-005
+  date: '2026-11-04'
+  title: The upper platen is bonded to earth by a flexible lead
+  context: The upper platen is mild steel on the load cell, and the load cell must not take a side load.
+  decision: An earth stud on the upper platen and a flexible lead from the actuator body to it.
+  rationale: The wiring check refuses a metal part with no path to earth. The spec's earth list (lid,
+    base beam, actuator body, power supply) leaves out the platen that hangs from the rod.
+  links:
+  - req://REQ-019
+  made_by: agent
+  disclosed: true
+  verify: true
+  sources:
+  - SPEC.md

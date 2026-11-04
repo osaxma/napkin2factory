@@ -1,0 +1,235 @@
+# SPEC.oracle.yaml for the Tier 2 benchmark, the 2 kN motorized compression test stand
+# (road-to-v1.0 section 4). Written from SPEC.md section 7 (Expected outcomes) and the worked
+# figures of sections 4 and 6; every number here is the spec's, with the spec's tolerance. No
+# row names a part, requirement or card id: a card is found by its status, the kind of check
+# that failed it and what it is made of; a number by what it bounds or by the screening value
+# it is. Format and matcher kinds: tests/benchmarks/README.md.
+# Run: uv run python -m tests.benchmarks.oracle <copy of examples/test-stand> examples/test-stand/SPEC.oracle.yaml
+oracle: 1
+title: 2 kN motorized compression test stand (tier 2)
+spec: SPEC.md
+
+concepts:
+  count: 3
+  promoted:
+    material: aluminum-6063-t5
+    kit: tube
+    why: the twin-column portal clears every limit by 30 % or more; binding margins are cost +33.4 % and mass +33.9 %
+  rejected:
+    - by: [structural]
+      not_by: [mass, cost]
+      material: aluminum-6063-t5
+      why: the single-column C-frame sags about 1.9 mm against 0.20 mm (the column turns under the moment of the load); mass and cost pass
+    - by: [mass, cost]
+      not_by: [structural]
+      material: steel
+      why: the plate gantry weighs 109.8 kg against 25 kg and its cost starts at 3476 USD against 2400 USD; stiffness passes
+
+figures:
+  # --- the three cards as the napkin stage screens them (SPEC section 7 tables) ---
+  - name: c1-sag
+    what: frame deflection at the load axis of the single-column C-frame (mm); the screen counts the column and the upper arm, the spec adds the base arm and the column's stretch
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: deflection}
+    unit: mm
+    expect: 1.90
+    tol: 0.05
+  - name: c1-mass
+    what: total mass of the C-frame card (kg)
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: [total_mass, mass]}
+    unit: kg
+    expect: 16.09
+    tol: 0.02
+  - name: c1-cost-low
+    what: low end of the cost band of the C-frame card (USD, US, 2026-11)
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: cost_low}
+    unit: USD
+    expect: 460
+    tol: 0.02
+  - name: c1-cost-high
+    what: high end of the cost band of the C-frame card (USD, US, 2026-11)
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: cost_high}
+    unit: USD
+    expect: 1560
+    tol: 0.02
+  - name: c2-mass
+    what: total mass of the promoted portal card (kg)
+    card: promoted
+    find: {screen_value: [total_mass, mass]}
+    unit: kg
+    expect: 16.52
+    tol: 0.02
+  - name: c2-cost-low
+    what: low end of the cost band of the promoted portal card (USD, US, 2026-11)
+    card: promoted
+    find: {screen_value: cost_low}
+    unit: USD
+    expect: 434
+    tol: 0.02
+  - name: c2-cost-high
+    what: high end of the cost band of the promoted portal card (USD, US, 2026-11)
+    card: promoted
+    find: {screen_value: cost_high}
+    unit: USD
+    expect: 1599
+    tol: 0.02
+  - name: c3-mass
+    what: total mass of the plate gantry card (kg)
+    card: {status: rejected, by: [mass, cost]}
+    find: {screen_value: [total_mass, mass]}
+    unit: kg
+    expect: 109.8
+    tol: 0.02
+  - name: c3-cost-low
+    what: low end of the cost band of the plate gantry card (USD, US, 2026-11)
+    card: {status: rejected, by: [mass, cost]}
+    find: {screen_value: cost_low}
+    unit: USD
+    expect: 3476
+    tol: 0.02
+  - name: c3-cost-high
+    what: high end of the cost band of the plate gantry card (USD, US, 2026-11)
+    card: {status: rejected, by: [mass, cost]}
+    find: {screen_value: cost_high}
+    unit: USD
+    expect: 13966
+    tol: 0.02
+
+  # --- the finished product (the promoted design, built) ---
+  - name: product-mass
+    what: assembled mass from the parts list (kg); SPEC 4.6 gives 16.52 kg with 0.60 kg of fasteners, plugs and wiring that have no part, so 15.92 kg
+    find: {rollup: total_mass}
+    unit: kg
+    expect: 15.92
+    tol: 0.02
+  - name: product-cost-in-band
+    what: unit cost of the parts list lies inside the cost band of SPEC 4.7 (434-1599 USD, widened 2 % each end)
+    find: {rollup: total_cost}
+    unit: USD
+    range: [425, 1631]
+  - name: product-parts
+    what: number of distinct parts (19 part definitions, SPEC 5.1)
+    find: {rollup: distinct_parts}
+    expect: 19
+    tol: 0
+  - name: product-items
+    what: number of items in all (25, SPEC 5.1)
+    find: {rollup: part_count}
+    expect: 25
+    tol: 0
+  - name: req-deflection
+    what: frame deflection at the load axis under the rated load, requirement bounded at 0.20 mm (mm)
+    find: {requirement: {bound: 0.20 mm}}
+    unit: mm
+    expect: 0.105
+    tol: 0.05
+  - name: req-buckling
+    what: column buckling factor with the rated load reversed, K = 2.1, bounded at 3
+    find: {requirement: {bound: '3'}}
+    expect: 27.2
+    tol: 0.05
+  - name: req-current
+    what: mains input current at full power supply output, 120 V, bounded at 3 A (A)
+    find: {requirement: {bound: 3 A}}
+    unit: A
+    expect: 1.50
+    tol: 0.05
+  - name: req-mass
+    what: mass requirement, bounded at 25 kg (kg)
+    find: {requirement: {bound: 25 kg}}
+    unit: kg
+    expect: 15.92
+    tol: 0.02
+  - name: req-cost
+    what: cost requirement, bounded at 2400 USD, whose measured value lies in the cost band (USD)
+    find: {requirement: {bound: 2400 USD}}
+    unit: USD
+    range: [425, 1631]
+  - name: req-daylight
+    what: daylight between the platens, rod retracted, at least 250 mm (an exact geometry figure, a plain inequality) (mm)
+    find: {requirement: {bound: 250 mm}}
+    unit: mm
+    at_least: 250
+  - name: req-clear-width
+    what: clear width between the frame members, at least 200 mm; the spec's 260 mm (mm)
+    find: {requirement: {bound: 200 mm}}
+    unit: mm
+    expect: 260
+    tol: 0.01
+  - name: req-footprint-width
+    what: width of the stand on the bench, at most 400 mm (mm)
+    find: {requirement: {bound: 400 mm}}
+    unit: mm
+    at_most: 400
+  - name: req-footprint-depth
+    what: depth of the stand on the bench, at most 350 mm (mm)
+    find: {requirement: {bound: 350 mm}}
+    unit: mm
+    at_most: 350
+
+facts:
+  - name: ceremony
+    what: the ceremony derives to standard (mains and moving machinery, more than one domain)
+    fact: ceremony
+    equals: standard
+  - name: region
+    what: the product's region is US (120 V, NEMA 5-15, US cost bands)
+    fact: region
+    equals: US
+  - name: supply
+    what: an electrical supply is modelled
+    fact: supply
+    equals: present
+  - name: supply-voltage
+    what: the supply is 120 V
+    fact: supply_voltage
+    unit: V
+    expect: 120
+  - name: supply-frequency
+    what: the supply is 60 Hz
+    fact: supply_frequency
+    unit: Hz
+    expect: 60
+  - name: sub-assemblies
+    what: the console, the portal frame and the guard are units, plus the final assembly (4 modules in all)
+    fact: assemblies
+    expect: 4
+  - name: safety-requirements
+    what: nine to eleven requirements are safety requirements (the spec's nine; the fatigue and fuse rows may be split)
+    fact: count_requirements
+    safety: true
+    range: [9, 11]
+  - name: nothing-fails
+    what: no requirement fails
+    fact: count_requirements
+    status: fail
+    expect: 0
+  - name: only-the-signoffs-block
+    what: nothing but a person's sign-off blocks the verify gate
+    fact: gate_blockers
+    gate: verify
+    matching: sign-off
+    invert: true
+    expect: 0
+
+# Figures SPEC.md states that n2f cannot show yet. Each becomes a row when the thing exists.
+pending:
+  - what: card-level frame deflection 0.105 mm, yield factors 13.1 and 64.4 and the other structural figures of the promoted portal, and 0.0162 mm and 40.0 of the plate gantry
+    reason: the structural screen models a frame with a top or a column with an arm and has no portal or plate-gantry case; it says "not run" on both (B-0210). The portal's figures are judged on the finished product, below
+  - what: yield factor 5.76 of the C-frame
+    reason: the screen's column check counts the bending stress only (6.32), the spec adds the column's own axial stress (5.76, SPEC 4.4)
+  - what: yield factor 13.1 of every frame member, beam fatigue factor 9.11, column-end bolt fatigue factor 7.42 and tip-over factor 2.12 on the finished product
+    reason: each is a safety requirement waiting on its sign-off, and the oracle cannot read a bound with no unit from such a row, whose message ends in a dash and a sentence (B-0212). The calcs reproduce them in their reference cases (13.13, 9.106, 7.420, 2.124 in n2f check)
+  - what: beam bending stress 11.0 MPa and column axial stress 2.25 MPa, column yield factor 64.4
+    reason: no requirement bounds them (requirement 10 bounds the lower of the two factors), and the oracle reads a calc value only through a requirement
+  - what: tip-over 2.12 on the napkin card
+    reason: the screen's tip-over check needs a frame with a top and an edge load; the spec's centre-of-gravity table is judged on the finished product (a calc)
+  - what: supply current 1.50 A on the napkin card
+    reason: the package has no supply screen for a mains-powered product without a heating element; the finished product's calc is judged instead
+  - what: cost band of the finished product (434 and 1599 USD)
+    reason: the parts list carries one total cost, band mid-points (DEC-002); the finished product is judged as inside the band
+  - what: CR-1 (rated load 2500 N) gives deflection 0.131 mm and fails the load-cell requirement until it is swapped; CR-2 (sliding door) gives tip-over 2.03 and mass 16.51 kg, and requirements 18 and 19 must be signed again
+    reason: the oracle has no change-request replay step; it needs a scripted n2f ecr run on a copy of the product, judged against the figures of SPEC.md section 6

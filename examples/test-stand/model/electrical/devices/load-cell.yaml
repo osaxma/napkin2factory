@@ -1,0 +1,5 @@
+id: load-cell
+part: part://load-cell
+role: sensor
+terminals: ["EXC+", "EXC-", "SIG+", "SIG-"]
+notes: 2 kN S-beam load cell with 4-wire strain gauge bridge.

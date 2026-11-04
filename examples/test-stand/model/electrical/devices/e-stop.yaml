@@ -1,0 +1,9 @@
+id: e-stop
+part: part://e-stop
+role: control
+rating: {voltage: 24 V, current: 5 A}
+terminals: ["1", "2", "3", "4"]
+contact: {current: 5 A}
+through: [["1", "2"], ["3", "4"]]
+safety: interlock
+notes: Two NC positive-opening contacts. Contact 1-2 is in the motor power supply; contact 3-4 tells the controller.

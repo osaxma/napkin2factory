@@ -1,0 +1,15 @@
+id: guard-door
+rev: A
+name: Guard door
+kind: custom
+role: trim
+process: cnc-routing
+material: {name: polycarbonate, spec: "5 mm polycarbonate sheet"}
+finish: plastic
+tolerance_class: ISO2768-c
+geometry: {kit: block, args: {length: param://guard-width, width: param://guard-thickness, height: param://guard-height}}
+cost: {unit: 10.9 USD, basis: estimate, note: "mid-point of the cnc-routing band (35-120 USD per m2, cost_bands.yaml, US, 2026-11) x 0.140 m2 [verify]; a quote replaces it"}
+lead_time: 10 d
+interfaces: [iface://guard-door-hinge]
+satisfies: [req://REQ-021, req://REQ-022]
+manufacturer_notes: 5 mm polycarbonate, 350 x 400 mm, routed. Two hinge flats at the left edge and the interlock tongue at the right.

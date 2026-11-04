@@ -1,0 +1,9 @@
+id: lower-platen-mount
+kind: bolt-pattern
+parties: [part://base-beam, part://lower-platen]
+name: Lower platen to the base beam
+description: Two countersunk M6 screws through the platen into the top flange of the base beam (SPEC 5.2).
+frames:
+  part://base-beam: {origin: [0, 0, 60], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://lower-platen: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {pattern: line, count: 2, diameter: 6.6 mm, spacing: [60 mm], depth: 10 mm, hardware: []}

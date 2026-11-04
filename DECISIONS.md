@@ -248,6 +248,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-219 | Display units: the owner's unit first | in force |
 | S-220 | Automated tests do not require example sign-offs to stay current | in force |
 | S-221 | The table benchmark product | in force |
+| S-222 | The test-stand benchmark product | in force |
 
 ---
 
@@ -1693,3 +1694,8 @@ Measured: oracle on a copy 46 pass, 0 fail, 5 pending as written. Product: sag 1
 5.69, buckling 38.3, tip-over 3.92, sway 1.50 mm, corner 15.3, pull-out 84.5, 45.2 kg, 980.35 USD. Not exact:
 napkin C-002 sag 1.54, yield 34.7, tip-over 3.88, buckling 29.6 (screen adds the edge load); movement 7.07 mm;
 frame 15.90 kg. The oracle cannot parse an unsigned safety message (the dash after `>= 2` reads as a unit): re-sign REQ-009 after any edit to its evidence.
+## S-222 — The test-stand benchmark product (2026-11-04)
+`examples/test-stand` built from its `SPEC.md` with 0 package files (W9, W10): three cards, 19 parts (25 items) in three units, 12 interfaces, 23 requirements (the spec's 20, with footprint, fatigue and fuse each split in two), 7 calc modules with reference cases, wiring on 120 V / 60 Hz (13 devices, 7 circuits), five manuals, five decisions; `standard` ceremony, no sign-offs (12 wait on a person).
+Oracle (`SPEC.oracle.yaml`, on a copy): 40 rows pass, 0 fail, 8 pending, run by `tests/e2e/test_benchmarks.py`. Cards: the C-frame is rejected on structure, the plate gantry on mass and cost, the portal promoted; card costs (460-1558, 434-1598, 3476-13965 USD) and masses (16.1, 16.5, 110 kg) are within 0.2 % of the spec.
+Not reproduced: the screen's C-frame sag is 1.82 mm (spec 1.90: it leaves out the base arm and the column's stretch; inside the 5 % tolerance) and its yield factor 6.32 (spec 5.76); the parts list weighs 15.82 kg, the spec's 16.52 kg less the 0.60 kg of fasteners and wiring that have no part (the oracle expects 15.92 kg). Pending, with reasons: the portal's and the gantry's card-level structure (B-0210), the safety factors read through the requirements (B-0212), the two change requests (no replay step).
+Gaps found: the structural screen has no portal case (B-0210); the cost screen cannot price per-metre or per-square-metre bands (B-0211), so `model/screens/stand.py` prices them and adds the bought-in parts and a mass-limit row (F10); the oracle misreads a unitless bound on a signed-off row (B-0212); the wiring diagram fails on a circuit that returns through its cable entry (B-0213). Beam sections are 60 x 40 x 5 mm in the model and a 60 x 60 x 4 mm stand-in of equal weight on the card; part costs are band mid-points (DEC-002 of the product). B-0194 stays open until both tiers land.

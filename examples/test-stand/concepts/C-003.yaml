@@ -1,0 +1,66 @@
+# Concept card C-003 of the 2 kN test stand: Plate gantry. Every dimension is the spec's (SPEC.md
+# sections 3.1 and 3.2); the loads, the budget and the limits are section 1.
+id: C-003
+title: Plate gantry
+status: rejected
+refs: []
+layout: {frame: plate-gantry}
+envelope: {}
+site:
+  width: 400 mm
+  depth: 350 mm
+  budget: 2400 USD
+  mass_limit: 25 kg
+  lift_class: one-person
+  point_load: 2000 N
+  max_deflection: 0.20 mm
+  cycles: 1000000
+style: {}
+modules: {}
+massing:
+  - {kit: enclosure, as: console-tray, material: aluminum-5052-h32, process_class: sheet-metal, args: {length: 380 mm, width: 350 mm, height: 110 mm, thickness: 2 mm}, at: {z: 10 mm}}
+  - {kit: plate, as: console-lid, material: aluminum-5052-h32, process_class: sheet-metal, args: {width: 380 mm, depth: 350 mm, thickness: 2 mm}, at: {z: 120 mm}}
+  - {kit: block, as: side-plate-left, material: mild steel, process_class: machining, args: {length: 25 mm, width: 250 mm, height: 880 mm}, at: {x: -150 mm, z: 122 mm}}
+  - {kit: block, as: side-plate-right, material: mild steel, process_class: machining, args: {length: 25 mm, width: 250 mm, height: 880 mm}, at: {x: 150 mm, z: 122 mm}}
+  - {kit: block, as: bottom-bridge, material: steel, process_class: machining, args: {length: 275 mm, width: 40 mm, height: 60 mm}, at: {z: 122 mm}}
+  - {kit: block, as: top-bridge, material: steel, process_class: machining, args: {length: 275 mm, width: 40 mm, height: 60 mm}, at: {z: 942 mm}}
+  - {kit: plate, as: lower-platen, material: mild steel, process_class: machining, args: {width: 100 mm, depth: 100 mm, thickness: 15 mm}, at: {z: 182 mm}}
+  - {kit: plate, as: upper-platen, material: mild steel, process_class: machining, args: {width: 80 mm, depth: 80 mm, thickness: 10 mm}, at: {z: 447 mm}}
+  - {kit: block, as: guard-back, material: polycarbonate, process_class: cnc-routing, args: {length: 350 mm, width: 5 mm, height: 400 mm}, at: {y: -77.5 mm, z: 182 mm}}
+  - {kit: block, as: guard-side-left, material: polycarbonate, process_class: cnc-routing, args: {length: 5 mm, width: 160 mm, height: 400 mm}, at: {x: -172.5 mm, z: 182 mm}}
+  - {kit: block, as: guard-side-right, material: polycarbonate, process_class: cnc-routing, args: {length: 5 mm, width: 160 mm, height: 400 mm}, at: {x: 172.5 mm, z: 182 mm}}
+  - {kit: block, as: guard-door, material: polycarbonate, process_class: cnc-routing, args: {length: 350 mm, width: 5 mm, height: 400 mm}, at: {y: 82.5 mm, z: 182 mm}}
+notes: >-
+  Two solid steel side plates bridged top and bottom, machined from solid. The stiffest frame (0.0162 mm in the spec) but 96.7 kg of steel in the frame alone. The bridges spell their material differently from the plates for the same reason as on C-002.
+screening:
+  given:
+    budget: {value: 2400 USD, label: given, source: on the card, ref: site.budget}
+    point_load: {value: 2000 N, label: given, source: on the card, ref: site.point_load}
+  computed:
+    width: {value: 380 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (x)}
+    depth: {value: 350 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (y)}
+    height: {value: 992 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (z)}
+    volume: {value: 15.4 L, label: computed, source: the space the rough shapes fill, ref: sum of the massing silhouettes}
+    mass: {value: 103 kg, label: computed, source: from the rough shapes and their materials, ref: silhouette volume × density per call; frames and tubes by member section × cut length (geometry/materials.py)}
+  estimates:
+    total_mass: {value: 110 kg, label: estimate, source: the rough shapes plus the bought-in parts (an allowance each), ref: 'massing mass + SPEC.md 4.6 [verify]'}
+    cost_low: {value: 3476 USD, label: estimate, source: 'rough cost of the console (2 pieces), side (2 pieces), bottom bridge, top bridge, lower (2 pieces), upper (2 pieces), actuator, load cell, power supply, controller, E stop, mains inlet and guard interlock from cost bands per process; the guard (4 pieces) is not counted; to be checked; with the guard-back, guard-side-left, guard-side-right, guard-door priced here per metre or per square metre', ref: 'mass_cost.cost_estimate [verify]'}
+    cost_high: {value: 13965 USD, label: estimate, source: 'rough cost of the console (2 pieces), side (2 pieces), bottom bridge, top bridge, lower (2 pieces), upper (2 pieces), actuator, load cell, power supply, controller, E stop, mains inlet and guard interlock from cost bands per process; the guard (4 pieces) is not counted; to be checked; with the guard-back, guard-side-left, guard-side-right, guard-door priced here per metre or per square metre', ref: 'mass_cost.cost_estimate [verify]'}
+    lift_class: {value: equipment, label: estimate, source: from the mass and the lifting limits; to be checked, ref: 'mass_cost.lift_class (HSE guideline weights) [verify]'}
+  rules:
+    - {id: fits-site-width, title: Fits the space width, severity: fail, status: pass, message: 380 mm wide fits the 400 mm space, relies_on: [computed]}
+    - {id: fits-site-depth, title: Fits the space depth, severity: fail, status: pass, message: 350 mm deep fits the 350 mm space, relies_on: [computed]}
+    - {id: fits-site-height, title: Fits the space height, severity: fail, status: skip, message: no space height on the card, relies_on: []}
+    - {id: mass-vs-lift-class, title: How it can be lifted and moved, severity: warn, status: warn, message: 'about 110 kg: equipment handling (a trolley or lifting aid), not a one-person lift', relies_on: [estimate]}
+    - {id: blank-vs-stock-sheet, title: Every sheet fits a stock size, severity: fail, status: pass, message: every sheet-metal blank fits a stock sheet (console-tray 600 × 570 mm on 1000 x 2000 mm; console-lid 380 × 350 mm on 1000 x 2000 mm; lower-platen 100 × 100 mm on 1000 x 2000 mm; upper-platen 80 × 80 mm on 1000 x 2000 mm), relies_on: [computed]}
+    - {id: walls-fit-envelope, title: The walls fit inside the body, severity: fail, status: skip, message: no inner size and wall thickness from a screen, relies_on: []}
+    - {id: cost-vs-budget, title: Within the budget, severity: fail, status: fail, message: 'even the low end of the cost, 3462 USD, is over the 2400 USD budget', relies_on: [given, estimate]}
+    - {id: cost-vs-budget-complete, title: 'Within the budget, counting the frame and the guard', severity: fail, status: fail, message: 'even the low end of the cost, 3476 USD, is over the 2400 USD budget', relies_on: [given, estimate]}
+    - {id: mass-limit, title: Total mass within the limit, severity: fail, status: fail, message: 'total mass 110 kg (estimate), over the 25 kg limit on the card', relies_on: [given, estimate]}
+    - {id: structural-deflection, title: Sag stays within the limit, severity: fail, status: skip, message: 'not run: the column and the arm are different materials', relies_on: []}
+  verdict: red
+  at: '2026-11-04T18:11:30'
+  notes:
+    - the cost row above counts what the package prices, per kilogram and per item; the cost band and the budget row below also count the guard-back, guard-side-left, guard-side-right, guard-door, priced here per metre or per square metre (the package's cost screen does not yet do that)
+    - the card gives a cycle count, so the cyclic safety factors apply; the endurance check itself is not part of this screen
+decision: {reason: 'Mass and cost: 110 kg against the 25 kg limit, and even the low end of the cost, 3476 USD, is over the 2400 USD budget. The plate gantry is the stiffest frame (SPEC 4.5: 0.0162 mm) but the steel is not affordable or liftable.', at: '2026-11-04T18:12:00'}

@@ -1,0 +1,17 @@
+# Reference cases of current.py (F17): the hand computation of SPEC.md section 4.3.
+inputs:
+  psu-power: 150 W
+  psu-efficiency: 0.88
+  psu-power-factor: 0.95
+  mains-voltage: 120 V
+  fuse-rating: 2.5 A
+  fuse-margin: 1.25
+cases:
+  input_current:
+    - expect: 1.4952 A
+      rel: 0.001
+      source: "hand computation: 150 W / (0.88 x 120 V x 0.95) = 150 / 100.32 (SPEC.md 4.3)"
+  fuse_surplus:
+    - expect: 0.6310 A
+      rel: 0.002
+      source: "hand computation: 2.5 A - 1.25 x 1.4952 A (SPEC.md 4.3: the least fuse is 1.87 A)"

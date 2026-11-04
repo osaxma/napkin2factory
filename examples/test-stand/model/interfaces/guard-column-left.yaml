@@ -1,0 +1,9 @@
+id: guard-column-left
+kind: bolt-pattern
+parties: [part://column, part://guard-shroud]
+name: Guard shroud to the left column
+description: Four M5 screws on standoffs through the shroud's side wall into the column (SPEC 5.2).
+frames:
+  part://column: {origin: [-20, 0, 200], normal: [-1, 0, 0], x_axis: [0, 1, 0]}
+  part://guard-shroud: {origin: [-170, 0, 200], normal: [-1, 0, 0], x_axis: [0, 1, 0]}
+spec: {pattern: rect, count: 4, diameter: 5.5 mm, spacing: [20 mm, 300 mm], depth: 6 mm, hardware: []}

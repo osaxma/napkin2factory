@@ -1,0 +1,9 @@
+id: guard-door-hinge
+kind: hinge-pin
+parties: [part://guard-shroud, part://guard-door]
+name: Guard door to the shroud, hinge
+description: A vertical hinge pin at the shroud's left front edge (SPEC 5.2); the two hinges carry the door on it.
+frames:
+  part://guard-shroud: {origin: [-172.5, 80, 400], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://guard-door: {origin: [-172.5, -2.5, 400], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {pin_diameter: 6 mm, diameter: 6 mm, count: 1, depth: 10 mm}

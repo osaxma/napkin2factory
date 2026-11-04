@@ -1,0 +1,13 @@
+id: actuator
+rev: A
+name: Linear actuator, 24 V stepper and ball screw
+kind: cots
+process: none
+geometry: {kit: tube, args: {shape: round, size: 70 mm, wall: 0 mm, length: param://actuator-length}}
+source: {vendor: "AutomationDirect catalogue (example supplier)", mpn: "24 V stepper and ball-screw linear actuator, 3 kN, 200 mm stroke, 96 W, flange mount", url: "https://www.automationdirect.com/", verified: false, note: "the kind of part, not a chosen one; a person picks the catalogue part"}
+cost: {unit: 77.5 USD, basis: estimate, note: "mid-point of the cots-controls band (35-120 USD per item, cost_bands.yaml, US, 2026-10) [verify]; a quote replaces it"}
+mass: 4.000 kg
+lead_time: 14 d
+interfaces: [iface://actuator-crosshead-mount]
+satisfies: [req://REQ-001, req://REQ-020, req://REQ-023]
+notes: 3000 N rated thrust, 400 mm long with the rod retracted (the allowance for a 200 mm stroke); the 70 mm body is a stand-in for the picture [verify against the catalogue part].

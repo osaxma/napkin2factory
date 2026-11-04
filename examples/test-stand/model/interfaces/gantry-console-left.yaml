@@ -1,0 +1,9 @@
+id: gantry-console-left
+kind: bolt-pattern
+parties: [part://console-lid, part://base-beam]
+name: Base beam to console, left column foot
+description: Two M6 bolts through the lid at the foot of the column, into the spacers on the tray floor (SPEC 5.2).
+frames:
+  part://console-lid: {origin: [-150, 0, 2], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://base-beam: {origin: [-150, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {pattern: line, count: 2, diameter: 6.6 mm, spacing: [20 mm], depth: 10 mm, hardware: []}

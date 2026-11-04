@@ -1,0 +1,19 @@
+preset: lab
+palette:
+  body: '#e2e8f0'
+  support: '#475569'
+  controls: '#1e293b'
+  trim: '#94a3b8'
+  fastener: '#94a3b8'
+  default: '#e2e8f0'
+finish:
+  body: powder-coat
+  support: anodized
+  controls: plastic
+  trim: brushed-steel
+  fastener: brushed-steel
+  default: anodized
+corner_radius: 0 mm
+chamfer: 0 mm
+overhang: 0 mm
+layout: {frame: portal}

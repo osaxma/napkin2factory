@@ -1,0 +1,10 @@
+id: dc-bus
+purpose: power
+name: 24 V DC bus
+voltage: 24 V
+dc: true
+protection: device://psu
+connections:
+  - {from: "device://psu#+V", to: "device://controller#+24V", conductor: awg16-mtw, length: 0.3 m}
+  - {from: "device://psu#-V", to: "device://controller#GND", conductor: awg16-mtw, length: 0.3 m}
+notes: 24 V DC power distribution from PSU to controller.

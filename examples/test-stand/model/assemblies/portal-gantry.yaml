@@ -1,0 +1,17 @@
+id: portal-gantry
+rev: A
+name: Portal frame gantry assembly
+build: unit
+driver: [built-as-unit, tested-as-unit]
+ports: [iface://gantry-console-left, iface://gantry-console-right, iface://harness-cable-entry, iface://guard-column-left, iface://guard-column-right]
+geometry: {module: geometry/portal_gantry.py}
+children:
+  - {part: part://base-beam, qty: 1}
+  - {part: part://top-crosshead, qty: 1}
+  - {part: part://column, qty: 2}
+  - {part: part://lower-platen, qty: 1}
+  - {part: part://upper-platen, qty: 1}
+  - {part: part://actuator, qty: 1}
+  - {part: part://load-cell, qty: 1}
+  - {part: part://limit-switch, qty: 2}
+satisfies: [req://REQ-001, req://REQ-002, req://REQ-003, req://REQ-004, req://REQ-005, req://REQ-008, req://REQ-009, req://REQ-010, req://REQ-011, req://REQ-012, req://REQ-013, req://REQ-014, req://REQ-019, req://REQ-023]

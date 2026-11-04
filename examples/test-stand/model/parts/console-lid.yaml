@@ -1,0 +1,15 @@
+id: console-lid
+rev: A
+name: Console lid
+kind: custom
+role: body
+process: sheet-metal
+material: {name: aluminum-5052-h32, spec: "2 mm 5052-H32 sheet"}
+finish: powder coat
+tolerance_class: ISO2768-m
+geometry: {kit: panel, args: {width: param://console-width, height: param://console-depth, thickness: param://sheet-thickness, process: sheet-metal, holes: [{center: [140 mm, 130 mm], diameter: 22 mm, label: e-stop}]}}
+cost: {unit: 27.0 USD, basis: estimate, note: "mid-point of the sheet-metal band (8.0-67.6 USD per kg, cost_bands.yaml, US, 2026-10) x 0.713 kg [verify]; a quote replaces it"}
+lead_time: 10 d
+interfaces: [iface://gantry-console-left, iface://gantry-console-right, iface://harness-cable-entry]
+satisfies: [req://REQ-006, req://REQ-007, req://REQ-019, req://REQ-020]
+manufacturer_notes: 2 mm flat sheet. A 22 mm hole for the E-stop at the front right, a 25 mm grommet hole for the harness, two M6 bolts at each end of the base beam, an M6 earth stud.

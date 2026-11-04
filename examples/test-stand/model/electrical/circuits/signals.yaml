@@ -1,0 +1,17 @@
+id: signals
+purpose: sensing
+name: Sensors and feedback
+voltage: 24 V
+dc: true
+connections:
+  - {from: "device://limit-switch-upper#11", to: "device://controller#LIMIT_UP", conductor: awg18-mtw, length: 1.2 m, via: iface://harness-cable-entry}
+  - {from: "device://limit-switch-lower#11", to: "device://controller#LIMIT_DN", conductor: awg18-mtw, length: 0.8 m, via: iface://harness-cable-entry}
+  - {from: "device://load-cell#EXC+", to: "device://controller#LC_EXC+", conductor: awg18-mtw, length: 0.8 m, via: iface://harness-cable-entry}
+  - {from: "device://load-cell#EXC-", to: "device://controller#LC_EXC-", conductor: awg18-mtw, length: 0.8 m, via: iface://harness-cable-entry}
+  - {from: "device://load-cell#SIG+", to: "device://controller#LC_SIG+", conductor: awg18-mtw, length: 0.8 m, via: iface://harness-cable-entry}
+  - {from: "device://load-cell#SIG-", to: "device://controller#LC_SIG-", conductor: awg18-mtw, length: 0.8 m, via: iface://harness-cable-entry}
+  - {from: "device://e-stop#3", to: "device://controller#ESTOP_MON", conductor: awg18-mtw, length: 0.4 m}
+  - {from: "device://interlock#21", to: "device://controller#DOOR_MON", conductor: awg18-mtw, length: 1.0 m, via: iface://harness-cable-entry}
+  - {from: "device://psu#+V", to: "device://e-stop#4", conductor: awg18-mtw, length: 0.4 m}
+  - {from: "device://psu#+V", to: "device://interlock#22", conductor: awg18-mtw, length: 1.4 m}
+notes: Sensing circuits for overtravel limits and 4-wire load cell bridge.

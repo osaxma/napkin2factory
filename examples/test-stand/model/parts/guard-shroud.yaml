@@ -1,0 +1,15 @@
+id: guard-shroud
+rev: A
+name: Guard shroud
+kind: custom
+role: trim
+process: cnc-routing
+material: {name: polycarbonate, spec: "5 mm polycarbonate sheet"}
+finish: plastic
+tolerance_class: ISO2768-c
+geometry: {module: geometry/guard_shroud.py}
+cost: {unit: 20.8 USD, basis: estimate, note: "mid-point of the cnc-routing band (35-120 USD per m2, cost_bands.yaml, US, 2026-11) x 0.268 m2 [verify]; a quote replaces it"}
+lead_time: 10 d
+interfaces: [iface://guard-column-left, iface://guard-column-right, iface://guard-door-hinge]
+satisfies: [req://REQ-022]
+manufacturer_notes: "5 mm polycarbonate, routed flat 670 x 400 mm and line-bent into a U (back 350 mm, two sides 160 mm), 400 mm tall."

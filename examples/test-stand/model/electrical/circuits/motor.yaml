@@ -1,0 +1,10 @@
+id: motor
+purpose: power
+name: Actuator motor
+voltage: 24 V
+dc: true
+protection: device://psu
+connections:
+  - {from: "device://controller#MOT+", to: "device://actuator#PWR+", conductor: awg18-mtw, length: 1.2 m, colour: blue, via: iface://harness-cable-entry}
+  - {from: "device://controller#MOT-", to: "device://actuator#PWR-", conductor: awg18-mtw, length: 1.2 m, colour: blue, via: iface://harness-cable-entry}
+notes: The motor branch, 96 W / 24 V = 4.0 A on 18 AWG, rated 7 A (SPEC 4.3).

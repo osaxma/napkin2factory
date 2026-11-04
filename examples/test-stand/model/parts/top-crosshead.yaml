@@ -1,0 +1,15 @@
+id: top-crosshead
+rev: A
+name: Top crosshead
+kind: custom
+role: support
+process: extrusion-cut
+material: {name: aluminum-6063-t5, spec: "6063-T5 rectangular hollow section 60 x 40 x 5"}
+finish: anodized
+tolerance_class: ISO2768-m
+geometry: {module: geometry/beam.py}
+cost: {unit: 10.2 USD, basis: estimate, note: "mid-point of the extrusion-cut band (15-45 USD per m, cost_bands.yaml, US, 2026-11) x 0.34 m [verify]; a quote replaces it"}
+lead_time: 10 d
+interfaces: [iface://column-top-left, iface://column-top-right, iface://actuator-crosshead-mount]
+satisfies: [req://REQ-003, req://REQ-010, req://REQ-011]
+manufacturer_notes: Rectangular hollow section 60 x 40 x 5 cut to 340 mm. The actuator hangs under it from its flange, so the bore of the crosshead is not weakened at mid-span.

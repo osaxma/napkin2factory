@@ -1,0 +1,8 @@
+id: mains-cord
+purpose: power
+name: Mains cord
+protection: supply
+connections:
+  - {from: "supply://supply#L", to: "device://inlet#L-in", conductor: awg14-cord, length: 1.8 m}
+  - {from: "supply://supply#N", to: "device://inlet#N-in", conductor: awg14-cord, length: 1.8 m}
+notes: The detachable NEMA 5-15P cord set, 14 AWG, rated 15 A; its protection is the 15 A branch circuit of the wall socket.

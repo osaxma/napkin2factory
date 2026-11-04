@@ -1,0 +1,19 @@
+# Reference cases of geometry.py (F17): the stack of SPEC.md section 3.2.
+inputs:
+  crosshead-z: 942 mm
+  actuator-length: 400 mm
+  adapter-height: 20 mm
+  load-cell-height: 65 mm
+  upper-platen-thickness: 10 mm
+  lower-platen-top-z: 197 mm
+  span: 300 mm
+  column-size: 40 mm
+cases:
+  daylight:
+    - expect: 250 mm
+      rel: 1.0e-9
+      source: "hand computation (SPEC.md 3.2): 942 - 400 - 20 - 65 - 10 - 197"
+  clear_width:
+    - expect: 260 mm
+      rel: 1.0e-9
+      source: "hand computation (SPEC.md 3.2): 300 - 40"

@@ -1,0 +1,9 @@
+id: harness-cable-entry
+kind: cable-entry
+parties: [part://console-lid, part://base-beam]
+name: Harness out of the console
+description: One 25 mm grommet hole in the lid, under the base beam, where the motor, load cell, limit switch and interlock wires leave the console and run up inside the frame (SPEC 5.2).
+frames:
+  part://console-lid: {origin: [60, 0, 2], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://base-beam: {origin: [60, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {diameter: 25 mm, count: 1, depth: 10 mm, passes: [circuit://safety-chain, circuit://motor, circuit://signals, circuit://earth]}

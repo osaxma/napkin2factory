@@ -1,0 +1,11 @@
+id: hinge
+rev: A
+name: Hinge
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 10 mm, width: 10 mm, height: 60 mm}}
+source: {vendor: "McMaster-Carr catalogue (example supplier)", mpn: "butt hinge, 60 mm", url: "https://www.mcmaster.com/", verified: false, note: "the kind of part, not a chosen one; a person picks the catalogue part"}
+mass: 0.050 kg
+lead_time: 14 d
+satisfies: [req://REQ-021, req://REQ-022]
+notes: Two carry the guard door; no cost band on file, so no cost.

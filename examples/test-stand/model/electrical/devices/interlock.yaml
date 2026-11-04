@@ -1,0 +1,9 @@
+id: interlock
+part: part://interlock
+role: control
+rating: {voltage: 24 V, current: 4 A}
+terminals: ["11", "12", "21", "22"]
+contact: {current: 4 A}
+through: [["11", "12"], ["21", "22"]]
+safety: interlock
+notes: Two NC positive-opening contacts. Contact 11-12 is in the motor power supply; contact 21-22 tells the controller.

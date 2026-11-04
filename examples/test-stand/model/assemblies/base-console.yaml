@@ -1,0 +1,16 @@
+id: base-console
+rev: A
+name: Base console assembly
+build: unit
+driver: [tested-as-unit, built-as-unit]
+ports: [iface://gantry-console-left, iface://gantry-console-right, iface://harness-cable-entry]
+geometry: {module: geometry/base_console.py}
+children:
+  - {part: part://console-tray, qty: 1}
+  - {part: part://console-lid, qty: 1}
+  - {part: part://rubber-foot, qty: 4}
+  - {part: part://inlet, qty: 1}
+  - {part: part://psu, qty: 1}
+  - {part: part://controller, qty: 1}
+  - {part: part://e-stop, qty: 1}
+satisfies: [req://REQ-006, req://REQ-007, req://REQ-008, req://REQ-009, req://REQ-015, req://REQ-016, req://REQ-017, req://REQ-018, req://REQ-019, req://REQ-020]

@@ -1,0 +1,8 @@
+id: limit-switch-lower
+part: part://limit-switch
+instance: lower limit switch
+role: sensor
+terminals: ["11", "12"]
+through: [["11", "12"]]
+safety: limit
+notes: Lower overtravel limit switch with positive-opening NC contact.

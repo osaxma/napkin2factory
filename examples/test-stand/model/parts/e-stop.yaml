@@ -1,0 +1,12 @@
+id: e-stop
+rev: A
+name: E-stop, red mushroom, 2 NC positive-opening contacts
+kind: cots
+process: none
+geometry: {kit: tube, args: {shape: round, size: 40 mm, wall: 0 mm, length: 56 mm}}
+source: {vendor: "AutomationDirect catalogue (example supplier)", mpn: "red mushroom emergency stop, twist release, 2 NC positive-opening contacts", url: "https://www.automationdirect.com/", verified: false, note: "the kind of part, not a chosen one; a person picks the catalogue part"}
+cost: {unit: 77.5 USD, basis: estimate, note: "mid-point of the cots-controls band (35-120 USD per item, cost_bands.yaml, US, 2026-10) [verify]; a quote replaces it"}
+mass: 0.150 kg
+lead_time: 14 d
+satisfies: [req://REQ-020]
+notes: Mounted in the lid at the front.

@@ -1,0 +1,8 @@
+id: psu
+part: part://psu
+role: protection
+rating: {voltage: 24 V, current: 6.25 A}
+terminals: [L, N, PE, "+V", "-V"]
+through: [[L, "+V"], [N, "-V"]]
+class: I
+notes: "24 V 150 W DIN-rail supply with active power-factor correction. Its output is limited to 150 W / 24 V = 6.25 A, which protects every 24 V branch; from the mains it takes 1.50 A at full output (SPEC 4.3)."

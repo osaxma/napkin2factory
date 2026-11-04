@@ -1,0 +1,11 @@
+# Reference cases of buckling.py (F17): the hand computation of SPEC.md section 4.3.
+inputs:
+  rated-load: 2000 N
+  column-length: 760 mm
+  column-size: 40 mm
+  column-wall: 3 mm
+cases:
+  buckling_factor:
+    - expect: 27.22
+      rel: 0.005
+      source: "hand computation (SPEC.md 4.3): P_cr = pi^2 E I / (K L)^2 = 27 223 N with I = 101 972 mm^4, K = 2.1, L = 760 mm; / 1000 N"

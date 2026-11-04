@@ -1,0 +1,8 @@
+id: limit-switch-upper
+part: part://limit-switch
+instance: upper limit switch
+role: sensor
+terminals: ["11", "12"]
+through: [["11", "12"]]
+safety: limit
+notes: Upper overtravel limit switch with positive-opening NC contact.

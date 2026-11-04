@@ -1,0 +1,5 @@
+persona: owner
+domains: {mechanical: intermediate, electrical: intermediate, manufacturing: intermediate}
+verbosity: normal
+delegation: balanced
+language: en

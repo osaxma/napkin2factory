@@ -1,0 +1,13 @@
+id: guard-shield
+rev: A
+name: Guard shield assembly
+build: unit
+driver: [built-as-unit, separate-process-or-supplier]
+ports: [iface://guard-column-left, iface://guard-column-right]
+geometry: {module: geometry/guard_shield.py}
+children:
+  - {part: part://guard-shroud, qty: 1}
+  - {part: part://guard-door, qty: 1}
+  - {part: part://hinge, qty: 2}
+  - {part: part://interlock, qty: 1}
+satisfies: [req://REQ-008, req://REQ-009, req://REQ-021, req://REQ-022]

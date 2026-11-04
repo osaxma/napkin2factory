@@ -1,0 +1,12 @@
+id: inlet
+rev: A
+name: Mains inlet, IEC C14, fused T2.5 A, switched
+kind: cots
+process: none
+geometry: {kit: block, args: {length: 50 mm, width: 30 mm, height: 40 mm}}
+source: {vendor: "AutomationDirect catalogue (example supplier)", mpn: "IEC C14 inlet module with switch and fuse holder, T2.5 A time-delay fuse", url: "https://www.automationdirect.com/", verified: false, note: "the kind of part, not a chosen one; a person picks the catalogue part"}
+cost: {unit: 77.5 USD, basis: estimate, note: "mid-point of the cots-controls band (35-120 USD per item, cost_bands.yaml, US, 2026-10) [verify]; a quote replaces it"}
+mass: 0.080 kg
+lead_time: 14 d
+satisfies: [req://REQ-016, req://REQ-017, req://REQ-018, req://REQ-019]
+notes: On the back face of the console.

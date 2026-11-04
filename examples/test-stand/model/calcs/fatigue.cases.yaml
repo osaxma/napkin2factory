@@ -1,0 +1,24 @@
+# Reference cases of fatigue.py (F17): the hand computations of SPEC.md section 4.3.
+inputs:
+  rated-load: 2000 N
+  span: 300 mm
+  test-cycles: 1000000
+  beam-width: 40 mm
+  beam-height: 60 mm
+  beam-wall: 5 mm
+  beam-sut: 186 MPa
+  beam-sf: 68.9 MPa
+  bolt-sut: 800 MPa
+  bolt-sp: 580 MPa
+  bolt-se: 129 MPa
+  bolt-area: 36.6 mm**2
+  bolts-per-joint: 2
+cases:
+  beam_fatigue_factor:
+    - expect: 9.11
+      rel: 0.005
+      source: "hand computation (SPEC.md 4.3): sigma_a = sigma_m = 5.521 MPa; 1 / (5.521/68.9 + 5.521/186)"
+  bolt_fatigue_factor:
+    - expect: 7.42
+      rel: 0.005
+      source: "hand computation (SPEC.md 4.3): sigma_a = 500 N / (2 x 36.6 mm^2) = 6.831 MPa, sigma_i = 435 MPa; 129 (800 - 435) / (6.831 (800 + 129))"

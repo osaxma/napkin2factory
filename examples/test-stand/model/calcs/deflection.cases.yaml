@@ -1,0 +1,15 @@
+# Reference cases of deflection.py (F17): the hand computation of SPEC.md section 4.3.
+inputs:
+  rated-load: 2000 N
+  span: 300 mm
+  column-length: 760 mm
+  beam-width: 40 mm
+  beam-height: 60 mm
+  beam-wall: 5 mm
+  column-size: 40 mm
+  column-wall: 3 mm
+cases:
+  frame_deflection:
+    - expect: 0.10498 mm
+      rel: 0.002
+      source: "hand computation (SPEC.md 4.3): 2 x 0.04007 mm (F L^3 / 48 E I, I = 407 500 mm^4, E = 68.9 GPa) + 0.02484 mm (1000 N x 760 mm / (68.9 GPa x 444 mm^2))"
