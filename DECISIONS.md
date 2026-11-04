@@ -223,6 +223,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-194 | Generated output carries no AI mark; how a design was made is the sharer's to say | in force |
 | S-195 | `make land` refuses a placeholder the task cites but does not define | in force |
 | S-196 | Faster test runs: one run at a time, 16 workers spread per test, prebuilt products, in-process CLI | in force |
+| S-197 | v0.7 opens: Track A as `docs/stages/v0.7-everyday-breadth.md`, W-series decisions, waves | in force |
 
 ---
 
@@ -1464,3 +1465,12 @@ collection failure; one pytest call in `make check` (`make tests`); `copy_produc
 copies a product built once per session; `n2f()` runs the CLI in process (`N2F_TEST_SUBPROCESS=1`,
 set by `check-full`, restores real processes); `test_impact_honest` and `test_choices` moved to
 e2e. Measured back to back under load: `make check-fast` 167 → 124 s, `make tests` 493 → 354 s.
+## S-197 — v0.7 opens: everyday breadth (2026-11-04)
+Road §5 step 3: Track A becomes `docs/stages/v0.7-everyday-breadth.md` (W1–W12), milestones M0–M5
+in four waves. Its "today" claims were checked against the code first (road §5 step 4): all hold,
+except that density lives in two tables (`calckit/data/materials.yaml` and `geometry/materials.py`;
+W2 makes one) and the conductor and wire-colour tables already carry a region (only earthing
+lacks one, W7). Locked here: two calc modules (members, joints), derived raise-only ceremony with
+a hazard tag on every safety requirement, product region and display units, benchmarks worked
+then re-derived by another vendor's model, an oracle runnable on any folder. The v0.6 trial's
+findings are triaged in a follow-up entry (W12). Open items: B-0188–B-0196.

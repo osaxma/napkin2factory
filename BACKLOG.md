@@ -104,6 +104,15 @@ entry that closed them. Ids are never reused.
 | B-0183 | `docs/electrical.md`'s rules table lacks `conductor-protection` and says the Class II case is "one pass row" | S-178; two lines in the table (`docs/electrical.md`, the docs task's file) |
 | B-0185 | Eleven modules over 550 lines after S-184 (`make health` lists them; the longest `core/checks/stage.py`, 734) | S-184 split only those over 750 and its list of five came from a cut-off listing (S-190); long files are where parallel tasks collide (S-080). Split one when a task next touches it, `core/checks/stage.py` first (every new check passes through it); health reviews track the count |
 | B-0187 | On a built product, changing the persona in `operator.yaml` does not rerun the report: it still shows `data-persona="owner"` (found by S-196; `test_engineer_tables_keep_uri_prefixes` stays on a cold build until fixed) | A stale report shows the wrong persona's tables to the reader; the persona is probably not a recorded read of the report rule (D5). Confirm, then record the read |
+| B-0188 | Structural calc pack: members (`calckit/structural.py`), joints, wood and fatigue (`calckit/joints.py`), cited load cases | v0.7 W1, M1a/M1b; closes when both land with reference cases |
+| B-0189 | One materials table with everyday materials (E, yield, moisture basis); four new processes; cost bands with region, currency, date | v0.7 W2, W3, M1c |
+| B-0190 | Frame kit (no rails, tabs, round tube, T-slot), a panel kit, four interface kinds (threaded insert, wood screw, T-slot, hinge pin) | v0.7 W5, M2a/M2b |
+| B-0191 | A generic `structural` napkin screen (deflection, yield, buckling, tip-over) | v0.7 W4, M2c |
+| B-0192 | Ceremony derived from the model (`lite`/`standard`, raise-only), hazard tags on safety requirements | v0.7 W6, M3a |
+| B-0193 | Product region (tables looked up by it, loud when missing) and display units | v0.7 W7, W8, M3b |
+| B-0194 | Three-tier benchmarks: `examples/table`, `examples/test-stand`, the kiln's `SPEC.md`, the oracle | v0.7 W9, M4 |
+| B-0195 | Real-world validation: build the table from its report, or a fabricator quote accepts its files | road-to-v1.0 §4.4; before the v1.0 tag |
+| B-0196 | Imperial units on drawings and exported files | v0.7 W8 non-goal |
 
 ## Closed
 

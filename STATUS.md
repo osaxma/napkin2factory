@@ -39,6 +39,8 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
   (`tests.conftest.copy_product`). Templates are synced with `make templates`, never hand-edited.
 
 ## Milestones (one line each; detail in the entries named)
+v0.7 — `docs/stages/v0.7-everyday-breadth.md` (Track A: structural physics, everyday materials, derived ceremony, region, the three-tier benchmarks), S-197; open, M0.
+
 v0.6 — `docs/stages/v0.6-electrical-stage.md` (the electrical domain through the v0.5 contract; the count of core edits is
 the headline), S-111; reconciled with the contract as built in S-141; closed, `docs/handoffs/HANDOFF-REPORT-v0.6.md`,
 version 0.6.0 (S-181). `docs/reviews/v0.6-independent-trial.md` is the outside model's brief for after it lands.
