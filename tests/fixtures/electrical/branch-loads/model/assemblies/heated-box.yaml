@@ -1,0 +1,9 @@
+id: heated-box
+rev: A
+name: Heated box with fan
+children:
+  - {part: part://box, qty: 1}
+  - {part: part://gland, qty: 1}
+  - {part: part://heater, qty: 1}
+  - {part: part://fan, qty: 1}
+  - {part: part://switch, qty: 1}

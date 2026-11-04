@@ -1,0 +1,3 @@
+parameters:
+  supply-rating: {value: 16, unit: A, description: Rating of the circuit the box plugs into}
+  entry-hole: {value: 16.5, unit: mm, description: Hole for the M16 cable gland}

@@ -847,3 +847,40 @@ def test_parameter_of_wrong_dimension_raises_validation_error(tmp_path: Path) ->
     _edit(root, HEATER, "power: param://missing-param", "")
     w_none = read_wiring(load_product(root))
     assert w_none.devices["heater"].power is None
+
+
+def test_branch_conductors_carry_downstream_loads_and_fan_branch_passes(tmp_path: Path) -> None:
+    """S-214: conductors carry what they feed; fan on thin branch passes."""
+    branch_src = ELEC / "branch-loads"
+    root = _copy(tmp_path, src=branch_src, name="branch")
+    rows = _rows(root)
+    rule_row = rows["elec-rule://conductor-current@heater"]
+    assert rule_row.status == "pass"
+    assert "every conductor is rated for it (the least margin: 3.1 A" in rule_row.message
+
+    # Conductor margin selector on branch circuit
+    w = read_wiring(load_product(root))
+    from napkin2factory.domains.electrical.checks.calcs import conductor_margin
+    from napkin2factory.domains.electrical.checks.nets import topology
+
+    t = topology(w)
+    cm = conductor_margin(w, "heater", t.earth, t)
+    assert cm is not None
+    assert "1.5 mm² PVC, rated 13.1 A, at connection 3" in cm.words
+
+    # When the heater branch uses a thin conductor, it fails against 10 A (not the 10.2 A total)
+    _edit(
+        root,
+        CIRCUIT,
+        'to: "device://heater#L", conductor: cu-1p5-pvc',
+        'to: "device://heater#L", conductor: cu-0p75-pvc',
+    )
+    rows_thin = _rows(root)
+    fail_row = rows_thin["elec-rule://conductor-current@heater"]
+    assert fail_row.status == "fail"
+    assert (
+        "connection 3 (Switch terminal 2 to Heater terminal L) is 0.75 mm² PVC, "
+        "rated 8.5 A (carries 10.0 A)"
+    ) in fail_row.message
+    # The fan branch (also 0.75 mm² PVC) carries 0.2 A, so it is NOT in the failure list
+    assert "Fan" not in fail_row.message

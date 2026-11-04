@@ -1,0 +1,6 @@
+id: heater
+part: part://heater
+role: load
+rating: {voltage: 230 V, current: 10 A}
+terminals: [L, N, PE]
+class: I

@@ -1,0 +1,17 @@
+requirements:
+  - id: REQ-001
+    title: Wired by a licensed electrician
+    statement: A licensed electrician checks the wiring before the box is first switched on.
+    category: safety
+    tags: [electrical, hazard:mains]
+    safety: true
+    priority: must
+    verify: {kind: manual, note: "The electrician signs off after the first inspection."}
+    allocation: [part://box]
+  - id: REQ-002
+    title: The heater fits the supply
+    statement: The heater draws no more than 10 A from the supply.
+    category: electrical
+    priority: must
+    verify: {kind: manual, note: "Read the heater's rating plate against the supply's rating."}
+    allocation: [part://heater]

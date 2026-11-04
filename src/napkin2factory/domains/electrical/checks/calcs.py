@@ -646,32 +646,176 @@ class ConductorLoad:
     wire: WireRec
     rated: Qty | None
     margin: Qty | None
+    current: Qty | None = None
 
 
-def conductor_loads(w: Wiring, cid: str, earth: set[str]) -> list[ConductorLoad]:
+def conductor_loads(
+    w: Wiring,
+    cid: str,
+    earth: set[str],
+    t: Any = None,
+) -> list[ConductorLoad]:
     """Each non-earth conductor of a circuit with its rated current and margin.
 
-    The current in each is the circuit's load current (a conductor of a series path carries
-    all of it); ``margin`` is ``None`` when the current or the rating is not known.
+    The current in each conductor is derived from the loads downstream of it (S-214):
+    walking the circuit's connections from each load terminal back toward the supply,
+    a conductor feeding one device carries that device's current; a shared conductor
+    carries the sum.  ``margin`` is ``None`` when the current or the rating is not known.
     Conductors on the earth net carry no load current and are left out.
     """
-    load = circuit_load(w, cid).total
+    c = w.circuits[cid]
+    loads = [d for d in w.circuit_devices(cid) if d.role == "load"]
+    if not loads:
+        out: list[ConductorLoad] = []
+        for wire in c.wires:
+            if wire.a in earth or wire.b in earth:
+                continue
+            row = w.conductors.get(wire.conductor or "")
+            rated = row.ampacity if row is not None else None
+            out.append(ConductorLoad(wire, rated, None, None))
+        return out
+
+    volts, _ = circuit_voltage(w, cid)
+    dev_currents: dict[str, Qty | None] = {}
+    for d in loads:
+        fig = device_current(d, volts)
+        dev_currents[d.id] = fig.value if fig is not None else None
+
+    load_terminals: dict[str, set[str]] = {}
+    for d in loads:
+        terms: set[str] = set()
+        for term in d.terminals:
+            node = f"device://{d.id}#{term}"
+            if node not in earth and term not in EARTH_TERMINALS:
+                terms.add(node)
+        load_terminals[d.id] = terms
+
+    if t is None:
+        from napkin2factory.domains.electrical.checks.nets import topology
+
+        t = topology(w)
+
+    from napkin2factory.domains.electrical.checks.nets import _Union
+
+    roots = set(t.sources.keys())
+    u_ext = _Union()
+    for c_other in w.circuits.values():
+        if c_other.id == cid:
+            continue
+        for wire in c_other.wires:
+            u_ext.join(wire.a, wire.b)
+    for dev in w.devices.values():
+        if dev.role == "earth":
+            nodes = [f"device://{dev.id}#{term}" for term in dev.terminals]
+            for a, b in zip(nodes, nodes[1:], strict=False):
+                u_ext.join(a, b)
+        elif dev.through:
+            for a, b in dev.through:
+                u_ext.join(f"device://{dev.id}#{a}", f"device://{dev.id}#{b}")
+
+    source_components = {u_ext.find(r) for r in roots}
+    source_nodes: set[str] = set()
+    for wire in c.wires:
+        for node in (wire.a, wire.b):
+            term = node.rsplit("#", 1)[-1]
+            if node in earth or term in EARTH_TERMINALS:
+                continue
+            if node in roots or u_ext.find(node) in source_components:
+                source_nodes.add(node)
+    all_load_terms = {node for terms in load_terminals.values() for node in terms}
+    source_nodes -= all_load_terms
+
+    adj: dict[str, list[tuple[str, WireRec | None]]] = {}
+    for wire in c.wires:
+        if wire.a in earth or wire.b in earth:
+            continue
+        adj.setdefault(wire.a, []).append((wire.b, wire))
+        adj.setdefault(wire.b, []).append((wire.a, wire))
+
+    for dev in w.circuit_devices(cid):
+        if dev.role == "load":
+            # Current does not pass through a load to feed other devices (S-214)
+            continue
+        if dev.through:
+            for a_term, b_term in dev.through:
+                na = f"device://{dev.id}#{a_term}"
+                nb = f"device://{dev.id}#{b_term}"
+                if na not in earth and nb not in earth:
+                    adj.setdefault(na, []).append((nb, None))
+                    adj.setdefault(nb, []).append((na, None))
+        elif dev.role == "passthrough":
+            nodes = [
+                f"device://{dev.id}#{term}"
+                for term in dev.terminals
+                if f"device://{dev.id}#{term}" not in earth
+            ]
+            for i, na in enumerate(nodes):
+                for nb in nodes[i + 1 :]:
+                    adj.setdefault(na, []).append((nb, None))
+                    adj.setdefault(nb, []).append((na, None))
+
+    dev_wires: dict[str, set[int]] = {}
+    for d in loads:
+        fed_wires: set[int] = set()
+
+        def _walk(current: str, visited: set[str], path: list[int]) -> None:
+            if current in source_nodes:
+                fed_wires.update(path)
+                return
+            for nxt, wire in adj.get(current, []):
+                if nxt in visited:
+                    continue
+                nxt_path = path + [wire.n] if wire is not None else path
+                visited.add(nxt)
+                _walk(nxt, visited, nxt_path)
+                visited.remove(nxt)
+
+        for term_node in load_terminals.get(d.id, set()):
+            _walk(term_node, {term_node}, [])
+
+        dev_wires[d.id] = fed_wires
+
+    any_traced = any(bool(s) for s in dev_wires.values())
+
     out: list[ConductorLoad] = []
-    for wire in w.circuits[cid].wires:
+    circuit_total_load = circuit_load(w, cid).total
+    fallback_qty = circuit_total_load.value if circuit_total_load is not None else None
+
+    for wire in c.wires:
         if wire.a in earth or wire.b in earth:
             continue
         row = w.conductors.get(wire.conductor or "")
         rated = row.ampacity if row is not None else None
+
+        if not any_traced:
+            carried = fallback_qty
+        else:
+            fed_devs = [d for d in loads if wire.n in dev_wires.get(d.id, set())]
+            if not fed_devs:
+                carried = Quantity(0.0, "A")
+            elif any(dev_currents[d.id] is None for d in fed_devs):
+                carried = None
+            else:
+                carried = sum(
+                    (dev_currents[d.id] for d in fed_devs if dev_currents[d.id] is not None),
+                    Quantity(0.0, "A"),
+                ).to("A")
+
         margin = None
-        if rated is not None and load is not None:
-            margin = (rated - load.value).to("A")
-        out.append(ConductorLoad(wire, rated, margin))
+        if rated is not None and carried is not None:
+            margin = (rated - carried).to("A")
+        out.append(ConductorLoad(wire, rated, margin, carried))
     return out
 
 
-def conductor_margin(w: Wiring, cid: str, earth: set[str]) -> Figure | None:
+def conductor_margin(
+    w: Wiring,
+    cid: str,
+    earth: set[str],
+    t: Any = None,
+) -> Figure | None:
     """The smallest margin of a circuit's conductors (``None`` when one is not known)."""
-    rows = conductor_loads(w, cid, earth)
+    rows = conductor_loads(w, cid, earth, t)
     if not rows or any(r.margin is None for r in rows):
         return None
     worst = min(rows, key=lambda r: magnitude_in(r.margin, "A"))

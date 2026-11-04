@@ -240,6 +240,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-211 | The structural screen counts self weight and short columns | in force |
 | S-212 | Discard keeps filed change requests; plain words on promotion | in force |
 | S-213 | The trial's documentation gaps closed | in force |
+| S-214 | Each conductor carries what it feeds; an empty cable entry is not a failure | in force |
 
 ---
 
@@ -1635,3 +1636,5 @@ and lists the five frame member profiles (`square-tube`, `angle`, `rect-tube`, `
 (3) Kit args clarify `{expr: ...}` is refused, showing the helper-parameter pattern in `docs/kit.md` and
 `docs/agent-guide.md`. (4) First CAD kernel load timing raised to up to ~4 min; Playwright browser install
 step documented in `docs/agent-guide.md` and `docs/napkin.md`. Measured: doc and template tests green.
+## S-214 — Each conductor carries what it feeds; an empty cable entry is not a failure (2026-11-04)
+Fixes trial 2 concerns C9 and C1 (B-0199, S-208). (1) Per-conductor current: each conductor's current is derived from the downstream loads it feeds by walking the circuit net from load terminals back toward the supply; a conductor feeding one device carries that device's load, and a shared conductor carries their sum. (2) `check_cable_entry`: an empty `passes: []` returns pass ("nothing passes through yet"), so a cable-entry interface placed before circuits are routed no longer fails a requirement verifying it; an unrouted listed circuit still fails. Existing fixtures and the kiln's wiring results are unchanged (the old rule evaluated single-load circuits correctly; only multi-load branched circuits were charged the full circuit total on thin branch conductors). Measured: `tests/fixtures/electrical/branch-loads/` (10 A heater branch, 0.2 A fan branch on 0.75 mm² PVC) passes with 3.1 A least margin; unit tests in `tests/unit/test_electrical_checks.py` and `test_electrical_model.py`.

@@ -114,7 +114,7 @@ def figure(w: Wiring, cid: str, sel: str) -> Figure | None:
         return supply_margin(w)
     t = nets.topology(w)
     if sel == "conductor_margin":
-        return conductor_margin(w, cid, t.earth)
+        return conductor_margin(w, cid, t.earth, t)
     n = nets.circuit_earth_count(w, t, cid)
     return Figure(Quantity(float(n), ""), "counted from the connections")
 

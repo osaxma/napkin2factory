@@ -64,8 +64,8 @@ def check_cable_entry(product: Any, iface: Any, build_dir: Path) -> dict[str, An
     """The entry's own check, after the core's hole checks (S-144).
 
     Fails when a circuit it lists does not exist or has no connection going ``via`` it;
-    warns when it lists none.  The message says the joint in the owner's words: the box,
-    the gland and the circuits that cross there.
+    passes when it lists none (left for later, S-214).  The message says the joint in
+    the owner's words: the box, the gland and the circuits that cross there.
     """
     from napkin2factory.domains.electrical.model import circuits
 
@@ -74,10 +74,10 @@ def check_cable_entry(product: Any, iface: Any, build_dir: Path) -> dict[str, An
     known = circuits(product)
     listed = [str(u) for u in iface.spec.passes]
     if not listed:
+        # S-214: an entry placed before circuits are routed passes
         return {
-            "status": "warn",
-            "message": f"{joint}: no circuit passes through this entry yet; list the circuits "
-            "that cross here under `passes:`",
+            "status": "pass",
+            "message": f"{joint}: nothing passes through yet",
         }
     problems: list[str] = []
     crossing: list[str] = []

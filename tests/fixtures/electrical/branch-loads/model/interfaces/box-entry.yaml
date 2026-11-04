@@ -1,0 +1,9 @@
+id: box-entry
+kind: cable-entry
+parties: [part://box, part://gland]
+name: Supply cable into the box
+description: The supply cable enters the box through the gland in its top.
+frames:
+  part://box: {origin: [0, 0, 40], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+  part://gland: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
+spec: {diameter: param://entry-hole, passes: [circuit://heater]}

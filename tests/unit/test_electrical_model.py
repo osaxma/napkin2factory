@@ -518,10 +518,57 @@ def test_the_entrys_own_check_fails_a_circuit_that_does_not_cross(
     _edit(other, "model/interfaces/box-entry.yaml", "passes: [circuit://heater]", "passes: []")
     product = load_product(other)
     report = check_cable_entry(product, product.interfaces["box-entry"], root / "build")
-    assert (
-        report["status"] == "warn"
-        and "no circuit passes through this entry yet" in report["message"]
+    assert report["status"] == "pass" and "nothing passes through yet" in report["message"]
+
+
+def test_empty_cable_entry_requirement_passes_and_unrouted_circuit_fails(
+    built: tuple[Path, Product], tmp_path: Path
+) -> None:
+    """S-214: passes: [] gives pass; unrouted circuit still fails."""
+    root, _ = built
+    other = _copy(tmp_path)
+    _write(
+        other,
+        "model/requirements.yaml",
+        (other / "model/requirements.yaml").read_text(encoding="utf-8")
+        + "  - id: REQ-003\n"
+        + "    title: Cable entry is clear\n"
+        + "    statement: The cable entry hole is ready for future wiring.\n"
+        + "    category: electrical\n"
+        + "    priority: should\n"
+        + "    verify: {kind: interface, target: iface://box-entry}\n",
     )
+    # 1. passes: [] and nothing routed via it -> interface check passes and requirement passes
+    _edit(other, "model/interfaces/box-entry.yaml", "passes: [circuit://heater]", "passes: []")
+    path = other / CIRCUIT
+    unrouted_text = path.read_text(encoding="utf-8").replace(", via: iface://box-entry", "")
+    path.write_text(unrouted_text, encoding="utf-8")
+    product = load_product(other)
+    from napkin2factory.core.checks.evaluators import EvalContext, evaluate_requirement
+    from napkin2factory.core.checks.interface import check_interface
+
+    rep = check_interface(product, product.interfaces["box-entry"], root / "build")
+    assert rep.status == "pass"
+    assert "nothing passes through yet" in rep.message
+
+    ctx = EvalContext(product, root / "build")
+    ctx.interfaces["box-entry"] = rep.to_dict()
+    res = evaluate_requirement(ctx, product.requirements["REQ-003"])
+    assert res.status == "pass"
+    assert "nothing passes through yet" in res.message
+
+    # 2. passes: [circuit://heater] but unrouted -> fails as today
+    _edit(other, "model/interfaces/box-entry.yaml", "passes: []", "passes: [circuit://heater]")
+    product_unrouted = load_product(other)
+    rep_unrouted = check_interface(
+        product_unrouted, product_unrouted.interfaces["box-entry"], root / "build"
+    )
+    assert rep_unrouted.status == "fail"
+    ctx_unrouted = EvalContext(product_unrouted, root / "build")
+    ctx_unrouted.interfaces["box-entry"] = rep_unrouted.to_dict()
+    res_unrouted = evaluate_requirement(ctx_unrouted, product_unrouted.requirements["REQ-003"])
+    assert res_unrouted.status == "fail"
+    assert "none of its connections goes `via: iface://box-entry`" in res_unrouted.message
 
 
 @pytest.mark.parametrize(

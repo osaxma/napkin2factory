@@ -94,7 +94,7 @@ def _protection_row(rows: _Rows, w: Wiring, cid: str) -> None:
 
 def _conductor_row(rows: _Rows, w: Wiring, t: nets.Topology, cid: str) -> None:
     c = w.circuits[cid]
-    loads = conductor_loads(w, cid, t.earth)
+    loads = conductor_loads(w, cid, t.earth, t)
     if not loads:
         return
     subject, home = rows.circuit_subject(cid)
@@ -124,13 +124,15 @@ def _conductor_row(rows: _Rows, w: Wiring, t: nets.Topology, cid: str) -> None:
     unrated = [r for r in loads if r.wire.conductor is not None and r.rated is None]
     detail = {"current_a": round(current.amps(), 3)}
     if thin:
-        said = _list(
-            [
-                f"{r.wire.words} is {w.conductors[r.wire.conductor or ''].label}, rated "
-                f"{_a(r.rated)}"
-                for r in thin
-            ]
-        )
+
+        def _thin_words(r: ConductorLoad) -> str:
+            label = w.conductors[r.wire.conductor or ""].label
+            base = f"{r.wire.words} is {label}, rated {_a(r.rated)}"
+            if r.current is not None and abs(r.current.to("A").magnitude - current.amps()) > 1e-3:
+                return f"{base} (carries {_a(r.current)})"
+            return base
+
+        said = _list([_thin_words(r) for r in thin])
         rows.add(
             "conductor-current",
             cid,
@@ -205,7 +207,7 @@ def _protected_by(
         direct = nets.fed_unprotected(t, protective)
     powered = nets.fed_unprotected(t, set())
     out: list[tuple[ConductorLoad, Figure | None, str]] = []
-    for r in conductor_loads(w, cid, t.earth):
+    for r in conductor_loads(w, cid, t.earth, t):
         ends = (r.wire.a, r.wire.b)
         if not any(n in powered for n in ends):
             continue

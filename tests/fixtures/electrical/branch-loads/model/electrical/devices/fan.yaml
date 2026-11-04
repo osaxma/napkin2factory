@@ -1,0 +1,6 @@
+id: fan
+part: part://fan
+role: load
+rating: {voltage: 230 V, current: 0.2 A}
+terminals: [L, N]
+class: II

@@ -1,0 +1,10 @@
+id: fan
+rev: A
+name: Fan
+kind: cots
+process: none
+geometry: none
+source: {vendor: Fan maker, mpn: FAN-230V, url: "https://example.com/fan", verified: true}
+cost: {unit: 8 USD, basis: catalog}
+lead_time: 2 d
+mass: 80 g

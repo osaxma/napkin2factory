@@ -189,7 +189,8 @@ spec: {diameter: 20.5 mm, passes: [circuit://power, circuit://earth]}
 The core cuts the hole in every party that has a shape, matches the parties and lines the
 joint up, as for a bolt pattern; a bought gland with no shape is skipped with the core's
 sentence. Then the entry's own check runs: a circuit under `passes` that does not exist, or
-that has no connection going `via` this entry, fails; an empty `passes` is worth a look.
+that has no connection going `via` this entry, fails; an empty `passes` passes ("nothing passes through yet")
+so an entry can be placed before circuits are routed (S-214).
 Every connection that crosses the box names its entry with `via: iface://<id>`.
 
 ## A box supplied, not built here: a module with cable-entry ports
@@ -249,7 +250,7 @@ diagrams, `schedule.csv`, `labels.csv` and `cables.csv` go in the release packag
 | rule | status when it does not hold | what it checks |
 |---|---|---|
 | `supply-load` | fail | the power circuits' loads, added up, against the supply's rating |
-| `conductor-current` | fail | each conductor's rated current (the table's ampacity) against its circuit's load current |
+| `conductor-current` | fail | each conductor's rated current (the table's ampacity) against the current it carries from the loads downstream (S-214) |
 | `earth-path` | fail | each custom part of a conductive material reaches the supply's earth by a conductor, or names the joints that bond it to a part that does (a warn when its material is unknown); every device Class II or III: one pass row |
 | `protection` | fail | each power and control circuit names a protective device whose rating is not below its load (`supply` passes when the supply has a rating) |
 | `terminal-conductors` | fail | a terminal holding more conductors than its device allows; no device field declares the limit yet (B-0137), so it writes no row |
@@ -287,7 +288,7 @@ The figure is selected as `#props.<figure>` (S-167):
 |---|---|
 | `#props.load_current` | the current the circuit's loads draw (A), from their rated power at the rated voltage (`calckit.power`) |
 | `#props.supply_margin` | the supply's rating less every power circuit's load (A) |
-| `#props.conductor_margin` | the smallest margin of the circuit's conductors over its load current (A) |
+| `#props.conductor_margin` | the smallest margin of the circuit's conductors over the current each carries (A) |
 | `#props.earth_paths` | how many parts the circuit earths (a count) |
 
 `value` is a quantity with its unit (`0 A`, `16 A`), never a `param://`: the core refuses it.
