@@ -1,0 +1,10 @@
+# The same bench on tall, thin legs: slim enough to buckle the way Euler describes (the
+# structural screen's buckling card).
+id: C-005
+title: Tall thin legs
+site:
+  point_load: 1471.5 N
+  max_deflection: 2.5 mm
+massing:
+  - {kit: frame, as: base, material: mild steel, args: {length: 1450 mm, width: 750 mm, height: 2000 mm, member: {profile: square-tube, size: 25 mm, wall: 1.5 mm}, top_rails: true, bottom_rails: false}}
+  - {kit: block, as: top, material: white-oak, args: {length: 1600 mm, width: 800 mm, height: 40 mm}, at: {z: 2000 mm}}

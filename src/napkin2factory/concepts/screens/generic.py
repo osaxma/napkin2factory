@@ -11,6 +11,8 @@
 * **blank-vs-stock-sheet** — every folded sheet's flat blank on a stock sheet (a rule only).
 * **walls-fit-envelope** — an inner size plus two walls inside the body, when a screen of
   the product gives them (``values.shared["inner_size"]``, ``["wall"]``; a rule only).
+* **structural** — sag, yield, buckling and tip-over under the loads a card gives on its
+  ``site`` (:mod:`.structural`; W4).
 
 Their rule rows are the ``concept-v0`` pack's (``rulepacks/concept-v0.yaml``). A screen
 only a product needs lives in that product's ``model/screens/`` (F10).
@@ -30,6 +32,7 @@ from napkin2factory.concepts.screens.base import (
     reads,
     the,
 )
+from napkin2factory.concepts.screens.structural import STRUCTURAL
 from napkin2factory.core.domain import Screen
 from napkin2factory.core.model.concepts import ConceptCard, RuleRow
 from napkin2factory.core.units import Quantity
@@ -331,6 +334,7 @@ GENERIC_SCREENS: tuple[Screen, ...] = (
     Screen("mass-vs-lift", mass_vs_lift, title="How it can be lifted"),
     Screen("blank-vs-stock-sheet", blank_vs_stock_sheet, title="Sheets fit stock sizes"),
     Screen("walls-fit-envelope", walls_fit_envelope, title="Walls fit the body"),
+    STRUCTURAL,
 )
 
 __all__ = [

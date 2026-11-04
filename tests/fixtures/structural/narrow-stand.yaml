@@ -1,0 +1,13 @@
+# A narrow, light stand with a stiff enough top for its small load: it leans over under the
+# edge load (the structural screen's tip-over card).
+id: C-003
+title: Narrow stand, edge load
+layout: {stand: four-leg}
+site:
+  point_load: 400 N
+  edge_load: 490.5 N
+  edge_offset: 150 mm
+  max_deflection: 2.5 mm
+massing:
+  - {kit: frame, as: base, material: mild steel, args: {length: 1450 mm, width: 300 mm, height: 730 mm, member: {profile: square-tube, size: 50 mm, wall: 2 mm}, top_rails: true, bottom_rails: false}}
+  - {kit: block, as: top, material: white-oak, args: {length: 1600 mm, width: 300 mm, height: 40 mm}, at: {z: 730 mm}}

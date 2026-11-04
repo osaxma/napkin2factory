@@ -1,0 +1,13 @@
+# A made-up bench: four steel corner legs, no apron, and a thin softwood top that spans the
+# whole length between the legs (a card for the structural screen's tests; generic names only).
+id: C-001
+title: Four legs, no apron, thin softwood top
+layout: {stand: four-leg}
+site:
+  point_load: 1471.5 N
+  edge_load: 490.5 N
+  edge_offset: 150 mm
+  max_deflection: 2.5 mm
+massing:
+  - {kit: frame, as: base, material: mild steel, args: {length: 1450 mm, width: 750 mm, height: 730 mm, member: {profile: square-tube, size: 50 mm, wall: 2 mm}, top_rails: false, bottom_rails: true, bottom_rail_height: 150 mm}}
+  - {kit: block, as: top, material: southern-yellow-pine, args: {length: 1600 mm, width: 800 mm, height: 22 mm}, at: {z: 730 mm}}

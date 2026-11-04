@@ -106,6 +106,7 @@ entry that closed them. Ids are never reused.
 | B-0187 | On a built product, changing the persona in `operator.yaml` does not rerun the report: it still shows `data-persona="owner"` (found by S-196; `test_engineer_tables_keep_uri_prefixes` stays on a cold build until fixed) | A stale report shows the wrong persona's tables to the reader; the persona is probably not a recorded read of the report rule (D5). Confirm, then record the read |
 | B-0190 | Frame kit (no rails, tabs, round tube, T-slot), a panel kit, four interface kinds (threaded insert, wood screw, T-slot, hinge pin) | v0.7 W5, M2a/M2b |
 | B-0191 | A generic `structural` napkin screen (deflection, yield, buckling, tip-over) | v0.7 W4, M2c |
+| B-0192 | Ceremony derived from the model (`lite`/`standard`, raise-only), hazard tags on safety requirements | v0.7 W6, M3a |
 | B-0193 | Product region (tables looked up by it, loud when missing) and display units | v0.7 W7, W8, M3b |
 | B-0194 | Three-tier benchmarks: `examples/table`, `examples/test-stand`, the kiln's `SPEC.md`, the oracle | v0.7 W9, M4 |
 | B-0195 | Real-world validation: build the table from its report, or a fabricator quote accepts its files | road-to-v1.0 §4.4; before the v1.0 tag |
@@ -115,6 +116,7 @@ entry that closed them. Ids are never reused.
 
 | id | item | closed by |
 |---|---|---|
+| B-0191 | A generic `structural` napkin screen (deflection, yield, buckling, tip-over) | closed by S-206 |
 | B-0188 | Structural calc pack: members and joints, wood, fatigue, cited load cases | closed by S-201 (members in S-198) |
 | B-0192 | Ceremony derived from the model (`lite`/`standard`, raise-only), hazard tags on safety requirements | Closed 2026-11-04 (S-205): `core/ceremony.py` derives the level; hazard tags on safety requirements (lint `L4-hazard-tag`); `lite` relaxations for tolerance classes, manuals and empty report sections; `n2f check` names the ceremony and a rise |
 | B-0189 | One materials table with everyday materials (E, yield, moisture basis); four new processes; cost bands with region, currency, date | Closed 2026-11-04 (S-199): unified materials.yaml with Young's modulus, yield strength and moisture basis, DENSITIES merged; four processes in processes.yaml; regional dated cost bands with staleness |

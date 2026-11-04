@@ -1,0 +1,13 @@
+# The same bench with a perimeter steel apron and a thick oak top (the structural screen's
+# passing card).
+id: C-002
+title: Steel apron frame, thick oak top
+layout: {stand: four-leg}
+site:
+  point_load: 1471.5 N
+  edge_load: 490.5 N
+  edge_offset: 150 mm
+  max_deflection: 2.5 mm
+massing:
+  - {kit: frame, as: base, material: mild steel, args: {length: 1450 mm, width: 750 mm, height: 730 mm, member: {profile: square-tube, size: 50 mm, wall: 2 mm}, top_rails: true, bottom_rails: false}}
+  - {kit: block, as: top, material: white-oak, args: {length: 1600 mm, width: 800 mm, height: 40 mm}, at: {z: 730 mm}}

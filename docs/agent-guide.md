@@ -203,7 +203,15 @@ The card fields screening reads come from the installed screens (`n2f doctor` li
 `site.width`, `site.depth` and `site.height` (`alcove_width` and the like, from before v0.5,
 are still read and the lint says so). `envelope.door_swing: 110 degree` (how far a hinged
 door opens; without it the door counts swung fully back, the widest case) narrows the fit
-check to what the door really needs. A product can bring screens of its own in
+check to what the door really needs. A card that gives a load on its `site` also gets the
+generic `structural` screen: `point_load` (at the middle of the top, or the arm's tip),
+`distributed_load` (spread over the top), `edge_load` with `edge_offset` (how far beyond the
+support it acts, for tipping), `max_deflection` and `cycles`, each a number with its unit. It
+reads the supports from the massing (a `frame` call and the widest flat board on it, or a
+`tube`/`block` column with an arm) and reports sag, yield, buckling and tip-over with the
+formula and source of each; a check whose input is missing is shown as not run, saying which.
+A product's own word for one of these (a throat, an overhang) lives in its own folder.
+A product can bring screens of its own in
 `model/screens/` (the kiln's heated-box screens read a power, a supply circuit, a touch
 limit); `docs/napkin.md` explains the stage and its packs.
 

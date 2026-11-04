@@ -1,0 +1,10 @@
+# A made-up rig: one steel column standing on the floor with an arm reaching out from its top,
+# loaded at the arm's tip (the structural screen's cantilever card).
+id: C-004
+title: One column and an arm
+site:
+  point_load: 2000 N
+  max_deflection: 0.2 mm
+massing:
+  - {kit: tube, as: column, material: mild steel, args: {shape: square, size: 60 mm, wall: 4 mm, length: 400 mm, axis: z}}
+  - {kit: tube, as: arm, material: mild steel, args: {shape: square, size: 60 mm, wall: 4 mm, length: 150 mm, axis: x}, at: {x: 0 mm, z: 400 mm}}
