@@ -1,0 +1,53 @@
+# The wall bracket judged by outcome: the real shapes of `n2f check --json` and the BOM
+# roll-up, which the unit tests only imitate (tests/e2e/test_benchmarks.py).
+oracle: 1
+title: Wall bracket
+figures:
+  - name: width
+    what: overall width, found by the 150 mm bound it meets (mm)
+    find: {requirement: {bound: 150 mm}}
+    unit: mm
+    expect: 120
+    tol: 0.01
+  - name: mass
+    what: mass, found by the 0.5 kg bound it meets (kg)
+    find: {requirement: {bound: 0.5 kg}}
+    unit: kg
+    expect: 0.356
+    tol: 0.01
+  - name: unit-cost
+    what: unit cost, found by the 30 USD bound it meets (USD)
+    find: {requirement: {bound: 30 USD}}
+    unit: USD
+    expect: 12
+    tol: 0.01
+  - name: total-mass
+    what: BOM total mass (kg)
+    find: {rollup: total_mass}
+    unit: kg
+    expect: 0.356
+    tol: 0.01
+  - name: parts
+    what: one distinct part
+    find: {rollup: distinct_parts}
+    expect: 1
+    tol: 0
+facts:
+  - name: no-supply
+    what: no electrical supply
+    fact: supply
+    equals: none
+  - name: one-assembly
+    what: one assembly in all
+    fact: assemblies
+    expect: 1
+  - name: nothing-fails
+    what: no requirement fails
+    fact: count_requirements
+    status: fail
+    expect: 0
+  - name: verify-gate-clear
+    what: nothing blocks the verify gate
+    fact: gate_blockers
+    gate: verify
+    expect: 0

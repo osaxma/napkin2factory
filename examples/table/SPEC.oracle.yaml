@@ -1,0 +1,266 @@
+# SPEC.oracle.yaml for the Tier 1 benchmark, the oak-and-steel table (road-to-v1.0 section 4).
+# Written from SPEC.md section 7 (Expected outcomes) and the worked figures of section 4; every
+# number here is the spec's. No row names a part, requirement or card id: a card is found by its
+# status, the kind of check that failed it and what it is made of; a number by what it bounds
+# or by the screening value it is. Format and matcher kinds: tests/benchmarks/README.md.
+# Run: uv run python -m tests.benchmarks.oracle examples/table examples/table/SPEC.oracle.yaml
+oracle: 1
+title: Oak-and-steel workshop table (tier 1)
+spec: SPEC.md
+
+concepts:
+  count: 3
+  promoted:
+    material: white-oak
+    kit: frame
+    why: the perimeter steel apron frame under a 30 mm oak top clears every limit by 30 % or more
+  rejected:
+    - by: [structural]
+      not_by: [mass, cost]
+      material: southern-yellow-pine
+      why: four corner legs and a 22 mm pine top sag 14.3 mm against 2.5 mm; strength, mass and cost pass
+    - by: [mass, cost]
+      not_by: [structural]
+      material: white-oak
+      why: heavy plate trestles weigh 148 kg against 70 kg and cost from 2450 USD against 1600 USD; the sag passes
+
+figures:
+  # --- the three cards as the napkin stage screens them (SPEC section 7 table) ---
+  - name: c1-sag
+    what: mid-span sag under the 150 kg centre load plus self weight, on the pine card with four corner legs (mm)
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: deflection}
+    unit: mm
+    expect: 14.3
+    tol: 0.05
+  - name: c1-mass
+    what: total mass of the pine card with four corner legs (kg)
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: [total_mass, mass]}
+    unit: kg
+    expect: 24.7
+    tol: 0.02
+  - name: c1-cost-low
+    what: low end of the cost band of the pine card with four corner legs (USD, US, 2026-11)
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: cost_low}
+    unit: USD
+    expect: 332
+    tol: 0.02
+  - name: c1-cost-high
+    what: high end of the cost band of the pine card with four corner legs (USD, US, 2026-11)
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: cost_high}
+    unit: USD
+    expect: 548
+    tol: 0.02
+  - name: c1-tip-over
+    what: tip-over factor at the governing edge of the pine card with four corner legs
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: tip_over_factor}
+    expect: 9.38
+    tol: 0.05
+  - name: c2-sag
+    what: mid-span sag under the 150 kg centre load plus self weight, on the promoted card (mm)
+    card: promoted
+    find: {screen_value: deflection}
+    unit: mm
+    expect: 1.58
+    tol: 0.05
+  - name: c2-mass
+    what: total mass of the promoted card (kg)
+    card: promoted
+    find: {screen_value: [total_mass, mass]}
+    unit: kg
+    expect: 45.3
+    tol: 0.02
+  - name: c2-cost-low
+    what: low end of the cost band of the promoted card (USD, US, 2026-11)
+    card: promoted
+    find: {screen_value: cost_low}
+    unit: USD
+    expect: 606
+    tol: 0.02
+  - name: c2-cost-high
+    what: high end of the cost band of the promoted card (USD, US, 2026-11)
+    card: promoted
+    find: {screen_value: cost_high}
+    unit: USD
+    expect: 980
+    tol: 0.02
+  - name: c2-tip-over
+    what: tip-over factor at the governing edge of the promoted card
+    card: promoted
+    find: {screen_value: tip_over_factor}
+    expect: 3.92
+    tol: 0.05
+  - name: c3-sag
+    what: mid-span sag under the 150 kg centre load plus self weight, on the heavy trestle card (mm)
+    card: {status: rejected, by: [mass, cost]}
+    find: {screen_value: deflection}
+    unit: mm
+    expect: 0.837
+    tol: 0.05
+  - name: c3-mass
+    what: total mass of the heavy trestle card (kg)
+    card: {status: rejected, by: [mass, cost]}
+    find: {screen_value: [total_mass, mass]}
+    unit: kg
+    expect: 148
+    tol: 0.02
+  - name: c3-cost-low
+    what: low end of the cost band of the heavy trestle card (USD, US, 2026-11)
+    card: {status: rejected, by: [mass, cost]}
+    find: {screen_value: cost_low}
+    unit: USD
+    expect: 2450
+    tol: 0.02
+  - name: c3-cost-high
+    what: high end of the cost band of the heavy trestle card (USD, US, 2026-11)
+    card: {status: rejected, by: [mass, cost]}
+    find: {screen_value: cost_high}
+    unit: USD
+    expect: 3010
+    tol: 0.02
+  - name: c3-tip-over
+    what: tip-over factor at the governing edge of the heavy trestle card
+    card: {status: rejected, by: [mass, cost]}
+    find: {screen_value: tip_over_factor}
+    expect: 10.2
+    tol: 0.05
+  - name: c1-top-yield
+    what: yield factor of the top of the pine card
+    card: {status: rejected, by: [structural]}
+    find: {screen_value: yield_factor}
+    expect: 5.28
+    tol: 0.05
+  - name: c2-top-yield
+    what: yield factor of the oak top of the promoted card
+    card: promoted
+    find: {screen_value: yield_factor}
+    expect: 34.0
+    tol: 0.05
+  # --- the finished product (the promoted design, built) ---
+  - name: product-mass
+    what: assembled mass of the table (kg)
+    find: {rollup: total_mass}
+    unit: kg
+    expect: 45.3
+    tol: 0.02
+  - name: product-cost-in-band
+    what: unit cost of the table lies inside its cost band (USD, US, 2026-11; 606-980 widened 2 % each end)
+    find: {rollup: total_cost}
+    unit: USD
+    range: [594, 1000]
+  - name: product-parts
+    what: number of distinct parts (top, frame, glide, insert, screw)
+    find: {rollup: distinct_parts}
+    expect: 5
+    tol: 0
+  - name: req-sag
+    what: centre-load sag, requirement bounded at 2.5 mm (mm)
+    find: {requirement: {bound: 2.5 mm}}
+    unit: mm
+    expect: 1.58
+    tol: 0.05
+  - name: req-long-term-sag
+    what: long-term sag with timber creep, also bounded at 2.5 mm (mm)
+    find: {requirement: {bound: 2.5 mm}}
+    unit: mm
+    expect: 0.754
+    tol: 0.05
+  - name: req-rail-yield
+    what: yield factor of the governing spanning member (the steel rails)
+    find: {requirement: {bound: '1.5'}}
+    expect: 5.69
+    tol: 0.05
+  - name: req-buckling
+    what: leg buckling factor (Johnson parabola)
+    find: {requirement: {bound: '2'}}
+    expect: 38.3
+    tol: 0.05
+  - name: req-tip-over
+    what: tip-over factor, the safety requirement
+    find: {requirement: {bound: '2', safety: true}}
+    expect: 3.92
+    tol: 0.05
+  - name: req-racking
+    what: racking sway under the 300 N push (mm); stated unfactored 0.751 and under 2.0 x the push 1.50
+    find: {requirement: {bound: 3 mm}}
+    unit: mm
+    expect: [0.751, 1.50]
+    tol: 0.05
+  - name: req-corner
+    what: welded corner moment factor
+    find: {requirement: {bound: '2'}}
+    expect: 15.3
+    tol: 0.05
+  - name: req-pullout
+    what: insert pull-out factor when lifted by the top
+    find: {requirement: {bound: '2.5'}}
+    expect: 84.5
+    tol: 0.05
+  - name: req-mass
+    what: mass requirement, bounded at 70 kg (kg)
+    find: {requirement: {bound: 70 kg}}
+    unit: kg
+    expect: 45.3
+    tol: 0.02
+  - name: req-cost
+    what: cost requirement, bounded at 1600 USD, whose measured value lies in the cost band (USD)
+    find: {requirement: {bound: 1600 USD}}
+    unit: USD
+    range: [594, 1000]
+
+facts:
+  - name: ceremony
+    what: the ceremony derives to lite (one domain, no hazardous energy; the tip-over requirement keeps its sign-off)
+    fact: ceremony
+    equals: lite
+  - name: region
+    what: the product's region is the one the US cost bands are read for
+    fact: region
+    equals: US
+  - name: no-supply
+    what: no electrical supply (no electrical domain)
+    fact: supply
+    equals: none
+  - name: flat-assembly
+    what: one assembly in all, no sub-assemblies (a flat product)
+    fact: assemblies
+    expect: 1
+  - name: one-safety-requirement
+    what: exactly one requirement is a safety requirement (tip-over)
+    fact: count_requirements
+    safety: true
+    expect: 1
+  - name: one-signoff
+    what: exactly one requirement waits on, or carries, a human sign-off
+    fact: count_requirements
+    status_in: [needs-human, signed, example]
+    expect: 1
+  - name: nothing-fails
+    what: no requirement fails
+    fact: count_requirements
+    status: fail
+    expect: 0
+  - name: only-the-signoff-blocks
+    what: nothing but a sign-off blocks the verify gate
+    fact: gate_blockers
+    gate: verify
+    matching: sign-off
+    invert: true
+    expect: 0
+
+# Figures SPEC.md states that n2f cannot show yet. Each becomes a row when the thing exists.
+pending:
+  - what: ECR-1 (top 30 to 32 mm) accepted with sag 1.49 mm, mass 47.2 kg, cost 623-1022 USD, tip-over 4.09; ECR-2 (500 mm seating overhang) refused, tip-over 1.04
+    reason: the oracle has no change-request replay step; it needs a scripted n2f ecr run on a copy of the product, judged against the figures of SPEC.md section 6
+  - what: across-grain movement 7.05 mm at a slotted fixing, slot free travel 13 mm
+    reason: the requirement's form is the agent's (bound the free travel, or the movement), so no bound can be named yet; add a requirement finder when the example's requirement exists
+  - what: leg buckling factor 38.3 on the napkin card
+    reason: the structural screen runs Euler's formula and skips a short column (SPEC.md section 4.1 uses the Johnson parabola); judged on the finished product only
+  - what: rail yield factor 5.69 and long-term sag 0.754 mm on the napkin card
+    reason: the screen checks the top's sag and stress only; both are judged on the finished product
+  - what: low and high ends of the finished product's cost band (606 and 980 USD)
+    reason: the BOM roll-up carries one total cost; the finished product is judged as inside the band

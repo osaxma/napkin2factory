@@ -1,0 +1,30 @@
+# The kiln's napkin stage judged by outcome: the real shapes of `n2f concept` output, which the
+# unit tests only imitate (tests/e2e/test_benchmarks.py). Only concept rows: no product build.
+oracle: 1
+title: The kiln's concept cards
+concepts:
+  count: 4
+  promoted: {kit: block, why: the as-built look in the wider alcove}
+  rejected:
+    - {by: [envelope], why: the open door needs 1236 mm of an 800 mm alcove}
+    - {not_by: [envelope]}
+    - {not_by: [envelope]}
+figures:
+  - name: as-built-width
+    what: overall width of the card that does not fit the alcove (mm)
+    card: {status: rejected, by: [envelope]}
+    find: {screen_value: width}
+    unit: mm
+    expect: 995
+  - name: as-built-width-with-door
+    what: width with the open door, on the same card (mm)
+    card: {status: rejected, by: [envelope]}
+    find: {screen_value: footprint_with_door_swing}
+    unit: mm
+    expect: 1236
+  - name: element-current
+    what: element current on the promoted card (A)
+    card: promoted
+    find: {screen_value: current}
+    unit: A
+    expect: 10.9

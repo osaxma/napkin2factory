@@ -235,6 +235,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-206 | The generic structural screen reads loads from the site and members from the massing (amends W4) | in force |
 | S-207 | Calc pack fixes from the table benchmark: Johnson columns, room-temperature EMC, composite creep, budget screen | in force |
 | S-208 | The v0.6 independent trials, triaged: one blocker (a change request that removes a part), fixes before the benchmarks | in force |
+| S-209 | The benchmark oracle judges outcomes, not ids | in force |
 
 ---
 
@@ -1583,3 +1584,13 @@ disagree on most rows; trial 2 used the system longer and is the evidence for fi
 the benchmark examples: B-0197 (the blocker, with C3), B-0198 (`n2f discard` deleted an approved
 change request, C2), B-0199 (per-conductor current, `passes: []` for later; C9, C1), B-0200 (docs:
 C5, C6, C7, C13, C15, owner words C10). Rows only: B-0201–B-0205.
+## S-209 — The benchmark oracle judges outcomes, not ids (2026-11-04)
+`tests/benchmarks/oracle.py` (W9, road §4.2) judges any product folder against a `SPEC.oracle.yaml`:
+`uv run python -m tests.benchmarks.oracle <product> <oracle>`, PASS/FAIL per row, exit 0/1/2. A cold
+agent's names differ, so a card is found by status, the category of its failing checks (structural,
+mass, cost, envelope, read from the rule's words) and a property (material, kit); a number by what it
+is: a screening value, the requirement whose bound it meets (`2.5 mm`; several share one bound, so
+the expected value picks), a BOM roll-up, or a check result row. Facts: ceremony, region, supply,
+assemblies, requirement counts, gate blockers. Gaps (listed as `pending:` in the table oracle):
+no change-request replay, no product-level cost band (the BOM has one total), no card-level Johnson
+buckling or rail stress, movement has no fixed requirement form. Measured: bracket and kiln cards.
