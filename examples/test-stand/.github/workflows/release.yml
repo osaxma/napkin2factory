@@ -1,0 +1,23 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+# The web pages are not deployed from here: a tag can rebuild only its own Revision, and the
+# pages hold every Revision. `n2f publish --online` sends the folder the owner has seen to the
+# gh-pages line, which GitHub Pages serves (S-094).
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+      - run: uv tool install "napkin2factory>=0.6,<0.7"
+      - run: n2f build && n2f check
+      - run: n2f release "${GITHUB_REF_NAME}" --dry-run
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: build/release/*.zip

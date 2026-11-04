@@ -3,7 +3,9 @@
 The middle benchmark of Track A §2.3: a 2 kN motorized compression test stand on a 120 V / 60 Hz
 supply (region US). Every figure below is worked from the stated geometry with its source (road to
 v1.0 §4.1); `SPEC.oracle.yaml` is written from §7. Worked 2026-11-04. `[verify]` marks what a person
-must still confirm.
+must still confirm. Re-derived independently by a second model from this spec alone on
+2026-11-04: all 22 expected outcomes agree within 0.4 %; three intermediate centre-of-gravity and stress
+figures differ by 1–3 % from rounding in the text, with no outcome changed.
 
 **Margin convention.** For an upper bound (deflection, mass, cost, current):
 margin = (limit − value) / limit. For a lower bound (a factor of safety): margin = (value − bound) / bound.

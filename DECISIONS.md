@@ -236,6 +236,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-207 | Calc pack fixes from the table benchmark: Johnson columns, room-temperature EMC, composite creep, budget screen | in force |
 | S-208 | The v0.6 independent trials, triaged: one blocker (a change request that removes a part), fixes before the benchmarks | in force |
 | S-209 | The benchmark oracle judges outcomes, not ids | in force |
+| S-210 | The test-stand benchmark spec: an aluminium portal with a base beam closing the load loop; Track A's budget and column heights moved by the physics | in force |
 
 ---
 
@@ -1594,3 +1595,11 @@ the expected value picks), a BOM roll-up, or a check result row. Facts: ceremony
 assemblies, requirement counts, gate blockers. Gaps (listed as `pending:` in the table oracle):
 no change-request replay, no product-level cost band (the BOM has one total), no card-level Johnson
 buckling or rail stress, movement has no fixed requirement form. Measured: bracket and kiln cards.
+## S-210 — The test-stand benchmark spec (2026-11-04)
+`examples/test-stand/SPEC.md` (W9): worked by hand, checked by script, then re-derived by a second
+model from the spec alone (22 expected outcomes within 0.4 %). Track A's draft left the member under
+the specimen out of the load loop and used a 400 mm column; with the stated vertical stack the
+columns are 760 mm (C-002) and 820 mm (C-001), C-002 gains a base beam, both frames are aluminium
+6063-T5 (a steel C-002 misses the mass margin), the budget is 2400 USD (at 800 USD the shared parts
+alone fall inside the band), and the part list is 19 definitions. Open: bought-in parts priced in
+the kiln-derived controls band; bolt fatigue is a hand check (no preload term in the calc kit).
