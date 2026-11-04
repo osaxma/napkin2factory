@@ -37,8 +37,13 @@ def _load_rows(table: Path | None = None) -> list[dict[str, Any]]:
     return rows
 
 
-def _match_row(material: Any, table: Path | None = None) -> dict[str, Any] | None:
-    """The row in ``materials.yaml`` that ``material`` matches (first match wins), or ``None``."""
+def material_row(material: Any, table: Path | None = None) -> dict[str, Any] | None:
+    """The row in ``materials.yaml`` that ``material`` matches, or ``None``.
+
+    Matches a material name, spec or object against the keyword aliases and row names
+    in the shared table (``calckit/data/materials.yaml``, W2). Returns the row mapping
+    (with density, youngs_modulus, yield_strength, etc.) or ``None``.
+    """
     if material is None:
         return None
     name = str(getattr(material, "name", material)).lower()
@@ -60,6 +65,9 @@ def _match_row(material: Any, table: Path | None = None) -> dict[str, Any] | Non
     return None
 
 
+_match_row = material_row
+
+
 def density_is_assumed(material: Any) -> bool:
     """Whether the density for ``material`` is assumed rather than known.
 
@@ -72,7 +80,7 @@ def density_is_assumed(material: Any) -> bool:
     declared = getattr(material, "density", None)
     if declared is not None:
         return False
-    return _match_row(material) is None
+    return material_row(material) is None
 
 
 def density_kg_m3(material: Any) -> tuple[float, str]:
@@ -82,7 +90,7 @@ def density_kg_m3(material: Any) -> tuple[float, str]:
     declared = getattr(material, "density", None)
     if declared is not None:
         return float(Quantity(declared).to("kg/m**3").magnitude), "declared on the part"
-    row = _match_row(material)
+    row = material_row(material)
     if row is not None:
         rho = float(row["density"])
         src = f"{row['name']} {rho / 1000:g} g/cm³ (calckit/data/materials.yaml)"
@@ -104,7 +112,7 @@ def density_input(material: Any, table: Path | None = None) -> str:
     """
     if material is None or getattr(material, "density", None) is not None:
         return "package"
-    row = _match_row(material, table)
+    row = material_row(material, table)
     if row is None:
         return "package"
     return f"{row['name']}: {row['density']}"

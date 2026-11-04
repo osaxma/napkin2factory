@@ -15,11 +15,10 @@ read from the card's massing, never guessed:
   at the column foot, buckling of the column.
 
 A check whose inputs are not on the card or in the massing is a row that says which one is
-missing and that it was not run; so is buckling of a short column (the calc kit's Euler
-formula refuses it). Factors compare against ``calckit.joints.factor_of_safety`` (load kind
-``cyclic`` once the card gives ``site.cycles``, else ``static``; tip-over uses the edge-load
-row). The screen runs only when the card gives a point, distributed or edge load. Fatigue and
-the rails' own stress are not checked here.
+missing and that it was not run. Factors compare against ``calckit.joints.factor_of_safety``
+(load kind ``cyclic`` once the card gives ``site.cycles``, else ``static``; tip-over uses
+the edge-load row). The screen runs only when the card gives a point, distributed or edge load.
+Fatigue and the rails' own stress are not checked here.
 """
 
 from __future__ import annotations
@@ -60,8 +59,9 @@ TITLES = {
     "structural-tip-over": "It does not tip over",
     "structural-support": "The massing shows what carries the load",
 }
-#: Effective length factors (Shigley Table 4-2 design values via ``structural.K_FACTORS``).
-LEG_ENDS, COLUMN_ENDS = "pinned-pinned", "fixed-free"
+#: Effective length factors: unbraced frame legs sway laterally (AISC Table C-A-7.1 case f,
+#: K = 2.0, SPEC §4); a column with an arm is a cantilever (case e, design K = 2.1).
+LEG_ENDS, COLUMN_ENDS = 2.0, "fixed-free"
 
 
 @dataclass
@@ -101,11 +101,11 @@ def _skip(rid: str, why: str) -> RuleRow:
 def _stock(piece: Any) -> _Stock | str:
     """E and yield strength of a piece's material from the shared table, else the reason."""
     # the same keyword match the massing densities use (calckit/data/materials.yaml, W2)
-    from napkin2factory.geometry.materials import _match_row
+    from napkin2factory.geometry.materials import material_row
 
     if piece.material is None:
         return f"the {piece.name} has no material"
-    row = _match_row(piece.material)
+    row = material_row(piece.material)
     if row is None or row.get("youngs_modulus") is None or row.get("yield_strength") is None:
         return f"no stiffness and strength on file for {piece.material}"
     return _Stock(
@@ -170,23 +170,30 @@ def _deflection_row(ctx: _Ctx, d: Qty, what: str, how: str) -> RuleRow:
 
 
 def _column_row(
-    ctx: _Ctx, sec: Any, stock: _Stock, length_mm: float, load: Qty, ends: str, who: str
+    ctx: _Ctx, sec: Any, stock: _Stock, length_mm: float, load: Qty, ends: str | float, who: str
 ) -> RuleRow:
-    """Buckling of one column by Euler's formula; a short column is not run (S-206)."""
+    """Buckling of one column by Euler or Johnson depending on slenderness (S-207, S-211)."""
     i_min, length = min(sec.Ix, sec.Iy), _mm(length_mm)
-    try:
-        res = structural.euler_buckling_load(
-            stock.E, i_min, length, ends, load=load, area=sec.A, yield_strength=stock.yield_strength
-        )
-    except ValueError as exc:  # slenderness below the Euler limit: the calc kit refuses
-        if "Euler limit" not in str(exc):
-            raise
-        return _skip("structural-buckling", f"{who} is a short column; needs the Johnson formula")
-    got, k = res.safety_factor or math.inf, structural.K_FACTORS[ends]
+    res = structural.column_buckling_load(
+        stock.E, i_min, sec.A, stock.yield_strength, length, ends, load=load
+    )
+    got = res.safety_factor or math.inf
+    if isinstance(ends, (int, float)):
+        k, ends_label = float(ends), "sway"
+    else:
+        k, ends_label = structural.K_FACTORS[ends], ends
     need = joints.factor_of_safety("buckling", ctx.kind)
-    how = f"{res.formula}; slenderness {sig(res.slenderness or 0)}, K {k:g} ({ends}); "
+    method_name = res.method.capitalize()
+    formula_text = f"{method_name} ({res.formula})"
+    how = f"{formula_text}; slenderness {sig(res.slenderness or 0)}, K {k:g} ({ends_label}); "
     how += f"{res.source}; {stock.ref}"
-    subject = f"{who} under {fmt(load, 'N')} over {_len(length)}"
+    if who == "one leg":
+        subject = (
+            f"{who} carrying its share of total weight plus applied loads "
+            f"({fmt(load, 'N')}) over {_len(length)}"
+        )
+    else:
+        subject = f"{who} under {fmt(load, 'N')} over {_len(length)}"
     return _factor_row("structural-buckling", ctx, got, need, subject, how)
 
 
@@ -225,14 +232,19 @@ def _table(ctx: _Ctx, frame: Any) -> list[RuleRow]:
             rows += [_skip("structural-deflection", topstock), _skip("structural-yield", topstock)]
         else:
             rows += _top_rows(ctx, top, topstock, span, 1 - ax, _rail_stiffness(frame, stock))
-    vertical: Qty = sum((q for q in (point, spread) if q is not None), Quantity(0.0, "N")) / 4
-    if edge is not None:
-        vertical = vertical + edge  # the edge load is taken entirely by one leg
-    if isinstance(sec, str):
+    if ctx.massing.without_material:
+        msg = "some rough shapes have no material, so no weight"
+        rows.append(_skip("structural-buckling", msg))
+    elif isinstance(sec, str):
         rows.append(_skip("structural-buckling", sec))
     elif isinstance(stock, str):
         rows.append(_skip("structural-buckling", stock))
     else:
+        total_weight = Quantity((ctx.massing.mass or 0.0) * 9.80665, "N")
+        leg_weight = total_weight / 4
+        sp4 = spread / 4 if spread is not None else None
+        applied = sum((q for q in (point, sp4, edge) if q is not None), Quantity(0.0, "N"))
+        vertical = leg_weight + applied
         rows.append(_column_row(ctx, sec, stock, frame.size[2], vertical, LEG_ENDS, "one leg"))
     if edge is not None:
         rows.append(_tip_row(ctx, frame, edge, 1 - ax, leg))
@@ -262,25 +274,32 @@ def _top_rows(
     if point is not None:
         parts.append(structural.beam_deflection_simply_supported(point, span, stock.E, stiff))
         moment += float(point.to("N").magnitude) * span_m / 4  # Roark T8.1 case 1e: F·L/4
-    if spread is not None:
-        parts.append(
-            structural.beam_deflection_simply_supported(spread, span, stock.E, stiff, "uniform")
-        )
-        moment += float(spread.to("N").magnitude) * span_m / 8  # Roark T8.1 case 2e: W·L/8
+    # Self weight: the top's own weight is added as a uniform load on the span (S-211)
+    top_weight_n = float(top.mass or 0.0) * 9.80665
+    top_weight = Quantity(top_weight_n, "N")
+    uniform_load = top_weight + (spread if spread is not None else Quantity(0.0, "N"))
+    parts.append(
+        structural.beam_deflection_simply_supported(uniform_load, span, stock.E, stiff, "uniform")
+    )
+    moment += float(uniform_load.to("N").magnitude) * span_m / 8  # Roark T8.1 case 2e: W·L/8
     d = sum((p.deflection.to("mm") for p in parts), _mm(0.0))
     shared = (
         "" if rails is None else ", with the two long top rails sharing it (E·I of top + rails)"
     )
+    weight_desc = f", self weight {fmt(top_weight, 'N')}"
+    if spread is not None:
+        weight_desc += f" + distributed load {fmt(spread, 'N')}"
     how = (
         f"{' + '.join(p.formula for p in parts)} on the {_len(_mm(top.size[across]))} wide, "
         f"{_len(_mm(top.size[2]))} thick top over a {_len(span)} span between its supports"
-        f"{shared}; {parts[0].source}; {stock.ref}"
+        f"{shared}{weight_desc}; {parts[0].source}; {stock.ref}"
+    )
+    yield_desc = (
+        "M = F·L/4 + W·L/8, the top's share" if point is not None else "M = W·L/8, the top's share"
     )
     return [
         _deflection_row(ctx, d, "the top sags", how),
-        _yield_row(
-            ctx, moment * share, section.Z, stock, "the top", "M = F·L/4 + W·L/8, the top's share"
-        ),
+        _yield_row(ctx, moment * share, section.Z, stock, "the top", yield_desc),
     ]
 
 

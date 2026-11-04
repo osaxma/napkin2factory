@@ -237,6 +237,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-208 | The v0.6 independent trials, triaged: one blocker (a change request that removes a part), fixes before the benchmarks | in force |
 | S-209 | The benchmark oracle judges outcomes, not ids | in force |
 | S-210 | The test-stand benchmark spec: an aluminium portal with a base beam closing the load loop; Track A's budget and column heights moved by the physics | in force |
+| S-211 | The structural screen counts self weight and short columns | in force |
 
 ---
 
@@ -1603,3 +1604,13 @@ columns are 760 mm (C-002) and 820 mm (C-001), C-002 gains a base beam, both fra
 6063-T5 (a steel C-002 misses the mass margin), the budget is 2400 USD (at 800 USD the shared parts
 alone fall inside the band), and the part list is 19 definitions. Open: bought-in parts priced in
 the kiln-derived controls band; bolt fatigue is a hand check (no preload term in the calc kit).
+## S-211 — The structural screen counts self weight and short columns (2026-11-04)
+Follow-up to S-206 closing three gaps against the table benchmark spec (SPEC §4).
+(1) Buckling rows use structural.column_buckling_load (Euler or Johnson by slenderness, S-207)
+and name the curve in formula text; unbraced table legs sway laterally (AISC Table C-A-7.1
+case f, K = 2.0). (2) Self weight: the top's own weight (volume × density from the massing call
+and materials.yaml) adds as a uniform load on the span; each leg carries its share of total table
+weight plus applied loads; row text states both; explicit distributed loads still add on top.
+(3) geometry.materials.material_row replaces the private _match_row import.
+Measured: C-002 benchmark card gives top sag 1.54 mm (within 2.3 % of SPEC 1.58 mm) and
+leg buckling factor 38.3 (matching SPEC 38.3).

@@ -3,7 +3,7 @@
 id: C-005
 title: Tall thin legs
 site:
-  point_load: 1471.5 N
+  point_load: 300 N
   max_deflection: 2.5 mm
 massing:
   - {kit: frame, as: base, material: mild steel, args: {length: 1450 mm, width: 750 mm, height: 2000 mm, member: {profile: square-tube, size: 25 mm, wall: 1.5 mm}, top_rails: true, bottom_rails: false}}
