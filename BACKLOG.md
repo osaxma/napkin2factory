@@ -114,6 +114,9 @@ entry that closed them. Ids are never reused.
 | B-0203 | The release zip has no assembly STEP and no GLB | trial 2 C11 (S-208) |
 | B-0204 | The kiln's calc reference cases cite "hand computation" instead of a published source | trial 1 concern 3 (S-208) |
 | B-0205 | `n2f check --json` gives requirement figures only as message text: a structured value, bound and operator would let the benchmark oracle stop parsing words | the oracle task (v0.7 M4.0) |
+| B-0206 | Union merge on BACKLOG.md resurrects closed rows in the Open table | S-217; scripts/journal_ids.py or make land should prune rows from Open that appear in Closed before the gate |
+| B-0207 | docs/agent-guide.md is a concurrent task collision hotspot (4 of 7 collision pairs in v0.7) | S-217; modularize reference sections or separate domain syntax so parallel tasks do not collide on the guide |
+| B-0208 | Engineering verification backlog expanded by 98 unconfirmed rows in v0.7 (268 total verify rows) | S-217; verify materials.yaml, cost_bands.yaml, and timber creep/moisture values against handbook sources |
 
 ## Closed
 
