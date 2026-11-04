@@ -23,6 +23,7 @@ from napkin2factory.core.domain import (
     VerifyKind,
     lazy,
 )
+from napkin2factory.domains.mechanical.interfaces import INTERFACE_KINDS
 
 _RULES = "napkin2factory.core.graph.rules"
 _IMPACT = "napkin2factory.core.graph.impact"
@@ -266,4 +267,5 @@ DOMAIN = Domain(
     doc_helpers=DOC_HELPERS,
     in_place=True,
     families=FAMILIES,
+    interface_kinds=INTERFACE_KINDS,
 )

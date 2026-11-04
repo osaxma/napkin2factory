@@ -232,8 +232,12 @@ def apply_interfaces(part: Part, result: PartResult, ctx: kit_mod.KitContext) ->
         if isinstance(iface.spec, BoltPatternSpec):
             if already:
                 continue
+            # S-203: per-party hole diameters or skipping
+            hole_d = getattr(iface.spec, "hole_for", lambda p: iface.spec.diameter)(part.uri)
+            if hole_d is None:
+                continue
             all_centers = centers_from_spec(iface.spec, frame)
-            diameter = _mm(iface.spec.diameter)
+            diameter = _mm(hole_d)
             depth = _mm(iface.spec.depth)
             # A bolt shared by two interfaces (shell → standoff → guard → stand) is one hole:
             # skip centres already cut at the same spot with the same diameter (S-051).

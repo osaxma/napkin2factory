@@ -232,6 +232,20 @@ def check_interface(product: Product, iface: Interface, build_dir: Path) -> Inte
     return rep
 
 
+def _diameters_match(spec: Any, ua: str, ub: str, da: float, db: float) -> bool:
+    """Whether hole diameters on the two parties match the joint specification (S-203)."""
+    from napkin2factory.core.units import mm as _mm
+
+    if hasattr(spec, "hole_for"):
+        exp_a = spec.hole_for(ua)
+        exp_b = spec.hole_for(ub)
+        if exp_a is not None and exp_b is not None:
+            ma, mb = float(_mm(exp_a)), float(_mm(exp_b))
+            if abs(ma - mb) > TOLERANCE_MM:
+                return abs(da - ma) <= TOLERANCE_MM and abs(db - mb) <= TOLERANCE_MM
+    return abs(da - db) <= TOLERANCE_MM
+
+
 def _core_report(product: Product, iface: Interface, build_dir: Path) -> InterfaceReport:
     """The core's two stages for a joint with holes or faces (D16, P3)."""
     from napkin2factory.geometry.accessors import resolve_interface
@@ -261,9 +275,20 @@ def _core_report(product: Product, iface: Interface, build_dir: Path) -> Interfa
             return rep
         feats = json.loads(feats_path.read_text(encoding="utf-8"))
         frame = iface.frame_for(str(party))
+        expected_d = getattr(
+            iface.spec, "hole_for", lambda p: getattr(iface.spec, "diameter", None)
+        )(str(party))
         if holes:
             pats = [p for p in feats.get("patterns", []) if p.get("interface") == iface.uri]
             if not pats:
+                if expected_d is None:
+                    # S-203: party gets no holes by spec (e.g. t-slot slot_part)
+                    rep.parties[str(party)] = {
+                        "status": "pass",
+                        "holes": [],
+                        "why": "no holes cut (by spec)",
+                    }
+                    continue
                 rep.status, rep.message = (
                     "fail",
                     f"{part.name} does not cut the holes {_joint_at(iface)}: its geometry "
@@ -319,7 +344,21 @@ def _core_report(product: Product, iface: Interface, build_dir: Path) -> Interfa
             "message": f"where the parts meet is not checked: {lower_name(other)} has no shape",
         }
         return rep
-    if holes and len(patterns) == 2:
+    if (
+        holes
+        and len(patterns) == 1
+        and any(
+            getattr(iface.spec, "hole_for", lambda _: getattr(iface.spec, "diameter", None))(str(p))
+            is None
+            for p in iface.parties
+        )
+    ):
+        # S-203: one party gets no holes by spec (e.g. t-slot slot_part)
+        (cut_uri, cut_pat) = next(iter(patterns.items()))
+        cut_name = _name(product, cut_uri)
+        done = f"{_holes_words(iface)} cut in {lower_name(cut_name)}"
+        rep.message = done
+    elif holes and len(patterns) == 2:
         (ua, a), (ub, b) = patterns.items()
         na, nb = _name(product, ua), _name(product, ub)
         if not _match(a["local"], b["local"], TOLERANCE_MM):
@@ -329,7 +368,7 @@ def _core_report(product: Product, iface: Interface, build_dir: Path) -> Interfa
                 f"the holes on {na} and {nb} do not match {_joint_at(iface)} "
                 f"({TOLERANCE_MM:g} mm allowed): cut both from the joint's pattern"
             )
-        elif abs(float(a["diameter"]) - float(b["diameter"])) > TOLERANCE_MM:
+        elif not _diameters_match(iface.spec, ua, ub, float(a["diameter"]), float(b["diameter"])):
             rep.status = "fail"
             rep.message = (
                 f"the holes on {na} ({float(a['diameter']):g} mm) and {nb} "

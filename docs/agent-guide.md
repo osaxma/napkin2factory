@@ -249,7 +249,11 @@ or a stub for work done elsewhere (`build: external`: no children, its `ports:` 
 fits by, each an interface naming the stub and the part it fits to; it is supplied, not built
 here, and the step that fits it lists it so, with those joints); joint hardware is counted from each interface's `spec.hardware` (or its `fastener:`) by the
 `hardware://<unit>` check. The fields are in `docs/product-model.md`; the design role says
-how to use them.
+how to use them. Mechanical interface kinds for everyday joints:
+- `threaded-insert`: receiving party (`insert_part`, wood or plastic) gets the insert bore; passing party gets clearance `diameter`.
+- `wood-screw-pattern`: receiving party (`wood_part`, wood or plastic) gets the pilot hole; passing party gets clearance `diameter`.
+- `t-slot-joint`: extrusion (`slot_part`) gets no hole; bracket or plate gets clearance `diameter`.
+- `hinge-pin`: both parties get the pin diameter (`pin_diameter`).
 
 **Wiring: a product with powered parts.** No new command: the wiring is model files and the
 same verbs (`docs/electrical.md` has the files, the checks and a complete small example).

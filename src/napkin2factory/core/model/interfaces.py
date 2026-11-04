@@ -186,6 +186,10 @@ class BoltPatternSpec(Model):
             return [HardwareItem(part=self.fastener, per_hole=1)]
         return []
 
+    def hole_for(self, party_uri: str) -> QuantityOrParam | None:
+        """The hole diameter for a party: ``diameter`` for all, or None to skip (S-203)."""
+        return self.diameter
+
 
 class MatingFaceSpec(Model):
     """Two flat faces that are expected to touch (allowed contact, D29).

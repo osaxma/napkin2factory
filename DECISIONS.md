@@ -229,6 +229,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-200 | Product region and display units field | in force |
 | S-201 | Structural calc pack: joints, wood, fatigue, load cases | in force |
 | S-202 | Frame kit: rectangular, round and T-slot profiles, rail section, slotted tabs | in force |
+| S-203 | Four mechanical interface kinds through the mechanical domain (amends W5) | in force |
 
 ---
 
@@ -1530,3 +1531,14 @@ slots across the rail for wood movement, listed in `props["mounting_tabs"]` and 
 Profile cross-section helpers moved to `_profiles.py` to keep `frame.py` under 550 lines.
 All defaults preserved; existing frame outputs, goldens, and volumes remain unchanged.
 Measured: relative volume diff < 1e-15 on tabs, < 1e-5 on round tubes, 7 unit tests pass in 10 s.
+## S-203 — Four mechanical interface kinds through the mechanical domain (amends W5) (2026-11-04)
+W5 amendment: rather than core YAML data, the four interface kinds (`threaded-insert`,
+`wood-screw-pattern`, `t-slot-joint`, `hinge-pin`) are registered by the mechanical domain via
+`Domain.interface_kinds` in `domains/mechanical/interfaces.py`, mirroring `cable-entry`.
+Each spec subclasses `BoltPatternSpec` (S-144). A minimal core seam was required for per-party
+hole diameters and party skipping: `BoltPatternSpec.hole_for(party_uri) -> diameter | None` in
+`core/model/interfaces.py`, called by `apply_interfaces` in `geometry/build_part.py`, and
+checked by `_core_report` and `_diameters_match` in `core/checks/interface.py`. Receiving parties
+get bore or pilot holes, passing parties clearance holes, and T-slot extrusions remain uncut.
+Each kind carries its domain check (material must be wood/plastic; extrusion profile/process; 2 parties).
+Measured: 11 tests in `test_mechanical_interface_kinds.py` pass; all 34 interface tests pass.
