@@ -115,6 +115,12 @@ def identifiers(product: Path) -> dict[str, str]:
     return found
 
 
+#: Example names that are ordinary words the package uses in its own prose ("from the conductor
+#: table"): naming the Tier 1 benchmark ``table`` is not a leak (S-185, road-to-v1.0 §4); its part
+#: ids and qualified URIs stay forbidden.
+COMMON_WORDS = {"table"}
+
+
 def product_names() -> set[str]:
     """Each example product's id and folder name (``kiln``), those the templates lack."""
     names: set[str] = set()
@@ -122,7 +128,7 @@ def product_names() -> set[str]:
         data = _yaml(product / "n2f.yaml")
         pid = data.get("product", {}).get("id") if isinstance(data, dict) else None
         names |= {product.name, *([str(pid)] if pid else [])}
-    return names - {p.name for p in TEMPLATES.iterdir() if p.is_dir()}
+    return names - {p.name for p in TEMPLATES.iterdir() if p.is_dir()} - COMMON_WORDS
 
 
 def system_words() -> set[str]:
