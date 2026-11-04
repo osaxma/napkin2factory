@@ -17,6 +17,7 @@ import pytest
 from scripts.journal_ids import (
     apply_trailers,
     collect_placeholders,
+    dedupe_backlog,
     is_defined,
     parse_trailer,
     undefined_placeholders,
@@ -328,3 +329,120 @@ def test_journal_ids_refuses_undefined_placeholder_cli(tmp_path: Path) -> None:
         ["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True, check=True
     ).stdout.strip()
     assert head_before == head_after
+
+
+def test_dedupe_backlog_removes_open_copy_when_in_both_tables() -> None:
+    text = (
+        "# Backlog\n\n"
+        "## Open\n\n"
+        "| id | item | origin |\n"
+        "|---|---|---|\n"
+        "| B-0001 | Open item 1 | S-001 |\n"
+        "| B-0002 | Resolved item | S-002 |\n"
+        "| B-0003 | Open item 3 | S-003 |\n\n"
+        "## Closed\n\n"
+        "| id | item | closed by |\n"
+        "|---|---|---|\n"
+        "| B-0002 | Resolved item | closed by S-004 |\n"
+        "| B-0004 | Closed item 4 | closed by S-001 |\n"
+    )
+    result = dedupe_backlog(text)
+    expected = (
+        "# Backlog\n\n"
+        "## Open\n\n"
+        "| id | item | origin |\n"
+        "|---|---|---|\n"
+        "| B-0001 | Open item 1 | S-001 |\n"
+        "| B-0003 | Open item 3 | S-003 |\n\n"
+        "## Closed\n\n"
+        "| id | item | closed by |\n"
+        "|---|---|---|\n"
+        "| B-0002 | Resolved item | closed by S-004 |\n"
+        "| B-0004 | Closed item 4 | closed by S-001 |\n"
+    )
+    assert result == expected
+    open_p, _, closed_p = result.partition("\n## Closed")
+    ids = table_ids(open_p) + table_ids(closed_p)
+    assert [i for i, n in Counter(ids).items() if n > 1] == []
+
+
+def test_dedupe_backlog_leaves_duplicate_inside_open_untouched() -> None:
+    text = (
+        "# Backlog\n\n"
+        "## Open\n\n"
+        "| id | item | origin |\n"
+        "|---|---|---|\n"
+        "| B-0001 | Open item 1 | S-001 |\n"
+        "| B-0001 | Duplicate item 1 | S-002 |\n"
+        "| B-0002 | Open item 2 | S-003 |\n\n"
+        "## Closed\n\n"
+        "| id | item | closed by |\n"
+        "|---|---|---|\n"
+        "| B-0003 | Closed item 3 | closed by S-004 |\n"
+    )
+    result = dedupe_backlog(text)
+    assert result == text
+    open_p, _, closed_p = result.partition("\n## Closed")
+    ids = table_ids(open_p) + table_ids(closed_p)
+    assert [i for i, n in Counter(ids).items() if n > 1] == ["B-0001"]
+
+
+def test_journal_ids_dedupes_backlog_cli(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+    backlog_main = (
+        "# Backlog\n\n"
+        "## Open\n\n"
+        "| id | item | origin |\n"
+        "|---|---|---|\n"
+        "| B-0001 | Item 1 | S-001 |\n"
+        "| B-0002 | Item 2 | S-002 |\n\n"
+        "## Closed\n\n"
+        "| id | item | closed by |\n"
+        "|---|---|---|\n"
+    )
+    (repo / "BACKLOG.md").write_text(backlog_main)
+    subprocess.run(["git", "add", "BACKLOG.md"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Initial backlog"], cwd=repo, check=True)
+
+    subprocess.run(["git", "checkout", "-q", "-b", "task/work"], cwd=repo, check=True)
+    backlog_task = (
+        "# Backlog\n\n"
+        "## Open\n\n"
+        "| id | item | origin |\n"
+        "|---|---|---|\n"
+        "| B-0001 | Item 1 | S-001 |\n"
+        "| B-0002 | Item 2 | S-002 |\n\n"
+        "## Closed\n\n"
+        "| id | item | closed by |\n"
+        "|---|---|---|\n"
+        "| B-0002 | Item 2 | closed by S-003 |\n"
+    )
+    (repo / "BACKLOG.md").write_text(backlog_task)
+    subprocess.run(["git", "commit", "-q", "-am", "Close B-0002"], cwd=repo, check=True)
+
+    script = REPO / "scripts" / "journal_ids.py"
+    done = subprocess.run(
+        ["python3", str(script), "--base", "main"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert done.returncode == 0
+    content = (repo / "BACKLOG.md").read_text()
+    open_p, _, closed_p = content.partition("\n## Closed")
+    assert "B-0002" not in open_p
+    assert "B-0002" in closed_p
+    assert "B-0001" in open_p
+    committed = subprocess.run(
+        ["git", "show", "HEAD:BACKLOG.md"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert committed == content

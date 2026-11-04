@@ -43,6 +43,7 @@ make check                                # in the main folder, before anything 
   everywhere you reference them, commit messages included; `make land` gives them the next
   free numbers in every task commit, so parallel tasks never collide and no landed commit
   holds a placeholder. `DECISIONS.md` and `BACKLOG.md` merge line by line (`merge=union`);
+  landing resolves a row closed by the task but left open by the merge;
   `tests/unit/test_journals.py` catches a duplicated row.
 - **The gate**: `make land` runs `make check-fast` (lint, types, the unit and smoke tests; no
   end-to-end, no examples; ≈ 2 min); `LAND_GATE=check make land` runs the full `make check`

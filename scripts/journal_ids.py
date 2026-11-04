@@ -18,7 +18,7 @@ When ``--trailer KEY=VALUE`` is given, every task commit's message gets those tr
 when there are no placeholders.
 
 Why: S-097 (placeholders), S-099 (every commit, messages included), S-190 (trailers),
-S-195 (refuse cited but undefined placeholders).
+S-195 (refuse cited but undefined placeholders), S-216 (drop Open backlog row present in Closed).
 
 Run it from inside the task's folder:
 ``python3 scripts/journal_ids.py [--base main] [--trailer KEY=VALUE ...]``.
@@ -37,6 +37,39 @@ PLACEHOLDER = re.compile(r"\b([SB])-NEW(\d+)(?!\d)")
 REAL_ID = {"S": re.compile(r"\bS-(\d+)\b"), "B": re.compile(r"\bB-(\d+)\b")}
 JOURNAL = {"S": "DECISIONS.md", "B": "BACKLOG.md"}
 WIDTH = {"S": 3, "B": 4}
+ROW_ID = re.compile(r"^\s*\|\s*([^|]+?)\s*\|")
+
+
+def extract_row_id(line: str) -> str | None:
+    """Return the table row's id if ``line`` is a data row, else None."""
+    m = ROW_ID.match(line)
+    if not m:
+        return None
+    val = m.group(1).strip()
+    if val == "id" or set(val) <= set("-: "):
+        return None
+    return val
+
+
+def dedupe_backlog(text: str) -> str:
+    """Remove Open backlog rows whose id also appears in the Closed table.
+
+    Why: S-216 (merge=union keeps both Open and Closed copies on rebase).
+    """
+    match = re.search(r"(?m)^## Closed\b", text)
+    if not match:
+        return text
+    open_part = text[: match.start()]
+    closed_part = text[match.start() :]
+    closed_ids = {extract_row_id(line) for line in closed_part.splitlines()} - {None}
+    if not closed_ids:
+        return text
+    new_open_lines = [
+        line
+        for line in open_part.splitlines(keepends=True)
+        if extract_row_id(line) not in closed_ids
+    ]
+    return "".join(new_open_lines) + closed_part
 
 
 def parse_trailer(arg: str) -> tuple[str, str]:
@@ -196,12 +229,16 @@ def rewrite_history(
                     text = raw.decode("utf-8")
                 except UnicodeDecodeError:
                     continue  # binary
-                if fix(text) != text:
+                new_text = fix(text)
+                if name == "BACKLOG.md":
+                    # Why: S-216 (drop Open backlog row present in Closed after union merge).
+                    new_text = dedupe_backlog(new_text)
+                if new_text != text:
                     blob = (
                         subprocess.run(
                             ["git", "hash-object", "-w", "--stdin"],
                             cwd=root,
-                            input=fix(text).encode("utf-8"),
+                            input=new_text.encode("utf-8"),
                             check=True,
                             capture_output=True,
                         )
@@ -262,7 +299,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     mapping = assign(root, texts)
     trailers = [parse_trailer(t) for t in args.trailer]
-    if not mapping and not trailers:
+    backlog_path = root / "BACKLOG.md"
+    backlog_text = backlog_path.read_text(encoding="utf-8") if backlog_path.is_file() else ""
+    backlog_changed = bool(backlog_text and dedupe_backlog(backlog_text) != backlog_text)
+    if not mapping and not trailers and not backlog_changed:
         print("journal ids: no placeholders")
         return 0
     tip = rewrite_history(root, args.base, mapping, trailers=trailers)

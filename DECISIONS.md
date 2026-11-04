@@ -242,6 +242,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-213 | The trial's documentation gaps closed | in force |
 | S-214 | Each conductor carries what it feeds; an empty cable entry is not a failure | in force |
 | S-215 | A change request may remove parts, parameters and joints | in force |
+| S-216 | Landing resolves a backlog row both open and closed after a merge | in force |
 
 ---
 
@@ -1642,3 +1643,9 @@ Fixes trial 2 concerns C9 and C1 (B-0199, S-208). (1) Per-conductor current: eac
 ## S-215 — A change request may remove parts, parameters and joints (2026-11-04)
 Trial 2 blocker 1 (S-208, B-0197): applying an ECR that removed an object broke the loader because `all_uris()` walked the ECR's stored impact, resolving deleted URIs. Stored impact is history, not live model references, so `Product.all_uris` skips `e.impact` and `_validate_uris` warns instead of erroring on dangling references in sign-offs and historical change requests. Sign-offs citing a removed requirement or evidence are reported in `n2f ecr impact` under "Sign-offs that will no longer apply" (naming the file, C3) and moved to `<file>.invalid` on `n2f ecr apply` so the product loads cleanly. Apply is atomic: failures roll back with `vcs.discard()`, keeping the ECR approved with plain-words errors.
 Measured: `tests/e2e/test_ecr_remove.py` proves removal of parts and parameters, sign-off invalidation, and rollback on apply failure.
+## S-216 — Landing resolves a backlog row both open and closed after a merge (2026-11-04)
+When a task closes a backlog row while main touches the backlog too, git rebase with
+merge=union keeps both Open and Closed copies, failing test_backlog_ids_unique.
+`scripts/journal_ids.py` now resolves any id present in both tables by dropping the Open row
+(closing is the newer act), leaving intra-table duplicates for the gate to catch.
+The change is committed into the task commit during post-rebase journal rewriting.
