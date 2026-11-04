@@ -63,7 +63,7 @@ https://raw.githubusercontent.com/osaxma/napkin2factory/main/docs/agent-guide.md
   `model/calcs/*.py` with their cases `model/calcs/*.cases.yaml`
 - `model/screens/*.py`, `model/rulepacks/` this product's own napkin screens and rule checks
   (optional) · `n2f doctor` lists what is installed: verify kinds, check stages, screens
-- `model/docs/*.md` manuals (templated Markdown; `safety.md` is mandatory), `model/signoffs/*.yaml`
+- `model/docs/*.md` manuals (templated Markdown; `safety.md` is mandatory, or one `build-and-care.md` with `safety: true` while the ceremony is `lite`), `model/signoffs/*.yaml`
 - `changes/` change requests · `reports/` verifier reviews · `build/` generated (ignored)
 - `concepts/C-*.yaml` concept cards (napkin stage; outside the build, never read by it),
   `concepts/refs/` sketches and photos they cite · `style.yaml` the product's look (preset,
