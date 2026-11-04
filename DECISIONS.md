@@ -224,6 +224,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-195 | `make land` refuses a placeholder the task cites but does not define | in force |
 | S-196 | Faster test runs: one run at a time, 16 workers spread per test, prebuilt products, in-process CLI | in force |
 | S-197 | v0.7 opens: Track A as `docs/stages/v0.7-everyday-breadth.md`, W-series decisions, waves | in force |
+| S-198 | Structural calc pack: members | in force |
 
 ---
 
@@ -1474,3 +1475,13 @@ lacks one, W7). Locked here: two calc modules (members, joints), derived raise-o
 a hazard tag on every safety requirement, product region and display units, benchmarks worked
 then re-derived by another vendor's model, an oracle runnable on any folder. The v0.6 trial's
 findings are triaged in a follow-up entry (W12). Open items: B-0188–B-0196.
+## S-198 — Structural calc pack: members (2026-11-04)
+Pure-function envelope-grade structural module `calckit/structural.py` (v0.7 W1, Track A §3.1).
+Computes sections (`rect_section`, `rect_tube_section`, `round_tube_section`), beam deflections
+(simply supported point/uniform, cantilever tip with column rotation), bending stress and yield factor,
+Euler buckling with K factors and slenderness check refusing inelastic range (naming Johnson's formula),
+tip-over safety factor (restoring/overturning moment), and fastener group shear.
+Why: generic `structural` screen (W4) and product sizing share verified physics with pint in/out.
+Sources: Roark's Formulas for Stress and Strain 7th ed. (Tables 1, 8.1, 15.1, §8.1), Shigley's Mechanical
+Engineering Design 11th ed. (Tables 4-2, §1-10, §4-11, §8-5), AISC 15th ed. (Table C-A-7.1).
+Covered by 27 reference cases (8 external published cases) and Hypothesis property tests.
