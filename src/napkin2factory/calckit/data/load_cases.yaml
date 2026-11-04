@@ -2,6 +2,8 @@
 # Structural load cases: static, sustained, cyclic, and human-applied edge load.
 # Each row cites a published structural standard or design manual (AISC 360, Shigley,
 # Eurocode, NDS, ANSI/BIFMA). A product requirement may tighten a factor, never loosen it (W1).
+# No creep multiplier lives here: a creep factor is not a factor of safety. k_def for timber
+# is in timber_creep.yaml, the one source (S-207).
 # Every row is [verify] in DECISIONS.md.
 table: load_cases
 rows:
@@ -61,8 +63,6 @@ rows:
 
   - {check: deflection, load_kind: static, factor: 1.0, verify: true,
      source: "AISC 360-16 / IBC Table 1604.3: deflection limit serviceability ratio"}
-  - {check: deflection, load_kind: sustained, factor: 1.5, verify: true,
-     source: "USDA Wood Handbook / Eurocode 5: creep deflection multiplier for sustained load"}
   - {check: deflection, load_kind: cyclic, factor: 1.25, verify: true,
      source: "Machine design serviceability under dynamic deflection"}
   - {check: deflection, load_kind: edge_load, factor: 1.0, verify: true,

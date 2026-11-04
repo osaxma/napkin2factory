@@ -115,6 +115,70 @@ CASES: list[Case] = [
         external=True,
     ),
     Case(
+        "timber_k_def",
+        0.60,
+        "Eurocode 5 (EN 1995-1-1:2004) Table 3.2: k_def = 0.60 for solid timber, service class 1",
+        args=("sustained", "dry"),
+        external=True,
+        verify=True,
+    ),
+    Case(
+        "composite_creep_deflection",
+        Quantity(0.7537, "mm"),
+        "EN 1995-1-1:2004 section 2.3.2.2, only the timber's modulus drops to E/(1+k_def), "
+        "k_def = 0.60: white-oak top 800x30 (EI 2.214e10 N*mm^2) with two 50x50x1.5 steel "
+        "rails (EI 4.5677e10 N*mm^2), elastic sag 0.6614 mm: 0.6614 * 6.7817e10 / "
+        "(2.214e10/1.6 + 4.5677e10) = 0.7537 mm (independent hand calculation of the table "
+        "benchmark)",
+        args=(
+            Quantity(0.661399803753192, "mm"),
+            [
+                (Quantity(2.214e10, "N*mm**2"), True),
+                (Quantity(4.5677e10, "N*mm**2"), False),
+            ],
+        ),
+        rel=1e-3,
+        verify=True,
+    ),
+    Case(
+        "equilibrium_moisture_content",
+        6.2,
+        "USDA Wood Handbook FPL-GTR-190 Table 4-2, 30 % RH at 70 degF (21.1 degC): 6.2 % "
+        "(the Hailwood-Horrobin Eq. 4-5 gives 6.17)",
+        args=(30,),
+        kwargs={"temperature": Quantity(70, "degF")},
+        abs=0.05,
+        external=True,
+    ),
+    Case(
+        "equilibrium_moisture_content",
+        9.2,
+        "USDA Wood Handbook FPL-GTR-190 Table 4-2, 50 % RH at 70 degF: 9.2 %",
+        args=(50,),
+        kwargs={"temperature": Quantity(70, "degF")},
+        abs=0.05,
+        external=True,
+    ),
+    Case(
+        "equilibrium_moisture_content",
+        13.1,
+        "USDA Wood Handbook FPL-GTR-190 Table 4-2, 70 % RH at 70 degF: 13.1 %",
+        args=(70,),
+        kwargs={"temperature": Quantity(70, "degF")},
+        abs=0.05,
+        external=True,
+    ),
+    Case(
+        "wood_movement",
+        Quantity(7.05, "mm"),
+        "Independent hand calculation of the table benchmark, FPL-GTR-190 Ch. 4: oak at a fixing "
+        "280 mm from the fixed centreline, 30 % to 70 % RH at room temperature "
+        "(6.9 points of moisture): 280 * 0.00365 * 6.9 = 7.05 mm",
+        args=(Quantity(280, "mm"), "white-oak", (30, 70)),
+        rel=0.01,
+        verify=True,
+    ),
+    Case(
         "wood_movement",
         Quantity(20.148, "mm"),
         "USDA Forest Products Laboratory Wood Handbook (FPL-GTR-190) Ch. 4 Table 4-4: white oak "

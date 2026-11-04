@@ -6,7 +6,8 @@
   ``site.width``, ``site.depth`` and ``site.height`` (the space it must fit; ``alcove_*``
   read as aliases for one version, F16). A card with no door gets no door words (S-137).
 * **total mass** — the rough shapes plus what other screens add (``values.mass_items``).
-* **cost band** — the rough shapes and other screens' ``cost_items`` priced per process.
+* **cost band** — the rough shapes and other screens' ``cost_items`` priced per process, held
+  against ``site.budget`` when the card gives one (S-207).
 * **mass-vs-lift** — how the total can be lifted and moved (``site.lift_class``).
 * **blank-vs-stock-sheet** — every folded sheet's flat blank on a stock sheet (a rule only).
 * **walls-fit-envelope** — an inner size plus two walls inside the body, when a screen of
@@ -34,7 +35,7 @@ from napkin2factory.concepts.screens.base import (
 )
 from napkin2factory.concepts.screens.structural import STRUCTURAL
 from napkin2factory.core.domain import Screen
-from napkin2factory.core.model.concepts import ConceptCard, RuleRow
+from napkin2factory.core.model.concepts import ConceptCard, Label, RuleRow
 from napkin2factory.core.units import Quantity
 
 #: The space it must fit (F8); ``alcove_*`` are the v0.4 keys, read for one version. Their
@@ -75,6 +76,8 @@ LIFT_CLASS = CardField(
     "site", "lift_class", None, "words", "two-person", "how it may be lifted (one-person…)"
 )
 MASS_LIMIT = CardField("site", "mass_limit", "kg", "a mass", "40 kg", "the weight limit")
+#: What the owner will spend; the cost band is held against it (S-207).
+BUDGET = CardField("site", "budget", "USD", "a money amount", "1600 USD", "the budget")
 #: Parameters the door term seeds at promotion (S-085): the leaf that swings and the room it
 #: takes beside the hinge (``door_width`` seeds ``door-width`` the usual way).
 DOOR_LEAF_PARAM = "door-leaf-width"
@@ -207,9 +210,14 @@ def total_mass(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Ru
     return []
 
 
-@reads(phase="total")
+@reads(BUDGET, phase="total")
 def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[RuleRow]:
-    """A rough cost range: every rough shape and ``cost_items`` entry priced per process."""
+    """A rough cost range: every rough shape and ``cost_items`` entry priced per process.
+
+    With ``site.budget`` on the card it also returns the ``cost-vs-budget`` row: pass when the
+    band's high end is within the budget, fail when its low end is over it, otherwise a
+    warning that the budget sits inside the band (S-207).
+    """
     from napkin2factory.calckit import mass_cost
 
     notes = values.notes
@@ -256,7 +264,10 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
             f"the cost leaves out {the(owner_names(no_band))}: no price range on file for "
             "how it is made"
         )
+    budget = BUDGET.quantity(card)
     if not counted:
+        if budget is not None:
+            notes.append("the budget is not checked: nothing could be priced yet")
         return []
     ref = "mass_cost.cost_estimate (" + "; ".join(counted) + ") [verify]"
     if card_region is not None:
@@ -292,7 +303,34 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
     values.estimate.add(
         "cost_high", Quantity(high, "USD"), fmt(Quantity(high, "USD"), "USD"), words, ref
     )
-    return []
+    if budget is None:
+        return []
+    values.given.add("budget", budget, fmt(budget, "USD"), "on the card", "site.budget")
+    return [_budget_row(low, high, float(budget.to("USD").magnitude))]
+
+
+def _budget_row(low: float, high: float, budget: float) -> RuleRow:
+    """The ``cost-vs-budget`` row: the cost band held against the budget (S-207)."""
+    lo, hi, bud = (fmt(Quantity(x, "USD"), "USD") for x in (low, high, budget))
+    title = "Within the budget"
+    relies: list[Label] = ["given", "estimate"]
+    if high <= budget:
+        msg = f"the cost, {lo} to {hi}, is within the {bud} budget"
+        return RuleRow(
+            id="cost-vs-budget", title=title, severity="fail", status="pass",
+            message=msg, relies_on=relies,
+        )  # fmt: skip
+    if low > budget:
+        msg = f"even the low end of the cost, {lo}, is over the {bud} budget"
+        return RuleRow(
+            id="cost-vs-budget", title=title, severity="fail", status="fail",
+            message=msg, relies_on=relies,
+        )  # fmt: skip
+    msg = f"the {bud} budget sits inside the cost band, {lo} to {hi}"
+    return RuleRow(
+        id="cost-vs-budget", title=title, severity="warn", status="warn",
+        message=msg, relies_on=relies,
+    )  # fmt: skip
 
 
 @reads(LIFT_CLASS, MASS_LIMIT, phase="total")

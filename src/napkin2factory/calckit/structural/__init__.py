@@ -24,8 +24,10 @@ Method and physics (one source for screening and product calcs; W1):
   :math:`P_{cr} = \frac{\pi^2 E I_{\min}}{(K L)^2}` with effective length factor :math:`K`
   per end condition (AISC Table C-A-7.1; Shigley Table 4-2). A slenderness check verifies
   that :math:`\lambda = \frac{K L}{r} \ge \lambda_c = \sqrt{\frac{2 \pi^2 E}{\sigma_y}}`;
-  slenderness below :math:`\lambda_c` falls in the inelastic range and is refused, naming
-  Johnson's parabolic formula as not covered (Shigley §4-11).
+  slenderness below :math:`\lambda_c` falls in the inelastic range and ``euler_buckling_load``
+  refuses it. ``johnson_buckling_load`` covers that range with the Johnson parabola
+  :math:`P_{cr} = A[\sigma_y - (\sigma_y \lambda / 2\pi)^2 / E]` (Shigley §4-12), and
+  ``column_buckling_load`` picks Euler or Johnson by slenderness and says which (S-207).
 * **Tip-over safety factor.** Ratio of gravity restoring moment to overturning moment
   :math:`FS = \frac{m g x_{\text{cg}}}{F_{\text{edge}} x_{\text{overhang}}}` (Track A §3.1).
 * **Fastener group shear.** Direct shear stress per fastener :math:`\tau = \frac{V}{n A_s}`
@@ -65,6 +67,7 @@ from napkin2factory.calckit.structural.columns import (
     fastener_group_shear,
     tip_over_safety_factor,
 )
+from napkin2factory.calckit.structural.johnson import column_buckling_load, johnson_buckling_load
 from napkin2factory.calckit.structural.sections import (
     RectSection,
     RectTubeSection,
@@ -94,9 +97,11 @@ __all__ = [
     "beam_deflection_simply_supported",
     "cantilever_deflection",
     "check_euler_slenderness",
+    "column_buckling_load",
     "euler_buckling",
     "euler_buckling_load",
     "fastener_group_shear",
+    "johnson_buckling_load",
     "rect_section",
     "rect_section_inertia",
     "rect_tube_section",

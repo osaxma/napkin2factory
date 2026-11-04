@@ -233,6 +233,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-204 | The table benchmark spec: worked figures, Track A's mass limit and budget moved by the physics | in force |
 | S-205 | Ceremony derived from the model (W6) | in force |
 | S-206 | The generic structural screen reads loads from the site and members from the massing (amends W4) | in force |
+| S-207 | Calc pack fixes from the table benchmark: Johnson columns, room-temperature EMC, composite creep, budget screen | in force |
 
 ---
 
@@ -1569,3 +1570,6 @@ so is a short column, until the calc kit has Johnson's formula (Euler refuses it
 steel leg is always short). Factors: `joints.factor_of_safety`.
 Measured against hand calculations: an 800 x 22 mm pine top sags 9.63 mm over 1400 mm; 40 mm oak on
 50 x 50 x 2 rails 0.754 mm; a 60 x 60 x 4 steel column's arm tip 0.215 mm.
+## S-207 — Calc pack fixes from the table benchmark: Johnson columns, room-temperature EMC, composite creep, budget screen (2026-11-04)
+An independent hand calculation of the table benchmark (SPEC §4) found five defects in S-198 and S-201. (1) `structural.johnson_buckling_load` (Shigley §4-12) and `column_buckling_load`, which picks Euler or Johnson by slenderness against sqrt(2 pi^2 E/S_y) and says which in `BucklingResult.method`; `euler_buckling_load` still refuses short columns. Table leg: slenderness 72.7, P_cr 60 578 N, factor 38.3. (2) `joints.equilibrium_moisture_content`: Hailwood-Horrobin (FPL-GTR-190 Eq. 4-5) with temperature an input (default 21 degC); the old constants were for another temperature (5.77 points for 30 to 70 % RH, now 6.92, Table 4-2: 6.2 / 9.2 / 13.1 at 30 / 50 / 70 %); `wood_movement` at 280 mm: 7.07 mm (SPEC 7.05). (3) `joints.composite_creep_deflection`: EN 1995-1-1 §2.3.2.2, only the timber's E drops to E/(1+k_def); long-term sag 0.754 mm for the SPEC case (the whole-sag multiplier gave 1.06 mm). (4) k_def lives only in `calckit/data/timber_creep.yaml` (Table 3.2 [verify]); the `deflection`/`sustained` row of `load_cases.yaml` is gone, a creep factor being no factor of safety; the 0.25 medium-term k_def is S-201's estimate, flagged [verify]. (5) The cost-band screen reads `site.budget`: pass when the band's high end is within it, fail when its low end is over, amber between.
+Measured: `tests/unit/test_calc_fixes.py` and the pack's reference cases; the old 17.25-points-per-unit-RH slope for a single RH swing is replaced by a swing centred on 50 % RH.

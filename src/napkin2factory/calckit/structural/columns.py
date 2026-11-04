@@ -21,7 +21,7 @@ from napkin2factory.core.units import Quantity
 
 @dataclass(frozen=True)
 class BucklingResult:
-    r"""Euler elastic column buckling capacity and margin.
+    r"""Column buckling capacity and margin (Euler elastic, or Johnson for short columns).
 
     Attributes:
         critical_load: Euler buckling load :math:`P_{cr}` (force).
@@ -30,6 +30,7 @@ class BucklingResult:
         critical_slenderness: Euler/Johnson transition slenderness :math:`\\lambda_c`, or None.
         formula: governing formula text.
         source: published citation.
+        method: which curve was used, ``"euler"`` or ``"johnson"`` (S-207).
     """
 
     critical_load: Qty
@@ -38,6 +39,7 @@ class BucklingResult:
     critical_slenderness: float | None
     formula: str
     source: str
+    method: str = "euler"
 
     @property
     def value(self) -> Qty:
@@ -144,7 +146,7 @@ def check_euler_slenderness(
     Computes column slenderness :math:`\\lambda = \\frac{K L}{r}` with radius of gyration
     :math:`r = \\sqrt{I_{\\min} / A}`. Refuses slenderness below the Euler transition
     limit :math:`\\lambda_c = \\sqrt{\\frac{2 \\pi^2 E}{\\sigma_y}}`, naming Johnson's
-    formula as not covered (Shigley §4-11).
+    formula (``column_buckling_load`` applies it, Shigley §4-12).
 
     Returns:
         Slenderness ratio :math:`\\lambda` (float).
@@ -171,7 +173,7 @@ def check_euler_slenderness(
         raise ValueError(
             f"slenderness ratio \u03bb={slenderness:.1f} is below the Euler limit "
             f"\u03bb_c={crit_slenderness:.1f} (inelastic buckling range; "
-            f"Johnson's formula is not covered)"
+            f"use column_buckling_load, which applies Johnson's formula here)"
         )
     return slenderness
 
@@ -191,7 +193,7 @@ def euler_buckling_load(
     Calculates :math:`P_{cr} = \\frac{\\pi^2 E I_{\\min}}{(K L)^2}`.
     When ``area`` and ``yield_strength`` are provided, checks that slenderness
     is in the Euler elastic range and refuses inelastic columns, naming Johnson's
-    formula as not covered (Shigley §4-11).
+    formula (``column_buckling_load`` picks Euler or Johnson by slenderness).
 
     Args:
         E: Young's modulus of elasticity (pressure/stress).

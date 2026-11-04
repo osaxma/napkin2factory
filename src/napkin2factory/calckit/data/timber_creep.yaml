@@ -1,0 +1,17 @@
+# Creep factors k_def for timber (calckit.joints.creep): final deformation of a timber member
+# is its instantaneous deformation times (1 + k_def); EN 1995-1-1 section 2.3.2.2 applies it
+# as a reduced modulus E / (1 + k_def). One source for k_def: the load-case table carries no
+# creep multiplier (a creep factor is not a factor of safety, S-207).
+# Every row is [verify] in DECISIONS.md.
+table: timber_creep
+rows:
+  - {moisture: dry, load_duration: sustained, k_def: 0.60, verify: true,
+     source: "EN 1995-1-1:2004 Table 3.2, solid timber, service class 1 (indoor, about 20 degC and 65 % RH)"}
+  - {moisture: damp, load_duration: sustained, k_def: 0.80, verify: true,
+     source: "EN 1995-1-1:2004 Table 3.2, solid timber, service class 2 (covered, about 20 degC and 85 % RH)"}
+  - {moisture: wet, load_duration: sustained, k_def: 2.00, verify: true,
+     source: "EN 1995-1-1:2004 Table 3.2, solid timber, service class 3 (exposed to weather or cycling humidity)"}
+  - {moisture: any, load_duration: medium-term, k_def: 0.25, verify: true,
+     source: "Estimate kept from S-201, not a row of EN 1995-1-1 Table 3.2: a partial share of the sustained creep; replace with the Eurocode's load-duration combination (psi_2) rule before relying on it"}
+  - {moisture: any, load_duration: instantaneous, k_def: 0.0, verify: true,
+     source: "EN 1995-1-1:2004 section 2.3.2.2: instantaneous deformation carries no creep by definition (short-term loads)"}

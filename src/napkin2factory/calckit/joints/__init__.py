@@ -8,8 +8,11 @@ Pure-function, unit-checked (`pint`) structural pack covering:
 - Joint moment capacity for welded tube corners and bolted corner groups.
 - Frame racking (lateral sway) for unbraced portals with rigid or semi-rigid corners
   (Roark / slope-deflection frame mechanics).
-- Wood creep deflection (elastic deflection multiplied by duration creep factor per
-  USDA Wood Handbook / Eurocode 5 k_def).
+- Wood creep: k_def from ``calckit/data/timber_creep.yaml`` (EN 1995-1-1 Table 3.2), a
+  timber member's sag times (1 + k_def), and a composite member's sag where only the
+  timber creeps (EN 1995-1-1 section 2.3.2.2).
+- Equilibrium moisture content from relative humidity and temperature (Hailwood-Horrobin,
+  USDA Wood Handbook FPL-GTR-190 Eq. 4-5).
 - Across-grain wood dimensional movement across relative humidity changes using
   dimensional change coefficients from ``calckit/data/wood_movement.yaml``.
 - Fatigue safety margin using endurance limit and Marin/Goodman criteria per Shigley;
@@ -26,28 +29,37 @@ from __future__ import annotations
 import inspect
 
 from napkin2factory.calckit.joints.cases import CASES
+from napkin2factory.calckit.joints.creep import (
+    composite_creep_deflection,
+    timber_k_def,
+    wood_creep_deflection,
+)
 from napkin2factory.calckit.joints.fatigue import factor_of_safety, fatigue_margin
 from napkin2factory.calckit.joints.frames import PortalFrame, frame_racking, joint_moment_capacity
 from napkin2factory.calckit.joints.inserts import THREADED_INSERT_ROWS
+from napkin2factory.calckit.joints.moisture import equilibrium_moisture_content
 from napkin2factory.calckit.joints.withdrawal import (
     PulloutResult,
     insert_pullout,
     lag_screw_withdrawal,
     wood_screw_withdrawal,
 )
-from napkin2factory.calckit.joints.wood import wood_creep_deflection, wood_movement
+from napkin2factory.calckit.joints.wood import wood_movement
 
 __all__ = [
     "CASES",
     "PortalFrame",
     "PulloutResult",
     "THREADED_INSERT_ROWS",
+    "composite_creep_deflection",
+    "equilibrium_moisture_content",
     "factor_of_safety",
     "fatigue_margin",
     "frame_racking",
     "insert_pullout",
     "joint_moment_capacity",
     "lag_screw_withdrawal",
+    "timber_k_def",
     "wood_creep_deflection",
     "wood_movement",
     "wood_screw_withdrawal",

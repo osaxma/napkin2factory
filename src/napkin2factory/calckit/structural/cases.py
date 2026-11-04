@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 
 from napkin2factory.calckit._cases import Case
+from napkin2factory.calckit.structural.johnson_cases import JOHNSON_CASES
 from napkin2factory.core.units import Quantity
 
 # --- reference cases ----------------------------------------------------------------
@@ -322,3 +323,5 @@ CASES: list[Case] = [
         rel=1e-12,
     ),
 ]
+
+CASES += JOHNSON_CASES
