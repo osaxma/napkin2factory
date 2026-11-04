@@ -230,6 +230,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-201 | Structural calc pack: joints, wood, fatigue, load cases | in force |
 | S-202 | Frame kit: rectangular, round and T-slot profiles, rail section, slotted tabs | in force |
 | S-203 | Four mechanical interface kinds through the mechanical domain (amends W5) | in force |
+| S-204 | The table benchmark spec: worked figures, Track A's mass limit and budget moved by the physics | in force |
 
 ---
 
@@ -1542,3 +1543,12 @@ checked by `_core_report` and `_diameters_match` in `core/checks/interface.py`. 
 get bore or pilot holes, passing parties clearance holes, and T-slot extrusions remain uncut.
 Each kind carries its domain check (material must be wood/plastic; extrusion profile/process; 2 parties).
 Measured: 11 tests in `test_mechanical_interface_kinds.py` pass; all 34 interface tests pass.
+## S-204 — The table benchmark spec (2026-11-04)
+`examples/table/SPEC.md` (W9, road §4.1): every figure worked by hand from stated geometry, then
+re-derived independently by a second model from the spec alone (140 figures, all within 0.35 %).
+Track A's draft could not be both decisive and true: at 55 kg the promoted card cleared mass by
+only 30–31 %, and the repository's own cost bands price the oak top alone at 259–634 USD. So the
+mass limit is 70 kg, the budget 1600 USD, the top 30 mm (ECR-1 takes it to 32 mm), all members
+50×50×1.5 tube, bolts M8×25. The re-derivation's findings were fixed before landing (ECR-1's
+margin, seven modelling choices now stated). The check also found four calc-pack defects
+(short columns, moisture constants, composite creep, no budget check), fixed in their own task.
