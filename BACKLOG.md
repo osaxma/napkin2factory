@@ -121,6 +121,7 @@ entry that closed them. Ids are never reused.
 
 | id | item | closed by |
 |---|---|---|
+| B-0193 | Product region (tables looked up by it, loud when missing) and display units | v0.7 W7, W8, M3b; closed by S-219 |
 | B-0197 | A change request that removes a part, parameter or joint leaves the product unloadable; a sign-off citing the removed part becomes a validation error | closed by S-215 |
 | B-0199 | Wiring checks apply the whole circuit's current to every conductor (a fan branch fails); a cable entry with `passes: []` fails its requirement though the docs say to leave it for later | closed by S-214 |
 | B-0198 | `n2f discard` deletes a filed and approved change request and its patch (no snapshot after `ecr new`/`approve`) | closed by S-212 |
@@ -221,4 +222,3 @@ entry that closed them. Ids are never reused.
 | B-0163 | A parameter of the wrong dimension (a heater power in kg) reads as "has no rating" with no error (`checks/calcs.py:207-211` swallows the unit error) | Closed 2026-11-03 (S-182): _quantity raises ValueError naming the parameter and field on wrong unit dimension |
 | B-0128 | A domain cannot add lines to the parts list, nor make `bom` run after it: cable bought by length is only in the domain's schedule | Closed 2026-11-03 (S-188): Domain.bom_lines hook, rollups consumables list, bom.csv qty_unit column, and electrical cable lines grouping conductors |
 | B-0186 | One disclaimer: the electrical domain repeats its own on the Wiring section, the first manual page, the diagrams and `README.txt` (S-179) | Closed 2026-11-04 (S-193): removed from all four; the README's disclaimer is the one |
-| B-0193 | Product region (tables looked up by it, loud when missing) and display units | v0.7 W7, W8, M3b; closed by S-219 |
