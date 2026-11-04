@@ -1,0 +1,15 @@
+id: cross-rail-weld
+kind: mating-face
+parties: [part://apron-frame, part://cross-rail]
+name: Cross rail welded between the long rails
+description: The cross rail's ends are welded to the inner faces of the two long rails at the middle of the length, its top face flush with the rails' top faces, so the top rests on it (SPEC sections 3.4 and 4.1). One interface stands for the weld at both ends; the cross rail is placed by the near end.
+frames:
+  part://apron-frame:
+    origin: [0, param://cross-rail-y, param://cross-rail-z]
+    normal: [0, 1, 0]
+    x_axis: [1, 0, 0]
+  part://cross-rail:
+    origin: [0, 0, 0]
+    normal: [0, 1, 0]
+    x_axis: [1, 0, 0]
+spec: {width: param://cross-rail-size, depth: param://tube-size}

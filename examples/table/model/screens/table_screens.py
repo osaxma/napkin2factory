@@ -4,10 +4,15 @@ The generic screens (fits the space, total mass, cost band, lift class, ``struct
 the rough shapes. A table's card needs three things more, and only a table needs them, so they
 live here (SPEC.md sections 3 and 4.0):
 
-* **hardware** — every card has the same bought-in set: 4 levelling glides, 8 threaded inserts
-  and 8 screws with washers. Its mass joins the total mass; its price joins the cost band
-  (the cost bands price by weight, so a bought-in set is added to the band afterwards, with a
-  row of its own against the budget).
+* **hardware** — every card has a bought-in set: 4 levelling glides and one threaded insert and
+  one screw with washer for each fixing of the top (8 on the pine and trestle cards; the apron
+  frame card has one per fixing tab, 6). Its mass joins the total mass; its price joins the
+  cost band (the cost bands price by weight, so a bought-in set is added to the band
+  afterwards, with a row of its own against the budget).
+* **cross rail** — the apron frame card has a tube under the middle of the top, welded between
+  the long rails. The oak top is stiff along its grain and soft across it, so the load at the
+  middle reaches the long rails through that tube, and the tube's dip adds to the top's sag
+  (SPEC.md section 4.1; the generic screen has no such member).
 * **mass limit** — ``site.mass_limit`` held against the total mass.
 * **supports** — the generic ``structural`` screen understands a frame with a top and a column
   with an arm. The frame kit refuses bare legs (a frame is a weldment with rails), and a trestle
@@ -37,17 +42,32 @@ from napkin2factory.core.units import Quantity
 
 Qty = Any
 
-#: The hardware set every card carries: (what, count, kg each, USD each). SPEC.md section 4.0,
-#: "the spec's estimates, US, 2026-11", still [verify] against a supplier catalogue (S-221).
-HARDWARE: tuple[tuple[str, int, float, float], ...] = (
-    ("levelling glide", 4, 0.080, 4.00),
-    ("M8 threaded insert", 8, 0.010, 1.50),
-    ("M8 screw with washer", 8, 0.020, 1.00),
-)
-HARDWARE_KG = sum(n * kg for _, n, kg, _ in HARDWARE)
-HARDWARE_USD = sum(n * usd for _, n, _, usd in HARDWARE)
-HARDWARE_WORDS = "the hardware set (4 glides, 8 inserts, 8 screws)"
+#: The bought-in set of a card: (what, kg each, USD each). SPEC.md section 4.0, "the spec's
+#: estimates, US, 2026-11", still [verify] against a supplier catalogue (S-221).
+GLIDE = ("levelling glide", 0.080, 4.00)
+INSERT = ("M8 threaded insert", 0.010, 1.50)
+SCREW = ("M8 screw with washer", 0.020, 1.00)
+#: Fixings of the top on a card with no frame tabs to count (the pine and trestle cards).
+DEFAULT_FIXINGS = 8
 HARDWARE_REF = "SPEC.md section 4.0 hardware set [verify]"
+
+
+def fixings(card: ConceptCard) -> int:
+    """Fixings of the top: one per mounting tab of the card's frame, else 8 (SPEC.md 4.0, 3.4)."""
+    for call in card.massing:
+        if call.kit == "frame" and call.args.get("mounting_tabs"):
+            return len(call.args["mounting_tabs"])
+    return DEFAULT_FIXINGS
+
+
+def hardware(card: ConceptCard) -> tuple[float, float, str]:
+    """Mass (kg), price (USD) and words of a card's hardware: 4 glides, n inserts, n screws."""
+    n = fixings(card)
+    kg = GLIDE[1] * 4 + (INSERT[1] + SCREW[1]) * n
+    usd = GLIDE[2] * 4 + (INSERT[2] + SCREW[2]) * n
+    return kg, usd, f"the hardware set (4 glides, {n} inserts, {n} screws)"
+
+
 G = 9.80665  # m/s^2, the value calckit.structural uses
 
 
@@ -68,8 +88,9 @@ def hardware_mass(card: ConceptCard, massing: Any, values: ScreenValues) -> list
         for p in (massing.pieces if massing is not None else [])
         if p.name.startswith("glide")
     )
-    kg = Quantity(HARDWARE_KG - drawn, "kg")
-    values.mass_items.append((kg, HARDWARE_WORDS, HARDWARE_REF))
+    set_kg, _, words = hardware(card)
+    kg = Quantity(set_kg - drawn, "kg")
+    values.mass_items.append((kg, words, HARDWARE_REF))
     return []
 
 
@@ -85,9 +106,10 @@ def hardware_cost(card: ConceptCard, massing: Any, values: ScreenValues) -> list
             "it is not added (nothing is converted)"
         )
         return []
-    add = Quantity(HARDWARE_USD, "USD")
+    _, set_usd, set_words = hardware(card)
+    add = Quantity(set_usd, "USD")
     low, high = low + add, high + add
-    words = f"rough cost of the rough shapes from the cost bands, plus {HARDWARE_WORDS}; {TO_CHECK}"
+    words = f"rough cost of the rough shapes from the cost bands, plus {set_words}; {TO_CHECK}"
     ref = f"mass_cost.cost_estimate + {HARDWARE_REF}"
     values.estimate.add("cost_low", low, fmt(low, "USD"), words, ref)
     values.estimate.add("cost_high", high, fmt(high, "USD"), words, ref)
@@ -278,9 +300,89 @@ def supports(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rule
     return rows
 
 
+@reads(POINT_LOAD, MAX_DEFLECTION, phase="check")
+def cross_rail(card: ConceptCard, massing: Any, values: ScreenValues) -> list[RuleRow]:
+    """The tube under the middle of the top: its dip adds to the top's sag, and its own stress.
+
+    The piece named ``cross-rail`` is a square tube between the frame's two long rails; the
+    centre load stands over it and it carries the whole load to them as a simply supported beam
+    (Roark Table 8.1, case 1e). The oak on top is given no share. The generic screen's sag (the
+    top and the long rails along the length) is kept as it is and the dip is added to it, so
+    both figures stay in the card (SPEC.md section 4.1). A card without that piece gives no rows.
+    """
+    if massing is None:
+        return []
+    cross, frame = (
+        massing.piece("cross-rail"),
+        next((p for p in massing.pieces if p.kit == "frame"), None),
+    )
+    point = POINT_LOAD.quantity(card)
+    along = values.computed.raw.get("deflection")
+    if cross is None or frame is None or point is None or along is None:
+        return []
+    stock = _stock(cross)
+    if isinstance(stock, str):
+        return []
+    young, yield_strength, ref = stock
+    ax = 0 if frame.size[0] >= frame.size[1] else 1
+    span = Quantity(frame.size[1 - ax] - frame.args.member.size, "mm")  # long rail to long rail
+    tube = structural.rect_tube_section(
+        Quantity(cross.args.size, "mm"),
+        Quantity(cross.args.size, "mm"),
+        Quantity(cross.args.wall, "mm"),
+    )
+    dip = structural.beam_deflection_simply_supported(point, span, young, tube.Ix)
+    dip_mm = dip.deflection.to("mm")
+    total = (along + dip_mm).to("mm")
+    how = (
+        f"the top's sag along the length {_mm(along)} + the cross rail's dip {_mm(dip_mm)}: "
+        f"{dip.formula} on the {sig(cross.args.size)} mm square tube over the {_mm(span)} between "
+        f"the long rails; {dip.source}; {ref}"
+    )
+    values.computed.add(
+        "cross_rail_dip", dip_mm, _mm(dip_mm), "computed from the card and the massing", how
+    )
+    values.computed.add(
+        "sag_with_cross_rail", total, _mm(total), "computed from the card and the massing", how
+    )
+    rows: list[RuleRow] = []
+    limit = MAX_DEFLECTION.quantity(card)
+    if limit is not None:
+        need = joints.factor_of_safety("deflection", "static")
+        margin = float((limit / total).to("").magnitude)
+        ok = margin >= need
+        rows.append(
+            _row(
+                "table-cross-rail",
+                "The cross rail carries the centre load",
+                ok,
+                f"with the cross rail's dip the top sags {_mm(total)} in all (computed), "
+                f"{'within' if ok else 'beyond'} the {_mm(limit)} limit on the card "
+                f"(limit ÷ sag is {sig(margin)}, {sig(need)} needed, static case) — {how}",
+            )
+        )
+    moment = Quantity(float(point.to("N").magnitude) * float(span.to("m").magnitude) / 4, "N*m")
+    res = structural.beam_bending_stress(moment, tube.Zx, yield_strength)
+    need = joints.factor_of_safety("yield", "static")
+    got = res.yield_factor or float("inf")
+    rows.append(
+        _row(
+            "table-cross-rail-yield",
+            "The cross rail stays under yield",
+            got >= need,
+            f"the cross rail carries {fmt(res.stress.to('MPa'), 'MPa')} of bending stress "
+            f"({sig(float(moment.magnitude))} N·m): factor {sig(got)} (computed), "
+            f"{'at least' if got >= need else 'below'} the {sig(need)} needed — M = F·L/4; "
+            f"{res.formula}; {res.source}; {ref}",
+        )
+    )
+    return rows
+
+
 SCREENS = (
     Screen("hardware-mass", hardware_mass, title="Hardware mass"),
     Screen("hardware-cost", hardware_cost, title="Hardware cost"),
     Screen("mass-limit", mass_limit, title="Mass limit"),
     Screen("supports", supports, title="A top on legs or trestle ends stands up"),
+    Screen("cross-rail", cross_rail, title="The cross rail carries the centre load"),
 )

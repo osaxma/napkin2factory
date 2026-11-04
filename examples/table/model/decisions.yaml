@@ -20,8 +20,8 @@ decisions:
       its envelope seeds 0 parameters, its site constraints and style choices become 1 requirement, and
       style.yaml takes its look.'
     rationale: 'Screening of C-002 (green): width 1600 mm (computed); depth 800 mm (computed); height 750
-      mm (computed); mass 44.7 kg (computed); total mass 45.3 kg (estimate); cost low 606 USD (estimate);
-      cost high 981 USD (estimate); lift class equipment (estimate).'
+      mm (computed); mass 46.7 kg (computed); total mass 47.2 kg (estimate); cost low 640 USD (estimate);
+      cost high 1014 USD (estimate); lift class equipment (estimate).'
     links: ['req://REQ-001', part://top-board, part://apron-frame]
     made_by: human
     disclosed: true
@@ -31,7 +31,7 @@ decisions:
     date: 2026-11-04
     title: Slotted fixings on the long rails, round holes on the short rails
     context: A solid oak top moves across its grain with the seasons (20.1 mm over its 800 mm width between 30 % and 70 % relative humidity); fixed rigidly along both long edges it would crack.
-    decision: Fix the top to the frame with eight M8 inserts and screws on tabs welded to the rails. The six tabs on the long rails have a 9 x 22 mm slot across the width; the two on the short rails have a round 9 mm hole and sit on the top's centreline, which does not move across the grain.
+    decision: Fix the top to the frame with six M8 inserts and screws on tabs welded to the rails. The four tabs on the long rails, 300 mm either side of the middle where the cross rail is, have a 9 x 22 mm slot across the width; the two on the short rails have a round 9 mm hole and sit on the top's centreline, which does not move across the grain.
     rationale: At a long-rail fixing, 280 mm from the centreline, the oak moves 7.05 mm against 13 mm of free travel in the slot (slot length less screw clearance), a margin of 45.8 %. The slotted fixings carry no shear, so the top and rails add their stiffness without composite action (the sag calc assumes this).
     links: [iface://top-fixing-long, iface://top-fixing-short, req://REQ-013, param://slot-length, part://top-board, part://apron-frame]
     made_by: agent
@@ -53,10 +53,21 @@ decisions:
     date: 2026-11-04
     title: Hardware and cost figures are estimates, costed at the high end
     context: The bought parts have no order code yet and the US cost bands (woodworking 9 to 22 USD/kg, welding 19.5 USD/kg) are estimates from 2026-10 and 2026-11.
-    decision: Declare each custom part's cost at the high end of its band (top 28.8 kg x 22 USD/kg = 633.60 USD; frame 15.94 kg x 19.5 USD/kg = 310.75 USD) and the hardware at the spec's estimates (glide 0.080 kg and 4.00 USD; insert 0.010 kg and 1.50 USD; screw with washer 0.020 kg and 1.00 USD).
-    rationale: The budget requirement is held against the high end of the band, so the total, 980.35 USD, is the worst case the owner should expect against 1600 USD (38.7 % to spare). The hardware masses are also parameters (glide-mass, insert-mass, screw-mass) the calcs read; they repeat the parts' mass fields.
-    links: [req://REQ-014, req://REQ-001, part://top-board, part://apron-frame, part://leveling-foot, part://wood-insert-m8, part://mounting-bolt-m8]
+    decision: Declare each custom part's cost at the high end of its band (top 28.8 kg x 22 USD/kg = 633.60 USD; frame 15.84 kg x 19.5 USD/kg = 308.78 USD; cross rail 2.08 kg x 19.5 USD/kg = 40.50 USD) and the hardware at the spec's estimates (glide 0.080 kg and 4.00 USD; insert 0.010 kg and 1.50 USD; screw with washer 0.020 kg and 1.00 USD).
+    rationale: The budget requirement is held against the high end of the band, so the total, 1013.88 USD, is the worst case the owner should expect against 1600 USD (36.6 % to spare). The hardware masses are also parameters (glide-mass, insert-mass, screw-mass) the calcs read; they repeat the parts' mass fields.
+    links: [req://REQ-014, req://REQ-001, part://top-board, part://apron-frame, part://cross-rail, part://leveling-foot, part://wood-insert-m8, part://mounting-bolt-m8]
     made_by: agent
     disclosed: true
     verify: true
     sources: ["SPEC.md section 4.0 (cost bands and hardware); calckit/data/cost_bands.yaml"]
+  - id: DEC-005
+    date: 2026-11-05
+    title: A steel cross rail under the middle of the top
+    context: The oak top is stiff along its grain and soft across it (E_T about 7 % of E_L), so the 150 kg load at the middle cannot reach the two long rails through the oak alone; between the rails, 650 mm apart, the top would dish 3.9 mm, more than the whole 2.5 mm limit. The frame kit builds legs and perimeter rails only, so the member across the middle is a part of its own.
+    decision: Weld a 75 x 75 x 1.5 mm square tube, 600 mm long, between the inner faces of the long rails at the middle of the length, its top flush with the rails, and let the top rest on it. This moves the top's six fixings to 300 mm either side of the middle (four on the long rails, two on the short rails), and the owner is asked to stand heavy loads over it.
+    rationale: The cross rail dips 0.106 mm under the 150 kg load, so the sag is 1.71 mm against 2.5 mm (31.8 % to spare) and the oak sees 0.196 MPa across the grain against 7.4 MPa. It adds 2.08 kg and 40.50 USD and hangs 25 mm below the apron, a small departure from the owner's no-rail-below-the-apron wish. A deeper tube would cost mass the 31 mm top change (ECR-1) cannot spare.
+    links: [part://cross-rail, iface://cross-rail-weld, req://REQ-005, req://REQ-016, req://REQ-015, param://cross-rail-size, param://load-patch-x]
+    made_by: agent
+    disclosed: true
+    verify: true
+    sources: ["SPEC.md sections 3.4 and 4.1; USDA Wood Handbook FPL-GTR-190 Tables 5-1 and 5-3a"]

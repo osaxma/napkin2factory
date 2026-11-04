@@ -13,7 +13,7 @@ geometry:
     width: param://table-width
     height: param://top-thickness
 interfaces: [iface://top-fixing-long, iface://top-fixing-short]
-satisfies: [req://REQ-002, req://REQ-003, req://REQ-004, req://REQ-005, req://REQ-006, req://REQ-007, req://REQ-009, req://REQ-012, req://REQ-013]
+satisfies: [req://REQ-002, req://REQ-003, req://REQ-004, req://REQ-005, req://REQ-006, req://REQ-007, req://REQ-009, req://REQ-012, req://REQ-013, req://REQ-016]
 cost: {unit: 633.60 USD, basis: estimate, note: "high end of the US woodworking band, 22 USD/kg x 28.8 kg (band 9 to 22 USD/kg, 2026-11) [verify]"}
 lead_time: 10 d
-manufacturer_notes: Eight blind bores underneath for the M8 x 20 threaded inserts, in the positions the interfaces give; fit the inserts, then oil. Edge-glue the strips so the grain runs along the 1600 mm length.
+manufacturer_notes: Six blind bores underneath for the M8 x 20 threaded inserts, in the positions the interfaces give; fit the inserts, then oil. Edge-glue the strips so the grain runs along the 1600 mm length.

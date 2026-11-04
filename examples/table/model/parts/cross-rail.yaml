@@ -1,0 +1,22 @@
+id: cross-rail
+rev: A
+name: Steel cross rail
+kind: custom
+process: welding
+material: {name: mild steel, spec: "75 x 75 x 1.5 mm square tube, S235"}
+finish: powder coat, black
+role: support
+geometry:
+  kit: tube
+  args:
+    shape: square
+    size: param://cross-rail-size
+    wall: param://cross-rail-wall
+    length: param://cross-rail-length
+    axis: y
+    process: welding
+interfaces: [iface://cross-rail-weld]
+satisfies: [req://REQ-005, req://REQ-006, req://REQ-007, req://REQ-016]
+cost: {unit: 40.50 USD, basis: estimate, note: "US welding band 19.5 USD/kg x 2.08 kg of 75 x 75 x 1.5 mm tube, 600 mm (2026-10) [verify]"}
+lead_time: 15 d
+manufacturer_notes: One piece of the same grade of tube as the frame, cut square to 600 mm. Weld both ends to the inner faces of the long rails at the middle of their length, top face flush with the rails' top faces, then powder coat with the frame. It carries the centre load across to the long rails (SPEC section 4.1).

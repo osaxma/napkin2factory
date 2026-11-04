@@ -1,19 +1,21 @@
 requirement: req://REQ-009
 by: Example Reviewer (not a real review)
 role: human
-date: '2026-11-04'
+date: '2026-11-05'
 statement: EXAMPLE sign-off for the showcase; a real reviewer must repeat this check
   against the built table.
 evidence:
 - calc://structure.tip_over_factor
 - part://top-board
 - part://apron-frame
+- part://cross-rail
 - part://leveling-foot
 - param://edge-load
 evidence_keys:
-  calc://structure.tip_over_factor: sha256:38c414f978b841477fa07117d3fdd22a228f46987e31d52f767c433f547c8527
-  part://top-board: inv:{"area":2710031.858,"bbox":[1600.0,800.0,30.0],"centroid":[0.0,-0.0,15.0024],"counts":[22,36,1],"features":"sha256:e658d6562cae12cd6d14b307fca639e1894f5d7b39e9183414c936f1e936ab07","volume":38381904.426}
-  part://apron-frame: inv:{"area":2665666.903,"bbox":[1500.0,700.0,700.0],"centroid":[-0.0,-0.0,544.7662],"counts":[123,330,1],"features":"sha256:5352740008eac60148685e4ddbdd8a623be18c29230f49694522b5f1d39e2e0b","volume":2025156.248}
+  calc://structure.tip_over_factor: sha256:dcdeaf94a88578f738acecf857c44744ad710a9ddfb35cf9f2f77bf633e016ef
+  part://top-board: inv:{"area":2708523.893,"bbox":[1600.0,800.0,30.0],"centroid":[0.0,0.0,15.0018],"counts":[18,30,1],"features":"sha256:755fe4325e0d7e93470ffbd3edd39dc7f5bd46ff372f5ca950cd4a08421928f1","volume":38386428.32}
+  part://apron-frame: inv:{"area":2658915.177,"bbox":[1500.0,700.0,700.0],"centroid":[-0.0,-0.0,543.9022],"counts":[107,282,1],"features":"sha256:406c84f9d7d45f761fc199b4675424342f0b11a45d92b97e1ccd31e9f8fe9181","volume":2013801.186}
+  part://cross-rail: inv:{"area":353682.0,"bbox":[75.0,600.0,75.0],"centroid":[0.0,300.0,0.0],"counts":[10,24,1],"features":"sha256:c29d7f0fd1ac98be8a6a22077795bc6fbe4ac7d96695df5c405ed9ebd110666b","volume":264600.0}
   part://leveling-foot: sha256:57cbc0dda3efee4a2633aa82631b5a115c2f064ee950bdab82710bc63f90928a
   param://edge-load: sha256:eed6b5277f49e131e07983aecc995739e5913e60dc265cff72940411724a9bfd
 example: true

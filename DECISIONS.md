@@ -255,6 +255,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-226 | Gate J blockers fixed: unrun checks shown, manuals and dimension groups in the owner's units | in force |
 | S-227 | Gate I blockers fixed: fixed-base racking, the product region in costs | in force |
 | S-228 | Spec reproduction trial 1 (test stand): a cold agent reaches a green product; the oracle passes 30, fails 14, mostly where it encodes the example's modelling | in force |
+| S-229 | The table top's cross-grain path, worked | in force |
 
 ---
 
@@ -1765,3 +1766,9 @@ beam fatigue as its own requirement, card figures at ±5 % where the screen simp
 package gaps: no generic mass-limit screen, per-metre bands unpriced (B-0211), a traceback on a plate
 gantry card, the wiring IndexError (B-0213), earth wires counted as load current, repository docs an
 installed tool cannot reach. Fixes before the second vendor's trials: B-0233–B-0238.
+
+## S-229 — The table top's cross-grain path, worked (2026-11-05)
+Gate I C8 (S-224): the table spec took top + long rails as one beam and assumed the 150 kg at the middle reached the rails through the oak. Worked in `examples/table/SPEC.md` 4.1: white oak E_T/E_L 0.072 (FPL-GTR-190 Table 5-1), E_T 885.6 MPa; the top as an orthotropic plate between the rails (closed form for a point load, double Fourier series for the 100 x 100 mm base the spec states) dishes 3.88 mm (point) or 3.79 mm (base), bending stress 1.75 MPa against 5.5 MPa tension across the grain (factor 3.1). It would not break; it would sag 5.39 mm with the 1.60 mm along the length, 116 % over 2.5 mm. The review's 650 mm strip (6.50 mm, 2.45 MPa) overstates both.
+Design change: a 75 x 75 x 1.5 mm cross rail, a part of its own (the frame kit has no member across the middle; kit `tube`, welded between the long rails, top flush, 25 mm lower than the apron), dip 0.106 mm, bearing 0.196 MPa across the grain (factor 37.7, new REQ-016). Sag 1.580 -> 1.705 mm (36.8 % -> 31.8 %); scan: 50 x 50 gives 21.5 %, 60 x 60 27.8 %, 70 x 70 30.8 %.
+Moved: fixings 8 -> 6 (the x = 0 tabs sat where the rail is welded; long-rail tabs now x = +-300), hardware 0.500 kg, table 45.3 -> 47.2 kg (32.6 %), cost 606-980 -> 639-1014 USD (36.6 %), tip-over 3.92 -> 4.09, pull-out 84.5 -> 75.6, long-term sag 0.754 -> 0.811 mm; ECR-1 is now 31 mm (32 mm would leave 29.8 % on mass). SPEC 8.1 lists every old -> new figure for the second re-derivation.
+The cross rail protects the middle only; a 150 kg base elsewhere on the centre line would dish as above, and the manual says to stand heavy loads over it. Measured: the oracle on a copy, 50 passed, 0 failed, 6 pending (the new pending row is the unsupported dish); `tests/e2e/test_benchmarks.py` and `tests/unit/test_oracle.py` pass; `make lint` and `make types` clean; all 16 reference cases of the table calcs reproduce under `n2f check`. Not measured: a second vendor's re-derivation of the new figures.

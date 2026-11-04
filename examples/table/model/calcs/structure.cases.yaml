@@ -16,6 +16,14 @@ inputs:
   tab-size: 40 mm
   tab-thickness: 4 mm
   tab-row-spacing: 560 mm
+  fixing-count: 6 dimensionless
+  cross-rail-size: 75 mm
+  cross-rail-wall: 1.5 mm
+  cross-rail-length: 600 mm
+  load-patch-x: 100 mm
+  load-patch-y: 100 mm
+  oak-et-ratio: 0.072 dimensionless
+  oak-compression-perp: 7.4 MPa
   slot-length: 22 mm
   insert-hole: 9 mm
   centre-load: 1471.5 N
@@ -30,45 +38,61 @@ inputs:
   screw-mass: 0.020 kg
 cases:
   centre_load_sag:
-    - expect: 1.58 mm
+    - expect: 1.705 mm
       abs: 0.01
-      source: "SPEC.md 4.1: point 1.378 mm + self weight 0.202 mm; EI total 6.78e10 N mm2 over a 1450 mm span"
+      source: "SPEC.md 4.1: along the length 1.397 mm (point, with the cross rail's 20.4 N) + 0.202 mm (self weight) + the cross rail's dip 0.106 mm; EI total 6.78e10 N mm2 over a 1450 mm span"
+  cross_rail_dip:
+    - expect: 0.106 mm
+      abs: 0.002
+      source: "SPEC.md 4.1: 1471.5 N x 650^3 / (48 x 200 000 x 397 231) for the 75 x 75 x 1.5 tube (Roark T8.1 case 1e)"
   long_term_sag:
-    - expect: 0.754 mm
+    - expect: 0.811 mm
       abs: 0.005
-      source: "SPEC.md 4.1: EI_final 5.9515e10 N mm2 with k_def 0.60 on the oak only (EN 1995-1-1 2.3.2.2)"
+      source: "SPEC.md 4.1: EI_final 5.9515e10 N mm2 with k_def 0.60 on the oak only (EN 1995-1-1 2.3.2.2), 0.775 mm along the length + the cross rail's dip 0.035 mm"
   top_yield_factor:
-    - expect: 34.0
+    - expect: 33.6
       abs: 0.2
-      source: "SPEC.md 4.1: 1.62 MPa in the top against the oak's 55.2 MPa"
+      source: "SPEC.md 4.1: 1.64 MPa in the top against the oak's 55.2 MPa"
   rail_yield_factor:
-    - expect: 5.69
+    - expect: 5.62
       abs: 0.03
-      source: "SPEC.md 4.1: 43.9 MPa in the rails against 250 MPa"
+      source: "SPEC.md 4.1: 44.5 MPa in the rails against 250 MPa"
+  cross_rail_yield_factor:
+    - expect: 11.1
+      abs: 0.1
+      source: "SPEC.md 4.1: M = 1471.5 N x 650 mm / 4 = 239 119 N mm over Z 10 593 mm3, 22.6 MPa against 250 MPa"
   member_yield_factor:
-    - expect: 5.69
+    - expect: 5.62
       abs: 0.03
-      source: "SPEC.md 4.1: the rails govern (5.69 against the top's 34.0)"
-  leg_buckling_factor:
-    - expect: 38.3
+      source: "SPEC.md 4.1: the long rails govern (5.62 against the top's 33.6 and the cross rail's 11.1)"
+  top_bearing_factor:
+    - expect: 37.7
       abs: 0.2
-      source: "SPEC.md 4.1: Johnson parabola, K L / r = 72.7, P_cr 60 578 N over 1 583 N"
-  tip_over_factor:
-    - expect: 3.92
+      source: "SPEC.md 4.1: 1471.5 N over 75 x 100 mm = 0.196 MPa across the grain against 7.4 MPa (FPL-GTR-190 Table 5-3a)"
+  unsupported_dish:
+    - expect: 3.88 mm
       abs: 0.02
-      source: "SPEC.md 4.1: 444.2 N x 0.325 m over 490.5 N x 0.075 m; the end edge gives 8.75"
+      source: "SPEC.md 4.1: F b^2 S / (sqrt 2 pi^3 Dx^(1/4) Dy^(3/4)), b 650 mm, Dx 2.7675e7 and Dy 1.9926e6 N mm, S 1.0518 (E_T = 0.072 E_L, FPL-GTR-190 Table 5-1)"
+  leg_buckling_factor:
+    - expect: 38.2
+      abs: 0.2
+      source: "SPEC.md 4.1: Johnson parabola, K L / r = 72.7, P_cr 60 578 N over 1 587 N"
+  tip_over_factor:
+    - expect: 4.09
+      abs: 0.02
+      source: "SPEC.md 4.1: 463.0 N x 0.325 m over 490.5 N x 0.075 m; the end edge gives 9.12"
   racking_sway:
     - expect: 1.50 mm
       abs: 0.02
-      source: "SPEC.md 4.1: 0.751 mm under a 150 N share, times the racking factor 2.0"
+      source: "SPEC.md 4.1: 0.751 mm under a 150 N share, times the racking factor 2.0 (the cross rail adds no stiffness here)"
   corner_moment_factor:
     - expect: 15.3
       abs: 0.1
       source: "SPEC.md 4.1: 799 353 N mm over 75 N x 695 mm"
   insert_pullout_factor:
-    - expect: 84.5
+    - expect: 75.6
       abs: 0.5
-      source: "SPEC.md 4.1: 2 x 6800 N over the base's 161.0 N"
+      source: "SPEC.md 4.1: 2 x 6800 N over the base's 180.0 N (frame, cross rail, glides, screws)"
   wood_movement_at_slot:
     - expect: 7.05 mm
       abs: 0.05

@@ -11,6 +11,10 @@ The model (the spec's own choices, SPEC.md section 4.0):
 * the top and the two long rails bend together as one simply supported beam between the leg
   centres; their stiffnesses add (the slotted fixings carry no shear); the whole 800 mm of the
   top acts; the self weight is the top and the two long rails;
+* the centre load stands on a 100 x 100 mm base over the cross rail, which carries it across to
+  the long rails as a simply supported beam between them; its dip is added to the sag along the
+  length. The oak top is not counted in that dip (SPEC.md section 4.1: across the grain it is
+  soft, and left alone it would dish 3.9 mm, ``unsupported_dish``);
 * each glide is a pin at the floor, its 20 mm stem rigid; a leg is the full floor-to-top-underside
   length of the one tube;
 * the weld efficiency is the spec's choice, a parameter marked [verify].
@@ -18,6 +22,7 @@ The model (the spec's own choices, SPEC.md section 4.0):
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -44,6 +49,9 @@ class Model:
     i_top: Quantity
     z_top: Quantity
     tube: Any  # RectTubeSection
+    cross: Any  # RectTubeSection of the cross rail
+    cross_span: Quantity  # long rail centre to long rail centre
+    cross_kg: float
     top_kg: float
     rails_kg: float  # the two long rails
     frame_kg: float  # all tube and tabs
@@ -55,8 +63,8 @@ class Model:
 
     @property
     def table_kg(self) -> float:
-        """Whole table: top, frame, hardware."""
-        return self.top_kg + self.frame_kg + self.hardware_kg
+        """Whole table: top, frame, cross rail, hardware."""
+        return self.top_kg + self.frame_kg + self.cross_kg + self.hardware_kg
 
     @property
     def table_n(self) -> float:
@@ -99,7 +107,14 @@ def _model(P: Any) -> Model:  # noqa: N803
     long_rail, short_rail = l_frame - 2 * s, w_frame - 2 * s  # between the legs
     tube_m = 4 * h_leg + 2 * long_rail + 2 * short_rail
     tab = P.mm("tab-size") / 1000
-    tabs_m3 = 8 * tab * tab * (P.mm("tab-thickness") / 1000)  # slots are not subtracted (SPEC 4.0)
+    fixings = int(round(float(P["fixing-count"].to("").magnitude)))  # one tab, insert, screw each
+    tabs_m3 = fixings * tab * tab * (P.mm("tab-thickness") / 1000)  # slots are not subtracted
+    cross = structural.rect_tube_section(
+        mm(P.mm("cross-rail-size"), "mm"),
+        mm(P.mm("cross-rail-size"), "mm"),
+        mm(P.mm("cross-rail-wall"), "mm"),
+    )
+    cross_kg = P.mm("cross-rail-length") / 1000 * float(cross.A.to("m**2").magnitude) * rho_steel
     top_kg = (
         float(length.to("m").magnitude * width.to("m").magnitude * thick.to("m").magnitude)
         * rho_top
@@ -107,7 +122,7 @@ def _model(P: Any) -> Model:  # noqa: N803
     glides, inserts, screws = (
         float(P[n].to("kg").magnitude) for n in ("glide-mass", "insert-mass", "screw-mass")
     )
-    hardware = 4 * glides + 8 * inserts + 8 * screws
+    hardware = 4 * glides + fixings * inserts + fixings * screws
     return Model(
         span=mm(P.mm("leg-pitch-x"), "mm"),
         ei_top=(e_top * sec_top.I).to("N*mm**2"),
@@ -119,24 +134,44 @@ def _model(P: Any) -> Model:  # noqa: N803
         i_top=sec_top.I,
         z_top=sec_top.Z,
         tube=tube,
+        cross=cross,
+        cross_span=mm(P.mm("leg-pitch-y"), "mm"),
+        cross_kg=cross_kg,
         top_kg=top_kg,
         rails_kg=2 * long_rail * a_tube * rho_steel,
         frame_kg=(tube_m * a_tube + tabs_m3) * rho_steel,
         hardware_kg=hardware,
         glides_kg=4 * glides,
-        screws_kg=8 * screws,
+        screws_kg=fixings * screws,
         height=mm(P.mm("table-height") - P.mm("top-thickness"), "mm"),
         rail_height=mm(P.mm("table-height") - P.mm("top-thickness") - P.mm("tube-size") / 2, "mm"),
     )
 
 
-def _sag(m: Model, point: Quantity, weight: Quantity) -> Quantity:
-    """Mid-span sag of the top and long rails together under a point load and a uniform weight."""
+def _cross_weight(m: Model) -> Quantity:
+    """Weight of the cross rail, which hangs on the long rails at the middle of their span."""
+    return Quantity(m.cross_kg * G, "N")
+
+
+def _sag_along(m: Model, point: Quantity, weight: Quantity) -> Quantity:
+    """Mid-span sag of the top and long rails together under a point load and a uniform weight.
+
+    The point load is the applied load plus the cross rail's own weight: both reach the long
+    rails at the middle of the span.
+    """
     ei = m.ei_top + m.ei_rails
     i_eq = (ei / m.e_top).to("mm**4")  # one beam of oak stiffness with the combined E*I
-    dp = structural.beam_deflection_simply_supported(point, m.span, m.e_top, i_eq)
+    dp = structural.beam_deflection_simply_supported(
+        point + _cross_weight(m), m.span, m.e_top, i_eq
+    )
     dw = structural.beam_deflection_simply_supported(weight, m.span, m.e_top, i_eq, "uniform")
     return (dp.deflection + dw.deflection).to("mm")
+
+
+def _dip(m: Model, load: Quantity) -> Quantity:
+    """Mid-span dip of the cross rail alone under a point load at its middle (Roark T8.1 1e)."""
+    res = structural.beam_deflection_simply_supported(load, m.cross_span, m.e_steel, m.cross.Ix)
+    return res.deflection.to("mm")
 
 
 def _span_weight(m: Model) -> Quantity:
@@ -145,28 +180,42 @@ def _span_weight(m: Model) -> Quantity:
 
 
 def _moment(m: Model, point: Quantity) -> Quantity:
-    """M = F L / 4 + W L / 8 under the centre load and the self weight (Roark Table 8.1)."""
+    """M = (F + cross rail weight) L / 4 + W L / 8 under the centre load and the self weight."""
     w = _span_weight(m)
-    return (point * m.span / 4 + w * m.span / 8).to("N*mm")
+    return ((point + _cross_weight(m)) * m.span / 4 + w * m.span / 8).to("N*mm")
+
+
+def cross_rail_dip(P: Any) -> Quantity:  # noqa: N803
+    """Dip of the cross rail between the long rails under the 150 kg centre load (SPEC 4.1).
+
+    The load stands over the cross rail, which spans from one long rail to the other as a
+    simply supported beam; the oak on top of it is not credited with any share.
+    """
+    m = _model(P)
+    return _dip(m, P["centre-load"])
 
 
 def centre_load_sag(P: Any) -> Quantity:  # noqa: N803
-    """Mid-span sag under the 150 kg centre load plus the spanning members' weight (SPEC 4.1)."""
+    """Mid-span sag under the 150 kg centre load plus the spanning members' weight (SPEC 4.1).
+
+    The sag along the length (top and long rails together) and the cross rail's dip between
+    the long rails, which add at the middle of the top.
+    """
     m = _model(P)
-    return _sag(m, P["centre-load"], _span_weight(m))
+    return (_sag_along(m, P["centre-load"], _span_weight(m)) + _dip(m, P["centre-load"])).to("mm")
 
 
 def long_term_sag(P: Any) -> Quantity:  # noqa: N803
     """Final sag under the sustained load plus self weight, timber creep included (SPEC 4.1).
 
     EN 1995-1-1 section 2.3.2.2 through ``joints.composite_creep_deflection``: only the oak's
-    stiffness falls by 1 / (1 + k_def); the steel does not creep.
+    stiffness falls by 1 / (1 + k_def); the steel does not creep, so the cross rail's dip under
+    the sustained load is added as it is.
     """
     m = _model(P)
-    elastic = _sag(m, P["sustained-load"], _span_weight(m))
-    return joints.composite_creep_deflection(elastic, [(m.ei_top, True), (m.ei_rails, False)]).to(
-        "mm"
-    )
+    elastic = _sag_along(m, P["sustained-load"], _span_weight(m))
+    final = joints.composite_creep_deflection(elastic, [(m.ei_top, True), (m.ei_rails, False)])
+    return (final.to("mm") + _dip(m, P["sustained-load"])).to("mm")
 
 
 def top_yield_factor(P: Any) -> Quantity:  # noqa: N803
@@ -194,9 +243,57 @@ def rail_yield_factor(P: Any) -> Quantity:  # noqa: N803
     return _factor(res.yield_factor)
 
 
+def cross_rail_yield_factor(P: Any) -> Quantity:  # noqa: N803
+    """Yield factor of the cross rail, a beam between the long rails, M = F L / 4 (SPEC 4.1)."""
+    m = _model(P)
+    moment = (P["centre-load"] * m.cross_span / 4).to("N*mm")
+    res = structural.beam_bending_stress(moment, m.cross.Zx, m.strength_steel)
+    return _factor(res.yield_factor)
+
+
 def member_yield_factor(P: Any) -> Quantity:  # noqa: N803
-    """The lowest yield factor of the spanning members, the top and the rails (SPEC req. 4)."""
-    return min(top_yield_factor(P), rail_yield_factor(P))
+    """The lowest yield factor of the spanning members: top, long rails, cross rail (req. 4)."""
+    return min(top_yield_factor(P), rail_yield_factor(P), cross_rail_yield_factor(P))
+
+
+def top_bearing_factor(P: Any) -> Quantity:  # noqa: N803
+    """Bearing factor of the oak top on the cross rail under the centre load (SPEC 4.1).
+
+    The load stands on a base of ``load-patch-x`` by ``load-patch-y``; where it meets the cross
+    rail it is spread over the rail's top face (as wide as the tube, as long as the base) and
+    reaches the oak across the grain. The limit is the oak's compression-perpendicular fibre
+    stress at proportional limit (``oak-compression-perp``, FPL-GTR-190 Table 5-3a).
+    """
+    contact_x = min(P.mm("load-patch-x"), P.mm("cross-rail-size"))
+    area = Quantity(contact_x * P.mm("load-patch-y"), "mm**2")
+    stress = (P["centre-load"] / area).to("MPa")
+    return _factor(float((P["oak-compression-perp"] / stress).to("").magnitude))
+
+
+#: Sum of 1 / n^3 over odd n = 7 zeta(3) / 8, the series of the strip solution below.
+_ODD_CUBES = 7 * 1.2020569031595942 / 8
+
+
+def unsupported_dish(P: Any) -> Quantity:  # noqa: N803
+    """Dishing of the oak top between the long rails under the centre load, with nothing under it.
+
+    Not a requirement: the figure that shows why the cross rail is there (SPEC 4.1). The top is
+    an orthotropic plate, endless along its length, supported along the two long rails; the
+    grain runs along the length. With the twisting stiffness and the Poisson coupling left out
+    (both only stiffen it), a point load F at the middle gives, from the Fourier series of the
+    plate equation, ``w = F b^2 S / (sqrt(2) pi^3 Dx^(1/4) Dy^(3/4))`` with ``S`` the sum of
+    1 / n^3 over odd n, ``b`` the span between the rails, ``Dx = E_L t^3 / 12`` and
+    ``Dy = E_T t^3 / 12`` per unit width. A 100 x 100 mm base gives 2 % less (SPEC 4.1).
+    """
+    m = _model(P)
+    t = P.mm("top-thickness")
+    b = P.mm("leg-pitch-y")
+    e_l = float(m.e_top.to("N/mm**2").magnitude)
+    e_t = e_l * float(P["oak-et-ratio"].to("").magnitude)
+    dx, dy = e_l * t**3 / 12, e_t * t**3 / 12
+    force = float(P["centre-load"].to("N").magnitude)
+    w = force * b**2 * _ODD_CUBES / (math.sqrt(2) * math.pi**3 * dx**0.25 * dy**0.75)
+    return Quantity(w, "mm")
 
 
 def leg_buckling_factor(P: Any) -> Quantity:  # noqa: N803
@@ -284,10 +381,10 @@ def insert_pullout_factor(P: Any) -> Quantity:  # noqa: N803
     """Pull-out factor when the assembled table is lifted by its top (SPEC 4.1).
 
     The base hangs from the inserts; a warped base hangs on two, so two inserts carry the
-    whole base: the frame, the glides and the screws.
+    whole base: the frame, the cross rail, the glides and the screws.
     """
     m = _model(P)
-    base_n = Quantity((m.frame_kg + m.glides_kg + m.screws_kg) * G, "N")
+    base_n = Quantity((m.frame_kg + m.cross_kg + m.glides_kg + m.screws_kg) * G, "N")
     return _factor(
         joints.insert_pullout("M8", "hardwood", count=2, applied_load=base_n).safety_factor
     )

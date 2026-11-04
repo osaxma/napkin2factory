@@ -2,13 +2,15 @@ id: table
 rev: A
 name: Oak-and-steel workshop table
 geometry: {module: geometry/table.py}
-# Child lines in the order they are fitted: inserts into the top, frame onto the top, screws
-# through the tabs, glides into the legs.
+# Child lines in the order they are fitted: inserts into the top, frame onto the top, the cross
+# rail (welded into the frame at the works, drawn here after it), screws through the tabs, glides
+# into the legs.
 children:
   - {part: part://top-board, qty: 1}
-  - {part: part://wood-insert-m8, qty: 8}
+  - {part: part://wood-insert-m8, qty: 6}
   - {part: part://apron-frame, qty: 1}
-  - {part: part://mounting-bolt-m8, qty: 8}
+  - {part: part://cross-rail, qty: 1}
+  - {part: part://mounting-bolt-m8, qty: 6}
   - {part: part://leveling-foot, qty: 4}
 exploded: {axis: z, spacing: 120 mm}
 satisfies: [req://REQ-001, req://REQ-004, req://REQ-014]

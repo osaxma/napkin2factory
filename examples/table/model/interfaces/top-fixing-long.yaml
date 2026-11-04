@@ -1,13 +1,13 @@
 id: top-fixing-long
 kind: threaded-insert
 parties: [part://top-board, part://apron-frame]
-description: Six M8 threaded inserts in the underside of the oak top, screwed to the tabs on the long rails through slots across the width, so the top can move with the seasons (SPEC sections 3 and 5).
+description: Four M8 threaded inserts in the underside of the oak top, 300 mm either side of the middle, screwed to the tabs on the long rails through slots across the width, so the top can move with the seasons (SPEC sections 3 and 5).
 frames:
   part://top-board: {origin: [0, 0, 0], normal: [0, 0, 1], x_axis: [1, 0, 0]}
   part://apron-frame: {origin: [0, 0, param://frame-height], normal: [0, 0, 1], x_axis: [1, 0, 0]}
 spec:
   pattern: rect
-  count: 6
+  count: 4
   spacing: [param://tab-pitch, param://tab-row-spacing]
   thread: M8
   insert_length: param://insert-depth

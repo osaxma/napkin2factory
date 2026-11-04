@@ -13,7 +13,7 @@ concepts:
   promoted:
     material: white-oak
     kit: frame
-    why: the perimeter steel apron frame under a 30 mm oak top clears every limit by 30 % or more
+    why: the perimeter steel apron frame with its cross rail under a 30 mm oak top clears every limit by 30 % or more
   rejected:
     - by: [structural]
       not_by: [mass, cost]
@@ -61,38 +61,52 @@ figures:
     expect: 9.38
     tol: 0.05
   - name: c2-sag
-    what: mid-span sag under the 150 kg centre load plus self weight, on the promoted card (mm)
+    what: mid-span sag under the 150 kg centre load plus self weight, with the cross rail's dip added, on the promoted card (mm)
+    card: promoted
+    find: {screen_value: sag_with_cross_rail}
+    unit: mm
+    expect: 1.71
+    tol: 0.05
+  - name: c2-sag-along
+    what: the same sag along the length alone (top and long rails), on the promoted card (mm); the screen leaves the cross rail's weight out
     card: promoted
     find: {screen_value: deflection}
     unit: mm
-    expect: 1.58
+    expect: 1.60
+    tol: 0.05
+  - name: c2-cross-rail-dip
+    what: dip of the cross rail between the long rails under the 150 kg centre load, on the promoted card (mm)
+    card: promoted
+    find: {screen_value: cross_rail_dip}
+    unit: mm
+    expect: 0.106
     tol: 0.05
   - name: c2-mass
     what: total mass of the promoted card (kg)
     card: promoted
     find: {screen_value: [total_mass, mass]}
     unit: kg
-    expect: 45.3
+    expect: 47.2
     tol: 0.02
   - name: c2-cost-low
     what: low end of the cost band of the promoted card (USD, US, 2026-11)
     card: promoted
     find: {screen_value: cost_low}
     unit: USD
-    expect: 606
+    expect: 639
     tol: 0.02
   - name: c2-cost-high
     what: high end of the cost band of the promoted card (USD, US, 2026-11)
     card: promoted
     find: {screen_value: cost_high}
     unit: USD
-    expect: 980
+    expect: 1014
     tol: 0.02
   - name: c2-tip-over
     what: tip-over factor at the governing edge of the promoted card
     card: promoted
     find: {screen_value: tip_over_factor}
-    expect: 3.92
+    expect: 4.09
     tol: 0.05
   - name: c3-sag
     what: mid-span sag under the 150 kg centre load plus self weight, on the heavy trestle card (mm)
@@ -138,51 +152,56 @@ figures:
     what: yield factor of the oak top of the promoted card
     card: promoted
     find: {screen_value: yield_factor}
-    expect: 34.0
+    expect: 33.6
     tol: 0.05
   # --- the finished product (the promoted design, built) ---
   - name: product-mass
     what: assembled mass of the table (kg)
     find: {rollup: total_mass}
     unit: kg
-    expect: 45.3
+    expect: 47.2
     tol: 0.02
   - name: product-cost-in-band
-    what: unit cost of the table lies inside its cost band (USD, US, 2026-11; 606-980 widened 2 % each end)
+    what: unit cost of the table lies inside its cost band (USD, US, 2026-11; 639-1014 widened 2 % each end)
     find: {rollup: total_cost}
     unit: USD
-    range: [594, 1000]
+    range: [626, 1034]
   - name: product-parts
-    what: number of distinct parts (top, frame, glide, insert, screw)
+    what: number of distinct parts (top, frame, cross rail, glide, insert, screw)
     find: {rollup: distinct_parts}
-    expect: 5
+    expect: 6
     tol: 0
   - name: req-sag
-    what: centre-load sag, requirement bounded at 2.5 mm (mm)
+    what: centre-load sag with the cross rail's dip added, requirement bounded at 2.5 mm (mm)
     find: {requirement: {bound: 2.5 mm}}
     unit: mm
-    expect: 1.58
+    expect: 1.705
     tol: 0.05
   - name: req-long-term-sag
-    what: long-term sag with timber creep, also bounded at 2.5 mm (mm)
+    what: long-term sag with timber creep and the cross rail's dip, also bounded at 2.5 mm (mm)
     find: {requirement: {bound: 2.5 mm}}
     unit: mm
-    expect: 0.754
+    expect: 0.811
     tol: 0.05
   - name: req-rail-yield
-    what: yield factor of the governing spanning member (the steel rails)
+    what: yield factor of the governing spanning member (the steel long rails; the top 33.6 and the cross rail 11.1 are higher)
     find: {requirement: {bound: '1.5'}}
-    expect: 5.69
+    expect: 5.62
+    tol: 0.05
+  - name: req-top-bearing
+    what: bearing factor of the oak top across its grain on the cross rail under the centre load on a 100 x 100 mm base (the top's cross-grain row; also bounded at 1.5)
+    find: {requirement: {bound: '1.5'}}
+    expect: 37.7
     tol: 0.05
   - name: req-buckling
     what: leg buckling factor (Johnson parabola)
     find: {requirement: {bound: '2'}}
-    expect: 38.3
+    expect: 38.2
     tol: 0.05
   - name: req-tip-over
     what: tip-over factor, the safety requirement
     find: {requirement: {bound: '2', safety: true}}
-    expect: 3.92
+    expect: 4.09
     tol: 0.05
   - name: req-racking
     what: racking sway under the 300 N push (mm); stated unfactored 0.751 and under 2.0 x the push 1.50
@@ -198,7 +217,7 @@ figures:
   - name: req-pullout
     what: insert pull-out factor when lifted by the top
     find: {requirement: {bound: '2.5'}}
-    expect: 84.5
+    expect: 75.6
     tol: 0.05
   - name: req-slot-clearance
     what: free travel of a slotted fixing less the across-grain movement of the top there, bounded at 0 mm (mm); SPEC.md section 4.1, 13 mm less 7.05 mm
@@ -211,13 +230,13 @@ figures:
     what: mass requirement, bounded at 70 kg (kg)
     find: {requirement: {bound: 70 kg}}
     unit: kg
-    expect: 45.3
+    expect: 47.2
     tol: 0.02
   - name: req-cost
     what: cost requirement, bounded at 1600 USD, whose measured value lies in the cost band (USD)
     find: {requirement: {bound: 1600 USD}}
     unit: USD
-    range: [594, 1000]
+    range: [626, 1034]
 
 facts:
   - name: ceremony
@@ -261,13 +280,15 @@ facts:
 
 # Figures SPEC.md states that n2f cannot show yet. Each becomes a row when the thing exists.
 pending:
-  - what: ECR-1 (top 30 to 32 mm) accepted with sag 1.49 mm, mass 47.2 kg, cost 623-1022 USD, tip-over 4.09; ECR-2 (500 mm seating overhang) refused, tip-over 1.04
+  - what: ECR-1 (top 30 to 31 mm) accepted with sag 1.66 mm, mass 48.2 kg, cost 648-1035 USD, tip-over 4.17; ECR-2 (500 mm seating overhang) refused, tip-over 1.09
     reason: the oracle has no change-request replay step; it needs a scripted n2f ecr run on a copy of the product, judged against the figures of SPEC.md section 6
   - what: across-grain movement 7.05 mm and slot free travel 13 mm, each on its own
     reason: the requirement bounds their difference (req-slot-clearance judges 13 less 7.05 mm); no requirement bounds either figure alone, and a calc's reference case is not read as the product's figure
-  - what: leg buckling factor 38.3 on the napkin card
-    reason: the structural screen picks the Johnson parabola for this short leg, as SPEC.md section 4.1 does (slenderness 70.7, K 2 sway), but it loads the worst-loaded leg with the centre load, the edge load and a quarter of the weight (2072 N, factor 29.6), where the spec uses the centre load and a quarter of the weight (1583 N, factor 38.3); judged on the finished product only
-  - what: rail yield factor 5.69 and long-term sag 0.754 mm on the napkin card
-    reason: the screen checks the top's sag and stress only; both are judged on the finished product
-  - what: low and high ends of the finished product's cost band (606 and 980 USD)
+  - what: leg buckling factor 38.2 on the napkin card
+    reason: the structural screen picks the Johnson parabola for this short leg, as SPEC.md section 4.1 does (slenderness 70.7, K 2 sway), but it loads the worst-loaded leg with the centre load, the edge load and a quarter of the weight (2077 N, factor 29.5), where the spec uses the centre load and a quarter of the weight (1587 N, factor 38.2); judged on the finished product only
+  - what: long-rail yield factor 5.62, cross rail yield factor 11.1 and long-term sag 0.811 mm on the napkin card
+    reason: the screen checks the top's sag and stress and the cross rail's dip and stress, not the long rails' stress nor creep; the rail factor and the long-term sag are judged on the finished product, where the member yield requirement reports the lowest factor (the long rails'), so the cross rail's own 11.1 is not shown
+  - what: low and high ends of the finished product's cost band (639 and 1014 USD)
     reason: the BOM roll-up carries one total cost; the finished product is judged as inside the band
+  - what: dish 3.88 mm (point load) or 3.79 mm (100 x 100 mm base) and cross-grain bending stress 1.75 MPa of the oak top with nothing under it (SPEC.md section 4.1)
+    reason: no requirement bounds them, since the cross rail takes the load off the oak; the dish is a reference case of a calc, which the oracle does not read as the product's figure

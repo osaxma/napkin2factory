@@ -39,29 +39,29 @@ requirements:
     source: intake
   - id: REQ-005
     title: Sag under the centre load
-    statement: The mid-span sag under 1471.5 N at the middle, plus the weight of the top and the two long rails, is at most 2.5 mm.
+    statement: The mid-span sag under 1471.5 N at the middle, standing on a 100 x 100 mm base over the cross rail, plus the weight of the top, the two long rails and the cross rail, and with the cross rail's own dip between the long rails added, is at most 2.5 mm.
     category: performance
     priority: must
     verify: {kind: calc, target: calc://structure.centre_load_sag, op: "<=", value: 2.5 mm}
-    allocation: [part://top-board, part://apron-frame, param://centre-load, param://deflection-limit]
-    rationale: The owner asked for no visible sag under 150 kg; 2.5 mm is L/640 of the 1600 mm length.
+    allocation: [part://top-board, part://apron-frame, part://cross-rail, param://centre-load, param://load-patch-x, param://load-patch-y, param://deflection-limit]
+    rationale: The owner asked for no visible sag under 150 kg; 2.5 mm is L/640 of the 1600 mm length. The oak top is stiff along its grain and soft across it, so on its own it would dish 3.9 mm between the long rails under this load (SPEC section 4.1); the cross rail under the middle carries the load to the long rails instead, and its dip is added to the sag along the length.
     source: intake
   - id: REQ-006
     title: Long-term sag
-    statement: The final sag under 490.5 N left at the middle plus self weight, timber creep included, is at most 2.5 mm.
+    statement: The final sag under 490.5 N left at the middle plus self weight, timber creep included, and with the cross rail's dip added, is at most 2.5 mm.
     category: performance
     priority: must
     verify: {kind: calc, target: calc://structure.long_term_sag, op: "<=", value: 2.5 mm}
-    allocation: [part://top-board, part://apron-frame, param://sustained-load, param://deflection-limit]
+    allocation: [part://top-board, part://apron-frame, part://cross-rail, param://sustained-load, param://deflection-limit]
     rationale: A vise and tools may stay on the table for years; only the oak creeps (EN 1995-1-1, k_def 0.60).
     source: intake
   - id: REQ-007
     title: Strength of the spanning members
-    statement: The lowest yield factor of the top and the long rails under the centre load is at least 1.5 (150 %).
+    statement: The lowest yield factor of the top, the long rails and the cross rail under the centre load is at least 1.5 (150 %).
     category: performance
     priority: must
     verify: {kind: calc, target: calc://structure.member_yield_factor, op: ">=", value: 1.5}
-    allocation: [part://top-board, part://apron-frame]
+    allocation: [part://top-board, part://apron-frame, part://cross-rail]
     rationale: 1.5 is the default factor for a static load (calckit load cases, AISC 360-16); a requirement may tighten it, never loosen it.
     source: design
   - id: REQ-008
@@ -80,7 +80,7 @@ requirements:
     safety: true
     tags: [hazard:tip-over]
     verify: {kind: calc, target: calc://structure.tip_over_factor, op: ">=", value: 2}
-    allocation: [part://top-board, part://apron-frame, part://leveling-foot, param://edge-load]
+    allocation: [part://top-board, part://apron-frame, part://cross-rail, part://leveling-foot, param://edge-load]
     rationale: Someone leans or sits on the edge (the owner). Furniture tip-over standards such as ASTM F2057 exist for this reason; which clause applies to a table is [verify]. The factor 2.0 is the default for an edge load (ANSI/BIFMA X5.5).
     source: intake
   - id: REQ-010
@@ -129,10 +129,19 @@ requirements:
     source: intake
   - id: REQ-015
     title: Leg room
-    statement: The apron frame weighs at most 16 kg, the weight of its four legs, four apron rails and eight tabs, so no member runs between the legs below the apron.
+    statement: The apron frame weighs at most 16 kg, the weight of its four legs, four apron rails and six tabs, so no member runs between the legs below the apron.
     category: usability
     priority: must
     verify: {kind: geometry_prop, target: "part://apron-frame#props.mass", op: "<=", value: 16 kg}
     allocation: [part://apron-frame]
-    rationale: No stretcher or rail between the legs below the apron (the owner). The frame's 15.94 kg is the tube and tabs of SPEC.md section 4.1 (6800 mm of tube and eight tabs); a rail added below the apron would add about 3 kg.
+    rationale: No stretcher or rail between the legs below the apron (the owner). The frame's 15.84 kg is the tube and tabs of SPEC.md section 4.1 (6800 mm of tube and six tabs); a rail added below the apron would add about 3 kg. The cross rail is a separate part at the apron, its top flush with the long rails and it hangs 25 mm below them (its underside 625 mm above the floor, against 650 mm for the apron), a small departure from the owner's words that SPEC.md section 3.4 records.
     source: intake
+  - id: REQ-016
+    title: The top bears on the cross rail
+    statement: The bearing factor of the oak top resting across its grain on the cross rail under the 1471.5 N centre load on a 100 x 100 mm base is at least 1.5 (150 %).
+    category: performance
+    priority: must
+    verify: {kind: calc, target: calc://structure.top_bearing_factor, op: ">=", value: 1.5}
+    allocation: [part://top-board, part://cross-rail, param://centre-load, param://load-patch-x, param://load-patch-y, param://oak-compression-perp]
+    rationale: Across the grain the oak is weak, and the cross rail is where the whole centre load meets it. The limit is the compression-perpendicular fibre stress at proportional limit, 7.4 MPa (FPL-GTR-190 Table 5-3a, white oak, 12 % MC, [verify]); 1.5 is the default factor for a static load (calckit load cases). The load stands over the cross rail by the spec's choice (SPEC section 1).
+    source: design

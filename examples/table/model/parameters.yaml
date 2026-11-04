@@ -8,6 +8,8 @@ parameters:
   centre-load:       {value: 1471.5, unit: N, description: "Short-term load at the middle of the top (150 kg)", owner: intake}
   edge-load:         {value: 490.5, unit: N, description: "Downward load at the middle of any edge of the empty table (50 kg)", owner: intake}
   sustained-load:    {value: 490.5, unit: N, description: "Load left at the middle (50 kg: a vise and tools), plus self weight; SPEC choice", owner: intake}
+  load-patch-x:      {value: 100, unit: mm, description: "Footprint of the centre load along the length: a 150 kg object on a 100 x 100 mm base, standing over the cross rail; SPEC choice (SPEC section 1)"}
+  load-patch-y:      {value: 100, unit: mm, description: "Footprint of the centre load across the width; SPEC choice (SPEC section 1)"}
   lateral-push:      {value: 300, unit: N, description: "Horizontal push at top level, either direction; SPEC choice [verify] against ANSI/BIFMA X5.5 and EN 15372", owner: intake}
   humidity-low:      {value: 30, unit: percent, description: "Lowest relative humidity over the year (indoor, about 21 degC)", owner: intake}
   humidity-high:     {value: 70, unit: percent, description: "Highest relative humidity over the year", owner: intake}
@@ -25,12 +27,21 @@ parameters:
   tab-size:          {value: 40, unit: mm, description: "Fixing tab, square side"}
   tab-thickness:     {value: 4, unit: mm, description: "Fixing tab plate thickness"}
   slot-length:       {value: 22, unit: mm, description: "Slot length in a long-rail tab, across the width; sized from the 7.05 mm movement (SPEC section 8)"}
-  tab-pitch:         {value: 600, unit: mm, description: "Pitch of the three fixing tabs along each long rail"}
+  tab-pitch:         {value: 600, unit: mm, description: "Pitch of the two fixing tabs along each long rail, one each side of the cross rail (x = +-300)"}
+  fixing-count:      {value: 6, unit: dimensionless, description: "Top fixings: one insert, one screw and one tab each; 4 on the long rails, 2 on the short rails"}
+  cross-rail-size:   {value: 75, unit: mm, description: "Cross rail outside side (square tube); its top face is flush with the long rails, so it hangs 25 mm lower"}
+  cross-rail-wall:   {value: 1.5, unit: mm, description: "Cross rail tube wall"}
+  cross-rail-length: {expr: "frame-width - 2 * tube-size", unit: mm, description: "Cross rail cut length, between the long rails' inner faces"}
+  cross-rail-y:      {expr: "tube-size - frame-width / 2", unit: mm, description: "Cross rail start (its end centre) across the width, at the inner face of the near long rail"}
+  cross-rail-z:      {expr: "frame-height - cross-rail-size / 2", unit: mm, description: "Cross rail centre line height above the leg bottom (top face flush with the long rails)"}
   tab-row-spacing:   {value: 560, unit: mm, description: "Distance between the two rows of long-rail tabs (each tab centre is 20 mm in from its rail's inner face)"}
   short-tab-pitch:   {value: 1360, unit: mm, description: "Distance between the two round-hole tabs on the short rails"}
   insert-hole:       {value: 9, unit: mm, description: "M8 clearance hole and slot width in the tabs"}
   insert-bore:       {value: 12, unit: mm, description: "Bore for the M8 x 20 threaded insert in the oak"}
   insert-depth:      {value: 20, unit: mm, description: "Insert length, and the depth of its bore"}
+  oak-et-ratio:      {value: 0.072, unit: dimensionless, description: "White oak E_T / E_L, across the grain over along it, 12 % MC; USDA Wood Handbook FPL-GTR-190 Table 5-1 [verify]"}
+  oak-compression-perp: {value: 7.4, unit: MPa, description: "White oak (Quercus alba) compression perpendicular to grain, fibre stress at proportional limit, 12 % MC; FPL-GTR-190 Table 5-3a [verify]"}
+  oak-tension-perp:  {value: 5.5, unit: MPa, description: "White oak (Quercus alba) tension perpendicular to grain, maximum, 12 % MC; FPL-GTR-190 Table 5-3a [verify]"}
   weld-efficiency:   {value: 0.7, unit: dimensionless, description: "Efficiency of the fillet-welded thin-wall corner (full-perimeter weld assumed); SPEC choice [verify]"}
   glide-mass:        {value: 0.080, unit: kg, description: "One levelling glide (same as the part's mass); SPEC estimate [verify]"}
   insert-mass:       {value: 0.010, unit: kg, description: "One M8 insert (same as the part's mass); SPEC estimate [verify]"}
