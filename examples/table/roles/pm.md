@@ -72,7 +72,11 @@ screening: null                     # written by `n2f concept build`
 decision: null                      # written by promote or reject
 ```
 Massing rules of thumb: each call's bottom centre sits at the origin and `at: {x, y, z, rz}`
-moves it (z up, the front is −y, +x is the owner's right when facing the front). Name the
+moves it (z up, the front is −y, +x is the owner's right when facing the front). Most generators
+(`block`, `enclosure`, `frame`, `plate`, `panel`) place the origin at bottom centre; where
+generators differ: `bracket_l` starts at its outer corner (`x = 0` along +x, `z = 0` along +z,
+width centred on y); `tube` extends along `+axis` from the centre of one end (bottom centre when
+`axis` is z). Name the
 parts `body`, `door`, `controls`, `stand` — screening measures the door swing from `door`
 and checks the walls against `body`, and the names pick the colours (`door` and `stand` read
 as the roles `opening` and `support`; any other name takes `role:`). A closed body is an

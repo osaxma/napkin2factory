@@ -13,6 +13,27 @@ geometry:
          cutouts: [{face: back, center: [0, 0], width: 40 mm, height: 20 mm, corner_radius: 3 mm}]}
 ```
 
+Kit arguments accept literal lengths (e.g. `"12 mm"`), bare numbers (interpreted as millimetres),
+or parameter references (`param://box-length`), but **not** inline `{expr: ...}` expressions.
+When a dimension is derived from other parameters (for example, a door height calculated from cabinet
+height and reveals), use the helper-parameter pattern: define the calculation in
+`model/parameters.yaml` (or the module's parameters) and reference it with `param://`:
+
+```yaml
+# In model/parameters.yaml:
+door-height:
+  expr: "cabinet-height - 2 * reveal"
+  unit: mm
+
+# In the part's geometry.args:
+geometry:
+  kit: panel
+  args:
+    width: param://door-width
+    height: param://door-height
+    thickness: 1.5 mm
+```
+
 | generator | makes | flat pattern | key args |
 |---|---|---|---|
 | `plate` | flat rectangle with a hole grid, corner radius | yes | width, depth (or fit_to{width,height}, reveal), thickness, corner_radius, holes{diameter,count_x,count_y,spacing_x,spacing_y,inset} |
@@ -21,8 +42,8 @@ geometry:
 | `tube` | round/square hollow section or rod | no (cut list) | shape, size, wall, length, axis, corner_radius |
 | `hole_pattern` | plate carrying a bolt pattern (shared math for interfaces) | yes | plate_width, plate_depth, thickness, pattern, count, diameter, spacing, pitch_circle, interface |
 | `bracket_l` | L-bracket with one bend and holes per leg | yes, with bend line | length, height, width, thickness, bend_radius, holes{diameter,spacing,inset,count} |
-| `enclosure` | open-top tray: four bent walls, optional lip, reliefs, cutouts, vent | yes, cross with bend lines | length, width, height, thickness, bend_radius, flange, relief, cutouts[], vent{face,pattern,count,size,pitch,inset} |
-| `frame` | welded stand of square/rect/round tube, angle or T-slot: legs, rails, apron offset, tabs | no (cut list) | length, width, height, member{profile,size,size2,wall,slot_width,slot_depth}, rail_member, top_rails, bottom_rails, bottom_rail_height, apron_offset_top, overhang, mounting_tabs[] |
+| `enclosure` | open-top tray: four bent walls, optional lip, reliefs, cutouts, vent | yes, cross with bend lines | length, width, height, thickness, bend_radius, flange, relief, cutouts[], vent{face,pattern,count,size,pitch,inset} (`size` is slot width or hole diameter) |
+| `frame` | welded stand of square/rect/round tube, angle or T-slot: legs, rails, apron offset, tabs | no (cut list) | length, width, height, member{profile,size,size2,wall,slot_width,slot_depth} (profile: `square-tube`, `angle`, `rect-tube`, `round-tube`, `t-slot`; S-202), rail_member, top_rails, bottom_rails, bottom_rail_height, apron_offset_top, overhang, mounting_tabs[] |
 
 ## What a generator returns
 
@@ -42,17 +63,21 @@ screening, built by the same generators so nothing is duplicated.
   (sizes, fillet/chamfer fit, wall vs. footprint, hole and cutout placement, lip and relief
   rules), so an impossible composition fails for real, with the same message.
 - **Geometry is primitives only** (`Box`, `Cylinder`, fuse/cut), in exactly the full
-  part's frame, so a massing placement and a full placement coincide:
+  part's frame, so a massing placement and a full placement coincide. Most generators
+  place the origin at bottom centre (centred on XY, resting on `z = 0`). Where generators
+  differ: `bracket_l` starts at its outer corner (`x = 0` along +x, `z = 0` along +z, width
+  centred on y); `tube` extends along `+axis` from the centre of one end (bottom centre when
+  `axis` is z).
 
-| generator | silhouette |
-|---|---|
-| `plate`, `panel` | box of the outer size; no holes, cutouts or corner radius |
-| `block` | box; no fillet or chamfer |
-| `tube` | the outer solid along `axis` (cylinder or square box), no bore |
-| `hole_pattern` | the plate as a box; an interface is still resolved and checked, but only moves holes, so the plate is unchanged |
-| `bracket_l` | two leg boxes fused at a sharp corner; no bend radius, no holes |
-| `enclosure` | outer box minus the open-top cavity (walls and base keep `thickness`); no bends, reliefs, lip or cutouts — with a `flange` the silhouette stays `length × width × height` |
-| `frame` | every member a solid `size × size` box where the full frame puts it, fused |
+| generator | silhouette | origin |
+|---|---|---|
+| `plate`, `panel` | box of the outer size; no holes, cutouts or corner radius | bottom centre (`z ∈ [0, t]`) |
+| `block` | box; no fillet or chamfer | bottom centre (`z ∈ [0, height]`) |
+| `tube` | the outer solid along `axis` (cylinder or square box), no bore | centre of one end, along `+axis` |
+| `hole_pattern` | the plate as a box; an interface is still resolved and checked, but only moves holes, so the plate is unchanged | bottom centre (`z ∈ [0, t]`) |
+| `bracket_l` | two leg boxes fused at a sharp corner; no bend radius, no holes | outer corner (`x=0` along +x, `z=0` along +z, width centred on y) |
+| `enclosure` | outer box minus the open-top cavity (walls and base keep `thickness`); no bends, reliefs, lip or cutouts — with a `flange` the silhouette stays `length × width × height` | bottom centre (base on XY, `z ∈ [0, height]`) |
+| `frame` | every member a solid `size × size` box where the full frame puts it, fused | bottom centre on floor (`z ∈ [0, height]`) |
 
 - **Result:** `features = Features(process, extra={"fidelity": "massing"})` (so
   `features.json` carries `fidelity: massing`), only the overall `dims`, no flat pattern,
@@ -87,7 +112,22 @@ editing them rebuilds exactly those parts; a palette edit rebuilds none.
 | 3 | chamfer | `block` `chamfer` (all edges) when neither fillet nor chamfer is set; a style sets 2 or 3, not both | `chamfer` (0 mm) |
 | 4 | panel reveal | `panel`/`plate` `fit_to: {width, height}` cuts the part `reveal` smaller than its opening on each side (plate: height is depth); `reveal` arg, else the style's, else 2 mm. Without `fit_to` nothing changes | `reveal` (2 mm) |
 | 5 | overhang | `frame` `overhang`: the top rails become a ring sitting on the legs and reaching `overhang` beyond them on every side, like a table top (bbox grows by 2·overhang in X and Y; square tube; ≤ size − wall) | `overhang` (0 mm) |
-| 6 | vent / grille | `enclosure` `vent: {face: left|right|back, pattern: slots|holes, count, size, pitch, inset}`: ordinary cutouts `vent-1…` on that wall, so they reach `features.json`, the flat pattern and the rule checks; slots run the wall's flat height less 2·inset, holes sit in one row `inset` below its top | `vent_pattern` when the vent names none (`slots`) |
+| 6 | vent / grille | `enclosure` `vent: {face: left|right|back, pattern: slots|holes, count, size, pitch, inset}`: ordinary cutouts `vent-1…` on that wall, so they reach `features.json`, the flat pattern and the rule checks; `size` is the slot width (or hole diameter), a single length (slots run the wall's flat height less 2·inset, holes sit in one row `inset` below its top) | `vent_pattern` when the vent names none (`slots`) |
+
+### Member profiles (`frame`, S-202)
+
+`frame` members (`member:` and optional `rail_member:`) support five cross-section profiles:
+- `square-tube` (default): square hollow section with `size` (outer side) and `wall` (wall thickness).
+- `angle`: structural L-angle with `size` (leg length) and `wall` (leg thickness).
+- `rect-tube`: rectangular hollow section with `size` (height), `size2` (width), and `wall`.
+- `round-tube`: circular hollow section with `size` (outer diameter) and `wall`.
+- `t-slot`: aluminium extrusion with `size` (outer side), `slot_width`, and `slot_depth`.
+
+### Grilles (`enclosure` `vent`)
+
+`vent: {face, pattern, count, size, pitch, inset}` cuts a grille into the left, right or back wall:
+- `size` is the slot width (for `pattern: slots`) or hole diameter (for `pattern: holes`) as a single length, e.g. `4 mm` (not a list).
+- For `pattern: slots`, slot length is calculated automatically: the wall's flat height minus `2 * inset`.
 
 `fastener_visibility` stays in `style.yaml` only: holes come from interfaces, so it becomes a
 form requirement at promotion (M4), not a kit parameter. Palette and finish by role are

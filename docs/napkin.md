@@ -59,7 +59,11 @@ reason) and an entry no line belongs to (it gets no size budget).
 Conventions for `massing`:
 
 - Each call's **bottom centre** sits at the origin; `at: {x, y, z, rz}` moves it (z up, the
-  front is −y, +x is the right-hand side seen from the front, `rz` in degrees).
+  front is −y, +x is the right-hand side seen from the front, `rz` in degrees). Most generators
+  (`block`, `enclosure`, `frame`, `plate`, `panel`) place the origin at bottom centre; where
+  generators differ: `bracket_l` starts at its outer corner (`x = 0` along +x, `z = 0` along +z,
+  width centred on y); `tube` extends along `+axis` from the centre of one end (bottom centre when
+  `axis` is z).
 - **Names carry meaning.** `as: door` is the leaf whose x-extent is the door-swing term;
   `as: body` is the shell the walls check fits the inside into. A name that is a role word
   (`body`, `opening`, `support`, `controls`, `trim`, `lining`, `fastener`; `door` and
@@ -215,7 +219,9 @@ the styled iso; `--json` carries `screenshots: {method, paths, notes}`.
 When Playwright or its Chromium is missing (or `N2F_NO_PLAYWRIGHT=1`), the z-buffer renders
 are copied to the styled names, `method` is `zbuffer-fallback`, and the card's screening
 notes say "styled screenshots unavailable (…): showing correctness renders [revisit]" (also
-printed once, dim, on stderr). Z-buffer renders are for correctness, viewer screenshots for
+printed once, dim, on stderr). To make styled pictures work, install Chromium for
+Playwright (`uv tool run --from napkin2factory playwright install chromium`, or in a
+development environment `uv run playwright install chromium`). Z-buffer renders are for correctness, viewer screenshots for
 appearance (D12 as amended, N6). Judge the pictures with `docs/render-checklist.md`,
 "Product image".
 

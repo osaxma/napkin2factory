@@ -63,6 +63,19 @@ n2f doctor         # is this machine ready? It says what to fix if not.
 the mechanical one) with its verify kinds (the ways a requirement can be checked), its check
 stages and its napkin screens; inside a product folder, the product's own screens too.
 
+**Styled concept pictures.** The concept board (`build/concepts/board.html`) uses Playwright
+Chromium to take styled pictures with materials and lighting. If `n2f doctor` warns that
+Chromium is missing, install it:
+
+```bash
+uv tool run --from napkin2factory playwright install chromium   # tool installation
+# or in a development environment:
+uv run playwright install chromium
+```
+
+Without Chromium, concept cards still work but fall back to correctness (z-buffer) wireframes
+instead of styled pictures.
+
 Everything runs offline after installation and needs no account. Set `N2F_OFFLINE=1` (or
 pass `--offline` to `n2f build`) when there is no network. Builds otherwise check that each
 bought part's vendor link still resolves.
@@ -237,6 +250,11 @@ n2f build --target geometry --part <id>   # after a geometry edit; look at build
 n2f build                           # everything: 3D, drawings, BOM, manuals, checks, report
 n2f check                           # the gate: every requirement and rule
 ```
+
+Kit arguments take numbers or `param://` references, but not inline `{expr: ...}` expressions.
+When a part dimension is derived from other parameters (e.g. a door height calculated from
+cabinet height and reveals), use the helper-parameter pattern: define the calculation in
+`model/parameters.yaml` with `expr:` and reference it with `param://helper-name` (see `docs/kit.md`).
 
 A requirement says how it is checked in `verify.kind`, which must be an installed kind
 (`n2f doctor` lists them, with what each targets; an unknown one is an error that lists
@@ -420,10 +438,11 @@ refuses and changes nothing: bring them in (`git pull`) and publish again.
 
 ## Timing and trouble
 
-- **Timing.** The first build on a machine loads the CAD kernel, which takes one to two
-  minutes. `n2f init` starts that load in the background; a build that has to wait prints
-  "loading the CAD kernel…". Later builds rebuild only what changed and take seconds for a
-  small product. Tell the owner about the first wait before it happens.
+- **Timing.** The first build on a machine loads the CAD kernel, which takes one to a few
+  minutes (up to about four on a fresh machine). `n2f init` starts that load in the background;
+  a build that has to wait prints "loading the CAD kernel…". Later builds rebuild only what
+  changed and take seconds for a small product. Tell the owner about the first wait before it
+  happens.
 - **Something fails.** Run `n2f doctor`, then `n2f status`. Error messages say what to do
   next. Never edit anything under `build/`; edit the model and rebuild.
 - **Unsure what a page or number means.** `docs/how-it-works.md` (the ideas),

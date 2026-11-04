@@ -239,6 +239,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-210 | The test-stand benchmark spec: an aluminium portal with a base beam closing the load loop; Track A's budget and column heights moved by the physics | in force |
 | S-211 | The structural screen counts self weight and short columns | in force |
 | S-212 | Discard keeps filed change requests; plain words on promotion | in force |
+| S-213 | The trial's documentation gaps closed | in force |
 
 ---
 
@@ -1625,3 +1626,12 @@ alternatives:" with plain words "Other ideas considered:" (`concepts/promote/ver
 card YAML `status: rejected`.
 Measured: `tests/unit/test_snapshot.py` reproduces C2 and verifies ECR and patch survival on the
 bracket; 52 targeted tests and acceptance suite pass.
+
+## S-213 — The trial's documentation gaps closed (2026-11-04)
+Trial 2 docs gaps closed (B-0200; C5, C6, C7, C13, C15): (1) Massing origins stated in
+`roles/pm.md`, `docs/napkin.md`, and `docs/kit.md` where generators differ (`bracket_l` corner origin
+at x=0 along +x, `tube` along +axis from end centre). (2) `docs/kit.md` explains `vent.size` (slot width)
+and lists the five frame member profiles (`square-tube`, `angle`, `rect-tube`, `round-tube`, `t-slot`; S-202).
+(3) Kit args clarify `{expr: ...}` is refused, showing the helper-parameter pattern in `docs/kit.md` and
+`docs/agent-guide.md`. (4) First CAD kernel load timing raised to up to ~4 min; Playwright browser install
+step documented in `docs/agent-guide.md` and `docs/napkin.md`. Measured: doc and template tests green.
