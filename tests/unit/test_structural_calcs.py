@@ -1,4 +1,4 @@
-"""Unit and property tests for calckit/structural.py (W1, Track A §3.1).
+"""Unit and property tests for calckit/structural/ (W1, Track A §3.1).
 
 Includes:
 - Handbook reference cases verification (all pass, public coverage, citations)
