@@ -250,6 +250,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-221 | The table benchmark product | in force |
 | S-222 | The test-stand benchmark product | in force |
 | S-223 | Benchmark follow-ups: the oracle reads unsigned safety requirements | in force |
+| S-224 | Review gate I (v0.7) — outcome: NOT READY; two blockers (fixed-base racking, region not reaching costs), twelve concerns | in force |
 
 ---
 
@@ -1711,3 +1712,12 @@ example keeps its EXAMPLE sign-off, so S-221's "re-sign after an edit" no longer
 New figure `req-slot-clearance` (13 less 7.05 mm, ±0.35 mm, found 5.93): 47 pass, 0 fail, 5 pending. Movement
 and slot travel alone stay pending: no requirement bounds either one. Gaps filed: B-0214 to B-0219.
 The test stand's unsigned yield, fatigue and tip-over figures are real rows now (44 pass, 7 pending on a copy); closes B-0212.
+## S-224 — Review gate I (v0.7) — outcome (2026-11-05)
+Engineering and honesty, fresh context, at 3139a00 (`docs/reviews/v0.7-gate-i.md`). NOT READY. Blockers,
+fixed before the close: the fixed-base branch of `frame_racking` uses (k+2)/(6k+1) for (3k+2)/(6k+1)
+and under-reports sway up to 3x (confirmed by a stiffness-matrix solve); the product region never
+reaches the cost screen (US bands, USD, no region or date on the owner's cost line; an EUR band
+would crash). Held: eleven hand-checked formulas, the three benchmarks green on their oracles, the
+oracle judging outcomes not ids, ceremony relaxing paperwork only. Concerns go to the fix task (C1,
+C2, C9: provenance wording, stale texts) or to rows B-0220–B-0226; C8 (the table top's cross-grain
+load path, near its sag margin) is a benchmark fix before the close.

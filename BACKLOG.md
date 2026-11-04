@@ -126,6 +126,13 @@ entry that closed them. Ids are never reused.
 | B-0217 | The napkin screen adds the edge load to the leg buckling load (the table card shows 29.6, SPEC.md section 4 gives 38.3 for the centre load only) | S-223: SPEC.md 4 is right: requirement 5 is the whole centre load plus a quarter of the weight, and the 490.5 N edge load is requirement 6 (tip-over), never added to it; fix `structural.py` to leave the edge load out of the leg's load, then the table's `leg buckling factor 38.3 on the napkin card` pending row becomes a figure |
 | B-0218 | The benchmark oracle cannot replay a change request (the table's ECR-1 and ECR-2 rows are pending) | S-223; wanted: a scripted `n2f ecr` step on a copy of the product, judged against the figures of SPEC.md section 6 |
 | B-0219 | A change request cannot say a 500 mm seating overhang (ECR-2): the table model has no top-offset parameter, and its tip-over calc assumes the centre of gravity at the plan centre | S-223; wanted: a top-offset parameter in the table model and a tip-over calc that moves the centre of gravity with it (table-only), so ECR-2 can be refused at 1.04 |
+| B-0220 | The table benchmark omits the top's cross-grain load path: a strip estimate gives 2.6–6.4 mm against the 0.92 mm sag margin | gate I C8 (S-224); state the load patch, add the cross-grain line to SPEC §4.1, or stiffen the design; fix before 0.7.0 |
+| B-0221 | `load_cases.yaml` sources read as authority but several are not real clauses (AISC "Table 1-5", J3.2 at 1.67, BIFMA "overturning factor", NDS 2.3.2) | gate I C3 (S-224); say "project choice" where no clause supports a factor |
+| B-0222 | `timber_creep.yaml` medium-term and instantaneous k_def not split by service class (unconservative for class 3) | gate I C4 (S-224) |
+| B-0223 | NDS withdrawal values (allowable) are returned as "capacity" and factored again | gate I C5 (S-224); docstring and naming |
+| B-0224 | Derived ceremony trusts the hazard tag: a mains motor tagged tip-over stays lite; an unreadable supply voltage gives lite | gate I C10 (S-224); a lint warn on mains words without a raising tag; an unreadable voltage as a reason |
+| B-0225 | Several US cost bands are one product's estimates (two with low = high); bought machine parts priced in the controls band | gate I C11 (S-224); label them as estimates from one product |
+| B-0226 | Example content in package strings: kiln part names in cost-band sources, the table benchmark in calc cases, "crosshead" in `joints/frames.py` | gate I C12 (S-224); move example-derived cases to the example's `model/calcs/` |
 
 ## Closed
 
