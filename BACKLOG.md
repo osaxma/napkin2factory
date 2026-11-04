@@ -116,6 +116,7 @@ entry that closed them. Ids are never reused.
 | B-0206 | Union merge on BACKLOG.md resurrects closed rows in the Open table | S-217; scripts/journal_ids.py or make land should prune rows from Open that appear in Closed before the gate |
 | B-0207 | docs/agent-guide.md is a concurrent task collision hotspot (4 of 7 collision pairs in v0.7) | S-217; modularize reference sections or separate domain syntax so parallel tasks do not collide on the guide |
 | B-0208 | Engineering verification backlog expanded by 98 unconfirmed rows in v0.7 (268 total verify rows) | S-217; verify materials.yaml, cost_bands.yaml, and timber creep/moisture values against handbook sources |
+| B-0209 | `tests/e2e/test_release_diff.py::test_diff_page_loads_and_highlights` fails intermittently inside the full `make check` (passes alone and on retry) | seen twice on 2026-11-04 landing two unrelated tasks; not measured how often |
 
 ## Closed
 
