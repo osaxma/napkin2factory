@@ -129,29 +129,14 @@ def run_impact(product: Product, ecr_id: str, write: bool = True) -> tuple[Impac
 
 
 def _plain(obj: Any, product: Product | None = None, removed: set[str] | None = None) -> Any:
-    """Make an impact dict YAML-safe and free of unapplied/removed URIs (S-180).
-
-    ``Product.all_uris`` walks ``ecr.impact`` and requires every ``<scheme>://<id>`` string to
-    exist in the loaded model; a patch's added objects do not exist before ``apply``, and its
-    removed ones do not exist after it.
-    """
-    from napkin2factory.core.uris import find_uris
-
+    """Make an impact dict YAML-safe (S-215)."""
     if isinstance(obj, dict):
-        return {
-            _plain(str(k), product, removed): _plain(v, product, removed) for k, v in obj.items()
-        }
+        return {_plain(str(k)): _plain(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
-        return [_plain(v, product, removed) for v in obj]
-    if isinstance(obj, str):
-        if "://" in obj and product is not None:
-            for u in find_uris(obj):
-                if not product.exists(u.base) or (removed and u.base in removed):
-                    obj = obj.replace(f"{u.scheme}://{u.id}", f"{u.scheme}:{u.id}")
+        return [_plain(v) for v in obj]
+    if isinstance(obj, (str, int, float, bool)) or obj is None:
         return obj
-    if isinstance(obj, (int, float, bool)) or obj is None:
-        return obj
-    return _plain(str(obj), product, removed)
+    return str(obj)
 
 
 def approve(
@@ -294,6 +279,69 @@ def _coerce(value: Any, old: Any) -> Any:
     return value
 
 
+def _move_invalidated_signoffs(product: Product, lines: list[str]) -> None:
+    """Move sign-off files citing a removed requirement or object to .yaml.invalid (S-215)."""
+    from napkin2factory.core.uris import Uri
+    from napkin2factory.core.yamlio import read_yaml
+
+    reqs_path = product.paths.requirements
+    known_req_ids: set[str] = set()
+    if reqs_path.is_file():
+        req_data = read_yaml(reqs_path)
+        if isinstance(req_data, dict):
+            known_req_ids = {
+                str(r["id"])
+                for r in req_data.get("requirements", [])
+                if isinstance(r, dict) and "id" in r
+            }
+
+    params_path = product.paths.parameters
+    known_param_ids: set[str] = set()
+    if params_path.is_file():
+        param_data = read_yaml(params_path)
+        if isinstance(param_data, dict):
+            known_param_ids = set(str(k) for k in param_data.get("parameters", {}).keys())
+
+    for so_path in sorted(product.paths.signoffs.glob("REQ-*.yaml")):
+        try:
+            data = read_yaml(so_path)
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        req_ref = str(data.get("requirement", ""))
+        req_id = req_ref.replace("req://", "")
+        invalid_reason = ""
+        if req_id not in known_req_ids:
+            invalid_reason = f"requirement {req_ref} was removed"
+        else:
+            for ev in data.get("evidence", []):
+                try:
+                    u = Uri.parse(str(ev))
+                except Exception:
+                    continue
+                if u.scheme == "part" and not (product.paths.parts / f"{u.id}.yaml").is_file():
+                    invalid_reason = f"cited part {u.base} was removed"
+                    break
+                if u.scheme == "asm" and not (product.paths.assemblies / f"{u.id}.yaml").is_file():
+                    invalid_reason = f"cited assembly {u.base} was removed"
+                    break
+                if (
+                    u.scheme == "iface"
+                    and not (product.paths.interfaces / f"{u.id}.yaml").is_file()
+                ):
+                    invalid_reason = f"cited interface {u.base} was removed"
+                    break
+                if u.scheme == "param" and u.id not in known_param_ids:
+                    invalid_reason = f"cited parameter {u.base} was removed"
+                    break
+
+        if invalid_reason:
+            invalid_path = so_path.with_name(f"{so_path.name}.invalid")
+            so_path.rename(invalid_path)
+            lines.append(f"moved sign-off {so_path.name} → {invalid_path.name} ({invalid_reason})")
+
+
 def apply(product: Product, ecr_id: str, snapshot: bool = True) -> list[str]:
     """Apply an approved change request to the model and take a snapshot."""
     ecr = _require(product, ecr_id)
@@ -304,41 +352,54 @@ def apply(product: Product, ecr_id: str, snapshot: bool = True) -> list[str]:
         )
     vcs = Vcs(product.root)
     vcs.require_repo_root()
+    # S-215: Atomicity (Item 4). Ensure pre-apply state is clean and snapshotted.
+    if not vcs.is_clean():
+        vcs.snapshot(f"Approve {ecr.id}")
+
     lines: list[str] = []
-    before = _output_hashes(product)
-    for e in ecr.edits:
-        lines.append(_set_in_yaml(product, e))
-    if ecr.kind == "design":
-        if ecr.patch:
-            patch_path = product.root / ecr.patch
-            if not patch_path.is_file():
-                raise EcrError(f"{ecr.id}: patch file {ecr.patch} not found")
-            vcs.apply_patch(patch_path)
-            lines.append(f"applied patch {ecr.patch}")
-        for t in ecr.tasks:
-            lines.append(f"task for the designer: {t}")
-    # validate the result before snapshotting
-    fresh = load_product(product.root)
-    # always a snapshot of its own (empty for a tasks-only design change), so the one before
-    # it is the model as it stood before this change request (S-089, `_snapshot_before`)
-    sha = (
-        vcs.snapshot(f"Apply {ecr.id}: {ecr.title}", allow_empty=True)
-        if snapshot
-        else (vcs.head() or "")
-    )
-    _transition(
-        fresh,
-        fresh.ecrs[ecr.id],
-        "applied",
-        applied={
-            "snapshot": sha,
-            "at": dt.datetime.now().isoformat(timespec="seconds"),
-            "before": before,
-        },
-    )
-    if snapshot:
-        vcs.snapshot(f"Record {ecr.id} as applied")
-    return lines
+    try:
+        before = _output_hashes(product)
+        for e in ecr.edits:
+            lines.append(_set_in_yaml(product, e))
+        if ecr.kind == "design":
+            if ecr.patch:
+                patch_path = product.root / ecr.patch
+                if not patch_path.is_file():
+                    raise EcrError(f"{ecr.id}: patch file {ecr.patch} not found")
+                vcs.apply_patch(patch_path)
+                lines.append(f"applied patch {ecr.patch}")
+            for t in ecr.tasks:
+                lines.append(f"task for the designer: {t}")
+
+        # S-215: Sign-offs citing a removed part/requirement (Item 3)
+        # Move such sign-offs to .invalid so the product loads cleanly.
+        _move_invalidated_signoffs(product, lines)
+
+        # validate the result before snapshotting
+        fresh = load_product(product.root)
+        # always a snapshot of its own (empty for a tasks-only design change), so the one before
+        # it is the model as it stood before this change request (S-089, `_snapshot_before`)
+        sha = (
+            vcs.snapshot(f"Apply {ecr.id}: {ecr.title}", allow_empty=True)
+            if snapshot
+            else (vcs.head() or "")
+        )
+        _transition(
+            fresh,
+            fresh.ecrs[ecr.id],
+            "applied",
+            applied={
+                "snapshot": sha,
+                "at": dt.datetime.now().isoformat(timespec="seconds"),
+                "before": before,
+            },
+        )
+        if snapshot:
+            vcs.snapshot(f"Record {ecr.id} as applied")
+        return lines
+    except Exception as exc:
+        vcs.discard()
+        raise EcrError(f"could not apply {ecr.id}: {exc}") from exc
 
 
 def _output_hashes(product: Product) -> dict[str, str]:

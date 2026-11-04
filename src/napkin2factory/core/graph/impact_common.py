@@ -89,6 +89,7 @@ class PatchImpact:
     revs: dict[str, str] = field(default_factory=dict)
     rebuilds: dict[str, str] = field(default_factory=dict)
     stale: list[str] = field(default_factory=list)
+    signoffs_removed: list[dict[str, str]] = field(default_factory=list)
 
     @property
     def count(self) -> int:

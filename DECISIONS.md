@@ -241,6 +241,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-212 | Discard keeps filed change requests; plain words on promotion | in force |
 | S-213 | The trial's documentation gaps closed | in force |
 | S-214 | Each conductor carries what it feeds; an empty cable entry is not a failure | in force |
+| S-215 | A change request may remove parts, parameters and joints | in force |
 
 ---
 
@@ -1638,3 +1639,6 @@ and lists the five frame member profiles (`square-tube`, `angle`, `rect-tube`, `
 step documented in `docs/agent-guide.md` and `docs/napkin.md`. Measured: doc and template tests green.
 ## S-214 — Each conductor carries what it feeds; an empty cable entry is not a failure (2026-11-04)
 Fixes trial 2 concerns C9 and C1 (B-0199, S-208). (1) Per-conductor current: each conductor's current is derived from the downstream loads it feeds by walking the circuit net from load terminals back toward the supply; a conductor feeding one device carries that device's load, and a shared conductor carries their sum. (2) `check_cable_entry`: an empty `passes: []` returns pass ("nothing passes through yet"), so a cable-entry interface placed before circuits are routed no longer fails a requirement verifying it; an unrouted listed circuit still fails. Existing fixtures and the kiln's wiring results are unchanged (the old rule evaluated single-load circuits correctly; only multi-load branched circuits were charged the full circuit total on thin branch conductors). Measured: `tests/fixtures/electrical/branch-loads/` (10 A heater branch, 0.2 A fan branch on 0.75 mm² PVC) passes with 3.1 A least margin; unit tests in `tests/unit/test_electrical_checks.py` and `test_electrical_model.py`.
+## S-215 — A change request may remove parts, parameters and joints (2026-11-04)
+Trial 2 blocker 1 (S-208, B-0197): applying an ECR that removed an object broke the loader because `all_uris()` walked the ECR's stored impact, resolving deleted URIs. Stored impact is history, not live model references, so `Product.all_uris` skips `e.impact` and `_validate_uris` warns instead of erroring on dangling references in sign-offs and historical change requests. Sign-offs citing a removed requirement or evidence are reported in `n2f ecr impact` under "Sign-offs that will no longer apply" (naming the file, C3) and moved to `<file>.invalid` on `n2f ecr apply` so the product loads cleanly. Apply is atomic: failures roll back with `vcs.discard()`, keeping the ECR approved with plain-words errors.
+Measured: `tests/e2e/test_ecr_remove.py` proves removal of parts and parameters, sign-off invalidation, and rollback on apply failure.

@@ -360,7 +360,10 @@ class Product:
         for i in self.interfaces.values():
             walk(i, self.files[i.uri], i.uri)
         for e in self.ecrs.values():
-            walk(e, self.files[e.uri], e.uri)
+            for name in type(e).model_fields:
+                if name == "impact":
+                    continue  # S-215: stored impact is historical, not a live reference
+                walk(getattr(e, name), self.files[e.uri], e.uri)
         for s in self.signoffs.values():
             walk(s, self.files[f"signoff:{s.requirement.id}"], f"signoff {s.requirement.id}")
         for doc in self.docs.values():

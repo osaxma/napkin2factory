@@ -353,6 +353,30 @@ def _validate_uris(product: Product, problems: Problems) -> None:
         try:
             product.resolve(uri)
         except KeyError as exc:
+            if file.parent == product.paths.signoffs:
+                # S-215: dangling references in sign-offs invalidate the sign-off, non-blocking
+                problems.add(
+                    file,
+                    subject,
+                    f"sign-off cites removed or unknown {uri}",
+                    "the signed object is gone; re-sign with `n2f signoff`",
+                    severity="warn",
+                    rule="signoff",
+                )
+                continue
+            if file.parent == product.paths.changes:
+                # S-215: applied/closed change requests are history; dangling references warn
+                ecr_obj = product.ecrs.get(file.stem)
+                if ecr_obj and ecr_obj.status in ("applied", "closed"):
+                    problems.add(
+                        file,
+                        subject,
+                        f"change request cites removed or unknown {uri}",
+                        "applied change request is history",
+                        severity="warn",
+                        rule="uri",
+                    )
+                    continue
             problems.add(file, subject, str(exc), _hint_for(uri), rule="uri")
             continue
         if uri.selector and uri.selector[0] != "props" and uri.scheme not in ("bom", "doc"):

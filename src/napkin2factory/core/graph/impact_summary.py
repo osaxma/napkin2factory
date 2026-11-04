@@ -114,10 +114,18 @@ def summarize(report: ImpactReport, product: Product) -> str:
                 f"- {r.id} {r.title}{safety}: {badge}" + (f" — {r.detail}" if r.detail else "")
             )
         lines.append("")
-    if report.signoffs_invalidated:
+    removed_signoffs = report.patch.signoffs_removed if report.patch else []
+    removed_ids = {entry["id"] for entry in removed_signoffs}
+    if removed_signoffs:
+        lines.append("## Sign-offs that will no longer apply")
+        for entry in removed_signoffs:
+            lines.append(f"- {entry['file']}: {entry['reason']}")
+        lines.append("")
+    redo_signoffs = [sid for sid in report.signoffs_invalidated if sid not in removed_ids]
+    if redo_signoffs:
         lines.append("## Sign-offs that must be redone")
-        for s in report.signoffs_invalidated:
-            lines.append(f"- {s}: the evidence it was signed against changes")
+        for sid in redo_signoffs:
+            lines.append(f"- {sid}: the evidence it was signed against changes")
         lines.append("")
     if report.kind == "design":
         lines.append("## Designer tasks")

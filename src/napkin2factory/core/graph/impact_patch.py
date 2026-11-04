@@ -90,6 +90,33 @@ def dry_run_patch(
         found.objects, found.revs = _object_changes(product, after)
         found.scope = _scope_changes(product, after)
         found.rebuilds, found.stale = _patch_rebuilds(product, after, build_dir)
+        # S-215: Sign-offs citing removed objects will no longer apply
+        removed_objs = set(found.objects.get("removed", []))
+        signoffs_removed: list[dict[str, str]] = []
+        for so in product.signoffs.values():
+            so_file = f"model/signoffs/{so.requirement.id}.yaml"
+            if f"req://{so.requirement.id}" in removed_objs:
+                signoffs_removed.append(
+                    {
+                        "file": so_file,
+                        "id": so.requirement.id,
+                        "reason": (
+                            f"requirement req://{so.requirement.id} is removed; "
+                            "it will no longer apply"
+                        ),
+                    }
+                )
+            else:
+                cites = [str(e.base) for e in so.evidence if str(e.base) in removed_objs]
+                if cites:
+                    signoffs_removed.append(
+                        {
+                            "file": so_file,
+                            "id": so.requirement.id,
+                            "reason": f"cites removed {', '.join(cites)}; it will no longer apply",
+                        }
+                    )
+        found.signoffs_removed = signoffs_removed
         yield found, after
 
 
