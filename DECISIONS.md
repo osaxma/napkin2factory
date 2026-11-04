@@ -244,6 +244,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-215 | A change request may remove parts, parameters and joints | in force |
 | S-216 | Landing resolves a backlog row both open and closed after a merge | in force |
 | S-217 | Health review 2026-11-04 — outcome | in force |
+| S-218 | The kiln's benchmark spec, retrofitted from its model | in force |
 
 ---
 
@@ -1653,3 +1654,11 @@ The change is committed into the task commit during post-rebase journal rewritin
 
 ## S-217 — Health review 2026-11-04 — outcome (2026-11-04)
 Periodic health review across 34 commits since 9e971d0 (S-190). Trend recorded at 731b3da in `docs/health/trend.csv`. Long modules stable at 11; 0 new modules exceed 550 lines since v0.7 began (structural/joints modularized under 370 lines), but `core/checks/interface.py` grew to 677 lines (+39) and `mechanical/interfaces.py` reached 509 lines. 7 task collisions occurred (`docs/agent-guide.md` in 4 pairs). Unconfirmed verify rows rose from 170 to 268 (+98) from materials and cost expansion. E10 seam commits rose to 11 (+5); M1c touched `core/data/processes.yaml` (target 0 core files under W10). Zero core-to-domain or cross-domain imports. Zero TODO/FIXME lines in src/. Test suite expanded to 1195 (+166), test skips to 35 (+2, both justified). Report in `docs/reviews/health-2026-11-04.md`; opened backlog rows B-0206 (union merge backlog deduplication), B-0207 (agent guide collision hotspot), and B-0208 (v0.7 verify numbers confirmation).
+## S-218 — The kiln's benchmark spec, retrofitted from its model (2026-11-04)
+`examples/kiln/SPEC.md` and `SPEC.oracle.yaml` retrofit the Tier 3 benchmark (W9, road §4.2)
+from the shipped kiln: customer intent (200 mm cube chamber, 1200 °C, 230 V / 16 A circuit),
+all 29 requirements, and 4 concept cards (C-003 promoted; C-001 rejected by envelope; C-002
+by touch temperature and volume; C-004 styling variant). Worked figures cite mean-area thermal
+conduction (898 W loss, 44 °C touch), element sizing (10.9 A, 29.3 m wire), and swing clearance
+(6.32 mm). The oracle asserts 47 rows (concepts, figures, ceremony standard, 6 safety sign-offs).
+Measured: `tests.benchmarks.oracle` on a copy of kiln: 47 passed, 0 failed; `test_benchmarks.py` green.

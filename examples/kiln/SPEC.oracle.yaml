@@ -1,0 +1,273 @@
+# SPEC.oracle.yaml for the Tier 3 benchmark, the mini electric test kiln (road-to-v1.0 section 4).
+# Written from SPEC.md section 7 (Expected outcomes) and the worked figures of section 4; every
+# number here is the spec's. No row names a part, requirement or card id: a card is found by its
+# status, the kind of check that failed it and what it is made of; a number by what it bounds
+# or by the screening value it is. Format and matcher kinds: tests/benchmarks/README.md.
+# Run: uv run python -m tests.benchmarks.oracle <copy of examples/kiln> examples/kiln/SPEC.oracle.yaml
+oracle: 1
+title: Mini electric test kiln (tier 3)
+spec: SPEC.md
+
+concepts:
+  count: 4
+  promoted:
+    kit: block
+    why: the as-built look in the wider alcove
+  promoted_has_no_failure: true
+  rejected:
+    - by: [envelope]
+      why: the open door needs 1236 mm of an 800 mm alcove
+    - not_by: [envelope]
+      pieces: 5
+      why: compact 150 mm chamber gives up 8 L volume and reaches 91 degC skin temperature
+    - not_by: [envelope]
+      pieces: 10
+      why: industrial styling variant turned down by owner
+
+figures:
+  # --- Concept cards as the napkin stage screens them (SPEC section 3.5 table) ---
+  - name: c1-width
+    what: closed width of the as-built card (mm)
+    card: {status: rejected, by: [envelope]}
+    find: {screen_value: width}
+    unit: mm
+    expect: 995
+    tol: 0.02
+  - name: c1-width-with-door
+    what: width with the open door on the as-built card that exceeds the 800 mm alcove (mm)
+    card: {status: rejected, by: [envelope]}
+    find: {screen_value: footprint_with_door_swing}
+    unit: mm
+    expect: 1236
+    tol: 0.02
+  - name: c1-heat-loss
+    what: estimated heat loss on the as-built card (W)
+    card: {status: rejected, by: [envelope]}
+    find: {screen_value: heat_loss}
+    unit: W
+    expect: 824
+    tol: 0.05
+  - name: c1-stored-heat
+    what: estimated stored heat on the as-built card (MJ)
+    card: {status: rejected, by: [envelope]}
+    find: {screen_value: stored_heat}
+    unit: MJ
+    expect: 26.4
+    tol: 0.05
+  - name: c1-insulation-mass
+    what: estimated insulation mass on the as-built card (kg)
+    card: {status: rejected, by: [envelope]}
+    find: {screen_value: insulation_mass}
+    unit: kg
+    expect: 54.1
+    tol: 0.05
+  - name: c2-volume
+    what: chamber volume of the compact card (L)
+    card: {status: rejected, not_by: [envelope], pieces: 5}
+    find: {screen_value: volume}
+    unit: L
+    expect: 67.8
+    tol: 0.05
+  - name: c2-skin-temp
+    what: estimated skin temperature of the compact card with reduced fiber (degC)
+    card: {status: rejected, not_by: [envelope], pieces: 5}
+    find: {screen_value: skin_temperature}
+    unit: degC
+    expect: 91
+    tol: 0.05
+  - name: c2-footprint
+    what: width with door swing of the compact card (mm)
+    card: {status: rejected, not_by: [envelope], pieces: 5}
+    find: {screen_value: footprint_with_door_swing}
+    unit: mm
+    expect: 773
+    tol: 0.02
+  - name: c3-current
+    what: element current on the promoted card (A)
+    card: promoted
+    find: {screen_value: current}
+    unit: A
+    expect: 10.9
+    tol: 0.05
+  - name: c3-heat-loss
+    what: estimated steady heat loss on the promoted card (W)
+    card: promoted
+    find: {screen_value: heat_loss}
+    unit: W
+    expect: 824
+    tol: 0.05
+  - name: c3-cost-low
+    what: low end of the cost band on the promoted card (USD)
+    card: promoted
+    find: {screen_value: cost_low}
+    unit: USD
+    expect: 650
+    tol: 0.05
+  - name: c3-cost-high
+    what: high end of the cost band on the promoted card (USD)
+    card: promoted
+    find: {screen_value: cost_high}
+    unit: USD
+    expect: 2267
+    tol: 0.05
+  - name: c3-heat-up-time
+    what: estimated heat-up time on the promoted card (h)
+    card: promoted
+    find: {screen_value: heat_up_time}
+    unit: h
+    expect: 4.4
+    tol: 0.05
+
+  # --- Finished product (the promoted design, built) ---
+  - name: product-mass
+    what: total mass of the assembled kiln from BOM rollup (kg)
+    find: {rollup: total_mass}
+    unit: kg
+    expect: 118.89
+    tol: 0.02
+  - name: product-cost
+    what: total unit cost from BOM rollup (USD)
+    find: {rollup: total_cost}
+    unit: USD
+    expect: 2196.6
+    tol: 0.02
+  - name: product-part-count
+    what: total part count in the kiln BOM
+    find: {rollup: part_count}
+    expect: 145
+    tol: 0
+  - name: product-distinct-parts
+    what: number of distinct parts in the kiln BOM
+    find: {rollup: distinct_parts}
+    expect: 46
+    tol: 0
+  - name: req-chamber-volume
+    what: chamber gross volume bounded at 8 L (L)
+    find: {requirement: {bound: 8 liter}}
+    unit: L
+    expect: 8.0
+    tol: 0.01
+  - name: req-touch-temp
+    what: touchable surface temperature bounded below 60 degC (degC)
+    find: {requirement: {bound: 60 degC, safety: true}}
+    unit: degC
+    expect: 44.06
+    tol: 0.05
+  - name: req-kiln-mass
+    what: kiln assembly mass bounded below 120 kg (kg)
+    find: {requirement: {bound: 120 kg}}
+    unit: kg
+    expect: 110.52
+    tol: 0.02
+  - name: req-cost
+    what: total cost bounded below 2500 USD (USD)
+    find: {requirement: {bound: 2500 USD}}
+    unit: USD
+    expect: 2196.6
+    tol: 0.02
+  - name: req-element-power
+    what: element power bounded at 3000 W (W)
+    find: {requirement: {bound: 3000 W}}
+    unit: W
+    expect: 2500.0
+    tol: 0.01
+  - name: req-power-margin
+    what: power margin over steady loss and heat-up bounded at 1.2
+    find: {requirement: {bound: '1.2'}}
+    expect: 1.258
+    tol: 0.05
+  - name: req-wire-length
+    what: heating element wire length bounded below 40 m (m)
+    find: {requirement: {bound: 40 m}}
+    unit: m
+    expect: 29.34
+    tol: 0.05
+  - name: req-plug-clearance
+    what: door plug swing clearance bounded at 3 mm (mm)
+    find: {requirement: {bound: 3 mm}}
+    unit: mm
+    expect: 6.32
+    tol: 0.05
+  - name: req-pitch-factor
+    what: coil pitch factor bounded at 2
+    find: {requirement: {bound: '2', op: '>='}}
+    expect: 2.09
+    tol: 0.05
+  - name: req-door-swing
+    what: door opening swing angle bounded at 100 degree (deg)
+    find: {requirement: {bound: 100 degree}}
+    unit: degree
+    expect: 110.0
+    tol: 0.01
+  - name: req-open-door-clearance
+    what: open door width beside hinge bounded at 240.3 mm (mm)
+    find: {requirement: {bound: 240.3 mm}}
+    unit: mm
+    expect: 240.235
+    tol: 0.02
+  - name: req-alcove-width
+    what: kiln closed width bounded at 1509.7 mm for 1750 mm alcove (mm)
+    find: {requirement: {bound: 1509.7 mm}}
+    unit: mm
+    expect: 995.4
+    tol: 0.02
+  - name: req-circuit-headroom-power
+    what: element power bounded at 3066.7 W for 230V-16A site circuit with 1.2 headroom (W)
+    find: {requirement: {bound: 3066.7 W}}
+    unit: W
+    expect: 2500.0
+    tol: 0.01
+
+facts:
+  - name: ceremony
+    what: ceremony standard derives from mains electrical domain and high temperatures
+    fact: ceremony
+    equals: standard
+  - name: supply
+    what: electrical supply is present
+    fact: supply
+    equals: present
+  - name: supply-voltage
+    what: supply voltage is 230 V single phase
+    fact: supply_voltage
+    unit: V
+    expect: 230
+  - name: supply-frequency
+    what: supply frequency is 50 Hz
+    fact: supply_frequency
+    unit: Hz
+    expect: 50
+  - name: sub-assemblies
+    what: three modules/sub-assemblies (controls, door, lining)
+    fact: assemblies
+    expect: 3
+  - name: safety-requirements
+    what: exactly six safety requirements
+    fact: count_requirements
+    safety: true
+    expect: 6
+  - name: safety-signoffs
+    what: exactly six requirements wait on or carry a human safety sign-off
+    fact: count_requirements
+    status_in: [needs-human, signed, example]
+    expect: 6
+  - name: no-failing-requirements
+    what: no requirement fails
+    fact: count_requirements
+    status: fail
+    expect: 0
+
+# Figures SPEC.md states that n2f cannot show yet. Each becomes a row when the thing exists.
+pending:
+  - what: element power circuit supply margin 5.1 A (> 0 A) and conductor margin 6.5 A (> 0 A)
+    reason: circuit requirement results use a custom descriptive message format that does not match the bound regex
+  - what: steady-state heat loss 897.9 W and required power 1987.6 W
+    reason: computed by model/calcs/thermal.py and tested in thermal.cases.yaml; the product requirements bound touch temperature and power margin rather than raw thermal loss
+  - what: shell temperature 78.8 degC, interface temperature 669.8 degC, door skin 69.7 degC, door guard 41.9 degC
+    reason: thermal node temperatures computed in thermal.py and validated in thermal.cases.yaml; not directly bounded in requirements
+  - what: cold resistance 21.16 ohm, 898 coil turns, and 3000 mm available groove length
+    reason: internal element sizing variables in model/calcs/element.py and element.cases.yaml; requirements bound wire length and surface load
+  - what: element wire surface load 1.70 W/cm**2 (REQ-021 bounded at 2.0 W/cm**2)
+    reason: requirement check result message formatting for REQ-021 does not match the standard bound regex
+  - what: manual safety verifications (controller box < 50 degC, rating label, door latch 50 N pull, over-temp trip, earth bonding < 0.1 ohm)
+    reason: physical inspection and electrical tests performed on the built kiln; verified by human sign-offs
