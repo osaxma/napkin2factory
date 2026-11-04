@@ -16,7 +16,7 @@ from tests.e2e.test_ecr import _no_git_words, _run
 
 
 def test_close_refused_when_checks_fail(tmp_path: Path) -> None:
-    root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=True)
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "b", prebuilt=True, render=False)
     _run("build", "--no-render", cwd=root)
     _run("ecr", "new", "--title", "Too big", "--set", "param://bracket-length=200mm", cwd=root)
     _run("ecr", "impact", "ECR-001", cwd=root)
@@ -29,7 +29,7 @@ def test_close_refused_when_checks_fail(tmp_path: Path) -> None:
 
 def test_close_refused_while_signoff_needed(tmp_path: Path) -> None:
     """B-0015: close refuses while a requirement waits for a human sign-off, like release."""
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=True)
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", prebuilt=True, render=False)
     _run("build", "--no-render", cwd=root)
     _run(
         "ecr",

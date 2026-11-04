@@ -662,7 +662,9 @@ def test_no_larger_circuit_on_file_is_a_warning_not_a_choice(tmp_path: Path) -> 
 @pytest.fixture(scope="module")
 def chosen(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
     """The minimal product with a 1500 W heater, built, the choice decided with `n2f decide`."""
-    root = copy_product(MINIMAL, tmp_path_factory.mktemp("elec") / "hb", git=True)
+    root = copy_product(
+        MINIMAL, tmp_path_factory.mktemp("elec") / "hb", prebuilt=True, render=False
+    )
     _edit(root, HEATER, "power: 500 W", "power: 1500 W")
     run_build(load_product(root), render=False, quiet=True)
     r = CliRunner().invoke(

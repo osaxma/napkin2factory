@@ -36,7 +36,11 @@ def _run(*args: str, cwd: Path, ok: bool = True):  # type: ignore[no-untyped-def
 @pytest.fixture(scope="module")
 def product(tmp_path_factory: pytest.TempPathFactory) -> Path:
     root = copy_product(
-        EXAMPLES / "enclosure", tmp_path_factory.mktemp("ecr") / "enclosure", git=True
+        EXAMPLES / "enclosure",
+        tmp_path_factory.mktemp("ecr") / "enclosure",
+        git=True,
+        prebuilt=True,
+        render=False,
     )
     _run("build", "--no-render", cwd=root)
     return root

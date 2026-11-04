@@ -22,9 +22,11 @@ TIMING = os.environ.get("N2F_TIMING") == "1"
 @pytest.mark.skipif(not TIMING, reason="timing assertions run only under N2F_TIMING=1 (D30)")
 def test_bracket_first_run_under_two_minutes(tmp_path: Path) -> None:
     t0 = time.perf_counter()
-    assert n2f("init", str(tmp_path / "demo"), "--template", "bracket").returncode == 0
-    assert n2f("build", cwd=tmp_path / "demo", env={"N2F_OFFLINE": "1"}).returncode == 0
-    assert n2f("check", cwd=tmp_path / "demo", env={"N2F_OFFLINE": "1"}).returncode == 0
+    # each command in a process of its own, as the owner runs them: imports are in the budget
+    demo, offline = tmp_path / "demo", {"N2F_OFFLINE": "1"}
+    assert n2f("init", str(demo), "--template", "bracket", process=True).returncode == 0
+    assert n2f("build", cwd=demo, env=offline, process=True).returncode == 0
+    assert n2f("check", cwd=demo, env=offline, process=True).returncode == 0
     seconds = time.perf_counter() - t0
     assert (tmp_path / "demo/build/report/index.html").is_file()
     assert seconds < 120, f"init → build → check took {seconds:.0f} s (budget 120 s, DoD item 2)"
@@ -49,9 +51,9 @@ def test_two_concepts_and_board_under_a_minute_warm(tmp_path: Path) -> None:
     from tests.validate_outputs import validate_outputs
 
     demo = tmp_path / "demo"
-    assert n2f("init", str(demo), "--template", "bracket").returncode == 0
-    assert n2f("concept", "new", "Flat bracket", cwd=demo).returncode == 0
-    r = n2f("concept", "new", "Gusseted bracket", "--from", "C-001", cwd=demo)
+    assert n2f("init", str(demo), "--template", "bracket", process=True).returncode == 0
+    assert n2f("concept", "new", "Flat bracket", cwd=demo, process=True).returncode == 0
+    r = n2f("concept", "new", "Gusseted bracket", "--from", "C-001", cwd=demo, process=True)
     assert r.returncode == 0, r.stdout + r.stderr
     plates = {
         "C-001": "{kit: plate, as: body, material: mild steel, "

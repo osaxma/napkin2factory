@@ -23,7 +23,6 @@ import os
 import re
 import xml.etree.ElementTree as ET
 import zipfile
-from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -49,9 +48,6 @@ from napkin2factory.domains.electrical.outputs.schedule import (
     SCHEDULE_COLUMNS,
 )
 from tests.conftest import FIXTURES, copy_product
-
-# the module's shared product is built once, on one worker (S-196)
-pytestmark = pytest.mark.xdist_group("test_electrical_outputs")
 
 MINIMAL = FIXTURES / "electrical" / "minimal"
 CIRCUIT = "model/electrical/circuits/heater.yaml"
@@ -81,28 +77,35 @@ def _csv(path: Path) -> tuple[list[str], list[dict[str, str]]]:
 
 
 @pytest.fixture(scope="module")
-def built(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, Product, Any]]:
-    """The minimal product built once (no renders)."""
-    root = copy_product(MINIMAL, tmp_path_factory.mktemp("elec-out") / "hb", git=True)
-    product = load_product(root)
-    summary = run_build(product, render=False, quiet=True)
-    yield root, product, summary
+def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Product]:
+    """The minimal product built (no renders): a copy of the session's prebuilt one (S-196).
+
+    One copy per worker that runs a test of this module; the tests that edit it put it back.
+    """
+    root = copy_product(
+        MINIMAL, tmp_path_factory.mktemp("elec-out") / "hb", prebuilt=True, render=False
+    )
+    return root, load_product(root)
+
+
+@pytest.fixture
+def own(tmp_path: Path) -> Path:
+    """A built copy of the minimal product (no renders) for a test that edits it."""
+    return copy_product(MINIMAL, tmp_path / "hb", prebuilt=True, render=False)
 
 
 # ---- the files of the contract ------------------------------------------------------------
 
 
-def test_the_rules_run_after_the_parts_and_before_the_manuals(
-    built: tuple[Path, Product, Any],
-) -> None:
-    _, _, summary = built
-    ran = summary["ran"]
+def test_the_rules_run_after_the_parts_and_before_the_manuals(tmp_path: Path) -> None:
+    root = copy_product(MINIMAL, tmp_path / "hb", git=False)  # a cold build: every rule runs
+    ran = run_build(load_product(root), render=False, quiet=True)["ran"]
     assert ran.index("elec:heater") < ran.index(SCHEDULE_RULE) < ran.index("checks")
     assert ran.index("part:box") < ran.index("elec:heater")
 
 
-def test_every_file_of_the_contract_exists_and_parses(built: tuple[Path, Product, Any]) -> None:
-    root, _, _ = built
+def test_every_file_of_the_contract_exists_and_parses(built: tuple[Path, Product]) -> None:
+    root, _ = built
     out = root / OUT
     for rel in ("heater/connections.json", "heater/diagram.svg", "heater/heater.kicad_sch"):
         assert (out / rel).is_file(), rel
@@ -112,8 +115,8 @@ def test_every_file_of_the_contract_exists_and_parses(built: tuple[Path, Product
     ET.fromstring((out / "heater/diagram.svg").read_text(encoding="utf-8"))
 
 
-def test_the_record_matches_the_model(built: tuple[Path, Product, Any]) -> None:
-    root, product, _ = built
+def test_the_record_matches_the_model(built: tuple[Path, Product]) -> None:
+    root, product = built
     record = json.loads((root / OUT / "heater/connections.json").read_text(encoding="utf-8"))
     assert list(record)[:6] == ["circuit", "name", "purpose", "voltage_v", "dc", "protection"]
     assert record["circuit"] == "heater" and record["name"] == "Heater"
@@ -152,8 +155,8 @@ def test_the_record_matches_the_model(built: tuple[Path, Product, Any]) -> None:
     assert record["boundary"] == []
 
 
-def test_the_csv_headers_are_the_contracts(built: tuple[Path, Product, Any]) -> None:
-    root, _, _ = built
+def test_the_csv_headers_are_the_contracts(built: tuple[Path, Product]) -> None:
+    root, _ = built
     out = root / OUT
     first = {
         name: (out / name).read_text(encoding="utf-8").splitlines()[0]
@@ -169,8 +172,8 @@ def test_the_csv_headers_are_the_contracts(built: tuple[Path, Product, Any]) -> 
     assert tuple(first["cables.csv"].split(",")) == CABLE_COLUMNS
 
 
-def test_the_schedule_and_labels_list_every_wire(built: tuple[Path, Product, Any]) -> None:
-    root, _, _ = built
+def test_the_schedule_and_labels_list_every_wire(built: tuple[Path, Product]) -> None:
+    root, _ = built
     _, schedule = _csv(root / OUT / "schedule.csv")
     assert [r["wire"] for r in schedule] == [f"heater-{n}" for n in range(1, 6)]
     assert schedule[2] == {
@@ -196,8 +199,8 @@ def test_the_schedule_and_labels_list_every_wire(built: tuple[Path, Product, Any
     assert labels[1]["label"] == "heater-1 switch:1" and labels[1]["device"] == "Switch"
 
 
-def test_the_cables_to_buy_total_each_conductor(built: tuple[Path, Product, Any]) -> None:
-    root, _, _ = built
+def test_the_cables_to_buy_total_each_conductor(built: tuple[Path, Product]) -> None:
+    root, _ = built
     _, cables = _csv(root / OUT / "cables.csv")
     assert cables == [
         {
@@ -242,25 +245,25 @@ def _golden(name: str, got: str) -> None:
     assert got == path.read_text(encoding="utf-8"), f"{name} drifted from its golden"
 
 
-def test_golden_diagram_of_the_minimal_product(built: tuple[Path, Product, Any]) -> None:
-    root, _, _ = built
+def test_golden_diagram_of_the_minimal_product(built: tuple[Path, Product]) -> None:
+    root, _ = built
     _golden(
         "electrical-minimal-heater.svg",
         (root / OUT / "heater/diagram.svg").read_text(encoding="utf-8"),
     )
 
 
-def test_golden_record_of_the_minimal_product(built: tuple[Path, Product, Any]) -> None:
-    root, _, _ = built
+def test_golden_record_of_the_minimal_product(built: tuple[Path, Product]) -> None:
+    root, _ = built
     _golden(
         "electrical-minimal-heater.json",
         (root / OUT / "heater/connections.json").read_text(encoding="utf-8"),
     )
 
 
-def test_the_diagram_is_drawn_from_the_record_alone(built: tuple[Path, Product, Any]) -> None:
+def test_the_diagram_is_drawn_from_the_record_alone(built: tuple[Path, Product]) -> None:
     """Deterministic and self-contained: the same record gives the same bytes, no outside refs."""
-    root, _, _ = built
+    root, _ = built
     record = json.loads((root / OUT / "heater/connections.json").read_text(encoding="utf-8"))
     svg = (root / OUT / "heater/diagram.svg").read_text(encoding="utf-8")
     assert circuit_svg(record, {"product": "Heated box", "revision": "draft"}) == svg
@@ -298,9 +301,9 @@ def _footer_texts(svg: str) -> list[str]:
     return [t.text or "" for t in footer.iter(f"{ns}text")]
 
 
-def test_every_diagram_carries_the_footer(built: tuple[Path, Product, Any]) -> None:
+def test_every_diagram_carries_the_footer(built: tuple[Path, Product]) -> None:
     """Gate G blocker 3, gate H B2: a printed diagram names its product, circuit and Revision."""
-    root, _, _ = built
+    root, _ = built
     svg = (root / OUT / "heater/diagram.svg").read_text(encoding="utf-8")
     texts = _footer_texts(svg)
     assert texts == [
@@ -392,9 +395,9 @@ def _all(tree: list[Any], head: str) -> list[list[Any]]:
 
 
 def test_the_text_schematic_parses_with_its_symbols_and_wires(
-    built: tuple[Path, Product, Any],
+    built: tuple[Path, Product],
 ) -> None:
-    root, _, _ = built
+    root, _ = built
     text = (root / OUT / "heater/heater.kicad_sch").read_text(encoding="utf-8")
     (top,) = _sexpr(text)
     assert top[0] == "kicad_sch"
@@ -581,34 +584,28 @@ def test_every_field_the_rule_reads_is_edited() -> None:
 
 @pytest.mark.parametrize(("case", "edit"), sorted({**CIRCUIT_EDITS, **OTHER_EDITS}.items()))
 def test_impact_names_the_circuits_rule_and_covers_the_rebuild(
-    built: tuple[Path, Product, Any], case: str, edit: tuple[str, str, str, str]
+    own: Path, case: str, edit: tuple[str, str, str, str]
 ) -> None:
     """Gate E: impact ⊇ rebuild for each field the circuit's rule reads (like the toy's table)."""
-    root, _, _ = built
+    root = own
     rel, old, new, setting = edit
     product = load_product(root)
     run_build(product, render=False, quiet=True)
     report = compute_impact(product, [parse_set(setting)])
     assert "elec:heater" in report.rules and SCHEDULE_RULE in report.rules
-    file = root / rel
-    text = file.read_text(encoding="utf-8")
-    try:
-        _edit(root, rel, old, new)
-        product, problems = validate(root)
-        assert product is not None and not problems.errors, [str(p) for p in problems.errors]
-        will = {rid for rid, run, _ in explain_build(product, render=False) if run}
-        ran = set(run_build(product, render=False, quiet=True)["ran"])
-        assert "elec:heater" in ran
-        assert ran <= set(report.rules), sorted(ran - set(report.rules))
-        assert ran <= will
-    finally:
-        file.write_text(text, encoding="utf-8")
-        run_build(load_product(root), render=False, quiet=True)
+    _edit(root, rel, old, new)
+    product, problems = validate(root)
+    assert product is not None and not problems.errors, [str(p) for p in problems.errors]
+    will = {rid for rid, run, _ in explain_build(product, render=False) if run}
+    ran = set(run_build(product, render=False, quiet=True)["ran"])
+    assert "elec:heater" in ran
+    assert ran <= set(report.rules), sorted(ran - set(report.rules))
+    assert ran <= will
 
 
-def test_a_note_reruns_no_wiring_rule(built: tuple[Path, Product, Any]) -> None:
+def test_a_note_reruns_no_wiring_rule(built: tuple[Path, Product]) -> None:
     """The rule reads no `notes` (nor `earth`): an edit of them leaves the diagram alone."""
-    root, _, _ = built
+    root, _ = built
     file = root / CIRCUIT
     text = file.read_text(encoding="utf-8")
     try:
@@ -620,9 +617,9 @@ def test_a_note_reruns_no_wiring_rule(built: tuple[Path, Product, Any]) -> None:
         run_build(load_product(root), render=False, quiet=True)
 
 
-def test_static_reads_cover_the_recorded_ones(built: tuple[Path, Product, Any]) -> None:
+def test_static_reads_cover_the_recorded_ones(built: tuple[Path, Product]) -> None:
     """Before the first build, `n2f impact` assumes at least what the rule records."""
-    root, product, _ = built
+    root, product = built
     entries = json.loads((root / "build/.n2f/manifest.json").read_text(encoding="utf-8"))["entries"]
     rules = {r.id: r for r in registry().rule_family("elec").make_rules(_rule_build(product))}
     for rid in ("elec:heater", SCHEDULE_RULE):
@@ -648,12 +645,12 @@ def _rule_build(product: Product) -> Any:
     return _B()
 
 
-def test_the_schedule_key_is_valued_as_its_rules_output(built: tuple[Path, Product, Any]) -> None:
+def test_the_schedule_key_is_valued_as_its_rules_output(built: tuple[Path, Product]) -> None:
     """S-156: `rule:elec-schedule` is the schedule rule's output hash, never "unbuilt"."""
     from napkin2factory.core.graph.manifest import Manifest
     from napkin2factory.core.graph.values import value_of
 
-    root, product, _ = built
+    root, product = built
     manifest = Manifest.load(root / "build")
     value = value_of(product, manifest, root / "build", SCHEDULE_KEY)
     assert value == manifest.entries[SCHEDULE_RULE].output_hash
@@ -764,11 +761,11 @@ def test_a_module_from_elsewhere_is_a_dashed_boundary_with_nothing_inside(tmp_pa
 
 
 def test_the_release_package_ships_the_diagrams_and_tables(
-    built: tuple[Path, Product, Any], tmp_path: Path
+    built: tuple[Path, Product], tmp_path: Path
 ) -> None:
     from napkin2factory.ecr.release import make_bundle
 
-    root, product, _ = built
+    root, product = built
     zip_path = make_bundle(product, root / "build", "v0.1.0", tmp_path)
     with zipfile.ZipFile(zip_path) as zf:
         names = sorted(n for n in zf.namelist() if n.startswith("v0.1.0/electrical/"))
@@ -788,10 +785,10 @@ def test_the_release_package_ships_the_diagrams_and_tables(
 
 
 def test_the_wiring_folder_has_a_readme_naming_its_files(
-    built: tuple[Path, Product, Any],
+    built: tuple[Path, Product],
 ) -> None:
     """The README beside the tables says what each file is (S-179), and nothing else."""
-    root, _, _ = built
+    root, _ = built
     text = (root / OUT / "README.txt").read_text(encoding="utf-8")
     assert text.startswith("Heated box: the wiring\n\nWhat each file is:\n")
     assert "- heater/diagram.svg: the wiring diagram of the Heater circuit." in text
@@ -806,7 +803,7 @@ def test_the_wiring_folder_has_a_readme_naming_its_files(
         )
 
 
-def test_the_report_stays_small(built: tuple[Path, Product, Any]) -> None:
-    root, _, _ = built
+def test_the_report_stays_small(built: tuple[Path, Product]) -> None:
+    root, _ = built
     size = (root / "build/report/index.html").stat().st_size
     assert size < 20 * 1024 * 1024  # D13, N10

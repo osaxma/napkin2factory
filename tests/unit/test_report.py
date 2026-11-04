@@ -16,16 +16,16 @@ from napkin2factory.core.loader import load_product
 from napkin2factory.core.model import StyleFile
 from tests.conftest import EXAMPLES, copy_product, real_page_errors
 
-# the module's shared product is built once, on one worker (S-196)
-pytestmark = pytest.mark.xdist_group("test_report")
-
 EXTERNAL = re.compile(r"\b(?:src|href)\s*=\s*['\"]?(?:https?:)?//", re.IGNORECASE)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module")  # read only, and a cheap prebuilt copy: no xdist_group
 def report(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, str]:
     root = copy_product(
-        EXAMPLES / "enclosure", tmp_path_factory.mktemp("rep") / "enclosure", git=False
+        EXAMPLES / "enclosure",
+        tmp_path_factory.mktemp("rep") / "enclosure",
+        git=False,
+        prebuilt=True,
     )
     run_build(load_product(root), quiet=True, render=True)
     path = root / "build/report/index.html"
@@ -140,7 +140,7 @@ def test_anchor_for() -> None:
 
 
 def test_example_signoff_label(tmp_path: Path) -> None:
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=True)
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", prebuilt=True, render=False)
     run_build(load_product(root), target="checks", quiet=True, render=False)
     from tests.conftest import n2f
 
@@ -228,7 +228,9 @@ def test_report_viewer_paints_the_style_palette_by_role(tmp_path: Path) -> None:
     pytest.importorskip("playwright")
     from playwright.sync_api import Error, sync_playwright
 
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=False)
+    root = copy_product(
+        EXAMPLES / "enclosure", tmp_path / "e", git=False, prebuilt=True, render=False
+    )
     base = root / "model" / "parts" / "base.yaml"
     base.write_text(base.read_text() + "role: body\n")
     (root / "style.yaml").write_text("preset: lab\npalette: {body: '#c0392b'}\n")
@@ -259,7 +261,7 @@ def test_revision_label_is_honest(tmp_path: Path) -> None:
     from napkin2factory.core.vcs import Vcs
     from napkin2factory.report.builder import gather
 
-    root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=True)
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "b", prebuilt=True, render=False)
     run_build(load_product(root), quiet=True, render=False)
     v = Vcs(root)
     v.snapshot("built")
@@ -310,6 +312,7 @@ def test_owner_tables_drop_uri_prefixes(report: tuple[Path, str]) -> None:
 
 
 def test_engineer_tables_keep_uri_prefixes(tmp_path: Path) -> None:
+    # a cold build: on a built copy, the persona edit alone does not rerun the report (S-196)
     root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=False)
     op = root / "operator.yaml"
     op.write_text(op.read_text().replace("persona: owner", "persona: engineer"))

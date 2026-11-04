@@ -19,7 +19,7 @@ os.environ.setdefault("N2F_OFFLINE", "1")
 
 
 def test_signoff_semantics(tmp_path: Path) -> None:
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=True)
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", prebuilt=True, render=False)
     # add a non-safety manual requirement
     req = root / "model/requirements.yaml"
     req.write_text(
@@ -111,7 +111,7 @@ def test_signoff_refuses_failing_requirement(tmp_path: Path) -> None:
 
 def test_signoff_binds_parts_without_geometry(tmp_path: Path) -> None:
     """A cited bought part with ``geometry: none`` keys on its record (S-050)."""
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=True)
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", prebuilt=True, render=False)
     req = root / "model/requirements.yaml"
     req.write_text(
         req.read_text()
@@ -157,7 +157,7 @@ def test_signoff_survives_a_build_on_another_machine(tmp_path: Path) -> None:
 
     from napkin2factory.core.checks.evidence import legacy_keys
 
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=True)
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", prebuilt=True, render=False)
     assert _result(_checks(root), "req://REQ-004")["status"] == "needs-human"
     r = n2f("signoff", "REQ-004", "--by", "Tester", "--statement", "Edges checked.", cwd=root)
     assert r.returncode == 0, r.stderr

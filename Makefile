@@ -42,6 +42,11 @@ export N2F_OFFLINE ?= 1
 # measure wall-clock.
 XDIST ?= -n logical --dist loadgroup
 
+# The tests run the CLI inside the test process (tests/conftest.py `n2f()`), which saves
+# about 3 s of imports per call; the nightly runs every call as a real process instead, so
+# the entry point itself stays tested (S-196).
+check-full: export N2F_TEST_SUBPROCESS := 1
+
 ifdef TAKE_LOCK
 $(LOCKED):
 	@$(LOCK) $(MAKE) --no-print-directory $@

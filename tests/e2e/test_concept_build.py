@@ -121,9 +121,14 @@ def test_concept_build_all_screens_one_red_one_green(product: Path) -> None:
     assert red["screening"]["estimates"]["heat_up_time"]["ref"] == "thermal_enclosure.heat_up_time"
     assert red["screening"]["rules"][0]["id"] == "fits-site-width"
 
-    # gate B, B1: --all builds set-aside cards too, and says which they are
+
+def test_concept_build_all_includes_set_aside_cards(product: Path) -> None:
+    """Gate B, B1: --all builds set-aside cards too, and says which they are.
+
+    Split from the test above (S-196): it starts from no concept build at all.
+    """
+    root = product
     _run("concept", "reject", "C-002", "--reason", "too small", cwd=root)
-    shutil.rmtree(root / "build" / "concepts")
     again = _run("concept", "build", "--all", "--no-render", cwd=root).stdout
     assert "C-002 holds up: 400 × 403 × 400 mm (computed)" in again
     (line,) = [ln for ln in again.splitlines() if "C-002 holds up" in ln]

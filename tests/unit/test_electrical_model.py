@@ -72,7 +72,9 @@ def _cli(*args: str) -> str:
 @pytest.fixture(scope="module")
 def built(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, Product]]:
     """The minimal product built once (no renders)."""
-    root = copy_product(MINIMAL, tmp_path_factory.mktemp("elec") / "hb", git=True)
+    root = copy_product(
+        MINIMAL, tmp_path_factory.mktemp("elec") / "hb", prebuilt=True, render=False
+    )
     product = load_product(root)
     run_build(product, render=False, quiet=True)
     yield root, product

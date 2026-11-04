@@ -18,7 +18,7 @@ from tests.e2e.test_ecr import _run
 
 
 def test_yaml_only_design_change_bumps_revision_after_signoff(tmp_path: Path) -> None:
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=True)
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", prebuilt=True, render=False)
     _run("build", "--no-render", cwd=root)
     # author a finish-only change (no geometry), capture it as a patch, revert (D7)
     part = root / "model/parts/lid.yaml"

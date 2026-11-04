@@ -5,19 +5,22 @@ edit names a field of one (``iface://x#spec.depth``).  Impact must still name ev
 build would rerun.  Each test predicts with :func:`compute_impact` before the edit, makes the
 edit in the file, and compares with :func:`explain_build`, the build's own dry run (a superset
 of what a build reruns: it assumes every upstream rerun changes its output).  The kiln is built
-once, without renders (about 40 s on the reference host).
+once per test session, without renders (about 60 s on the reference host), and each test edits
+its own copy of it.
 
 B4: the core's open-set tables (``core/data/*.yaml``) are inputs of the rules that read them,
 so editing the driver words reruns every output that prints them.
 
 C7: a ``--set`` that is not a valid edit is a plain error, never a traceback.
+
+An end-to-end test (moved from tests/unit, S-196): building the whole kiln made it the
+land gate's heaviest file, 164 worker-seconds of a 157 s `make check-fast`.
 """
 
 from __future__ import annotations
 
 import json
 import shutil
-from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -33,16 +36,17 @@ from napkin2factory.core.graph.runner import explain_build, run_build
 from napkin2factory.core.loader import load_product
 from tests.conftest import EXAMPLES, copy_product
 
-# the module's shared product is built once, on one worker (S-196)
-pytestmark = pytest.mark.xdist_group("test_impact_honest")
 
+@pytest.fixture
+def kiln(tmp_path: Path) -> Path:
+    """A copy of the kiln built without renders, its own for each test.
 
-@pytest.fixture(scope="module")
-def kiln(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
-    """A copy of the kiln built once without renders."""
-    root = copy_product(EXAMPLES / "kiln", tmp_path_factory.mktemp("impact") / "kiln", git=False)
-    run_build(load_product(root), render=False, quiet=True)
-    yield root
+    A copy of the session's prebuilt kiln (S-196): the tests run on any worker and edit it
+    freely, instead of sharing one built copy on one worker and rebuilding it to undo an edit.
+    """
+    return copy_product(
+        EXAMPLES / "kiln", tmp_path / "kiln", git=False, prebuilt=True, render=False
+    )
 
 
 def _would_run(root: Path) -> set[str]:
@@ -60,22 +64,17 @@ def _predict_then_edit(root: Path, uri_value: str, file: Path, old: str, new: st
 
 def test_an_interface_field_edit_names_every_rule_the_rebuild_runs(kiln: Path) -> None:
     """The parts read ``iface://door-guard-standoff`` whole; the edit names ``#spec.depth``."""
-    file = kiln / "model/interfaces/door-guard-standoff.yaml"
-    text = file.read_text(encoding="utf-8")
-    try:
-        report = _predict_then_edit(
-            kiln,
-            "iface://door-guard-standoff#spec.depth=12 mm",
-            file,
-            "depth: 10 mm",
-            "depth: 12 mm",
-        )
-        will = _would_run(kiln)
-        assert {"part:door-tray", "part:door-guard", "checks"} <= will  # the edit is real
-        assert will <= set(report.rules), sorted(will - set(report.rules))
-        assert {"door-tray", "door-guard"} <= set(report.parts)
-    finally:
-        file.write_text(text, encoding="utf-8")
+    report = _predict_then_edit(
+        kiln,
+        "iface://door-guard-standoff#spec.depth=12 mm",
+        kiln / "model/interfaces/door-guard-standoff.yaml",
+        "depth: 10 mm",
+        "depth: 12 mm",
+    )
+    will = _would_run(kiln)
+    assert {"part:door-tray", "part:door-guard", "checks"} <= will  # the edit is real
+    assert will <= set(report.rules), sorted(will - set(report.rules))
+    assert {"door-tray", "door-guard"} <= set(report.parts)
 
 
 def test_a_decided_choice_field_edit_names_the_checks(kiln: Path) -> None:
@@ -87,25 +86,16 @@ def test_a_decided_choice_field_edit_names_the_checks(kiln: Path) -> None:
     row = next(r for r in rows if r["status"] == "choice")
     entry = decision_entry(product, row, row["detail"]["options"][0]["id"], "a tester", "note one")
     file = product.paths.decisions
-    text = file.read_text(encoding="utf-8")
-    try:
-        append_decision(file, entry)
-        run_build(load_product(kiln), render=False, quiet=True)
-        assert (
-            f"dec://{entry['id']}"
-            in json.loads((kiln / "build/.n2f/manifest.json").read_text())["entries"]["checks"][
-                "reads"
-            ]
-        )
-        report = _predict_then_edit(
-            kiln, f"dec://{entry['id']}#rationale=note two", file, "note one", "note two"
-        )
-        will = _would_run(kiln)
-        assert "checks" in will
-        assert will <= set(report.rules), sorted(will - set(report.rules))
-    finally:
-        file.write_text(text, encoding="utf-8")
-        run_build(load_product(kiln), render=False, quiet=True)
+    append_decision(file, entry)
+    run_build(load_product(kiln), render=False, quiet=True)
+    reads = json.loads((kiln / "build/.n2f/manifest.json").read_text())["entries"]["checks"]
+    assert f"dec://{entry['id']}" in reads["reads"]
+    report = _predict_then_edit(
+        kiln, f"dec://{entry['id']}#rationale=note two", file, "note one", "note two"
+    )
+    will = _would_run(kiln)
+    assert "checks" in will
+    assert will <= set(report.rules), sorted(will - set(report.rules))
 
 
 @pytest.mark.parametrize(
@@ -279,11 +269,11 @@ def test_patch_impact_reports_files_entities_scope_and_rebuild_artifacts(tmp_pat
     assert "does not apply to the model as it is now" in bad_md
 
 
-def test_impact_cost_delta_edit_to_unpriced_part(kiln: Path, tmp_path: Path) -> None:
+def test_impact_cost_delta_edit_to_unpriced_part(tmp_path: Path) -> None:
     """An edit to an unpriced part flags the incomplete cost delta (S-187)."""
     from napkin2factory.core.graph.impact import summarize
 
-    root = copy_product(kiln, tmp_path / "kiln-unpriced", git=False)
+    root = copy_product(EXAMPLES / "kiln", tmp_path / "kiln-unpriced", git=False)
     tray_file = root / "model/parts/door-tray.yaml"
     text = tray_file.read_text(encoding="utf-8")
     lines = [line for line in text.splitlines() if not line.startswith("cost:")]
@@ -304,11 +294,11 @@ def test_impact_cost_delta_edit_to_unpriced_part(kiln: Path, tmp_path: Path) -> 
     assert rep.cost_note in md
 
 
-def test_impact_cost_delta_patch_adding_unpriced_part(kiln: Path, tmp_path: Path) -> None:
+def test_impact_cost_delta_patch_adding_unpriced_part(tmp_path: Path) -> None:
     """A patch adding an unpriced part flags the incomplete cost delta (S-187)."""
     from napkin2factory.core.graph.impact import summarize
 
-    root = copy_product(kiln, tmp_path / "kiln-patch", git=True)
+    root = copy_product(EXAMPLES / "kiln", tmp_path / "kiln-patch", git=True)
     patch_dir = root / "changes"
     patch_dir.mkdir(exist_ok=True)
     patch_file = patch_dir / "unpriced.patch"
@@ -340,11 +330,11 @@ def test_impact_cost_delta_patch_adding_unpriced_part(kiln: Path, tmp_path: Path
     assert rep.cost_note in md
 
 
-def test_impact_cost_delta_priced_only_change(kiln: Path) -> None:
+def test_impact_cost_delta_priced_only_change(tmp_path: Path) -> None:
     """A change touching only priced parts leaves cost_note and cost_complete clean (S-187)."""
     from napkin2factory.core.graph.impact import summarize
 
-    prod = load_product(kiln)
+    prod = load_product(copy_product(EXAMPLES / "kiln", tmp_path / "kiln", git=False))
     rep = compute_impact(prod, [parse_set("part://door-tray#cost.unit=80 USD")])
     assert rep.cost_delta == 20.0
     assert rep.cost_complete is True

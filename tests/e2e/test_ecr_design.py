@@ -13,7 +13,7 @@ from tests.e2e.test_ecr import _run
 
 
 def test_design_ecr_with_patch(tmp_path: Path) -> None:
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=True)
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", prebuilt=True, render=False)
     _run("build", "--no-render", cwd=root)
     # author the change, capture the diff, revert (the D7 workflow)
     part = root / "model/parts/lid.yaml"

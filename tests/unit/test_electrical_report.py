@@ -175,7 +175,9 @@ def _add_check_row(build: Path, status: str = "warn") -> None:
 @pytest.fixture(scope="module")
 def built(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, Product]]:
     """The minimal product with a wiring page, built once (no renders)."""
-    root = copy_product(MINIMAL, tmp_path_factory.mktemp("elec-owner") / "hb", git=True)
+    root = copy_product(
+        MINIMAL, tmp_path_factory.mktemp("elec-owner") / "hb", prebuilt=True, render=False
+    )
     _write(root, "model/docs/wiring.md", PAGE)
     product = load_product(root)
     run_build(product, render=False, quiet=True)

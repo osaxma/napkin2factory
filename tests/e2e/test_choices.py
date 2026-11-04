@@ -6,6 +6,9 @@ meet inside the 25 mm standoffs.  ``n2f check`` never decides; ``n2f decide`` wr
 entry naming the check, the option and the evidence keys; the row then reads ``pass`` with
 its decision, and a changed evidence key reopens it (D25).  Owner text: "a choice", "waiting
 on you".
+
+An end-to-end test (moved from tests/unit, S-196): its release flows through the CLI took
+123 worker-seconds of a 157 s `make check-fast`.
 """
 
 from __future__ import annotations

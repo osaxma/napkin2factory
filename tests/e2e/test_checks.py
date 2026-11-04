@@ -138,7 +138,9 @@ def test_interface_mismatch_fails(tmp_path: Path) -> None:
     """A party whose recorded pattern disagrees with the other's (wrong spacing) must fail."""
     from napkin2factory.core.checks.interface import check_interface
 
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=False)
+    root = copy_product(
+        EXAMPLES / "enclosure", tmp_path / "e", git=False, prebuilt=True, render=False
+    )
     _checks(root)
     product = load_product(root)
     iface = product.interfaces["lid-base-mount"]
@@ -190,7 +192,7 @@ def test_rulepack_tight_bend_radius_fails(tmp_path: Path) -> None:
 
 def test_summary_keys_and_released_next_step(tmp_path: Path) -> None:
     """checks.json carries every summary key; a released product's next step has no label."""
-    root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=True)
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "b", prebuilt=True, render=False)
     data = _checks(root)
     assert set(data["summary"]) == {
         "pass",
@@ -270,7 +272,9 @@ def test_stage_intake_blocked_by_lint(tmp_path: Path) -> None:
 
 
 def test_doc_staleness_detected(tmp_path: Path) -> None:
-    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", git=False)
+    root = copy_product(
+        EXAMPLES / "enclosure", tmp_path / "e", git=False, prebuilt=True, render=False
+    )
     _checks(root)
     # Render the docs, then change a value they read without rebuilding docs: run checks only.
     from napkin2factory.core.checks.engine import doc_staleness

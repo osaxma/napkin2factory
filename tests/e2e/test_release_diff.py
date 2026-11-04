@@ -35,7 +35,11 @@ def _run(*args: str, cwd: Path, ok: bool = True):  # type: ignore[no-untyped-def
 def released(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Enclosure released as v1.0.0 after an example sign-off (gate-2 B1/B3 behaviours)."""
     root = copy_product(
-        EXAMPLES / "enclosure", tmp_path_factory.mktemp("rel") / "enclosure", git=True
+        EXAMPLES / "enclosure",
+        tmp_path_factory.mktemp("rel") / "enclosure",
+        git=True,
+        prebuilt=True,
+        render=False,
     )
     _run("build", "--no-render", cwd=root)
     # release refused: safety requirement not signed

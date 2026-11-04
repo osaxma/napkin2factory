@@ -17,7 +17,7 @@ INSTALLED = [t for t in TEMPLATE_NAMES if (TEMPLATES_DIR / t).is_dir()]
 @pytest.mark.parametrize("template", INSTALLED)
 def test_init_then_validate_and_lint(tmp_path: Path, template: str):
     dest = tmp_path / "my-thing"
-    r = n2f("init", str(dest), "--template", template, "--json")
+    r = n2f("init", str(dest), "--template", template, "--json", process=True)  # the entry point
     assert r.returncode == 0, r.stderr
     payload = json.loads(r.stdout)
     assert payload["product"] == "my-thing" and payload["snapshot"]
@@ -33,9 +33,9 @@ def test_init_then_validate_and_lint(tmp_path: Path, template: str):
     ):
         assert (dest / rel).is_file(), rel
     assert "id: my-thing" in (dest / "n2f.yaml").read_text()
-    v = n2f("validate", cwd=dest)
+    v = n2f("validate", cwd=dest, process=True)
     assert v.returncode == 0, v.stderr + v.stdout
-    lint = n2f("lint", cwd=dest)
+    lint = n2f("lint", cwd=dest, process=True)
     assert lint.returncode == 0, lint.stderr + lint.stdout
     # vocabulary: user-facing output has no git words
     for out in (r.stdout, r.stderr, v.stdout, v.stderr, lint.stdout, lint.stderr):
