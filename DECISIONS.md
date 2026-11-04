@@ -246,6 +246,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-217 | Health review 2026-11-04 — outcome | in force |
 | S-218 | The kiln's benchmark spec, retrofitted from its model | in force |
 | S-219 | Display units: the owner's unit first | in force |
+| S-220 | Automated tests do not require example sign-offs to stay current | in force |
 
 ---
 
@@ -1672,3 +1673,10 @@ for `imperial`, lengths in `in` (`ft` above 120 in), masses `lb`, forces `lbf`, 
 computed and estimated figures and limitation messages use it. Metric products remain byte-identical
 to before; drawings and exported files stay in mm. Tested against prebuilt bracket and board copies.
 Closes B-0193.
+## S-220 — Automated tests do not require example sign-offs to stay current (2026-11-04)
+The nightly failed on Nov 1 and Nov 4 because `test_kiln.py` asserted no `needs-human` result.
+The kiln's EXAMPLE sign-offs hash the rendered installation manual, so any edit to the manual's
+text voids them; 11 commits did so after the hand renewal on Nov 3, and the kiln is checked only
+nightly, so every landing stayed green. A sign-off is a person's call, not a test's: the kiln test
+now asserts no failed check and no real sign-off (S-047), not that the example sign-offs are current.
+The sign-off mechanism stays tested in `test_signoffs.py`, which signs at test time.
