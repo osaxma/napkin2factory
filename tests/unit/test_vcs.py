@@ -50,6 +50,22 @@ def test_init_snapshot_clean_and_dirty(tmp_path: Path):
     assert ei.value.code == "unsaved"
 
 
+def test_unsaved_files_and_discard(tmp_path: Path):
+    v = Vcs(tmp_path)
+    v.init()
+    (tmp_path / "a.txt").write_text("1")
+    v.snapshot("first")
+    assert v.unsaved_files() == []
+    (tmp_path / "a.txt").write_text("2")
+    (tmp_path / "b.txt").write_text("new")
+    assert set(v.unsaved_files()) == {"a.txt", "b.txt"}
+    undone = v.discard()
+    assert set(undone) == {"a.txt", "b.txt"}
+    assert v.is_clean()
+    assert (tmp_path / "a.txt").read_text() == "1"
+    assert not (tmp_path / "b.txt").exists()
+
+
 def test_nested_folder_is_not_root(tmp_path: Path):
     v = Vcs(tmp_path)
     v.init()

@@ -52,12 +52,20 @@ def discard(
     if vcs.is_clean():
         console.print("nothing to discard: the model matches the last snapshot")
         return
+    undone = vcs.unsaved_files()
     if not yes and not json_out:
         typer.confirm("Discard all changes since the last snapshot?", abort=True)
     vcs.discard()
     if json_out:
-        emit_json({"discarded": True})
+        emit_json({"discarded": True, "files": undone})
     else:
-        console.print(
-            "[yellow]•[/yellow] changes discarded; the model matches the last snapshot again"
-        )
+        files_str = ", ".join(undone)
+        if files_str:
+            console.print(
+                f"[yellow]•[/yellow] discarded changes in {escape(files_str)}; "
+                "the model matches the last snapshot again"
+            )
+        else:
+            console.print(
+                "[yellow]•[/yellow] changes discarded; the model matches the last snapshot again"
+            )

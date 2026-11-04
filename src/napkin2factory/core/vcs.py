@@ -260,10 +260,28 @@ class Vcs:
         """Mark the current snapshot as a released Revision."""
         self._git("tag", "-a", name, "-m", message)
 
-    def discard(self) -> None:
+    def unsaved_files(self) -> list[str]:
+        """Files with changes or untracked since the last snapshot."""
+        proc = self._git("status", "--porcelain", "--untracked-files=all")
+        files: list[str] = []
+        for line in proc.stdout.splitlines():
+            if len(line) < 4:
+                continue
+            path_part = line[3:].strip()
+            if " -> " in path_part:
+                path_part = path_part.split(" -> ")[1].strip()
+            path_part = path_part.strip('"')
+            if path_part.startswith("build/") or path_part == "build":
+                continue
+            files.append(path_part)
+        return files
+
+    def discard(self) -> list[str]:
         """Drop every change since the last snapshot (tracked files restored, new files removed)."""
+        undone = self.unsaved_files()
         self._git("checkout", "--", ".")
         self._git("clean", "-fdq", "--exclude=build")
+        return undone
 
     def worktree_add(self, ref: str, path: Path) -> None:
         """Materialise an earlier Revision in a scratch folder (for `n2f diff`)."""

@@ -177,7 +177,7 @@ def promote(
         + "."
     ]
     if alternatives:
-        context.append("Rejected alternatives: " + "; ".join(alternatives) + ".")
+        context.append("Other ideas considered: " + "; ".join(alternatives) + ".")
     red_override = card.verdict == "red"
     if red_override:
         assert card.screening is not None

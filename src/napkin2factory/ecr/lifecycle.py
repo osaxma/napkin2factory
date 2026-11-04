@@ -77,6 +77,7 @@ def new_ecr(
     tasks: list[str] | None = None,
     patch: str | None = None,
     requested_by: str = "human",
+    snapshot: bool = True,
 ) -> Ecr:
     """Create ``changes/ECR-xxx.yaml`` in ``draft``."""
     ecr_id = next_ecr_id(product)
@@ -99,6 +100,10 @@ def new_ecr(
     payload["edits"] = [{"set": str(e.set), "to": e.to} for e in edits]
     product.paths.changes.mkdir(parents=True, exist_ok=True)
     write_yaml(_ecr_path(product, ecr_id), payload)
+    if snapshot:
+        vcs = Vcs(product.root)
+        if vcs.is_tracked() and vcs.is_repo_root():
+            vcs.snapshot(f"File {ecr_id}: {title}")
     return ecr
 
 
@@ -149,7 +154,13 @@ def _plain(obj: Any, product: Product | None = None, removed: set[str] | None = 
     return _plain(str(obj), product, removed)
 
 
-def approve(product: Product, ecr_id: str, by: str, note: str | None = None) -> None:
+def approve(
+    product: Product,
+    ecr_id: str,
+    by: str,
+    note: str | None = None,
+    snapshot: bool = True,
+) -> None:
     """Record the owner's approval after the impact report."""
     ecr = _require(product, ecr_id)
     if ecr.status == "draft":
@@ -162,12 +173,20 @@ def approve(product: Product, ecr_id: str, by: str, note: str | None = None) -> 
         "approved",
         approval={"by": by, "at": dt.datetime.now().isoformat(timespec="seconds"), "note": note},
     )
+    if snapshot:
+        vcs = Vcs(product.root)
+        if vcs.is_tracked() and vcs.is_repo_root():
+            vcs.snapshot(f"Approve {ecr_id}")
 
 
-def reject(product: Product, ecr_id: str, reason: str) -> None:
+def reject(product: Product, ecr_id: str, reason: str, snapshot: bool = True) -> None:
     """Close a change request without applying it."""
     ecr = _require(product, ecr_id)
     _transition(product, ecr, "rejected", rejected_reason=reason)
+    if snapshot:
+        vcs = Vcs(product.root)
+        if vcs.is_tracked() and vcs.is_repo_root():
+            vcs.snapshot(f"Reject {ecr_id}")
 
 
 # ---- apply ---------------------------------------------------------------------------

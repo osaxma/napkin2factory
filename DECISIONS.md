@@ -238,6 +238,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-209 | The benchmark oracle judges outcomes, not ids | in force |
 | S-210 | The test-stand benchmark spec: an aluminium portal with a base beam closing the load loop; Track A's budget and column heights moved by the physics | in force |
 | S-211 | The structural screen counts self weight and short columns | in force |
+| S-212 | Discard keeps filed change requests; plain words on promotion | in force |
 
 ---
 
@@ -1614,3 +1615,13 @@ weight plus applied loads; row text states both; explicit distributed loads stil
 (3) geometry.materials.material_row replaces the private _match_row import.
 Measured: C-002 benchmark card gives top sag 1.54 mm (within 2.3 % of SPEC 1.58 mm) and
 leg buckling factor 38.3 (matching SPEC 38.3).
+## S-212 — Discard keeps filed change requests; plain words on promotion (2026-11-04)
+Fixes trial 2 C2 (B-0198) and C10 (part of B-0200, S-208). `n2f ecr new`, `approve` and `reject` take
+snapshots (`ecr/lifecycle.py`), fitting `core/vcs.py`'s snapshot design; untracked or filed change
+requests and their patches now belong to the latest snapshot and survive subsequent `n2f discard`
+calls, which restore only unsaved model edits and name what was undone (`cli/snapshot.py`,
+`core/vcs.py unsaved_files`). Promotion's owner-facing decision context replaces "Rejected
+alternatives:" with plain words "Other ideas considered:" (`concepts/promote/verb.py`), preserving
+card YAML `status: rejected`.
+Measured: `tests/unit/test_snapshot.py` reproduces C2 and verifies ECR and patch survival on the
+bracket; 52 targeted tests and acceptance suite pass.

@@ -14,7 +14,7 @@ decisions:
   - id: DEC-002
     date: 2026-10-31
     title: 'Design direction: Appliance-style compact kiln'
-    context: 'Chosen among 4 concept direction(s) compared on the concept board. Rejected alternatives:
+    context: 'Chosen among 4 concept direction(s) compared on the concept board. Other ideas considered:
       C-001 "The v0.1 kiln as built" (red: it needs 1245 mm of width — 995 mm for the body plus 250 mm for
       the open door (the 250 mm door leaf swung fully back; the card does not say how far it opens) — but
       the alcove is 800 mm; body: the flat blank is about 1979 × 1934 mm, larger than any mild-steel sheet

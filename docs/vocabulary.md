@@ -9,7 +9,7 @@ templates for the right-hand words.
 | napkin2factory says | underneath (git) | where you meet it |
 |---|---|---|
 | **draft** | a branch / uncommitted work | `n2f status` ("draft · snapshot …") |
-| **snapshot** | a commit | `n2f init`, `n2f ecr apply`, `n2f ecr close`, `n2f concept promote`, `n2f release` make them |
+| **snapshot** | a commit | `n2f init`, `n2f ecr new`, `n2f ecr approve`, `n2f ecr apply`, `n2f ecr close`, `n2f concept promote`, `n2f release` make them |
 | **change request (ECR)** | a pull request | `changes/ECR-xxx.yaml`, `n2f ecr …` |
 | **impact report** | the PR description, computed | `n2f ecr impact`, `n2f impact --set` |
 | **approved** | review approval | `n2f ecr approve` |
@@ -36,6 +36,7 @@ words with the owner.
 | **board** | every direction side by side, read-only | `build/concepts/board.html`, `n2f concept board` |
 | **promote** | lock a concept in as the design direction (parameters, requirements, style, a decision) | `n2f concept promote` |
 | **set aside** / rejected | a direction not taken; the card is kept as a record | `n2f concept reject` |
+| **other ideas considered** / not chosen | directions not chosen at promotion; kept as a record in the decision | the promotion decision (`DEC-xxx`) |
 | **interpretation card** | the PM's playback, in words, of what it read in a sketch or photo, corrected by the owner before any card is written | the project manager role, `roles/pm.md` (N9) |
 
 ## Structure words (the build plan, docs/stages/v0.4-product-structure.md P7–P9)
