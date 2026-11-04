@@ -182,6 +182,58 @@ def test_numbers_and_bounds_are_read_from_n2f_text():
         parse_bound_message("nothing to see")
 
 
+_PASSES = " — passes by computation; safety requirements also need a human sign-off"
+
+#: The messages ``n2f check --json`` gives a requirement (core/checks/evaluators.py,
+#: ``evaluate_requirement``): plain, failing, signed (example), unsigned safety, unsigned with
+#: a stale or unrecorded sign-off. The last two end in words after the bound (S-223).
+_SHAPES = [
+    ("total_mass = 45.2439 kg <= 70 kg", (45.2439, "kg"), "<=", (70.0, "kg")),
+    ("total_mass = 80 kg <= 70 kg", (80.0, "kg"), "<=", (70.0, "kg")),
+    ("bbox.x = 1600 mm == 1600 mm", (1600.0, "mm"), "==", (1600.0, "mm")),
+    ("calc://s.tip = 3.92427 >= 2", (3.92427, ""), ">=", (2.0, "")),
+    ("calc://s.tip = 1.5 >= 2", (1.5, ""), ">=", (2.0, "")),
+    (
+        "EXAMPLE SIGN-OFF, NOT A REVIEW — calc://s.tip = 3.92427 >= 2",
+        (3.92427, ""),
+        ">=",
+        (2.0, ""),
+    ),
+    ("calc://s.tip = 3.92427 >= 2" + _PASSES, (3.92427, ""), ">=", (2.0, "")),
+    ("calc://s.rise = 44.1 degC < 60 degC" + _PASSES, (44.1, "degC"), "<", (60.0, "degC")),
+    (
+        "calc://s.sag = 1.58 mm <= 2.5 mm" + _PASSES + " (no sign-off)",
+        (1.58, "mm"),
+        "<=",
+        (2.5, "mm"),
+    ),
+    (
+        "calc://s.tip = 3.92 >= 2" + _PASSES + " (evidence changed since signing: calc://s.tip)",
+        (3.92, ""),
+        ">=",
+        (2.0, ""),
+    ),
+    ("calc://s.tip = 3.92 >= 2 passes by computation", (3.92, ""), ">=", (2.0, "")),
+    ("calc://s.share = 12 % <= 15 %", (12.0, "%"), "<=", (15.0, "%")),
+]
+
+
+@pytest.mark.parametrize(("message", "value", "op", "bound"), _SHAPES)
+def test_a_requirement_message_gives_its_value_and_bound_whatever_follows_the_bound(
+    message, value, op, bound
+):
+    assert parse_bound_message(message) == (value, op, bound)
+
+
+def test_an_unsigned_safety_requirement_is_found_by_its_bound():
+    check = _check()
+    check["results"][4] = _req("R5", "calc://s.tip2 = 3.9 >= 2" + _PASSES, safety=True)
+    check["results"][4]["status"] = "needs-human"
+    tip = _fig({"requirement": {"bound": "2", "safety": True}}, expect=3.9)
+    row = oracle.judge_figure(tip, _ev(check=check), {})
+    assert row.passed and row.found == "3.9"
+
+
 def test_bounds_compare_by_dimension_not_spelling():
     assert same_bound((2.5, "mm"), (0.0025, "m"))
     assert not same_bound((2.5, "mm"), (2.5, "kg"))

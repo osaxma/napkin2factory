@@ -200,6 +200,13 @@ figures:
     find: {requirement: {bound: '2.5'}}
     expect: 84.5
     tol: 0.05
+  - name: req-slot-clearance
+    what: free travel of a slotted fixing less the across-grain movement of the top there, bounded at 0 mm (mm); SPEC.md section 4.1, 13 mm less 7.05 mm
+    find: {requirement: {bound: 0 mm, op: '>='}}
+    unit: mm
+    expect: 5.95
+    tol: 0
+    abs_tol: 0.35
   - name: req-mass
     what: mass requirement, bounded at 70 kg (kg)
     find: {requirement: {bound: 70 kg}}
@@ -256,8 +263,8 @@ facts:
 pending:
   - what: ECR-1 (top 30 to 32 mm) accepted with sag 1.49 mm, mass 47.2 kg, cost 623-1022 USD, tip-over 4.09; ECR-2 (500 mm seating overhang) refused, tip-over 1.04
     reason: the oracle has no change-request replay step; it needs a scripted n2f ecr run on a copy of the product, judged against the figures of SPEC.md section 6
-  - what: across-grain movement 7.05 mm at a slotted fixing, slot free travel 13 mm
-    reason: the requirement's form is the agent's (bound the free travel, or the movement), so no bound can be named yet; add a requirement finder when the example's requirement exists
+  - what: across-grain movement 7.05 mm and slot free travel 13 mm, each on its own
+    reason: the requirement bounds their difference (req-slot-clearance judges 13 less 7.05 mm); no requirement bounds either figure alone, and a calc's reference case is not read as the product's figure
   - what: leg buckling factor 38.3 on the napkin card
     reason: the structural screen runs Euler's formula and skips a short column (SPEC.md section 4.1 uses the Johnson parabola); judged on the finished product only
   - what: rail yield factor 5.69 and long-term sag 0.754 mm on the napkin card

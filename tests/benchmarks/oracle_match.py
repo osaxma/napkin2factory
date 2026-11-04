@@ -30,10 +30,13 @@ class MatchError(ValueError):
 
 NUM = r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?"
 _NUM_UNIT = re.compile(rf"^\s*({NUM})\s*(.*?)\s*$")
+#: A unit as it starts: a letter, ``%`` or ``°``. A dash, a bracket or a digit starts no unit.
+_UNIT = r"(?:[^\W\d_]|[%°])[^\s<>=)]*"
 #: ``<value> [unit] <op> <bound> [unit]`` as a requirement's message ends (the last one counts).
-_BOUND = re.compile(
-    rf"({NUM})\s*([^\s<>=\d(][^\s<>=)]*)?\s*(<=|>=|==|<|>)\s*({NUM})\s*([^\s<>=\d(][^\s<>=)]*)?"
-)
+#: A safety requirement without a sign-off goes on after its bound: ``>= 2 — passes by
+#: computation; ...``. The words after the bound may look like a unit, so ``parse_bound_message``
+#: keeps a captured unit only if the unit registry knows it (S-223).
+_BOUND = re.compile(rf"({NUM})\s*({_UNIT})?\s*(<=|>=|==|<|>)\s*({NUM})\s*({_UNIT})?")
 
 #: Words that put a failing check into a category, read from its id and title first, then its
 #: message. A rule id from the structural screen is structural whatever its words say.
@@ -228,7 +231,22 @@ def parse_bound_message(message: str) -> tuple[tuple[float, str], str, tuple[flo
     if not hits:
         raise MatchError(f"no `value <= bound` in {message[:70]!r}")
     m = hits[-1]
-    return (float(m.group(1)), m.group(2) or ""), m.group(3), (float(m.group(4)), m.group(5) or "")
+    return (
+        (float(m.group(1)), _known_unit(m.group(2))),
+        m.group(3),
+        (float(m.group(4)), _known_unit(m.group(5))),
+    )
+
+
+def _known_unit(token: str | None) -> str:
+    """``token`` if the unit registry reads it as a unit, else nothing (words after a bound)."""
+    if not token:
+        return ""
+    try:
+        ureg.Quantity(1, token)
+    except Exception:  # pint's errors differ per case: undefined unit, bad syntax
+        return ""
+    return token
 
 
 def requirement_values(check: dict[str, Any], find: RequirementFind, unit: str | None) -> Found:

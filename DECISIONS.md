@@ -249,6 +249,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-220 | Automated tests do not require example sign-offs to stay current | in force |
 | S-221 | The table benchmark product | in force |
 | S-222 | The test-stand benchmark product | in force |
+| S-223 | Benchmark follow-ups: the oracle reads unsigned safety requirements | in force |
 
 ---
 
@@ -1699,3 +1700,14 @@ frame 15.90 kg. The oracle cannot parse an unsigned safety message (the dash aft
 Oracle (`SPEC.oracle.yaml`, on a copy): 40 rows pass, 0 fail, 8 pending, run by `tests/e2e/test_benchmarks.py`. Cards: the C-frame is rejected on structure, the plate gantry on mass and cost, the portal promoted; card costs (460-1558, 434-1598, 3476-13965 USD) and masses (16.1, 16.5, 110 kg) are within 0.2 % of the spec.
 Not reproduced: the screen's C-frame sag is 1.82 mm (spec 1.90: it leaves out the base arm and the column's stretch; inside the 5 % tolerance) and its yield factor 6.32 (spec 5.76); the parts list weighs 15.82 kg, the spec's 16.52 kg less the 0.60 kg of fasteners and wiring that have no part (the oracle expects 15.92 kg). Pending, with reasons: the portal's and the gantry's card-level structure (B-0210), the safety factors read through the requirements (B-0212), the two change requests (no replay step).
 Gaps found: the structural screen has no portal case (B-0210); the cost screen cannot price per-metre or per-square-metre bands (B-0211), so `model/screens/stand.py` prices them and adds the bought-in parts and a mass-limit row (F10); the oracle misreads a unitless bound on a signed-off row (B-0212); the wiring diagram fails on a circuit that returns through its cable entry (B-0213). Beam sections are 60 x 40 x 5 mm in the model and a 60 x 60 x 4 mm stand-in of equal weight on the card; part costs are band mid-points (DEC-002 of the product). B-0194 stays open until both tiers land.
+
+## S-223 — Benchmark follow-ups: the oracle reads unsigned safety requirements (2026-11-04)
+An unsigned safety requirement's message ends `>= 2 — passes by computation; ...` and the oracle's bound
+finder read the dash as the bound's unit, so the table's tip-over figure needed a current sign-off (S-221).
+`parse_bound_message` now takes a unit only if it starts with a letter, `%` or `°` and the unit registry knows
+it. Tests pin each message shape `n2f check --json` emits (plain, failing, signed, unsigned, stale sign-off).
+Measured: the table oracle passes on a copy with `REQ-009.yaml` removed (46 of 46 before the new figure); the
+example keeps its EXAMPLE sign-off, so S-221's "re-sign after an edit" no longer matters to the oracle.
+New figure `req-slot-clearance` (13 less 7.05 mm, ±0.35 mm, found 5.93): 47 pass, 0 fail, 5 pending. Movement
+and slot travel alone stay pending: no requirement bounds either one. Gaps filed: B-0214 to B-0219.
+The test stand's unsigned yield, fatigue and tip-over figures are real rows now (44 pass, 7 pending on a copy); closes B-0212.

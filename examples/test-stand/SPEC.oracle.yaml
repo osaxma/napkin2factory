@@ -131,6 +131,26 @@ figures:
     find: {requirement: {bound: '3'}}
     expect: 27.2
     tol: 0.05
+  - name: req-frame-yield
+    what: yield factor of every frame member (the lowest), a safety requirement bounded at 2
+    find: {requirement: {bound: '2', safety: true}}
+    expect: 13.13
+    tol: 0.05
+  - name: req-beam-fatigue
+    what: beam fatigue factor, a safety requirement bounded at 1.5
+    find: {requirement: {bound: '1.5', safety: true}}
+    expect: 9.106
+    tol: 0.05
+  - name: req-bolt-fatigue
+    what: column-end bolt fatigue factor, a safety requirement bounded at 1.5
+    find: {requirement: {bound: '1.5', safety: true}}
+    expect: 7.420
+    tol: 0.05
+  - name: req-tip-over
+    what: tip-over factor, a safety requirement bounded at 1.5
+    find: {requirement: {bound: '1.5', safety: true}}
+    expect: 2.124
+    tol: 0.05
   - name: req-current
     what: mains input current at full power supply output, 120 V, bounded at 3 A (A)
     find: {requirement: {bound: 3 A}}
@@ -221,8 +241,6 @@ pending:
     reason: the structural screen models a frame with a top or a column with an arm and has no portal or plate-gantry case; it says "not run" on both (B-0210). The portal's figures are judged on the finished product, below
   - what: yield factor 5.76 of the C-frame
     reason: the screen's column check counts the bending stress only (6.32), the spec adds the column's own axial stress (5.76, SPEC 4.4)
-  - what: yield factor 13.1 of every frame member, beam fatigue factor 9.11, column-end bolt fatigue factor 7.42 and tip-over factor 2.12 on the finished product
-    reason: each is a safety requirement waiting on its sign-off, and the oracle cannot read a bound with no unit from such a row, whose message ends in a dash and a sentence (B-0212). The calcs reproduce them in their reference cases (13.13, 9.106, 7.420, 2.124 in n2f check)
   - what: beam bending stress 11.0 MPa and column axial stress 2.25 MPa, column yield factor 64.4
     reason: no requirement bounds them (requirement 10 bounds the lower of the two factors), and the oracle reads a calc value only through a requirement
   - what: tip-over 2.12 on the napkin card
