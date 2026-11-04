@@ -60,6 +60,49 @@ def __getattr__(name: str) -> Any:
     raise AttributeError(name)
 
 
+def _cost_basis_line(product: Product) -> str:
+    """One plain line naming the region and date of the cost bands behind the estimates.
+
+    Read from the bands of the processes the parts use; empty when no part's process has a
+    band (the costs are then the owner's own numbers). The region is the product's; with none
+    declared the line says the US bands were read (gate I, B2, S-227).
+    """
+    from napkin2factory.calckit import mass_cost
+
+    region = getattr(product.manifest, "region", None)
+    declared = region is not None
+    if declared and str(region).upper() not in mass_cost.band_regions():
+        region, declared = None, False  # a supply-only region: the US bands, said as such
+    bands = []
+    for process in sorted({p.process for p in product.parts.values() if p.process}):
+        band = mass_cost.cost_band(process, region=region)
+        if band.known:
+            bands.append(band)
+    if not bands:
+        return ""
+    return f"Estimated from the {mass_cost.bands_words(bands, declared=declared)}."
+
+
+def _cost_notes(product: Product, flat: list[dict[str, Any]]) -> list[str]:
+    """Number the distinct cost notes of the parts on the page; each line gets ``cost_note_no``.
+
+    A price taken from the middle of a cost band says so here (``mid-point of the US controls
+    band``), so equal prices on different parts do not look invented (gate J, S-227).
+    """
+    by_uri = {p.uri: p for p in product.parts.values()}
+    notes: list[str] = []
+    for ln in flat:
+        ln["cost_note_no"] = 0  # no note (the template is strict about missing keys)
+        part = by_uri.get(ln["uri"])
+        note = part.cost.note if part is not None and part.cost is not None else None
+        if note:
+            shown = display(note, getattr(product.manifest, "units", "metric"))
+            if shown not in notes:
+                notes.append(shown)
+            ln["cost_note_no"] = notes.index(shown) + 1
+    return notes
+
+
 def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, Any]:
     """Collect everything the template needs from ``build/`` and the model."""
     from napkin2factory.bom.rollups import top_assemblies
@@ -150,6 +193,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         ln["has_drawing"] = ln["uri"] in drawn
         ln["name"] = display(ln.get("name", ""), manifest_units)
         ln["manufacturer"] = display(ln.get("manufacturer", ""), manifest_units)
+    cost_notes = _cost_notes(product, flat)
     for uri, row in bom_by_uri.items():
         row["id"] = uri.split("://", 1)[-1]
         row["has_drawing"] = uri in drawn
@@ -357,6 +401,8 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "drawings": drawings,
         "rollups": rollups,
         "bom_lines": flat,
+        "cost_notes": cost_notes,
+        "cost_basis_line": _cost_basis_line(product),
         "bom_json": json.dumps(bom_by_uri),
         "req_rows": req_rows,
         "safety_reqs": safety_reqs,

@@ -50,15 +50,21 @@ def test_every_structural_function_has_a_case_and_every_case_passes() -> None:
         assert case.source.strip(), f"{case.fn} has empty source"
 
 
-def test_structural_has_external_handbook_cases_with_sources() -> None:
-    """Published handbook cases must have external=True, source > 40 chars,
-    and no 'hand computation'.
+def test_structural_cases_claim_no_published_example_they_do_not_have() -> None:
+    """Gate I, C1: a case is ``external`` only when the source prints that very example.
+
+    The structural cases apply a handbook formula to the author's own inputs, so none is
+    external; a cited book, table or section is marked ``[verify]`` until a person has
+    checked it (C2), and none cites the project's own roadmap.
     """
-    external = [c for c in structural.CASES if c.external]
-    assert len(external) >= 6, f"expected at least 6 external cases, got {len(external)}"
-    for c in external:
-        assert not c.source.lower().startswith("hand computation"), c.source
-        assert len(c.source) > 40, f"source citation too brief: {c.source!r}"
+    from napkin2factory.calckit.structural.johnson_cases import JOHNSON_CASES
+
+    cases = [*structural.CASES, *JOHNSON_CASES]
+    assert [c.fn for c in cases if c.external] == []
+    for c in cases:
+        cites_book = any(b in c.source for b in ("Roark", "Shigley", "AISC"))
+        assert not cites_book or "[verify]" in c.source, c.source
+        assert "Track A" not in c.source, c.source
 
 
 # --- hand checks with worked numbers in comments -------------------------------------

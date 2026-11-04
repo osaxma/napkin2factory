@@ -91,22 +91,22 @@ screening:
     skin_temperature: {value: 61 degC, label: estimate, source: from the heat loss through the outer face; to be checked, ref: 'thermal_enclosure.steady_loss (kiln parameters: room 25 degC, h 5 W/m²K, ε 0.9 [verify])'}
     stored_heat: {value: 26.4 MJ, label: estimate, source: 'the heat the walls hold at temperature, from their materials', ref: thermal_enclosure.stored_heat}
     heat_up_time: {value: 4.4 h, label: estimate, source: from the walls' stored heat and the element power, ref: thermal_enclosure.heat_up_time}
+    cost_low: {value: 650 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from the US cost bands, as of 2026-10, no region declared; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
+    cost_high: {value: 2267 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from the US cost bands, as of 2026-10, no region declared; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
     current: {value: 10.9 A, label: estimate, source: from the power and the circuit's voltage, ref: power.element_current at 230 V}
-    cost_low: {value: 650 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from cost bands per process; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
-    cost_high: {value: 2267 USD, label: estimate, source: 'rough cost of the guard (5 pieces), hinge, controls, stand, brick layer and fiber layer from cost bands per process; the body and the door are not counted; to be checked', ref: 'mass_cost.cost_estimate (guard-left: sheet-metal; guard-right: sheet-metal; guard-top: sheet-metal; guard-bottom: sheet-metal; guard-back: sheet-metal; hinge: machining; controls: cots-controls; stand: welding; brick layer: cut-block; fiber layer: fiber-board) [verify]'}
   rules:
     - {id: fits-site-width, title: Fits the alcove with the door open, severity: fail, status: fail, message: it needs 1236 mm of width — 995 mm for the body plus 240 mm for the open door (the 702 mm door leaf opened to 110°) — but the alcove is 800 mm, relies_on: [computed]}
     - {id: fits-site-depth, title: Fits the alcove depth, severity: fail, status: skip, message: no alcove depth on the card, relies_on: []}
     - {id: fits-site-height, title: Fits the alcove height, severity: fail, status: skip, message: no alcove height on the card, relies_on: []}
-    - {id: circuit-available, title: The supply on site carries it, severity: fail, status: pass, message: '2.5 kW draws 10.9 A at 230 V: fits the 230V-16A circuit on site', relies_on: [estimate, given]}
     - {id: mass-vs-lift-class, title: How it can be lifted and moved, severity: warn, status: skip, message: 'no mass: give each rough shape a material', relies_on: []}
     - {id: blank-vs-stock-sheet, title: Every sheet fits a stock size, severity: fail, status: skip, message: no folded sheet-metal shapes on the card, relies_on: []}
     - {id: walls-fit-envelope, title: The walls fit inside the body, severity: fail, status: pass, message: chamber plus 2 × 190 mm of insulation (580 × 580 × 580 mm) fits inside body (590 × 586 × 590 mm), relies_on: [computed]}
+    - {id: circuit-available, title: The supply on site carries it, severity: fail, status: pass, message: '2.5 kW draws 10.9 A at 230 V: fits the 230V-16A circuit on site', relies_on: [estimate, given]}
     - {id: controls-not-adjacent-hot-face, title: Controls away from the hot air path, severity: warn, status: pass, message: controls (side-right) are away from the door (hinged-left), relies_on: []}
     - {id: skin-vs-touch-limit, title: The outside is safe to touch, severity: warn, status: warn, message: 'the outside skin is about 61 degC (estimate), above the 60 degC touch limit (on the card) — more insulation or a guard would bring it down', relies_on: [estimate, given]}
     - {id: chamber-volume-vs-target, title: The chamber holds the target volume, severity: warn, status: skip, message: no target volume on the card, relies_on: []}
   verdict: red
-  at: '2026-11-01T08:07:08'
+  at: '2026-11-05T01:19:32'
   notes:
     - 'the body and the door have no material yet, so the rough shapes have no mass: give them a material to weigh them'
     - 'the cost leaves out the body and the door: no material, so no mass to price'

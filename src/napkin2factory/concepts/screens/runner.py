@@ -118,6 +118,51 @@ def wrong_kind_notes(
     return notes
 
 
+def product_region(root: Path | None) -> str | None:
+    """The region ``n2f.yaml`` declares (``US``, ``EU``), or None: no folder, none declared.
+
+    Read for the cost screen (gate I, B2, S-227); the manifest validates the code when the
+    product loads, so a word that is not a string here means a folder that does not load.
+    """
+    if root is None:
+        return None
+    from napkin2factory.core.product import MANIFEST
+    from napkin2factory.core.yamlio import read_yaml
+
+    try:
+        data = read_yaml(Path(root) / MANIFEST)
+    except Exception:  # a folder that does not load says so itself, with its own message
+        return None
+    region = data.get("region") if isinstance(data, dict) else None
+    return str(region).strip().upper() if isinstance(region, str) and region.strip() else None
+
+
+def _name_cost_basis(values: ScreenValues) -> None:
+    """Make sure the cost values say which bands they come from, whatever screen wrote them.
+
+    A product screen may add to the cost and rewrite its words (a bought-in set on top of the
+    bands); the region and date of the bands are put back on if its words dropped them
+    (gate I, B2, S-227).
+    """
+    from napkin2factory.concepts.screens.base import TO_CHECK
+
+    basis = values.shared.get("cost_basis")
+    if not basis:
+        return
+    for key in ("cost_low", "cost_high"):
+        lv = values.estimate.out.get(key)
+        if lv is None or basis in lv.source:
+            continue
+        tail = f"; {TO_CHECK}"
+        source = lv.source
+        source = (
+            f"{source[: -len(tail)]}; {basis}{tail}"
+            if source.endswith(tail)
+            else f"{source}; {basis}"
+        )
+        values.estimate.out[key] = lv.model_copy(update={"source": source})
+
+
 def _product_file(screen: Screen, root: Path | None) -> str | None:
     """``model/screens/shelf.py`` when ``screen`` comes from the product's own pack, else None."""
     import sys
@@ -179,6 +224,7 @@ def run_screens(
     values = ScreenValues()
     space = product_words(root).get("space", SPACE_WORDS)
     values.shared["space_words"] = space
+    values.shared["region"] = product_region(root)  # None: not declared (the cost line says so)
     own_rows: dict[str, list[RuleRow]] = {p: [] for p in PHASES}
     for phase in PHASES:
         if phase == "estimate":
@@ -186,6 +232,7 @@ def run_screens(
         for s in chosen:
             if phase_of(s) == phase:
                 own_rows[phase] += _run_one(s, card, massing, values, root)
+    _name_cost_basis(values)
     rules = run_concept_rules(
         card, values.computed.raw, values.estimate.raw, massing, values.shared
     )
@@ -221,6 +268,7 @@ __all__ = [
     "declared_fields",
     "generic_fields",
     "installed_screens",
+    "product_region",
     "run_screens",
     "screens_key",
     "wrong_kind_notes",

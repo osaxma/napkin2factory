@@ -244,7 +244,7 @@ def euler_buckling_load(
         slenderness=slenderness,
         critical_slenderness=crit_slenderness,
         formula="P_cr = pi^2 * E * I / (K*L)^2",
-        source="Euler column buckling: Roark Table 15.1; AISC Table C-A-7.1",
+        source="Euler column buckling: Roark Table 15.1; AISC Table C-A-7.1 [verify]",
     )
 
 
@@ -294,7 +294,7 @@ def tip_over_safety_factor(
         restoring_moment=Quantity(m_restoring, "N*m"),
         overturning_moment=Quantity(m_overturning, "N*m"),
         formula="FS = (mass * g * cg_x) / (edge_load * overhang_x)",
-        source="Static equilibrium, restoring vs overturning moment (Track A §3.1)",
+        source="static equilibrium of moments about the tipping edge (internal derivation)",
     )
 
 
@@ -337,5 +337,5 @@ def fastener_group_shear(
         shear_stress=Quantity(tau, "Pa"),
         safety_factor=sf,
         formula="\u03c4 = V / (n * A_s), FS = \u03c4_allow / \u03c4",
-        source="Shigley's Mechanical Engineering Design, 11th ed., §8-5, bolted shear",
+        source="Shigley's Mechanical Engineering Design, 11th ed., §8-5, bolted shear [verify]",
     )

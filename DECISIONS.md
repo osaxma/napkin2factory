@@ -253,6 +253,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-224 | Review gate I (v0.7) — outcome: NOT READY; two blockers (fixed-base racking, region not reaching costs), twelve concerns | in force |
 | S-225 | Review gate J (v0.7) — outcome: NOT READY; four blockers (an unrun structural check reads as an all-clear, costs without region and date, metric manuals in an imperial product, dimension groups half converted) | in force |
 | S-226 | Gate J blockers fixed: unrun checks shown, manuals and dimension groups in the owner's units | in force |
+| S-227 | Gate I blockers fixed: fixed-base racking, the product region in costs | in force |
 
 ---
 
@@ -1742,3 +1743,15 @@ manual carries no literal units. B4: a dimension group converts whole and stays 
 (50 x 50 x 1.5 mm)`): a US shop reads inches, and "50 x 50" beside an inch sign reads as 50 inches; inches stop at three
 decimals. C1: `330 lb` on a force field hints "330 lbf or 1470 N". C5: no Manuals section when Safety is the only page.
 C8: Interfaces resolves `param://` to its value and units. Measured: the touched unit tests, the board, report and docs tests, the benchmarks.
+
+## S-227 — Gate I blockers fixed: fixed-base racking, the product region in costs (2026-11-05)
+B1: fixed-base sway is P h^3 (3k+2)/(12 E I_c (6k+1)); the corner spring, derived with the base sharing the moment, is
+delta = P h^3/(24 E I_c) (4 - 3 r), r = 1/(1 + 1/(6k) + E I_c/(h K)), not the old additive P h^2/(4K). Both match a 2D
+frame stiffness solve in `tests/unit/test_joint_calcs.py` (k = 1: 0.02976 mm; rigid beam: 0.02083 mm; pinned too).
+B2: the cost screen reads the card's `site.region`, else `n2f.yaml`'s (the runner puts it in `values.shared`); none declared
+reads the US bands and says "no region declared". Amounts stay in the band's currency (a mixed card is not summed; a USD
+budget is not held against EUR); processes a region has no band for are named. Every cost line, the report total and the
+parts table name region and date ("stale" only over 24 months); mid-point prices carry a numbered note (gate J).
+C1/C2/C7/C9: no structural or joints case is `external` unless the source prints that example (kept: datasheet, Eurocode and
+moisture-table lookups); Roark simply supported cases are 2a and 2e; no "Track A" source; citations `[verify]`; joints raise
+`UnitError`. The table and test-stand screens skip adding USD to EUR. C8 and C10-C12 stay with B-0220-B-0226.

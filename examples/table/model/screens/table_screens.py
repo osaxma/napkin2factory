@@ -79,6 +79,12 @@ def hardware_cost(card: ConceptCard, massing: Any, values: ScreenValues) -> list
     low, high = values.estimate.raw.get("cost_low"), values.estimate.raw.get("cost_high")
     if low is None or high is None:
         return []
+    if not low.check("[currency]"):  # the cost bands are not in USD (an EU product, gate I B2)
+        values.notes.append(
+            "the hardware set is priced in USD and the cost bands are in another currency, so "
+            "it is not added (nothing is converted)"
+        )
+        return []
     add = Quantity(HARDWARE_USD, "USD")
     low, high = low + add, high + add
     words = f"rough cost of the rough shapes from the cost bands, plus {HARDWARE_WORDS}; {TO_CHECK}"

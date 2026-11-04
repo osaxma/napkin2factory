@@ -13,7 +13,8 @@ JOHNSON_CASES: list[Case] = [
     Case(
         "johnson_buckling_load",
         Quantity(250e6 * 291e-6 / 2.0, "N"),
-        "Shigley's Mechanical Engineering Design, 11th ed., §4-12: the Johnson parabola meets "
+        "hand computation with the formula of Shigley's Mechanical Engineering Design, 11th ed., "
+        "§4-12 [verify]: the Johnson parabola meets "
         "the Euler curve at lambda_c = sqrt(2 pi^2 E / S_y), where sigma_cr = S_y / 2; "
         "A = 291 mm^2, S_y = 250 MPa -> P_cr = 36 375 N",
         args=(
@@ -27,7 +28,6 @@ JOHNSON_CASES: list[Case] = [
         ),
         pick="critical_load",
         rel=1e-6,
-        external=True,
     ),
     Case(
         "johnson_buckling_load",
@@ -64,7 +64,8 @@ JOHNSON_CASES: list[Case] = [
     Case(
         "column_buckling_load",
         Quantity(math.pi**2 * 200e9 * 1e-7 / 25.0, "N"),
-        "Roark's Formulas for Stress and Strain, 7th ed., Table 15.1, Case 1: L=5 m, "
+        "hand computation with the formula of Roark's Formulas for Stress and Strain, 7th ed., "
+        "Table 15.1, Case 1 [verify]: L=5 m, "
         "I=1e-7 m^4, A=1e-4 m^2 -> lambda = 158.1 > 125.7, so Euler: P_cr = pi^2 E I / L^2",
         args=(
             Quantity(200, "GPa"),
@@ -75,7 +76,6 @@ JOHNSON_CASES: list[Case] = [
             1.0,
         ),
         pick="critical_load",
-        external=True,
     ),
     Case(
         "column_buckling_load",

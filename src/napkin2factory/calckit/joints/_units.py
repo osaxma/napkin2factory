@@ -14,10 +14,16 @@ Qty = Any
 
 
 def _si(q: Qty, unit: str, example: str) -> float:
-    """Return ``q`` in ``unit`` as a float; bare numbers raise UnitError."""
+    """Return ``q`` in ``unit`` as a float; a bare number or wrong dimension raises UnitError.
+
+    One exception type, the same as the structural pack (gate I, S-227).
+    """
     if not hasattr(q, "to"):
         raise UnitError(f"joints expects a quantity like {example!r}, got the bare number {q!r}")
-    return float(q.to(unit).magnitude)
+    try:
+        return float(q.to(unit).magnitude)
+    except Exception as exc:
+        raise UnitError(f"joints expects a quantity in {unit} ({example}): {exc}") from exc
 
 
 def _length_m(q: Qty, example: str = "25 mm") -> float:

@@ -6,12 +6,14 @@
   (``cost_bands``, ``lift_classes``, ``stock_sheets``); every row carries a ``source``
   and ``verify: true`` and DECISIONS.md lists them as [verify]. A process class or
   material class the tables do not know returns an ``unknown`` result (callers warn,
-  never fail). A specified region with no rows in the table fails loudly (W3, W7).
+  never fail). A specified region with no rows in the table fails loudly (W3, W7); no
+  region means the US rows (:data:`DEFAULT_REGION`) and callers say so (S-227).
 """
 
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -22,6 +24,9 @@ from napkin2factory.geometry.materials import density_kg_m3
 
 #: A pint quantity from the shared registry (pint is untyped for mypy).
 Qty = Any
+
+#: The bands read when a product declares no region; the cost line says so (S-227).
+DEFAULT_REGION = "US"
 
 
 def density(material: str) -> tuple[Qty, str]:
@@ -97,10 +102,11 @@ def cost_band(
 
     Args:
         process_class: the manufacturing process class to price.
-        region: optional region code (e.g. ``"US"``, ``"EU"``). When ``None``,
-            returns the first band on file for the process class without region filtering.
-            When specified, fails loudly naming the table and its regions if the table
-            holds no rows for that region.
+        region: optional region code (e.g. ``"US"``, ``"EU"``). When ``None``, the
+            :data:`DEFAULT_REGION` rows are read (the first rows on file were always the US
+            ones); callers whose owner did not declare a region say so (S-227). When
+            specified, fails loudly naming the table and its regions if the table holds no
+            rows for that region.
         today: reference date for the 24-month staleness check (defaults to today).
 
     Returns:
@@ -111,27 +117,25 @@ def cost_band(
         ValueError: ``region`` is given but no row in ``cost_bands.yaml`` has that region.
     """
     rows = load_table("cost_bands")
-    if region is not None:
-        all_regions = sorted({str(r["region"]) for r in rows if r.get("region")})
-        reg_code = region.strip().upper()
-        if reg_code not in {r.upper() for r in all_regions}:
-            raise ValueError(
-                f"table 'cost_bands' has no rows for region {region!r}; "
-                f"regions on file: {', '.join(all_regions)}"
-            )
-        matching = [
-            r
-            for r in rows
-            if r["process_class"] == process_class and str(r.get("region", "")).upper() == reg_code
-        ]
-    else:
-        matching = [r for r in rows if r["process_class"] == process_class]
+    all_regions = sorted({str(r["region"]) for r in rows if r.get("region")})
+    reg_code = (region if region is not None else DEFAULT_REGION).strip().upper()
+    if region is not None and reg_code not in {r.upper() for r in all_regions}:
+        raise ValueError(
+            f"table 'cost_bands' has no rows for region {region!r}; "
+            f"regions on file: {', '.join(all_regions)}"
+        )
+    matching = [
+        r
+        for r in rows
+        if r["process_class"] == process_class and str(r.get("region", "")).upper() == reg_code
+    ]
 
     if not matching:
         return CostBand(
             process_class=process_class,
             low=None,
             high=None,
+            region=reg_code,  # the region asked for, not the dataclass default (gate I, B2)
             source="",
             as_of="",
             stale=False,
@@ -156,6 +160,32 @@ def cost_band(
         known=True,
         verify=bool(row.get("verify", True)),
     )
+
+
+def band_regions() -> list[str]:
+    """The region codes ``cost_bands.yaml`` has rows for, sorted."""
+    return sorted({str(r["region"]).upper() for r in load_table("cost_bands") if r.get("region")})
+
+
+def bands_words(bands: Sequence[CostBand], *, declared: bool = True) -> str:
+    """The region and date of the bands a cost was read from, in the owner's words (S-227).
+
+    ``US cost bands, as of 2026-10 to 2026-11``; ``, stale`` is added only when a band is
+    older than 24 months; ``declared=False`` (the product named no region) adds
+    ``, no region declared`` so a US default is never silent. No bands: an empty string.
+    """
+    if not bands:
+        return ""
+    regions = sorted({b.region for b in bands if b.region})
+    dates = sorted({b.as_of for b in bands if b.as_of})
+    text = "/".join(regions or [DEFAULT_REGION]) + " cost bands"
+    if dates:
+        text += f", as of {dates[0]}" + (f" to {dates[-1]}" if len(dates) > 1 else "")
+    if any(b.stale for b in bands):
+        text += ", stale"
+    if not declared:
+        text += ", no region declared"
+    return text
 
 
 @dataclass(frozen=True)
@@ -400,6 +430,19 @@ CASES: list[Case] = [
         rel=1e-12,
     ),
     Case(
+        "band_regions",
+        ["EU", "US"],
+        "hand count of the region column in calckit/data/cost_bands.yaml: EU and US rows",
+    ),
+    Case(
+        "bands_words",
+        "EU cost bands, as of 2026-11, stale, no region declared",
+        "hand computation: one EU band dated 2026-11 and marked stale, read with no region "
+        "declared, in the words of the cost line",
+        args=([CostBand("sheet-metal", region="EU", as_of="2026-11", stale=True)],),
+        kwargs={"declared": False},
+    ),
+    Case(
         "cost_estimate",
         Quantity(752, "USD"),
         "calckit/data/cost_bands.yaml, cut-block 18.8-40.1 USD/kg: 18.8 x 40 kg = 752 USD "
@@ -432,8 +475,11 @@ __all__ = [
     "CASES",
     "CostBand",
     "CostEstimate",
+    "DEFAULT_REGION",
     "LiftVerdict",
     "StockVerdict",
+    "band_regions",
+    "bands_words",
     "cost_band",
     "cost_estimate",
     "density",

@@ -189,8 +189,8 @@ def _column_row(
     how += f"{res.source}; {stock.ref}"
     if who == "one leg":
         subject = (
-            f"{who} carrying its share of total weight plus applied loads "
-            f"({fmt(load, 'N')}) over {_len(length)}"
+            f"the worst-loaded leg, taking a quarter of the weight plus the applied loads "
+            f"({fmt(load, 'N')}), over {_len(length)}"
         )
     else:
         subject = f"{who} under {fmt(load, 'N')} over {_len(length)}"
@@ -273,7 +273,9 @@ def _top_rows(
     span_m = float(span.to("m").magnitude)
     if point is not None:
         parts.append(structural.beam_deflection_simply_supported(point, span, stock.E, stiff))
-        moment += float(point.to("N").magnitude) * span_m / 4  # Roark T8.1 case 1e: F·L/4
+        moment += (
+            float(point.to("N").magnitude) * span_m / 4
+        )  # Roark T8.1 case 2a (simply supported, centre load) [verify]: F·L/4
     # Self weight: the top's own weight is added as a uniform load on the span (S-211)
     top_weight_n = float(top.mass or 0.0) * 9.80665
     top_weight = Quantity(top_weight_n, "N")
@@ -281,7 +283,9 @@ def _top_rows(
     parts.append(
         structural.beam_deflection_simply_supported(uniform_load, span, stock.E, stiff, "uniform")
     )
-    moment += float(uniform_load.to("N").magnitude) * span_m / 8  # Roark T8.1 case 2e: W·L/8
+    moment += (
+        float(uniform_load.to("N").magnitude) * span_m / 8
+    )  # Roark T8.1 case 2e (simply supported, uniform load) [verify]: W·L/8
     d = sum((p.deflection.to("mm") for p in parts), _mm(0.0))
     shared = (
         "" if rails is None else ", with the two long top rails sharing it (E·I of top + rails)"
@@ -358,7 +362,16 @@ def _cantilever(ctx: _Ctx, col: Any, arm: Any) -> list[RuleRow]:
     if isinstance(astock, str):
         return [_skip("structural-deflection", astock)]
     if col.material != arm.material:
-        return [_skip("structural-deflection", "the column and the arm are different materials")]
+        return [
+            _skip(
+                "structural-deflection",
+                (
+                    "this card's shape is not one the structural screen models: it takes one "
+                    "column "
+                    "and one arm of the same material"
+                ),
+            )
+        ]
     ax = 0 if arm.size[0] >= arm.size[1] else 1
     centre = (col.bbox_min[ax] + col.bbox_max[ax]) / 2
     reach = Quantity(max(abs(arm.bbox_max[ax] - centre), abs(arm.bbox_min[ax] - centre)), "mm")

@@ -44,8 +44,8 @@ screening:
     mass: {value: 103 kg, label: computed, source: from the rough shapes and their materials, ref: silhouette volume × density per call; frames and tubes by member section × cut length (geometry/materials.py)}
   estimates:
     total_mass: {value: 110 kg, label: estimate, source: the rough shapes plus the bought-in parts (an allowance each), ref: 'massing mass + SPEC.md 4.6 [verify]'}
-    cost_low: {value: 3476 USD, label: estimate, source: 'rough cost of the console (2 pieces), side (2 pieces), bottom bridge, top bridge, lower (2 pieces), upper (2 pieces), actuator, load cell, power supply, controller, E stop, mains inlet and guard interlock from cost bands per process; the guard (4 pieces) is not counted; to be checked; with the guard-back, guard-side-left, guard-side-right, guard-door priced here per metre or per square metre', ref: 'mass_cost.cost_estimate [verify]'}
-    cost_high: {value: 13965 USD, label: estimate, source: 'rough cost of the console (2 pieces), side (2 pieces), bottom bridge, top bridge, lower (2 pieces), upper (2 pieces), actuator, load cell, power supply, controller, E stop, mains inlet and guard interlock from cost bands per process; the guard (4 pieces) is not counted; to be checked; with the guard-back, guard-side-left, guard-side-right, guard-door priced here per metre or per square metre', ref: 'mass_cost.cost_estimate [verify]'}
+    cost_low: {value: 3476 USD, label: estimate, source: 'rough cost of the console (2 pieces), side (2 pieces), bottom bridge, top bridge, lower (2 pieces), upper (2 pieces), actuator, load cell, power supply, controller, E stop, mains inlet and guard interlock from the US cost bands, as of 2026-10; the guard (4 pieces) is not counted; to be checked; with the guard-back, guard-side-left, guard-side-right, guard-door priced here per metre or per square metre', ref: 'mass_cost.cost_estimate [verify]'}
+    cost_high: {value: 13965 USD, label: estimate, source: 'rough cost of the console (2 pieces), side (2 pieces), bottom bridge, top bridge, lower (2 pieces), upper (2 pieces), actuator, load cell, power supply, controller, E stop, mains inlet and guard interlock from the US cost bands, as of 2026-10; the guard (4 pieces) is not counted; to be checked; with the guard-back, guard-side-left, guard-side-right, guard-door priced here per metre or per square metre', ref: 'mass_cost.cost_estimate [verify]'}
     lift_class: {value: equipment, label: estimate, source: from the mass and the lifting limits; to be checked, ref: 'mass_cost.lift_class (HSE guideline weights) [verify]'}
   rules:
     - {id: fits-site-width, title: Fits the space width, severity: fail, status: pass, message: 380 mm wide fits the 400 mm space, relies_on: [computed]}
@@ -57,9 +57,9 @@ screening:
     - {id: cost-vs-budget, title: Within the budget, severity: fail, status: fail, message: 'even the low end of the cost, 3462 USD, is over the 2400 USD budget', relies_on: [given, estimate]}
     - {id: cost-vs-budget-complete, title: 'Within the budget, counting the frame and the guard', severity: fail, status: fail, message: 'even the low end of the cost, 3476 USD, is over the 2400 USD budget', relies_on: [given, estimate]}
     - {id: mass-limit, title: Total mass within the limit, severity: fail, status: fail, message: 'total mass 110 kg (estimate), over the 25 kg limit on the card', relies_on: [given, estimate]}
-    - {id: structural-deflection, title: Sag stays within the limit, severity: fail, status: skip, message: 'not run: the column and the arm are different materials', relies_on: []}
+    - {id: structural-deflection, title: Sag stays within the limit, severity: fail, status: skip, message: "not run: this card's shape is not one the structural screen models: it takes one column and one arm of the same material", relies_on: []}
   verdict: red
-  at: '2026-11-04T18:11:30'
+  at: '2026-11-05T01:44:19'
   notes:
     - the cost row above counts what the package prices, per kilogram and per item; the cost band and the budget row below also count the guard-back, guard-side-left, guard-side-right, guard-door, priced here per metre or per square metre (the package's cost screen does not yet do that)
     - the card gives a cycle count, so the cyclic safety factors apply; the endurance check itself is not part of this screen

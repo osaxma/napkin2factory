@@ -216,8 +216,8 @@ def fmt(q: Any, unit: str) -> str:
         return f"{sig(x / 1000)} kW" if abs(x) >= 1000 else f"{x:.0f} W"
     if unit == "degC":
         return f"{x:.0f} degC"
-    if unit == "USD":
-        return f"{x:.0f} USD"
+    if unit in ("USD", "EUR"):
+        return f"{x:.0f} {unit}"
     if unit == "hour":
         return f"{x:.2g} h" if x < 10 else f"{x:.0f} h"
     if unit == "MJ":

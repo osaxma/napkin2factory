@@ -19,11 +19,11 @@ CASES: list[Case] = [
     Case(
         "rect_section",
         Quantity(4.166666666666667e-6, "m**4"),
-        "Roark's Formulas for Stress and Strain, 7th ed., Table 1, Case 1 (Solid Rectangle): "
+        "hand computation with the formula of Roark's Formulas for Stress and Strain, 7th ed., "
+        "Table 1, Case 1 (Solid Rectangle) [verify]: "
         "b=50 mm, h=100 mm, I = b*h^3/12 = 4.16667e-6 m^4",
         args=(Quantity(50, "mm"), Quantity(100, "mm")),
         pick="I",
-        external=True,
     ),
     Case(
         "rect_section",
@@ -45,11 +45,11 @@ CASES: list[Case] = [
     Case(
         "rect_tube_section",
         Quantity(178005.33333333334, "mm**4"),
-        "Roark's Formulas for Stress and Strain, 7th ed., Table 1, Case 2 (Hollow Rectangle): "
+        "hand computation with the formula of Roark's Formulas for Stress and Strain, 7th ed., "
+        "Table 1, Case 2 (Hollow Rectangle) [verify]: "
         "60x40x4 mm tube, Ix = (60*40^3 - 52*32^3)/12 = 178005.33 mm^4",
         args=(Quantity(60, "mm"), Quantity(40, "mm"), Quantity(4, "mm")),
         pick="Ix",
-        external=True,
     ),
     Case(
         "rect_tube_section",
@@ -79,11 +79,11 @@ CASES: list[Case] = [
     Case(
         "round_tube_section",
         Quantity(57656.25 * math.pi, "mm**4"),
-        "Roark's Formulas for Stress and Strain, 7th ed., Table 1, Case 12 (Hollow Circle): "
-        "OD=50 mm, t=5 mm, I = pi*(50^4 - 40^4)/64 = 181134.39 mm^4",
+        "hand computation with the formula of Roark's Formulas for Stress and Strain, 7th ed., "
+        "Table 1, Case 12 (Hollow Circle) [verify]: "
+        "OD=50 mm, t=5 mm, I = pi*(50^4 - 40^4)/64 = 181132.45 mm^4",
         args=(Quantity(50, "mm"), Quantity(5, "mm")),
         pick="I",
-        external=True,
     ),
     Case(
         "round_tube_section",
@@ -105,7 +105,8 @@ CASES: list[Case] = [
     Case(
         "beam_deflection_simply_supported",
         Quantity(1000.0 / (48.0 * 200e9 * 1e-6), "m"),
-        "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1d (Center Load): "
+        "hand computation with the formula of Roark's Formulas for Stress and Strain, 7th ed., "
+        "Table 8.1, Case 2a (Center Load) [verify]: "
         "F=1000 N, L=1 m, E=200 GPa, I=1e-6 m^4, delta = FL^3/(48EI) = 0.104167 mm",
         args=(
             Quantity(1000, "N"),
@@ -114,12 +115,12 @@ CASES: list[Case] = [
             Quantity(1e-6, "m**4"),
         ),
         pick="deflection",
-        external=True,
     ),
     Case(
         "beam_deflection_simply_supported",
         Quantity(5000.0 / (384.0 * 200e9 * 1e-6), "m"),
-        "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1e (Uniform Load): "
+        "hand computation with the formula of Roark's Formulas for Stress and Strain, 7th ed., "
+        "Table 8.1, Case 2e (Uniform Load) [verify]: "
         "w=1000 N/m, L=1 m, E=200 GPa, I=1e-6 m^4, delta = 5wL^4/(384EI) = 0.065104 mm",
         args=(
             Quantity(1000, "N/m"),
@@ -129,14 +130,14 @@ CASES: list[Case] = [
         ),
         kwargs={"load_kind": "uniform"},
         pick="deflection",
-        external=True,
     ),
     # beam_deflection_cantilever
     Case(
         "beam_deflection_cantilever",
         Quantity(500.0 * 0.5**3 / (3.0 * 200e9 * 1e-6), "m"),
-        "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, "
-        "Case 1a (Cantilever Tip Load): F=500 N, L=0.5 m, E=200 GPa, "
+        "hand computation with the formula of Roark's Formulas for Stress and Strain, 7th ed., "
+        "Table 8.1, "
+        "Case 1a (Cantilever Tip Load) [verify]: F=500 N, L=0.5 m, E=200 GPa, "
         "I=1e-6 m^4, delta = FL^3/(3EI) = 0.104167 mm",
         args=(
             Quantity(500, "N"),
@@ -146,12 +147,12 @@ CASES: list[Case] = [
             Quantity(1e-6, "m**4"),
         ),
         pick="deflection",
-        external=True,
     ),
     Case(
         "beam_deflection_cantilever",
         Quantity(2.1510574185794713e-4, "m"),
-        _HAND + "cantilever with column rotation (Track A §3.1): F=2000 N, La=0.15 m, H=0.4 m, "
+        _HAND + "cantilever with column rotation (internal derivation: static equilibrium of the "
+        "column): F=2000 N, La=0.15 m, H=0.4 m, "
         "E=200 GPa, Ia=Ic=4.706987e-7 m^4; delta = delta_arm + delta_col = 0.2151 mm",
         args=(
             Quantity(2000, "N"),
@@ -210,8 +211,9 @@ CASES: list[Case] = [
     Case(
         "euler_buckling_load",
         Quantity(math.pi**2 * 200e9 * 1e-7 / 1.0**2, "N"),
-        "Roark's Formulas for Stress and Strain, 7th ed., Table 15.1, "
-        "Case 1 (Euler Column Buckling): pinned-pinned K=1, L=1 m, "
+        "hand computation with the formula of Roark's Formulas for Stress and Strain, 7th ed., "
+        "Table 15.1, "
+        "Case 1 (Euler Column Buckling) [verify]: pinned-pinned K=1, L=1 m, "
         "E=200 GPa, I=1e-7 m^4, P_cr = pi^2*E*I/(KL)^2 = 197.392 kN",
         args=(
             Quantity(200, "GPa"),
@@ -220,7 +222,6 @@ CASES: list[Case] = [
             "pinned-pinned",
         ),
         pick="critical_load",
-        external=True,
     ),
     # tip_over_safety_factor
     Case(
@@ -241,7 +242,8 @@ CASES: list[Case] = [
     Case(
         "fastener_group_shear",
         Quantity(10000.0 / (4.0 * 5.8e-5), "Pa"),
-        "Shigley's Mechanical Engineering Design, 11th ed., §8-5 (Bolted Shear Connections): "
+        "hand computation with the formula of Shigley's Mechanical Engineering Design, 11th ed., "
+        "§8-5 (Bolted Shear Connections) [verify]: "
         "V=10 kN, n=4 bolts, As=58 mm^2, tau = V/(n*As) = 43.103 MPa",
         args=(
             Quantity(10, "kN"),
@@ -250,7 +252,6 @@ CASES: list[Case] = [
         ),
         kwargs={"shear_strength": Quantity(120, "MPa")},
         pick="shear_stress",
-        external=True,
     ),
     Case(
         "fastener_group_shear",

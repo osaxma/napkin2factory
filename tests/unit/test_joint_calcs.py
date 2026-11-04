@@ -11,6 +11,8 @@ Covers:
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from napkin2factory.calckit import _cases, joints
@@ -250,6 +252,127 @@ def test_frame_racking_rigid_and_semi_rigid() -> None:
     )
     # Fixed base should be significantly stiffer than pinned base
     assert sway_fixed.to("mm").magnitude < sway_rigid.to("mm").magnitude
+
+
+def _frame_stiffness_sway(
+    p_n: float, h: float, length: float, e: float, i_c: float, i_b: float,
+    k_theta: float | None, fixed: bool,
+) -> float:  # fmt: skip
+    """Sway of the portal frame (mm) from a 2D beam-element stiffness solve (S-227).
+
+    An independent check of the slope-deflection formulas: columns and beam are Euler-Bernoulli
+    elements (axial stiffness taken as rigid), the corner spring joins the column's and the
+    beam's rotation at each top corner, the load is horizontal at the left top corner.
+    Degrees of freedom per column foot: x, rotation; per top corner: x, column rotation, beam
+    rotation, y (held at zero: the columns do not shorten).
+    """
+    import numpy as np
+
+    def beam(ei: float, ln: float) -> Any:
+        k = ei / ln**3
+        return k * np.array(
+            [
+                [12, 6 * ln, -12, 6 * ln],
+                [6 * ln, 4 * ln**2, -6 * ln, 2 * ln**2],
+                [-12, -6 * ln, 12, -6 * ln],
+                [6 * ln, 2 * ln**2, -6 * ln, 4 * ln**2],
+            ]
+        )
+
+    # dofs: 0,1 foot-left (x, rot); 2 top-left x; 3 col rot; 4 beam rot; 5 beam y;
+    #       6 top-right x; 7 col rot; 8 beam rot; 9 beam y; 10,11 foot-right (x, rot)
+    big = 1e8 * e * i_c
+    k_all = np.zeros((12, 12))
+
+    def add(dofs: list[int], k: Any) -> None:
+        for a, da in enumerate(dofs):
+            for b, db in enumerate(dofs):
+                k_all[da, db] += k[a, b]
+
+    add([0, 1, 2, 3], beam(e * i_c, h))
+    add([10, 11, 6, 7], beam(e * i_c, h))
+    add([5, 4, 9, 8], beam(e * i_b, length))
+    spring = k_theta if k_theta is not None else big / h
+    for col, bm in ((3, 4), (7, 8)):
+        k_all[col, col] += spring
+        k_all[bm, bm] += spring
+        k_all[col, bm] -= spring
+        k_all[bm, col] -= spring
+    k_all[2, 2] += big
+    k_all[6, 6] += big
+    k_all[2, 6] -= big
+    k_all[6, 2] -= big  # the beam is rigid axially: both corners sway together
+    held = [0, 10, 5, 9] + ([1, 11] if fixed else [])
+    free = [d for d in range(12) if d not in held]
+    force = np.zeros(12)
+    force[2] = p_n
+    u = np.linalg.solve(k_all[np.ix_(free, free)], force[free])
+    return float(u[free.index(2)] * 1000.0)
+
+
+E_STEEL = 200e9
+
+
+@pytest.mark.parametrize("k_ratio", [0.3, 1.0, 5.0, 1e6])
+def test_fixed_base_racking_matches_a_frame_stiffness_solve(k_ratio: float) -> None:
+    """B1: fixed-base sway is P h^3 (3k+2) / (12 E I_c (6k+1)), not (k+2); k = (I_b/L)/(I_c/h)."""
+    i_c = 1e-6
+    ref = _frame_stiffness_sway(100.0, 1.0, 1.0, E_STEEL, i_c, k_ratio * i_c, None, True)
+    got = frame_racking(
+        Q(100, "N"), Q(1, "m"), Q(1, "m"), Q(200, "GPa"), Q(i_c, "m**4"), Q(k_ratio * i_c, "m**4"),
+        base_fixity="fixed",
+    ).to("mm").magnitude  # fmt: skip
+    assert got == pytest.approx(ref, rel=1e-4)
+    closed = 100.0 * (3 * k_ratio + 2) / (12 * E_STEEL * i_c * (6 * k_ratio + 1)) * 1000.0
+    assert got == pytest.approx(closed, rel=1e-9)
+
+
+def test_fixed_base_racking_reference_values() -> None:
+    """B1: k = 1 gives 0.02976 mm; a rigid beam gives P h^3/(24 E I_c), two fixed-fixed columns."""
+    args = (Q(100, "N"), Q(1, "m"), Q(1, "m"), Q(200, "GPa"), Q(1e6, "mm**4"))
+    k1 = frame_racking(*args, Q(1e6, "mm**4"), base_fixity="fixed").to("mm").magnitude
+    assert k1 == pytest.approx(0.02976, abs=5e-6)
+    rigid = frame_racking(*args, Q(1e15, "mm**4"), base_fixity="fixed").to("mm").magnitude
+    assert rigid == pytest.approx(100 * 1.0**3 / (24 * E_STEEL * 1e-6) * 1000.0, rel=1e-6)
+
+
+@pytest.mark.parametrize(
+    ("k_ratio", "k_theta"),
+    [(1.0, 5000.0), (1.0, 2e5), (0.3, 1e4), (5.0, 2e4), (1e6, 3e3)],
+)
+def test_fixed_base_semi_rigid_corner_matches_a_frame_stiffness_solve(
+    k_ratio: float, k_theta: float
+) -> None:
+    """B1: the corner spring's term, derived with the base moment sharing it, not P h^2/(4K)."""
+    i_c = 1e-6
+    ref = _frame_stiffness_sway(100.0, 1.0, 1.0, E_STEEL, i_c, k_ratio * i_c, k_theta, True)
+    got = frame_racking(
+        Q(100, "N"), Q(1, "m"), Q(1, "m"), Q(200, "GPa"), Q(i_c, "m**4"), Q(k_ratio * i_c, "m**4"),
+        joint_stiffness=Q(k_theta, "N*m"), base_fixity="fixed",
+    ).to("mm").magnitude  # fmt: skip
+    assert got == pytest.approx(ref, rel=1e-4)
+    # the old additive P h^2/(4K) term would add far more than the spring really does
+    assert 100.0 / (4 * k_theta) * 1000.0 > got - ref + 1e-9
+
+
+def test_pinned_base_racking_matches_the_same_stiffness_solve() -> None:
+    """The pinned branch (with and without a corner spring) agrees with the solve too."""
+    i_c = 1e-6
+    for k_theta in (None, 5000.0):
+        ref = _frame_stiffness_sway(100.0, 1.0, 1.0, E_STEEL, i_c, i_c, k_theta, False)
+        got = frame_racking(
+            Q(100, "N"), Q(1, "m"), Q(1, "m"), Q(200, "GPa"), Q(i_c, "m**4"), Q(i_c, "m**4"),
+            joint_stiffness=None if k_theta is None else Q(k_theta, "N*m"),
+        ).to("mm").magnitude  # fmt: skip
+        assert got == pytest.approx(ref, rel=1e-4)
+
+
+def test_joints_raise_the_calc_kits_unit_error_for_a_wrong_dimension() -> None:
+    """Minor (gate I): a force given as a length raises UnitError like the structural pack."""
+    with pytest.raises(UnitError):
+        frame_racking(
+            Q(100, "mm"), Q(1, "m"), Q(1, "m"), Q(200, "GPa"), Q(1e6, "mm**4"), Q(1e6, "mm**4")
+        )
 
 
 # --- 4. Wood creep and wood movement ------------------------------------------------

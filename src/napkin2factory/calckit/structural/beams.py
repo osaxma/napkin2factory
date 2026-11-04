@@ -86,7 +86,10 @@ def beam_deflection_simply_supported(
         f_n = _n(force, "force")
         delta = f_n * l_m**3 / (48.0 * e_pa * i_m4)
         formula = "FL^3 / (48*E*I)"
-        source = "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1d"
+        source = (
+            "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, "
+            "Case 2a (centre load) [verify]"
+        )
     elif kind in ("uniform", "distributed"):
         if not hasattr(force, "check"):
             raise UnitError(f"force must be a quantity, got {force!r}")
@@ -101,7 +104,10 @@ def beam_deflection_simply_supported(
                 f"uniform load must have units of force (total) or force/length, got {force.units}"
             )
         formula = "5*w*L^4 / (384*E*I)"
-        source = "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1e"
+        source = (
+            "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, "
+            "Case 2e (uniform load) [verify]"
+        )
     else:
         raise ValueError(f"unknown load_kind {load_kind!r}; expected 'point_center' or 'uniform'")
 
@@ -127,7 +133,7 @@ def beam_deflection_cantilever(
 
     Total tip deflection is the sum of arm bending :math:`\\frac{F L_a^3}{3 E I_a}`
     and column rotation under moment :math:`M = F L_a`, rotating the arm tip by
-    :math:`\\theta L_a = \\frac{F L_a^2 H}{E I_c}` (Track A §3.1).
+    :math:`\\theta L_a = \\frac{F L_a^2 H}{E I_c}` (internal derivation, static equilibrium).
 
     Args:
         force: downward point load at the tip (force, F).
@@ -161,13 +167,13 @@ def beam_deflection_cantilever(
         total = delta_arm + delta_col
         formula = "FL_a^3 / (3*E*I_a) + FL_a^2*H / (E*I_c)"
         source = (
-            "Roark's Formulas for Stress and Strain, 7th ed., "
-            "Table 8.1, Cases 1a & 3a (Track A §3.1)"
+            "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1a [verify] "
+            "(the arm); the column's rotation is internal derivation (static equilibrium)"
         )
     else:
         total = delta_arm
         formula = "FL^3 / (3*E*I)"
-        source = "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1a"
+        source = "Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 1a [verify]"
 
     return DeflectionResult(
         deflection=Quantity(total, "m"),
@@ -214,7 +220,7 @@ def beam_bending_stress(
         stress=Quantity(sigma, "Pa"),
         yield_factor=yf,
         formula="\u03c3 = M / Z, FS = \u03c3_y / \u03c3",
-        source="Roark's Formulas for Stress and Strain, 7th ed., Chapter 8, Section 8.1",
+        source="Roark's Formulas for Stress and Strain, 7th ed., Chapter 8, Section 8.1 [verify]",
     )
 
 

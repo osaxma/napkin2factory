@@ -15,7 +15,7 @@ from napkin2factory.core.units import Quantity
 
 _JOHNSON_SOURCE = (
     "Johnson parabola: Shigley's Mechanical Engineering Design, 11th ed., §4-12 "
-    "(intermediate columns); AISC 360 Commentary Table C-A-7.1 for K"
+    "(intermediate columns); AISC 360 Commentary Table C-A-7.1 for K [verify]"
 )
 
 

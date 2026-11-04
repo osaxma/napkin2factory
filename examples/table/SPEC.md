@@ -265,8 +265,9 @@ Base = frame 15.936 + glides 0.320 + screws 0.160 = 16.416 kg → 161.0 N. Capac
   280 × 0.00365 × (13.1 − 9.2) = 3.99 mm against 6.5 mm (margin 38.7 %).
 - The short-rail fixings sit on the centreline (y = 0) and move 0 mm across the grain; movement
   along the grain is about 1 % of the across-grain value (FPL-GTR-190 Ch. 4) and is ignored.
-- Note: `wood_movement` called with only the RH pair converts RH to MC with its own
-  approximation and returns 5.89 mm here; pass `delta_mc=6.9` (or fix the conversion) to match.
+- Note: `wood_movement` called with only the RH pair converts RH to MC with the Hailwood-Horrobin
+  equation (S-207) and returns 7.07 mm here, a little above the 7.05 mm by hand (the equation
+  gives 6.92 points of moisture, the table rounds to 6.9); pass `delta_mc=6.9` to match exactly.
 
 ### 4.2 C-001
 

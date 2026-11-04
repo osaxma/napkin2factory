@@ -210,10 +210,43 @@ def total_mass(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Ru
     return []
 
 
+def cost_region(card: ConceptCard, values: ScreenValues) -> tuple[str | None, str | None]:
+    """The region the cost bands are read for, and a sentence when a declared one has none.
+
+    The card's own ``site.region`` wins over the product's region, which the runner puts in
+    ``values.shared["region"]`` (gate I, B2, S-227). A region the cost bands have no rows
+    for at all (a supply region such as ``SA``) is not guessed at: the next declared one is
+    used, else ``None`` (the US bands, named as such), and the sentence says so. ``(None,
+    None)``: nobody declared a region.
+    """
+    from napkin2factory.calckit import mass_cost
+
+    on_file = mass_cost.band_regions()
+    own = card.site.get("region")
+    declared = [
+        str(r).strip().upper()
+        for r in (own if isinstance(own, str) else None, values.shared.get("region"))
+        if r and str(r).strip()
+    ]
+    skipped = [r for r in declared if r not in on_file]
+    usable = [r for r in declared if r in on_file]
+    note = None
+    if skipped:
+        used = f"the {usable[0]} bands" if usable else f"the {mass_cost.DEFAULT_REGION} bands"
+        note = (
+            f"there are no cost bands for the region {skipped[0]} ({', '.join(on_file)} have "
+            f"them), so the cost reads {used}"
+        )
+    return (usable[0] if usable else None), note
+
+
 @reads(BUDGET, phase="total")
 def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[RuleRow]:
     """A rough cost range: every rough shape and ``cost_items`` entry priced per process.
 
+    Bands are read for the card's or product's region (:func:`cost_region`); with none
+    declared the US bands are read and the line says so. Amounts stay in the band's own
+    currency: nothing is converted, and a card whose bands mix currencies is not summed.
     With ``site.budget`` on the card it also returns the ``cost-vs-budget`` row: pass when the
     band's high end is within the budget, fail when its low end is over it, otherwise a
     warning that the budget sits inside the band (S-207).
@@ -221,23 +254,27 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
     from napkin2factory.calckit import mass_cost
 
     notes = values.notes
-    low = high = 0.0
+    region, region_note = cost_region(card, values)
+    if region_note:
+        notes.append(region_note)
+    shown = region or mass_cost.DEFAULT_REGION
+    totals: dict[str, list[float]] = {}
     counted: list[str] = []
     priced: list[str] = []
     unpriced: list[str] = []
     no_material: list[str] = []
     no_band: list[str] = []
+    no_band_classes: list[str] = []
     items: list[tuple[str, str, float | None]] = []
     bands: list[mass_cost.CostBand] = []
     if massing is not None:
         items += [(p.name, p.process_class, p.mass) for p in massing.pieces]
     items += values.cost_items
-    card_region = getattr(card, "region", None)
     for name, pclass, kg in items:
-        b = mass_cost.cost_band(pclass, region=card_region)
         try:
+            b = mass_cost.cost_band(pclass, region=region)
             c = mass_cost.cost_estimate(
-                pclass, mass=None if kg is None else Quantity(kg, "kg"), region=card_region
+                pclass, mass=None if kg is None else Quantity(kg, "kg"), region=region
             )
         except ValueError as exc:
             if any(k in str(exc) for k in ("pass mass=", "pass area=", "pass length=")):
@@ -248,9 +285,13 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
         if not c.known or c.low is None or c.high is None:
             no_band.append(name)
             unpriced.append(name)
+            if pclass not in no_band_classes:
+                no_band_classes.append(pclass)
             continue
-        low += float(c.low.to("USD").magnitude)
-        high += float(c.high.to("USD").magnitude)
+        cur = b.currency
+        lo_hi = totals.setdefault(cur, [0.0, 0.0])
+        lo_hi[0] += float(c.low.to(cur).magnitude)
+        lo_hi[1] += float(c.high.to(cur).magnitude)
         counted.append(f"{name}: {pclass}")
         priced.append(name)
         if b.known:
@@ -261,49 +302,42 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
         )
     if no_band:
         notes.append(
-            f"the cost leaves out {the(owner_names(no_band))}: no price range on file for "
-            "how it is made"
+            f"the cost leaves out {the(owner_names(no_band))}: the {shown} cost bands have no "
+            f"price range for how {'it is' if len(no_band) == 1 else 'they are'} made "
+            f"({', '.join(no_band_classes)})"
         )
     budget = BUDGET.quantity(card)
     if not counted:
         if budget is not None:
             notes.append("the budget is not checked: nothing could be priced yet")
         return []
+    if len(totals) > 1:
+        notes.append(
+            f"the cost is not added up: its bands are in {and_(sorted(totals))}, and nothing "
+            "is converted between currencies"
+        )
+        return []
+    ((currency, (low, high)),) = totals.items()
+    basis = mass_cost.bands_words(bands, declared=region is not None)
+    values.shared["cost_basis"] = basis
     ref = "mass_cost.cost_estimate (" + "; ".join(counted) + ") [verify]"
-    if card_region is not None:
-        regions = sorted({b.region for b in bands if b.region})
-        dates = sorted({b.as_of for b in bands if b.as_of})
-        stale = any(b.stale for b in bands)
-        r_str = "/".join(regions) if regions else str(card_region)
-        d_str = "/".join(dates) if dates else ""
-        stale_str = ", stale" if stale else ""
-        if d_str:
-            band_desc = f"{r_str} cost bands per process ({d_str}{stale_str})"
-        else:
-            band_desc = f"{r_str} cost bands per process{stale_str}"
-    elif any(b.stale for b in bands):
-        dates = sorted({b.as_of for b in bands if b.as_of})
-        d_str = "/".join(dates) if dates else ""
-        if d_str:
-            band_desc = f"cost bands per process ({d_str}, stale)"
-        else:
-            band_desc = "cost bands per process (stale)"
-    else:
-        band_desc = "cost bands per process"
-    words = f"rough cost of the {and_(owner_names(priced))} from {band_desc}"
+    words = f"rough cost of the {and_(owner_names(priced))} from the {basis}"
     if unpriced:
         left = owner_names(unpriced)
         verb = "is" if len(left) == 1 else "are"
         names = " and the ".join(left) if len(left) < 3 else and_(left)
         words += f"; the {names} {verb} not counted"
     words += f"; {TO_CHECK}"
-    values.estimate.add(
-        "cost_low", Quantity(low, "USD"), fmt(Quantity(low, "USD"), "USD"), words, ref
-    )
-    values.estimate.add(
-        "cost_high", Quantity(high, "USD"), fmt(Quantity(high, "USD"), "USD"), words, ref
-    )
+    q_low, q_high = Quantity(low, currency), Quantity(high, currency)
+    values.estimate.add("cost_low", q_low, fmt(q_low, currency), words, ref)
+    values.estimate.add("cost_high", q_high, fmt(q_high, currency), words, ref)
     if budget is None:
+        return []
+    if currency != "USD":
+        notes.append(
+            f"the budget is not checked: it is in USD and the {shown} bands are in {currency} "
+            "(nothing is converted)"
+        )
         return []
     values.given.add("budget", budget, fmt(budget, "USD"), "on the card", "site.budget")
     return [_budget_row(low, high, float(budget.to("USD").magnitude))]

@@ -211,11 +211,16 @@ def frame_racking(
 ) -> Qty:
     """Lateral sway of an unbraced portal frame under a horizontal racking load.
 
-    Uses Roark's Formulas for Stress and Strain (Table 8.2 rectangular portal frame)
-    and semi-rigid slope-deflection frame mechanics.
+    Slope-deflection mechanics of a rectangular portal frame (the rigid-frame table of Roark's
+    Formulas for Stress and Strain gives the rigid-corner cases [verify]; the semi-rigid terms
+    are derived here).
     For pinned bases:
         ``delta = (P * H^3)/(6 * E * I_c) + (P * H^2 * L)/(12 * E * I_b) + (P * H^2)/(2 * K_theta)``
     where K_theta is the rotational stiffness of the corner joints.
+    For fixed bases (slope-deflection, derivation in the code):
+        ``delta = P H^3/(24 E I_c) * (4 - 3 r)``,
+        ``r = 1/(1 + 1/(6 k) + E I_c/(H K_theta))``, ``k = (I_b/L)/(I_c/H)``;
+    rigid corners reduce to ``P H^3 (3k + 2)/(12 E I_c (6k + 1))``.
 
     Supports calling as:
     - ``frame_racking(frame, lateral_load)``
@@ -345,18 +350,28 @@ def frame_racking(
             delta_joint = (p_n * (h_m**2)) / (2.0 * k_nm)
         total_delta_m = delta_col + delta_beam + delta_joint
     elif fixity == "fixed":
-        # Roark Table 8.2 Case 2: portal frame with fixed bases
+        # Sway mode of a portal frame, fixed bases, joints with a rotational spring K (S-227).
+        # Slope-deflection, per column (shear V = P/2, fixed base, moment M at the top):
+        #   top rotation   theta_c = V h^2/(2 E I_c) - M h/(E I_c)
+        #   top sway       delta   = V h^3/(3 E I_c) - M h^2/(2 E I_c)
+        # Beam in the antimetric sway mode: both ends turn phi, M = 6 E I_b phi / L.
+        # Joint spring: theta_c - phi = M/K.  Solving, with k = (I_b/L)/(I_c/h):
+        #   M = (P h/4) * r,   r = 1 / (1 + 1/(6 k) + E I_c/(h K))
+        #   delta = P h^3/(24 E I_c) * (4 - 3 r)
+        # K -> infinity gives P h^3 (3k+2)/(12 E I_c (6k+1)) (the gate-I check found
+        # (k+2) here); k -> infinity too gives the two fixed-fixed columns,
+        # P h^3/(24 E I_c).  The spring's share is NOT the pinned frame's additive
+        # P h^2/(2K) term: the fixed base shares the moment with it.
+        # Checked against a 2D frame stiffness solve (tests/unit/test_joint_calcs.py).
         k_ratio = (ib_m4 / l_m) / (ic_m4 / h_m)
-        delta_rigid = ((p_n * (h_m**3)) / (12.0 * e_pa * ic_m4)) * (
-            (k_ratio + 2.0) / (6.0 * k_ratio + 1.0)
-        )
-        delta_joint = 0.0
+        spring_term = 0.0
         if k_theta_q is not None:
             k_nm = _rot_stiffness(k_theta_q, "5000 N*m")
             if k_nm <= 0:
                 raise ValueError(f"joint_stiffness must be positive, got {k_nm}")
-            delta_joint = (p_n * (h_m**2)) / (4.0 * k_nm)
-        total_delta_m = delta_rigid + delta_joint
+            spring_term = (e_pa * ic_m4) / (h_m * k_nm)
+        r_share = 1.0 / (1.0 + 1.0 / (6.0 * k_ratio) + spring_term)
+        total_delta_m = (p_n * (h_m**3)) / (24.0 * e_pa * ic_m4) * (4.0 - 3.0 * r_share)
     else:
         raise ValueError(f"unknown base_fixity {fixity!r}; must be 'pinned' or 'fixed'")
 

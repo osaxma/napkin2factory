@@ -18,7 +18,7 @@ from typing import Any
 
 from napkin2factory.calckit import mass_cost
 from napkin2factory.concepts.screens import fmt, reads
-from napkin2factory.concepts.screens.generic import BUDGET, MASS_LIMIT
+from napkin2factory.concepts.screens.generic import BUDGET, MASS_LIMIT, cost_region
 from napkin2factory.core.domain import Screen
 from napkin2factory.core.model.concepts import RuleRow
 from napkin2factory.core.units import Quantity
@@ -64,7 +64,7 @@ def _extent(piece: Any) -> tuple[float, float]:
 def by_length_and_area(card: Any, massing: Any, values: Any) -> list[RuleRow]:
     """Price the pieces bought by the metre or the square metre; judge the mass limit."""
     rows: list[RuleRow] = []
-    region = getattr(card, "region", None)
+    region, _ = cost_region(card, values)  # the card's or the product's region (gate I, B2)
     low = high = 0.0
     priced: list[str] = []
     for piece in [] if massing is None else massing.pieces:
@@ -84,6 +84,12 @@ def by_length_and_area(card: Any, massing: Any, values: Any) -> list[RuleRow]:
         high += float(est.high.to("USD").magnitude)
         priced.append(piece.name)
     old_low, old_high = values.estimate.raw.get("cost_low"), values.estimate.raw.get("cost_high")
+    if old_low is not None and not old_low.check("[currency]"):
+        values.notes.append(
+            "the pieces bought by the metre or the square metre are priced in USD and the cost "
+            "bands are in another currency, so they are not added (nothing is converted)"
+        )
+        priced = []
     budget = BUDGET.quantity(card)
     if priced and old_low is not None and old_high is not None:
         new_low = old_low + Quantity(low, "USD")

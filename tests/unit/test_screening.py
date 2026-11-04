@@ -407,7 +407,7 @@ def test_no_material_means_no_mass_and_a_note() -> None:
     bare = copy.deepcopy(SMALL)
     for call in bare["massing"]:
         call.pop("material")
-    s = _screen(_card(bare))
+    s = _screen(_card(bare, site={"region": "US"}))  # the US bands have the door's process
     assert "mass" not in s.computed and "total_mass" not in s.estimates
     assert any(n.startswith("the body and the door have no material yet") for n in s.notes)
     assert "the cost leaves out the body and the door: no material, so no mass to price" in s.notes
@@ -570,9 +570,9 @@ def test_cost_source_names_what_is_priced_and_what_is_not(kiln: Screening) -> No
     """Gate B, B2: the cost line in words; the per-process list stays in ref."""
     cost = kiln.estimates["cost_high"]
     assert cost.source.startswith("rough cost of the ")
-    assert cost.source.endswith("from cost bands per process; to be checked") or (
-        "are not counted; to be checked" in cost.source or "is not counted" in cost.source
-    )
+    assert cost.source.endswith(
+        "US cost bands, as of 2026-10, no region declared; to be checked"
+    ) or ("are not counted; to be checked" in cost.source or "is not counted" in cost.source)
     assert "cots-controls" not in cost.source and "cots-controls" in (cost.ref or "")
     assert kiln.computed["width"].source == "measured across the rough shapes"
     assert kiln.computed["footprint_with_door_swing"].source == (
@@ -580,24 +580,99 @@ def test_cost_source_names_what_is_priced_and_what_is_not(kiln: Screening) -> No
     )
 
 
-def test_cost_source_names_region_and_date() -> None:
-    """W3: cost source names the band's region and date in plain words."""
+def _cost_screen(
+    items: list[tuple[str, str, float | None]],
+    *,
+    site: dict[str, Any] | None = None,
+    region: str | None = None,
+) -> tuple[Any, list[Any]]:
+    """Run the generic cost screen on a card with ``site`` and the product's ``region``."""
     from napkin2factory.concepts.screens.base import ScreenValues
     from napkin2factory.concepts.screens.generic import cost_band as cb_screen
 
-    card = ConceptCard.model_validate(SMALL)
-    object.__setattr__(card, "region", "US")
+    card = ConceptCard.model_validate({"id": "C-001", "title": "t", "site": site or {}})
     values = ScreenValues()
-    values.cost_items.append(("bracket", "sheet-metal", 5.0))
-    cb_screen(card, None, values)
-    assert "from US cost bands per process (2026-10)" in values.estimate.out["cost_high"].source
+    values.shared["region"] = region
+    values.cost_items += items
+    return values, cb_screen(card, None, values)
+
+
+def test_cost_source_names_region_and_date() -> None:
+    """W3, gate I B2: the cost line names the bands' region and date in plain words."""
+    values, _ = _cost_screen([("bracket", "sheet-metal", 5.0)], region="US")
+    assert "from the US cost bands, as of 2026-10; to be checked" in (
+        values.estimate.out["cost_high"].source
+    )
+    assert "no region declared" not in values.estimate.out["cost_high"].source
+
+
+def test_cost_without_a_region_says_the_us_bands_were_used() -> None:
+    """Gate I, B2: no region declared is never silent."""
+    values, _ = _cost_screen([("bracket", "sheet-metal", 5.0)])
+    assert "US cost bands, as of 2026-10, no region declared" in (
+        values.estimate.out["cost_low"].source
+    )
+    assert values.estimate.raw["cost_low"].to("USD").magnitude == pytest.approx(40.0)
+
+
+def test_eu_product_is_priced_with_eu_bands_in_euro() -> None:
+    """Gate I, B2: the product's region reaches the cost; amounts stay in the band's currency."""
+    values, _ = _cost_screen(
+        [("bracket", "sheet-metal", 5.0), ("top", "woodworking", 10.0)], region="EU"
+    )
+    low = values.estimate.out["cost_low"]
+    assert low.value == "122 EUR"  # (7.5 + 8.5 * 2) EUR/kg bands: 7.5*5 + 8.5*10 = 122.5
+    assert "EU cost bands, as of 2026-11" in low.source
+    assert not any("USD" in v.value for v in values.estimate.out.values())
+
+
+def test_a_card_region_wins_over_the_product_region() -> None:
+    """Gate J: a card's own site.region is the one the bands are read for."""
+    values, _ = _cost_screen([("bracket", "sheet-metal", 5.0)], site={"region": "EU"}, region="US")
+    assert values.estimate.out["cost_low"].value.endswith("EUR")
+
+
+def test_a_region_without_a_band_for_a_process_says_which_in_a_loud_note() -> None:
+    """Gate I, B2: the processes the region has no band for are named, not dropped quietly."""
+    values, _ = _cost_screen(
+        [("bracket", "sheet-metal", 5.0), ("tray", "cut-block", 3.0)], region="EU"
+    )
+    note = " ".join(values.notes)
+    assert "the EU cost bands have no price range" in note and "cut-block" in note
+    assert "the tray: " not in values.estimate.out["cost_low"].source  # counted nowhere
+    assert "the tray is not counted" in values.estimate.out["cost_low"].source
+
+
+def test_a_card_that_mixes_currencies_is_not_added_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Gate I, B2: EUR and USD are never summed or converted."""
+    from napkin2factory.calckit import mass_cost
+
+    real = mass_cost.load_table("cost_bands")
+    rows = [dict(r) for r in real if r["process_class"] == "sheet-metal" and r["region"] == "US"]
+    rows += [
+        {**r, "region": "US", "currency": "EUR"}
+        for r in real
+        if r["process_class"] == "woodworking" and r["region"] == "EU"
+    ]
+    monkeypatch.setattr(mass_cost, "load_table", lambda name: rows)
+    values, rows_out = _cost_screen(
+        [("bracket", "sheet-metal", 5.0), ("top", "woodworking", 10.0)], region="US"
+    )
+    assert "cost_low" not in values.estimate.out and rows_out == []
+    assert any("EUR and USD" in n and "nothing is converted" in n for n in values.notes)
+
+
+def test_a_budget_in_usd_is_not_held_against_euro_bands() -> None:
+    """Gate I, B2: no conversion, so no budget verdict for a EUR cost."""
+    values, rows = _cost_screen(
+        [("bracket", "sheet-metal", 5.0)], site={"budget": "1000 USD"}, region="EU"
+    )
+    assert rows == [] and any("budget is not checked" in n for n in values.notes)
 
 
 def test_cost_source_names_stale_when_band_is_old(monkeypatch: pytest.MonkeyPatch) -> None:
     """W3: cost source names stale in plain words when a band is older than 24 months."""
     from napkin2factory.calckit import mass_cost
-    from napkin2factory.concepts.screens.base import ScreenValues
-    from napkin2factory.concepts.screens.generic import cost_band as cb_screen
 
     row = {
         "process_class": "woodworking",
@@ -611,23 +686,45 @@ def test_cost_source_names_stale_when_band_is_old(monkeypatch: pytest.MonkeyPatc
         "verify": True,
     }
     monkeypatch.setattr(mass_cost, "load_table", lambda name: [row])
-    card = ConceptCard.model_validate(SMALL)
-    object.__setattr__(card, "region", "US")
-    values = ScreenValues()
-    values.cost_items.append(("top", "woodworking", 10.0))
-    cb_screen(card, None, values)
-    assert "US cost bands per process (2020-01, stale)" in values.estimate.out["cost_high"].source
+    values, _ = _cost_screen([("top", "woodworking", 10.0)], region="US")
+    assert "US cost bands, as of 2020-01, stale" in values.estimate.out["cost_high"].source
 
 
-def test_cost_band_screen_fails_loudly_on_unknown_region() -> None:
-    """W3, W7: card with unknown region fails loudly naming table and regions."""
-    from napkin2factory.concepts.screens.base import ScreenValues
-    from napkin2factory.concepts.screens.generic import cost_band as cb_screen
+def test_a_region_with_no_cost_bands_at_all_falls_back_loudly() -> None:
+    """Gate I, B2: a supply region such as SA has no bands; the US ones are read and it says so."""
+    values, _ = _cost_screen([("bracket", "sheet-metal", 5.0)], site={"region": "ZZ"})
+    assert any("no cost bands for the region ZZ" in n and "US bands" in n for n in values.notes)
+    assert "US cost bands" in values.estimate.out["cost_low"].source
 
-    card = ConceptCard.model_validate(SMALL)
-    object.__setattr__(card, "region", "ZZ")
-    values = ScreenValues()
-    values.cost_items.append(("bracket", "sheet-metal", 5.0))
-    with pytest.raises(ValueError, match="table 'cost_bands' has no rows for region 'ZZ'") as exc:
-        cb_screen(card, None, values)
-    assert "regions on file: EU, US" in str(exc.value)
+
+def test_the_runner_reads_the_product_region_and_keeps_it_on_a_rewritten_cost_line(
+    tmp_path: Path,
+) -> None:
+    """Gate I, B2: n2f.yaml's region reaches the screens; a product screen cannot drop it."""
+    from napkin2factory.concepts.screens.base import TO_CHECK
+    from napkin2factory.concepts.screens.runner import product_region, run_screens
+    from napkin2factory.core.domain import Screen
+
+    (tmp_path / "n2f.yaml").write_text("name: x\nregion: EU\n", encoding="utf-8")
+    assert product_region(tmp_path) == "EU" and product_region(None) is None
+
+    def rewrite(card: Any, massing: Any, values: Any) -> list[Any]:
+        for key in ("cost_low", "cost_high"):
+            values.estimate.add(key, values.estimate.raw[key], "1 EUR", f"hardware; {TO_CHECK}")
+        return []
+
+    from napkin2factory.concepts.screens.generic import GENERIC_SCREENS
+
+    card = ConceptCard.model_validate({"id": "C-001", "title": "t"})
+    from napkin2factory.concepts.screens.base import reads
+
+    @reads(phase="estimate")
+    def add_item(card: Any, massing: Any, values: Any) -> list[Any]:
+        values.cost_items.append(("b", "sheet-metal", 5.0))
+        return []
+
+    card_cost = Screen("c", add_item)
+    s = run_screens(
+        card, None, tmp_path, screens=[card_cost, *GENERIC_SCREENS, Screen("rw", rewrite)]
+    )
+    assert s.estimates["cost_low"].source == ("hardware; EU cost bands, as of 2026-11; " + TO_CHECK)

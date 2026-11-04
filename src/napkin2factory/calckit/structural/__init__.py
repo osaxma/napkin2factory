@@ -2,7 +2,8 @@ r"""Envelope-grade structural mechanics: member sections, beams, buckling, and s
 
 Pure functions taking and returning pint quantities from the shared registry
 (:mod:`napkin2factory.core.units`), backed by handbook reference cases (Roark, Shigley,
-AISC). Used by the generic ``structural`` napkin screen
+AISC); book, table and section numbers are quoted from memory and marked [verify]
+until a person checks them. Used by the generic ``structural`` napkin screen
 (:mod:`napkin2factory.concepts.screens.structural`) and product-level sizing calcs (W1).
 
 Method and physics (one source for screening and product calcs; W1):
@@ -12,12 +13,13 @@ Method and physics (one source for screening and product calcs; W1):
   modulus :math:`Z = I / c`, and cross-sectional area :math:`A`.
 * **Beam deflection.**
   - Simply supported: center point load :math:`\delta = \frac{F L^3}{48 E I}`
-    (Roark Table 8.1 Case 1d) and uniform distributed load :math:`\delta = \frac{5 w L^4}{384 E I}`
-    (Roark Table 8.1 Case 1e).
+    (Roark Table 8.1 Case 2a [verify]) and uniform distributed
+    load :math:`\delta = \frac{5 w L^4}{384 E I}`
+    (Roark Table 8.1 Case 2e [verify]).
   - Cantilever with column rotation: tip deflection under end point load combined with the
     rotation of a vertical support column under moment :math:`M = F L_a`:
     :math:`\delta = \frac{F L_a^3}{3 E I_a} + \frac{F L_a^2 H}{E I_c}`
-    (Roark Table 8.1 Cases 1a & 3a; Track A §3.1).
+    (Roark Table 8.1 Case 1a [verify]; the column rotation is internal derivation).
 * **Bending stress and yield margin.** Flexure formula :math:`\sigma_b = \frac{M}{Z}` and
   yield safety factor :math:`FS_y = \frac{\sigma_y}{\sigma_b}` (Roark §8.1; Shigley §1-10).
 * **Column stability (Euler buckling).** Critical elastic buckling load
@@ -29,7 +31,8 @@ Method and physics (one source for screening and product calcs; W1):
   :math:`P_{cr} = A[\sigma_y - (\sigma_y \lambda / 2\pi)^2 / E]` (Shigley §4-12), and
   ``column_buckling_load`` picks Euler or Johnson by slenderness and says which (S-207).
 * **Tip-over safety factor.** Ratio of gravity restoring moment to overturning moment
-  :math:`FS = \frac{m g x_{\text{cg}}}{F_{\text{edge}} x_{\text{overhang}}}` (Track A §3.1).
+  :math:`FS = \frac{m g x_{\text{cg}}}{F_{\text{edge}} x_{\text{overhang}}}`
+  (static equilibrium of moments, internal derivation).
 * **Fastener group shear.** Direct shear stress per fastener :math:`\tau = \frac{V}{n A_s}`
   and safety factor against allowable shear strength
   :math:`FS = \frac{\tau_{\text{allow}}}{\tau}` (Shigley §8-5).

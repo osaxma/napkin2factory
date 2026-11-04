@@ -172,8 +172,8 @@ def test_k_def_comes_from_the_timber_table_and_load_cases_carry_no_creep_row() -
 def _budget_row(budget: str | None) -> tuple[ScreenValues, list]:  # type: ignore[type-arg]
     site = {} if budget is None else {"budget": budget}
     card = ConceptCard.model_validate({"id": "C-001", "title": "table", "site": site})
-    object.__setattr__(card, "region", "US")
     values = ScreenValues()
+    values.shared["region"] = "US"
     values.cost_items.append(("top", "woodworking", 28.8))  # US band 9 to 22 USD/kg
     return values, cost_band(card, None, values)
 

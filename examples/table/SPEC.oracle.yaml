@@ -266,7 +266,7 @@ pending:
   - what: across-grain movement 7.05 mm and slot free travel 13 mm, each on its own
     reason: the requirement bounds their difference (req-slot-clearance judges 13 less 7.05 mm); no requirement bounds either figure alone, and a calc's reference case is not read as the product's figure
   - what: leg buckling factor 38.3 on the napkin card
-    reason: the structural screen runs Euler's formula and skips a short column (SPEC.md section 4.1 uses the Johnson parabola); judged on the finished product only
+    reason: the structural screen picks the Johnson parabola for this short leg, as SPEC.md section 4.1 does (slenderness 70.7, K 2 sway), but it loads the worst-loaded leg with the centre load, the edge load and a quarter of the weight (2072 N, factor 29.6), where the spec uses the centre load and a quarter of the weight (1583 N, factor 38.3); judged on the finished product only
   - what: rail yield factor 5.69 and long-term sag 0.754 mm on the napkin card
     reason: the screen checks the top's sag and stress only; both are judged on the finished product
   - what: low and high ends of the finished product's cost band (606 and 980 USD)

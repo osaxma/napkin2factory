@@ -36,7 +36,7 @@ class RectSection:
     Zx: Qty
     Zy: Qty
     formula: str = "I = b*h^3/12, Z = b*h^2/6, A = b*h"
-    source: str = "Roark's Formulas for Stress and Strain, 7th ed., Table 1, Case 1"
+    source: str = "Roark's Formulas for Stress and Strain, 7th ed., Table 1, Case 1 [verify]"
 
     def __iter__(self) -> Iterator[Qty]:
         return iter((self.I, self.Z, self.A))
@@ -72,7 +72,7 @@ class RectTubeSection:
     I: Qty  # noqa: E741
     Z: Qty
     formula: str = "Ix = (b*h^3 - b1*h1^3)/12, Zx = Ix/(h/2), A = b*h - b1*h1"
-    source: str = "Roark's Formulas for Stress and Strain, 7th ed., Table 1, Case 2"
+    source: str = "Roark's Formulas for Stress and Strain, 7th ed., Table 1, Case 2 [verify]"
 
     def __iter__(self) -> Iterator[Qty]:
         return iter((self.Ix, self.Iy, self.Zx, self.A))
@@ -108,7 +108,7 @@ class RoundTubeSection:
     Zx: Qty
     Zy: Qty
     formula: str = "I = pi*(D^4 - d^4)/64, Z = pi*(D^4 - d^4)/(32*D), A = pi*(D^2 - d^2)/4"
-    source: str = "Roark's Formulas for Stress and Strain, 7th ed., Table 1, Case 12"
+    source: str = "Roark's Formulas for Stress and Strain, 7th ed., Table 1, Case 12 [verify]"
 
     def __iter__(self) -> Iterator[Qty]:
         return iter((self.I, self.Z, self.A))

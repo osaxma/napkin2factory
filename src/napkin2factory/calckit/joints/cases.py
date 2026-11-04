@@ -32,20 +32,20 @@ CASES: list[Case] = [
     Case(
         "wood_screw_withdrawal",
         Quantity(250.3896 * 4.4482216152605, "N"),
-        "ANSI/AWC NDS-2018 National Design Specification for Wood Construction Section 12.2.1: "
+        "hand computation with the formula of ANSI/AWC NDS-2018 National Design Specification for "
+        "Wood Construction Section 12.2.1 [verify]: "
         "W = 2850 G^2 D (lbs/in); #10 screw D=0.190 in, white oak G=0.68, 1 in penetration",
         args=(Quantity(0.190, "inch"), Quantity(1.0, "inch"), 0.68),
         rel=1e-5,
-        external=True,
     ),
     Case(
         "lag_screw_withdrawal",
         Quantity(450.0 * 4.4482216152605, "N"),
-        "ANSI/AWC NDS-2018 National Design Specification for Wood Construction Section 12.2.1: "
+        "hand computation with the formula of ANSI/AWC NDS-2018 National Design Specification for "
+        "Wood Construction Section 12.2.1 [verify]: "
         "W = 1800 G^1.5 D^0.75 (lbs/in); 1/4 in lag screw D=0.25 in, pine G=0.50, 2 in penetration",
         args=(Quantity(0.25, "inch"), Quantity(2.0, "inch"), 0.50),
         rel=1e-5,
-        external=True,
     ),
     Case(
         "joint_moment_capacity",
@@ -75,8 +75,10 @@ CASES: list[Case] = [
     Case(
         "frame_racking",
         Quantity(0.8625977, "mm"),
-        "Roark's Formulas for Stress and Strain 8th ed. Table 8.2 Case 1: unbraced portal "
-        "frame with pinned bases; P=100 N, H=0.75 m, L=1.2 m, EI=14673.067 N*m2: "
+        "hand computation with the formula of Roark's Formulas for Stress and Strain (the "
+        "rigid-frame table, number to confirm) [verify]: "
+        "unbraced portal frame with pinned bases, rederived by slope-deflection; P=100 N, H=0.75 "
+        "m, L=1.2 m, EI=14673.067 N*m2: "
         "delta = 0.4792 + 0.3834 = 0.8626 mm",
         args=(
             Quantity(100, "N"),
@@ -87,13 +89,13 @@ CASES: list[Case] = [
             Quantity(73365.33, "mm**4"),
         ),
         rel=1e-4,
-        external=True,
     ),
     Case(
         "frame_racking",
         Quantity(6.4875977, "mm"),
         _HAND + "portal frame above with joint rotational stiffness K_theta = 5000 N*m/rad; "
-        "delta_joint = P H^2 / (2 K) = 5.625 mm; total = 0.8626 + 5.625 = 6.4876 mm",
+        "delta_joint = P H^2 / (2 K) = 5.625 mm (pinned bases: the whole column moment P H / 2 "
+        "turns the joint); total = 0.8626 + 5.625 = 6.4876 mm",
         args=(
             Quantity(100, "N"),
             Quantity(750, "mm"),
@@ -106,18 +108,72 @@ CASES: list[Case] = [
         rel=1e-4,
     ),
     Case(
+        "frame_racking",
+        Quantity(0.0297619, "mm"),
+        _HAND + "fixed-base portal frame, rigid corners, slope-deflection (derivation in "
+        "frames.py): P=100 N, h=L=1 m, E=200 GPa, I_c=I_b=1e-6 m^4, k=(I_b/L)/(I_c/h)=1: "
+        "delta = P h^3 (3k+2)/(12 E I_c (6k+1)) = 100 x 5 / (12 x 2e5 x 7) m = 0.029762 mm "
+        "(a 2D frame stiffness solve gives the same; gate I replaced (k+2) by (3k+2))",
+        args=(
+            Quantity(100, "N"),
+            Quantity(1, "m"),
+            Quantity(1, "m"),
+            Quantity(200, "GPa"),
+            Quantity(1e6, "mm**4"),
+            Quantity(1e6, "mm**4"),
+        ),
+        kwargs={"base_fixity": "fixed"},
+        rel=1e-5,
+    ),
+    Case(
+        "frame_racking",
+        Quantity(100 * 1.0**3 / (24 * 200e9 * 1e-6) * 1000, "mm"),
+        _HAND + "fixed-base portal frame with a rigid beam (I_b = 1e9 I_c, k to infinity): two "
+        "fixed-fixed columns each taking P/2: delta = P h^3 / (24 E I_c) = 100 / (24 x 2e5) m "
+        "= 0.020833 mm",
+        args=(
+            Quantity(100, "N"),
+            Quantity(1, "m"),
+            Quantity(1, "m"),
+            Quantity(200, "GPa"),
+            Quantity(1e6, "mm**4"),
+            Quantity(1e15, "mm**4"),
+        ),
+        kwargs={"base_fixity": "fixed"},
+        rel=1e-6,
+    ),
+    Case(
+        "frame_racking",
+        Quantity(0.0818151, "mm"),
+        _HAND + "fixed-base portal frame above (k=1) with corner springs K_theta = 5000 N*m/rad: "
+        "E I_c/(h K) = 2e5 N*m2 / (1 m x 5000 N*m) = 40; r = 1/(1 + 1/(6k) + 40) = 0.024291; "
+        "delta = P h^3/(24 E I_c) x (4 - 3 r) = 0.0208333 mm x 3.92713 = 0.081815 mm; a 2D "
+        "frame stiffness solve with a spring between column and beam gives the same",
+        args=(
+            Quantity(100, "N"),
+            Quantity(1, "m"),
+            Quantity(1, "m"),
+            Quantity(200, "GPa"),
+            Quantity(1e6, "mm**4"),
+            Quantity(1e6, "mm**4"),
+        ),
+        kwargs={"base_fixity": "fixed", "joint_stiffness": Quantity(5000, "N*m")},
+        rel=1e-5,
+    ),
+    Case(
         "wood_creep_deflection",
         Quantity(4.0, "mm"),
-        "Eurocode 5 (EN 1995-1-1:2004) Table 3.2: k_def = 0.60 for solid timber service class 1; "
+        "hand computation with the formula of Eurocode 5 (EN 1995-1-1:2004) Table 3.2 [verify]: "
+        "k_def = 0.60 for solid timber service class 1; "
         "total = 2.5 mm * (1 + 0.60) = 4.0 mm",
         args=(Quantity(2.5, "mm"), "sustained", "dry"),
         rel=1e-6,
-        external=True,
     ),
     Case(
         "timber_k_def",
         0.60,
-        "Eurocode 5 (EN 1995-1-1:2004) Table 3.2: k_def = 0.60 for solid timber, service class 1",
+        "Eurocode 5 (EN 1995-1-1:2004) Table 3.2 [verify]: k_def = 0.60 for solid timber, service "
+        "class 1",
         args=("sustained", "dry"),
         external=True,
         verify=True,
@@ -143,7 +199,7 @@ CASES: list[Case] = [
     Case(
         "equilibrium_moisture_content",
         6.2,
-        "USDA Wood Handbook FPL-GTR-190 Table 4-2, 30 % RH at 70 degF (21.1 degC): 6.2 % "
+        "USDA Wood Handbook FPL-GTR-190 Table 4-2 [verify], 30 % RH at 70 degF (21.1 degC): 6.2 % "
         "(the Hailwood-Horrobin Eq. 4-5 gives 6.17)",
         args=(30,),
         kwargs={"temperature": Quantity(70, "degF")},
@@ -153,7 +209,7 @@ CASES: list[Case] = [
     Case(
         "equilibrium_moisture_content",
         9.2,
-        "USDA Wood Handbook FPL-GTR-190 Table 4-2, 50 % RH at 70 degF: 9.2 %",
+        "USDA Wood Handbook FPL-GTR-190 Table 4-2 [verify], 50 % RH at 70 degF: 9.2 %",
         args=(50,),
         kwargs={"temperature": Quantity(70, "degF")},
         abs=0.05,
@@ -162,7 +218,7 @@ CASES: list[Case] = [
     Case(
         "equilibrium_moisture_content",
         13.1,
-        "USDA Wood Handbook FPL-GTR-190 Table 4-2, 70 % RH at 70 degF: 13.1 %",
+        "USDA Wood Handbook FPL-GTR-190 Table 4-2 [verify], 70 % RH at 70 degF: 13.1 %",
         args=(70,),
         kwargs={"temperature": Quantity(70, "degF")},
         abs=0.05,
@@ -181,17 +237,18 @@ CASES: list[Case] = [
     Case(
         "wood_movement",
         Quantity(20.148, "mm"),
-        "USDA Forest Products Laboratory Wood Handbook (FPL-GTR-190) Ch. 4 Table 4-4: white oak "
+        "hand computation with the formula of USDA Forest Products Laboratory Wood Handbook "
+        "(FPL-GTR-190) Ch. 4 Table 4-4 [verify]: white oak "
         "tangential C=0.00365; W=800 mm, Delta_M=6.9 %: Delta_W = 800 * 0.00365 * 6.9 = 20.148 mm",
         args=(Quantity(800, "mm"), "white-oak", (30, 70)),
         kwargs={"delta_mc": 6.9},
         rel=1e-4,
-        external=True,
     ),
     Case(
         "fatigue_margin",
         1.7777777777777777,
-        "Shigley Mechanical Engineering Design 11th ed. Section 6-11 Modified Goodman: "
+        "hand computation with the formula of Shigley Mechanical Engineering Design 11th ed. "
+        "Section 6-11 Modified Goodman [verify]: "
         "steel Sut=400 MPa, Se=160 MPa, sigma_a=50 MPa, sigma_m=100 MPa: "
         "1/n = 50/160 + 100/400 = 0.5625 -> n = 1.7778",
         args=(
@@ -205,15 +262,14 @@ CASES: list[Case] = [
             "marin_factor": 0.8,
         },
         rel=1e-4,
-        external=True,
     ),
     Case(
         "factor_of_safety",
         1.5,
-        "AISC 360-16 Specification for Structural Steel Buildings Table 1-5: "
+        "hand computation with the formula of AISC 360-16 Specification for Structural Steel "
+        "Buildings, Table 1-5 [verify]: "
         "default static yield safety factor = 1.5",
         args=("yield", "static"),
-        external=True,
     ),
     Case(
         "factor_of_safety",
