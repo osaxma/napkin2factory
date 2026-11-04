@@ -1,35 +1,340 @@
-# Wall and shell materials: one row per material, read by concept screening
-# (concepts/screening.py, insulation layers) and by the massing densities
-# (geometry/materials.py), so the napkin and the factory use the same numbers.
+# Wall, shell, structural and everyday manufacturing materials (W2).
+# One row per material, read by concept screening (screening.py), massing densities
+# (geometry/materials.py) and structural calcs (calckit/structural.py), so the napkin
+# and the factory use the same numbers.
 # NOT VERIFIED: every row is the owner's to confirm against the supplier's datasheet, and
-# DECISIONS.md lists the table as [verify]. The calc kit itself holds no material constants
-# (calckit/thermal_enclosure.py takes Layer objects).
-# Columns: name; keywords (lower-case words that select the row from a layer or material
-# name); conductivity W/(m*K) at the mean wall temperature (null: not used as insulation);
-# density kg/m3; specific_heat J/(kg*K) (null: not used); process_class (cost band).
+# DECISIONS.md lists the table as [verify].
+# Columns:
+#   name: material display name.
+#   keywords: lower-case words/aliases that select the row from a part's material name/spec.
+#   conductivity: W/(m*K) at mean temperature (null: not used as thermal insulation).
+#   density: kg/m3 nominal density.
+#   specific_heat: J/(kg*K) (null: not used in thermal calcs).
+#   process_class: default process class for cost bands.
+#   youngs_modulus: Pa (N/m2) elastic modulus (null: printed plastics, refractories).
+#   yield_strength: Pa (N/m2) yield strength (null: printed plastics, brittle materials).
+#   moisture_basis: moisture content basis for wood properties (e.g. "12% MC").
+#   verify: true until confirmed by a person against the supplier datasheet.
+#   source: citation of standard, handbook or datasheet.
 table: materials
 rows:
+  # --- Refractories (existing kiln materials) -------------------------------------------
   - name: K-23 insulating firebrick
     keywords: [brick, k23, k-23, firebrick]
     conductivity: 0.25
     density: 480
     specific_heat: 1000
     process_class: cut-block
+    youngs_modulus: null
+    yield_strength: null
     verify: true
     source: "Morgan Thermal Ceramics K-23 datasheet: k 0.20-0.30 W/m.K over 400-1000 degC, 0.25 taken at the ~700 degC mean of a 1200 degC hot face; bulk density 0.48 g/cm3; c 1.0-1.1 kJ/kg.K, 1000 taken"
+
   - name: ceramic fiber board (Kaowool 1260)
     keywords: [ceramic fiber, fiber board, fiber, fibre, kaowool, board, blanket]
     conductivity: 0.15
     density: 260
     specific_heat: 1050
     process_class: fiber-board
+    youngs_modulus: null
+    yield_strength: null
     verify: true
     source: "Morgan Thermal Ceramics Kaowool 1260 board datasheet: k 0.12-0.18 W/m.K over 400-700 degC mean; 0.15 taken because the board sits outside the brick at a ~400 degC mean (0.12 is the cool end and would understate the loss); nominal density 260 kg/m3; c 1.0-1.1 kJ/kg.K, 1050 taken"
+
+  # --- Metals ---------------------------------------------------------------------------
+  - name: stainless-316
+    keywords: [stainless-316, 316, stainless 316, aisi 316]
+    conductivity: 16.3
+    density: 8000
+    specific_heat: 500
+    process_class: sheet-metal
+    youngs_modulus: 193.0e9
+    yield_strength: 205.0e6
+    verify: true
+    source: "AISI 316 austenitic stainless steel sheet/plate: density 8.00 g/cm3 (8000 kg/m3), E 193 GPa, yield strength 205 MPa (ASM Handbook Vol 1 / MatWeb) [verify]"
+
+  - name: stainless-304
+    keywords: [stainless-304, 304, stainless 304, aisi 304, stainless]
+    conductivity: 16.2
+    density: 7900
+    specific_heat: 500
+    process_class: sheet-metal
+    youngs_modulus: 193.0e9
+    yield_strength: 205.0e6
+    verify: true
+    source: "AISI 304 austenitic stainless steel sheet/plate: density 7.90 g/cm3 (7900 kg/m3), E 193 GPa, yield strength 205 MPa (ASM Handbook Vol 1 / MatWeb) [verify]"
+
   - name: mild steel
-    keywords: [mild steel, steel]
+    keywords: [mild steel, mild-steel, steel]
     conductivity: null
     density: 7850
     specific_heat: null
     process_class: null
+    youngs_modulus: 200.0e9
+    yield_strength: 250.0e6
     verify: true
-    source: "carbon steel 7.85 g/cm3 (engineering handbook value; EN 10130 DC01 / CR4 sheet)"
+    source: "carbon steel 7.85 g/cm3 (engineering handbook value; EN 10130 DC01 / CR4 sheet; ASTM A36 / EN 10025-2 S235 E 200 GPa, yield strength 250 MPa; ASM Handbook Vol 1)"
+
+  - name: aluminum-6063-t5
+    keywords: [aluminum-6063-t5, 6063-t5, 6063, aluminum 6063, aluminium 6063]
+    conductivity: 209.0
+    density: 2700
+    specific_heat: 900
+    process_class: extrusion-cut
+    youngs_modulus: 68.9e9
+    yield_strength: 145.0e6
+    verify: true
+    source: "6063-T5 architectural aluminum extrusion: density 2.70 g/cm3 (2700 kg/m3), E 68.9 GPa, yield strength 145 MPa (ASTM B221 / ASM Handbook Vol 2 / MatWeb) [verify]"
+
+  - name: aluminum-5052-h32
+    keywords: [aluminum-5052-h32, 5052-h32, 5052, aluminum 5052, aluminium 5052]
+    conductivity: 138.0
+    density: 2680
+    specific_heat: 900
+    process_class: sheet-metal
+    youngs_modulus: 70.3e9
+    yield_strength: 193.0e6
+    verify: true
+    source: "5052-H32 aluminum sheet: density 2.68 g/cm3 (2680 kg/m3), E 70.3 GPa, yield strength 193 MPa (ASM Handbook Vol 2 / MatWeb) [verify]"
+
+  - name: aluminum-6061-t6
+    keywords: [aluminum-6061-t6, 6061-t6, 6061, aluminum 6061, aluminium 6061, aluminum, aluminium]
+    conductivity: 167.0
+    density: 2700
+    specific_heat: 896
+    process_class: machining
+    youngs_modulus: 68.9e9
+    yield_strength: 276.0e6
+    verify: true
+    source: "6061-T6 structural aluminum plate/bar: density 2.70 g/cm3 (2700 kg/m3), E 68.9 GPa, yield strength 276 MPa (ASM Handbook Vol 2 / MatWeb) [verify]"
+
+  - name: brass-c360
+    keywords: [brass-c360, c360, brass c360, c36000, brass]
+    conductivity: 115.0
+    density: 8500
+    specific_heat: 380
+    process_class: machining
+    youngs_modulus: 97.0e9
+    yield_strength: 310.0e6
+    verify: true
+    source: "C36000 free-cutting brass (H02 temper): density 8.50 g/cm3 (8500 kg/m3), E 97 GPa, yield strength 310 MPa (ASTM B16 / Copper Development Association / MatWeb) [verify]"
+
+  - name: copper
+    keywords: [copper, cu]
+    conductivity: 390.0
+    density: 8960
+    specific_heat: 385
+    process_class: machining
+    youngs_modulus: 117.0e9
+    yield_strength: 70.0e6
+    verify: true
+    source: "C11000 copper (ETP annealed): density 8.96 g/cm3 (8960 kg/m3), E 117 GPa, yield strength 70 MPa (ASM Handbook / MatWeb) [verify]"
+
+  - name: kanthal
+    keywords: [kanthal, kanthal a1, kanthal a-1]
+    conductivity: 11.0
+    density: 7100
+    specific_heat: 460
+    process_class: null
+    youngs_modulus: 220.0e9
+    yield_strength: 450.0e6
+    verify: true
+    source: "Kanthal A-1 resistance heating alloy: density 7.10 g/cm3 (7100 kg/m3), E 220 GPa, yield strength ~450 MPa (Kanthal Handbook) [verify]"
+
+  # --- Woods & Sheet Goods --------------------------------------------------------------
+  - name: white-oak
+    keywords: [white-oak, white oak, oak]
+    conductivity: 0.16
+    density: 750
+    specific_heat: 1700
+    process_class: woodworking
+    youngs_modulus: 12.3e9
+    yield_strength: 55.2e6
+    moisture_basis: "12% MC"
+    verify: true
+    source: "USDA Wood Handbook (FPL-GTR-190) Table 5-3a (white oak, Quercus alba, 12% MC): density 750 kg/m3, E (MOE) 12.3 GPa, fiber stress at proportional limit 55.2 MPa (MOR 105 MPa) [verify]"
+
+  - name: hard-maple
+    keywords: [hard-maple, hard maple, sugar maple, maple]
+    conductivity: 0.16
+    density: 710
+    specific_heat: 1700
+    process_class: woodworking
+    youngs_modulus: 12.6e9
+    yield_strength: 65.5e6
+    moisture_basis: "12% MC"
+    verify: true
+    source: "USDA Wood Handbook (FPL-GTR-190) Table 5-3a (sugar maple, Acer saccharum, 12% MC): density 710 kg/m3, E (MOE) 12.6 GPa, fiber stress at proportional limit 65.5 MPa (MOR 109 MPa) [verify]"
+
+  - name: walnut
+    keywords: [walnut, black-walnut, black walnut]
+    conductivity: 0.14
+    density: 610
+    specific_heat: 1700
+    process_class: woodworking
+    youngs_modulus: 11.6e9
+    yield_strength: 52.4e6
+    moisture_basis: "12% MC"
+    verify: true
+    source: "USDA Wood Handbook (FPL-GTR-190) Table 5-3a (black walnut, Juglans nigra, 12% MC): density 610 kg/m3, E (MOE) 11.6 GPa, fiber stress at proportional limit 52.4 MPa (MOR 101 MPa) [verify]"
+
+  - name: southern-yellow-pine
+    keywords: [southern-yellow-pine, southern yellow pine, yellow pine, syp, pine]
+    conductivity: 0.13
+    density: 590
+    specific_heat: 1700
+    process_class: woodworking
+    youngs_modulus: 12.3e9
+    yield_strength: 49.6e6
+    moisture_basis: "12% MC"
+    verify: true
+    source: "USDA Wood Handbook (FPL-GTR-190) Table 5-3b (southern yellow pine / loblolly, 12% MC): density 590 kg/m3, E (MOE) 12.3 GPa, fiber stress at proportional limit 49.6 MPa (MOR 88 MPa) [verify]"
+
+  - name: baltic-birch-plywood
+    keywords: [baltic-birch-plywood, baltic birch, birch plywood]
+    conductivity: 0.13
+    density: 680
+    specific_heat: 1700
+    process_class: cnc-routing
+    youngs_modulus: 7.0e9
+    yield_strength: 30.0e6
+    moisture_basis: "10% MC"
+    verify: true
+    source: "Baltic birch plywood (EN 636-2 / EN 310): density 680 kg/m3, bending MOE 7.0 GPa, bending MOR 30 MPa at ~10% MC [verify]"
+
+  - name: plywood
+    keywords: [plywood, softwood-plywood]
+    conductivity: 0.12
+    density: 600
+    specific_heat: 1700
+    process_class: cnc-routing
+    youngs_modulus: 6.0e9
+    yield_strength: 20.0e6
+    moisture_basis: "12% MC"
+    verify: true
+    source: "softwood plywood ~0.6 g/cm3 (600 kg/m3), bending MOE ~6.0 GPa, MOR ~20 MPa (USDA Wood Handbook / APA) [verify]"
+
+  - name: mdf
+    keywords: [mdf, medium-density fiberboard]
+    conductivity: 0.10
+    density: 750
+    specific_heat: 1700
+    process_class: cnc-routing
+    youngs_modulus: 3.5e9
+    yield_strength: 25.0e6
+    moisture_basis: "8% MC"
+    verify: true
+    source: "MDF medium-density fiberboard: density 750 kg/m3 (0.75 g/cm3), MOE 3.5 GPa, MOR 25 MPa (ANSI A208.2 / EN 622-5) [verify]"
+
+  # --- Polymers -------------------------------------------------------------------------
+  - name: polycarbonate
+    keywords: [polycarbonate, lexan, makrolon, pc]
+    conductivity: 0.20
+    density: 1200
+    specific_heat: 1200
+    process_class: machining
+    youngs_modulus: 2.3e9
+    yield_strength: 65.0e6
+    verify: true
+    source: "Polycarbonate (PC) sheet/molding: density 1.20 g/cm3 (1200 kg/m3), E 2.3 GPa, tensile yield 65 MPa (ISO 527 / MatWeb) [verify]"
+
+  - name: acrylic-pmma
+    keywords: [acrylic-pmma, pmma, plexiglas, acrylic]
+    conductivity: 0.19
+    density: 1180
+    specific_heat: 1400
+    process_class: laser-cutting
+    youngs_modulus: 3.2e9
+    yield_strength: 70.0e6
+    verify: true
+    source: "Acrylic / PMMA cast/extruded sheet: density 1.18 g/cm3 (1180 kg/m3), E 3.2 GPa, tensile yield 70 MPa (ISO 527 / MatWeb) [verify]"
+
+  - name: acetal-pom
+    keywords: [acetal-pom, acetal, pom, delrin, polyoxymethylene]
+    conductivity: 0.31
+    density: 1410
+    specific_heat: 1500
+    process_class: machining
+    youngs_modulus: 2.8e9
+    yield_strength: 65.0e6
+    verify: true
+    source: "Acetal / POM (polyoxymethylene / Delrin): density 1.41 g/cm3 (1410 kg/m3), E 2.8 GPa, tensile yield 65 MPa (ISO 527 / MatWeb) [verify]"
+
+  - name: hdpe
+    keywords: [hdpe, high-density polyethylene, polyethylene]
+    conductivity: 0.44
+    density: 955
+    specific_heat: 1900
+    process_class: machining
+    youngs_modulus: 1.0e9
+    yield_strength: 26.0e6
+    verify: true
+    source: "HDPE (high-density polyethylene): density 0.955 g/cm3 (955 kg/m3), E 1.0 GPa, tensile yield 26 MPa (ISO 527 / MatWeb) [verify]"
+
+  - name: nylon-pa6
+    keywords: [nylon-pa6, pa6, polyamide 6, nylon]
+    conductivity: 0.25
+    density: 1150
+    specific_heat: 1600
+    process_class: machining
+    youngs_modulus: 2.8e9
+    yield_strength: 75.0e6
+    verify: true
+    source: "Nylon 6 (PA6, extruded/molded, dry): density 1.15 g/cm3 (1150 kg/m3), E 2.8 GPa, tensile yield 75 MPa (ISO 527 / MatWeb) [verify]"
+
+  # --- Printed Plastics (density and cost only; W2) -------------------------------------
+  - name: pla-printed
+    keywords: [pla-printed, 3d-printed pla, pla]
+    conductivity: 0.13
+    density: 1240
+    specific_heat: 1800
+    process_class: 3d-print
+    youngs_modulus: null
+    yield_strength: null
+    verify: true
+    source: "PLA 3D printed: bulk filament density 1.24 g/cm3 (1240 kg/m3); structural modulus and yield derated by infill and print orientation (MatWeb / manufacturer datasheets) [verify]"
+
+  - name: petg-printed
+    keywords: [petg-printed, 3d-printed petg, petg]
+    conductivity: 0.19
+    density: 1270
+    specific_heat: 1300
+    process_class: 3d-print
+    youngs_modulus: null
+    yield_strength: null
+    verify: true
+    source: "PETG 3D printed: bulk filament density 1.27 g/cm3 (1270 kg/m3); structural modulus and yield derated by infill and print orientation (MatWeb / manufacturer datasheets) [verify]"
+
+  - name: abs-printed
+    keywords: [abs-printed, 3d-printed abs, abs]
+    conductivity: 0.17
+    density: 1040
+    specific_heat: 1400
+    process_class: 3d-print
+    youngs_modulus: null
+    yield_strength: null
+    verify: true
+    source: "ABS 3D printed: bulk filament density 1.04 g/cm3 (1040 kg/m3); structural modulus and yield derated by infill and print orientation (MatWeb / manufacturer datasheets) [verify]"
+
+  # --- Other Everyday Materials (from DENSITIES) ---------------------------------------
+  - name: rubber
+    keywords: [rubber, elastomer, neoprene, epdm]
+    conductivity: 0.15
+    density: 1100
+    specific_heat: 1500
+    process_class: cut-sheet
+    youngs_modulus: 0.01e9
+    yield_strength: null
+    verify: true
+    source: "general elastomer / synthetic rubber: density 1.10 g/cm3 (1100 kg/m3), modulus ~10 MPa (engineering handbook) [verify]"
+
+  - name: glass
+    keywords: [glass, soda-lime glass]
+    conductivity: 1.0
+    density: 2500
+    specific_heat: 840
+    process_class: cut-sheet
+    youngs_modulus: 70.0e9
+    yield_strength: null
+    verify: true
+    source: "soda-lime glass: density 2.50 g/cm3 (2500 kg/m3), E 70 GPa (engineering handbook / MatWeb) [verify]"

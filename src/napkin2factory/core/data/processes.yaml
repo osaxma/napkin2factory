@@ -2,10 +2,15 @@
 # product that is cast or anodised needs no schema change. A domain adds its own through
 # `Domain.processes`; `declared: false` marks "not decided yet" (the general rule pack's
 # custom-part-complete check asks for a declared one).
-- {id: sheet-metal, title: Sheet metal}
-- {id: machining, title: Machining}
-- {id: welding, title: Welding}
-- {id: cut-block, title: Cut from a block}
-- {id: cut-sheet, title: Cut from a sheet}
-- {id: 3d-print, title: 3D printing}
+# default_tolerance_class: optional ISO 2768 tolerance class for lite ceremony defaults (W6).
+- {id: sheet-metal, title: Sheet metal, default_tolerance_class: ISO2768-m}
+- {id: machining, title: Machining, default_tolerance_class: ISO2768-m}
+- {id: welding, title: Welding, default_tolerance_class: ISO2768-c}
+- {id: cut-block, title: Cut from a block, default_tolerance_class: ISO2768-c}
+- {id: cut-sheet, title: Cut from a sheet, default_tolerance_class: ISO2768-c}
+- {id: 3d-print, title: 3D printing, default_tolerance_class: ISO2768-c, verify: true, source: "DIN EN ISO 52920 / ISO 2768-1 coarse (+/- 0.5 mm) typical for FDM 3D printing"}
+- {id: woodworking, title: Woodworking, default_tolerance_class: ISO2768-c, verify: true, source: "DIN 68100 / AWI architectural woodwork tolerances map to ISO 2768-c (+/- 0.8 mm to 2 mm across everyday spans)"}
+- {id: cnc-routing, title: CNC routing, default_tolerance_class: ISO2768-m}
+- {id: laser-cutting, title: Laser cutting, default_tolerance_class: ISO2768-m}
+- {id: extrusion-cut, title: Extrusion cut, default_tolerance_class: ISO2768-m}
 - {id: none, title: Not decided yet, declared: false}

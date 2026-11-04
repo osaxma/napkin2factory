@@ -285,12 +285,15 @@ def test_cost_estimate_by_hand(monkeypatch):
     assert not u.known and u.low is None
     with pytest.raises(ValueError, match="mass="):
         mass_cost.cost_estimate("cut-block")
-    # per m² rows (none shipped yet): 10–20 USD/m² × 2 m² × 2 = 40–80 USD
+    # per m² rows: 10–20 USD/m² × 2 m² × 2 = 40–80 USD
     row = {
         "process_class": "paint",
         "unit": "per_m2",
-        "low_usd": 10,
-        "high_usd": 20,
+        "low": 10,
+        "high": 20,
+        "currency": "USD",
+        "region": "US",
+        "as_of": "2026-11",
         "source": "test",
         "verify": True,
     }
@@ -302,6 +305,60 @@ def test_cost_estimate_by_hand(monkeypatch):
     monkeypatch.setattr(mass_cost, "load_table", lambda name: [{**row, "unit": "per_hour"}])
     with pytest.raises(ValueError, match="unknown unit"):
         mass_cost.cost_estimate("paint", area=Q(1, "m**2"))
+
+
+def test_cost_band_lookup_and_regional_failure():
+    """W3: cost_band lookup with region or None; unknown region fails naming table and regions."""
+    b = mass_cost.cost_band("sheet-metal")
+    assert b.known and b.process_class == "sheet-metal"
+    assert b.low == 8.0 and b.high == 67.6
+    assert b.region == "US" and b.currency == "USD"
+    assert not b.stale
+
+    # explicit valid region
+    b_us = mass_cost.cost_band("sheet-metal", region="US")
+    assert b_us.known and b_us.region == "US"
+    assert b_us.low == 8.0
+
+    b_eu = mass_cost.cost_band("sheet-metal", region="EU")
+    assert b_eu.known and b_eu.region == "EU" and b_eu.currency == "EUR"
+    assert b_eu.low == 7.5
+
+    # loud failure naming the table and the regions it has
+    with pytest.raises(ValueError, match="table 'cost_bands' has no rows for region 'JP'") as exc:
+        mass_cost.cost_band("sheet-metal", region="JP")
+    assert "regions on file: EU, US" in str(exc.value)
+
+    # unknown process class returns known=False verdict
+    u = mass_cost.cost_band("vacuum-forming", region="US")
+    assert not u.known and u.low is None
+
+
+def test_cost_band_staleness():
+    """W3: cost bands older than 24 months are marked stale."""
+    import datetime as dt
+
+    # Fresh band (same month)
+    b_fresh = mass_cost.cost_band("sheet-metal", today=dt.date(2026, 11, 1))
+    assert not b_fresh.stale
+
+    # Exactly 24 months old (2024-10 vs 2026-10) -> not older than 24 months
+    b_edge = mass_cost.cost_band("sheet-metal", today=dt.date(2026, 10, 1))
+    assert not b_edge.stale
+
+    # 26 months old (2024-10 as_of, tested in 2026-12) -> stale
+    b_stale = mass_cost.cost_band("sheet-metal", today=dt.date(2028, 12, 1))
+    assert b_stale.stale
+
+
+def test_cost_estimate_extrusion_per_m():
+    """Extrusion cut cost band is per linear meter (W3)."""
+    est = mass_cost.cost_estimate("extrusion-cut", length=Q(2.5, "m"))
+    assert est.known and est.low is not None and est.high is not None
+    assert _mag(est.low, "USD") == pytest.approx(15.0 * 2.5)
+    assert _mag(est.high, "USD") == pytest.approx(45.0 * 2.5)
+    with pytest.raises(ValueError, match="is per m; pass length="):
+        mass_cost.cost_estimate("extrusion-cut")
 
 
 def test_lift_class_by_hand():
@@ -347,7 +404,7 @@ def test_every_table_row_has_source_and_verify():
             assert row["source"].strip(), (name, row)
             assert row["verify"] is True, (name, row)
     for row in load_table("cost_bands"):
-        assert row["low_usd"] <= row["high_usd"], row
+        assert row["low"] <= row["high"], row
 
 
 def test_load_table_errors(tmp_path, monkeypatch):

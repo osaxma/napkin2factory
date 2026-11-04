@@ -225,6 +225,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-196 | Faster test runs: one run at a time, 16 workers spread per test, prebuilt products, in-process CLI | in force |
 | S-197 | v0.7 opens: Track A as `docs/stages/v0.7-everyday-breadth.md`, W-series decisions, waves | in force |
 | S-198 | Structural calc pack: members | in force |
+| S-199 | One materials table, everyday materials, dated regional cost bands | in force |
 
 ---
 
@@ -1485,3 +1486,14 @@ Why: generic `structural` screen (W4) and product sizing share verified physics 
 Sources: Roark's Formulas for Stress and Strain 7th ed. (Tables 1, 8.1, 15.1, §8.1), Shigley's Mechanical
 Engineering Design 11th ed. (Tables 4-2, §1-10, §4-11, §8-5), AISC 15th ed. (Table C-A-7.1).
 Covered by 27 reference cases (8 external published cases) and Hypothesis property tests.
+
+## S-199 — One materials table, everyday materials, dated regional cost bands (2026-11-04)
+W2, W3 (milestone M1c). `calckit/data/materials.yaml` becomes the sole materials table, gaining
+optional `youngs_modulus`, `yield_strength`, and wood `moisture_basis`; expanded with Track A §3.2
+materials (metals, woods, polymers, printed plastics) and all old `DENSITIES` entries.
+`geometry/materials.py` reads it directly with keyword matching and no density dict; S-186 strict density
+check preserved. `core/data/processes.yaml` gains `woodworking`, `cnc-routing`, `laser-cutting`,
+`extrusion-cut`, and default tolerance classes. `calckit/data/cost_bands.yaml` replaces old columns
+with dated regional fields (`low`, `high`, `currency`, `region`, `as_of`); `mass_cost.cost_band` exposes
+dated regional lookups, failing loudly on unknown regions and marking rows >24 months old as stale.
+The board's cost-band line names region, date, and staleness in plain words. Closes B-0189.

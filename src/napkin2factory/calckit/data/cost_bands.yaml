@@ -1,22 +1,45 @@
-# Cost bands per process class, quantity 1, USD (calckit.mass_cost.cost_estimate).
-# NOT VERIFIED: the first source is one shipped example product's own per-part estimates
-# (its parts' `cost:` fields, basis `estimate`) divided by the built part masses; real
-# quotes replace them. Every row is [verify] in DECISIONS.md.
-# An unknown process class returns an `unknown` estimate; the caller warns.
-# unit: per_kg (needs a mass) | per_m2 (needs an area) | per_item (uses the count).
+# Cost bands per process class and region (calckit.mass_cost.cost_estimate, cost_band; W3).
+# NOT VERIFIED: every row is [verify] in DECISIONS.md until confirmed by real supplier quotes.
+# Columns:
+#   process_class: process class name.
+#   unit: per_kg (mass), per_m (length, extrusions), per_m2 (area), per_item (count).
+#   low: lower bound rate in currency per unit.
+#   high: upper bound rate in currency per unit.
+#   currency: currency code (USD, EUR).
+#   region: supply region (US, EU).
+#   as_of: quote / estimate date (YYYY-MM).
+#   verify: true until confirmed by a person.
+#   source: citation of quote or per-part estimate basis.
 table: cost_bands
 rows:
-  - {process_class: sheet-metal, unit: per_kg, low_usd: 8.0, high_usd: 67.6, verify: true,
+  # --- US (USD) -------------------------------------------------------------------------
+  - {process_class: sheet-metal, unit: per_kg, low: 8.0, high: 67.6, currency: USD, region: US, as_of: "2026-10", verify: true,
      source: "a product's per-part estimates (basis estimate) over its built masses: a door tray 60 USD / 7.50 kg, a door guard 55 / 5.73, a guard shell 280 / 16.06, an outer shell 320 / 16.46, a controller box 80 / 1.18 (small parts cost more per kg)"}
-  - {process_class: cut-sheet, unit: per_kg, low_usd: 61.3, high_usd: 61.3, verify: true,
+  - {process_class: cut-sheet, unit: per_kg, low: 61.3, high: 61.3, currency: USD, region: US, as_of: "2026-10", verify: true,
      source: "a single per-part estimate of a product (basis estimate): a controller lid 15 USD / 0.245 kg; no band yet, replace with quotes"}
-  - {process_class: cut-block, unit: per_kg, low_usd: 18.8, high_usd: 40.1, verify: true,
+  - {process_class: cut-block, unit: per_kg, low: 18.8, high: 40.1, currency: USD, region: US, as_of: "2026-10", verify: true,
      source: "a product's per-part estimates for K-23 insulating firebrick, cut and grooved (basis estimate): a liner slab 50 USD / 2.66 kg, a door brick 60 / 2.50, a liner side 55 / 1.53, a liner back 45 / 1.12"}
-  - {process_class: fiber-board, unit: per_kg, low_usd: 2.0, high_usd: 7.9, verify: true,
+  - {process_class: fiber-board, unit: per_kg, low: 2.0, high: 7.9, currency: USD, region: US, as_of: "2026-10", verify: true,
      source: "a product's per-part estimates for Kaowool 1260 class board, cut (basis estimate): a fiber slab 22 USD / 11.07 kg, a fiber side 22 / 6.33, a fiber back 20 / 3.61, a door fiber board 30 / 3.78 (masses at the 260 kg/m3 density declared on those parts, the calckit/data/materials.yaml row)"}
-  - {process_class: welding, unit: per_kg, low_usd: 19.5, high_usd: 19.5, verify: true,
+  - {process_class: welding, unit: per_kg, low: 19.5, high: 19.5, currency: USD, region: US, as_of: "2026-10", verify: true,
      source: "a single per-part estimate of a product (basis estimate): a stand, welded 25 x 25 x 1.5 square tube, 140 USD / 7.17 kg; no band yet, replace with quotes"}
-  - {process_class: machining, unit: per_kg, low_usd: 31.8, high_usd: 128.9, verify: true,
+  - {process_class: machining, unit: per_kg, low: 31.8, high: 128.9, currency: USD, region: US, as_of: "2026-10", verify: true,
      source: "a product's per-part estimates (basis estimate): a hinge post 25 USD / 0.786 kg, a latch keeper 12 / 0.093 kg (cut and drilled angle; small parts cost more per kg)"}
-  - {process_class: cots-controls, unit: per_item, low_usd: 35, high_usd: 120, verify: true,
+  - {process_class: cots-controls, unit: per_item, low: 35.0, high: 120.0, currency: USD, region: US, as_of: "2026-10", verify: true,
      source: "a product's per-part estimates for bought-in controls (basis estimate): a solid-state relay 35 USD, a door switch 35, a contactor 45, a thermocouple 60, a PID controller 120, a limit controller 120"}
+  - {process_class: woodworking, unit: per_kg, low: 9.0, high: 22.0, currency: USD, region: US, as_of: "2026-11", verify: true,
+     source: "hardwood milling, jointing, surfacing and edge-gluing rough lumber into solid tops/frames: 9–22 USD/kg based on typical US custom furniture millwork shop rates (2026-11) [verify]"}
+  - {process_class: cnc-routing, unit: per_m2, low: 35.0, high: 120.0, currency: USD, region: US, as_of: "2026-11", verify: true,
+     source: "2.5D CNC sheet routing machine time and tooling for wood and polymer panels: 35–120 USD/m² typical US fabrication shop rates (2026-11) [verify]"}
+  - {process_class: laser-cutting, unit: per_m2, low: 40.0, high: 150.0, currency: USD, region: US, as_of: "2026-11", verify: true,
+     source: "flat sheet laser cutting (sheet metal, acrylic, plywood): 40–150 USD/m² based on typical US sheet laser cutting job-shop rates (2026-11) [verify]"}
+  - {process_class: extrusion-cut, unit: per_m, low: 15.0, high: 45.0, currency: USD, region: US, as_of: "2026-11", verify: true,
+     source: "cut-to-length linear structural aluminum extrusion profile: 15–45 USD/m based on US catalogue supplier extrusion and cut charges (2026-11) [verify]"}
+  - {process_class: 3d-print, unit: per_kg, low: 25.0, high: 80.0, currency: USD, region: US, as_of: "2026-11", verify: true,
+     source: "FDM 3D printing filament plus machine time: 25–80 USD/kg typical US service bureau rates (2026-11) [verify]"}
+
+  # --- EU (EUR) -------------------------------------------------------------------------
+  - {process_class: sheet-metal, unit: per_kg, low: 7.5, high: 62.0, currency: EUR, region: EU, as_of: "2026-11", verify: true,
+     source: "sheet metal cutting and press brake bending in EU: 7.5–62 EUR/kg typical job-shop rates (2026-11) [verify]"}
+  - {process_class: woodworking, unit: per_kg, low: 8.5, high: 20.0, currency: EUR, region: EU, as_of: "2026-11", verify: true,
+     source: "hardwood milling and furniture joinery in EU: 8.5–20 EUR/kg typical European millwork shop rates (2026-11) [verify]"}

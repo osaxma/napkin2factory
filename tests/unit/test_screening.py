@@ -578,3 +578,56 @@ def test_cost_source_names_what_is_priced_and_what_is_not(kiln: Screening) -> No
     assert kiln.computed["footprint_with_door_swing"].source == (
         "the body plus the door leaf swung fully back beside the hinge"
     )
+
+
+def test_cost_source_names_region_and_date() -> None:
+    """W3: cost source names the band's region and date in plain words."""
+    from napkin2factory.concepts.screens.base import ScreenValues
+    from napkin2factory.concepts.screens.generic import cost_band as cb_screen
+
+    card = ConceptCard.model_validate(SMALL)
+    object.__setattr__(card, "region", "US")
+    values = ScreenValues()
+    values.cost_items.append(("bracket", "sheet-metal", 5.0))
+    cb_screen(card, None, values)
+    assert "from US cost bands per process (2026-10)" in values.estimate.out["cost_high"].source
+
+
+def test_cost_source_names_stale_when_band_is_old(monkeypatch: pytest.MonkeyPatch) -> None:
+    """W3: cost source names stale in plain words when a band is older than 24 months."""
+    from napkin2factory.calckit import mass_cost
+    from napkin2factory.concepts.screens.base import ScreenValues
+    from napkin2factory.concepts.screens.generic import cost_band as cb_screen
+
+    row = {
+        "process_class": "woodworking",
+        "unit": "per_kg",
+        "low": 9.0,
+        "high": 22.0,
+        "currency": "USD",
+        "region": "US",
+        "as_of": "2020-01",
+        "source": "old source",
+        "verify": True,
+    }
+    monkeypatch.setattr(mass_cost, "load_table", lambda name: [row])
+    card = ConceptCard.model_validate(SMALL)
+    object.__setattr__(card, "region", "US")
+    values = ScreenValues()
+    values.cost_items.append(("top", "woodworking", 10.0))
+    cb_screen(card, None, values)
+    assert "US cost bands per process (2020-01, stale)" in values.estimate.out["cost_high"].source
+
+
+def test_cost_band_screen_fails_loudly_on_unknown_region() -> None:
+    """W3, W7: card with unknown region fails loudly naming table and regions."""
+    from napkin2factory.concepts.screens.base import ScreenValues
+    from napkin2factory.concepts.screens.generic import cost_band as cb_screen
+
+    card = ConceptCard.model_validate(SMALL)
+    object.__setattr__(card, "region", "ZZ")
+    values = ScreenValues()
+    values.cost_items.append(("bracket", "sheet-metal", 5.0))
+    with pytest.raises(ValueError, match="table 'cost_bands' has no rows for region 'ZZ'") as exc:
+        cb_screen(card, None, values)
+    assert "regions on file: EU, US" in str(exc.value)

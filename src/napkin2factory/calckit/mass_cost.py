@@ -1,16 +1,17 @@
 """Envelope mass, cost bands, manual-handling class and stock-sheet fit.
 
 * Mass is volume × the nominal density of :mod:`napkin2factory.geometry.materials`
-  (handbook values, sourced per row there).
+  (handbook values, sourced from ``calckit/data/materials.yaml``).
 * Cost, lift class and stock sheets come from the data tables under ``calckit/data``
   (``cost_bands``, ``lift_classes``, ``stock_sheets``); every row carries a ``source``
   and ``verify: true`` and DECISIONS.md lists them as [verify]. A process class or
   material class the tables do not know returns an ``unknown`` result (callers warn,
-  never fail).
+  never fail). A specified region with no rows in the table fails loudly (W3, W7).
 """
 
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -41,12 +42,129 @@ def mass(volume: Qty, material: str) -> Qty:
 
 
 @dataclass(frozen=True)
+class CostBand:
+    """A dated regional cost band for one process class (W3).
+
+    Attributes:
+        process_class: process class name (e.g. ``sheet-metal``, ``woodworking``).
+        unit: rate basis: ``per_kg``, ``per_m``, ``per_m2``, or ``per_item``.
+        low: lower bound rate per unit.
+        high: upper bound rate per unit.
+        currency: currency code (e.g. ``USD``).
+        region: supply region (e.g. ``US``, ``EU``).
+        as_of: date of rate as YYYY-MM.
+        stale: True when the band is older than 24 months.
+        source: provenance description.
+        known: False when no band exists for the process class.
+        verify: True when the band still needs human confirmation.
+    """
+
+    process_class: str
+    unit: str = "per_kg"
+    low: float | None = None
+    high: float | None = None
+    currency: str = "USD"
+    region: str = "US"
+    as_of: str = ""
+    stale: bool = False
+    source: str = ""
+    known: bool = True
+    verify: bool = True
+
+
+def _is_stale(as_of: str, today: dt.date | None = None) -> bool:
+    """Whether a YYYY-MM date is older than 24 months from today (W3)."""
+    if not as_of:
+        return False
+    try:
+        parts = as_of.strip().split("-")
+        year, month = int(parts[0]), int(parts[1])
+    except (ValueError, IndexError):
+        return False
+    now = today or dt.date.today()
+    months_old = (now.year - year) * 12 + (now.month - month)
+    return months_old > 24
+
+
+def cost_band(
+    process_class: str,
+    region: str | None = None,
+    today: dt.date | None = None,
+) -> CostBand:
+    """The dated regional cost band for ``process_class`` (W3).
+
+    Reads ``calckit/data/cost_bands.yaml``.
+
+    Args:
+        process_class: the manufacturing process class to price.
+        region: optional region code (e.g. ``"US"``, ``"EU"``). When ``None``,
+            returns the first band on file for the process class without region filtering.
+            When specified, fails loudly naming the table and its regions if the table
+            holds no rows for that region.
+        today: reference date for the 24-month staleness check (defaults to today).
+
+    Returns:
+        A :class:`CostBand` representing the matching band, marked ``stale`` if
+        older than 24 months, or with ``known=False`` if the process class has no band.
+
+    Raises:
+        ValueError: ``region`` is given but no row in ``cost_bands.yaml`` has that region.
+    """
+    rows = load_table("cost_bands")
+    if region is not None:
+        all_regions = sorted({str(r["region"]) for r in rows if r.get("region")})
+        reg_code = region.strip().upper()
+        if reg_code not in {r.upper() for r in all_regions}:
+            raise ValueError(
+                f"table 'cost_bands' has no rows for region {region!r}; "
+                f"regions on file: {', '.join(all_regions)}"
+            )
+        matching = [
+            r
+            for r in rows
+            if r["process_class"] == process_class and str(r.get("region", "")).upper() == reg_code
+        ]
+    else:
+        matching = [r for r in rows if r["process_class"] == process_class]
+
+    if not matching:
+        return CostBand(
+            process_class=process_class,
+            low=None,
+            high=None,
+            source="",
+            as_of="",
+            stale=False,
+            known=False,
+        )
+
+    row = matching[0]
+    as_of = str(row.get("as_of", ""))
+    stale = _is_stale(as_of, today=today)
+    lo = float(row["low"]) if "low" in row else float(row["low_usd"])
+    hi = float(row["high"]) if "high" in row else float(row["high_usd"])
+    return CostBand(
+        process_class=str(row["process_class"]),
+        unit=str(row.get("unit", "per_kg")),
+        low=lo,
+        high=hi,
+        currency=str(row.get("currency", "USD")),
+        region=str(row.get("region", "US")),
+        as_of=as_of,
+        stale=stale,
+        source=str(row.get("source", "")),
+        known=True,
+        verify=bool(row.get("verify", True)),
+    )
+
+
+@dataclass(frozen=True)
 class CostEstimate:
     """A cost band for one process class.
 
     Attributes:
-        low: lower bound (USD), ``None`` when the class is unknown.
-        high: upper bound (USD), ``None`` when the class is unknown.
+        low: lower bound (currency), ``None`` when the class is unknown.
+        high: upper bound (currency), ``None`` when the class is unknown.
         basis: how the band was computed, in words.
         source: the table row's source.
         known: ``False`` when the process class is not in ``cost_bands.yaml``.
@@ -65,21 +183,23 @@ def cost_estimate(
     process_class: str,
     mass: Qty | None = None,
     area: Qty | None = None,
+    length: Qty | None = None,
     count: int = 1,
+    region: str | None = None,
+    today: dt.date | None = None,
 ) -> CostEstimate:
-    """Cost band for ``count`` items of one process class at quantity 1 (USD).
+    """Cost band for ``count`` items of one process class at quantity 1 (W3).
 
-    Reads ``calckit/data/cost_bands.yaml`` (rows ``{process_class, unit: per_kg |
-    per_m2 | per_item, low_usd, high_usd, source, verify}``): ``per_kg`` multiplies by
-    ``mass``, ``per_m2`` by ``area``, ``per_item`` by ``count`` alone. The bands are
-    first derived from one product's own per-part estimates (the table's ``source``)
-    [verify].
+    Reads ``calckit/data/cost_bands.yaml`` via :func:`cost_band`:
+    ``per_kg`` multiplies by ``mass``, ``per_m2`` by ``area``, ``per_m`` by ``length``,
+    ``per_item`` by ``count`` alone.
 
     Raises:
-        ValueError: the row needs a mass or an area that was not given.
+        ValueError: the row needs a mass, area, or length that was not given, or
+            the region has no rows in the table.
     """
-    rows = [r for r in load_table("cost_bands") if r["process_class"] == process_class]
-    if not rows:
+    band = cost_band(process_class, region=region, today=today)
+    if not band.known or band.low is None or band.high is None:
         return CostEstimate(
             low=None,
             high=None,
@@ -87,29 +207,37 @@ def cost_estimate(
             source="",
             known=False,
         )
-    row = rows[0]
-    unit = str(row["unit"])
-    lo, hi = float(row["low_usd"]), float(row["high_usd"])
+
+    unit = band.unit
+    lo, hi = band.low, band.high
+    currency = band.currency
     if unit == "per_kg":
         if mass is None:
             raise ValueError(f"cost band {process_class!r} is per kg; pass mass=")
         qty, what = float(mass.to("kg").magnitude), f"{mass.to('kg'):~.3gP}"
-        rate = "USD/kg"
+        rate = f"{currency}/kg"
     elif unit == "per_m2":
         if area is None:
             raise ValueError(f"cost band {process_class!r} is per m²; pass area=")
         qty, what = float(area.to("m**2").magnitude), f"{area.to('m**2'):~.3gP}"
-        rate = "USD/m²"
+        rate = f"{currency}/m²"
+    elif unit == "per_m":
+        if length is None:
+            raise ValueError(f"cost band {process_class!r} is per m; pass length=")
+        qty, what = float(length.to("m").magnitude), f"{length.to('m'):~.3gP}"
+        rate = f"{currency}/m"
     elif unit == "per_item":
-        qty, what, rate = 1.0, "1 item", "USD/item"
+        qty, what, rate = 1.0, "1 item", f"{currency}/item"
     else:
         raise ValueError(f"cost band {process_class!r} has unknown unit {unit!r}")
+
     return CostEstimate(
-        low=Quantity(lo * qty * count, "USD"),
-        high=Quantity(hi * qty * count, "USD"),
+        low=Quantity(lo * qty * count, currency),
+        high=Quantity(hi * qty * count, currency),
         basis=f"estimate: {lo:g}–{hi:g} {rate} × {what} × {count}",
-        source=str(row["source"]),
-        verify=bool(row["verify"]),
+        source=band.source,
+        known=True,
+        verify=band.verify,
     )
 
 
@@ -263,6 +391,15 @@ CASES: list[Case] = [
         rel=1e-12,
     ),
     Case(
+        "cost_band",
+        8.0,
+        "calckit/data/cost_bands.yaml, sheet-metal in US: 8.0-67.6 USD/kg",
+        args=("sheet-metal",),
+        kwargs={"region": "US"},
+        pick="low",
+        rel=1e-12,
+    ),
+    Case(
         "cost_estimate",
         Quantity(752, "USD"),
         "calckit/data/cost_bands.yaml, cut-block 18.8-40.1 USD/kg: 18.8 x 40 kg = 752 USD "
@@ -293,9 +430,11 @@ CASES: list[Case] = [
 
 __all__ = [
     "CASES",
+    "CostBand",
     "CostEstimate",
     "LiftVerdict",
     "StockVerdict",
+    "cost_band",
     "cost_estimate",
     "density",
     "lift_class",

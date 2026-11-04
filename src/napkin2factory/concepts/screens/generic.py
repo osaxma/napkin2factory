@@ -217,16 +217,23 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
     no_material: list[str] = []
     no_band: list[str] = []
     items: list[tuple[str, str, float | None]] = []
+    bands: list[mass_cost.CostBand] = []
     if massing is not None:
         items += [(p.name, p.process_class, p.mass) for p in massing.pieces]
     items += values.cost_items
+    card_region = getattr(card, "region", None)
     for name, pclass, kg in items:
+        b = mass_cost.cost_band(pclass, region=card_region)
         try:
-            c = mass_cost.cost_estimate(pclass, mass=None if kg is None else Quantity(kg, "kg"))
-        except ValueError:
-            no_material.append(name)
-            unpriced.append(name)
-            continue
+            c = mass_cost.cost_estimate(
+                pclass, mass=None if kg is None else Quantity(kg, "kg"), region=card_region
+            )
+        except ValueError as exc:
+            if any(k in str(exc) for k in ("pass mass=", "pass area=", "pass length=")):
+                no_material.append(name)
+                unpriced.append(name)
+                continue
+            raise
         if not c.known or c.low is None or c.high is None:
             no_band.append(name)
             unpriced.append(name)
@@ -235,6 +242,8 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
         high += float(c.high.to("USD").magnitude)
         counted.append(f"{name}: {pclass}")
         priced.append(name)
+        if b.known:
+            bands.append(b)
     if no_material:
         notes.append(
             f"the cost leaves out {the(owner_names(no_material))}: no material, so no mass to price"
@@ -247,7 +256,27 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
     if not counted:
         return []
     ref = "mass_cost.cost_estimate (" + "; ".join(counted) + ") [verify]"
-    words = f"rough cost of the {and_(owner_names(priced))} from cost bands per process"
+    if card_region is not None:
+        regions = sorted({b.region for b in bands if b.region})
+        dates = sorted({b.as_of for b in bands if b.as_of})
+        stale = any(b.stale for b in bands)
+        r_str = "/".join(regions) if regions else str(card_region)
+        d_str = "/".join(dates) if dates else ""
+        stale_str = ", stale" if stale else ""
+        if d_str:
+            band_desc = f"{r_str} cost bands per process ({d_str}{stale_str})"
+        else:
+            band_desc = f"{r_str} cost bands per process{stale_str}"
+    elif any(b.stale for b in bands):
+        dates = sorted({b.as_of for b in bands if b.as_of})
+        d_str = "/".join(dates) if dates else ""
+        if d_str:
+            band_desc = f"cost bands per process ({d_str}, stale)"
+        else:
+            band_desc = "cost bands per process (stale)"
+    else:
+        band_desc = "cost bands per process"
+    words = f"rough cost of the {and_(owner_names(priced))} from {band_desc}"
     if unpriced:
         left = owner_names(unpriced)
         verb = "is" if len(left) == 1 else "are"

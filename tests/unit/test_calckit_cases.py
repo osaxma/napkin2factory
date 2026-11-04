@@ -45,7 +45,7 @@ def test_case_counts() -> None:
     external = {
         m.__name__.rsplit(".", 1)[-1]: sum(c.external for c in _cases.pack_cases(m)) for m in PACKS
     }
-    assert counts == {"thermal_enclosure": 11, "power": 10, "mass_cost": 5}
+    assert counts == {"thermal_enclosure": 11, "power": 10, "mass_cost": 6}
     assert external == {"thermal_enclosure": 1, "power": 2, "mass_cost": 1}
 
 

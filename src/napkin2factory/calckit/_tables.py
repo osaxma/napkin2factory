@@ -58,6 +58,24 @@ def _load(name: str) -> tuple[dict[str, Any], ...]:
             raise TableError(f"{path}: row {i} has an empty 'source'")
         if not isinstance(row["verify"], bool):
             raise TableError(f"{path}: row {i} 'verify' must be true or false")
+        if name == "cost_bands":
+            for req in ("process_class", "unit", "low", "high", "currency", "region", "as_of"):
+                if req not in row:
+                    raise TableError(f"{path}: row {i} has no {req!r} key")
+            if not isinstance(row["low"], (int, float)) or not isinstance(
+                row["high"], (int, float)
+            ):
+                raise TableError(f"{path}: row {i} 'low' and 'high' must be numbers")
+            if float(row["low"]) > float(row["high"]):
+                raise TableError(f"{path}: row {i} low ({row['low']}) > high ({row['high']})")
+        elif name == "materials":
+            for req in ("name", "keywords", "density"):
+                if req not in row:
+                    raise TableError(f"{path}: row {i} has no {req!r} key")
+            if not isinstance(row["keywords"], list):
+                raise TableError(f"{path}: row {i} 'keywords' must be a list")
+            if not isinstance(row["density"], (int, float)):
+                raise TableError(f"{path}: row {i} 'density' must be a number")
     return tuple(rows)
 
 
