@@ -252,6 +252,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-223 | Benchmark follow-ups: the oracle reads unsigned safety requirements | in force |
 | S-224 | Review gate I (v0.7) — outcome: NOT READY; two blockers (fixed-base racking, region not reaching costs), twelve concerns | in force |
 | S-225 | Review gate J (v0.7) — outcome: NOT READY; four blockers (an unrun structural check reads as an all-clear, costs without region and date, metric manuals in an imperial product, dimension groups half converted) | in force |
+| S-226 | Gate J blockers fixed: unrun checks shown, manuals and dimension groups in the owner's units | in force |
 
 ---
 
@@ -1730,3 +1731,14 @@ kg and mm in an imperial product; "50 x 50 x 1.5 mm" displays as "50 x 50 x 0.05
 first on the board and the report tables, a visibly shorter lite report, the budget row, one
 disclaimer and no lecture. Concerns C1, C5, C8 go to the fix task; the rest are rows B-0227–B-0232
 (phone-width overflow belongs with the workbench, Track C).
+## S-226 — Gate J blockers fixed: unrun checks shown, manuals and dimension groups in the owner's units (2026-11-05)
+Fixes B1, B3, B4 and concerns C1, C5, C8 of S-225 (B2, cost region and date, is another task's).
+B1: a card with a skipped `structural-*` row (the screen adds rows only when the card gives a load) shows one amber
+line on the board, `concept show` and `concept build` ("not checked: the structural screen does not model this
+shape — sag and tip-over are unknown"; a skip that asks for a card field says so instead) and reads "no problems
+found, but not fully checked", never "holds up" or "screening found no limitations".
+B3: manual values (`P[...]`, `bom`, parts, requirements) go through `report/units.py` like the report tables; the table
+manual carries no literal units. B4: a dimension group converts whole and stays in inches (`1.97 x 1.97 x 0.059 in
+(50 x 50 x 1.5 mm)`): a US shop reads inches, and "50 x 50" beside an inch sign reads as 50 inches; inches stop at three
+decimals. C1: `330 lb` on a force field hints "330 lbf or 1470 N". C5: no Manuals section when Safety is the only page.
+C8: Interfaces resolves `param://` to its value and units. Measured: the touched unit tests, the board, report and docs tests, the benchmarks.

@@ -143,3 +143,53 @@ def test_imperial_copy_shows_in_first_in_three_tables_and_board(tmp_path: Path) 
     board_html = (root / BOARD_PATH).read_text(encoding="utf-8")
     assert "31.5 in (800 mm)" in board_html or "39.2 in (995 mm)" in board_html
     assert re.search(r"\b\d+(?:\.\d+)?\s*in\s*\(\d+(?:\.\d+)?\s*mm\)", board_html)
+
+
+def test_a_dimension_group_moves_to_inches_together() -> None:
+    """Gate J, B4 (S-226): "50 x 50 x 1.5 mm" is one group, never "50 x 50 x 0.059 in"."""
+    assert display("welding; 50 x 50 x 1.5 mm square tube", "imperial") == (
+        "welding; 1.97 x 1.97 x 0.059 in (50 x 50 x 1.5 mm) square tube"
+    )
+    assert display("the tabs are 40 x 40 x 4 mm plate", "imperial") == (
+        "the tabs are 1.57 x 1.57 x 0.157 in (40 x 40 x 4 mm) plate"
+    )
+    # a long group stays in inches throughout: one unit for every number
+    assert display("5000 x 40 x 40 mm", "imperial") == "197 x 1.57 x 1.57 in (5000 x 40 x 40 mm)"
+    assert display("50 x 50 x 1.5 mm", "metric") == "50 x 50 x 1.5 mm"
+    # already bracketed (a second pass over a displayed string) is left alone
+    shown = display("50 x 50 x 1.5 mm tube", "imperial")
+    assert display(shown, "imperial") == shown
+    # a lone small length stops at the thousandth, not "0.0591 in"
+    assert display("1.5 mm", "imperial") == "0.059 in (1.5 mm)"
+    assert display("4 mm", "imperial") == "0.157 in (4 mm)"
+
+
+def test_imperial_manual_report_and_interfaces_follow_the_owner_units(tmp_path: Path) -> None:
+    """Gate J, B3, C5 and C8 (S-226) on the table: manual and report read in the owner's units."""
+    root = copy_product(EXAMPLES / "table", tmp_path / "table_imp", prebuilt=True, render=False)
+    manifest_data = load_roundtrip(root / "n2f.yaml")
+    manifest_data["units"] = "imperial"
+    dump_roundtrip(root / "n2f.yaml", manifest_data)
+    shutil.rmtree(root / "build/report", ignore_errors=True)
+    shutil.rmtree(root / "build/docs", ignore_errors=True)
+    run_build(load_product(root), quiet=True, render=False)
+
+    manual = (root / "build/docs/build-and-care/page.md").read_text(encoding="utf-8")
+    assert "110 lbf (490.5 N)" in manual and "lb (" in manual  # parameters and the BOM total
+    assert re.search(r"set back [\d.]+ in \(50 mm\) from every edge", manual)
+    for literal in ("(50 kg)", "(150 kg)", "centimetres"):
+        assert literal not in manual
+    # no millimetre, newton or kilogram figure stands without its owner's unit in front of it
+    first = [m for m in re.finditer(r"(?<![\w.(])[\d.]+ (?:mm|kg|N)\b", manual)]
+    assert not first, [manual[m.start() - 20 : m.end()] for m in first]
+
+    html = (root / "build/report/index.html").read_text(encoding="utf-8")
+    assert "param://" not in LexborHTMLParser(html).css_first("#interfaces").text()
+    assert 'id="manuals"' not in html and "No manuals yet" not in html  # the one page is Safety
+    assert "Safety" in html
+
+
+def test_a_metric_manual_is_unchanged(tmp_path: Path) -> None:
+    root = copy_product(EXAMPLES / "table", tmp_path / "table_metric", prebuilt=True, render=False)
+    manual = (root / "build/docs/build-and-care/page.md").read_text(encoding="utf-8")
+    assert "490.5 N pressed down" in manual and "set back 50 mm from every edge" in manual

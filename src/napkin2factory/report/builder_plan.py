@@ -75,14 +75,29 @@ def _bom_by_uri(flat: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return out
 
 
-def _spec_summary(spec: Any) -> str:
+def _spec_value(v: Any, product: Product | None, units: str) -> str:
+    """A spec number for the owner: a ``param://`` reference is read as its value (C8, S-226)."""
+    from napkin2factory.report.units import display
+
+    text = str(v)
+    if text.startswith("param://") and product is not None:
+        slug = text.removeprefix("param://")
+        if slug in product.parameters:
+            return display(product.parameter_value(slug), units)
+    return display(v, units) if units == "imperial" else text
+
+
+def _spec_summary(spec: Any, product: Product | None = None, units: str = "metric") -> str:
     from napkin2factory.core.model import BoltPatternSpec, MatingFaceSpec
 
     # by the spec's type: a domain kind's spec may subclass the core's (S-144)
     if isinstance(spec, BoltPatternSpec):
-        return f"{spec.count} × ⌀{spec.diameter}, {spec.pattern}"
+        dia = _spec_value(spec.diameter, product, units)
+        return f"{spec.count} × ⌀{dia}, {spec.pattern}"
     if isinstance(spec, MatingFaceSpec):
-        return f"{spec.width} × {spec.depth}"
+        return (
+            f"{_spec_value(spec.width, product, units)} × {_spec_value(spec.depth, product, units)}"
+        )
     return type(spec).__name__
 
 

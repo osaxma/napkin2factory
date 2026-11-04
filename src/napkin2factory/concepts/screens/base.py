@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from napkin2factory.core.domain import SCREEN_PHASES
-from napkin2factory.core.units import is_quantity
+from napkin2factory.core.units import is_quantity, ureg
 
 if TYPE_CHECKING:
     # Not at import: the schemas' package loads the installed domains (the registry), and a
@@ -107,9 +107,21 @@ class CardField:
             try:
                 value.to(self.unit)
             except Exception:  # pint DimensionalityError: another kind of quantity
-                return f"{value.magnitude:g} {value.units:~}", self.kind, self.example
+                return f"{value.magnitude:g} {value.units:~}", self.kind, self._example_for(value)
             return None
         return str(value), self.kind, self.example
+
+    def _example_for(self, value: Any) -> str:
+        """The example to show for a wrong number: pounds on a force field mean ``lbf`` (C1).
+
+        An owner who writes ``330 lb`` means a weight pressing down; the pound-force is the
+        same number, so the hint says it in both units: ``330 lbf or 1470 N``.
+        """
+        if self.unit == "N" and str(value.units) in ("pound", "lb"):
+            lbf = float(value.magnitude)
+            newtons = float((lbf * ureg("lbf")).to("N").magnitude)
+            return f"{lbf:g} lbf or {float(f'{newtons:.3g}'):g} N"
+        return self.example
 
     def quantity(self, card: ConceptCard) -> Any | None:
         """The card's number when it is this field's kind, else None."""

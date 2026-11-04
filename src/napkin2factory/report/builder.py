@@ -248,7 +248,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
             "kind": i.kind,
             "parties": [str(p) for p in i.parties],
             "description": i.description or "",
-            "spec": _spec_summary(i.spec),
+            "spec": _spec_summary(i.spec, product, manifest_units),
         }
         for i in product.interfaces.values()
     ]

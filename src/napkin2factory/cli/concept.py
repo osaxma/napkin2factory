@@ -62,6 +62,8 @@ def _row(card: ConceptCard) -> dict[str, str | None]:
 
 def screening_line(card: ConceptCard) -> str:
     """One line on the card's screening, or how to get one."""
+    from napkin2factory.concepts.board import not_checked_line
+
     if not card.screening:
         if card.status == "rejected":
             return "never built"
@@ -73,6 +75,9 @@ def screening_line(card: ConceptCard) -> str:
     if verdict == "red":
         return "screening: this direction has problems"
     if verdict == "green":
+        line = not_checked_line(card.screening.rules, card)
+        if line:  # a check that did not run is no all-clear (B1, S-226)
+            return f"screening: no problems found, but not fully checked — {line}"
         return "screening: this direction holds up"
     return "screening: not judged yet"
 
@@ -80,16 +85,19 @@ def screening_line(card: ConceptCard) -> str:
 RULE_MARKS = {"pass": "✓", "fail": "✗", "warn": "!", "skip": "·"}
 
 
-def screening_block(screening: Screening) -> list[str]:
+def screening_block(screening: Screening, card: ConceptCard | None = None) -> list[str]:
     """The screening as plain lines: given, computed and estimate numbers labelled, then rules.
 
     The owner's words only: value names as on the board, each value's ``source`` sentence,
     each rule's title (ids, field paths and calc references stay in ``--json``; gate B).
     """
-    from napkin2factory.concepts.board import NAMES
+    from napkin2factory.concepts.board import NAMES, not_checked_line
 
     at = f" ({screening.at.date().isoformat()})" if screening.at else ""
     verdict = VERDICT_WORDS.get(screening.verdict or "", "not judged yet")
+    unchecked = not_checked_line(screening.rules, card)
+    if unchecked and screening.verdict == "green":
+        verdict = "no problems found, but not fully checked"  # B1, S-226
     lines = [f"screening{at}: {verdict}"]
     for section, values, what in (
         ("given", screening.given, "from the card, your own inputs"),
@@ -110,6 +118,8 @@ def screening_block(screening: Screening) -> list[str]:
             name = (row.title or row.id).rstrip(".")
             name = name[:1].lower() + name[1:]
             lines.append(f"    {RULE_MARKS.get(row.status, '?')} {name}{relied}: {row.message}")
+    if unchecked:
+        lines.append(f"  {unchecked}")
     for note in screening.notes:
         lines.append(f"  note: {note}")
     return lines
@@ -224,7 +234,7 @@ def show(
             )
             console.print(wrapped, markup=False, highlight=False, soft_wrap=True)
     if card.screening is not None:
-        for line in screening_block(card.screening):
+        for line in screening_block(card.screening, card):
             console.print(line, markup=False, highlight=False, soft_wrap=True)
     if card.status == "rejected":
         reason = card.decision.reason if card.decision is not None else None
@@ -251,6 +261,7 @@ def build(
 ) -> None:
     """Build the rough shapes of a concept and screen it (red is information, exit 0)."""
     from napkin2factory.cli.kernel import load_cad_kernel
+    from napkin2factory.concepts.board import not_checked_line
     from napkin2factory.concepts.build import (
         build_concepts,
         select_cards,
@@ -278,9 +289,18 @@ def build(
                     console.print(f"    • {escape(row.message)}", soft_wrap=True)
                 console.print(f"  {escape(summary)}{tail}", soft_wrap=True)
             else:
-                console.print(
-                    f"[green]✓[/green] {cid} holds up: {escape(summary)}{tail}", soft_wrap=True
-                )
+                unchecked = not_checked_line(sc.rules, b.card)
+                if unchecked:  # no all-clear for a check that did not run (B1, S-226)
+                    console.print(
+                        f"[yellow]![/yellow] {cid} no problems found, but not fully checked: "
+                        f"{escape(summary)}{tail}",
+                        soft_wrap=True,
+                    )
+                    console.print(f"  [yellow]![/yellow] {escape(unchecked)}", soft_wrap=True)
+                else:
+                    console.print(
+                        f"[green]✓[/green] {cid} holds up: {escape(summary)}{tail}", soft_wrap=True
+                    )
             for row in sc.rules:
                 if row.status == "warn":
                     console.print(

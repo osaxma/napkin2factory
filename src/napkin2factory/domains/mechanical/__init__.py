@@ -249,7 +249,13 @@ REPORT_SECTIONS = (
     _section("parameters", "Parameters", "Design record"),
     _section("decisions", "Decisions", "Design record"),
     _section("changes", "Change requests", "Design record", _full_or(lambda p: bool(p.ecrs))),
-    _section("manuals", "Manuals", ""),
+    # a product whose only page is its safety page has nothing to list here (gate J, C5)
+    _section(
+        "manuals",
+        "Manuals",
+        "",
+        lambda p: not p.docs or any(not d.meta.safety for d in p.docs.values()),
+    ),
 )
 
 #: The names a manual page's template can use (D8): each a factory of the helper.

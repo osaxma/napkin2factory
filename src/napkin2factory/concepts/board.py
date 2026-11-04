@@ -206,6 +206,57 @@ def _cost_rows(strip: list[dict[str, Any]]) -> None:
         high["after"] = WIDE_BAND_WORDS
 
 
+#: What an unrun structural row leaves unknown, in the owner's words (B1, S-226).
+_UNRUN_WHAT = {
+    "structural-deflection": ("sag",),
+    "structural-yield": ("breaking",),
+    "structural-buckling": ("leg buckling",),
+    "structural-tip-over": ("tip-over",),
+    "structural-support": ("sag", "tip-over"),
+}
+#: A skip that asks the owner for a card field says so with these words (the structural screen).
+_ASKS_FOR_INPUT = ("give ", "on the card")
+
+
+def _and(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def not_checked_line(rules: list[RuleRow], card: ConceptCard | None = None) -> str | None:
+    """One owner-words line for structural checks that did not run, or ``None`` (B1, S-226).
+
+    The structural screen only adds rows when the card gives a load, so a skipped
+    ``structural-*`` row is a check the owner expected and did not get. A card with such a
+    row must not read as an all-clear: "holds up" would be said about what was never judged.
+    Given the card, an edge load that has no tip-over row is named too (the screen stops at
+    the first shape it cannot read).
+    """
+    skipped = [r for r in rules if r.id.startswith("structural-") and r.status == "skip"]
+    if not skipped:
+        return None
+    names: list[str] = []
+    for r in skipped:
+        for n in _UNRUN_WHAT.get(r.id, (r.id.removeprefix("structural-").replace("-", " "),)):
+            if n not in names:
+                names.append(n)
+    if (
+        card is not None
+        and "edge_load" in card.site
+        and not any(r.id == "structural-tip-over" for r in rules)
+        and "tip-over" not in names
+    ):
+        names.append("tip-over")
+    verb = "is" if len(names) == 1 else "are"
+    if all(any(w in r.message for w in _ASKS_FOR_INPUT) for r in skipped):
+        return (
+            f"not checked: {_and(names)} {verb} unknown until the card gives what the check needs"
+        )
+    return (
+        f"not checked: the structural screen does not model this shape — "
+        f"{_and(names)} {verb} unknown"
+    )
+
+
 def _rule_row(row: RuleRow, units: str = "metric") -> dict[str, Any]:
     return {"id": row.id, "message": display(row.message, units), "relies_on": list(row.relies_on)}
 
@@ -293,6 +344,8 @@ def gather_card(root: Path, card: ConceptCard, style: Any, units: str = "metric"
         "more": more,
         "problems": [display(r.message, units) for r in rules if r.status == "fail"],
         "worth_a_look": [display(r.message, units) for r in rules if r.status == "warn"],
+        # a load was given and the structural check did not run: never an all-clear (B1)
+        "not_checked": not_checked_line(rules, card),
         # the same rows with the labels of the numbers each relied on (gate A, C2)
         "problem_rows": [_rule_row(r, units) for r in rules if r.status == "fail"],
         "look_rows": [_rule_row(r, units) for r in rules if r.status == "warn"],
@@ -441,6 +494,7 @@ __all__ = [
     "BoardResult",
     "gather",
     "gather_card",
+    "not_checked_line",
     "render_board",
     "write_board",
 ]

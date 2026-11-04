@@ -21,14 +21,14 @@ article.concept{background:var(--card);border:1px solid var(--line);border-radiu
 article.concept.red{border-color:#e4a3a0}
 .chead{padding:.6rem .9rem;border-bottom:1px solid var(--line);background:#fafaf7}
 article.concept.red .chead{background:#fbe9e7;border-top:4px solid var(--fail)}
-article.concept.green .chead{border-top:4px solid var(--ok)}
+article.concept.green .chead{border-top:4px solid var(--ok)}article.concept.green.notchecked .chead{border-top-color:var(--warn)}
 .chead .row{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap}
 .chead h2{font-size:1.02rem;margin:0;flex:1 1 auto}
 .cid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem;color:var(--muted)}
 .badge{display:inline-block;padding:.08rem .5rem;border-radius:999px;font-size:.75rem;font-weight:600;color:#fff;background:var(--skip);white-space:nowrap}
 .badge.exploring{background:var(--accent)}.badge.promoted{background:var(--ok)}.badge.rejected{background:var(--skip)}
 .badge.unbuilt{background:#fff;color:var(--muted);border:1px solid var(--line)}
-.verdict{font-size:.85rem;margin:.25rem 0 0}.verdict.red{color:var(--fail);font-weight:600}.verdict.green{color:var(--ok)}
+.verdict{font-size:.85rem;margin:.25rem 0 0}.verdict.red{color:var(--fail);font-weight:600}.verdict.green{color:var(--ok)}.verdict.look{color:var(--warn)}
 .sub{font-size:.82rem;color:var(--muted);margin:.15rem 0 0}
 .decision{font-size:.85rem;margin:.25rem 0 0;font-weight:600}
 .body{padding:.7rem .9rem;display:flex;flex-direction:column;gap:.6rem}
@@ -78,10 +78,10 @@ footer{max-width:1600px;margin:0 auto;padding:0 1.2rem 2rem;font-size:.78rem;col
 </div>{% endif %}
 <main class="board">
 {% for c in cards %}
-<article class="concept {{ c.verdict or 'unbuilt' }} {{ c.status }}" id="card-{{ c.id }}" data-id="{{ c.id }}" data-verdict="{{ c.verdict or '' }}">
+<article class="concept {{ c.verdict or 'unbuilt' }} {{ c.status }}{{ ' notchecked' if c.not_checked else '' }}" id="card-{{ c.id }}" data-id="{{ c.id }}" data-verdict="{{ c.verdict or '' }}">
   <div class="chead">
     <div class="row"><span class="cid">{{ c.id }}</span><h2>{{ c.title }}</h2><span class="badge {{ 'unbuilt' if not c.built and c.status == 'exploring' else c.status }}">{{ c.status_word }}</span></div>
-    {% if c.verdict == 'red' %}<p class="verdict red">this direction has problems</p>{% elif c.verdict == 'green' %}<p class="verdict green">holds up in screening</p>{% endif %}
+    {% if c.verdict == 'red' %}<p class="verdict red">this direction has problems</p>{% elif c.verdict == 'green' %}{% if c.not_checked %}<p class="verdict look">no problems found, but not fully checked</p>{% else %}<p class="verdict green">holds up in screening</p>{% endif %}{% endif %}
     {% if c.based_on %}<p class="sub">based on {{ c.based_on }}</p>{% endif %}
     {% if c.decision %}<p class="decision">{{ c.decision }}</p>{% endif %}
   </div>
@@ -98,7 +98,8 @@ footer{max-width:1600px;margin:0 auto;padding:0 1.2rem 2rem;font-size:.78rem;col
     {% if c.built %}
     {% if c.problem_rows %}<div class="limits bad"><strong>this direction has problems:</strong><ul>{% for r in c.problem_rows %}<li>{{ rely(r) }}</li>{% endfor %}</ul></div>{% endif %}
     {% if c.look_rows %}<div class="limits look"><strong>worth a look:</strong><ul>{% for r in c.look_rows %}<li>{{ rely(r) }}</li>{% endfor %}</ul></div>{% endif %}
-    {% if not c.problems and not c.worth_a_look %}<div class="limits clear">screening found no limitations</div>{% endif %}
+    {% if c.not_checked %}<div class="limits look unchecked"><strong>{{ c.not_checked }}</strong></div>{% endif %}
+    {% if not c.problems and not c.worth_a_look and not c.not_checked %}<div class="limits clear">screening found no limitations</div>{% endif %}
     {% endif %}
     {% if c.ref_items %}<div><h3>References</h3><div class="refs">{% for r in c.ref_items %}<figure>{% if r.src %}<img src="{{ r.src }}" alt="{{ r.name }}">{% endif %}<figcaption>{{ r.name }}{% if r.missing %} (missing){% elif not r.src %} (not shown){% endif %}</figcaption></figure>{% endfor %}</div></div>{% endif %}
     {% if c.notes %}<div><h3>Notes</h3><p class="cardnotes">{{ c.notes }}</p></div>{% endif %}

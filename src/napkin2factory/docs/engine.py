@@ -20,14 +20,23 @@ import jinja2
 
 from napkin2factory.core.domain import HelperContext
 from napkin2factory.core.loader import Doc, Product
-from napkin2factory.core.units import format_quantity, is_quantity
+from napkin2factory.core.units import is_quantity
 from napkin2factory.geometry.accessors import ParamAccessor, ReadLog, make_accessors
+from napkin2factory.report.units import display
+
+
+def _units_of(product: Product) -> str:
+    """The product's display units (W8); a manual reads them like the report does (B3)."""
+    return str(getattr(product.manifest, "units", "metric"))
 
 
 class _Proxy:
     """Attribute access on a model object that records ``<uri>#<path>``."""
 
-    def __init__(self, obj: Any, uri: str, log: ReadLog, path: tuple[str, ...] = ()) -> None:
+    def __init__(
+        self, obj: Any, uri: str, log: ReadLog, path: tuple[str, ...] = (), units: str = "metric"
+    ) -> None:
+        self._units = units
         self._obj = obj
         self._uri = uri
         self._log = log
@@ -48,8 +57,8 @@ class _Proxy:
         path = (*self._path, name)
         self._log.add(f"{self._uri}#{'.'.join(path)}")
         if hasattr(value, "model_fields") or isinstance(value, dict):
-            return _Proxy(value, self._uri, self._log, path)
-        return _Value(value)
+            return _Proxy(value, self._uri, self._log, path, self._units)
+        return _Value(value, self._units)
 
     def __str__(self) -> str:
         if isinstance(self._obj, dict) or not hasattr(self._obj, "name"):
@@ -63,15 +72,19 @@ class _Proxy:
 class _Value:
     """A leaf value that formats quantities nicely."""
 
-    def __init__(self, value: Any) -> None:
+    def __init__(self, value: Any, units: str = "metric") -> None:
         self.value = value
+        self.units = units
 
     def __str__(self) -> str:
-        if is_quantity(self.value):
-            return format_quantity(self.value)
         if self.value is None:
             return ""
-        return str(self.value)
+        # the report's helper: imperial products read inches, pounds and lbf first (B3, S-226)
+        return (
+            display(self.value, self.units)
+            if is_quantity(self.value) or isinstance(self.value, str)
+            else str(self.value)
+        )
 
     def __format__(self, spec: str) -> str:
         return format(str(self), spec)
@@ -91,7 +104,7 @@ class _FormattedParams(ParamAccessor):
 
     def __getitem__(self, slug: str) -> Any:
         try:
-            return _Value(super().__getitem__(slug))
+            return _Value(super().__getitem__(slug), _units_of(self._product))
         except KeyError as exc:  # keep the accessor's hint instead of Jinja's generic message
             raise DocRenderError(str(exc.args[0])) from exc
 
@@ -99,9 +112,10 @@ class _FormattedParams(ParamAccessor):
 class _Bom:
     """``bom.total_cost`` → records ``bom://rollups#total_cost``."""
 
-    def __init__(self, rollups: dict[str, Any] | None, log: ReadLog) -> None:
+    def __init__(self, rollups: dict[str, Any] | None, log: ReadLog, units: str = "metric") -> None:
         self._rollups = rollups or {}
         self._log = log
+        self._units = units
 
     def __getattr__(self, name: str) -> Any:
         if name.startswith("_"):
@@ -109,12 +123,12 @@ class _Bom:
         self._log.add(f"bom://rollups#{name}")
         val = self._rollups.get(name)
         if name == "total_cost" and val is not None:
-            return _Value(f"{val:.2f} USD")
+            return _Value(f"{val:.2f} USD", self._units)
         if name == "total_mass" and val is not None:
-            return _Value(f"{val:.3f} kg")
+            return _Value(f"{val:.3f} kg", self._units)
         if name == "max_lead_time" and val is not None:
-            return _Value(f"{val:g} d")
-        return _Value(val if val is not None else "(not built)")
+            return _Value(f"{val:g} d", self._units)
+        return _Value(val if val is not None else "(not built)", self._units)
 
 
 @dataclass
@@ -165,7 +179,7 @@ def render_doc(
         log=log,
         rollups=rollups,
         plan=plan,
-        proxy=lambda obj, uri: _Proxy(obj, uri, log),
+        proxy=lambda obj, uri: _Proxy(obj, uri, log, units=_units_of(product)),
         error=lambda msg: DocRenderError(f"doc://{doc.meta.id}: {msg}"),
         build_dir=build_dir if build_dir is not None else product.paths.build,
         state={"iface": iface_accessor},
@@ -209,7 +223,7 @@ def helper_part(h: HelperContext) -> Any:
         pid = pid.replace("part://", "")
         if pid not in h.product.parts:
             raise h.error(f"part('{pid}') does not exist")
-        return _Proxy(h.product.parts[pid], f"part://{pid}", h.log)
+        return _Proxy(h.product.parts[pid], f"part://{pid}", h.log, units=_units_of(h.product))
 
     return part
 
@@ -221,7 +235,7 @@ def helper_asm(h: HelperContext) -> Any:
         aid = aid.replace("asm://", "")
         if aid not in h.product.assemblies:
             raise h.error(f"asm('{aid}') does not exist")
-        return _Proxy(h.product.assemblies[aid], f"asm://{aid}", h.log)
+        return _Proxy(h.product.assemblies[aid], f"asm://{aid}", h.log, units=_units_of(h.product))
 
     return asm
 
@@ -233,7 +247,9 @@ def helper_req(h: HelperContext) -> Any:
         rid = rid.replace("req://", "")
         if rid not in h.product.requirements:
             raise h.error(f"req('{rid}') does not exist")
-        return _Proxy(h.product.requirements[rid], f"req://{rid}", h.log)
+        return _Proxy(
+            h.product.requirements[rid], f"req://{rid}", h.log, units=_units_of(h.product)
+        )
 
     return req
 
@@ -244,7 +260,7 @@ def helper_iface(h: HelperContext) -> Any:
 
     def iface(iid: str) -> _Proxy:
         iid = iid.replace("iface://", "")
-        return _Proxy(accessor[iid], f"iface://{iid}", h.log)
+        return _Proxy(accessor[iid], f"iface://{iid}", h.log, units=_units_of(h.product))
 
     return iface
 
@@ -256,7 +272,7 @@ def helper_dec(h: HelperContext) -> Any:
         did = did.replace("dec://", "")
         if did not in h.product.decisions:
             raise h.error(f"dec('{did}') does not exist")
-        return _Proxy(h.product.decisions[did], f"dec://{did}", h.log)
+        return _Proxy(h.product.decisions[did], f"dec://{did}", h.log, units=_units_of(h.product))
 
     return dec
 
@@ -285,9 +301,11 @@ def helper_build_step(h: HelperContext) -> Any:
 
 def helper_bom(h: HelperContext) -> Any:
     """``bom.total_cost`` records ``bom://rollups#total_cost``."""
-    return _Bom(h.rollups, h.log)
+    return _Bom(h.rollups, h.log, _units_of(h.product))
 
 
 def helper_product(h: HelperContext) -> Any:
     """``product.name`` records ``manifest://product#name``."""
-    return _Proxy(h.product.manifest.product, "manifest://product", h.log)
+    return _Proxy(
+        h.product.manifest.product, "manifest://product", h.log, units=_units_of(h.product)
+    )

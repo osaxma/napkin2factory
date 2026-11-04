@@ -1,0 +1,11 @@
+# A made-up table: two steel plate feet and one solid oak block as a trestle under an oak top
+# (gate J, B1). No frame with a top and no column with an arm: the structural screen cannot read it.
+id: C-003
+title: Plate trestle, oak top
+site:
+  point_load: 1471.5 N
+  max_deflection: 2.5 mm
+massing:
+  - {kit: plate, as: foot-a, material: mild steel, args: {width: 100 mm, depth: 700 mm, thickness: 12 mm}, at: {x: 100 mm}}
+  - {kit: plate, as: foot-b, material: mild steel, args: {width: 100 mm, depth: 700 mm, thickness: 12 mm}, at: {x: 1300 mm}}
+  - {kit: block, as: top, material: white-oak, args: {length: 1500 mm, width: 800 mm, height: 60 mm}, at: {z: 710 mm}}

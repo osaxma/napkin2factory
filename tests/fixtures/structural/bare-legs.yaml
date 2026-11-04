@@ -1,0 +1,15 @@
+# A made-up table: four steel legs standing free under a pine top, with no rails (gate J, B1).
+# The structural screen has no frame to read, so its checks do not run.
+id: C-001
+title: Four bare legs, pine top
+site:
+  point_load: 1471.5 N
+  edge_load: 490.5 N
+  edge_offset: 150 mm
+  max_deflection: 2.5 mm
+massing:
+  - {kit: tube, as: leg-a, material: mild steel, args: {shape: square, size: 40 mm, wall: 2 mm, length: 730 mm, axis: z}, at: {x: 0 mm, y: 0 mm}}
+  - {kit: tube, as: leg-b, material: mild steel, args: {shape: square, size: 40 mm, wall: 2 mm, length: 730 mm, axis: z}, at: {x: 1400 mm, y: 0 mm}}
+  - {kit: tube, as: leg-c, material: mild steel, args: {shape: square, size: 40 mm, wall: 2 mm, length: 730 mm, axis: z}, at: {x: 0 mm, y: 700 mm}}
+  - {kit: tube, as: leg-d, material: mild steel, args: {shape: square, size: 40 mm, wall: 2 mm, length: 730 mm, axis: z}, at: {x: 1400 mm, y: 700 mm}}
+  - {kit: block, as: top, material: southern-yellow-pine, args: {length: 1500 mm, width: 800 mm, height: 20 mm}, at: {z: 730 mm}}

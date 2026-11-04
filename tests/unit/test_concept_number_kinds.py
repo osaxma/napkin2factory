@@ -74,3 +74,15 @@ def test_screening_skips_a_wrong_alcove_instead_of_failing() -> None:
     s = _screen(_card(KILN, site={"width": "3 kg"}))
     assert {r.id: r.status for r in s.rules}["fits-site-width"] == "skip"
     assert any(n.startswith("the alcove width on the card (3 kg) is not a length") for n in s.notes)
+
+
+def test_a_force_given_in_pounds_is_told_to_say_lbf(tmp_path: Path) -> None:
+    """Gate J, C1 (S-226): "330 lb" is a weight; the hint says it as a force in both units."""
+    d = tmp_path / "concepts"
+    d.mkdir()
+    (d / "C-001.yaml").write_text(
+        "id: C-001\ntitle: t\nsite: {point_load: 330 lb, mass_limit: 150 lb}\n"
+    )
+    (err,) = [p for p in cm.lint_concepts(tmp_path).errors if p.rule == "C8-number-kinds"]
+    assert err.message == "site.point_load is 330 lb, which is not a force"
+    assert err.hint == "give it as a force with its unit, like 330 lbf or 1470 N"
