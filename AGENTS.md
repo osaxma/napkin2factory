@@ -45,8 +45,10 @@ make check                                # in the main folder, before anything 
   holds a placeholder. `DECISIONS.md` and `BACKLOG.md` merge line by line (`merge=union`);
   `tests/unit/test_journals.py` catches a duplicated row.
 - **The gate**: `make land` runs `make check-fast` (lint, types, the unit and smoke tests; no
-  end-to-end, no examples; ≤ 3 min); `LAND_GATE=check make land` runs the full `make check`
-  instead. Before a push, run `make check` once on `main` for everything landed since the
+  end-to-end, no examples; ≈ 2 min); `LAND_GATE=check make land` runs the full `make check`
+  instead. Test runs take turns on the machine (S-196): a run that says it is waiting for
+  another folder is queued, not stuck; do not cancel it or set `N2F_TEST_LOCK=0` to jump the
+  queue, two suites side by side each take twice as long. Before a push, run `make check` once on `main` for everything landed since the
   last push; if it fails, `git bisect run make check` finds the task (history is linear).
 - **Push only when the maintainer asks** (another agent may still be landing).
 - **Commits**: `M<n>: <what>` while a milestone is open, plain imperative otherwise. Stage
@@ -68,6 +70,10 @@ maintainer instead of obeying it.
   nothing. Tests, scripts or the Makefile: `make lint` and the touched tests. `src/`,
   `examples/` or the templates: the tests covering the change, then the gate. CI runs
   `make check` on every push to `main` and skips a commit it has already tested.
+- **Tests that build an example start from a prebuilt copy** (`copy_product(..., prebuilt=True)`)
+  unless the cold build is what they test, and `n2f()` runs the CLI in the test process
+  (`process=True` when the entry point itself is the subject): each fresh build costs
+  7–12 s for bracket or enclosure, 36 s for the kiln (S-196). `make check-full` runs every `n2f()` call as a real process again.
 - Do not edit `LICENSE`: the licence is the maintainer's call.
 - No `TODO`/`FIXME` in `src/` without a `BACKLOG.md` id: open work lives in one table, and an
   unlisted TODO gets lost (`make todo-grep`).
@@ -162,6 +168,8 @@ make task NAME=x GOAL="…"    # start a task in .worktrees/x;  make tasks  list
 make land                    # from inside a task: rebase, ids, gate, fast-forward main
 make check-fast              # lint + types + unit and smoke tests: the land gate
 make check                   # lint + types + tests (parallel) + goldens + fast examples
+make tests                   # every suite in one parallel pytest call (no lint, no examples)
+uv run pytest tests/unit/test_x.py --lf   # while iterating: only what failed last time
 make check-full              # + kiln + demos + timing (N2F_TIMING=1)
 make templates               # sync examples/{bracket,enclosure} + _common → templates/
 make goldens REASON="..."    # regenerate golden props, logged

@@ -222,6 +222,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-193 | The electrical domain's own disclaimer removed from every wiring output | in force |
 | S-194 | Generated output carries no AI mark; how a design was made is the sharer's to say | in force |
 | S-195 | `make land` refuses a placeholder the task cites but does not define | in force |
+| S-196 | Faster test runs: one run at a time, 16 workers spread per test, prebuilt products, in-process CLI | in force |
 
 ---
 
@@ -1452,3 +1453,14 @@ number, S-194, which names no decision, and 12 comments pointed at nothing (fixe
 `scripts/journal_ids.py` now stops the landing, before any rewrite, when a task cites `S-NEW<n>`
 or `B-NEW<n>` without defining it (an index row or heading in `DECISIONS.md`, a row in
 `BACKLOG.md`). A task citing another task's decision waits for it to land and cites its real id.
+## S-196 — Faster test runs (2026-11-04)
+Agents waited 10–25 min per check: two or three suites ran side by side on the host's 8 cores
+(i9-9980HK, 16 threads), and most heavy tests built an example from scratch in a fresh process.
+Now: `scripts/test_lock.py` lets one test run use the machine at a time, for every folder of the
+clone (a second run waits and says who holds it; `N2F_TEST_LOCK=0` skips it); `-n logical --dist
+loadgroup` (406 s against 456 s for `-n 8 --dist loadfile`, single runs) with `xdist_group` on
+modules sharing a product, made to work under pytest 9.2 in `tests/conftest.py` and guarded by a
+collection failure; one pytest call in `make check` (`make tests`); `copy_product(prebuilt=True)`
+copies a product built once per session; `n2f()` runs the CLI in process (`N2F_TEST_SUBPROCESS=1`,
+set by `check-full`, restores real processes); `test_impact_honest` and `test_choices` moved to
+e2e. Measured back to back under load: `make check-fast` 167 → 124 s, `make tests` 493 → 354 s.

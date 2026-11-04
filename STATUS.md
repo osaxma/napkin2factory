@@ -28,7 +28,10 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
   cache). macOS scans each newly written native library on first load (`syspolicyd`): 117–190 s
   for the first `import build123d` in a cloned environment. `make task` installs with hardlinks,
   so later task folders reuse the scanned files: 10 s (S-098); the import is also warmed detached.
-- `make check` ≈ 7 min (tests in parallel, S-070; long files split, S-080, S-084);
+- One test run uses the machine at a time (S-196): a second waits and names the folder
+  running. Measured 2026-11-04 under load from other agents: `make check-fast` 124 s,
+  `make check` 386 s (1,515 passed); idle host: not measured.
+- `make check` ≈ 7 min before S-196 (tests in parallel, S-070; long files split, S-080, S-084);
   `make check-full` ≈ 21 min (2026-11-01: `check` 7 min 27 s, then kiln, demos side by side
   and timing 13 min 27 s; was ≈ 28 min, S-079); the first `import build123d` on a machine takes
   one to two minutes (S-057).

@@ -103,6 +103,7 @@ entry that closed them. Ids are never reused.
 | B-0182 | `conductor-protection` checks I_n <= I_z only: not I_2 <= 1.45 I_z (a fuse's conventional fusing current), not an earth conductor's size against the device that must clear its fault (IEC 60364-5-54), not a lead fed through another of the product's devices | S-178; cited rows in a table of the calc kit and the walk extended (`domains/electrical/checks/`) |
 | B-0183 | `docs/electrical.md`'s rules table lacks `conductor-protection` and says the Class II case is "one pass row" | S-178; two lines in the table (`docs/electrical.md`, the docs task's file) |
 | B-0185 | Eleven modules over 550 lines after S-184 (`make health` lists them; the longest `core/checks/stage.py`, 734) | S-184 split only those over 750 and its list of five came from a cut-off listing (S-190); long files are where parallel tasks collide (S-080). Split one when a task next touches it, `core/checks/stage.py` first (every new check passes through it); health reviews track the count |
+| B-0187 | On a built product, changing the persona in `operator.yaml` does not rerun the report: it still shows `data-persona="owner"` (found by S-196; `test_engineer_tables_keep_uri_prefixes` stays on a cold build until fixed) | A stale report shows the wrong persona's tables to the reader; the persona is probably not a recorded read of the report rule (D5). Confirm, then record the read |
 
 ## Closed
 
