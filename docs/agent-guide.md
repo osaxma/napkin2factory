@@ -310,7 +310,7 @@ stay a person's sign-off.
 
 **Product settings (`n2f.yaml`).**
 - `region`: the target region code for electrical and cost table lookups (`EU`, `US`, `UK`, `SA`, `AU`).
-- `units`: display units for reports and the board (`metric` or `imperial`, defaults to `metric`).
+- `units`: display units for reports and the board (`metric` or `imperial`, defaults to `metric`; `imperial` shows imperial first, metric in brackets; drawings stay in mm).
 - `ceremony: standard` (optional): raises the ceremony; there is no way to lower it.
 
 **Ceremony: how much paperwork a product carries.** It is derived from the model, not

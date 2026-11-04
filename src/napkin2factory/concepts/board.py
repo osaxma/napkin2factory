@@ -32,6 +32,7 @@ from typing import Any
 from napkin2factory.concepts.massing import concept_build_dir
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.model.concepts import ConceptCard, LabelledValue, RuleRow
+from napkin2factory.report.units import display
 
 #: The page budget: the report's (``report.builder.MAX_REPORT_BYTES``, D13).
 MAX_REPORT_BYTES = 20 * 1024 * 1024
@@ -167,7 +168,7 @@ WIDE_BAND = 1.5
 WIDE_BAND_WORDS = "a wide band: only the parts screening can price are counted"
 
 
-def _value(name: str, lv: LabelledValue) -> dict[str, Any]:
+def _value(name: str, lv: LabelledValue, units: str = "metric") -> dict[str, Any]:
     """One row of the board's numbers.
 
     The owner's ``source`` is printed under estimates and the door row; the engineer's
@@ -176,7 +177,7 @@ def _value(name: str, lv: LabelledValue) -> dict[str, Any]:
     return {
         "key": name,
         "name": NAMES.get(name, name.replace("_", " ")),
-        "value": lv.value,
+        "value": display(lv.value, units),
         "label": lv.label,
         "source": lv.source,
         "ref": lv.ref,
@@ -205,8 +206,8 @@ def _cost_rows(strip: list[dict[str, Any]]) -> None:
         high["after"] = WIDE_BAND_WORDS
 
 
-def _rule_row(row: RuleRow) -> dict[str, Any]:
-    return {"id": row.id, "message": row.message, "relies_on": list(row.relies_on)}
+def _rule_row(row: RuleRow, units: str = "metric") -> dict[str, Any]:
+    return {"id": row.id, "message": display(row.message, units), "relies_on": list(row.relies_on)}
 
 
 def _status_word(card: ConceptCard) -> str:
@@ -228,7 +229,7 @@ def _decision_line(card: ConceptCard) -> str | None:
     return f"{cm.set_aside_words(d.reason)}{when}"
 
 
-def gather_card(root: Path, card: ConceptCard, style: Any) -> dict[str, Any]:
+def gather_card(root: Path, card: ConceptCard, style: Any, units: str = "metric") -> dict[str, Any]:
     """One card's board data: words, labelled values and the files to embed (as paths)."""
     from napkin2factory.concepts.screenshot import card_materials
     from napkin2factory.core.style import merge_card_style
@@ -242,12 +243,12 @@ def gather_card(root: Path, card: ConceptCard, style: Any) -> dict[str, Any]:
         given_values = dict(sc.given)
     # the card's own inputs (power, circuit) are shown as given, apart from what was
     # measured or estimated (review gate A, C1)
-    given = [_value(k, lv) for k, lv in given_values.items()]
-    dims = [_value(k, values[k]) for k in KEY_DIMS if k in values]
-    strip = [_value(k, values[k]) for k in STRIP if k in values]
+    given = [_value(k, lv, units) for k, lv in given_values.items()]
+    dims = [_value(k, values[k], units) for k in KEY_DIMS if k in values]
+    strip = [_value(k, values[k], units) for k in STRIP if k in values]
     _cost_rows(strip)
     shown = set(KEY_DIMS) | set(STRIP) | set(HIDDEN)
-    more = [_value(k, lv) for k, lv in values.items() if k not in shown]
+    more = [_value(k, lv, units) for k, lv in values.items() if k not in shown]
     rules = sc.rules if sc is not None else []
     files: dict[str, str | None] = {}
     for key, rel in (
@@ -290,11 +291,11 @@ def gather_card(root: Path, card: ConceptCard, style: Any) -> dict[str, Any]:
         "dims": dims,
         "strip": strip,
         "more": more,
-        "problems": [r.message for r in rules if r.status == "fail"],
-        "worth_a_look": [r.message for r in rules if r.status == "warn"],
+        "problems": [display(r.message, units) for r in rules if r.status == "fail"],
+        "worth_a_look": [display(r.message, units) for r in rules if r.status == "warn"],
         # the same rows with the labels of the numbers each relied on (gate A, C2)
-        "problem_rows": [_rule_row(r) for r in rules if r.status == "fail"],
-        "look_rows": [_rule_row(r) for r in rules if r.status == "warn"],
+        "problem_rows": [_rule_row(r, units) for r in rules if r.status == "fail"],
+        "look_rows": [_rule_row(r, units) for r in rules if r.status == "warn"],
         "screening_notes": list(sc.notes) if sc is not None else [],
         "notes": card.notes,
         "decision": _decision_line(card),
@@ -313,11 +314,13 @@ def gather(root: Path) -> dict[str, Any]:
 
     root = Path(root)
     name = root.name
+    units = "metric"
     manifest = root / "n2f.yaml"
     if manifest.is_file():
         try:
             data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
             name = str((data.get("product") or {}).get("name") or name)
+            units = str(data.get("units") or "metric")
         except yaml.YAMLError:
             pass
     style, notes = product_style(root)
@@ -329,7 +332,7 @@ def gather(root: Path) -> dict[str, Any]:
         notes.append(f"{p.subject}: {p.message} (left off the board; `n2f concept lint`)")
     return {
         "product": name,
-        "cards": [gather_card(root, c, style) for c in cards.values()],
+        "cards": [gather_card(root, c, style, units=units) for c in cards.values()],
         "notes": notes,
     }
 

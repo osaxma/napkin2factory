@@ -105,7 +105,6 @@ entry that closed them. Ids are never reused.
 | B-0185 | Eleven modules over 550 lines after S-184 (`make health` lists them; the longest `core/checks/stage.py`, 734) | S-184 split only those over 750 and its list of five came from a cut-off listing (S-190); long files are where parallel tasks collide (S-080). Split one when a task next touches it, `core/checks/stage.py` first (every new check passes through it); health reviews track the count |
 | B-0187 | On a built product, changing the persona in `operator.yaml` does not rerun the report: it still shows `data-persona="owner"` (found by S-196; `test_engineer_tables_keep_uri_prefixes` stays on a cold build until fixed) | A stale report shows the wrong persona's tables to the reader; the persona is probably not a recorded read of the report rule (D5). Confirm, then record the read |
 | B-0190 | Frame kit (no rails, tabs, round tube, T-slot), a panel kit, four interface kinds (threaded insert, wood screw, T-slot, hinge pin) | v0.7 W5, M2a/M2b |
-| B-0193 | Product region (tables looked up by it, loud when missing) and display units | v0.7 W7, W8, M3b |
 | B-0194 | Three-tier benchmarks: `examples/table`, `examples/test-stand`, the kiln's `SPEC.md`, the oracle | v0.7 W9, M4 |
 | B-0195 | Real-world validation: build the table from its report, or a fabricator quote accepts its files | road-to-v1.0 §4.4; before the v1.0 tag |
 | B-0196 | Imperial units on drawings and exported files | v0.7 W8 non-goal |
@@ -222,3 +221,4 @@ entry that closed them. Ids are never reused.
 | B-0163 | A parameter of the wrong dimension (a heater power in kg) reads as "has no rating" with no error (`checks/calcs.py:207-211` swallows the unit error) | Closed 2026-11-03 (S-182): _quantity raises ValueError naming the parameter and field on wrong unit dimension |
 | B-0128 | A domain cannot add lines to the parts list, nor make `bom` run after it: cable bought by length is only in the domain's schedule | Closed 2026-11-03 (S-188): Domain.bom_lines hook, rollups consumables list, bom.csv qty_unit column, and electrical cable lines grouping conductors |
 | B-0186 | One disclaimer: the electrical domain repeats its own on the Wiring section, the first manual page, the diagrams and `README.txt` (S-179) | Closed 2026-11-04 (S-193): removed from all four; the README's disclaimer is the one |
+| B-0193 | Product region (tables looked up by it, loud when missing) and display units | v0.7 W7, W8, M3b; closed by S-219 |

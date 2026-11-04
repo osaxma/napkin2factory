@@ -245,6 +245,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-216 | Landing resolves a backlog row both open and closed after a merge | in force |
 | S-217 | Health review 2026-11-04 — outcome | in force |
 | S-218 | The kiln's benchmark spec, retrofitted from its model | in force |
+| S-219 | Display units: the owner's unit first | in force |
 
 ---
 
@@ -1662,3 +1663,12 @@ by touch temperature and volume; C-004 styling variant). Worked figures cite mea
 conduction (898 W loss, 44 °C touch), element sizing (10.9 A, 29.3 m wire), and swing clearance
 (6.32 mm). The oracle asserts 47 rows (concepts, figures, ceremony standard, 6 safety sign-offs).
 Measured: `tests.benchmarks.oracle` on a copy of kiln: 47 passed, 0 failed; `test_benchmarks.py` green.
+## S-219 — Display units: the owner's unit first (2026-11-04)
+W8 / M3b: `n2f.yaml` `units: metric | imperial` (display only; defaults to `metric`, S-200).
+A helper `display(q, units)` (`report/units.py`) formats quantities in the owner's chosen unit:
+for `imperial`, lengths in `in` (`ft` above 120 in), masses `lb`, forces `lbf`, stresses
+`psi`/`ksi` (above 1000 psi), temperatures `°F`, with the original engineering unit in brackets
+(`31.5 in (800 mm)`). The report's parameter, requirement and parts tables, and the napkin board's
+computed and estimated figures and limitation messages use it. Metric products remain byte-identical
+to before; drawings and exported files stay in mm. Tested against prebuilt bracket and board copies.
+Closes B-0193.

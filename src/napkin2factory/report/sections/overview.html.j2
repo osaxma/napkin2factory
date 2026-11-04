@@ -3,7 +3,7 @@
   {# no AI mark in generated output: how the design was made is the owner's to say (S-194) #}
   <div class="tiles">
     <a class="tile" href="#parts"><div class="v">{{ rollups.total_cost | round(2) }} USD</div><div class="k">per unit, from declared costs{% if not rollups.cost_complete %} · incomplete{% endif %}</div></a>
-    <a class="tile" href="#parts"><div class="v">{{ rollups.part_count }} parts</div><div class="k">{{ rollups.custom_count }} custom · {{ rollups.total_mass | round(2) }} kg</div></a>
+    <a class="tile" href="#parts"><div class="v">{{ rollups.part_count }} parts</div><div class="k">{{ rollups.custom_count }} custom · {{ (rollups.total_mass | round(2) ~ ' kg') | display }}</div></a>
     <a class="tile" href="#parts"><div class="v">{{ rollups.max_lead_time }} d</div><div class="k">longest lead time</div></a>
     <a class="tile" href="#requirements"><div class="v">{{ summary.pass + summary.signed }} / {{ req_rows | length }}</div><div class="k">requirements {{ w('pass') }}{% if summary.fail %} · {{ summary.fail }} {{ w('fail') }}{% endif %}{% if summary['needs-human'] %} · {{ summary['needs-human'] }} {{ w('needs-human') }}{% endif %}{% if summary.later %} · {{ summary.later }} {{ w('later') }}{% endif %}</div></a>
     <a class="tile" href="#safety"><div class="v">{{ safety_reqs | selectattr('status', 'in', ['pass', 'signed']) | list | length }} / {{ safety_reqs | length }}</div><div class="k">safety requirements {{ w('pass') }}{% if summary.example %} · {{ summary.example }} example{% endif %}</div></a>

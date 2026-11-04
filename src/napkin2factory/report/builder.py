@@ -24,7 +24,6 @@ from napkin2factory import __version__
 from napkin2factory.core.checks.results import SUMMARY_KEYS
 from napkin2factory.core.graph.hashing import sha256_text
 from napkin2factory.core.loader import Product
-from napkin2factory.core.units import format_quantity
 from napkin2factory.core.uris import display_uri
 from napkin2factory.report.builder_common import (
     MAX_REPORT_BYTES,
@@ -48,6 +47,7 @@ from napkin2factory.report.builder_plan import (
     _viewer_options,
     waiting_on_you,
 )
+from napkin2factory.report.units import display
 
 if TYPE_CHECKING:
     from napkin2factory.core.graph.rules import RunContext, RunResult
@@ -83,6 +83,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     results = {r["id"]: r for r in checks.get("results", [])}
     stage = compute_stage(product, build_dir, napkin=False)  # concepts never reach a build (N1)
     persona = product.operator.persona
+    manifest_units = getattr(product.manifest, "units", "metric")
 
     # 3D: the top assemblies' GLBs (or every part's GLB when there is no assembly)
     glb_paths = [build_dir / "assemblies" / a / "model.glb" for a in top_assemblies(product)]
@@ -147,6 +148,8 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         ln["anchor"] = ln["uri"] not in seen_rows  # the first row of a URI is its anchor
         seen_rows.add(ln["uri"])
         ln["has_drawing"] = ln["uri"] in drawn
+        ln["name"] = display(ln.get("name", ""), manifest_units)
+        ln["manufacturer"] = display(ln.get("manufacturer", ""), manifest_units)
     for uri, row in bom_by_uri.items():
         row["id"] = uri.split("://", 1)[-1]
         row["has_drawing"] = uri in drawn
@@ -188,18 +191,19 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         row = matrix_rows.get(rid)
         res = results.get(f"req://{rid}", {})
         status = res.get("status", row["status"] if row else "skip")
+        msg = res.get("message", (row or {}).get("message", "not checked yet"))
         req_rows.append(
             {
                 "id": rid,
                 "title": req.title,
-                "statement": req.statement,
+                "statement": display(req.statement, manifest_units),
                 "category": req.category,
                 "priority": req.priority,
                 "safety": req.safety,
                 "kind": req.verify.kind if req.verify else "—",
                 "target": str(req.verify.target) if req.verify and req.verify.target else "",
                 "status": status,
-                "message": res.get("message", (row or {}).get("message", "not checked yet")),
+                "message": display(msg, manifest_units),
                 "allocation": [str(a) for a in req.allocation]
                 if isinstance(req.allocation, list)
                 else [str(req.allocation or "")],
@@ -251,12 +255,11 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     params = []
     for slug, p in product.parameters.items():
         try:
-            value = format_quantity(product.parameter_value(slug))
+            value = display(product.parameter_value(slug), manifest_units)
         except Exception as exc:
             value = f"invalid: {exc}"
-        params.append(
-            {"slug": slug, "value": value, "description": p.description or "", "expr": p.expr}
-        )
+        description = display(p.description, manifest_units) if p.description else ""
+        params.append({"slug": slug, "value": value, "description": description, "expr": p.expr})
     decisions = [
         {
             "id": d.id,
@@ -371,6 +374,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "docs": docs,
         "safety_docs": safety_docs,
         "signoffs": signoffs,
+        "units": manifest_units,
         "version": __version__,
         "generated": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
     }
@@ -413,6 +417,7 @@ def render_report(
     persona = data["persona"]
     env.filters["ref"] = lambda uri: ref_html(uri, anchors, persona)
     env.filters["disp"] = lambda uri: display_uri(str(uri), persona)
+    env.filters["display"] = lambda q: display(q, data["units"])
     data["viewer_script"] = inline_module_script(bundle_viewer()) if data["glb_b64"] else ""
     data["build_id"] = build_id
     shown = {sid for sid, _, _ in data["sections"]}
