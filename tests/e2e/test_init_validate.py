@@ -52,11 +52,17 @@ def test_init_hint_points_to_build_and_warns_about_the_kernel(tmp_path: Path):
     assert re.search(r"first snapshot saved\s*$", r.stdout, re.MULTILINE), r.stdout
 
 
-def test_init_refuses_non_empty(tmp_path: Path):
+def test_init_refuses_to_overwrite_but_keeps_the_owners_files(tmp_path: Path):
+    # The owner's brief may already sit in the folder; init refuses only a file it would write.
     (tmp_path / "x").mkdir()
     (tmp_path / "x" / "f").write_text("1")
-    r = n2f("init", str(tmp_path / "x"))
-    assert r.returncode == 1 and "not empty" in r.stderr
+    assert n2f("init", str(tmp_path / "x")).returncode == 0
+    assert (tmp_path / "x" / "f").read_text() == "1"
+    (tmp_path / "y").mkdir()
+    (tmp_path / "y" / "AGENTS.md").write_text("mine")
+    r = n2f("init", str(tmp_path / "y"))
+    assert r.returncode == 1 and "AGENTS.md" in r.stderr
+    assert (tmp_path / "y" / "AGENTS.md").read_text() == "mine"
 
 
 def test_validate_outside_a_product_is_actionable(tmp_path: Path):
