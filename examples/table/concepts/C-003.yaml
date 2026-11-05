@@ -34,18 +34,19 @@ notes: |
 screening:
   given:
     budget: {value: 1600 USD, label: given, source: on the card, ref: site.budget}
+    mass_limit: {value: 70 kg, label: given, source: on the card, ref: site.mass_limit}
     point_load: {value: 1472 N, label: given, source: on the card, ref: site.point_load}
     edge_load: {value: 490 N, label: given, source: on the card, ref: site.edge_load}
-    mass_limit: {value: 70 kg, label: given, source: on the card, ref: site.mass_limit}
   computed:
     width: {value: 1600 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (x)}
     depth: {value: 800 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (y)}
     height: {value: 750 mm, label: computed, source: measured across the rough shapes, ref: massing bounding box (z)}
     volume: {value: 70.8 L, label: computed, source: the space the rough shapes fill, ref: sum of the massing silhouettes}
     mass: {value: 147 kg, label: computed, source: from the rough shapes and their materials, ref: silhouette volume × density per call; frames and tubes by member section × cut length (geometry/materials.py)}
-    deflection: {value: 0.837 mm, label: computed, source: computed from the card and the massing, ref: "FL^3 / (48*E*I) + 5*w*L^4 / (384*E*I) on the 800 mm wide, 45 mm thick top over a 1200 mm span between the supports, self weight 424 N; Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 2a (centre load) [verify]; white-oak in calckit/data/materials.yaml [verify]"}
-    yield_factor: {value: '29.5', label: computed, source: computed from the card and the massing, ref: 'σ = M / Z, FS = σ_y / σ'}
-    tip_over_factor: {value: '10.2', label: computed, source: computed from the card and the massing, ref: FS = (mass * g * cg_x) / (edge_load * overhang_x)}
+    deflection_along: {value: 0.837 mm, label: computed, source: computed from the card and the massing, ref: "FL^3 / (48*E*I) + 5*w*L^4 / (384*E*I) on the 800 mm wide, 45 mm thick top over a 1200 mm span between its supports, self weight of the top 424 N; Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 2a (centre load) [verify]; white-oak in calckit/data/materials.yaml [verify]"}
+    deflection: {value: 0.837 mm, label: computed, source: computed from the card and the massing, ref: "FL^3 / (48*E*I) + 5*w*L^4 / (384*E*I) on the 800 mm wide, 45 mm thick top over a 1200 mm span between its supports, self weight of the top 424 N; Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 2a (centre load) [verify]; white-oak in calckit/data/materials.yaml [verify]"}
+    yield_factor: {value: '29.5', label: computed, source: computed from the card and the massing, ref: "M = F·L/4 + W·L/8, the top's share; σ = M / Z, FS = σ_y / σ; Roark's Formulas for Stress and Strain, 7th ed., Chapter 8, Section 8.1 [verify]; white-oak in calckit/data/materials.yaml [verify]"}
+    tip_over_factor: {value: '10.2', label: computed, source: computed from the card and the massing, ref: FS = (mass * g * cg_x) / (edge_load * overhang_x); static equilibrium of moments about the tipping edge (internal derivation)}
   estimates:
     total_mass: {value: 148 kg, label: estimate, source: 'the rough shapes plus the hardware set (4 glides, 8 inserts, 8 screws)', ref: 'massing mass + SPEC.md section 4.0 hardware set [verify]'}
     cost_low: {value: 2451 USD, label: estimate, source: 'rough cost of the rough shapes from the cost bands, plus the hardware set (4 glides, 8 inserts, 8 screws); US cost bands, as of 2026-10 to 2026-11; to be checked', ref: 'mass_cost.cost_estimate + SPEC.md section 4.0 hardware set [verify]'}
@@ -59,12 +60,13 @@ screening:
     - {id: blank-vs-stock-sheet, title: Every sheet fits a stock size, severity: fail, status: skip, message: no folded sheet-metal shapes on the card, relies_on: []}
     - {id: walls-fit-envelope, title: The walls fit inside the body, severity: fail, status: skip, message: no inner size and wall thickness from a screen, relies_on: []}
     - {id: cost-vs-budget, title: Within the budget, severity: fail, status: fail, message: 'even the low end of the cost, 2415 USD, is over the 1600 USD budget', relies_on: [given, estimate]}
-    - {id: structural-deflection, title: Sag stays within the limit, severity: fail, status: skip, message: "not run: this card's shape is not one the structural screen models: it takes one column and one arm of the same material", relies_on: []}
+    - {id: structural-deflection, title: Sag stays within the limit, severity: fail, status: pass, message: "the top sags 0.837 mm (computed), within the 2.5 mm limit on the card (limit ÷ sag is 2.99, 1 needed, static case) — FL^3 / (48*E*I) + 5*w*L^4 / (384*E*I) on the 800 mm wide, 45 mm thick top over a 1200 mm span between its supports, self weight of the top 424 N; Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 2a (centre load) [verify]; white-oak in calckit/data/materials.yaml [verify]", relies_on: [computed]}
+    - {id: structural-yield, title: Stress stays under yield, severity: fail, status: pass, message: "the top carries 1.87 MPa of bending stress (505 N·m): factor 29.5 (computed), at least the 1.5 needed (static case) — M = F·L/4 + W·L/8, the top's share; σ = M / Z, FS = σ_y / σ; Roark's Formulas for Stress and Strain, 7th ed., Chapter 8, Section 8.1 [verify]; white-oak in calckit/data/materials.yaml [verify]", relies_on: [computed]}
+    - {id: structural-tip-over, title: It does not tip over, severity: fail, status: pass, message: "148 kg (the rough shapes' weight and the hardware) with its centre 310 mm inside the foot line, under 490 N acting 90 mm beyond it: factor 10.2 (computed), at least the 2 needed (edge load case) — FS = (mass * g * cg_x) / (edge_load * overhang_x); static equilibrium of moments about the tipping edge (internal derivation)", relies_on: [computed]}
     - {id: hardware-cost-vs-budget, title: Within the budget with the hardware, severity: fail, status: fail, message: 'with the hardware even the low end of the cost, 2451 USD, is over the 1600 USD budget', relies_on: [given, estimate]}
     - {id: mass-limit, title: Total mass within the limit, severity: fail, status: fail, message: 'the table weighs 148 kg (estimate), over the 70 kg limit on the card', relies_on: [given, estimate]}
-    - {id: table-sag, title: Sag stays within the limit, severity: fail, status: pass, message: "the top sags 0.837 mm (computed), within the 2.5 mm limit on the card (limit ÷ sag is 2.99, 1 needed, static case) — FL^3 / (48*E*I) + 5*w*L^4 / (384*E*I) on the 800 mm wide, 45 mm thick top over a 1200 mm span between the supports, self weight 424 N; Roark's Formulas for Stress and Strain, 7th ed., Table 8.1, Case 2a (centre load) [verify]; white-oak in calckit/data/materials.yaml [verify]", relies_on: [computed]}
-    - {id: table-yield, title: Stress stays under yield, severity: fail, status: pass, message: "the top carries 1.87 MPa of bending stress (505 N·m): factor 29.5 (computed), at least the 1.5 needed — M = F·L/4 + W·L/8; σ = M / Z, FS = σ_y / σ; Roark's Formulas for Stress and Strain, 7th ed., Chapter 8, Section 8.1 [verify]; white-oak in calckit/data/materials.yaml [verify]", relies_on: [computed]}
-    - {id: table-tip-over, title: It does not tip over, severity: fail, status: pass, message: '148 kg (rough shapes and hardware) with its centre 310 mm inside the glide line, under 490 N acting 90 mm beyond it: factor 10.2 (computed), at least the 2 needed (edge load case) — FS = (mass * g * cg_x) / (edge_load * overhang_x); static equilibrium of moments about the tipping edge (internal derivation)', relies_on: [computed]}
   verdict: red
-  at: '2026-11-05T01:44:00'
+  at: '2026-11-05T11:40:04'
+  notes:
+    - "the trestle ends' own strength is not judged here: only the top's sag and the tip-over"
 decision: {reason: 'weighs 148 kg against the 70 kg limit and costs 2450 to 3010 USD against the 1600 USD budget (its low end alone is 53 % over); the sag is fine at 0.84 mm, so this is weight and money, not stiffness', at: '2026-11-04T17:51:35'}

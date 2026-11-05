@@ -83,24 +83,25 @@ def test_a_stiff_apron_card_passes_what_it_can_run() -> None:
     # the two long top rails (50 x 50 x 2 steel tube, I = (50^4 - 46^4) / 12 = 147712 mm^4) share
     # the span: E I = 200e9 * 1.47712e-7 = 29542 N m^2 each; total 52480 + 2 * 29542 = 111565 N m^2
     # point load: d_P = F L^3 / (48 E I) = 1471.5 * 1.4^3 / (48 * 111565) = 0.7540 mm
-    # self weight: top 1.6 * 0.8 * 0.04 * 750 = 38.4 kg, W = 376.58 N
-    # d_W = 5 W L^3 / (384 E I) = 5 * 376.58 * 1.4^3 / (384 * 111565) = 0.1206 mm
-    # total sag = 0.754 + 0.121 = 0.875 mm
-    assert _mm(s) == pytest.approx(0.875, abs=0.005)
+    # self weight: top 1.6 * 0.8 * 0.04 * 750 = 38.4 kg, 376.58 N; the two long rails, each
+    # 1.35 m (1450 - 2 * 50) * 384 mm^2 * 7850 = 4.069 kg, 79.82 N together: W = 456.40 N
+    # d_W = 5 W L^3 / (384 E I) = 5 * 456.40 * 1.4^3 / (384 * 111565) = 0.1462 mm
+    # total sag = 0.7540 + 0.1462 = 0.900 mm (S-235: the rails' weight counts, as in SPEC 4.1)
+    assert _mm(s) == pytest.approx(0.900, abs=0.002)
     assert "top rails sharing" in _row(s, "deflection").message
-    # M = F L / 4 + W L / 8 = 515.0 + 65.9 = 580.9 N m; the top takes 52480 / 111565 = 0.4704:
-    # M_top = 273.3 N m; Z = 0.8 * 0.04^2 / 6 = 2.1333e-4 m^3; stress = 1.281 MPa;
-    # yield factor = 55.2 / 1.281 = 43.1
-    assert float(s.computed["yield_factor"].value) == pytest.approx(43.1, rel=0.01)
+    # M = F L / 4 + W L / 8 = 515.0 + 79.9 = 594.9 N m; the top takes 52480 / 111565 = 0.4704:
+    # M_top = 279.8 N m; Z = 0.8 * 0.04^2 / 6 = 2.1333e-4 m^3; stress = 1.312 MPa;
+    # yield factor = 55.2 / 1.312 = 42.1
+    assert float(s.computed["yield_factor"].value) == pytest.approx(42.1, rel=0.01)
     # leg 730 mm tube 50 x 50 x 2 (A = 384 mm^2, I = 147712 mm^4, r = 19.61 mm):
     # unbraced sway K = 2.0 -> KL = 1460 mm, slenderness 74.45 < 125.7 (Johnson, S-207, S-211);
     # sigma_cr = 250 - (250 * 74.45 / 2pi)^2 / 200000 = 206.11 MPa -> P_cr = 79146 N;
-    # mass 59.3 kg -> 581.5 N table weight, leg share 145.4 N + applied (1471.5 N point +
-    # 490.5 N edge load on the corner leg) = 2107.4 N;
-    # factor = 79146 / 2107.4 = 37.56 >= 2.0 (buckling, static)
+    # mass 59.3 kg -> 581.5 N table weight, leg share 145.4 N + the 1471.5 N point load = 1616.9 N
+    # (the 490.5 N edge load is tip-over's, never added to the leg: B-0217, SPEC 4);
+    # factor = 79146 / 1616.9 = 48.95 >= 2.0 (buckling, static)
     row = _row(s, "buckling")
     assert row.status == "pass" and "Johnson" in row.message
-    assert float(s.computed["buckling_factor"].value) == pytest.approx(37.56, rel=0.01)
+    assert float(s.computed["buckling_factor"].value) == pytest.approx(48.95, rel=0.01)
     # tip-over: pivot at the leg line, centre of gravity 750 / 2 - 25 = 350 mm inside it
     # (frame and top are symmetric): FS = m g 0.350 / (490.5 * 0.150)
     mass = _massing("stiff-apron").mass
@@ -142,9 +143,10 @@ def test_a_narrow_stand_fails_tip_over_and_nothing_else() -> None:
     assert [_row(s, k).status for k in ROWS] == ["pass", "pass", "pass", "fail"]
     # top E I = 12.3e9 * (0.3 * 0.04^3 / 12 = 1.6e-6) = 19680; with the rails (59085):
     # d_P = 400 * 1.4^3 / (48 * 78765) = 0.290 mm
-    # self weight: top 1.6 * 0.3 * 0.04 * 750 = 14.4 kg, W = 141.2 N ->
-    # d_W = 5 * 141.2 * 1.4^3 / (384 * 78765) = 0.064 mm; total sag = 0.354 mm
-    assert _mm(s) == pytest.approx(0.354, abs=0.005)
+    # self weight: top 1.6 * 0.3 * 0.04 * 750 = 14.4 kg, 141.2 N + the two long rails 79.8 N
+    # (1.35 m each, 384 mm^2, 7850 kg/m^3) = 221.0 N ->
+    # d_W = 5 * 221.0 * 1.4^3 / (384 * 78765) = 0.100 mm; total sag = 0.290 + 0.100 = 0.391 mm
+    assert _mm(s) == pytest.approx(0.391, abs=0.002)
     assert s.verdict == "red"
     # mass is the cost screen's job: this screen has no mass row
     assert not [r for r in s.rules if r.id.startswith("structural") and "mass" in r.id]
@@ -214,7 +216,7 @@ def test_a_check_missing_an_input_says_which_and_is_not_run() -> None:
     s = _screen("stiff-apron", drop=("max_deflection",))
     row = _row(s, "deflection")
     assert row.status == "skip" and "no max_deflection" in row.message
-    assert _mm(s) == pytest.approx(0.875, abs=0.005)  # still reported
+    assert _mm(s) == pytest.approx(0.900, abs=0.002)  # still reported
     s = _screen("column-arm", drop=("point_load",), edge_load="100 N")
     assert _row(s, "deflection").status == "skip"
     assert "point_load" in _row(s, "deflection").message

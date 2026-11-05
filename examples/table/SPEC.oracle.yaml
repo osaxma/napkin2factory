@@ -68,21 +68,21 @@ figures:
   - name: c2-sag
     what: mid-span sag under the 150 kg centre load plus self weight, with the cross rail's dip added, on the promoted card (mm)
     card: promoted
-    find: {screen_value: sag_with_cross_rail}
+    find: {screen_value: deflection}
     unit: mm
     expect: 1.71
     tol: 0.05
   - name: c2-sag-along
-    what: the same sag along the length alone (top and long rails), on the promoted card (mm); the screen leaves the cross rail's weight out
+    what: the same sag along the length alone (top and long rails, the cross rail's weight at the middle), on the promoted card (mm)
     card: promoted
-    find: {screen_value: deflection}
+    find: {screen_value: deflection_along}
     unit: mm
     expect: 1.60
     tol: 0.05
   - name: c2-cross-rail-dip
     what: dip of the cross rail between the long rails under the 150 kg centre load, on the promoted card (mm)
     card: promoted
-    find: {screen_value: cross_rail_dip}
+    find: {screen_value: cross_member_dip}
     unit: mm
     expect: 0.106
     tol: 0.05
@@ -158,6 +158,18 @@ figures:
     card: promoted
     find: {screen_value: yield_factor}
     expect: 33.6
+    tol: 0.05
+  - name: c2-cross-rail-yield
+    what: yield factor of the cross rail of the promoted card
+    card: promoted
+    find: {screen_value: cross_member_yield_factor}
+    expect: 11.1
+    tol: 0.05
+  - name: c2-leg-buckling
+    what: leg buckling factor of the promoted card (Johnson parabola; the leg takes the whole centre load and a quarter of the weight)
+    card: promoted
+    find: {screen_value: buckling_factor}
+    expect: 38.2
     tol: 0.05
   # --- the finished product (the promoted design, built) ---
   - name: product-mass
@@ -289,10 +301,8 @@ pending:
     reason: the oracle has no change-request replay step; it needs a scripted n2f ecr run on a copy of the product, judged against the figures of SPEC.md section 6
   - what: across-grain movement 7.05 mm and slot free travel 13 mm, each on its own
     reason: the requirement bounds their difference (req-slot-clearance judges 13 less 7.05 mm); no requirement bounds either figure alone, and a calc's reference case is not read as the product's figure
-  - what: leg buckling factor 38.2 on the napkin card
-    reason: the structural screen picks the Johnson parabola for this short leg, as SPEC.md section 4.1 does (slenderness 70.7, K 2 sway), but it loads the worst-loaded leg with the centre load, the edge load and a quarter of the weight (2077 N, factor 29.5), where the spec uses the centre load and a quarter of the weight (1587 N, factor 38.2); judged on the finished product only
-  - what: long-rail yield factor 5.62, cross rail yield factor 11.1 and long-term sag 0.811 mm on the napkin card
-    reason: the screen checks the top's sag and stress and the cross rail's dip and stress, not the long rails' stress nor creep; the rail factor and the long-term sag are judged on the finished product, where the member yield requirement reports the lowest factor (the long rails'), so the cross rail's own 11.1 is not shown
+  - what: long-rail yield factor 5.62 and long-term sag 0.811 mm on the napkin card
+    reason: the screen checks the top's sag and stress and the cross rail's dip and stress, not the long rails' stress nor creep; the rail factor and the long-term sag are judged on the finished product, where the member yield requirement reports the lowest factor (the long rails')
   - what: low and high ends of the finished product's cost band (639 and 1014 USD)
     reason: the BOM roll-up carries one total cost; the finished product is judged as inside the band
   - what: dish 3.88 mm (point load) or 3.79 mm (100 x 100 mm base) and cross-grain bending stress 1.75 MPa of the oak top with nothing under it (SPEC.md section 4.1)

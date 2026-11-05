@@ -1,0 +1,37 @@
+# A steel frame under an oak top with a tube across its width that the top rests on: shaped like
+# examples/table/SPEC.md section 4.1 (S-235). Figures: sag 1.705 mm (1.599 along + 0.106 dip).
+id: C-002
+title: Frame with a cross member, oak top
+site:
+  point_load: 1471.5 N
+  edge_load: 490.5 N
+  edge_offset: 75 mm
+  max_deflection: 2.5 mm
+massing:
+  - kit: frame
+    as: apron-frame
+    role: support
+    material: mild steel
+    process_class: welding
+    at: {z: 20 mm}
+    args:
+      length: 1500 mm
+      width: 700 mm
+      height: 700 mm
+      member: {profile: square-tube, size: 50 mm, wall: 1.5 mm}
+      top_rails: true
+      bottom_rails: false
+      process: welding
+      mounting_tabs:
+        - {rail: x, x: -300 mm, y: 280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: x, x: 300 mm, y: 280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: x, x: -300 mm, y: -280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: x, x: 300 mm, y: -280 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 22 mm, slot_width: 9 mm}
+        - {rail: y, x: -680 mm, y: 0 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 9 mm, slot_width: 9 mm}
+        - {rail: y, x: 680 mm, y: 0 mm, width: 40 mm, length: 40 mm, thickness: 4 mm, slot_length: 9 mm, slot_width: 9 mm}
+  - {kit: tube, as: cross-rail, material: mild steel, role: support, process_class: welding, args: {shape: square, size: 75 mm, wall: 1.5 mm, length: 600 mm, axis: y, process: welding}, at: {x: 0 mm, y: -300 mm, z: 682.5 mm}}
+  - {kit: tube, as: glide-1, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: 725 mm, y: 325 mm}}
+  - {kit: tube, as: glide-2, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: -725 mm, y: 325 mm}}
+  - {kit: tube, as: glide-3, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: -725 mm, y: -325 mm}}
+  - {kit: tube, as: glide-4, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: 725 mm, y: -325 mm}}
+  - {kit: block, as: top, material: white-oak, role: body, process_class: woodworking, args: {length: 1600 mm, width: 800 mm, height: 30 mm}, at: {z: 720 mm}}

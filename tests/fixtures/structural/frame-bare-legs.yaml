@@ -1,0 +1,16 @@
+# The corner-legs card drawn with one frame call that has no rails at all: four bare legs at the
+# corners, 40 x 40 x 2 mm tube, the same top (S-235, B-0214).
+id: C-001
+title: Four bare legs from the frame kit, pine top
+site:
+  point_load: 1471.5 N
+  edge_load: 490.5 N
+  edge_offset: 20 mm
+  max_deflection: 2.5 mm
+massing:
+  - kit: frame
+    as: legs
+    material: mild steel
+    args: {length: 1600 mm, width: 800 mm, height: 704 mm, member: {profile: square-tube, size: 40 mm, wall: 2 mm}, top_rails: false, bottom_rails: false}
+    at: {z: 20 mm}
+  - {kit: block, as: top, material: southern-yellow-pine, role: body, process_class: woodworking, args: {length: 1600 mm, width: 800 mm, height: 22 mm}, at: {z: 728 mm}}

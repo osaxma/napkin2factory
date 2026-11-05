@@ -1,0 +1,23 @@
+# Four tube legs at the corners of a pine top, no rails, glides drawn under them: shaped like the
+# worked example in examples/table/SPEC.md section 4.2 (S-235). Figures: sag 14.3 mm, tip-over 9.38.
+id: C-001
+title: Four corner legs, pine top
+site:
+  point_load: 1471.5 N
+  edge_load: 490.5 N
+  edge_offset: 20 mm
+  max_deflection: 2.5 mm
+massing:
+  - {kit: tube, as: leg-1, material: mild steel, role: support, process_class: welding, args: {shape: square, size: 40 mm, wall: 2 mm, length: 704 mm, axis: z, process: welding}, at: {x: 780 mm, y: 380 mm, z: 20 mm}}
+  - {kit: tube, as: leg-2, material: mild steel, role: support, process_class: welding, args: {shape: square, size: 40 mm, wall: 2 mm, length: 704 mm, axis: z, process: welding}, at: {x: -780 mm, y: 380 mm, z: 20 mm}}
+  - {kit: tube, as: leg-3, material: mild steel, role: support, process_class: welding, args: {shape: square, size: 40 mm, wall: 2 mm, length: 704 mm, axis: z, process: welding}, at: {x: -780 mm, y: -380 mm, z: 20 mm}}
+  - {kit: tube, as: leg-4, material: mild steel, role: support, process_class: welding, args: {shape: square, size: 40 mm, wall: 2 mm, length: 704 mm, axis: z, process: welding}, at: {x: 780 mm, y: -380 mm, z: 20 mm}}
+  - {kit: tube, as: glide-1, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: 780 mm, y: 380 mm}}
+  - {kit: tube, as: glide-2, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: -780 mm, y: 380 mm}}
+  - {kit: tube, as: glide-3, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: -780 mm, y: -380 mm}}
+  - {kit: tube, as: glide-4, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: 780 mm, y: -380 mm}}
+  - {kit: plate, as: plate-1, material: mild steel, role: support, process_class: welding, args: {width: 80 mm, depth: 80 mm, thickness: 4 mm}, at: {x: 780 mm, y: 380 mm, z: 724 mm}}
+  - {kit: plate, as: plate-2, material: mild steel, role: support, process_class: welding, args: {width: 80 mm, depth: 80 mm, thickness: 4 mm}, at: {x: -780 mm, y: 380 mm, z: 724 mm}}
+  - {kit: plate, as: plate-3, material: mild steel, role: support, process_class: welding, args: {width: 80 mm, depth: 80 mm, thickness: 4 mm}, at: {x: -780 mm, y: -380 mm, z: 724 mm}}
+  - {kit: plate, as: plate-4, material: mild steel, role: support, process_class: welding, args: {width: 80 mm, depth: 80 mm, thickness: 4 mm}, at: {x: 780 mm, y: -380 mm, z: 724 mm}}
+  - {kit: block, as: top, material: southern-yellow-pine, role: body, process_class: woodworking, args: {length: 1600 mm, width: 800 mm, height: 22 mm}, at: {z: 728 mm}}

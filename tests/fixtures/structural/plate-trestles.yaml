@@ -1,0 +1,22 @@
+# Two steel plate trestle ends under a thick oak top, a stretcher between them: shaped like
+# examples/table/SPEC.md section 4.3 (S-235). Figures: sag 0.837 mm, tip-over 10.2.
+id: C-003
+title: Plate trestles, oak top
+site:
+  point_load: 1471.5 N
+  edge_load: 490.5 N
+  edge_offset: 90 mm
+  max_deflection: 2.5 mm
+massing:
+  - {kit: tube, as: glide-1, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: 600 mm, y: 310 mm}}
+  - {kit: tube, as: glide-2, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: -600 mm, y: 310 mm}}
+  - {kit: tube, as: glide-3, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: -600 mm, y: -310 mm}}
+  - {kit: tube, as: glide-4, material: mild steel, role: support, process_class: welding, args: {shape: round, size: 10 mm, wall: 0 mm, length: 20 mm, axis: z, process: welding}, at: {x: 600 mm, y: -310 mm}}
+  - {kit: block, as: upright-1, material: mild steel, role: support, process_class: welding, args: {length: 12 mm, width: 600 mm, height: 661 mm}, at: {x: 600 mm, z: 32 mm}}
+  - {kit: block, as: upright-2, material: mild steel, role: support, process_class: welding, args: {length: 12 mm, width: 600 mm, height: 661 mm}, at: {x: -600 mm, z: 32 mm}}
+  - {kit: block, as: foot-bar-1, material: mild steel, role: support, process_class: welding, args: {length: 80 mm, width: 700 mm, height: 12 mm}, at: {x: 600 mm, z: 20 mm}}
+  - {kit: block, as: foot-bar-2, material: mild steel, role: support, process_class: welding, args: {length: 80 mm, width: 700 mm, height: 12 mm}, at: {x: -600 mm, z: 20 mm}}
+  - {kit: block, as: top-bar-1, material: mild steel, role: support, process_class: welding, args: {length: 80 mm, width: 700 mm, height: 12 mm}, at: {x: 600 mm, z: 693 mm}}
+  - {kit: block, as: top-bar-2, material: mild steel, role: support, process_class: welding, args: {length: 80 mm, width: 700 mm, height: 12 mm}, at: {x: -600 mm, z: 693 mm}}
+  - {kit: block, as: stretcher, material: mild steel, role: support, process_class: welding, args: {length: 1188 mm, width: 24 mm, height: 36 mm}, at: {z: 657 mm}}
+  - {kit: block, as: top, material: white-oak, role: body, process_class: woodworking, args: {length: 1600 mm, width: 800 mm, height: 45 mm}, at: {z: 705 mm}}

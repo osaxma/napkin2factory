@@ -261,6 +261,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-232 | The diff page survives a failed shader; its test no longer flakes | in force |
 | S-233 | Package fixes from spec trial 1 | in force |
 | S-234 | Spec reproduction trials 2 and 3 (table, two vendors): both reach a green product; the structural screen cannot judge bare legs, trestles or a cross member | in force |
+| S-235 | The structural screen judges bare legs, trestles and a cross member | in force |
 
 ---
 
@@ -1804,3 +1805,15 @@ ends or a cross member under the top (the example judges them in its own screens
 does not write), so a pine card on four legs is not rejected for sag; the oracle reads figures by the
 example screen's names, expects exactly one sign-off and ±2 % on card-level costs; `n2f init` asks no
 region. The test stand's trial 1 now passes 43/0/7 after S-230 and S-233. Fixes: B-0239–B-0241.
+
+## S-235 — The structural screen judges bare legs, trestles and a cross member (2026-11-05)
+Closes B-0239, B-0214, B-0215, B-0217 (S-234). The generic `structural` screen reads a top on a stand
+in three shapes: a `frame` call (the kit now allows `top_rails: false` with `bottom_rails: false`: four
+legs in one part, so volume, mass and the cut list stay exact), bare upright tube or block legs, and
+plate or frame trestle ends; a tube or block across the frame under the top is a cross member whose dip
+adds to the sag along the length. Leg buckling takes a quarter of the weight plus the centre load, not
+the edge load; tip-over uses the lowest feet (glides, else bar or leg faces) with hardware mass.
+Values (named in `docs/napkin.md`): `deflection`, `deflection_along`, `cross_member_dip`,
+`yield_factor`, `cross_member_yield_factor`, `buckling_factor`, `tip_over_factor`. Measured
+(`test_structural_stands.py`): C-001 sag 14.3 mm (spec 14.25), C-002 1.71 (1.705), C-003 0.837, within 5 %.
+The table's supports and cross-rail screens are deleted; its oracle reads these names (52 passed, a copy).

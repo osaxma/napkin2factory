@@ -84,8 +84,19 @@ def test_frame_rejects_bad_args():
         _frame(member={"profile": "round", "size": 25, "wall": 2})
     with pytest.raises(KitError):
         _frame(bogus=1)
-    with pytest.raises(ValueError, match="bare legs"):
-        _frame(top_rails=False, bottom_rails=False)
+
+
+def test_frame_bare_legs_are_four_separate_legs():
+    """No rails at all: four legs at the corners, one part of four solids (S-235)."""
+    r = _frame(top_rails=False, bottom_rails=False)
+    section = _section("square-tube", 25, 2)
+    assert len(r.shape.solids()) == 4  # legs only: nothing joins them
+    assert abs(r.shape.volume - 4 * section * 700) / (4 * section * 700) < 1e-3
+    bb = r.shape.bounding_box().size
+    assert abs(bb.X - 600) < 1e-3 and abs(bb.Y - 400) < 1e-3 and abs(bb.Z - 700) < 1e-3
+    assert [(c.length, c.qty) for c in r.cut_list] == [(700.0, 4)]
+    assert r.features.extra["member_count"] == 4 and r.features.extra["weld_joints"] == 0
+    assert abs(r.props["material_volume"] - 4 * section * 700) < 1e-6
 
 
 @settings(max_examples=6, deadline=None)

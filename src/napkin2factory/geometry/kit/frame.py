@@ -7,7 +7,9 @@ rectangle of top rails joins the leg tops (flush with ``z = height``, or recesse
 legs and sit in line with the legs, so their outer faces are flush with the legs' outer
 faces. Optional ``mounting_tabs`` (slotted plates) fuse to the inside faces of top rails.
 The whole weldment is one custom part: every member is built as its own solid and the
-lot is fused into a single solid.
+lot is fused into a single solid. With ``top_rails`` and ``bottom_rails`` both false the part
+is four bare legs at the corners (S-235): one part of four separate solids, so the volume,
+the mass and the cut list (four legs) stay exact and the structural screen reads the corners.
 
 Coordinates: origin at the centre of the footprint on the floor (``z = 0``), X along
 ``length``, Y along ``width``, Z up to ``height``.
@@ -143,8 +145,6 @@ def validate(a: Args) -> float:
             )
     if a.height <= rail_hz:
         raise ValueError(f"frame height {a.height:g} must exceed member size {rail_hz:g}")
-    if not (a.top_rails or a.bottom_rails):
-        raise ValueError("a frame needs top_rails or bottom_rails: bare legs are not a weldment")
     if a.apron_offset_top < 0:
         raise ValueError(f"apron_offset_top must not be negative, got {a.apron_offset_top:g}")
     if a.overhang < 0:

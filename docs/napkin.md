@@ -165,6 +165,42 @@ mass, cost band, lift class) and `check` (everything else). Three sources, in th
 
 `n2f doctor` lists every screen installed, inside a product folder its own too.
 
+### The structural screen
+
+The system's `structural` screen (`concepts/screens/structural.py`) runs when a card's `site`
+gives a point, distributed or edge load. It reads loads and limits from `site` (`point_load`,
+`distributed_load`, `edge_load`, `edge_offset`, `max_deflection`, `cycles`) and the supports from
+the massing; it never guesses a support. Three shapes are judged:
+
+- **A top on a stand**: the top is the widest flat board (`block`, `plate` or `panel`). What
+  carries it is the first of: one `frame` call (with top rails, or none: `top_rails: false,
+  bottom_rails: false` builds four bare legs at the corners); three or more upright `tube` or
+  `block` legs under the top; two or more upright plates or frames under the top (trestle
+  ends). The top is a simply supported beam between the supports along its long side; with
+  top rails the rails share the span. A `tube` or `block` across the frame's width that the top
+  rests on is a cross member: the centre load reaches the long rails through it.
+- **A column with an arm**: `tube` or `block` calls with no frame; tip deflection, yield at the
+  column foot and buckling of the column.
+- Any other shape: the rows say "not run" and the card is shown as "not checked", never as
+  all clear.
+
+The values it adds to a card's screening (`computed`, read by name from `--json`, the board
+and an oracle). Each carries its formula and source:
+
+| value | meaning |
+|---|---|
+| `deflection` | the total sag at the load (top on a stand), or the tip deflection (column with an arm), in mm |
+| `deflection_along` | the top's sag along its span, own weight included, before any cross member |
+| `cross_member_dip` | the cross member's dip under the centre load; `deflection` = `deflection_along` + this |
+| `yield_factor` | yield strength over the stress in the top (stand) or the column foot (arm) |
+| `cross_member_yield_factor` | the same for the cross member |
+| `buckling_factor` | the leg's (or column's) critical load over its load: a quarter of the weight plus the whole centre load; the edge load is not added (it belongs to tip-over) |
+| `tip_over_factor` | restoring moment over overturning moment about the lowest feet (the glides when drawn), under the edge load at `edge_offset` |
+
+Each value has its rule row: `structural-deflection`, `structural-yield`,
+`structural-cross-member`, `structural-buckling`, `structural-tip-over`. Hardware that another screen adds to the
+card's mass counts in the weight.
+
 ## The rules
 
 The system's rules (`rulepacks/concept-v0.yaml`), for every product:

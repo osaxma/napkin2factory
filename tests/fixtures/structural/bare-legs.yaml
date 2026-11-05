@@ -1,5 +1,7 @@
 # A made-up table: four steel legs standing free under a pine top, with no rails (gate J, B1).
-# The structural screen has no frame to read, so its checks do not run.
+# The legs are placed from the origin but the top is centred on it, so three of the four stand
+# outside the top's outline: the structural screen cannot name them as its support and its checks
+# do not run (S-235; compare corner-legs, where the legs are under the top).
 id: C-001
 title: Four bare legs, pine top
 site:

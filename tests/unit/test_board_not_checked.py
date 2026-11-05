@@ -1,7 +1,8 @@
 """Gate J, B1 (S-226): a card whose structural check did not run is no all-clear.
 
-The two fixture cards are made-up: four bare legs under a pine top (no frame to read) and a
-pair of plate feet under an oak top (nothing the screen can name as the support).
+The two fixture cards are made-up: four bare legs, three of them outside the pine top's outline
+(so the structural screen cannot name them as its support; legs under the top are judged since
+S-235) and a pair of plate feet under an oak top (nothing the screen can name as the support).
 """
 
 from __future__ import annotations
