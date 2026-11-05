@@ -270,6 +270,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-241 | Trial 4 package fixes: auto-layout spacing, mains without a supply, finish in lint | in force |
 | S-242 | Close v0.7: version 0.7.0, pins >=0.7,<0.8 | in force |
 | S-243 | The commit history carries no personal email | in force |
+| S-244 | v0.7.0 released: CI green on both platforms, tagged, published | in force |
 
 ---
 
@@ -1889,3 +1890,11 @@ commits, every tree byte-identical to its original (compared for all of them thr
 unchanged, the six tags moved with them. The commit hashes quoted in the journals, handoffs, reviews and transcripts were
 replaced by their rewritten ones (271 in 41 files). The force-push of `main` and the tags is the maintainer's step; clones
 made before it keep the old history, which the owner accepted.
+
+## S-244 — v0.7.0 released (2026-11-05)
+`make check` passed on `main` at the S-243 commit (1,829 passed, 4 skipped); the email-rewritten history was force-pushed
+by the maintainer (S-243; the first attempt failed on GitHub's side, "fatal error in commit_refs", the retry went through);
+CI `ci` passed on Linux and macOS there (17 min), then `v0.7.0` was tagged on it and `publish.yml` published both packages
+(build, pypi, pypi-alias green; `napkin2factory` and `n2f` 0.7.0 on PyPI). The nightly `check-full` failed on 2026-11-04
+and 2026-11-05 on two timing budgets only (two cards through one screenshot session 23.5 s; a warm concept build 31.0 s on
+the CI runner; B-0259). Visual exit (S-078): not yet judged by the maintainer for v0.7's boards (the table and test stand).

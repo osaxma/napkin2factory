@@ -135,6 +135,7 @@ entry that closed them. Ids are never reused.
 | B-0252 | The `tube` kit draws round and square sections only: a rectangular hollow section (the spec's 60 x 40 x 5 beams, 100 x 50 x 3 stretcher) becomes a solid block of equal area in every cold agent's card | S-239 (table trials 2 and 3, stand trials 1 and 4); `shape: rect` with width, height and wall in `geometry/kit/tube.py`, the structural screen's section read (`structural_base.py`), the cut list, `docs/kit.md`; ~2 h |
 | B-0254 | Lint `L1-measurable` refuses a requirement on a dimensionless factor (a factor of safety, a ratio) unless the statement names a load with a unit | S-239 (table trials 2 and 3, stand trial 4; both vendors); accept the bound's own number when the verify target is dimensionless; `core/lint.py`, a core file named in the commit; ~1 h |
 | B-0257 | `calckit.joints` has no preloaded-bolt fatigue function: the test stand's column-end bolt factor (7.42, SPEC.md section 4.4) is a hand check, so an agent must write the formula, and one left the requirement to the beam | S-210 (noted open), S-239 (spec trial 4: the governing fatigue row failed at 9.105); Goodman for a preloaded bolt (Shigley section 8-11 [verify]) with its `CASES`; ~2 h |
+| B-0259 | The nightly `check-full` fails on two timing budgets on the CI runner: `test_two_cards_through_one_session_are_quick` (23.5 s) and `test_warm_concept_build_takes_seconds` (31.0 s); measure the runner and set CI budgets from it, or find the slowdown (S-244) |
 
 ## Closed
 
