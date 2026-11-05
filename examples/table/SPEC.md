@@ -7,8 +7,9 @@ Every figure below is worked from the stated geometry (road-to-v1.0 §4.1). Work
 Re-derived independently by a second model from this file alone on 2026-11-04: all 140
 figures agreed within 0.35 %. That check was made before the cross-grain revision of
 2026-11-05 (S-229, §3.4 and §4.1), which adds a steel cross rail under the middle of the top
-and moves C-002's figures; §8.1 lists every figure it changed (old → new) for a second
-re-derivation.
+and moves C-002's figures; §8.1 lists every figure it changed (old → new). A second model
+re-derived those 44 figures and their intermediates from this file alone on 2026-11-05: all
+agreed within 0.35 %, every outcome at least 30 % from its threshold.
 
 **Conventions.** Lengths in mm, forces in N, stresses in MPa (N/mm²), stiffness EI in N·mm².
 Masses become weights with g = 9.80665 m/s², the value `calckit/structural.py` uses. The
