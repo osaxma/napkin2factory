@@ -33,6 +33,7 @@ pytestmark = pytest.mark.xdist_group("test_screenshot")
 
 CONCEPTS = FIXTURES / "concepts" / "product-green-red" / "concepts"
 TIMING = os.environ.get("N2F_TIMING") == "1"
+ON_CI = os.environ.get("CI") == "true"
 RED = "#c0392b"
 
 
@@ -194,4 +195,6 @@ def test_two_cards_through_one_session_are_quick(viewer_product: Path, tmp_path:
             assert r.method == "viewer"
         elapsed = time.perf_counter() - t0
     print(f"styled screenshots, two cards, one session (warm): {elapsed:.2f} s")
-    assert elapsed < 15, f"two cards took {elapsed:.1f} s"
+    # CI runner (ubuntu) measured 23.5 s on 2026-11-05, the host 5.1 s; CI budget 1.5× that (S-249)
+    budget = 35 if ON_CI else 15
+    assert elapsed < budget, f"two cards took {elapsed:.1f} s (budget {budget} s)"

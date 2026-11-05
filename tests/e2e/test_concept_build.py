@@ -21,6 +21,7 @@ os.environ.setdefault("N2F_OFFLINE", "1")
 GIT_WORDS = ("fatal:", "git ", "branch", "commit", "merge", "repository", "checkout")
 CONCEPTS = FIXTURES / "concepts" / "product-green-red" / "concepts"
 TIMING = os.environ.get("N2F_TIMING") == "1"
+ON_CI = os.environ.get("CI") == "true"
 
 
 def _run(*args: str, cwd: Path, code: int = 0):  # type: ignore[no-untyped-def]
@@ -198,4 +199,6 @@ def test_warm_concept_build_takes_seconds(product: Path) -> None:
     elapsed = time.perf_counter() - t0
     assert second.exit_code == 0, second.output
     print(f"warm `n2f concept build --all` (2 cards): {elapsed:.2f} s")
-    assert elapsed < 20, f"warm concept build took {elapsed:.1f} s"
+    # CI runner (ubuntu) measured 31.0 s on 2026-11-05, the host 7.2 s; CI budget 1.5× that (S-249)
+    budget = 50 if ON_CI else 20
+    assert elapsed < budget, f"warm concept build took {elapsed:.1f} s (budget {budget} s)"

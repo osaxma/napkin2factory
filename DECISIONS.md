@@ -275,6 +275,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-246 | M1a: store primitives and the checkpoint format | in force |
 | S-247 | M1c: the no-change build (the CAD kernel loads only when a rule runs; R12) | in force |
 | S-248 | M2a: `ecr/lifecycle.py` split into state, apply and revisions, code moved verbatim | in force |
+| S-249 | B-0259: CI budgets for the two nightly timing tests, measured on the runner | in force |
 
 ---
 
@@ -1940,3 +1941,9 @@ helpers, `next_ecr_id`), `ecr/apply.py` (253: the edit and patch application), `
 revision bumps, the close gate, the changelog), `ecr/lifecycle.py` (241: new, impact, approve, reject, close, the table),
 which re-exports every moved name. Checked: all 25 top-level defs and classes AST-identical to before; no test or caller
 changed. B-0244 stays open for `domains/electrical/checks/calcs.py` and `outputs/diagram_layout.py`. `core/` touched: none.
+## S-249 — B-0259: the nightly timing budgets, measured on the runner (2026-11-05)
+The nightly `check-full` (ubuntu-latest, `N2F_TIMING=1`) failed on 2026-11-05 on two timing tests only: two cards through
+one screenshot session 23.5 s (budget 15 s) and a warm `concept build --all` 31.0 s (budget 20 s). The same tests on the macOS
+host: 5.1 s and 7.2 s, so the runner is about 4.5× slower, not a slowdown in the code. The host budgets stay; under `CI=true`
+the budgets are 1.5× the runner's times, 35 s and 50 s. Correction to S-244: the 2026-11-04 nightly failed on
+`test_kiln_checks_green_with_example_signoffs` (2 failures), not on these budgets; the 2026-11-05 nightly passed it. `core/` touched: none.
