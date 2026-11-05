@@ -273,6 +273,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-244 | v0.7.0 released: CI green on both platforms, tagged, published | in force |
 | S-245 | Open v0.8 (Track B): the bidirectional-iteration stage plan, R-series | in force |
 | S-246 | M1a: store primitives and the checkpoint format | in force |
+| S-247 | M1c: the no-change build (the CAD kernel loads only when a rule runs; R12) | in force |
 
 ---
 
@@ -1921,3 +1922,13 @@ undo restores the entry below the top (stopping at a baseline id), redo restores
 even when the tree is unchanged. `publish` sends no marker and a fresh copy has none (both tested). Measured: 62 new tests
 (35 store, 27 checkpoints, 5 of them 200-example property runs) in 17 s; `test_vcs.py`, `test_publish.py`, `test_vocabulary.py`
 pass untouched. B-0060's store half is done; M2b closes it. `core/` touched: `vcs.py`, `vcs_store.py`, `checkpoints.py`.
+## S-247 — M1c: the no-change build (2026-11-05)
+R12 targets under 2 s for a build with nothing changed. Measured as three fresh `n2f build` processes after one cold build, `/usr/bin/time -p`, copies of
+`examples/table` (tier 1) and `examples/test-stand` (tier 2) in a temp folder. Before: tier 1 8.1–8.6 s, tier 2 9.1–11.2 s. Profiled (cProfile, `-X importtime`):
+`cli/build.py` imported the CAD kernel (build123d/OCP, with scipy and sklearn) before looking at anything, about 3 s of a 5 s build even with every rule up to
+date; the rest is imports (pydantic, pint units ≈ 0.65 s), reading 136 YAML files (≈ 0.3 s), `needs_run` over 14 rules (≈ 0.2 s). `run_build` now takes
+`before_first_run`, called once just before the first rule that must run; the CLI passes the kernel loader there, so a no-change build never imports the kernel
+(its "loading the CAD kernel" note is then not printed; the assembly and geometry-only paths still load it first). Needs-run decisions are untouched, so a
+changed input rebuilds exactly what it did. After: tier 1 1.3–1.5 s, tier 2 1.9 s; outputs byte-identical (`tests/e2e/test_nochange_build.py`, with a timing
+budget under `N2F_TIMING=1`). Host fact: `PYTHONDONTWRITEBYTECODE=1` and an editable `uv sync` leave no `.pyc`, which cost another 3 s per process here until
+`python -m compileall` ran on the venv and `src/` (the before figures are without it; with it, tier 1 was 5.0–6.4 s; B-0267). `core/` touched: `core/graph/runner.py`. Left: the pint registry and YAML parsing, if a later loop needs it.

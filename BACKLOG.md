@@ -137,7 +137,7 @@ entry that closed them. Ids are never reused.
 | B-0257 | `calckit.joints` has no preloaded-bolt fatigue function: the test stand's column-end bolt factor (7.42, SPEC.md section 4.4) is a hand check, so an agent must write the formula, and one left the requirement to the beam | S-210 (noted open), S-239 (spec trial 4: the governing fatigue row failed at 9.105); Goodman for a preloaded bolt (Shigley section 8-11 [verify]) with its `CASES`; ~2 h |
 | B-0259 | The nightly `check-full` fails on two timing budgets on the CI runner: `test_two_cards_through_one_session_are_quick` (23.5 s) and `test_warm_concept_build_takes_seconds` (31.0 s); measure the runner and set CI budgets from it, or find the slowdown (S-244) |
 | B-0260 | No checkpoints and no `undo` / `redo` / `rollback`: `n2f discard` is the only way back and cannot itself be undone | S-245; v0.8 M1a, M1b (`docs/stages/v0.8-bidirectional-iteration.md` R1–R5) |
-| B-0261 | A build with nothing changed costs 8 to 11 s on tier 1 (v0.7 measures); every undo, impact and switch loop pays it | S-245; v0.8 M1c (R12, target 2 s) |
+| B-0267 | Agent shells on the host set `PYTHONDONTWRITEBYTECODE=1` and task folders' environments hold no compiled bytecode, so every fresh Python process (each `n2f` the tests run as a process) recompiles about 2,000 modules, about 3 s (S-247); compile it when `make task` installs (`UV_COMPILE_BYTECODE=1`) and measure the suites after | S-247 |
 | B-0262 | A design change request carries its edit as a `.patch` file, and its approval is not bound to the model it approved | S-245; v0.8 M2b (R6, R7, R9) |
 | B-0263 | Change-request states and the card's `parked` status need schema 2 and the first real migration | S-245; v0.8 M2c (R8, R15) |
 | B-0264 | Promotion is one-way: no `concept switch`, `fork-from-model` or `compare` | S-245; v0.8 M3a (R10, R11, §3 ownership table) |
@@ -280,3 +280,4 @@ entry that closed them. Ids are never reused.
 | B-0251 | `_auto_layout` spaces children by their own min and max x, so a wide part after a narrow one no longer overlaps it | closed by S-241 |
 | B-0256 | A custom part with no `finish` is an `n2f lint` error (`L8-custom-finish`); the check rule stays | closed by S-241 |
 | B-0242 | Before tagging v0.7.0: rewrite the commit history so no commit carries the owner's old personal email (metadata only; the procedure is in the owner's local `OWNER-TODO.md` (untracked), the mapping in a private file outside the repository) | closed by S-243 |
+| B-0261 | A build with nothing changed cost 8 to 11 s on tier 1; now 1.3 to 1.5 s (the CAD kernel loads only when a rule runs) | closed by S-247 |

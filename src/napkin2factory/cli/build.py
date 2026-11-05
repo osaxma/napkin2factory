@@ -92,7 +92,10 @@ def build(
                 mark = "[yellow]rebuild[/yellow]" if run else "[dim]keep   [/dim]"
                 console.print(f"  {mark} {rid} [dim]({why})[/dim]")
         return
-    load_cad_kernel()
+    # S-247: the generic path loads the kernel only when a rule has to run (a no-change
+    # build never imports it); the assembly and geometry-only paths always need it.
+    if aid is not None or target == "geometry":
+        load_cad_kernel()
     if aid is not None:
         from napkin2factory.cli.build_asm import build_assembly_alone
 
@@ -138,6 +141,7 @@ def build(
         jobs=jobs,
         render=not no_render,
         quiet=json_out,
+        before_first_run=load_cad_kernel,
     )
     if json_out:
         emit_json({**summary, "render_notes": _render_notes(product)})

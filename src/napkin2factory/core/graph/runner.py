@@ -13,7 +13,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from napkin2factory.core.errors import N2FError
 from napkin2factory.core.graph.hashing import combine, sha256_file
@@ -192,8 +192,14 @@ def run_build(
     build_dir: Path | None = None,
     explain: Any = None,
     only_asm: str | None = None,
+    before_first_run: Callable[[], None] | None = None,
 ) -> dict[str, Any]:
-    """Run the DAG for ``target`` (``only_asm``: one assembly and what it needs, P6)."""
+    """Run the DAG for ``target`` (``only_asm``: one assembly and what it needs, P6).
+
+    ``before_first_run`` is called once, just before the first rule that must run (S-247):
+    a build with nothing to do never calls it, so the caller can defer a heavy import (the
+    CAD kernel, about 3 s of a 5 s build) until a rule needs it.
+    """
     from napkin2factory.cli.common import console
 
     build_dir = build_dir or product.paths.build
@@ -235,6 +241,9 @@ def run_build(
         else []
     )
     if jobs > 1 and len(pending_parts) > 1:
+        if before_first_run is not None:
+            before_first_run()
+            before_first_run = None
         _run_parts_parallel(pending_parts, product, manifest, build_dir, render, jobs, summary, say)
         rules = [r for r in rules if r.id not in summary.ran]
 
@@ -245,6 +254,9 @@ def run_build(
         if not run:
             summary.skipped.append(rule.id)
             continue
+        if before_first_run is not None:
+            before_first_run()
+            before_first_run = None
         t0 = time.perf_counter()
         ctx.log = _new_log()  # this rule's reads through ctx.proxy / ctx.log (D5, S-138)
         try:
