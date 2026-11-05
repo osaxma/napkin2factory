@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from selectolax.lexbor import LexborHTMLParser
 
-from tests.conftest import EXAMPLES, copy_product, is_swiftshader_flake, n2f
+from tests.conftest import EXAMPLES, copy_product, n2f
 
 # the module's shared product is built once, on one worker (S-196)
 pytestmark = pytest.mark.xdist_group("test_release_diff")
@@ -242,26 +242,40 @@ def test_diff_page_loads_and_highlights(released: Path) -> None:
     except Error as exc:
         pytest.skip(f"Playwright Chromium unavailable: {exc}")
 
-    def load() -> tuple[list[str], list[str], list[str]]:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"]
-            )
-            page = browser.new_page(viewport={"width": 1280, "height": 900})
-            errors: list[str] = []
-            page.on("pageerror", lambda e: errors.append(str(e)))
-            page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
-            page.goto(page_path.as_uri())
-            viewers = page.evaluate("window.n2fViewerReady.then(v => Object.keys(v))")
-            nodes_b = page.evaluate("window.n2fViewers['viewer-b'].nodes()")
-            browser.close()
-        return errors, viewers, nodes_b
-
-    errors, viewers, nodes_b = load()
-    # SwiftShader sometimes fails to validate a shader under load, with an empty info log; the
-    # page is fine on the next load. One retry, then the failure stands (B-0024).
-    if errors and all(is_swiftshader_flake(e) for e in errors):
-        errors, viewers, nodes_b = load()
+    with sync_playwright() as p:
+        browser = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"])
+        page = browser.new_page(viewport={"width": 1280, "height": 900})
+        errors: list[str] = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+        page.goto(page_path.as_uri())
+        # the page's own signal: every viewer has drawn, or has settled on its notice (S-232)
+        viewers = page.evaluate("window.n2fViewerReady.then(v => Object.keys(v))")
+        states = page.evaluate("Object.values(window.n2fViewers).map(v => v.glState)")
+        nodes_b = page.evaluate("window.n2fViewers['viewer-b'].nodes()")
+        # the highlight is in the scene graph, not in what the GPU drew
+        base_b = page.evaluate(
+            """() => {
+            let hex = null;
+            window.n2fViewers['viewer-b'].scene.traverse((o) => {
+              let p = o;
+              while (p && !(p.userData && p.userData.n2f_uri)) p = p.parent;
+              if (o.isMesh && p && p.userData.n2f_uri === 'part://base') {
+                hex = o.material.color.getHex();
+              }
+            });
+            return hex;
+            }"""
+        )
+        pills = page.eval_on_selector_all(
+            "#summary .pill", "els => els.map(e => [e.textContent, e.parentElement.textContent])"
+        )
+        browser.close()
+    # a shader the browser cannot link is not a page error (the viewer recompiles, then shows a
+    # notice); any other console error still fails
     assert errors == [], errors
     assert sorted(viewers) == ["viewer-a", "viewer-b"]
+    assert states and set(states) <= {"ok", "unavailable"}, states
     assert "part://base" in nodes_b
+    assert base_b == 0xE0A800, base_b  # the changed part's highlight colour
+    assert [p[0] for p in pills] == ["changed"] and "part://base" in pills[0][1]

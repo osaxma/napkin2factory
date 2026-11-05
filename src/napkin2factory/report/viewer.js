@@ -12,6 +12,10 @@
 //   applyMaterials(map)    -> {uri: {color: '#hex', metallic, roughness}} per part (style.yaml)
 //   view(name)             -> frame the model from a preset camera: 'iso' | 'front'
 //   snapshot()             -> PNG data URL of the current view
+//   settled                -> Promise resolving to 'ok' or 'unavailable' once the browser's WebGL
+//                             has either drawn the scene or been given up on (S-232)
+//   shaderRetries          -> how many times a failed shader was recompiled
+//   glState                -> 'pending' | 'ok' | 'unavailable' (also data-n2f-webgl on the container)
 //
 // Options beyond the report's defaults (all optional; the report passes none of them, so its
 // behaviour is unchanged): background ('#hex' or number), materials (as applyMaterials,
@@ -128,6 +132,10 @@ function n2fCreateViewer(container, options) {
   // No preserveDrawingBuffer: snapshot() renders and reads back in the same task instead.
   const renderer = new WebGLRenderer(opts.transparent ? { antialias: true, alpha: true } : { antialias: true });
   renderer.localClippingEnabled = true;
+  // A shader that fails to link (software WebGL under load does this, with an empty log) is not
+  // a page error: the frame loop below recompiles a few times, then shows a notice (S-232).
+  let shaderFailed = false;
+  renderer.debug.onShaderError = () => { shaderFailed = true; };
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(width, height);
   container.appendChild(renderer.domElement);
@@ -153,18 +161,60 @@ function n2fCreateViewer(container, options) {
   let dirty = true;      // something changed while we were not allowed to draw
   let onScreen = true;   // until the IntersectionObserver says otherwise
   function canDraw() { return onScreen && !document.hidden; }
+  // The first frame, and every frame until the loaded model has been drawn once, run even off
+  // screen so that `ready` and `settled` always resolve.
+  let drawModelOnce = false;
+  function mustDraw() { return firstFrame || drawModelOnce; }
   function frame() {
     pending = false;
-    if (!canDraw() && !firstFrame) { dirty = true; return; }
+    if (!canDraw() && !mustDraw()) { dirty = true; return; }
     dirty = false;
     // With damping, update() keeps returning true (and firing 'change') until the motion settles.
     if (controls.update()) requestRender();
     renderer.render(scene, camera);
+    if (root) drawModelOnce = false;
+    checkShaders();
     if (firstFrame) { firstFrame(api); firstFrame = null; }
   }
+  // After a frame: no shader failure settles the viewer as 'ok'; a failure disposes every
+  // material (so three.js compiles it afresh) and draws again, up to SHADER_RETRIES times; then
+  // the canvas gives way to a plain notice.  The page's own lists and tables carry the content.
+  const SHADER_RETRIES = 3;
+  let shaderRetries = 0;
+  function checkShaders() {
+    const lost = renderer.getContext().isContextLost();  // the driver gave up on the context
+    if (!shaderFailed && !lost) { if (root) settle('ok'); return; }
+    shaderFailed = false;
+    if (!lost && shaderRetries < SHADER_RETRIES) {
+      shaderRetries++;
+      api.shaderRetries = shaderRetries;
+      scene.traverse((o) => { if (o.isMesh) { o.material.dispose(); o.material.needsUpdate = true; } });
+      drawModelOnce = true;
+      requestRender();
+      return;
+    }
+    renderer.domElement.style.display = 'none';
+    const note = document.createElement('p');
+    note.className = 'n2f-fallback';
+    note.textContent = container.getAttribute('data-n2f-fallback') ||
+      'The 3D view could not start in this browser.';
+    note.style.cssText = 'margin:0;padding:1rem;color:#6b6a66;font:14px/1.4 sans-serif';
+    container.appendChild(note);
+    console.warn('n2f viewer: 3D view unavailable (WebGL failed to link a shader); showing a notice instead.');
+    settle('unavailable');
+  }
+  let settleState = null;
+  function settle(state) {
+    if (settleState) return;
+    settleState = state;
+    api.glState = state;
+    container.setAttribute('data-n2f-webgl', state);
+    resolveSettled(state);
+  }
+  let resolveSettled = null;
   function requestRender() {
     if (pending) return;
-    if (!canDraw() && !firstFrame) { dirty = true; return; }
+    if (!canDraw() && !mustDraw()) { dirty = true; return; }
     pending = true;
     requestAnimationFrame(frame);
   }
@@ -195,6 +245,7 @@ function n2fCreateViewer(container, options) {
 
   function registerScene(gltfScene) {
     root = gltfScene;
+    drawModelOnce = true;
     scene.add(root);
     root.traverse((o) => {
       if (o.userData && o.userData.n2f_kind === 'instance' && o.userData.n2f_uri) {
@@ -352,6 +403,9 @@ function n2fCreateViewer(container, options) {
 
   // The first frame is drawn even off screen so that `ready` always resolves.
   api.ready = new Promise((resolve) => { firstFrame = resolve; });
+  api.glState = 'pending';
+  api.shaderRetries = 0;
+  api.settled = new Promise((resolve) => { resolveSettled = resolve; });
   requestRender();
 
   api.loadBase64 = function (b64) {
@@ -387,6 +441,7 @@ window.n2fViewerReady = (async () => {
     try {
       await viewer.loadBase64(dataEl.textContent.trim());
       await viewer.ready;
+      await viewer.settled;
       window.n2fViewers[el.id || 'default'] = viewer;
       el.dispatchEvent(new CustomEvent('n2f:loaded', { detail: { nodes: viewer.nodes() } }));
     } catch (err) {

@@ -34,8 +34,8 @@ figure{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;b
 
 <section id="3d"><h2>3D, side by side</h2>
 <div class="pair">
-  <div><div class="muted mono">{{ ref_a }}</div>{% if glb_a %}<div id="viewer-a" class="viewer" data-n2f-glb="glb-a"></div><script type="text/plain" id="glb-a">{{ glb_a }}</script>{% else %}<p class="muted">no 3D</p>{% endif %}</div>
-  <div><div class="muted mono">{{ ref_b }}</div>{% if glb_b %}<div id="viewer-b" class="viewer" data-n2f-glb="glb-b"></div><script type="text/plain" id="glb-b">{{ glb_b }}</script>{% else %}<p class="muted">no 3D</p>{% endif %}</div>
+  <div><div class="muted mono">{{ ref_a }}</div>{% if glb_a %}<div id="viewer-a" class="viewer" data-n2f-glb="glb-a" data-n2f-fallback="The 3D view could not start in this browser. The part list, drawings and tables on this page show the same change."></div><script type="text/plain" id="glb-a">{{ glb_a }}</script>{% else %}<p class="muted">no 3D</p>{% endif %}</div>
+  <div><div class="muted mono">{{ ref_b }}</div>{% if glb_b %}<div id="viewer-b" class="viewer" data-n2f-glb="glb-b" data-n2f-fallback="The 3D view could not start in this browser. The part list, drawings and tables on this page show the same change."></div><script type="text/plain" id="glb-b">{{ glb_b }}</script>{% else %}<p class="muted">no 3D</p>{% endif %}</div>
 </div>
 <p class="legend muted"><span style="background:#e0a800"></span>changed <span style="background:#1e8449"></span>added <span style="background:#c0392b"></span>removed (in {{ ref_a }})</p>
 </section>
