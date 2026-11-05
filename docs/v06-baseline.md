@@ -1,6 +1,6 @@
 # v0.6 baseline: the kiln's electrical content before M1 (M0, S-147)
 
-Surveyed by hand on 2026-11-02 on `main` at `7f4d8d0` (S-141), macOS host, from
+Surveyed by hand on 2026-11-02 on `main` at `7d90121` (S-141), macOS host, from
 `examples/kiln/model/` (`parts/*.yaml`, `docs/installation.md`, `docs/assembly.md`,
 `docs/maintenance.md`, `decisions.yaml`, `requirements.yaml`, `parameters.yaml`,
 `interfaces/`, `assemblies/`). Nothing in the kiln was changed. This is the evidence M5
@@ -12,7 +12,7 @@ against the part in hand.
 
 | what | figure | how |
 |---|---|---|
-| `make check-full` | **29 min 14 s** (v0.5's figure, S-140), not re-run | `git diff --stat 29951e2 7f4d8d0 -- src tests examples Makefile` prints nothing: the code at the v0.6 start is the code S-140 measured |
+| `make check-full` | **29 min 14 s** (v0.5's figure, S-140), not re-run | `git diff --stat a2832f6 7d90121 -- src tests examples Makefile` prints nothing: the code at the v0.6 start is the code S-140 measured |
 | kiln cold build | **69.1 s** wall (57.4 s user, 19.2 s sys), 64 rules rebuilt | a tracked copy (`tests.conftest.copy_product`) in a scratch folder, no `build/`, `uv run n2f build`, `/usr/bin/time -p` |
 | kiln report | **3,796,445 bytes** (3.6 MiB) `build/report/index.html`; the limit is 20 MB (D13) | the same build |
 | kiln model | 41 part files, 13 interfaces, 4 assemblies (`kiln`, `door`, `controls`, `lining`) | `ls` |

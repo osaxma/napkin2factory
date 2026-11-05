@@ -6,7 +6,7 @@
 
 Plan: `../stages/v0.4-product-structure.md` (decisions P1–P14). Every number below is copied from the decision
 entry named beside it, or was measured for this report on 2026-11-01 (macOS host, Intel,
-`N2F_OFFLINE=1`, a fresh tracked copy of `examples/kiln` at e1fc18e plus the version bump);
+`N2F_OFFLINE=1`, a fresh tracked copy of `examples/kiln` at 4111660 plus the version bump);
 where neither holds, it says "not measured".
 
 ## 1. What v0.4 set out to do
@@ -36,18 +36,18 @@ Electrical (B-0035), manufacturer profiles (B-0038) and stack-up (B-0039) moved 
 
 | milestone | what it delivered | entry | commit |
 |---|---|---|---|
-| plan | `../stages/v0.4-product-structure.md`, P1–P14 | S-103, v0.4 is the product's structure | 92ed777 |
-| M0 | baseline: every kiln frame pair surveyed in the world, the hardware reconciled by hand, the shared-hole rule, `docs/v04-baseline.md` | S-105, the M0 baseline | acdc2c3 |
-| M1 | `place_by` places a part by its interface frame; frames and offsets take expressions; the alignment stage in the assembly (0.5 mm / 0.5°); the 18 frame-only helpers removed | S-106, interfaces place parts | 1bc995b |
-| M2 | `ports:` on sub-assemblies, a part's home, `place_by` for sub-assemblies; `asm://` parties refused (closes B-0005) | S-107, sub-assemblies have ports | 1e52083 |
-| M3a | `build: unit\|phantom`, `driver:`, the build plan derived from the tree (JSON, XLSX sheet, report section, `build_step()`), one assembly sheet per unit, joint hardware counted (`hardware://`) | S-110, build units and the build plan | e2dcb17 |
-| M5 | concept cards name modules; promotion seeds a top assembly, one stub and three size budgets per module, or only suggests modules | S-112, promotion keeps the napkin's modules | f162da1 |
-| M3b | the kiln built from units: door (built and serviced as a unit) and controls (tested as a unit, another process) hung by their ports, the lining a phantom; hardware per S-105 option A; product DEC-019–023 | S-113, the kiln built from units | 3967e42 |
-| M4 | `scope:` and `export:` on parameters with a reach check; `n2f context asm://<id>`; `n2f build --asm`; `n2f check --scope`; the report's matrix grouped by module | S-114, scoped parameters and `n2f context` | 920c058 |
-| M6 | joints between units in the plan and the report; verifier and impact-analyst roles for two-level review; the DoD 5 protocol | S-115, joints between units reviewed | 016689b |
-| M6 | the door simulation: a fresh agent changed the door from its context alone | S-116, the DoD 5 run | a19a2e9 |
-| M7 | gate C and its fixes | S-117, the build plan is a valued read; "Review gate C — outcome" | 0bff573 |
-| M7 | gate D and its fixes | S-118, joints in owner words; "Review gate D — outcome" | e1fc18e |
+| plan | `../stages/v0.4-product-structure.md`, P1–P14 | S-103, v0.4 is the product's structure | 2d36ff4 |
+| M0 | baseline: every kiln frame pair surveyed in the world, the hardware reconciled by hand, the shared-hole rule, `docs/v04-baseline.md` | S-105, the M0 baseline | 22bcd78 |
+| M1 | `place_by` places a part by its interface frame; frames and offsets take expressions; the alignment stage in the assembly (0.5 mm / 0.5°); the 18 frame-only helpers removed | S-106, interfaces place parts | 08bdde1 |
+| M2 | `ports:` on sub-assemblies, a part's home, `place_by` for sub-assemblies; `asm://` parties refused (closes B-0005) | S-107, sub-assemblies have ports | 8a019f8 |
+| M3a | `build: unit\|phantom`, `driver:`, the build plan derived from the tree (JSON, XLSX sheet, report section, `build_step()`), one assembly sheet per unit, joint hardware counted (`hardware://`) | S-110, build units and the build plan | 410eece |
+| M5 | concept cards name modules; promotion seeds a top assembly, one stub and three size budgets per module, or only suggests modules | S-112, promotion keeps the napkin's modules | e9695cc |
+| M3b | the kiln built from units: door (built and serviced as a unit) and controls (tested as a unit, another process) hung by their ports, the lining a phantom; hardware per S-105 option A; product DEC-019–023 | S-113, the kiln built from units | 71369d6 |
+| M4 | `scope:` and `export:` on parameters with a reach check; `n2f context asm://<id>`; `n2f build --asm`; `n2f check --scope`; the report's matrix grouped by module | S-114, scoped parameters and `n2f context` | 74ed0c3 |
+| M6 | joints between units in the plan and the report; verifier and impact-analyst roles for two-level review; the DoD 5 protocol | S-115, joints between units reviewed | 7e24852 |
+| M6 | the door simulation: a fresh agent changed the door from its context alone | S-116, the DoD 5 run | 3838433 |
+| M7 | gate C and its fixes | S-117, the build plan is a valued read; "Review gate C — outcome" | 5b8fd37 |
+| M7 | gate D and its fixes | S-118, joints in owner words; "Review gate D — outcome" | 4111660 |
 | M7 | version 0.4.0, product pins, this report | S-119, v0.4 closed | this commit |
 
 Landed alongside, not part of the plan: S-104 (closed versions' entries in `docs/decisions/`),
@@ -64,7 +64,7 @@ that stops after giving out ids puts the task's commits back), S-111 (the v0.5 a
 | 4 | build plan | met | `build/bom/build-plan.json`, the XLSX sheet and the report section (S-110); three assembly sheets (controls, door, kiln); the manual's three steps use `build_step()` (gate C §10.4); every `hardware://` row passes (S-113; this run: "the hardware for its 11 joint(s) is all listed"); `test_build_plan.py::test_a_missing_bolt_fails_naming_joints_and_number`; plan reads valued since S-117 |
 | 5 | one module, one agent | met | `n2f context asm://door`: 16,653 B text (S-114), 16,524 B in this run; the S-116 run met all four criteria (scoped check, kiln check, file scope, files opened); transcript `tests/e2e/module-transcripts/door-2026-11-01.md`. One run, one easy change |
 | 6 | promotion with modules | met | fresh product: top assembly, stubs, three budgets per module, build and check green with empty modules `warn` (S-112, gate C §8); `test_promote_modules.py::test_promotion_on_the_kiln_only_suggests_modules`. The shipped kiln refuses promotion because C-003 is already the chosen direction (gate C §10.6) |
-| 7 | review gates | met: gates closed; the maintainer judged the build plan section and the door sheet "looking right" | gate C `docs/reviews/v0.4-gate-c.md` and gate D `docs/reviews/v0.4-gate-d.md`, both NOT READY at 016689b, blockers fixed in S-117 and S-118. Screenshots judged by the agent only so far (gate D outcome) |
+| 7 | review gates | met: gates closed; the maintainer judged the build plan section and the door sheet "looking right" | gate C `docs/reviews/v0.4-gate-c.md` and gate D `docs/reviews/v0.4-gate-d.md`, both NOT READY at 7e24852, blockers fixed in S-117 and S-118. Screenshots judged by the agent only so far (gate D outcome) |
 | 8 | docs | met | agent guide carries `n2f context`, `build --asm`, `check --scope` (gate C §10.8); design, verifier, pm and impact-analyst roles in `templates/_common/roles/`, synced; `docs/vocabulary.md` has unit, phantom, driver and port; this report |
 
 ## 4. Measured numbers
@@ -76,7 +76,7 @@ that stops after giving out ids puts the task's commits back), S-111 (the v0.5 a
 | before (M0) | S-105 | 242 file lines; 180 placement; 22 `place()` sites; 9 literal offsets | 78; 47; 6; 4 | in `kiln.py` | in `kiln.py` |
 | after M1 | S-106 | 175 placement; 17 `place()` | 43; 5 | in `kiln.py` | in `kiln.py` |
 | after M3b | S-113 | parts placed by coordinates in `kiln.py` 17 → 2; literal offsets 13 → 0 | | | |
-| now (e1fc18e) | this run | 84 file lines; 46 placement; 8 `place()`; 0 literal | 80; 43; 6; 0 | 60; 36; 6; 0 | 122; 86; 10; 0 |
+| now (4111660) | this run | 84 file lines; 46 placement; 8 `place()`; 0 literal | 80; 43; 6; 0 | 60; 36; 6; 0 | 122; 86; 10; 0 |
 
 The placement code is now spread over four modules (211 lines against 227 before), so the line
 count barely moves; what changed is that no position is typed in (0 literal offsets) and the
@@ -94,7 +94,7 @@ run; `tests/golden/goldens/kiln.json` (unchanged since v0.1) holds 110.52 kg and
 S-113 records bbox, mass and centroid identical before and after the restructure.
 
 **Parameters:** 159 (M0, S-105) → 141 (M1, the 18 helpers gone, S-106) → 147 (M3b: seven door
-frame sizes for the hinges and latch added, one removed, DEC-019; `git diff 1bc995b 3967e42`) →
+frame sizes for the hinges and latch added, one removed, DEC-019; `git diff 08bdde1 71369d6`) →
 147 with 38 scoped (door 32, controls 6) and 4 exported (M4, S-114). Counted for this report.
 
 **Hardware:** before, 50 M6×16 at the top and 8 in the door, counted against nothing (S-105).
@@ -134,7 +134,7 @@ sign-offs (not reviews) · 251 OK · 3 not checked · 66 worth a look", no fail.
 
 ## 5. What the gates found and how it was fixed
 
-**Gate C (architecture and honesty), at 016689b:** NOT READY on two D5 blockers; placement,
+**Gate C (architecture and honesty), at 7e24852:** NOT READY on two D5 blockers; placement,
 ports, hardware counts, scope, context and v0.3 compatibility held.
 - B1: `bom://build-plan#…` did not parse, so every plan read was a constant: a changed `driver:`
   or a renamed part left the sheet, the manual and the report stale. Fixed in S-117: `build-plan`
@@ -146,7 +146,7 @@ ports, hardware counts, scope, context and v0.3 compatibility held.
   reads), C1 (contradictory port advice) fixed in S-117; C3–C6 fixed with gate D (S-118); C2 →
   B-0067; the sheet's unrecorded step total → B-0068, closed by S-118.
 
-**Gate D (UX in the owner persona, a hobby potter), at 016689b:** NOT READY on two blockers,
+**Gate D (UX in the owner persona, a hobby potter), at 7e24852:** NOT READY on two blockers,
 both joint messages.
 - A misaligned joint read as identifiers only (`part://outer-shell#1 and part://guard-shell#1 do
   not meet in asm://kiln …`); a passing joint and the "Joints between units" section were written
@@ -263,9 +263,9 @@ Left to the maintainer: `make check-full` from a clean clone of `main`, push, CI
 
 ## 11. Where things are
 
-- **Commits** on `main` (linear): 92ed777 plan · acdc2c3 M0 · 1bc995b M1 · 1e52083 M2 ·
-  e2dcb17 M3a · f162da1 M5 · 3967e42 M3b · 920c058 M4 · 016689b M6 · a19a2e9 simulation ·
-  0bff573 gate C fixes · e1fc18e gate D fixes · the close-out commit that carries this report.
+- **Commits** on `main` (linear): 2d36ff4 plan · 22bcd78 M0 · 08bdde1 M1 · 8a019f8 M2 ·
+  410eece M3a · e9695cc M5 · 71369d6 M3b · 74ed0c3 M4 · 7e24852 M6 · 3838433 simulation ·
+  5b8fd37 gate C fixes · 4111660 gate D fixes · the close-out commit that carries this report.
 - **Journals:** `STATUS.md`; `DECISIONS.md` S-103–S-118, gates C and D, S-119; `BACKLOG.md`
   B-0063 onward; plan `../stages/v0.4-product-structure.md`; baseline `docs/v04-baseline.md`; gate reports
   `docs/reviews/v0.4-gate-{c,d}.md`.

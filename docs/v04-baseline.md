@@ -1,6 +1,6 @@
 # v0.4 baseline: the kiln's frames, hardware and placement code before M1 (M0, S-105)
 
-Measured on 2026-11-01 on `main` at `92ed777` (S-103, the v0.4 plan), macOS host. This is the
+Measured on 2026-11-01 on `main` at `2d36ff4` (S-103, the v0.4 plan), macOS host. This is the
 evidence M1–M3 of `stages/v0.4-product-structure.md` start from. Nothing in the kiln was changed: M3 applies
 the hardware reconciliation and logs each kiln fix as a `DEC-` in the product.
 
@@ -200,7 +200,7 @@ ran in parallel on the same machine. `make check-full` in the task folder: **19 
 (1168 s), exit 2. `make check` passed inside it (unit tests: 745 passed, 5 skipped, 7 min 29 s),
 the kiln end-to-end tests passed (8), and one demo failed: `test_demo_design`, because
 `examples/kiln/changes/ECR-002.patch` (the peephole) no longer applies with `git apply` to
-`model/geometry/door.py` and `door_fiber.py`, both last changed in f1d6680 (S-085–S-096). It
+`model/geometry/door.py` and `door_fiber.py`, both last changed in 25363a0 (S-085–S-096). It
 `git apply --check` fails the same way on a fresh copy of `examples/kiln`, which M0 does not
 touch, so it predates M0; not fixed here (B-0063).
 

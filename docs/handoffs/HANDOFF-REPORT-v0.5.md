@@ -46,11 +46,11 @@ domain, a kiln that lives only in `examples/`, and a count of zero.
 
 ## 3. Definition of done, item by item (`../stages/v0.5-foundation.md` §1.3)
 
-1. **Nothing moved.** Goldens unchanged since v0.4 (gate E: `git diff --stat a9bea31 HEAD --
+1. **Nothing moved.** Goldens unchanged since v0.4 (gate E: `git diff --stat 3544ebe HEAD --
    tests/golden/goldens` empty; one regeneration-log line, the promote golden's `door → opening`,
    `stand → support` style keys, F9's rename); `tests/validate_outputs.py` passes on all three
    products; the kiln board golden unchanged. `make check` green on `main` (§4). `make
-   check-full` from a clean clone of 29951e2 on the host: green, 29 min 14 s (lint, types, 1,088 tests, 141 goldens, the examples, the kiln, the demos side by side, timing). Not done: `validate_outputs.py`'s expected set was not extended to
+   check-full` from a clean clone of a2832f6 on the host: green, 29 min 14 s (lint, types, 1,088 tests, 141 goldens, the examples, the kiln, the demos side by side, timing). Not done: `validate_outputs.py`'s expected set was not extended to
    the new check files (B-0108).
 2. **A step is a folder: the count is 0.** `tests/unit/test_domain_contract.py` proves every
    registry sees the toy domain. The M7 simulation: a fresh agent given only `docs/domains.md`
@@ -84,7 +84,7 @@ domain, a kiln that lives only in `examples/`, and a count of zero.
    modules, largest `verb.py` 365); `core/loader.py` 1,060 → 386; `concepts/screening.py` 866 →
    167; `rulepacks/concept_checks.py` 710 → 451; `geometry/build.py` 728 → 57 (`build_part.py`
    344, `build_asm.py` 416). None over 500 (measured 2026-11-02).
-9. **Check time.** `make check` on `main` at 29951e2 (the close-out, idle host): **10 min 4 s**, green, 1,088 passed and 4 skipped, then 141 goldens — 4 s under v0.4's 10 min 8 s (S-119), with 212 more tests. The margin is thin: the plan's fallback (§7, move the slowest end-to-end files behind `-m full`) was not needed and was not used. `make check-fast`: 2 min 1 s (S-131), 2 min 9 s (gate E); the
+9. **Check time.** `make check` on `main` at a2832f6 (the close-out, idle host): **10 min 4 s**, green, 1,088 passed and 4 skipped, then 141 goldens — 4 s under v0.4's 10 min 8 s (S-119), with 212 more tests. The margin is thin: the plan's fallback (§7, move the slowest end-to-end files behind `-m full`) was not needed and was not used. `make check-fast`: 2 min 1 s (S-131), 2 min 9 s (gate E); the
    default land gate.
 10. **Review gates.** Gate E and gate F closed, reports in `docs/reviews/v0.5-gate-e.md` and
     `v0.5-gate-f.md` (§5). The maintainer's visual judgment pending (§10).
@@ -105,18 +105,18 @@ domain, a kiln that lives only in `examples/`, and a count of zero.
 | files a new step edits | 10, 7 in `core/` (S-122) | 0 in `core/` (S-123 toy test; S-134 fresh agent) |
 | package files naming kiln / door / chamber / alcove, outside templates and vendor | 32 (kiln 13) (S-122) | 35 (kiln 0, chamber 1, alcove 0, door 34) — door is a generic word F9 allows (a swing term, the roles' prose); every example identifier is gone (the guard) |
 | largest of the five collision files | 1,647 lines | 451 lines |
-| `make check` on `main` | 10 min 14 s, 876 passed (S-122) | 10 min 4 s, 1,088 passed (29951e2, idle host) |
+| `make check` on `main` | 10 min 14 s, 876 passed (S-122) | 10 min 4 s, 1,088 passed (a2832f6, idle host) |
 | `make check-fast` | did not exist | 2 min 1 s (S-131) |
 | tests | 876 passed, 5 skipped (S-122) | 1,088 passed, 4 skipped; 141 goldens |
 
-`make check` on `main` at each wave boundary (the overseer's runs): 9 min 7 s at 29e7d4b (after
-M1, 908 passed); 9 min 14 s at 895df01 (after wave 2, 998 passed); 9 min 10 s at 5e1a100 (after
+`make check` on `main` at each wave boundary (the overseer's runs): 9 min 7 s at b1916cc (after
+M1, 908 passed); 9 min 14 s at a45d364 (after wave 2, 998 passed); 9 min 10 s at d6ad20f (after
 wave 3, 1,029 passed, idle host). Wave times: M0 14 min; M1 65 min; wave 2 79 min; wave 3 73
 min; M7 about 4 h 30 min including the simulations, the gates and three fix tasks (STATUS.md).
 
 ## 5. What the gates found and how it was fixed
 
-**Gate E (architecture and honesty), at baecb90: NOT READY, four blockers.** The seams held: the
+**Gate E (architecture and honesty), at c686da3: NOT READY, four blockers.** The seams held: the
 core imports no domain, goldens unchanged, scope never hides safety, an open choice stops the
 release, `n2f check` never decides.
 - B1 `n2f impact` missed every rule that reads an object whole when one of its fields is edited
@@ -130,7 +130,7 @@ release, `n2f check` never decides.
 - B4 the core's open-set tables were hashed into no rule — fixed, S-138.
 - Concerns: C7, C8, C13, C14 fixed (S-137, S-138); C1–C6, C9–C12 open, B-0105–B-0114.
 
-**Gate F (UX, owner persona), at baecb90: NOT READY, four blockers.** The scope block, "waiting on
+**Gate F (UX, owner persona), at c686da3: NOT READY, four blockers.** The scope block, "waiting on
 you" with costs and the plain refusals read well.
 - 1 the decided-unapplied release (= E B3), S-139. 2 the package's report was the pre-release
   draft, S-139. 3 a shelf's board and promoted requirement spoke of an open door and an alcove,
@@ -176,7 +176,7 @@ chosen; the demo borrows the M6 x 16's price). `make verify-list` prints them.
   B-0103 (the kiln still writes `door`/`stand` roles: six L17 warnings), B-0104 (impact cannot
   be asked about a product rule-pack edit).
 - **No Linux nightly has run on a commit after S-121** (the platform-stable evidence keys): the
-  push run of `make check` on 4c8d66c was green on ubuntu and macOS, and `main` was not pushed
+  push run of `make check` on 8bd1d47 was green on ubuntu and macOS, and `main` was not pushed
   during v0.5, so the proof the plan's §5 asks for comes with the next push.
 
 ## 9. What v0.6 inherits

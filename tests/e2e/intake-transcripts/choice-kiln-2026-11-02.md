@@ -2,7 +2,7 @@
 
 ## Setup
 - client: the desktop app's agent tool; the overseer of v0.5 started a fresh subagent with no history of the session (a general-purpose subagent it could continue), told it to read the product folder's `AGENTS.md` and `roles/pm.md` in full as its instructions (the same bytes the protocol pastes), and sent the six owner lines below one at a time, each after its reply to the one before; the overseer never answered for the owner beyond them
-- kiln copy: <tmp>/kiln at 27d4229db1428b87d97875621d2298090f593ff9 (`cp -R examples/kiln`, `rm -rf build`, `n2f init .`, unbuilt); `<tmp>` is the overseer's scratch folder and `<repo>` the repository
+- kiln copy: <tmp>/kiln at 6ff5d2f76e5c5484354f7165dbde711252a648e2 (`cp -R examples/kiln`, `rm -rf build`, `n2f init .`, unbuilt); `<tmp>` is the overseer's scratch folder and `<repo>` the repository
 - agent time: 545 s over the six turns, 38 tool calls; the first `n2f build` (turn 3) about 2.5 min of that
 
 ## Owner's lines

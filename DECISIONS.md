@@ -269,6 +269,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-240 | Trial 4 message and doc fixes: card and assembly hints, quantity abs, calc kit docs | in force |
 | S-241 | Trial 4 package fixes: auto-layout spacing, mains without a supply, finish in lint | in force |
 | S-242 | Close v0.7: version 0.7.0, pins >=0.7,<0.8 | in force |
+| S-243 | The commit history carries no personal email | in force |
 
 ---
 
@@ -335,7 +336,7 @@ Both are `AGENTS.md` working-style rules; the next plan's milestone exits should
 Amends S-070; B-0054. `demo.sh`, `demo-design.sh` and `demo-napkin.sh` each work in their own temp
 copy with nothing shared and no timing assertion, so `make demos` runs them on three workers
 (`-n 3`; they are one file, so `--dist loadfile` would have kept them on one). Measured on the
-macOS host: 8 min 19 s wall, against ≈ 12 min serial (docs/improvements.md §2, eab10b1). Each
+macOS host: 8 min 19 s wall, against ≈ 12 min serial (docs/improvements.md §2, 723a347). Each
 demo slows under the shared load (demo-design 496 s), so the longest sets the pace. Overlapping
 the kiln step with the demos was not tried: both are CPU-heavy and it is unmeasured. The timing
 tests stay serial (D30).
@@ -508,7 +509,7 @@ ids" commit, so the task's own commit kept its placeholder in its files and subj
 `git bisect run make check` would have blamed that commit for the placeholder check. Now
 `scripts/journal_ids.py` rebuilds each task commit from its snapshot with the ids applied to its
 changed files and its message (plumbing: `read-tree`, `hash-object`, `commit-tree`; no patch is
-replayed, so nothing can conflict). Commit `3d50f7e` on `main` predates this and keeps its
+replayed, so nothing can conflict). Commit `6167443` on `main` predates this and keeps its
 placeholder; history on `main` is never rewritten.
 
 ## S-100 — The why sits where the thing happens: code cites its decision (2026-11-01)
@@ -665,7 +666,7 @@ tried by hand: no fail, scoped check 8.7 s. Bundle 34,259 B; report 3,792,417 B.
 `make kiln` 3 min 21 s, `make check` 11 min 8 s green (853 + 141 passed). Simulation not run.
 
 ## S-116 — v0.4 DoD 5: a fresh agent changed the door from its context alone (2026-11-01)
-Run per S-115's protocol (`tests/e2e/module-transcripts/README.md`) on a built kiln copy at 016689b:
+Run per S-115's protocol (`tests/e2e/module-transcripts/README.md`) on a built kiln copy at 7e24852:
 a fresh-context subagent got the 34,259-byte door bundle (design role, `n2f context asm://door`,
 the door's geometry code), the folder and the owner's request (spacers 10 mm further apart). It
 read the bundle, the spacer interface and the `door-standoff` lines of `parameters.yaml`, set
@@ -686,7 +687,7 @@ part (`spare:`, `loose:` live in `children`). `drawing://` reads are valued too 
 were constants). `values.unvalued_reads` lists any constant read; tests assert `{}` on the kiln.
 
 ## Review gate C (architecture and honesty) — outcome (2026-11-01)
-Reviewed at 016689b (report: `docs/reviews/v0.4-gate-c.md`): NOT READY on two D5 blockers; placement,
+Reviewed at 7e24852 (report: `docs/reviews/v0.4-gate-c.md`): NOT READY on two D5 blockers; placement,
 ports, hardware counts, scope, context and v0.3 compatibility held. **Blockers fixed (S-117):**
 (B1) plan reads valued — `test_a_plan_only_change_rebuilds_the_sheet_the_page_and_the_report`
 (the driver change rebuilds `asmsheet:pod`, `doc:assembly`, `report`, nothing geometric;
@@ -708,7 +709,7 @@ Joint messages name parts and the joint; ids, offsets and frames move to `failur
 `--json`. A sheet cell wraps (up to three lines) instead of shrinking below 2.2 mm. Closes B-0066, B-0068.
 
 ## Review gate D (UX, owner persona) — outcome (2026-11-01)
-Reviewed at 016689b (`docs/reviews/v0.4-gate-d.md`): NOT READY on two blockers, both joint messages.
+Reviewed at 7e24852 (`docs/reviews/v0.4-gate-d.md`): NOT READY on two blockers, both joint messages.
 **Fixed (S-118):** (1) a misaligned joint reads "Inner sheet-metal shell and Ventilated touch guard
 do not line up at their joint "Shell to guard, top wall": their holes are 5.0 mm apart (0.5 mm
 allowed). Move the holes or the parts so they meet."; (2) a passing one "the 4 holes line up on both
@@ -752,7 +753,7 @@ sign-offs (`scripts/rekey_signoffs.py`); a test changes the mesh hash and keeps 
 changes the volume by 1 % to void it. Docs and drawings still key on output hashes: whether those
 differ on Linux is what the next nightly says; B-0073 reopens if they do.
 ## S-122 — v0.5 M0 baseline: the before numbers (2026-11-01)
-Measured on `main` at 4c8d66c. Dry run (scratch branch, discarded): a no-op rule family, verify kind,
+Measured on `main` at 8bd1d47. Dry run (scratch branch, discarded): a no-op rule family, verify kind,
 check stage, report section and doc helper, each shown reached by `n2f build` on a bracket copy, edited
 10 files, 7 under `core/`: `graph/{rules,runs,impact}.py`, `checks/{evaluators,engine}.py`, `lint.py`
 (L1's binary kinds), `model/requirements.py` (target schemes), plus `docs/engine.py`, `report/builder.py`,
@@ -810,7 +811,7 @@ pins a rule key: none moved. `test_domain_contract.py` 30 passed, 24.1 s; `make 
 ## S-127 — v0.5 M4b: scope is a recorded value; external stubs in the build plan (2026-11-01)
 Closes B-0076, B-0077. `core/graph/values.py` values `manifest://scope` (the block, `n2f.yaml` order) and
 `manifest://scope#<domain>[.<field>]`; the report reads them only when `scope:` is declared, so no other
-product's key moves: bracket and enclosure built on `main` (34f2c4a) and here have the same reads, values,
+product's key moves: bracket and enclosure built on `main` (fdbe2dc) and here have the same reads, values,
 report and plan in all 11 / 15 rules, only code hashes differ. Cost: a first `scope:` reruns the report only
 through its new `DEC-` (B-0081) [revisit]. No check row reads scope. A rig scope edit reruns validate, report,
 site; impact names those three. Stubs: a step's `supplied` (only when non-empty) in the plan, the manual step
@@ -882,7 +883,7 @@ not held [revisit]); B-0081 (`manifest://scope` always read; every report key mo
 task `v05-m5b-summary` (WIP): it needs `cli/concept.py`, `promote/decision.py`, `verb.py`, outside this task's files.
 `demo-design.sh` (with `demo.sh`) green, 13 min 45 s beside other tests; `make check` green, 1034 passed, 141 goldens, 11 min 44 s.
 ## S-134 — v0.5 DoD 2: the gadget simulation, 0 core files (2026-11-02)
-Run by the overseer per `tests/e2e/domain-transcripts/README.md` on a detached copy of `main` at f18c2c5: a fresh subagent with no
+Run by the overseer per `tests/e2e/domain-transcripts/README.md` on a detached copy of `main` at af3b80b: a fresh subagent with no
 history got the scripted request and the contract (`docs/domains.md`, 47,952 bytes, read from the copy). In 224 s and 14 tool calls
 it wrote `tests/fixtures/domains/gadget/`, a product and `tests/unit/test_gadget_domain.py` (15 tests, one per registry plus impact
 and the code hash). Judged by the overseer: gadget and toy together 49 passed; files changed under `src/napkin2factory/core/` 0 (both
@@ -903,7 +904,7 @@ exact lists; card-field keys (first declaration wins); the section order (`joint
 rebuilds with `render=False`; `cli.build.targets` in the import list and §8. Touched tests (promote, concept e2e, screening, F9, transcript, agent docs) 3 min 26 s, green.
 
 ## S-136 — v0.5 DoD 6: the kiln choice simulation (2026-11-02)
-Run by the overseer per `tests/e2e/intake-transcripts/choice-kiln.md` on an unbuilt kiln copy at 27d4229: a fresh subagent with the
+Run by the overseer per `tests/e2e/intake-transcripts/choice-kiln.md` on an unbuilt kiln copy at 6ff5d2f: a fresh subagent with the
 product `AGENTS.md` and `roles/pm.md`, six scripted owner lines one at a time (545 s, 38 tool calls). Not in the interview (two
 replies, four delegated `DEC-`s); named in one line after the first build and raised in full when the owner asked about the guards,
 both options with what they take and their estimated cost, no check id; `n2f decide … --pick shorter-bolts --by "Sam Rivera"` after
@@ -940,8 +941,8 @@ Gate F concerns: 11 (`hardware.py`: "each spacer (<name>)" in the title, "each b
 Demos: `demo.sh` decides, sees the dry-run release refused, makes the pick by editing the model (a first release: no change request yet), builds, re-signs, saves, releases; `demo-design.sh` brings ECR-002's patch context (the door's bolt line) up to date before applying it [revisit: a pre-authored patch that the model outgrew]. The kiln model keeps its choice open. Measured on the host: both demos side by side 16 min 56 s, green; `test_choices.py` + `test_signoffs.py` 4 min 6 s; `test_release_diff.py` 3 min 2 s.
 
 ## Review gate E (architecture and honesty) — outcome (2026-11-02)
-Reviewed at baecb90 (report: `docs/reviews/v0.5-gate-e.md`): NOT READY on four blockers; the seams held (core imports no domain,
-goldens unchanged since a9bea31, scope never hides a safety requirement, an open choice stops the release, `n2f check` never
+Reviewed at c686da3 (report: `docs/reviews/v0.5-gate-e.md`): NOT READY on four blockers; the seams held (core imports no domain,
+goldens unchanged since 3544ebe, scope never hides a safety requirement, an open choice stops the release, `n2f check` never
 decides, splits and `check-fast` within budget). **Blockers fixed:** B1 impact missed rules reading an object whole when one of
 its fields was edited (older than v0.5 for interfaces) and B2 domain rules read the model raw (a recording accessor for rules,
 stages and report data; the contract's section `data(sctx)` changed) and B4 the `core/data` tables hashed into no rule — S-138,
@@ -950,7 +951,7 @@ stages and report data; the contract's section `data(sctx)` changed) and B4 the 
 C1–C6, C9–C12 (B-0105 … B-0114).
 
 ## Review gate F (UX in the owner persona) — outcome (2026-11-02)
-Reviewed at baecb90 (report: `docs/reviews/v0.5-gate-f.md`): NOT READY on four blockers; the scope block, "waiting on you" with
+Reviewed at c686da3 (report: `docs/reviews/v0.5-gate-f.md`): NOT READY on four blockers; the scope block, "waiting on you" with
 costs, the plain `n2f decide` refusals and the newer-format message read well. **Blockers fixed:** 1 a decided pick released
 unapplied (= gate E B3) and 2 the package's report was the pre-release draft — S-139 (`test_release_package_and_site`); 3 a
 shelf's board and promoted requirement said "open door" and "alcove" and 4 a failing product screen printed a traceback — S-137
@@ -1035,7 +1036,7 @@ switch stay `terminals: []` (datasheets not readable here, §7 risk 3). The conn
 gland's circuit (the door switch and the four bonding leads have none), each stud's part, 4 of 9 custom metal parts bonded
 only through a joint, a proposed device list and three circuits for M5, and seven open points (one part with several
 instances, an upstream protective device that is no part, missing parts). Kiln cold build 69.1 s, report 3,796,445 bytes.
-`make check-full` not re-run: the code equals 29951e2's, so S-140's 29 min 14 s is the baseline.
+`make check-full` not re-run: the code equals a2832f6's, so S-140's 29 min 14 s is the baseline.
 ## S-148 — Scope words: one table, the cover's "Not included", the kiln's electrical requirements (2026-11-02)
 Closes B-0115 (gate F 6), a v0.5 seam (E10, counted apart). `SCOPE_WORDS`/`SCOPE_MEANS` in `core/model/manifest.py`
 are the one table every surface reads (status, check, report, cover): `in` "done here", `later` "left for later (not
@@ -1298,7 +1299,7 @@ the templates, so macOS catches it. Behind it, on both systems: the test expecte
 requirements moved the promoted ids to REQ-030–034; it now matches the line, not the id. Measured on macOS: 1 passed, 126 s.
 
 ## S-176 — The wiring session simulation, DoD 7 (2026-11-03)
-Run by the third overseer from `tests/e2e/intake-transcripts/wiring-session.md` at c6f50fe, a fresh project-manager
+Run by the third overseer from `tests/e2e/intake-transcripts/wiring-session.md` at 4d78d36, a fresh project-manager
 subagent continued line by line (the first run, 2026-11-02, was lost at owner line 2 when its session was cut off).
 Transcript: `wiring-session-2026-11-03.md`. All five criteria ticked: nothing about the circuit's room in the
 interview; the choice raised in full in the reply that reported the first build with wiring (5.2 A of 10 A, computed;
@@ -1314,7 +1315,7 @@ the product was right. Reproduce: `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bare
 uv run pytest` on those two tests. Fix, tests only: `_bare_git` and the e2e `git()` pass `--git-dir=<remote>`. The setting
 is never weakened.
 ## S-178 — Gate G blockers 1–2: a conductor against its protective device; Class II in a part that conducts (2026-11-03)
-From `docs/reviews/v0.6-gate-g.md` §9 (at f67dc06); amends S-158 and E6's fail list. A new rule and row per power or control circuit,
+From `docs/reviews/v0.6-gate-g.md` §9 (at dbe46e0); amends S-158 and E6's fail list. A new rule and row per power or control circuit,
 `conductor-protection`, not inside `conductor-current`: another pair (the device's rated current against the conductor's, I_n <= I_z,
 IEC 60364-4-43 433.1 [verify]) whose unknown (a device with no rating: `warn`) must not hide the load check, and `#conductor_margin`
 stays the load's. Below: `fail` naming the connections, both ratings (given / from the table), the fix. A lead on the supply side of
@@ -1349,7 +1350,7 @@ licensed-electrician line. (3) `ecr/release.py::scope_lines` reads the previous 
 and say so"` only when `operator.yaml` delegates the choice's area and `model/intake.md` does not ask to be asked.
 
 ## Review gate G (electrician read-through, then engineering) — outcome (2026-11-03)
-Reviewed at f67dc06 (report: `docs/reviews/v0.6-gate-g.md`; Part 1 read-through kept at `examples/kiln/reports/electrician-readthrough.md`):
+Reviewed at dbe46e0 (report: `docs/reviews/v0.6-gate-g.md`; Part 1 read-through kept at `examples/kiln/reports/electrician-readthrough.md`):
 NOT READY on three blockers; the six fault fixtures fail or warn naming the part, circuit and fix, the kiln's load current and
 margins re-compute by hand through `calckit.power`, every table row is cited and `verify: true`, the domain stays generic and
 reads through the recording accessors, and an electrician could wire the kiln from the package with about a dozen calls to the
@@ -1360,7 +1361,7 @@ package `README.txt`, the manual helpers or the diagram SVGs — S-179 (diagram 
 S-180 (`Domain.disclaimer` in the package `README.txt`). Open in BACKLOG: concerns 1–14 (B-0161 … B-0173; 6 is B-0137, 15 closed by S-181).
 
 ## Review gate H (UX in the owner persona) — outcome (2026-11-03)
-Reviewed at f67dc06 (report: `docs/reviews/v0.6-gate-h.md`): NOT READY on two blockers; "left for later" in status, report and
+Reviewed at dbe46e0 (report: `docs/reviews/v0.6-gate-h.md`): NOT READY on two blockers; "left for later" in status, report and
 the v1.0.0 cover, "Wiring: added" on the diff page, the Wiring section's banner and "a licensed electrician decides" warnings,
 plain refusals without stack traces, and zero wiring words on a product without wiring all read well. **Blockers fixed:** B1 the
 impact report for a `kind: design` change request with a patch (`ECR-003`) said "Impact of 0 change(s)" and "nothing is rebuilt" —
@@ -1610,7 +1611,7 @@ An independent hand calculation of the table benchmark (SPEC §4) found five def
 Measured: `tests/unit/test_calc_fixes.py` and the pack's reference cases; the old 17.25-points-per-unit-RH slope for a single RH swing is replaced by a swing centred on 50 % RH.
 ## S-208 — The v0.6 independent trials, triaged (2026-11-04)
 Road step 0, W12. Two outside models of different vendors ran `docs/reviews/v0.6-independent-trial.md`
-at 434cea8 (`docs/reviews/v0.6-trial-1.md`, `-2.md`). Trial 1: no blocker, 4 concerns. Trial 2 (owner a
+at 4dc9ad1 (`docs/reviews/v0.6-trial-1.md`, `-2.md`). Trial 1: no blocker, 4 concerns. Trial 2 (owner a
 separate agent): one blocker: a change request that removes a part, parameter or joint leaves the
 product unloadable (the stored impact names the removed URIs; apply stops half-done). The trials
 disagree on most rows; trial 2 used the system longer and is the evidence for fixes. Tasks before
@@ -1677,7 +1678,7 @@ merge=union keeps both Open and Closed copies, failing test_backlog_ids_unique.
 The change is committed into the task commit during post-rebase journal rewriting.
 
 ## S-217 — Health review 2026-11-04 — outcome (2026-11-04)
-Periodic health review across 34 commits since 9e971d0 (S-190). Trend recorded at 731b3da in `docs/health/trend.csv`. Long modules stable at 11; 0 new modules exceed 550 lines since v0.7 began (structural/joints modularized under 370 lines), but `core/checks/interface.py` grew to 677 lines (+39) and `mechanical/interfaces.py` reached 509 lines. 7 task collisions occurred (`docs/agent-guide.md` in 4 pairs). Unconfirmed verify rows rose from 170 to 268 (+98) from materials and cost expansion. E10 seam commits rose to 11 (+5); M1c touched `core/data/processes.yaml` (target 0 core files under W10). Zero core-to-domain or cross-domain imports. Zero TODO/FIXME lines in src/. Test suite expanded to 1195 (+166), test skips to 35 (+2, both justified). Report in `docs/reviews/health-2026-11-04.md`; opened backlog rows B-0206 (union merge backlog deduplication), B-0207 (agent guide collision hotspot), and B-0208 (v0.7 verify numbers confirmation).
+Periodic health review across 34 commits since f6d55b3 (S-190). Trend recorded at 9d030b1 in `docs/health/trend.csv`. Long modules stable at 11; 0 new modules exceed 550 lines since v0.7 began (structural/joints modularized under 370 lines), but `core/checks/interface.py` grew to 677 lines (+39) and `mechanical/interfaces.py` reached 509 lines. 7 task collisions occurred (`docs/agent-guide.md` in 4 pairs). Unconfirmed verify rows rose from 170 to 268 (+98) from materials and cost expansion. E10 seam commits rose to 11 (+5); M1c touched `core/data/processes.yaml` (target 0 core files under W10). Zero core-to-domain or cross-domain imports. Zero TODO/FIXME lines in src/. Test suite expanded to 1195 (+166), test skips to 35 (+2, both justified). Report in `docs/reviews/health-2026-11-04.md`; opened backlog rows B-0206 (union merge backlog deduplication), B-0207 (agent guide collision hotspot), and B-0208 (v0.7 verify numbers confirmation).
 ## S-218 — The kiln's benchmark spec, retrofitted from its model (2026-11-04)
 `examples/kiln/SPEC.md` and `SPEC.oracle.yaml` retrofit the Tier 3 benchmark (W9, road §4.2)
 from the shipped kiln: customer intent (200 mm cube chamber, 1200 °C, 230 V / 16 A circuit),
@@ -1731,7 +1732,7 @@ New figure `req-slot-clearance` (13 less 7.05 mm, ±0.35 mm, found 5.93): 47 pas
 and slot travel alone stay pending: no requirement bounds either one. Gaps filed: B-0214 to B-0219.
 The test stand's unsigned yield, fatigue and tip-over figures are real rows now (44 pass, 7 pending on a copy); closes B-0212.
 ## S-224 — Review gate I (v0.7) — outcome (2026-11-05)
-Engineering and honesty, fresh context, at 3139a00 (`docs/reviews/v0.7-gate-i.md`). NOT READY. Blockers,
+Engineering and honesty, fresh context, at 4024c8e (`docs/reviews/v0.7-gate-i.md`). NOT READY. Blockers,
 fixed before the close: the fixed-base branch of `frame_racking` uses (k+2)/(6k+1) for (3k+2)/(6k+1)
 and under-reports sway up to 3x (confirmed by a stiffness-matrix solve); the product region never
 reaches the cost screen (US bands, USD, no region or date on the owner's cost line; an EUR band
@@ -1740,7 +1741,7 @@ oracle judging outcomes not ids, ceremony relaxing paperwork only. Concerns go t
 C2, C9: provenance wording, stale texts) or to rows B-0220–B-0226; C8 (the table top's cross-grain
 load path, near its sag margin) is a benchmark fix before the close.
 ## S-225 — Review gate J (v0.7) — outcome (2026-11-05)
-UX in the owner persona (a US hobby woodworker), fresh context, at 3139a00 (`docs/reviews/v0.7-gate-j.md`).
+UX in the owner persona (a US hobby woodworker), fresh context, at 4024c8e (`docs/reviews/v0.7-gate-j.md`).
 NOT READY. Blockers, fixed before the close: a card whose structural check did not run shows "holds
 up"; costs never name region or date (the same defect as gate I's second blocker); manuals render N,
 kg and mm in an imperial product; "50 x 50 x 1.5 mm" displays as "50 x 50 x 0.0591 in". Held: inches
@@ -1831,7 +1832,7 @@ Oracle: the table and the stand no longer count exactly one sign-off; two facts 
 Measured, oracle on fresh copies after S-235's value names: the table example 53 pass / 0 fail and the stand example 45 / 0; the stand trial product 45 / 0 (it was 30 / 14); the table trial products 46 pass / 7 fail (was 32 / 18) and 47 / 6 (was 38 / 12). What still fails there is the agents' own work, not the oracle: neither set a region (the init flags and the PM question address that), one trial's pine and trestle massing differs from the spec (mass, cost, tip-over), and the cards of one trial carry their own screens, which name no `deflection` or `tip_over_factor`.
 
 ## S-237 — Health review 2026-11-05 (v0.7 close) — outcome (2026-11-05)
-Trend row recorded at 5011b22 (`docs/reviews/health-2026-11-05.md`; window 731b3da..5011b22, 36 commits). Worse: modules over 550 lines 11 -> 13 (`electrical/checks/calcs.py` 838, `ecr/lifecycle.py` 608), verify rows 268 -> 279, open rows 109 -> 124, E10 seam commits 11 -> 18; better: 0 task conflicts, 0 unstamped, tests 1195 -> 1288, `docs/agent-guide.md` in 0 of 7 collision pairs (was 4).
+Trend row recorded at 0f94927 (`docs/reviews/health-2026-11-05.md`; window 9d030b1..5011b22, 36 commits). Worse: modules over 550 lines 11 -> 13 (`electrical/checks/calcs.py` 838, `ecr/lifecycle.py` 608), verify rows 268 -> 279, open rows 109 -> 124, E10 seam commits 11 -> 18; better: 0 task conflicts, 0 unstamped, tests 1195 -> 1288, `docs/agent-guide.md` in 0 of 7 collision pairs (was 4).
 W10: 17 distinct `core/` files in 7 commits since S-197; M2a, M2c, M3c, M4 touched 0; the three fix tasks S-212, S-215, S-233 are the only unplanned ones. Four non-core seam commits (S-219, S-226, S-227, S-236) did not name their file.
 Union-merge duplicates: S-216 covers an id in Open and Closed; the same row edited by both sides keeps two copies in one table (reproduced on a scratch repo), which the gate catches and `make land` then gives up on.
 Closed here: B-0190, B-0194 (delivered), B-0206 (S-216). Opened: B-0243 (same-table duplicates, ~30 min), B-0244 (split calcs.py and lifecycle.py), B-0245 (split `report/builder.py`, 549), B-0246 (land warns on unnamed seam edits), B-0247 (three dead skips), B-0248 (coverage read from the main folder), B-0249 (STATUS and CLI-reference drift). CI results on `main`: not measured (no `gh` login in the task).
@@ -1879,3 +1880,12 @@ product pin the package writes or ships (the manifest default, the templates and
 test fixtures, `docs/product-model.md`) says `>=0.7,<0.8` (S-083). Before the tag: the commit-email rewrite (B-0242),
 `make check` on `main`, CI green. Tagging stays the maintainer's call (S-072). Open at the close: the stand's portal on the
 structural screen (B-0210), no tier-3 spec trial, one client kind in the trials (§2.1), B-0252, B-0254, B-0257.
+
+## S-243 — The commit history carries no personal email (2026-11-05)
+The owner's old personal address was the author or committer of about 270 commits (metadata only: no file, message or
+package carried it), and spam followed. Before the `v0.7.0` tag, `git filter-repo --mailmap` rewrote every commit's author
+and committer to the GitHub noreply address, with the mapping in a private file outside the repository (B-0242): 328
+commits, every tree byte-identical to its original (compared for all of them through filter-repo's commit map), names
+unchanged, the six tags moved with them. The commit hashes quoted in the journals, handoffs, reviews and transcripts were
+replaced by their rewritten ones (271 in 41 files). The force-push of `main` and the tags is the maintainer's step; clones
+made before it keep the old history, which the owner accepted.

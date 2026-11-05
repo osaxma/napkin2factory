@@ -39,7 +39,7 @@ def product(tmp_path: Path) -> Path:
 
 
 def test_without_concepts_status_is_byte_identical_to_v01(product: Path) -> None:
-    # golden captured from the v0.1 code (commit bcd1451) on a fresh tracked bracket copy
+    # golden captured from the v0.1 code (commit e906169) on a fresh tracked bracket copy
     golden = (FIXTURES / "concepts" / "bracket-status-v01.json").read_text()
     assert _run("status", "--json", cwd=product).stdout == golden
 

@@ -153,7 +153,7 @@ profiles, stack-up)._ See §9 for where to continue.
 ## 7. PyPI name availability
 Read-only `GET https://pypi.org/pypi/<name>/json` on 2026-10-30: `napkin2factory` → HTTP 404 (**available**), `n2f` → HTTP 404 (**available**). Nothing was published. Recommendation unchanged from the handoff: publish `napkin2factory`; register `n2f` as a defensive placeholder depending on it.
 
-**Published 2026-10-31.** Tag `v0.1.0` (commit `cff8a82`, first CI run green on
+**Published 2026-10-31.** Tag `v0.1.0` (commit `1cbfca5`, first CI run green on
 `ubuntu-latest` and `macos-latest`) ran `publish.yml` (DECISIONS S-054):
 `napkin2factory 0.1.0` and the alias `n2f 0.1.0` (`napkin2factory==0.1.0`) are on PyPI,
 wheel and sdist each. A fresh `pip install n2f` gives a working `n2f`.

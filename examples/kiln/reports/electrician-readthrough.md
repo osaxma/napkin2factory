@@ -1,10 +1,10 @@
 # Electrician read-through: the kiln's wiring package (v0.6 gate G, Part 1, 2026-11-03)
 
-A fresh-context reviewer playing a licensed electrician read only the kiln's release package (v1.0.0, built at f67dc06) and its `build/electrical/` outputs, never the model or the code. The full gate report, with the engineering review and the verdict, is `docs/reviews/v0.6-gate-g.md`.
+A fresh-context reviewer playing a licensed electrician read only the kiln's release package (v1.0.0, built at dbe46e0) and its `build/electrical/` outputs, never the model or the code. The full gate report, with the engineering review and the verdict, is `docs/reviews/v0.6-gate-g.md`.
 
 
 *Read as a licensed electrician (230 V single phase, domestic and light commercial) handed only the release package `kiln-v1.0.0.zip` (unpacked to
-`/tmp/n2f-gate-g/package/v1.0.0/`) and the build's `build/electrical/`. Made from a copy of `examples/kiln` at f67dc06: `n2f build`, `n2f check` (exit
+`/tmp/n2f-gate-g/package/v1.0.0/`) and the build's `build/electrical/`. Made from a copy of `examples/kiln` at dbe46e0: `n2f build`, `n2f check` (exit
 0: "6 example sign-offs (not reviews) · 316 OK · 5 not checked · 88 worth a look"), the bolts pick made in the model, then `n2f release v1.0.0
 --allow-example-signoffs` ("EXAMPLE SIGN-OFFS: this Revision is a demonstration, not a reviewed design").*
 

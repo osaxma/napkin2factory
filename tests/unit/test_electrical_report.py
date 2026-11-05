@@ -521,7 +521,7 @@ def test_the_context_lists_the_modules_own_wiring_only(tmp_path: Path) -> None:
 # ---- the supply screen moved from the kiln's pack (E8) ------------------------------------------
 
 #: card → (status, message) and the estimates, exactly as the kiln's pack gave them on main
-#: before the move (measured with `screen(card, None, examples/kiln)` at f8bd098).
+#: before the move (measured with `screen(card, None, examples/kiln)` at 05d98b4).
 SUPPLY_CASES = [
     (
         {"power": "2.5 kW"},

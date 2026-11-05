@@ -44,7 +44,7 @@ question sets (architecture/honesty; UX in the owner persona) as they stand in `
 wall against ≈ 12 min. The text below is the original proposal.
 
 **What happened.** `make check-full` is `check` + `kiln` + `demos` in series (see `Makefile`).
-Measured on a clean clone of eab10b1: 28 min 01 s total, of which `check` is about 7.5 min
+Measured on a clean clone of 723a347: 28 min 01 s total, of which `check` is about 7.5 min
 (tests are already parallel, S-070), the kiln build with renders plus the kiln napkin build about
 6 min, and `demos` — `tests/e2e/test_demos.py`, which runs `demo.sh`, `demo-design.sh` and
 `demo-napkin.sh` one after another, each in its own temp copy — about 12 min (the two v0.1
@@ -149,7 +149,7 @@ neutral path name, so it is not just a second private convention.
 ## 6. Python version and dependency review (B-0072)
 
 **Not done; set aside by the maintainer (2026-11-01) as not important for now.** A read-only
-review on 2026-11-01 (`main` at 6f1c096; `pyproject.toml` and `uv.lock` unchanged at e1fc18e).
+review on 2026-11-01 (`main` at 62d27a5; `pyproject.toml` and `uv.lock` unchanged at 4111660).
 Versions and wheel tags were read from the PyPI JSON API that day; re-check them before starting,
 they move. Estimates are guesses, not measurements; most of each is waiting on `make check`
 (≈ 7 min) and `make check-full` (≈ 21 min).

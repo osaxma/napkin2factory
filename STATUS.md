@@ -9,8 +9,8 @@ work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:
 v0.7 (everyday breadth, `docs/stages/v0.7-everyday-breadth.md`) is closed at 0.7.0 (S-242): Track A, S-197 to S-241
 (structural physics, everyday materials, derived ceremony, region and display units, the table and test-stand products,
 the three-tier benchmarks and their two-vendor spec trials, the v0.7 health review); handoff `docs/reviews/v0.7-handoff.md`
-(S-239). Before the `v0.7.0` tag: the commit-email rewrite in the owner's local `OWNER-TODO.md` (B-0242), `make check`
-on `main`, CI green. v0.6.0 is the last release (tag `v0.6.0`, S-183). Next: Track B, v0.8 (`docs/roadmap/road-to-v1.0.md`).
+(S-239). The commit history carries no personal email (S-243). Before the `v0.7.0` tag: the maintainer's force-push of
+the rewritten `main` and tags, CI green. v0.6.0 is the last release (tag `v0.6.0`, S-183). Next: Track B, v0.8 (`docs/roadmap/road-to-v1.0.md`).
 
 ## Environment (host facts a cold reader needs)
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via
@@ -34,15 +34,15 @@ on `main`, CI green. v0.6.0 is the last release (tag `v0.6.0`, S-183). Next: Tra
   (`tests.conftest.copy_product`). Templates are synced with `make templates`, never hand-edited.
 
 ## Milestones (one line each; detail in the entries named)
-v0.7 — `docs/stages/v0.7-everyday-breadth.md` (Track A: structural physics, everyday materials, derived ceremony, region, the three-tier benchmarks), S-197; Track A delivered (S-197 to S-241), closed at 0.7.0 (S-242). Done: v0.6 trials triaged (S-208, blocker fixed in S-215; also S-212, S-214, the docs task); M1 calc pack, materials, dated regional costs (S-198, S-199, S-201, S-207); M2 frame kit, four interface kinds, structural screen (S-202, S-203, S-206, S-211); M3 region, derived ceremony, display units (S-200, S-205, S-219); M4 table and test-stand specs worked and re-derived by a second model (S-204, S-210), the oracle (S-209), the kiln spec (S-218); health review (S-217). Also: the table and test-stand products, the two-vendor spec trials (S-234), the structural screen for bare legs, trestles and a cross member (S-235), init asks region and units (S-236), health review (S-237), quick fixes (S-238), the fourth spec trial, the §2.1 measures and the handoff (S-239), trial 4 fixes (S-240, S-241), version 0.7.0 (S-242). Before the `v0.7.0` tag: the commit-email rewrite in the owner's local `OWNER-TODO.md` (B-0242).
+v0.7 — `docs/stages/v0.7-everyday-breadth.md` (Track A: structural physics, everyday materials, derived ceremony, region, the three-tier benchmarks), S-197; Track A delivered (S-197 to S-241), closed at 0.7.0 (S-242). Done: v0.6 trials triaged (S-208, blocker fixed in S-215; also S-212, S-214, the docs task); M1 calc pack, materials, dated regional costs (S-198, S-199, S-201, S-207); M2 frame kit, four interface kinds, structural screen (S-202, S-203, S-206, S-211); M3 region, derived ceremony, display units (S-200, S-205, S-219); M4 table and test-stand specs worked and re-derived by a second model (S-204, S-210), the oracle (S-209), the kiln spec (S-218); health review (S-217). Also: the table and test-stand products, the two-vendor spec trials (S-234), the structural screen for bare legs, trestles and a cross member (S-235), init asks region and units (S-236), health review (S-237), quick fixes (S-238), the fourth spec trial, the §2.1 measures and the handoff (S-239), trial 4 fixes (S-240, S-241), version 0.7.0 (S-242). The commit-email rewrite (B-0242) is done (S-243).
 
 v0.6 — `docs/stages/v0.6-electrical-stage.md` (the electrical domain through the v0.5 contract; the count of core edits is
 the headline), S-111; reconciled with the contract as built in S-141; closed, `docs/handoffs/HANDOFF-REPORT-v0.6.md`,
 version 0.6.0 (S-181). `docs/reviews/v0.6-independent-trial.md` is the outside model's brief for after it lands.
 Wave times on the host (measured, 2026-11-02 – 2026-11-03): M0 (the baseline and five seam tasks at once) 07:00–07:55, 55 min;
-M1 07:56–08:26. `make check` on `main`: 9 min 34 s at 4358ba6 (after M0, 1,135 passed), 9 min 40 s at 9bd5b3f
-(after M1, 1,173 passed); wave 2 (M2, M3, M4 at once, two seam tasks, M4b) 08:40–09:56; `make check` 10 min 53 s at e72704b
-(after wave 2, 1,290 passed, on a busy host); re-measured on an idle host at 1f81117: 7 min 39 s, green (1,290 passed, 141 goldens), under the 10 min 4 s budget, so nothing moved behind `-m full`. Wave 3 (M6, headroom follow-up S-171, M5) 76 min. After wave 3, M7a, the diagram follow-up (S-174) and the nightly fix (S-175): 8 min 19 s at f346f14, green (1,323 passed, 141 goldens), idle host (2026-11-03). Linux: the push run of `make check` on 7f4d8d0 is green on ubuntu and macOS; the two nightlies since S-121 (2026-11-02, 2026-11-03, on the pushed 7f4d8d0) passed S-121's sign-off evidence keys and failed only on BSD `mktemp` in `demo-napkin.sh` (fixed in S-175, verified in a Debian container; main is not pushed).
+M1 07:56–08:26. `make check` on `main`: 9 min 34 s at 2f42a51 (after M0, 1,135 passed), 9 min 40 s at f82f838
+(after M1, 1,173 passed); wave 2 (M2, M3, M4 at once, two seam tasks, M4b) 08:40–09:56; `make check` 10 min 53 s at 8d74564
+(after wave 2, 1,290 passed, on a busy host); re-measured on an idle host at 81cecae: 7 min 39 s, green (1,290 passed, 141 goldens), under the 10 min 4 s budget, so nothing moved behind `-m full`. Wave 3 (M6, headroom follow-up S-171, M5) 76 min. After wave 3, M7a, the diagram follow-up (S-174) and the nightly fix (S-175): 8 min 19 s at 6135323, green (1,323 passed, 141 goldens), idle host (2026-11-03). Linux: the push run of `make check` on 7d90121 is green on ubuntu and macOS; the two nightlies since S-121 (2026-11-02, 2026-11-03, on the pushed 7d90121) passed S-121's sign-off evidence keys and failed only on BSD `mktemp` in `demo-napkin.sh` (fixed in S-175, verified in a Debian container; main is not pushed).
 - M0 seam tasks (v0.5 defects, counted apart from the domain): a domain's files in the release package (S-142,
   B-0099); a rule family runs `before=` a named one (S-143, B-0125); interfaces treated by their spec's type
   (S-144, B-0126); the scope words, a "left for later" status, the domain's own word, stand-ins (S-148–S-152,
@@ -68,13 +68,13 @@ v0.5 — `docs/stages/v0.5-foundation.md` (the seams: domain contract and regist
 package, schema policy, scope as data, choices), S-111; reconciled with v0.4 in S-120; closed,
 `docs/handoffs/HANDOFF-REPORT-v0.5.md`, version 0.5.0 (S-140);
 its prerequisite B-0073 (platform-stable sign-off evidence keys) is fixed in S-121: the push run of
-`make check` on 4c8d66c is green on ubuntu and macOS; no nightly has run on a commit after S-121
+`make check` on 8bd1d47 is green on ubuntu and macOS; no nightly has run on a commit after S-121
 yet (the latest, 10:28 on 2026-11-01, predates it), and `main` is not pushed during v0.5.
 Wave times on the host (measured): M0 14 min; M1 65 min; wave 2 (M2, M3, M4 at once, then the
-M2b and M4b follow-ups) 21:06–22:25, 79 min. `make check` on `main`: 9 min 7 s at 29e7d4b
-(after M1, 908 passed), 9 min 14 s at 895df01 (after wave 2, 998 passed). Wave 3 (M5, M6 and the gaps task
-at once) 22:37–23:50, 73 min; `make check` at 5e1a100 9 min 10 s on an idle host, 1029 passed. M7: docs and
-M5b at once 23:52–00:40; the two simulations 00:45–01:30; gates E and F at once on baecb90, 28 min; their
+M2b and M4b follow-ups) 21:06–22:25, 79 min. `make check` on `main`: 9 min 7 s at b1916cc
+(after M1, 908 passed), 9 min 14 s at a45d364 (after wave 2, 998 passed). Wave 3 (M5, M6 and the gaps task
+at once) 22:37–23:50, 73 min; `make check` at d6ad20f 9 min 10 s on an idle host, 1029 passed. M7: docs and
+M5b at once 23:52–00:40; the two simulations 00:45–01:30; gates E and F at once on c686da3, 28 min; their
 fixes, three tasks at once, 01:40–02:50.
 - M0 baseline (the before numbers: files a new step edits, product words, file sizes, check time) — S-122.
 - M1 the domain contract and its registries (`core/domain.py`, `core/registry.py`, `domains/`), the toy domain, `docs/domains.md` — S-123.

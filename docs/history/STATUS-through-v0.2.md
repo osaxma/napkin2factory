@@ -7,7 +7,7 @@ The milestone paragraphs that used to live in `STATUS.md`. Kept verbatim for the
 
 # STATUS
 
-**Branch:** `v0.2-build` (cut from `53bd7bc`, the v0.1 close-out) · **Current milestone:** v0.2 released (`v0.2.0` on 42f0672, 2026-11-01; `main` at the same commit). Next: v0.3 per `HANDOFF-REPORT-v0.2.md` §6
+**Branch:** `v0.2-build` (cut from `07e5ff8`, the v0.1 close-out) · **Current milestone:** v0.2 released (`v0.2.0` on 021fd1c, 2026-11-01; `main` at the same commit). Next: v0.3 per `HANDOFF-REPORT-v0.2.md` §6
 **Contract:** `NAPKIN_STAGE.md` (v0.2, the napkin stage); `GRAND_PLAN.md` §0/§8/§9 and its D-series still apply.
 **Resume note (2026-10-31):** M0–M4 committed. review gate A (fresh-context, read-only) and M5 (skill texts) run in parallel from briefs in the
 orchestrator's scratchpad; then M6 (board + promotion + `rule` verify kind), gate A, M5 (skills), M6 (kiln
@@ -60,7 +60,7 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
   flipping a form threshold fails its requirement. **Judged:** the board reads cleanly. `make check`:
   534 passed, coverage 90.4 %.
 
-- **Gate A (2026-10-31)** — honesty + architecture review at b6a3589: architecture sound, two
+- **Gate A (2026-10-31)** — honesty + architecture review at 2869896: architecture sound, two
   blockers (a green `circuit-available` row vs a failing promoted supply requirement, 1.2 headroom
   vs a 0.8 share; a hand-typed `status: promoted` completed the Napkin stage) and ten concerns.
   Blockers and nine concerns fixed with regression tests; C5 is M6 wording, C8 is B-0023. Full
@@ -92,7 +92,7 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
 - **Parallel `make check` (2026-10-31)** — pytest-xdist in `unit` and `golden` (S-070): the unit+e2e
   step 20 min → 5.5 min on this host, goldens 82 s → 72 s, same tests and coverage; `make check XDIST=`
   for a serial run; timing, kiln and demo targets stay serial.
-- **Gate B (2026-10-31)** — UX review in the owner persona at 1ebca03: NOT READY on six owner-facing
+- **Gate B (2026-10-31)** — UX review in the owner persona at 6b51558: NOT READY on six owner-facing
   blockers (`--all` skipped set-aside cards so the showcase board had one picture; code identifiers as
   the "where it comes from" lines; "about 0 kg"; an empty promotion summary; the status headline naming
   a ticked stage; `n2f init` pointing past the napkin), eleven concerns; no architecture finding and no
@@ -103,7 +103,7 @@ retrofit + `demo-napkin.sh`), gate B, M7. If you find the tree uncommitted: run 
 - **M7 (done 2026-10-31)** — close-out. Parallel `make check` (S-070); review gate B fixes; `HANDOFF-REPORT-v0.2.md`
   (DoD 9: DoD table with measured evidence, dropped/simplified, every `[verify]`, the 30-second napkin demo
   script, rough edges from gate B, v0.3 steps, release notes, the three minute-five retellings). DoD 1 measured
-  from a clean clone of eab10b1: `uv sync`, `n2f doctor` green, `make check-full` exit 0 in 28 min — 642 passed,
+  from a clean clone of 723a347: `uv sync`, `n2f doctor` green, `make check-full` exit 0 in 28 min — 642 passed,
   coverage 90.2 %, goldens 132, all four artifact sets complete. Not done: the engineer-persona second simulation
   (⤵ stretch, NAPKIN_STAGE §5 M5), B-0032–B-0034 and the rest of the backlog.
 ## Next

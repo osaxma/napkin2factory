@@ -3,8 +3,8 @@
 **The count (`../stages/v0.6-electrical-stage.md` E10, DoD 1): 0 files** changed under `src/napkin2factory/core/`,
 `src/napkin2factory/report/builder.py`, `src/napkin2factory/docs/engine.py`, or
 `src/napkin2factory/cli/check.py` across every `domains/electrical/` milestone commit (`M0`–`M7`,
-including the gate-fix commits `d391e71` S-178 and `241ce74` S-179). Every core edit in
-`7f4d8d0..HEAD` was a v0.5 contract seam defect opened and landed in its own task under E10
+including the gate-fix commits `0a8db00` S-178 and `7521311` S-179). Every core edit in
+`7d90121..HEAD` was a v0.5 contract seam defect opened and landed in its own task under E10
 (`S-142`–`S-144`, `S-148`–`S-152`, `S-160`–`S-167`, `S-180`; 7 seam commits, 16 decision entries,
 listed apart in §1 and §2).
 
@@ -30,29 +30,29 @@ v0.6 had two goals (`../stages/v0.6-electrical-stage.md` §0):
    wiring diagrams, connection tables, cable schedule, terminal labels and cable-to-buy list into
    the package and installation manual, and run the `later` → `in` change-request story end to end.
 
-### Verification of the count (`git log --stat 7f4d8d0..HEAD`)
-- **Domain milestone commits (`M0`–`M7`, including `5708b44` S-174, `d391e71` S-178, and `241ce74`
+### Verification of the count (`git log --stat 7d90121..HEAD`)
+- **Domain milestone commits (`M0`–`M7`, including `70a2fa9` S-174, `0a8db00` S-178, and `7521311`
   S-179): 0 files** touched under `src/napkin2factory/core/`,
   `src/napkin2factory/report/builder.py`, `src/napkin2factory/docs/engine.py`, or
   `src/napkin2factory/cli/check.py`.
 - **v0.5 contract seam tasks (E10, listed apart from the domain commits):**
-  1. *Known before M1 and opened in M0:* `958172b` (`S-142`, closes B-0099: `Domain.release_files`
-     so a domain's outputs under `build/<output_dir>` ship in the release package); `dcc4498`
+  1. *Known before M1 and opened in M0:* `d50d0ab` (`S-142`, closes B-0099: `Domain.release_files`
+     so a domain's outputs under `build/<output_dir>` ship in the release package); `eada869`
      (`S-148`–`S-152`, closes B-0115–B-0119: gate F's scope words, the `later` check status, a
      domain's own owner word, `n2f status` with a missing stand-in, and "supplied, not built here"
      for stand-ins).
-  2. *Found by the overseer reading the core before M1:* `0910d58` (`S-143`, closes B-0125:
+  2. *Found by the overseer reading the core before M1:* `9f6860b` (`S-143`, closes B-0125:
      `RuleFamily.before` so `elec` runs before `doc` and manuals read the current build's outputs);
-     `a2ff7a8` (`S-144`, closes B-0126: `check_interface`, the report and fastener checks treat an
+     `8229d0d` (`S-144`, closes B-0126: `check_interface`, the report and fastener checks treat an
      interface by its spec's type `BoltPatternSpec` rather than the kind name).
-  3. *Found by the domain tasks during wave 2 (the E10 stop-and-open path):* `dd34f32`
+  3. *Found by the domain tasks during wave 2 (the E10 stop-and-open path):* `f4a25ec`
      (`S-160`–`S-164`, closes B-0142–B-0146, B-0129: a card field's `param` from any declaration,
      `concepts/screens/base.py` import order, `check_rows_state` wording every status it counts,
-     public `scope_entry`, `HelperContext.build_dir`); `cc2e32a` (`S-165`–`S-167`, closes B-0135,
+     public `scope_entry`, `HelperContext.build_dir`); `d7dbf2f` (`S-165`–`S-167`, closes B-0135,
      B-0136, B-0139, B-0140, B-0147: `set://<family>` membership keys recorded on `product.families`
      access, interface field reads valued by field, `rule:<x>` keys and `#props.<figure>` selectors
      in the contract, `ctx.build_dir` passed by the docs rule).
-  4. *Found by gates G and H:* `cc46e2c` (`S-180`, closes B-0184, B-0160: dry-run patch impact in
+  4. *Found by gates G and H:* `df35938` (`S-180`, closes B-0184, B-0160: dry-run patch impact in
      `compute_impact`, `Domain.disclaimer` in the package `README.txt` and report `#disclaimer`,
      the `later` → `in` cover transition line, and `"an agent may decide it"` restricted to
      delegated areas).
@@ -124,7 +124,7 @@ v0.6 had two goals (`../stages/v0.6-electrical-stage.md` §0):
    from `calckit.power.element_current`.
 9. **Review gates.** Gate G (electrician read-through + engineering, `docs/reviews/v0.6-gate-g.md`;
    Part 1 kept at `examples/kiln/reports/electrician-readthrough.md`) and Gate H (UX in the owner
-   persona, `docs/reviews/v0.6-gate-h.md`) were run by fresh-context subagents at `f67dc06`, and
+   persona, `docs/reviews/v0.6-gate-h.md`) were run by fresh-context subagents at `dbe46e0`, and
    every blocker was fixed in `S-178`, `S-179` and `S-180` (§5). Visual exits are captured in
    `docs/reviews/v0.6-*.png`; the maintainer's visual judgment is pending (§10).
 10. **Docs, report and pins.** `docs/electrical.md`, `docs/agent-guide.md`, the three roles
@@ -138,7 +138,7 @@ v0.6 had two goals (`../stages/v0.6-electrical-stage.md` §0):
 | measure | before (v0.5 close-out, S-140 / S-147) | after (v0.6 close-out) |
 |---|---|---|
 | core files edited by domain commits | 0 (v0.5 toy & gadget, S-123, S-134) | **0** across all M0–M7 domain commits; 7 E10 seam commits listed apart (§1) |
-| `make check` on `main` (idle host) | 10 min 4 s, 1,088 passed, 4 skipped; 141 goldens (S-140) | **8 min 19 s** at `f346f14` (1,323 passed, 4 skipped; 141 goldens), and close-out gate run in `STATUS.md` |
+| `make check` on `main` (idle host) | 10 min 4 s, 1,088 passed, 4 skipped; 141 goldens (S-140) | **8 min 19 s** at `6135323` (1,323 passed, 4 skipped; 141 goldens), and close-out gate run in `STATUS.md` |
 | `make check-fast` (land gate) | 2 min 1 s (S-131) | 2 min 8 s – 3 min 58 s across wave 3 and M7 landings |
 | kiln cold build time | 69.1 s (S-147) | **60.0 s** with 4 circuits and 3 cable entries (S-172) |
 | kiln report size (`build/report/index.html`) | 3,796,445 bytes (S-147) | **3,916,749 bytes** (≈ 3.92 MB, ≤ 20 MB cap; S-174) |
@@ -152,7 +152,7 @@ tasks).
 
 ## 5. What the gates found and how it was fixed
 
-**Gate G (licensed-electrician read-through + engineering), at `f67dc06` (`docs/reviews/v0.6-gate-g.md`,
+**Gate G (licensed-electrician read-through + engineering), at `dbe46e0` (`docs/reviews/v0.6-gate-g.md`,
 Part 1 at `examples/kiln/reports/electrician-readthrough.md`): NOT READY, 3 blockers.** Topology,
 hand-recomputed currents and margins, cited tables, generic vocabulary and recording accessors all
 passed; an electrician could wire the kiln from the package with about a dozen calls to the maker.
@@ -174,7 +174,7 @@ passed; an electrician could wire the kiln from the package with about a dozen c
 - **Concerns:** 1–14 recorded in `BACKLOG.md` as B-0161–B-0173 (6 is B-0137; 15 is closed by the
   0.6.0 version bump in S-181).
 
-**Gate H (UX in the owner persona), at `f67dc06` (`docs/reviews/v0.6-gate-h.md`): NOT READY, 2
+**Gate H (UX in the owner persona), at `dbe46e0` (`docs/reviews/v0.6-gate-h.md`): NOT READY, 2
 blockers.** The `later` status/report/cover wording, `"Wiring: added"` on the diff page, the
 licensed-electrician warnings, zero wiring words on the bracket, and plain validation errors all
 read well.
@@ -239,7 +239,7 @@ read well.
   B-0150 (diff section block in template and CLI), B-0153 (`bonds:` on earth devices), B-0155
   (`docs/calckit.md` row count), B-0156 (domain import-order guard in `registry.ensure`), B-0158
   (kiln control/earth diagram crowding).
-- **Linux nightly:** the two red runs on `7f4d8d0` (2026-11-02, 2026-11-03) failed only on BSD
+- **Linux nightly:** the two red runs on `7d90121` (2026-11-02, 2026-11-03) failed only on BSD
   `mktemp -d -t` in `demo-napkin.sh` (all 1,092 + 141 tests and the kiln sign-off evidence keys
   passed on Linux, proving S-121 / B-0073). Fixed in S-175 and verified in a Debian container
   (GNU coreutils 9.7); the next scheduled run after `main` is pushed will confirm `check-full` end
@@ -262,7 +262,7 @@ of the contract.
      maintainer's visual judgment pending" in "Review gate H — outcome".
    - v0.5 visual exits (`docs/reviews/v0.5-status-choice.png`, `docs/reviews/v0.5-report-scope.png`),
      still pending from `docs/handoffs/HANDOFF-REPORT-v0.5.md` §10.
-2. **Push** `main` (unpushed since `7f4d8d0`), then check the next scheduled Linux nightly run.
+2. **Push** `main` (unpushed since `7d90121`), then check the next scheduled Linux nightly run.
 3. **Tag** `v0.6.0` (and `v0.4.0` / `v0.5.0` if desired) on the green CI commit (S-072);
    `publish.yml` checks `pyproject.toml`, `packaging/n2f/pyproject.toml` and
    `src/napkin2factory/__init__.py`.

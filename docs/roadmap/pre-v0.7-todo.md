@@ -82,7 +82,7 @@ Keep only the **5 canonical living files** (+ `LICENSE`) at the repository root,
 ```
 
 - **Cleanup actions during move:**
-  - Delete `FIX_CI_NIGHTLY.md` (already fixed in `abe64c9`, `S-177`) and remove its line from `.git/info/exclude`.
+  - Delete `FIX_CI_NIGHTLY.md` (already fixed in `e00a721`, `S-177`) and remove its line from `.git/info/exclude`.
   - Complete and delete `OWNER-TODO.md` once the leaked GitHub token is rotated and PyPI tag protection is enabled.
   - Archive or remove `docs/v06-handoff/` once `docs/handoffs/HANDOFF-REPORT-v0.6.md` lands.
   - Update path references in `AGENTS.md`, `STATUS.md`, and `tests/` so all links resolve cleanly.
