@@ -6,10 +6,10 @@ work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:
 `docs/handoffs/HANDOFF-REPORT-v0.6.md` (v0.6), `docs/handoffs/HANDOFF-REPORT-v0.5.md` (v0.5), `docs/handoffs/HANDOFF-REPORT-v0.4.md` (v0.4), `docs/handoffs/HANDOFF-REPORT-v0.2.md` (v0.2), `docs/handoffs/HANDOFF-REPORT-v0.1.md` (v0.1)
 
 ## Where we are
-v0.7 (everyday breadth, `docs/stages/v0.7-everyday-breadth.md`): Track A is delivered, S-197 to S-237 (structural
+v0.7 (everyday breadth, `docs/stages/v0.7-everyday-breadth.md`): Track A is delivered, S-197 to S-238 (structural
 physics, everyday materials, derived ceremony, region and display units, the table and test-stand products, the three-tier
 benchmarks and their two-vendor spec trials, the structural screen for legs, trestles and a cross member, the v0.7 health
-review). `0.7.0` is pending the close-out: version files and product pins, `make check` on `main`, CI green, then the tag.
+review); S-239 records the last spec trial, the §2.1 measures and the handoff (`docs/reviews/v0.7-handoff.md`). `0.7.0` is pending the close-out: version files and product pins, `make check` on `main`, CI green, then the tag.
 Before the tag: the commit-email rewrite in the owner's local `OWNER-TODO.md` (B-0242). v0.6.0 is the last release
 (tag `v0.6.0`, S-183; `docs/handoffs/HANDOFF-REPORT-v0.6.md`).
 Releasing a version: bump the three version files and the pins (S-054, S-083), `make check` on
@@ -37,7 +37,7 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
   (`tests.conftest.copy_product`). Templates are synced with `make templates`, never hand-edited.
 
 ## Milestones (one line each; detail in the entries named)
-v0.7 — `docs/stages/v0.7-everyday-breadth.md` (Track A: structural physics, everyday materials, derived ceremony, region, the three-tier benchmarks), S-197; Track A delivered (S-197 to S-237), 0.7.0 pending the close-out. Done: v0.6 trials triaged (S-208, blocker fixed in S-215; also S-212, S-214, the docs task); M1 calc pack, materials, dated regional costs (S-198, S-199, S-201, S-207); M2 frame kit, four interface kinds, structural screen (S-202, S-203, S-206, S-211); M3 region, derived ceremony, display units (S-200, S-205, S-219); M4 table and test-stand specs worked and re-derived by a second model (S-204, S-210), the oracle (S-209), the kiln spec (S-218); health review (S-217). Also: the table and test-stand products, the two-vendor spec trials (S-234), the structural screen for bare legs, trestles and a cross member (S-235), init asks region and units (S-236), health review (S-237), quick fixes (S-238). Before the `v0.7.0` tag: the commit-email rewrite in the owner's local `OWNER-TODO.md` (B-0242).
+v0.7 — `docs/stages/v0.7-everyday-breadth.md` (Track A: structural physics, everyday materials, derived ceremony, region, the three-tier benchmarks), S-197; Track A delivered (S-197 to S-237), 0.7.0 pending the close-out. Done: v0.6 trials triaged (S-208, blocker fixed in S-215; also S-212, S-214, the docs task); M1 calc pack, materials, dated regional costs (S-198, S-199, S-201, S-207); M2 frame kit, four interface kinds, structural screen (S-202, S-203, S-206, S-211); M3 region, derived ceremony, display units (S-200, S-205, S-219); M4 table and test-stand specs worked and re-derived by a second model (S-204, S-210), the oracle (S-209), the kiln spec (S-218); health review (S-217). Also: the table and test-stand products, the two-vendor spec trials (S-234), the structural screen for bare legs, trestles and a cross member (S-235), init asks region and units (S-236), health review (S-237), quick fixes (S-238), the fourth spec trial, the §2.1 measures and the handoff (S-239). Before the `v0.7.0` tag: the commit-email rewrite in the owner's local `OWNER-TODO.md` (B-0242).
 
 v0.6 — `docs/stages/v0.6-electrical-stage.md` (the electrical domain through the v0.5 contract; the count of core edits is
 the headline), S-111; reconciled with the contract as built in S-141; closed, `docs/handoffs/HANDOFF-REPORT-v0.6.md`,
