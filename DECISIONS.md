@@ -274,6 +274,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-245 | Open v0.8 (Track B): the bidirectional-iteration stage plan, R-series | in force |
 | S-246 | M1a: store primitives and the checkpoint format | in force |
 | S-247 | M1c: the no-change build (the CAD kernel loads only when a rule runs; R12) | in force |
+| S-248 | M2a: `ecr/lifecycle.py` split into state, apply and revisions, code moved verbatim | in force |
 
 ---
 
@@ -1932,3 +1933,10 @@ date; the rest is imports (pydantic, pint units ≈ 0.65 s), reading 136 YAML fi
 changed input rebuilds exactly what it did. After: tier 1 1.3–1.5 s, tier 2 1.9 s; outputs byte-identical (`tests/e2e/test_nochange_build.py`, with a timing
 budget under `N2F_TIMING=1`). Host fact: `PYTHONDONTWRITEBYTECODE=1` and an editable `uv sync` leave no `.pyc`, which cost another 3 s per process here until
 `python -m compileall` ran on the venv and `src/` (the before figures are without it; with it, tier 1 was 5.0–6.4 s; B-0267). `core/` touched: `core/graph/runner.py`. Left: the pint registry and YAML parsing, if a later loop needs it.
+## S-248 — M2a: `ecr/lifecycle.py` split, code moved verbatim (2026-11-05)
+v0.8 M2a, the lifecycle part of B-0244 (S-184's method; S-080's reason: parallel agents collide in long files, and M2b
+rewrites this module next). `ecr/lifecycle.py` (608 lines) → `ecr/state.py` (62: `EcrError`, the file and transition
+helpers, `next_ecr_id`), `ecr/apply.py` (253: the edit and patch application), `ecr/revisions.py` (164: output hashes,
+revision bumps, the close gate, the changelog), `ecr/lifecycle.py` (241: new, impact, approve, reject, close, the table),
+which re-exports every moved name. Checked: all 25 top-level defs and classes AST-identical to before; no test or caller
+changed. B-0244 stays open for `domains/electrical/checks/calcs.py` and `outputs/diagram_layout.py`. `core/` touched: none.
