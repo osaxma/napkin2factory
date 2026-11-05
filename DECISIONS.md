@@ -272,6 +272,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-243 | The commit history carries no personal email | in force |
 | S-244 | v0.7.0 released: CI green on both platforms, tagged, published | in force |
 | S-245 | Open v0.8 (Track B): the bidirectional-iteration stage plan, R-series | in force |
+| S-246 | M1a: store primitives and the checkpoint format | in force |
 
 ---
 
@@ -1908,3 +1909,15 @@ moves forward, a parked direction and a change request's baseline are named refs
 direction/product ownership table is §3. Schema 2 carries every format change (R8). Also scheduled: the no-change build (R12,
 8–11 s measured, 2 s target), B-0218, B-0230, the lifecycle split of B-0244, B-0259, the thin MCP server and skill (B-0036,
 R14). Rows B-0260 to B-0266. Two of the overseer's own subagents at a time, as the maintainer set.
+
+## S-246 — M1a: store primitives and the checkpoint format (2026-11-05)
+`Vcs` gains R1's primitives (in `core/vcs_store.py`, a mixin, to stay under 550 lines, S-184): `snapshots`, `snapshot_count`,
+`read_file`, `tree_of`, `diff_working`, `working_hash` (a temporary index; real index, current snapshot and folder untouched),
+`restore` (whole or by path prefix; ignored files never touched; saves nothing, the caller snapshots, R2) and markers
+`set_ref`/`read_ref`/`delete_ref`/`list_refs` under `refs/n2f/` (validated names). `core/checkpoints.py` holds R3: a label,
+then trailers `Checkpoint-Mass`, `-Cost`, `-Restores`, `-Undoes`, `-Redoes`. Undo and redo come from the log by two stacks:
+`Undoes: X` moves X done to redo, `Redoes: X` back, any other checkpoint (rollback included) is pushed on done and empties redo;
+undo restores the entry below the top (stopping at a baseline id), redo restores the top of redo. Restores are always recorded,
+even when the tree is unchanged. `publish` sends no marker and a fresh copy has none (both tested). Measured: 62 new tests
+(35 store, 27 checkpoints, 5 of them 200-example property runs) in 17 s; `test_vcs.py`, `test_publish.py`, `test_vocabulary.py`
+pass untouched. B-0060's store half is done; M2b closes it. `core/` touched: `vcs.py`, `vcs_store.py`, `checkpoints.py`.

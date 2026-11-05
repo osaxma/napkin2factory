@@ -14,11 +14,15 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import NoReturn
 
 import yaml
 
 from napkin2factory.core.errors import EnvironmentProblem
+from napkin2factory.core.vcs_store import FileChange, SnapshotInfo, StoreMixin
 from napkin2factory.core.yamlio import read_yaml
+
+__all__ = ["PAGES_LINE", "FileChange", "SnapshotInfo", "Vcs", "VcsError"]
 
 NOT_A_PROJECT = (
     "this folder isn't a napkin2factory project yet — run `n2f init <dir>` to start one "
@@ -53,8 +57,13 @@ class VcsError(EnvironmentProblem):
 
 
 @dataclass
-class Vcs:
-    """Change tracking for one product repository."""
+class Vcs(StoreMixin):
+    """Change tracking for one product repository.
+
+    The store primitives (list, read, diff, hash, restore, named refs; v0.8 R1) live in
+    :class:`~napkin2factory.core.vcs_store.StoreMixin`, which this class inherits so callers
+    only ever use ``Vcs`` (S-184 keeps each module under 550 lines).
+    """
 
     root: Path
 
@@ -98,11 +107,8 @@ class Vcs:
             self._identity = missing
         return self._identity
 
-    def _git(
-        self, *args: str, check: bool = True, env: dict[str, str] | None = None
-    ) -> subprocess.CompletedProcess[str]:
-        if shutil.which("git") is None:
-            raise VcsError(NO_GIT, code="no-git")
+    def _env(self, env: dict[str, str] | None = None) -> dict[str, str]:
+        """The environment every git call runs in."""
         full_env = dict(os.environ)
         # Never let a user's global hooks/pager/identity gaps break unattended runs.
         full_env.update({"GIT_PAGER": "cat", "GIT_TERMINAL_PROMPT": "0", "LC_ALL": "C"})
@@ -110,12 +116,30 @@ class Vcs:
             full_env.setdefault(key, value)
         if env:
             full_env.update(env)
+        return full_env
+
+    def _fail(self, message: str, *, code: str, detail: str = "") -> NoReturn:
+        """Raise a :class:`VcsError` (the store mixin cannot import it without a cycle)."""
+        raise VcsError(message, detail=detail, code=code)
+
+    def _git(
+        self,
+        *args: str,
+        check: bool = True,
+        env: dict[str, str] | None = None,
+        input_text: str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        if shutil.which("git") is None:
+            raise VcsError(NO_GIT, code="no-git")
         proc = subprocess.run(
             ["git", "-c", "core.hooksPath=/dev/null", *args],
             cwd=self.root,
             capture_output=True,
             text=True,
-            env=full_env,
+            encoding="utf-8",
+            errors="replace",
+            input=input_text,
+            env=self._env(env),
             check=False,
         )
         if check and proc.returncode != 0:
@@ -125,6 +149,20 @@ class Vcs:
                 code=self._code(proc),
             )
         return proc
+
+    def _git_bytes(
+        self, *args: str, env: dict[str, str] | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        """Run git and return raw bytes (file contents); never raises on a git failure."""
+        if shutil.which("git") is None:
+            raise VcsError(NO_GIT, code="no-git")
+        return subprocess.run(
+            ["git", "-c", "core.hooksPath=/dev/null", *args],
+            cwd=self.root,
+            capture_output=True,
+            env=self._env(env),
+            check=False,
+        )
 
     @staticmethod
     def _code(proc: subprocess.CompletedProcess[str]) -> str:
