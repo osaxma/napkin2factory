@@ -15,7 +15,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v5
-      - run: uv tool install "napkin2factory>=0.6,<0.7"
+      - run: uv tool install "napkin2factory>=0.7,<0.8"
       - run: n2f build && n2f check
       - run: n2f release "${GITHUB_REF_NAME}" --dry-run
       - uses: softprops/action-gh-release@v2

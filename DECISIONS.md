@@ -268,6 +268,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-239 | v0.7 close: spec trial 4, the §2.1 measures, the handoff | in force |
 | S-240 | Trial 4 message and doc fixes: card and assembly hints, quantity abs, calc kit docs | in force |
 | S-241 | Trial 4 package fixes: auto-layout spacing, mains without a supply, finish in lint | in force |
+| S-242 | Close v0.7: version 0.7.0, pins >=0.7,<0.8 | in force |
 
 ---
 
@@ -1859,6 +1860,7 @@ module's `place_by` or the automatic layout. A reference case's `abs:` takes a q
 the expected unit; a temperature step reads as a difference) and names both units when the kind differs.
 `docs/calckit.md` documents `structural`, `joints` (including wood movement and moisture) and the three new tables.
 Measured: new tests in test_concepts, test_massing, test_loader, test_calckit_cases pass.
+
 ## S-241 — Trial 4 package fixes: auto-layout spacing, mains without a supply, finish in lint (2026-11-05)
 Three package faults of spec trial 4 (S-239). `_auto_layout` (`geometry/build_asm.py`) placed each child one previous-width
 past the last origin, though a part's box is not centred on its origin, so a wide part after a narrow one overlapped it
@@ -1869,3 +1871,11 @@ hazard tag whose model is absent: `core/data/hazards.yaml` names the domain of `
 than `in` for it (B-0250). A custom part with no `finish` is now an `n2f lint` error, rule `L8-custom-finish`, beside its
 tolerance, process and material; the `custom-part-complete` check stays (B-0256).
 Measured: `tests/unit/test_auto_layout.py`, `test_ceremony.py` (three new), one e2e `n2f check` case; examples and templates lint clean.
+
+## S-242 — Close v0.7: version 0.7.0, pins >=0.7,<0.8 (2026-11-05)
+Track A is delivered (S-197 to S-241; the handoff is `docs/reviews/v0.7-handoff.md`, S-239). `pyproject.toml`,
+`packaging/n2f/pyproject.toml` (and its `napkin2factory==` pin) and `src/napkin2factory/__init__.py` say 0.7.0; every
+product pin the package writes or ships (the manifest default, the templates and their workflows, the five examples, the
+test fixtures, `docs/product-model.md`) says `>=0.7,<0.8` (S-083). Before the tag: the commit-email rewrite (B-0242),
+`make check` on `main`, CI green. Tagging stays the maintainer's call (S-072). Open at the close: the stand's portal on the
+structural screen (B-0210), no tier-3 spec trial, one client kind in the trials (§2.1), B-0252, B-0254, B-0257.

@@ -108,7 +108,7 @@ class Manifest(Model):
     """
 
     schema_version: int = Field(default=1, alias="schema")
-    system: str = ">=0.6,<0.7"
+    system: str = ">=0.7,<0.8"
     product: ProductInfo
     region: str | None = None  # W7
     units: Literal["metric", "imperial"] = "metric"  # W8
@@ -146,7 +146,7 @@ class Manifest(Model):
         try:
             SpecifierSet(v)
         except InvalidSpecifier as exc:
-            raise ValueError(f"system pin {v!r} is not a version range like '>=0.6,<0.7'") from exc
+            raise ValueError(f"system pin {v!r} is not a version range like '>=0.7,<0.8'") from exc
         return v
 
     def pin_includes(self, version: str) -> bool:
