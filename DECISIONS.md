@@ -276,6 +276,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-247 | M1c: the no-change build (the CAD kernel loads only when a rule runs; R12) | in force |
 | S-248 | M2a: `ecr/lifecycle.py` split into state, apply and revisions, code moved verbatim | in force |
 | S-249 | B-0259: CI budgets for the two nightly timing tests, measured on the runner | in force |
+| S-250 | v0.8 wave 1 boundary: 4 core/ files, R12's first timings, `make check` time | in force |
 
 ---
 
@@ -1947,3 +1948,12 @@ one screenshot session 23.5 s (budget 15 s) and a warm `concept build --all` 31.
 host: 5.1 s and 7.2 s, so the runner is about 4.5× slower, not a slowdown in the code. The host budgets stay; under `CI=true`
 the budgets are 1.5× the runner's times, 35 s and 50 s. Correction to S-244: the 2026-11-04 nightly failed on
 `test_kiln_checks_green_with_example_signoffs` (2 failures), not on these budgets; the 2026-11-05 nightly passed it. `core/` touched: none.
+
+## S-250 — v0.8 wave 1 boundary: the core count and R12's first timings (2026-11-05)
+Wave 1 (M1a S-246, M1c S-247, M2a S-248, B-0259 S-249): 22:28–22:57, 29 min, two subagents and two workers at once, landed one at a
+time. R13 count: 4 `core/` files, all planned: `core/vcs.py`, `core/vcs_store.py` (new), `core/checkpoints.py` (new) in M1a;
+`core/graph/runner.py` in M1c; M2a and B-0259 none. R12 on the macOS host, warm, fresh `n2f` processes after one cold build,
+copies of `examples/table` (tier 1) and `examples/test-stand` (tier 2): a build with nothing changed 1.3–1.4 s and 1.7 s (target
+2 s; was 8–11 s); a one-parameter `ecr impact` (today's static impact, before M2b's live diff) 1.1 s and 1.3 s; `undo` and
+`concept switch`: not measured (not built yet). `make check` on `main` at 999f78d: 6 min 36 s, green, on a host otherwise idle.
+§2.1 measures: not re-measured at this boundary (no guide or product-file change in wave 1).
