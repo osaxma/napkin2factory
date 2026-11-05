@@ -136,6 +136,13 @@ entry that closed them. Ids are never reused.
 | B-0254 | Lint `L1-measurable` refuses a requirement on a dimensionless factor (a factor of safety, a ratio) unless the statement names a load with a unit | S-239 (table trials 2 and 3, stand trial 4; both vendors); accept the bound's own number when the verify target is dimensionless; `core/lint.py`, a core file named in the commit; ~1 h |
 | B-0257 | `calckit.joints` has no preloaded-bolt fatigue function: the test stand's column-end bolt factor (7.42, SPEC.md section 4.4) is a hand check, so an agent must write the formula, and one left the requirement to the beam | S-210 (noted open), S-239 (spec trial 4: the governing fatigue row failed at 9.105); Goodman for a preloaded bolt (Shigley section 8-11 [verify]) with its `CASES`; ~2 h |
 | B-0259 | The nightly `check-full` fails on two timing budgets on the CI runner: `test_two_cards_through_one_session_are_quick` (23.5 s) and `test_warm_concept_build_takes_seconds` (31.0 s); measure the runner and set CI budgets from it, or find the slowdown (S-244) |
+| B-0260 | No checkpoints and no `undo` / `redo` / `rollback`: `n2f discard` is the only way back and cannot itself be undone | S-245; v0.8 M1a, M1b (`docs/stages/v0.8-bidirectional-iteration.md` R1–R5) |
+| B-0261 | A build with nothing changed costs 8 to 11 s on tier 1 (v0.7 measures); every undo, impact and switch loop pays it | S-245; v0.8 M1c (R12, target 2 s) |
+| B-0262 | A design change request carries its edit as a `.patch` file, and its approval is not bound to the model it approved | S-245; v0.8 M2b (R6, R7, R9) |
+| B-0263 | Change-request states and the card's `parked` status need schema 2 and the first real migration | S-245; v0.8 M2c (R8, R15) |
+| B-0264 | Promotion is one-way: no `concept switch`, `fork-from-model` or `compare` | S-245; v0.8 M3a (R10, R11, §3 ownership table) |
+| B-0265 | The guide and the pm and design roles do not teach checkpoints, live change requests or switching direction | S-245; v0.8 M4 |
+| B-0266 | Gate B, the forward-and-backward trial on the test stand with two vendors' cold agents, is not run | S-245; v0.8 M6 |
 
 ## Closed
 

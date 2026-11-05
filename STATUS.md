@@ -9,7 +9,7 @@ work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:
 v0.7 (everyday breadth, `docs/stages/v0.7-everyday-breadth.md`) is closed at 0.7.0 (S-242): Track A, S-197 to S-241
 (structural physics, everyday materials, derived ceremony, region and display units, the table and test-stand products,
 the three-tier benchmarks and their two-vendor spec trials, the v0.7 health review); handoff `docs/reviews/v0.7-handoff.md`
-(S-239). The commit history carries no personal email (S-243). Released as `v0.7.0` (S-244). Next: Track B, v0.8 (`docs/roadmap/road-to-v1.0.md`).
+(S-239). The commit history carries no personal email (S-243). Released as `v0.7.0` (S-244). Now: v0.8, Track B (`docs/stages/v0.8-bidirectional-iteration.md`, S-245).
 
 ## Environment (host facts a cold reader needs)
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via
@@ -33,6 +33,8 @@ the three-tier benchmarks and their two-vendor spec trials, the v0.7 health revi
   (`tests.conftest.copy_product`). Templates are synced with `make templates`, never hand-edited.
 
 ## Milestones (one line each; detail in the entries named)
+v0.8 — `docs/stages/v0.8-bidirectional-iteration.md` (Track B: checkpoints and undo, live draft change requests, reversible promotion, the thin MCP server and skill), S-245. Done: M0 (S-245).
+
 v0.7 — `docs/stages/v0.7-everyday-breadth.md` (Track A: structural physics, everyday materials, derived ceremony, region, the three-tier benchmarks), S-197; Track A delivered (S-197 to S-241), closed at 0.7.0 (S-242). Done: v0.6 trials triaged (S-208, blocker fixed in S-215; also S-212, S-214, the docs task); M1 calc pack, materials, dated regional costs (S-198, S-199, S-201, S-207); M2 frame kit, four interface kinds, structural screen (S-202, S-203, S-206, S-211); M3 region, derived ceremony, display units (S-200, S-205, S-219); M4 table and test-stand specs worked and re-derived by a second model (S-204, S-210), the oracle (S-209), the kiln spec (S-218); health review (S-217). Also: the table and test-stand products, the two-vendor spec trials (S-234), the structural screen for bare legs, trestles and a cross member (S-235), init asks region and units (S-236), health review (S-237), quick fixes (S-238), the fourth spec trial, the §2.1 measures and the handoff (S-239), trial 4 fixes (S-240, S-241), version 0.7.0 (S-242). The commit-email rewrite (B-0242) is done (S-243).
 
 v0.6 — `docs/stages/v0.6-electrical-stage.md` (the electrical domain through the v0.5 contract; the count of core edits is

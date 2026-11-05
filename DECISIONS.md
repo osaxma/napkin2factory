@@ -271,6 +271,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-242 | Close v0.7: version 0.7.0, pins >=0.7,<0.8 | in force |
 | S-243 | The commit history carries no personal email | in force |
 | S-244 | v0.7.0 released: CI green on both platforms, tagged, published | in force |
+| S-245 | Open v0.8 (Track B): the bidirectional-iteration stage plan, R-series | in force |
 
 ---
 
@@ -1898,3 +1899,12 @@ CI `ci` passed on Linux and macOS there (17 min), then `v0.7.0` was tagged on it
 (build, pypi, pypi-alias green; `napkin2factory` and `n2f` 0.7.0 on PyPI). The nightly `check-full` failed on 2026-11-04
 and 2026-11-05 on two timing budgets only (two cards through one screenshot session 23.5 s; a warm concept build 31.0 s on
 the CI runner; B-0259). Visual exit (S-078): not yet judged by the maintainer for v0.7's boards (the table and test stand).
+
+## S-245 — Open v0.8, Track B: forward and backward (2026-11-05)
+`docs/stages/v0.8-bidirectional-iteration.md` schedules Track B (M0 to M6, R1–R15). Checked against the code first (road §5.4):
+`.patch` files, not embedded strings, carry design edits; `core/vcs.py` cannot list or restore snapshots, read a file at one,
+diff against unsaved files, or make a draft line. So R1 adds those primitives and R2 amends Track B §1 and §3.3: history only
+moves forward, a parked direction and a change request's baseline are named refs (`refs/n2f/`), never a switched line. The
+direction/product ownership table is §3. Schema 2 carries every format change (R8). Also scheduled: the no-change build (R12,
+8–11 s measured, 2 s target), B-0218, B-0230, the lifecycle split of B-0244, B-0259, the thin MCP server and skill (B-0036,
+R14). Rows B-0260 to B-0266. Two of the overseer's own subagents at a time, as the maintainer set.
