@@ -10,6 +10,7 @@ from napkin2factory.cli import check as check_cmd
 from napkin2factory.cli import concept as concept_cmd
 from napkin2factory.cli import context as context_cmd
 from napkin2factory.cli import decide as decide_cmd
+from napkin2factory.cli import docs as docs_cmd
 from napkin2factory.cli import doctor as doctor_cmd
 from napkin2factory.cli import ecr as ecr_cmd
 from napkin2factory.cli import graph as graph_cmd
@@ -57,6 +58,7 @@ app.command("serve")(serve_cmd.serve)
 app.command("snapshot")(snapshot_cmd.snapshot)
 app.command("discard")(snapshot_cmd.discard)
 app.command("doctor")(doctor_cmd.doctor)
+app.command("docs")(docs_cmd.docs)
 app.add_typer(ecr_cmd.ecr_app, name="ecr")
 app.add_typer(concept_cmd.concept_app, name="concept")
 app.command("release")(release_cmd.release)

@@ -65,8 +65,41 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/napkin2factory"]
 
+# The using-side docs ship inside the package; `docs/` stays the one source (S-231).
+# The list is the topics of `n2f docs` (cli/docs.py); tests/unit/test_docs_verb.py keeps them equal.
+[tool.hatch.build.targets.wheel.force-include]
+"docs/agent-guide.md" = "napkin2factory/_docs/agent-guide.md"
+"docs/calckit.md" = "napkin2factory/_docs/calckit.md"
+"docs/checks.md" = "napkin2factory/_docs/checks.md"
+"docs/cli.md" = "napkin2factory/_docs/cli.md"
+"docs/domains.md" = "napkin2factory/_docs/domains.md"
+"docs/ecr-loop.md" = "napkin2factory/_docs/ecr-loop.md"
+"docs/electrical.md" = "napkin2factory/_docs/electrical.md"
+"docs/how-it-works.md" = "napkin2factory/_docs/how-it-works.md"
+"docs/kit.md" = "napkin2factory/_docs/kit.md"
+"docs/napkin.md" = "napkin2factory/_docs/napkin.md"
+"docs/product-model.md" = "napkin2factory/_docs/product-model.md"
+"docs/render-checklist.md" = "napkin2factory/_docs/render-checklist.md"
+"docs/schema-policy.md" = "napkin2factory/_docs/schema-policy.md"
+"docs/vocabulary.md" = "napkin2factory/_docs/vocabulary.md"
+
 [tool.hatch.build.targets.sdist]
-include = ["src/napkin2factory", "README.md", "LICENSE", "pyproject.toml"]
+# The docs are in the sdist too: `uv build` makes the wheel from the sdist (S-231).
+include = ["src/napkin2factory", "README.md", "LICENSE", "pyproject.toml",
+  "docs/agent-guide.md",
+  "docs/calckit.md",
+  "docs/checks.md",
+  "docs/cli.md",
+  "docs/domains.md",
+  "docs/ecr-loop.md",
+  "docs/electrical.md",
+  "docs/how-it-works.md",
+  "docs/kit.md",
+  "docs/napkin.md",
+  "docs/product-model.md",
+  "docs/render-checklist.md",
+  "docs/schema-policy.md",
+  "docs/vocabulary.md"]
 
 [tool.ruff]
 line-length = 100

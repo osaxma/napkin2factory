@@ -91,9 +91,26 @@ def write_skeleton(
         raise N2FError(
             f"template {template!r} is not installed (run `make templates` in the system repo)"
         )
+    # A folder may already hold the owner's own files (a brief, notes): refuse only when a
+    # file we write is there, naming it (S-231).
+    common = TEMPLATES_DIR / "_common"
+    planned = sorted(
+        {
+            *(p.relative_to(src) for p in src.rglob("*") if p.is_file()),
+            *(p.relative_to(common) for p in common.rglob("*") if p.is_file()),
+            Path("style.yaml"),
+        }
+    )
+    clashes = [str(rel) for rel in planned if (dest / rel).exists()]
+    if clashes:
+        raise N2FError(
+            f"{dest} already has {', '.join(clashes[:5])}"
+            + (f" and {len(clashes) - 5} more" if len(clashes) > 5 else "")
+            + ", which `n2f init` would overwrite; choose a new folder or move "
+            + ("it" if len(clashes) == 1 else "them")
+            + " aside"
+        )
     dest.mkdir(parents=True, exist_ok=True)
-    if any(dest.iterdir()):
-        raise N2FError(f"{dest} is not empty; choose a new folder")
     shutil.copytree(src, dest, dirs_exist_ok=True)
     shutil.copytree(TEMPLATES_DIR / "_common", dest, dirs_exist_ok=True)
     manifest = dest / "n2f.yaml"
@@ -102,7 +119,7 @@ def write_skeleton(
     data["product"]["name"] = name
     dump_roundtrip(manifest, data)
     write_style(dest, style)
-    return sorted(p for p in dest.rglob("*") if p.is_file())
+    return [dest / rel for rel in planned]
 
 
 def upgrade_existing(dest: Path, json_out: bool = False) -> None:

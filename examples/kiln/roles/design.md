@@ -130,7 +130,7 @@ n2f build --target geometry --part <id>
 ```
 Open `build/parts/<id>/renders/iso.png`, `front.png`, `top.png`, `right.png`,
 `section.png` and read `build/parts/<id>/props.json` (bbox, volume, mass). Compare with
-the requirement envelope. Use `docs/render-checklist.md` in the system repo as the list.
+the requirement envelope. `n2f docs render-checklist` prints the list.
 If the render does not look like the part, it is not the part.
 
 ## Interfaces
@@ -164,7 +164,7 @@ in two places.
 ## Wiring
 When the product has powered parts (a heater, a motor, a controller, a switch, a sensor), and
 its scope does not leave the wiring for later or to someone else, the wiring is part of the
-model. The system repo's `docs/electrical.md` has every field and a complete small example.
+model. `n2f docs electrical` has every field and a complete small example.
 - **The files**, under `model/electrical/`: `supply.yaml` (what it plugs into: voltage,
   phases, frequency, `rating` as `param://` the owner gave, `earthing`, `region`, the site's
   `protection: {upstream: "<words>", rating: …}` or a protective part the product ships);

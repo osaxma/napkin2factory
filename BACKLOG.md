@@ -140,7 +140,6 @@ entry that closed them. Ids are never reused.
 | B-0234 | No generic screen fails a card on its mass limit; the examples do it in their own screens, so a cold agent's 110 kg gantry is rejected on cost only | spec trial 1 (S-228) |
 | B-0235 | `n2f concept build` crashes with a traceback (`column_height must be non-negative`) on a plate-gantry card with small block feet; the structural screen reads a gantry as a cantilever | spec trial 1 (S-228) |
 | B-0236 | Earth (PE) connections inside a mains circuit are counted as load current (4.0 A over a 2.5 A inlet); an unknown material on a card is accepted silently as steel | spec trial 1 (S-228) |
-| B-0237 | The product's AGENTS.md and roles send the agent to `docs/kit.md`, `docs/electrical.md` … "in the system repo", which an installed tool cannot reach; `n2f init` refuses a folder holding only the owner's brief | spec trial 1 (S-228); ship the docs with the package (a `n2f docs <topic>` verb) |
 | B-0238 | The promotion decision calls a card "(green)" that screening marked "not fully checked"; dimensionless factor requirements draw L5 unit warnings | spec trial 1 (S-228) |
 
 ## Closed
@@ -149,6 +148,7 @@ entry that closed them. Ids are never reused.
 |---|---|---|
 | B-0211 | The generic cost screen prices per kilogram and per item only: a piece on a per-metre or per-square-metre band (`extrusion-cut`, `cnc-routing`) is left out with a "no material" note, so the test stand's screen prices them itself | closed by S-230 |
 | B-0233 | The benchmark oracle encodes the example's modelling: exact part and item counts, the mass without a wiring allowance part, a separate beam-fatigue requirement, card-level figures at ±5 % where the screen simplifies | closed by S-230 |
+| B-0237 | The product's AGENTS.md and roles send the agent to `docs/kit.md`, `docs/electrical.md` … "in the system repo", which an installed tool cannot reach; `n2f init` refuses a folder holding only the owner's brief | closed by S-231 |
 | B-0220 | The table benchmark omits the top's cross-grain load path: a strip estimate gives 2.6–6.4 mm against the 0.92 mm sag margin | closed by S-229 |
 | B-0212 | The oracle's `requirement` finder cannot read a bound with no unit from a requirement waiting on its sign-off: the optional unit group takes the dash of "— passes by computation" (so `bound: '2'` finds nothing); the safety factors of the test stand are pending | closed by S-223 |
 | B-0193 | Product region (tables looked up by it, loud when missing) and display units | v0.7 W7, W8, M3b; closed by S-219 |

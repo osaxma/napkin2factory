@@ -45,7 +45,7 @@ one idea. Make each one a card:
 n2f concept new "<short title>"               # writes concepts/C-00x.yaml (a commented skeleton)
 n2f concept new "<short title>" --from C-002  # a variant: copies layout, envelope, site, style, modules, massing, notes
 ```
-Fill in the card. This is the shape (`docs/napkin.md` in the system repo, "Writing a card"):
+Fill in the card. This is the shape (`n2f docs napkin`, "Writing a card"):
 ```yaml
 id: C-001
 title: Compact bench kiln, controls on top

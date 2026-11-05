@@ -64,3 +64,23 @@ def test_no_per_client_files() -> None:
     for root in (REPO, common, *(p for p in (REPO / "examples").iterdir() if p.is_dir())):
         for name in ("CLAUDE.md", ".claude", "GEMINI.md", ".cursor", ".codex"):
             assert not (root / name).exists(), f"{root.relative_to(REPO)}/{name}"
+
+
+def test_installed_tool_pointers_use_n2f_docs() -> None:
+    # An agent with only the installed tool cannot open the repository's docs/ (S-231): the
+    # product's files and the guide name a page by `n2f docs <topic>`, and the topic exists.
+    from napkin2factory.cli.docs import TOPICS
+
+    common = REPO / "src/napkin2factory/templates/_common"
+    files = [REPO / "docs/agent-guide.md", *sorted(common.rglob("*.md"))]
+    named = re.compile(r"`n2f docs ([a-z-]+)`")
+    seen = set()
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        assert "system repo" not in text, f"{path.relative_to(REPO)} sends the agent to the repo"
+        for topic in named.findall(text):
+            seen.add(topic)
+            assert topic in TOPICS, f"{path.relative_to(REPO)}: unknown topic {topic}"
+        shipped = re.findall(r"`docs/(?:" + "|".join(TOPICS) + r")\.md`", text)
+        assert not shipped, f"{path.relative_to(REPO)} names a repo path: {shipped}"
+    assert {"kit", "napkin", "electrical", "render-checklist"} <= seen

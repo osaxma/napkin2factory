@@ -9,6 +9,9 @@ This file is for an agent working on this product for its owner. If `n2f` is not
 this machine, setup is in napkin2factory's guide for agents (steps 1 and 2):
 https://raw.githubusercontent.com/osaxma/napkin2factory/main/docs/agent-guide.md
 
+The tool carries its own reference pages: `n2f docs` lists them, `n2f docs <topic>` prints one
+(the kit, the napkin stage, the wiring, the product files, the commands …).
+
 ## Vocabulary (use these words with the owner; never git words)
 - **draft** — work in progress on the model
 - **snapshot** — a saved state of the model (`n2f ecr apply`, `n2f ecr close`, `n2f concept promote` and `n2f release` make them)
@@ -84,4 +87,4 @@ before acting in that role; nothing loads it for you.
 
 ## Kit generators (geometry: {kit: <name>, args: {...}})
 plate, panel, block, tube, hole_pattern, bracket_l, enclosure, frame. Lengths accept
-`"15 mm"` or `param://…`. See the system repo's `docs/kit.md` for every argument.
+`"15 mm"` or `param://…`. `n2f docs kit` prints every argument.

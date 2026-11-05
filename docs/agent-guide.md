@@ -63,6 +63,9 @@ n2f doctor         # is this machine ready? It says what to fix if not.
 the mechanical one) with its verify kinds (the ways a requirement can be checked), its check
 stages and its napkin screens; inside a product folder, the product's own screens too.
 
+The reference pages ship with the tool, so an installed `n2f` is enough: `n2f docs` lists
+them and `n2f docs <topic>` prints one (`n2f docs kit`, `n2f docs napkin`, `n2f docs cli` …).
+
 **Styled concept pictures.** The concept board (`build/concepts/board.html`) uses Playwright
 Chromium to take styled pictures with materials and lighting. If `n2f doctor` warns that
 Chromium is missing, install it:
@@ -86,7 +89,7 @@ bought part's vendor link still resolves.
   someone): work in it and go to step 4. If `n2f status` says change tracking is missing,
   run `n2f init .` there. That adds tracking and any missing agent files. If any command says
   the files are in an older file format, `n2f init .` saves a snapshot, brings them up to date
-  and says what changed (`docs/schema-policy.md`); if it says they were saved by a newer
+  and says what changed (`n2f docs schema-policy`); if it says they were saved by a newer
   napkin2factory, update the tool (step 1) and nothing in the folder changes.
 - **A new product:** ask where it should live. Suggest a new folder named after the product,
   in a place the owner keeps projects. Never create it inside a napkin2factory source
@@ -101,7 +104,9 @@ n2f init <folder> --name "<the owner's name for it>"
 `--template blank` is the default and right for nearly everything. `bracket` and
 `enclosure` are small worked examples, useful only if the owner's product is one of those.
 `--style industrial|appliance|lab` sets the starting look. `n2f init` also starts loading the
-CAD kernel in the background (see "Timing" below).
+CAD kernel in the background (see "Timing" below). The folder may already hold files of the
+owner's (a brief, notes): `n2f init` leaves them alone and stops only if it would overwrite
+one, naming it.
 
 ## 4. Hand over to the folder's own instructions
 
@@ -184,7 +189,7 @@ diagrams, the cable schedule and the wiring checks.
 ## Command reference
 
 This is the order a product usually goes through, so an agent (or a curious person) can see
-the whole path. `n2f <command> --help` is the authority, `docs/cli.md` is the full map, and
+the whole path. `n2f <command> --help` is the authority, `n2f docs cli` is the full map, and
 commands that work on a product take `--json`. `n2f status` always says where the
 product stands and what to do next. Run it whenever you are unsure. Its "stage" is the stage
 being worked in, the first one not complete (`ready` when only the release is left); in
@@ -226,7 +231,7 @@ formula and source of each; a check whose input is missing is shown as not run, 
 A product's own word for one of these (a throat, an overhang) lives in its own folder.
 A product can bring screens of its own in
 `model/screens/` (the kiln's heated-box screens read a power, a supply circuit, a touch
-limit); `docs/napkin.md` explains the stage and its packs.
+limit); `n2f docs napkin` explains the stage and its packs.
 
 A card may also name the units the product is built from, when a reason applies (built,
 tested or serviced as one unit, made by another process or supplier): `modules: {door:
@@ -238,7 +243,7 @@ and three size budgets per module (requirements on `asm://<module>#props.bbox.x`
 a look until the designer gives it parts. On a product that already has assemblies it only
 prints the modules as a suggestion.
 
-The kit list is in the product's `AGENTS.md`; `docs/napkin.md` explains the stage.
+The kit list is in the product's `AGENTS.md`; `n2f docs napkin` explains the stage.
 
 **Design and check: the factory.**
 
@@ -254,7 +259,7 @@ n2f check                           # the gate: every requirement and rule
 Kit arguments take numbers or `param://` references, but not inline `{expr: ...}` expressions.
 When a part dimension is derived from other parameters (e.g. a door height calculated from
 cabinet height and reveals), use the helper-parameter pattern: define the calculation in
-`model/parameters.yaml` with `expr:` and reference it with `param://helper-name` (see `docs/kit.md`).
+`model/parameters.yaml` with `expr:` and reference it with `param://helper-name` (see `n2f docs kit`).
 
 A requirement says how it is checked in `verify.kind`, which must be an installed kind
 (`n2f doctor` lists them, with what each targets; an unknown one is an error that lists
@@ -265,7 +270,7 @@ A product calc (`model/calcs/<name>.py`) carries its reference cases in
 `model/calcs/<name>.cases.yaml`: inputs, the expected result with its unit, a tolerance and
 a source (a hand computation written out, or a handbook example). `n2f check` runs them as
 `calc-case` rows; a missing case is "worth a look", a wrong one fails naming the calc
-(`docs/calckit.md`).
+(`n2f docs calckit`).
 
 `n2f build` also writes the build plan, derived from the assemblies: one step per unit
 (`build/bom/build-plan.json`, a "Build plan" sheet in `bom.xlsx`, the report's Build plan, and
@@ -274,7 +279,7 @@ an A3 assembly sheet per unit in `build/drawings/assemblies/`). A sub-assembly i
 or a stub for work done elsewhere (`build: external`: no children, its `ports:` the joints it
 fits by, each an interface naming the stub and the part it fits to; it is supplied, not built
 here, and the step that fits it lists it so, with those joints); joint hardware is counted from each interface's `spec.hardware` (or its `fastener:`) by the
-`hardware://<unit>` check. The fields are in `docs/product-model.md`; the design role says
+`hardware://<unit>` check. The fields are in `n2f docs product-model`; the design role says
 how to use them. Mechanical interface kinds for everyday joints:
 - `threaded-insert`: receiving party (`insert_part`, wood or plastic) gets the insert bore; passing party gets clearance `diameter`.
 - `wood-screw-pattern`: receiving party (`wood_part`, wood or plastic) gets the pilot hole; passing party gets clearance `diameter`.
@@ -282,7 +287,7 @@ how to use them. Mechanical interface kinds for everyday joints:
 - `hinge-pin`: both parties get the pin diameter (`pin_diameter`).
 
 **Wiring: a product with powered parts.** No new command: the wiring is model files and the
-same verbs (`docs/electrical.md` has the files, the checks and a complete small example).
+same verbs (`n2f docs electrical` has the files, the checks and a complete small example).
 The supply, the electrical devices (each naming the part it is) and the circuits (lists of
 connections between terminals, `device://<id>#<terminal>`) live under `model/electrical/`;
 where wires cross a box is an interface of kind `cable-entry` (one hole, the circuits that
@@ -351,7 +356,7 @@ n2f check --scope asm://door        # its own checks → build/checks/scope/door
 nothing is built yet. `n2f check --scope` never touches `build/checks/checks.json`; its ports
 are checked with the assembly both sides are built into, so finish with `n2f build && n2f check`.
 A parameter may carry `scope: asm://<id>` (the module's own size) and `export: true` (its parent
-may read it); reads across modules are "worth a look" rows in `n2f check` (`docs/checks.md`).
+may read it); reads across modules are "worth a look" rows in `n2f check` (`n2f docs checks`).
 The report's "Joints between units" section (and `between_units` in `build-plan.json`) lists
 every joint where two units meet, with both units, both parts, the hardware and whether the
 parts meet; `roles/verifier.md` reviews each unit alone, then those joints (does each part
@@ -445,9 +450,9 @@ refuses and changes nothing: bring them in (`git pull`) and publish again.
   happens.
 - **Something fails.** Run `n2f doctor`, then `n2f status`. Error messages say what to do
   next. Never edit anything under `build/`; edit the model and rebuild.
-- **Unsure what a page or number means.** `docs/how-it-works.md` (the ideas),
-  `docs/checks.md` (verification), `docs/ecr-loop.md` (changes), `docs/product-model.md`
-  (the files in a product folder), `docs/electrical.md` (the wiring), `docs/vocabulary.md`
+- **Unsure what a page or number means.** `n2f docs how-it-works` (the ideas),
+  `n2f docs checks` (verification), `n2f docs ecr-loop` (changes), `n2f docs product-model`
+  (the files in a product folder), `n2f docs electrical` (the wiring), `n2f docs vocabulary`
   (the owner's words and what each means underneath).
 
 ## What napkin2factory does not do (yet)
