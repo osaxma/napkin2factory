@@ -366,25 +366,38 @@ def test_dedupe_backlog_removes_open_copy_when_in_both_tables() -> None:
     assert [i for i, n in Counter(ids).items() if n > 1] == []
 
 
-def test_dedupe_backlog_leaves_duplicate_inside_open_untouched() -> None:
+def test_dedupe_backlog_keeps_the_last_copy_of_an_id_repeated_in_one_table() -> None:
+    # S-238: union keeps main's and the task's version of a row both edited; the task's is last.
     text = (
         "# Backlog\n\n"
         "## Open\n\n"
         "| id | item | origin |\n"
         "|---|---|---|\n"
-        "| B-0001 | Open item 1 | S-001 |\n"
-        "| B-0001 | Duplicate item 1 | S-002 |\n"
+        "| B-0001 | Open item 1, main's wording | S-001 |\n"
+        "| B-0001 | Open item 1, the task's wording | S-002 |\n"
         "| B-0002 | Open item 2 | S-003 |\n\n"
         "## Closed\n\n"
         "| id | item | closed by |\n"
         "|---|---|---|\n"
-        "| B-0003 | Closed item 3 | closed by S-004 |\n"
+        "| B-0003 | Closed item 3, old | closed by S-004 |\n"
+        "| B-0003 | Closed item 3, new | closed by S-005 |\n"
     )
     result = dedupe_backlog(text)
-    assert result == text
+    assert result == (
+        "# Backlog\n\n"
+        "## Open\n\n"
+        "| id | item | origin |\n"
+        "|---|---|---|\n"
+        "| B-0001 | Open item 1, the task's wording | S-002 |\n"
+        "| B-0002 | Open item 2 | S-003 |\n\n"
+        "## Closed\n\n"
+        "| id | item | closed by |\n"
+        "|---|---|---|\n"
+        "| B-0003 | Closed item 3, new | closed by S-005 |\n"
+    )
     open_p, _, closed_p = result.partition("\n## Closed")
     ids = table_ids(open_p) + table_ids(closed_p)
-    assert [i for i, n in Counter(ids).items() if n > 1] == ["B-0001"]
+    assert [i for i, n in Counter(ids).items() if n > 1] == []
 
 
 def test_journal_ids_dedupes_backlog_cli(tmp_path: Path) -> None:

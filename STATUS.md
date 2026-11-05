@@ -6,14 +6,12 @@ work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:
 `docs/handoffs/HANDOFF-REPORT-v0.6.md` (v0.6), `docs/handoffs/HANDOFF-REPORT-v0.5.md` (v0.5), `docs/handoffs/HANDOFF-REPORT-v0.4.md` (v0.4), `docs/handoffs/HANDOFF-REPORT-v0.2.md` (v0.2), `docs/handoffs/HANDOFF-REPORT-v0.1.md` (v0.1)
 
 ## Where we are
-v0.6 (the wiring, `docs/stages/v0.6-electrical-stage.md`) is closed: M0–M7 done, the domain milestone commits touched
-**0 files** in `core/`, `report/builder.py`, `docs/engine.py` or `cli/check.py` (the v0.5 contract
-seam tasks `S-142`–`S-144`, `S-148`–`S-152`, `S-160`–`S-167`, `S-180` are listed apart per E10),
-the DoD 7 owner simulation passed (S-176), gates G and H are closed with every blocker fixed
-(S-178, S-179, S-180), and version files and product pins are at 0.6.0 / `>=0.6,<0.7` (S-181);
-`docs/handoffs/HANDOFF-REPORT-v0.6.md`. Released as `v0.6.0` (S-183; visuals judged by the maintainer: fine for now). Left: the
-next Linux nightly (after S-175's portable `mktemp`). Next: the independent outside-model
-trial (`docs/reviews/v0.6-independent-trial.md`).
+v0.7 (everyday breadth, `docs/stages/v0.7-everyday-breadth.md`): Track A is delivered, S-197 to S-237 (structural
+physics, everyday materials, derived ceremony, region and display units, the table and test-stand products, the three-tier
+benchmarks and their two-vendor spec trials, the structural screen for legs, trestles and a cross member, the v0.7 health
+review). `0.7.0` is pending the close-out: version files and product pins, `make check` on `main`, CI green, then the tag.
+Before the tag: the commit-email rewrite in the owner's local `OWNER-TODO.md` (B-0242). v0.6.0 is the last release
+(tag `v0.6.0`, S-183; `docs/handoffs/HANDOFF-REPORT-v0.6.md`).
 Releasing a version: bump the three version files and the pins (S-054, S-083), `make check` on
 `main`, push, wait for CI, tag `v<version>` on that green commit (S-072).
 
@@ -39,7 +37,7 @@ Releasing a version: bump the three version files and the pins (S-054, S-083), `
   (`tests.conftest.copy_product`). Templates are synced with `make templates`, never hand-edited.
 
 ## Milestones (one line each; detail in the entries named)
-v0.7 — `docs/stages/v0.7-everyday-breadth.md` (Track A: structural physics, everyday materials, derived ceremony, region, the three-tier benchmarks), S-197; open. Done: v0.6 trials triaged (S-208, blocker fixed in S-215; also S-212, S-214, the docs task); M1 calc pack, materials, dated regional costs (S-198, S-199, S-201, S-207); M2 frame kit, four interface kinds, structural screen (S-202, S-203, S-206, S-211); M3 region, derived ceremony, display units (S-200, S-205, S-219); M4 table and test-stand specs worked and re-derived by a second model (S-204, S-210), the oracle (S-209), the kiln spec (S-218); health review (S-217). Left: the table and test-stand products (WIP branches `task/ex-table`, `task/ex-test-stand`, `make tasks`), then M5 (gates I and J, the two-vendor spec trial, the measures, 0.7.0). Before the `v0.7.0` tag: the commit-email rewrite in the owner's local `OWNER-TODO.md` (B-0242).
+v0.7 — `docs/stages/v0.7-everyday-breadth.md` (Track A: structural physics, everyday materials, derived ceremony, region, the three-tier benchmarks), S-197; Track A delivered (S-197 to S-237), 0.7.0 pending the close-out. Done: v0.6 trials triaged (S-208, blocker fixed in S-215; also S-212, S-214, the docs task); M1 calc pack, materials, dated regional costs (S-198, S-199, S-201, S-207); M2 frame kit, four interface kinds, structural screen (S-202, S-203, S-206, S-211); M3 region, derived ceremony, display units (S-200, S-205, S-219); M4 table and test-stand specs worked and re-derived by a second model (S-204, S-210), the oracle (S-209), the kiln spec (S-218); health review (S-217). Also: the table and test-stand products, the two-vendor spec trials (S-234), the structural screen for bare legs, trestles and a cross member (S-235), init asks region and units (S-236), health review (S-237), quick fixes (S-238). Before the `v0.7.0` tag: the commit-email rewrite in the owner's local `OWNER-TODO.md` (B-0242).
 
 v0.6 — `docs/stages/v0.6-electrical-stage.md` (the electrical domain through the v0.5 contract; the count of core edits is
 the headline), S-111; reconciled with the contract as built in S-141; closed, `docs/handoffs/HANDOFF-REPORT-v0.6.md`,

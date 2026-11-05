@@ -18,7 +18,8 @@ When ``--trailer KEY=VALUE`` is given, every task commit's message gets those tr
 when there are no placeholders.
 
 Why: S-097 (placeholders), S-099 (every commit, messages included), S-190 (trailers),
-S-195 (refuse cited but undefined placeholders), S-216 (drop Open backlog row present in Closed).
+S-195 (refuse cited but undefined placeholders), S-216 (drop Open backlog row present in Closed),
+S-238 (keep the last copy of an id repeated within one backlog table).
 
 Run it from inside the task's folder:
 ``python3 scripts/journal_ids.py [--base main] [--trailer KEY=VALUE ...]``.
@@ -51,25 +52,42 @@ def extract_row_id(line: str) -> str | None:
     return val
 
 
-def dedupe_backlog(text: str) -> str:
-    """Remove Open backlog rows whose id also appears in the Closed table.
+def _keep_last_of_each_id(part: str) -> str:
+    """Drop every table row of ``part`` whose id appears again further down."""
+    lines = part.splitlines(keepends=True)
+    last: dict[str, int] = {}
+    for n, line in enumerate(lines):
+        row_id = extract_row_id(line)
+        if row_id is not None:
+            last[row_id] = n
+    return "".join(
+        line
+        for n, line in enumerate(lines)
+        if (row_id := extract_row_id(line)) is None or last[row_id] == n
+    )
 
-    Why: S-216 (merge=union keeps both Open and Closed copies on rebase).
+
+def dedupe_backlog(text: str) -> str:
+    """Make every backlog id appear once after a union merge.
+
+    An Open row whose id is also in Closed is dropped (the Closed copy wins). An id repeated
+    within one table keeps its last copy: union places the task's edit after main's, so the
+    newer wording survives.
+
+    Why: S-216 (Open and Closed copies), S-238 (one id twice in a table).
     """
     match = re.search(r"(?m)^## Closed\b", text)
     if not match:
-        return text
+        return _keep_last_of_each_id(text)
     open_part = text[: match.start()]
-    closed_part = text[match.start() :]
+    closed_part = _keep_last_of_each_id(text[match.start() :])
     closed_ids = {extract_row_id(line) for line in closed_part.splitlines()} - {None}
-    if not closed_ids:
-        return text
-    new_open_lines = [
+    open_lines = [
         line
         for line in open_part.splitlines(keepends=True)
         if extract_row_id(line) not in closed_ids
     ]
-    return "".join(new_open_lines) + closed_part
+    return _keep_last_of_each_id("".join(open_lines)) + closed_part
 
 
 def parse_trailer(arg: str) -> tuple[str, str]:

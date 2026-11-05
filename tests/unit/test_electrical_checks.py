@@ -706,8 +706,7 @@ def _elec_built(root: Path) -> bool:
 
 def test_an_edited_power_connection_reopens_the_choice(chosen: Path, tmp_path: Path) -> None:
     root = _clone(chosen, tmp_path / "again")
-    if not _elec_built(root):
-        pytest.skip("the elec: rules (M2) are not installed yet: circuit://heater has no key")
+    assert _elec_built(root), "the elec: rules did not build circuit://heater"  # B-0247
     _edit(root, CIRCUIT, 'heater#L", conductor: cu-1p5-pvc', 'heater#L", conductor: cu-2p5-pvc')
     run_build(load_product(root), render=False, quiet=True)
     row = _rows(root)[HEADROOM]
@@ -810,8 +809,7 @@ def test_the_evidence_key_follows_the_circuit_not_an_unrelated_part(tmp_path: Pa
     root = _copy(tmp_path, git=True)
     product = _req(root, "load_current", "<", "10 A")
     run_build(product, render=False, quiet=True)
-    if not _elec_built(root):
-        pytest.skip("the elec: rules (M2) are not installed yet: circuit://heater has no key")
+    assert _elec_built(root), "the elec: rules did not build circuit://heater"  # B-0247
     first = _evaluate(load_product(root), root).evidence_keys["circuit://heater"]
     assert first == evidence_key(load_product(root), root / "build", "circuit://heater")
     _edit(root, "model/parts/gland.yaml", "unit: 0.5 USD", "unit: 0.6 USD")

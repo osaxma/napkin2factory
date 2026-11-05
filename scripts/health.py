@@ -563,8 +563,43 @@ def measure_tests(root: Path) -> tuple[int, int]:
     return func_count, mark_count
 
 
+def coverage_file(root: Path) -> Path | None:
+    """Find the ``coverage.xml`` to read: ``root``'s own, else the main folder's.
+
+    ``make check`` leaves ``coverage.xml`` in the folder it runs in, usually the main folder,
+    while ``make health`` runs in a task folder (S-238). The main folder is the repository's
+    main worktree, found through git's common directory (no hard-coded path).
+    """
+    own = root / "coverage.xml"
+    if own.is_file():
+        return own
+    common = run_git(["rev-parse", "--git-common-dir"], cwd=root)
+    if not common:
+        return None
+    main_folder = (root / common).resolve().parent
+    shared = main_folder / "coverage.xml"
+    return shared if shared.is_file() else None
+
+
+def describe_coverage_source(root: Path) -> str:
+    """Say which coverage file was read and how old it is, for the output."""
+    path = coverage_file(root)
+    if path is None:
+        return "no coverage.xml in this folder or the main folder"
+    try:
+        stamp = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return f"{path} (unreadable)"
+    hours = (datetime.now(tz=timezone.utc) - stamp).total_seconds() / 3600
+    age = f"{hours:.0f} hours" if hours < 48 else f"{hours / 24:.0f} days"
+    return f"{path}, written {stamp:%Y-%m-%d %H:%M} UTC ({age} ago)"
+
+
 def measure_coverage(root: Path) -> float | str:
-    """Read line-rate from coverage.xml if present and newer than HEAD, else 'not measured'.
+    """Read line-rate from the coverage.xml found by ``coverage_file``, else 'not measured'.
+
+    The file's age is reported beside the value (``describe_coverage_source``) instead of
+    refusing an older file: the value is then a judgement the reader can make (S-238).
 
     Args:
         root: Repository root path.
@@ -572,21 +607,8 @@ def measure_coverage(root: Path) -> float | str:
     Returns:
         Float coverage line-rate or string 'not measured'.
     """
-    cov_path = root / "coverage.xml"
-    if not cov_path.is_file():
-        return "not measured"
-
-    try:
-        cov_mtime = cov_path.stat().st_mtime
-    except OSError:
-        return "not measured"
-
-    head_ts_str = run_git(["log", "-1", "--format=%ct", "HEAD"], cwd=root)
-    if not head_ts_str.isdigit():
-        return "not measured"
-
-    head_time = int(head_ts_str)
-    if cov_mtime <= head_time:
+    cov_path = coverage_file(root)
+    if cov_path is None:
         return "not measured"
 
     try:
@@ -864,6 +886,7 @@ def collect_all_measures(
             },
             "coverage": {
                 "line_rate": coverage_val,
+                "source": describe_coverage_source(root),
             },
             "open_backlog": {
                 "count": backlog_count,
@@ -910,6 +933,7 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write(json.dumps(full_json, indent=2) + "\n")
     else:
         sys.stdout.write(render_table(rows))
+        sys.stdout.write(f"Coverage read from: {describe_coverage_source(args.root)}\n")
 
     return 0
 

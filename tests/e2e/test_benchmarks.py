@@ -1,7 +1,7 @@
 """The benchmark oracle against real products (S-209, W9).
 
-Every ``examples/*/SPEC.oracle.yaml`` is judged against its example once the example exists
-(the table has its spec and oracle before its product: those skip with the reason). Two
+Every ``examples/*/SPEC.oracle.yaml`` is judged against its example (an oracle without a
+product fails). Two
 fixture oracles under ``tests/benchmarks/fixtures`` pin the surfaces the matchers read, on
 products that already ship: the bracket's check and BOM output, the kiln's concept cards.
 Runs in ``make check``, not ``make check-fast``.
@@ -30,8 +30,7 @@ def _failures(rows: list[oracle.Row]) -> list[str]:
 @pytest.mark.parametrize("spec", SPECS, ids=[p.parent.name for p in SPECS])
 def test_every_shipped_oracle_judges_its_example(spec: Path, tmp_path: Path) -> None:
     product = spec.parent
-    if not (product / "n2f.yaml").is_file():
-        pytest.skip(f"examples/{product.name} has its spec and oracle but no product yet")
+    assert (product / "n2f.yaml").is_file(), f"examples/{product.name} has an oracle but no product"
     work = copy_product(product, tmp_path / product.name, prebuilt=True)
     rows = oracle.evaluate(load_oracle(spec), Evidence(work))
     assert not _failures(rows)

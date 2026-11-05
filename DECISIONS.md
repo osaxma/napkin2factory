@@ -264,6 +264,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-235 | The structural screen judges bare legs, trestles and a cross member | in force |
 | S-236 | Init asks for region and units; the oracle allows an agent's extra inspection and its own massing | in force |
 | S-237 | Health review 2026-11-05 (v0.7 close) — outcome | in force |
+| S-238 | Health-review quick fixes before 0.7.0 | in force |
 
 ---
 
@@ -1830,3 +1831,12 @@ Trend row recorded at 5011b22 (`docs/reviews/health-2026-11-05.md`; window 731b3
 W10: 17 distinct `core/` files in 7 commits since S-197; M2a, M2c, M3c, M4 touched 0; the three fix tasks S-212, S-215, S-233 are the only unplanned ones. Four non-core seam commits (S-219, S-226, S-227, S-236) did not name their file.
 Union-merge duplicates: S-216 covers an id in Open and Closed; the same row edited by both sides keeps two copies in one table (reproduced on a scratch repo), which the gate catches and `make land` then gives up on.
 Closed here: B-0190, B-0194 (delivered), B-0206 (S-216). Opened: B-0243 (same-table duplicates, ~30 min), B-0244 (split calcs.py and lifecycle.py), B-0245 (split `report/builder.py`, 549), B-0246 (land warns on unnamed seam edits), B-0247 (three dead skips), B-0248 (coverage read from the main folder), B-0249 (STATUS and CLI-reference drift). CI results on `main`: not measured (no `gh` login in the task).
+
+## S-238 — Health-review quick fixes before 0.7.0 (2026-11-05)
+Four small findings of the S-237 review. `scripts/journal_ids.py` `dedupe_backlog` keeps the last copy of a
+backlog id repeated within one table (union puts the task's edit after main's), beside the S-216 Open-against-Closed
+rule (B-0243). Three skips that could no longer fire for their stated reason are assertions (B-0247). `make health`
+reads `coverage.xml` from the main worktree (git common dir) when its own folder has none and prints the file and
+its age; it no longer refuses a file older than HEAD, the age lets the reader judge (B-0248). `STATUS.md` "Where we
+are" describes v0.7, and `docs/cli.md` says `n2f discard` keeps filed change requests since S-212 (B-0249).
+Measured: `tests/unit/test_journals.py` (new same-table case), `make health` run once.
