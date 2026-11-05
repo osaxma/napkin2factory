@@ -211,6 +211,15 @@ def lint(product: Product) -> Problems:
                     "add material: {name, spec}",
                     rule="L8-custom-material",
                 )
+            if not p.finish:
+                problems.add(
+                    f,
+                    p.uri,
+                    "custom part without a finish",
+                    "add finish: <what the surface gets>, e.g. as-machined, powder-coat, anodized "
+                    "or none (S-241)",
+                    rule="L8-custom-finish",
+                )
             if p.cost is None:
                 problems.add(
                     f,

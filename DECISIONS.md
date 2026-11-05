@@ -267,6 +267,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-238 | Health-review quick fixes before 0.7.0 | in force |
 | S-239 | v0.7 close: spec trial 4, the §2.1 measures, the handoff | in force |
 | S-240 | Trial 4 message and doc fixes: card and assembly hints, quantity abs, calc kit docs | in force |
+| S-241 | Trial 4 package fixes: auto-layout spacing, mains without a supply, finish in lint | in force |
 
 ---
 
@@ -1858,3 +1859,13 @@ module's `place_by` or the automatic layout. A reference case's `abs:` takes a q
 the expected unit; a temperature step reads as a difference) and names both units when the kind differs.
 `docs/calckit.md` documents `structural`, `joints` (including wood movement and moisture) and the three new tables.
 Measured: new tests in test_concepts, test_massing, test_loader, test_calckit_cases pass.
+## S-241 — Trial 4 package fixes: auto-layout spacing, mains without a supply, finish in lint (2026-11-05)
+Three package faults of spec trial 4 (S-239). `_auto_layout` (`geometry/build_asm.py`) placed each child one previous-width
+past the last origin, though a part's box is not centred on its origin, so a wide part after a narrow one overlapped it
+(B-0251); it now starts each child one 20 mm gap past the previous child's far x face, using each box's own min and max.
+`n2f check` and its `--json` (`hazard_note`) say, in one line like the region line (S-236), when a requirement carries a
+hazard tag whose model is absent: `core/data/hazards.yaml` names the domain of `mains` (`electrical`), and
+`core/ceremony.py::unmodelled_hazard_note` fires when that domain has no content and `n2f.yaml` has no scope line other
+than `in` for it (B-0250). A custom part with no `finish` is now an `n2f lint` error, rule `L8-custom-finish`, beside its
+tolerance, process and material; the `custom-part-complete` check stays (B-0256).
+Measured: `tests/unit/test_auto_layout.py`, `test_ceremony.py` (three new), one e2e `n2f check` case; examples and templates lint clean.

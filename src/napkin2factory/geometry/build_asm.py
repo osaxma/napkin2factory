@@ -102,16 +102,20 @@ def _auto_layout(
     # it instead of a layout warning (P10, S-112)
     notes = ["auto-layout: no geometry module; children placed in a row"] if asm.children else []
     res = AssemblyResult(notes=notes)
-    x = 0.0
+    # S-241: a part's box is not always centred on its origin, so each child is placed by its
+    # own min and max x: the next one starts one gap past the previous one's far face.
+    gap = 20.0
+    edge: float | None = None  # far x face of the last placed child
     for child in asm.children:
         key = child.part.id if child.part is not None else (child.asm.id if child.asm else "")
         built = parts.get(key) or asms.get(key)
         if built is None:
             continue
-        width = float(built.props["bbox"]["x"]) + 20.0
+        lo, hi = float(built.props["bbox"]["min"][0]), float(built.props["bbox"]["max"][0])
         for _ in range(child.qty):
+            x = 0.0 if edge is None else edge + gap - lo
             res.add(place(child.uri, built, translate=(x, 0.0, 0.0)))
-            x += width
+            edge = x + hi
     return res
 
 

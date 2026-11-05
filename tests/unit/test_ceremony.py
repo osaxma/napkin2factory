@@ -262,3 +262,35 @@ def test_note_level_reports_a_rise_only_from_lite(tmp_path: Path) -> None:
     rose = note_level(load_product(root))
     assert rose is not None and rose["from"] == "lite" and rose["to"] == "standard"
     assert note_level(load_product(root)) is None  # said once
+
+
+# ---- a mains tag with no supply modelled is said (S-241) ------------------------------------
+
+
+def test_a_mains_requirement_with_no_supply_is_said(tmp_path: Path) -> None:
+    from napkin2factory.core.ceremony import unmodelled_hazard_note
+
+    root = _bracket(tmp_path)
+    assert unmodelled_hazard_note(load_product(root)) is None
+    _add_requirement(root, safety=True, tags=["hazard:mains"])
+    note = unmodelled_hazard_note(load_product(root))
+    assert note is not None and "models no supply" in note and "scope" in note
+    # a tag whose hazard has no model domain behind it is not this line's business
+    root2 = _bracket(tmp_path / "other")
+    _add_requirement(root2, safety=True, tags=["hazard:high-temperature"])
+    assert unmodelled_hazard_note(load_product(root2)) is None
+
+
+def test_scoping_the_wiring_for_later_silences_the_mains_line(tmp_path: Path) -> None:
+    from napkin2factory.core.ceremony import unmodelled_hazard_note
+
+    root = _bracket(tmp_path)
+    _add_requirement(root, safety=True, tags=["hazard:mains"])
+    _edit(root / "n2f.yaml", lambda d: d.update(scope={"electrical": {"state": "later"}}))
+    assert unmodelled_hazard_note(load_product(root)) is None
+
+
+def test_finish_missing_is_a_lint_error(tmp_path: Path) -> None:
+    root = _bracket(tmp_path)
+    _edit(root / "model" / "parts" / "l-bracket.yaml", lambda d: d.pop("finish"))
+    assert [p.rule for p in lint(load_product(root)).errors] == ["L8-custom-finish"]

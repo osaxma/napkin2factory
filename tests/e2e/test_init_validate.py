@@ -145,3 +145,17 @@ def test_check_says_the_us_bands_were_read_while_no_region_is_declared(tmp_path:
     )
     again = json.loads(n2f("check", "--json", cwd=work).stdout)
     assert "region_note" not in again
+
+
+def test_check_says_a_mains_requirement_has_no_supply_modelled(tmp_path: Path):
+    from tests.conftest import copy_product
+
+    EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
+    work = copy_product(EXAMPLES / "bracket", tmp_path / "bracket", prebuilt=True)
+    assert "hazard_note" not in json.loads(n2f("check", "--json", cwd=work).stdout)
+    from tests.unit.test_ceremony import _add_requirement
+
+    _add_requirement(work, safety=True, tags=["hazard:mains"])
+    data = json.loads(n2f("check", "--json", cwd=work).stdout)
+    assert "models no supply" in data["hazard_note"]
+    assert "models no supply" in n2f("check", cwd=work).stdout.replace("\n", " ")

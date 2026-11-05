@@ -6,6 +6,7 @@
 # clause against the standard itself. Add a row here to add a kind (a core data change).
 - id: mains
   title: Mains voltage
+  domain: electrical  # the domain whose model answers the hazard (S-241: a tag with no model behind it is said)
   raises: true
   verify: true
   source: "IEC 61140:2016 (protection against electric shock) with IEC 60449 voltage band I: above 50 V AC or 120 V DC is not extra-low voltage"

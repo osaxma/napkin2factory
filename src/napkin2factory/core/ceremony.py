@@ -45,6 +45,8 @@ class Hazard:
     raises: bool
     source: str
     verify: bool = True
+    #: The domain whose model answers this hazard (``mains`` -> ``electrical``), or ``None``.
+    domain: str | None = None
 
 
 @dataclass(frozen=True)
@@ -67,7 +69,14 @@ def hazard_table() -> dict[str, Hazard]:
 
     rows = read_yaml(DATA / "hazards.yaml")
     return {
-        r["id"]: Hazard(r["id"], r["title"], bool(r["raises"]), r["source"], bool(r.get("verify")))
+        r["id"]: Hazard(
+            r["id"],
+            r["title"],
+            bool(r["raises"]),
+            r["source"],
+            bool(r.get("verify")),
+            r.get("domain"),
+        )
         for r in rows
     }
 
@@ -97,6 +106,42 @@ def hazard_problems(req: Requirement) -> list[tuple[str, str]]:
         if kind not in hazard_table():
             out.append((f"unknown hazard kind {kind!r}", f"use one of the known kinds: {known}"))
     return out
+
+
+def unmodelled_hazard_note(product: Product) -> str | None:
+    """One plain sentence when a requirement names a hazard whose domain has no model (S-241).
+
+    A ``hazard:mains`` requirement with nothing under ``model/electrical/`` and no ``scope``
+    line for the wiring raises the ceremony but gets no wiring check, so the product passes
+    in silence.  ``None`` when every named hazard is modelled, scoped or has no domain.
+    """
+    from napkin2factory.core.registry import registry
+
+    has = {d.name: d.has_content for d in registry().domains}
+    lacking: dict[str, list[str]] = {}  # domain -> titles of the requirements naming its hazard
+    for req in product.requirements.values():
+        for kind in hazard_kinds(req):
+            haz = hazard_table().get(kind)
+            if haz is None or haz.domain is None:
+                continue
+            entry = product.manifest.scope.get(haz.domain)
+            if entry is not None and entry.state != "in":
+                continue  # left for later or done elsewhere: the scope line says so (F11)
+            content = has.get(haz.domain)
+            if content is not None and not content(product):
+                lacking.setdefault(kind, []).append(req.title)
+    if not lacking:
+        return None
+    parts = []
+    for kind, titles in lacking.items():
+        shown = ", ".join(f"“{t}”" for t in titles[:2])
+        more = f" and {len(titles) - 2} more" if len(titles) > 2 else ""
+        parts.append(f"{hazard_table()[kind].title.lower()} is named by {shown}{more}")
+    return (
+        "; ".join(parts).capitalize()
+        + ", but the product models no supply or wiring. Add the wiring under model/electrical/, "
+        "or record in n2f.yaml that it is left for later (scope: {electrical: {state: later}})."
+    )
 
 
 def derive_ceremony(product: Product) -> Ceremony:

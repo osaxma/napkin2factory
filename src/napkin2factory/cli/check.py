@@ -99,9 +99,13 @@ def check(
     from napkin2factory.report.builder import cost_region_note
 
     region_note = cost_region_note(product)  # S-236: a US default is never silent
+    from napkin2factory.core.ceremony import unmodelled_hazard_note
+
+    hazard_note = unmodelled_hazard_note(product)  # S-241: a mains tag with no supply is said
     data = {
         **data,
         **ceremony.to_dict(),
+        **({"hazard_note": hazard_note} if hazard_note else {}),
         **({"ceremony_raised": rose} if rose else {}),
         **({"region_note": region_note} if region_note else {}),
     }
@@ -114,6 +118,8 @@ def check(
         print_ceremony(ceremony, rose)
         if region_note:
             console.print(f"[yellow]Region:[/yellow] {escape(region_note)}")
+        if hazard_note:
+            console.print(f"[yellow]Hazard:[/yellow] {escape(hazard_note)}")
     if data["summary"].get("fail", 0):
         raise CheckFailed(f"{data['summary']['fail']} check(s) failed")
 
