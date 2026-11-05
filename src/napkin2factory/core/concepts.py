@@ -102,11 +102,44 @@ def kit_generators() -> tuple[str, ...]:
     return GENERATORS
 
 
+def _field_home(key: str, fields: list[Any] | None = None) -> str | None:
+    """The card section whose screen reads ``key`` (``site``), else ``None`` (B-0253)."""
+    for f in fields if fields is not None else screen_fields():
+        if key in (f.key, *f.aliases):
+            return str(f.section)
+    return None
+
+
+def _load_keys(fields: list[Any] | None = None) -> str:
+    """The ``site`` keys a screen reads that describe loads, ``point_load, …`` (B-0253)."""
+    fs = fields if fields is not None else screen_fields()
+    return ", ".join(f.key for f in fs if f.section == "site" and f.group)
+
+
 def _schema_hint(err: Any) -> str:
     loc = ".".join(str(x) for x in err["loc"]) or "(top level)"
     if err["type"] == "extra_forbidden":
         known = ", ".join(ConceptCard.model_fields)
+        key = str(err["loc"][-1]) if err["loc"] else ""
+        if len(err["loc"]) == 1 and key in ("loads", "load"):
+            return (
+                f"loads are not a card section; give each as its own key under `site:`, "
+                f"e.g. `site: {{point_load: 2000 N}}` (the keys: {_load_keys() or 'point_load'}); "
+                f"a card's keys are: {known}"
+            )
+        home = _field_home(key) if len(err["loc"]) == 1 else None
+        if home is not None:
+            return (
+                f"{key!r} goes inside `{home}:` (for example `{home}: {{{key}: …}}`), "
+                f"not at the top of the card; a card's keys are: {known}"
+            )
         return f"remove or rename the key {loc!r}; a card's keys are: {known}"
+    if err["loc"] and err["loc"][0] == "site" and str(err["loc"][-1]) in ("loads", "load"):
+        return (
+            "a site entry is one number or word, not a group: write each load as its own key "
+            f"under `site:` (the keys: {_load_keys() or 'point_load'}), "
+            "e.g. `point_load: 2000 N`"
+        )
     if err["type"] == "missing":
         return f"add the required key {loc!r}"
     if loc == "status":
@@ -235,6 +268,20 @@ def _reads_lines(section: str, fields: list[Any], given: Any = None) -> list[str
     return [*lines, line]
 
 
+def _group_lines(section: str, fields: list[Any]) -> list[str]:
+    """One comment line per group of optional fields, e.g. the structural ones (B-0253).
+
+    ``#   when it carries a load: point_load, … (also: …)`` names the keys a screen reads only
+    when the card gives them, so they are findable without being asked of every card.
+    """
+    groups: dict[str, list[str]] = {}
+    for f in fields:
+        group = getattr(f, "group", "")
+        if f.section == section and group:
+            groups.setdefault(group, []).append(f.key)
+    return [f"#   {group}, also: {', '.join(keys)}" for group, keys in groups.items()]
+
+
 def render_card(data: dict[str, Any], fields: list[Any] | None = None) -> str:
     """A card as commented YAML, every §3 section present, in the canonical order.
 
@@ -269,6 +316,7 @@ def render_card(data: dict[str, Any], fields: list[Any] | None = None) -> str:
         "# site: the space it must fit and what it plugs into; screening checks what its",
         "#   screens read, and these become requirements when chosen",
         *_reads_lines("site", fields, data.get("site")),
+        *_group_lines("site", fields),
         f"site: {_flow(data.get('site') or {})}",
         "# style: look and feel,",
         "#   e.g. {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}",

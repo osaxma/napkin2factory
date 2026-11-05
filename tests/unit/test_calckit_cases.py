@@ -162,6 +162,41 @@ def test_malformed_cases_fail_with_the_reason(fixture_product: Path) -> None:
     assert _rows(fixture_product)["calc-case://plate.*"].status == "fail"
 
 
+def test_abs_tolerance_takes_a_quantity_in_any_unit_of_the_kind(fixture_product: Path) -> None:
+    """B-0255: ``abs: 6 cm`` is 60 mm; the case is 50 mm off (600 against 650); a number works."""
+    path = fixture_product / "model/calcs/plate.cases.yaml"
+    text = path.read_text()
+    assert _rows(fixture_product)["calc-case://plate.perimeter"].status == "fail"  # abs: 1
+    path.write_text(text.replace("abs: 1\n", "abs: 60 mm\n"))
+    assert _rows(fixture_product)["calc-case://plate.perimeter"].status == "pass"
+    path.write_text(text.replace("abs: 1\n", "abs: 6 cm\n"))
+    assert _rows(fixture_product)["calc-case://plate.perimeter"].status == "pass"
+    path.write_text(text.replace("abs: 1\n", "abs: 4 cm\n"))
+    row = _rows(fixture_product)["calc-case://plate.perimeter"]
+    assert row.status == "fail" and "not the kind of unit" not in row.message
+    path.write_text(text.replace("abs: 1\n", "abs: 60\n"))
+    assert _rows(fixture_product)["calc-case://plate.perimeter"].status == "pass"
+
+
+def test_abs_tolerance_in_another_kind_of_unit_is_explained(fixture_product: Path) -> None:
+    path = fixture_product / "model/calcs/plate.cases.yaml"
+    path.write_text(path.read_text().replace("abs: 1\n", "abs: 0.1 N\n"))
+    row = _rows(fixture_product)["calc-case://plate.perimeter"]
+    assert row.status == "fail"
+    assert "abs: 0.1 N is not the kind of unit of expect: 650 mm" in row.message
+    assert "give abs: as a number in mm" in row.message
+
+
+def test_abs_tolerance_unit_helpers() -> None:
+    assert calc_checks._abs_tolerance("0.05 mm", Q(2, "mm")) == pytest.approx(0.05)
+    assert calc_checks._abs_tolerance("5 um", Q(2, "mm")) == pytest.approx(0.005)
+    assert calc_checks._abs_tolerance(0.2, Q(2, "mm")) == 0.2
+    assert calc_checks._abs_tolerance(None, Q(2, "mm")) is None
+    assert calc_checks._abs_tolerance("0.1 K", Q(78, "degC")) == pytest.approx(0.1)
+    with pytest.raises(ValueError, match="plain number"):
+        calc_checks._abs_tolerance("0.1 mm", 3.0)
+
+
 def test_cases_in_the_module(fixture_product: Path) -> None:
     """A module-level CASES of the same shape works when there is no .cases.yaml."""
     calcs = fixture_product / "model/calcs"

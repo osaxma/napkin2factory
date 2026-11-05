@@ -266,6 +266,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-237 | Health review 2026-11-05 (v0.7 close) — outcome | in force |
 | S-238 | Health-review quick fixes before 0.7.0 | in force |
 | S-239 | v0.7 close: spec trial 4, the §2.1 measures, the handoff | in force |
+| S-240 | Trial 4 message and doc fixes: card and assembly hints, quantity abs, calc kit docs | in force |
 
 ---
 
@@ -1846,3 +1847,14 @@ Measured: `tests/unit/test_journals.py` (new same-table case), `make health` run
 Trial 4 (`docs/reviews/v0.7-spec-trial-stand-2.md`): the stand again, vendor 2 (Gemini Flash). First board 20 min, first report 43 min (103 / 254 tool calls); a product with 0 failing checks; oracle 39 passed, 6 failed, 7 pending. The six failures are the agent's own model (no electrical supply, a fatigue requirement for the beam only, a depth limit lost when it rewrote the promoted requirements, blocks where the spec has tubes), with gaps behind three of them. The suspected auto-layout bug is confirmed: it steps by the previous part's width from origin to origin, so a part over 40 mm wider than its predecessor overlaps it (reproduced: 3 interferences). Nine rows opened: B-0250 (no supply under a `hazard:mains` requirement says nothing), B-0251 to B-0258.
 The §2.1 measures (`docs/reviews/v0.7-measures.md`), the baselines Gate A inherits: first report 16 / 30 min (table, two vendors) and 23 / 43 min (stand); warm rebuild 14.4 s (table, target 1 s), 19.4 s (stand), 50.8 s (kiln); guide plus product `AGENTS.md` about 9,100 tokens (characters / 4; no tokenizer installed); tokens 649k and 1548k for the two Gemini runs, the Claude runs not measured; oracle pass rate stand 100 % (Claude) and 87 % (Gemini), table 87 % and 89 %; skill suggestion rate not measured (Track B).
 The handoff (`docs/reviews/v0.7-handoff.md`): items 4, 8 partly met, 9 not re-run, the rest met; tiers 1 and 2 ran with two vendors, tier 3 and two client kinds did not. The version bump and tag are the overseer's. Docs only; no `core/` file.
+
+## S-240 — Trial 4 message and doc fixes: card and assembly hints, quantity abs, calc kit docs (2026-11-05)
+Closes B-0253, B-0255, B-0258 (S-239, spec trial 4 and table trial 3 hit all three). A card key that is really a
+screen field (`point_load`, `max_deflection`, `cycles`) or `loads:` at the top says it goes under `site:`, and
+`site.loads:` says each load is its own key; the skeleton lists the structural keys on one line (`CardField.group`,
+the fields stay hidden otherwise, S-137). An empty massing suggests `frame`/`tube`/`block` when the card carries a
+load, else `enclosure`. An assembly line with `at:` (or other coordinates) says positions come from the geometry
+module's `place_by` or the automatic layout. A reference case's `abs:` takes a quantity (`0.05 mm`, converted to
+the expected unit; a temperature step reads as a difference) and names both units when the kind differs.
+`docs/calckit.md` documents `structural`, `joints` (including wood movement and moisture) and the three new tables.
+Measured: new tests in test_concepts, test_massing, test_loader, test_calckit_cases pass.

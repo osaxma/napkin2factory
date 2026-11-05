@@ -13,7 +13,7 @@ Reference cases (F17): a product calc proves itself by reproducing cases listed 
     cases:
       skin_temperature:
         - expect: 78.8 degC
-          abs: 0.1          # in the expected unit; or rel: 0.01; default rel 1e-6
+          abs: 0.1          # a number in the expected unit or a quantity (0.1 K); or rel: 0.01
           source: "hand computation: …"
           inputs: {plate-thickness: 70 mm}   # optional, overrides the shared value
 
@@ -40,7 +40,14 @@ from napkin2factory.calckit._cases import DEFAULT_REL, Outcome, compare, fmt, pa
 from napkin2factory.core.checks.results import CheckResult
 from napkin2factory.core.graph.hashing import sha256_file, sha256_json
 from napkin2factory.core.loader import Product
-from napkin2factory.core.units import UnitError, format_quantity, is_quantity, parse_quantity
+from napkin2factory.core.units import (
+    Quantity,
+    UnitError,
+    format_quantity,
+    is_quantity,
+    parse_quantity,
+    ureg,
+)
 from napkin2factory.geometry.accessors import make_accessors
 
 if TYPE_CHECKING:
@@ -255,6 +262,46 @@ def _float(raw: Any) -> float | None:
     return None if raw is None else float(raw)
 
 
+def _step_unit(unit: Any) -> Any:
+    """The unit for a difference of ``unit``: ``delta_degC`` for ``degC``, else ``unit``."""
+    try:
+        return ureg.Unit(f"delta_{unit}")
+    except Exception:  # pint: no such delta unit, so ``unit`` is already a plain step
+        return unit
+
+
+def _as_step(q: Any) -> Any:
+    """A tolerance as a difference (``0.1 degC`` means a 0.1 degree step, as ``0.1 K`` does)."""
+    return Quantity(float(q.magnitude), _step_unit(q.units))
+
+
+def _abs_tolerance(raw: Any, expect: Any) -> float | None:
+    """A case's ``abs:`` as a number in the expected value's unit (B-0255).
+
+    A bare number is already in that unit; a quantity (``0.05 mm``) is converted to it, and
+    one of another kind of unit is a message naming both. A tolerance in a temperature
+    unit is a difference, so ``0.1 K`` is a fine ``abs:`` for an expected ``78.8 degC``.
+    """
+    if raw is None:
+        return None
+    if not (is_quantity(raw) or (isinstance(raw, str) and any(c.isalpha() for c in raw))):
+        return float(raw)
+    tol = raw if is_quantity(raw) else parse_quantity(raw)
+    if not is_quantity(expect):
+        raise ValueError(
+            f"abs: {format_quantity(tol)} has a unit but expect: is a plain number; "
+            "write abs: as a number too"
+        )
+    try:
+        return float(_as_step(tol).to(_step_unit(expect.units)).magnitude)
+    except Exception as exc:
+        raise ValueError(
+            f"abs: {format_quantity(tol)} is not the kind of unit of expect: "
+            f"{format_quantity(expect)}; give abs: as a number in {expect.units:~P}, "
+            f"or with a unit of the same kind ({exc})"
+        ) from exc
+
+
 def product_cases(product: Product) -> dict[str, list[ProductCase]]:
     """Every declared case of the product's calcs, by ``module.fn`` (declaration order).
 
@@ -297,7 +344,7 @@ def _parse_case(calc: str, i: int, where: str, shared: Any, raw: Any) -> Product
         if "expect" not in raw:
             raise ValueError("no expect: (the expected result with its unit)")
         case.expect = _case_value(raw["expect"])
-        case.rel, case.abs = _float(raw.get("rel")), _float(raw.get("abs"))
+        case.rel, case.abs = _float(raw.get("rel")), _abs_tolerance(raw.get("abs"), case.expect)
     except (UnitError, ValueError, TypeError) as exc:
         case.error = f"case {i} in {where}: {exc}"
         return case

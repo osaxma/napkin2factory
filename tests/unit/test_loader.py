@@ -103,3 +103,22 @@ def test_an_asm_party_listed_as_a_port_gets_one_piece_of_advice(tmp_path: Path) 
     text = "\n".join(p.format() for p in problems.errors)
     assert "names asm://pod as a party" in text
     assert "remove iface://pod-mount" not in text, text
+
+
+def test_an_assembly_line_with_coordinates_says_where_positions_come_from():
+    """B-0253: `at:` is concept massing's; an assembly line has none."""
+    from pydantic import ValidationError
+
+    from napkin2factory.core.errors import Problems
+    from napkin2factory.core.loader import _validation_problems
+    from napkin2factory.core.model.assemblies import Assembly
+
+    data = {"id": "base", "children": [{"part": "part://leg", "at": {"x": "1 mm"}}]}
+    with pytest.raises(ValidationError) as exc:
+        Assembly.model_validate(data)
+    problems = Problems()
+    _validation_problems(problems, Path("model/assemblies/base.yaml"), "asm://base", exc.value)
+    (item,) = [e for e in problems.errors if "children.0.at" in e.message]
+    assert "children.0.at" in item.message
+    assert "geometry module" in item.hint and "place_by" in item.hint
+    assert "automatic layout" in item.hint

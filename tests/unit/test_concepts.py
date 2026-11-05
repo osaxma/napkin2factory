@@ -297,3 +297,32 @@ def test_promoted_needs_a_decision_on_record_and_rejected_a_reason(tmp_path: Pat
     (d / "C-002.yaml").write_text("id: C-002\ntitle: b\nstatus: rejected\ndecision: {reason: no}\n")
     (err,) = cm.lint_concepts(tmp_path).errors
     assert err.message == "C-001 says promoted but was never built (no screening)"
+
+
+def _lint_card(tmp_path: Path, body: str) -> list[tuple[str, str]]:
+    d = tmp_path / "concepts"
+    d.mkdir(exist_ok=True)
+    (d / "C-001.yaml").write_text(f"id: C-001\ntitle: t\n{body}")
+    return [(p.message, p.hint) for p in cm.lint_concepts(tmp_path).errors]
+
+
+def test_loads_on_a_card_say_where_the_load_fields_live(tmp_path: Path) -> None:
+    """B-0253: `loads:` at the top and `site.loads:` both name the `site:` keys."""
+    ((message, hint),) = _lint_card(tmp_path, "loads: {point_load: 2000 N}\n")
+    assert "loads" in message
+    assert "under `site:`" in hint and "point_load" in hint and "max_deflection" in hint
+    assert "cycles" in hint and "git" not in hint.lower()
+    ((message, hint),) = _lint_card(tmp_path, "site: {loads: {point_load: 2000 N}}\n")
+    assert message.startswith("site.loads:")
+    assert "own key under `site:`" in hint and "point_load" in hint
+
+
+def test_a_field_at_the_top_of_a_card_names_its_section(tmp_path: Path) -> None:
+    ((_, hint),) = _lint_card(tmp_path, "max_deflection: 2 mm\n")
+    assert "'max_deflection' goes inside `site:`" in hint
+
+
+def test_the_skeleton_lists_the_load_fields_on_one_line() -> None:
+    text = cm.render_card({"id": "C-001", "title": "Stand"})
+    (line,) = [x for x in text.splitlines() if "when it carries a load" in x]
+    assert line.startswith("#") and "point_load" in line and "cycles" in line

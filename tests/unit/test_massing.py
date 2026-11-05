@@ -121,6 +121,34 @@ def test_bad_cards_are_actionable(massing: list[dict[str, Any]], match: str) -> 
         compose(_card(massing), write=False)
 
 
+def test_the_empty_massing_hint_fits_the_card() -> None:
+    """B-0253: a card that carries a load is told about frame, tube and block."""
+    plain = ConceptCard.model_validate({"id": "C-004", "title": "t"})
+    with pytest.raises(N2FError, match="kit: enclosure"):
+        compose(plain, write=False)
+    loaded = ConceptCard.model_validate(
+        {"id": "C-004", "title": "t", "site": {"point_load": "2000 N"}}
+    )
+    with pytest.raises(N2FError) as info:
+        compose(loaded, write=False)
+    text = str(info.value)
+    assert "kit: frame" in text and "`tube`" in text and "`block`" in text
+    assert "enclosure" not in text
+    example = text.split("e.g. ")[1].split(" (")[0]
+    call = {
+        "kit": "frame",
+        "as": "stand",
+        "args": {
+            "length": "800 mm",
+            "width": "500 mm",
+            "height": "700 mm",
+            "member": {"size": "40 mm", "wall": "3 mm"},
+        },
+    }
+    assert example.startswith("- {kit: frame, as: stand")
+    compose(_card([call]), write=False)  # the suggested shape is a valid call
+
+
 def test_write_needs_a_folder() -> None:
     with pytest.raises(N2FError, match="needs the product folder"):
         compose(_card([BODY]), None)

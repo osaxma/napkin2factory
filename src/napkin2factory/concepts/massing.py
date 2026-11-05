@@ -337,6 +337,29 @@ def write_artifacts(result: MassingResult, out_dir: Path, render: bool = True) -
     return paths
 
 
+def empty_massing_example(card: ConceptCard) -> str:
+    """A kit call that fits the card, for the empty-massing message (B-0253).
+
+    A card that carries a load (any ``site`` field the structural screen reads) gets the
+    members that carry one: a ``frame``, a ``tube`` and a ``block``. Any other card gets an
+    ``enclosure``. Every example names the other kits the card can use.
+    """
+    carries_load = any(
+        key in card.site
+        for key in ("point_load", "distributed_load", "edge_load", "max_deflection")
+    )
+    if carries_load:
+        return (
+            "- {kit: frame, as: stand, args: {length: 800 mm, width: 500 mm, height: 700 mm, "
+            "member: {size: 40 mm, wall: 3 mm}}} (a card that carries a load is drawn with "
+            "`frame`, `tube` for a leg or column, `block` for a top or a beam)"
+        )
+    return (
+        "- {kit: enclosure, as: body, args: {length: 540 mm, width: 540 mm, "
+        "height: 620 mm, thickness: 1.5 mm}} (other kits: plate, block, tube, panel, frame)"
+    )
+
+
 def compose(
     card: ConceptCard, root: Path | None = None, *, write: bool = True, render: bool = True
 ) -> MassingResult:
@@ -358,9 +381,7 @@ def compose(
     if not card.massing:
         raise N2FError(
             f"{card.id} has no massing yet — add kit calls under `massing:` in "
-            f"concepts/{card.id}.yaml, e.g. "
-            "- {kit: enclosure, as: body, args: {length: 540 mm, width: 540 mm, "
-            "height: 620 mm, thickness: 1.5 mm}}"
+            f"concepts/{card.id}.yaml, e.g. {empty_massing_example(card)}"
         )
     seen: set[str] = set()
     for call in card.massing:

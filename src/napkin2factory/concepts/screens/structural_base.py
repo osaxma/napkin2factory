@@ -24,7 +24,9 @@ Qty = Any
 def _site(key: str, unit: str, kind: str, example: str, words: str) -> CardField:
     # ``hint=False``: a new card's skeleton names these only when the card gives one, so a
     # product with no loads is never asked about them
-    return CardField("site", key, unit, kind, example, words, hint=False)
+    return CardField(
+        "site", key, unit, kind, example, words, hint=False, group="when it carries a load"
+    )
 
 
 POINT_LOAD = _site("point_load", "N", "a force", "1471.5 N", "the load at the centre of the top")

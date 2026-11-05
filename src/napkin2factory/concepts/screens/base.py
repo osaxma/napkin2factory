@@ -60,7 +60,9 @@ class CardField:
     the key itself with hyphens (``None``: the key). ``hint`` false keeps the field out of a
     new card's "screens read" lines unless the card already gives it: a field only some
     products have (the generic door-swing term's door fields), so a shelf's card never
-    suggests a door (gate F, S-137).
+    suggests a door (gate F, S-137). ``group`` (words such as ``when it carries a load``)
+    puts a hidden field on one extra line of the skeleton, so an owner or agent can find the
+    key without every card being asked about it (B-0253).
     """
 
     section: str
@@ -72,6 +74,7 @@ class CardField:
     aliases: tuple[str, ...] = ()
     param: str | None = None
     hint: bool = True
+    group: str = ""
 
     @property
     def name(self) -> str:

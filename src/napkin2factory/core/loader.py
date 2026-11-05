@@ -72,6 +72,9 @@ def find_product_root(start: Path | None = None) -> Path | None:
     return None
 
 
+_POSITION_KEYS = ("at", "position", "place", "x", "y", "z", "location")
+
+
 def _validation_problems(
     problems: Problems, file: Path, subject: str, exc: ValidationError
 ) -> None:
@@ -81,6 +84,13 @@ def _validation_problems(
         hint = ""
         if err["type"] == "extra_forbidden":
             hint = f"remove or rename the key {loc!r}; see docs/product-model.md for the schema"
+            if "children" in err["loc"] and str(err["loc"][-1]) in _POSITION_KEYS:
+                # B-0253: concept massing has `at:`; an assembly child has none
+                hint = (
+                    f"an assembly line has no coordinates ({err['loc'][-1]!r}): positions come "
+                    "from the assembly's geometry module (`geometry: {module: geometry/<name>}` "
+                    "calling place_by), or from the automatic layout when it has none"
+                )
         elif err["type"] == "missing":
             hint = f"add the required key {loc!r}"
         problems.add(file, subject, f"{loc}: {msg}", hint, rule="schema")

@@ -21,7 +21,7 @@ Rules every function follows:
 Results from the kit are **estimates**: screening labels them `estimate`, never
 `computed`.
 
-## The three packs
+## The packs
 
 ### `thermal_enclosure` — layered hot boxes
 
@@ -65,6 +65,82 @@ Results from the kit are **estimates**: screening labels them `estimate`, never
 | `lift_class(mass)` | `LiftVerdict(label, mass, max_mass, source, verify)` | lightest handling class that covers the mass |
 | `stock_sheet_fits(blank, material_class="mild-steel", margin=None)` | `StockVerdict(fits, sheet, fitting, known, source, message, verify)` | blank fits a sheet either way round; smallest sheet by area wins |
 
+### `structural` — sections, beams, columns, tip-over, shear
+
+Used by the structural napkin screen and by a product's sizing calcs (W1). Every
+function takes pint quantities and returns a quantity or a small result object that
+carries `formula` and `source` text; a bare number raises `UnitError`. Book, table and
+section numbers are quoted from memory and marked `[verify]` in the code.
+
+| function | returns | method |
+|---|---|---|
+| `rect_section(width, height)` (alias `rect_section_inertia`) | `RectSection` (`I`, `Z`, `A`, `Iy`, `Zy`, …) | solid rectangle: `I = b·h³/12`, `Z = b·h²/6`, `A = b·h` (Roark Table 1, Case 1 `[verify]`) |
+| `rect_tube_section(width, height, thickness)` (alias `tube_section_inertia`) | `RectTubeSection` (`Ix`, `Iy`, `Zx`, `Zy`, `A`) | hollow rectangle `b×h×t`, outer minus inner rectangle; `Z = I/(h/2)` (Roark Table 1, Case 2 `[verify]`) |
+| `round_tube_section(outer_diameter, thickness)` | `RoundTubeSection` (`I`, `Z`, `A`) | `I = π(D⁴−d⁴)/64`, `Z = π(D⁴−d⁴)/(32·D)`, `A = π(D²−d²)/4` |
+| `simply_supported_deflection(force, span, E, I, load_kind="point_center")` (alias `beam_deflection_simply_supported`) | `DeflectionResult(deflection, formula, source)` | centre point load `F·L³/(48·E·I)` (Roark Table 8.1 Case 2a); `"uniform"` takes a total force or a force per length, `5·w·L⁴/(384·E·I)` (Case 2e) `[verify]` |
+| `cantilever_deflection(force, overhang, column_height, E, I_arm, I_col=None)` (alias `beam_deflection_cantilever`) | `DeflectionResult` | arm tip `F·La³/(3·E·Ia)` plus the support column's rotation under `M = F·La`, `F·La²·H/(E·Ic)` (Roark Table 8.1 Case 1a; the rotation term is a derivation in the code); `I_col` defaults to `I_arm` |
+| `beam_bending_stress(moment, section_modulus, yield_strength=None)` | `BendingStressResult(stress, yield_factor, …)` | `σ = M/Z`; with a yield strength also `σy/σ` (Roark §8.1; Shigley §1-10) |
+| `yield_safety_factor(stress, yield_strength)` | float | `σy/σ` |
+| `euler_buckling_load(E, I_min, length, k_factor=1.0, *, load=None, area=None, yield_strength=None)` (alias `euler_buckling`) | `BucklingResult(critical_load, safety_factor, slenderness, critical_slenderness, …)` | `Pcr = π²·E·I/(K·L)²`; with `area` and `yield_strength` it also refuses a column in the inelastic range, naming `column_buckling_load` |
+| `check_euler_slenderness(length, k_factor, I_min, area, E, yield_strength)` | float `λ = K·L/r` | `r = √(I/A)`; refuses `λ` below `λc = √(2π²E/σy)` |
+| `johnson_buckling_load(E, I_min, area, yield_strength, length, k_factor=1.0, *, load=None)` | `BucklingResult` (`method == "johnson"`) | `Pcr = A·[σy − σy²·λ²/(4π²E)]`, joins Euler at `λc` (Shigley §4-12); refuses a slenderer column |
+| `column_buckling_load(E, I_min, area, yield_strength, length, k_factor=1.0, *, load=None)` | `BucklingResult` (`method` is `"euler"` or `"johnson"`) | picks Euler or Johnson by slenderness and says which (S-207) |
+| `tip_over_safety_factor(mass, cg_x, edge_load, overhang_x)` | `TipOverResult(safety_factor, restoring_moment, overturning_moment, …)` | `FS = m·g·x_cg / (F_edge·x_overhang)`, static moments about the tipping edge (derivation) |
+| `fastener_group_shear(shear_force, count, bolt_area, shear_strength=None)` | `ShearResult(shear_stress, safety_factor, …)` | `τ = V/(n·As)`; with an allowable `FS = τallow/τ` (Shigley §8-5) |
+
+`k_factor` is a number or an end-condition word. `K_FACTORS` holds the design values
+(`pinned-pinned` 1.0, `fixed-free` 2.1, `fixed-pinned` 0.8, `fixed-fixed` 0.65; AISC
+Table C-A-7.1 / Shigley Table 4-2); `K_FACTORS_THEORETICAL` the textbook ones (1.0, 2.0,
+0.707, 0.5; Roark Table 15.1). `STANDARD_GRAVITY` is 9.80665 m/s² (ISO 80000-3).
+
+### `joints` — fasteners, frames, wood, fatigue and load cases
+
+Pure functions on pint quantities for joints in wood and metal, frames, timber behaviour
+over time and fatigue (W1). Wood movement and the moisture function sit in this pack too
+(there is no separate `wood_movement` module): `joints.wood_movement(...)`.
+
+| function | returns | method |
+|---|---|---|
+| `wood_screw_withdrawal(screw_diameter, penetration, specific_gravity)` | N | NDS-2018 §12.2.1: `W = 2850·G²·D` per inch of penetration (`D` the shank diameter in inches, `G` oven-dry specific gravity) |
+| `lag_screw_withdrawal(screw_diameter, penetration, specific_gravity)` | N | NDS-2018 §12.2.1: `W = 1800·G^(3/2)·D^(3/4)` per inch of thread penetration, tapered tip left out |
+| `insert_pullout(insert, substrate, count=1, applied_load=None, load=None)` | `PulloutResult(capacity, single_capacity, safety_factor, …)` | ultimate withdrawal per insert from `THREADED_INSERT_ROWS` (M4, M6, M8, M10 in hardwood, softwood, MDF, plywood; RAMPA Tec datasheets, every row `verify: true`) times `count`; with a load, capacity over load |
+| `joint_moment_capacity(joint, section, *, kind=…, section_modulus=…, yield_strength=…, weld_efficiency=1.0, bolt_capacity=…, bolt_distances=…, bolt_spacing=…, bolt_count=…)` | N·m | welded corner `M = Z·σy·η`; bolted corner `M = (F_bolt / max\|yi\|)·Σyi²` (Shigley §8-5 / AISC elastic bolt group) |
+| `frame_racking(frame, lateral_load)` or `(lateral_load, height, span, e_modulus, i_column, i_beam)` | sway (mm) | unbraced portal frame by slope deflection. Pinned bases: `δ = P·H³/(6·E·Ic) + P·H²·L/(12·E·Ib) + P·H²/(2·Kθ)`; fixed bases: `P·H³/(24·E·Ic)·(4 − 3r)`; no `joint_stiffness` means rigid corners. `PortalFrame` holds the dimensions; the rigid-frame cases follow Roark `[verify]`, the semi-rigid terms are derived in the code |
+| `fatigue_margin(stress_amplitude, mean_stress, material, cycles, *, ultimate_strength=None, sn_strength=None, marin_factor=1.0)` | float `nf` | Modified Goodman against `S_f` (Shigley ch. 6): steels use `S'e = 0.5·Sut` (700 MPa above 1400 MPa) times the Marin factor, Basquin finite life between 10³ and 10⁶ cycles, `0.9·Sut` below 10³; steel without a given `ultimate_strength` assumes 400 MPa. A material without an endurance limit (aluminium, brass, polymers) must be given `sn_strength` at the cycle count, or the call fails |
+| `factor_of_safety(check, load_kind, required=None)` | float | the default factor from `load_cases` (below); a `required` factor may tighten it and is refused if lower. An unknown check or load kind is a `KeyError` |
+| `timber_k_def(load_duration="sustained", moisture="dry")` | float | creep factor of solid timber, EN 1995-1-1:2004 Table 3.2, from `timber_creep` (below) |
+| `wood_creep_deflection(elastic_deflection, load_duration, moisture)` | length | all-timber member: `elastic·(1 + k_def)` |
+| `composite_creep_deflection(elastic_deflection, members, load_duration, moisture)` | length | members `(EI, is_timber)` bending together, only the timber creeps (EN 1995-1-1 §2.3.2.2): `elastic·ΣEI / ΣEI_final`, `EI_final = EI/(1 + k_def)` for timber |
+| `equilibrium_moisture_content(relative_humidity, temperature=21 degC)` | percent (float) | Hailwood-Horrobin sorption equation, USDA Wood Handbook FPL-GTR-190 Eq. 4-5 (about 0 to 90 % RH); the humidity is a 0..1 fraction, a percent above 1, or a dimensionless quantity |
+| `wood_movement(width, species, humidity_range, *, grain_direction="tangential", delta_mc=None, temperature=21 degC)` | length (mm) | across-grain change `ΔW = width·C·ΔM`, `C` the dimensional change coefficient of the species (`wood_movement` table, below) per percentage point of moisture content, `ΔM` the moisture change between the two humidities from `equilibrium_moisture_content` (or an explicit `delta_mc`); a single humidity swing is taken as centred on 50 % RH; `"radial"` for quarter-sawn |
+
+Reading the results: the withdrawal, pull-out and fatigue functions give the capacity or
+margin; the caller sets it against its load and a factor from `factor_of_safety`. Nothing
+here applies a factor on its own.
+
+#### The `load_cases` table
+
+`data/load_cases.yaml` holds the default factor of safety for each check and load kind
+(31 rows, each with its `source`, every row `verify: true`). The load kinds are `static`,
+`sustained`, `cyclic` and `edge_load` (a person pressing on an edge). No creep multiplier
+lives here: creep is `k_def`, not a factor of safety (S-207). A product requirement may
+tighten a factor, never loosen it.
+
+| check | static | sustained | cyclic | edge_load | first source |
+|---|---|---|---|---|---|
+| `yield` | 1.5 | 2.0 | 2.0 | 2.5 | AISC 360-16 / Shigley Table 1-5; Eurocode 0; ANSI/BIFMA X5.5 |
+| `buckling` | 2.0 | 2.5 | 3.0 | 2.5 | AISC 360-16 ch. E; Eurocode 3 §6.3 |
+| `tip_over` | 1.5 | 1.75 | 2.0 | 2.0 | ANSI/BIFMA X5.5-2021 §4.3; UL 962 |
+| `pullout` | 2.0 | 2.5 | 3.0 | 2.5 | NDS-2018 §12.2 and Table 2.3.2; ANSI/BIFMA X5.5 |
+| `fastener_shear` | 1.67 | 2.0 | 2.5 | 2.0 | AISC 360-16 Table J3.2; Eurocode 3 |
+| `fatigue` | 1.0 | 1.2 | 1.5 | 1.5 | Shigley 11th ed. §6-11; ANSI/BIFMA X5.5 |
+| `deflection` | 1.0 | none | 1.25 | 1.0 | AISC 360-16 / IBC Table 1604.3 |
+| `racking` | 1.5 | 2.0 | 2.0 | 2.0 | Eurocode 3 / ANSI/BIFMA X5.5 §7 |
+
+`deflection` has no `sustained` row (31 of the 32 pairs are on file): the sustained sag
+comes from the creep functions above, not from a factor, and asking for that pair raises a
+`KeyError`.
+
 ## Data tables and their `[verify]` status
 
 Tables live in `src/napkin2factory/calckit/data/<name>.yaml` (shipped in the wheel with
@@ -82,6 +158,9 @@ fabricator's, supplier's) to confirm. DECISIONS.md lists each table as `[verify]
 | `stock_sheets` | 10 (mild steel 4, stainless 3, aluminium 3) | common stockist formats (1000 × 2000, 1220 × 2440, 1250 × 2500, 1500 × 3000 mm) |
 | `conductors` | 25 (EU 10: 0.75–4 mm² PVC 70 °C and silicone 180 °C; US 15: 18–10 AWG MTW/THHN, SF-2 silicone, SJT-class cord) | IEC 60204-1:2016 Table 6 column B2 at 40 °C (= IEC 60364-5-52 B.52.4 × 0.87); NFPA 79-2021 Table 12.5.1 / NEC 310.16 60 °C column; NEC 402.5 (fixture wire); NEC 400.5(A)(1) column B (cords). The silicone rows carry the PVC value as a floor (S-146) |
 | `earthing` | 4 (TN-S, TN-C-S, TT, IT) | IEC 60364-1 §312.2; IEC 60364-4-41 §411.4–411.6; IEC 61140 §7.2 (Class I) |
+| `load_cases` | 31 (8 checks × 4 load kinds, `deflection` without `sustained`) | the table above: AISC 360-16, Shigley 11th ed., Eurocode 0 and 3, NDS-2018, ANSI/BIFMA X5.5-2021, UL 962 |
+| `timber_creep` | 5 (`dry`, `damp`, `wet` sustained: 0.6, 0.8, 2.0; medium-term 0.25; instantaneous 0) | EN 1995-1-1:2004 Table 3.2, solid timber, service classes 1 to 3 |
+| `wood_movement` | 7 (white oak, hard maple, walnut, southern yellow pine, Douglas fir, Baltic birch plywood, MDF; tangential and radial coefficients per percentage point of moisture) | USDA Forest Products Laboratory Wood Handbook (FPL-GTR-190, 2010), Table 4-4 |
 | `wire_colours` | 15 (EU 9, US 6) | IEC 60445 / HD 308 S2 and IEC 60204-1 §13.2.4; NEC 200.6, 250.119, 310.6(C) and NFPA 79 §13.2.4 |
 
 ### Wiring tables: `calckit.wiring`
@@ -111,7 +190,7 @@ A calc's reference case is an input, the expected result with its unit, a tolera
 source of the expectation. The build runs them: `n2f check` writes `calc-case` rows, so a
 change to a formula that breaks a case fails the checks, naming the calc, the expected and
 the computed value. A case passes when |computed − expected| ≤ max(`abs`, `rel` ·
-|expected|) in the expected unit (default `rel` 1e-6, six significant figures).
+|expected|) in the expected unit (`abs` is a bare number in that unit, or a quantity of the same kind, converted to it; default `rel` 1e-6, six significant figures).
 
 - **The kit's own.** Each pack lists `CASES` (a list of `Case(fn, inputs, expect, source,
   rel=…, abs=…, pick=…, external=…)`), at least one per public function, and at least one
@@ -127,7 +206,7 @@ the computed value. A case passes when |computed − expected| ≤ max(`abs`, `r
   cases:
     current:              # the calc function's name
       - expect: 10.87 A
-        rel: 0.001        # or abs: 0.01 (in the expected unit)
+        rel: 0.001        # or abs: 0.01 (a number in the expected unit) or abs: 10 mA (a quantity)
         source: "hand computation: 2500 W / 230 V = 10.87 A"
   ```
   A case runs the calc on its own inputs, never on the product's parameters: it checks the
