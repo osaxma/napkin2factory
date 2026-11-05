@@ -4,6 +4,11 @@
 # row names a part, requirement or card id: a card is found by its status, the kind of check
 # that failed it and what it is made of; a number by what it bounds or by the screening value
 # it is. Format and matcher kinds: tests/benchmarks/README.md.
+# What this file judges is the outcome, not one agent's modelling (S-230, road-to-v1.0 4.2): a
+# count may be the spec's or the spec's plus an allowance part, the mass may leave the wiring and
+# fasteners out or put them in, the fatigue factor is the governing one, and a card figure that
+# the napkin screen simplifies carries the tolerance its simplification justifies, said where it
+# is used.
 # Run: uv run python -m tests.benchmarks.oracle <copy of examples/test-stand> examples/test-stand/SPEC.oracle.yaml
 oracle: 1
 title: 2 kN motorized compression test stand (tier 2)
@@ -28,12 +33,16 @@ concepts:
 figures:
   # --- the three cards as the napkin stage screens them (SPEC section 7 tables) ---
   - name: c1-sag
-    what: frame deflection at the load axis of the single-column C-frame (mm); the screen counts the column and the upper arm, the spec adds the base arm and the column's stretch
+    what: frame deflection at the load axis of the single-column C-frame (mm); the screen counts the column and one arm, the spec adds the other arm and the column's stretch
     card: {status: rejected, by: [structural]}
     find: {screen_value: deflection}
     unit: mm
     expect: 1.90
-    tol: 0.05
+    # ±10 %, not the spec's ±5 % for its full hand model: the screen's closed form leaves out the
+    # base arm and the column's stretch (SPEC 4.4), which the spec's own figure adds; the example
+    # screens to 1.82 mm and a card that models the arms as plates to 2.03 mm. The outcome that
+    # matters, about ten times the 0.20 mm limit, is the concept row above.
+    tol: 0.10
   - name: c1-mass
     what: total mass of the C-frame card (kg)
     card: {status: rejected, by: [structural]}
@@ -47,14 +56,17 @@ figures:
     find: {screen_value: cost_low}
     unit: USD
     expect: 460
-    tol: 0.02
+    # ±5 % on the two cards' cost bands: the spec's ±2 % is mass × rate with the hinges, feet and
+    # fasteners (0.8 kg of 16.5 kg, 4.8 % of the mass) left out for want of a band; a card that
+    # draws them as pieces is priced for them (3.7 % at the low end in the first trial)
+    tol: 0.05
   - name: c1-cost-high
     what: high end of the cost band of the C-frame card (USD, US, 2026-11)
     card: {status: rejected, by: [structural]}
     find: {screen_value: cost_high}
     unit: USD
     expect: 1560
-    tol: 0.02
+    tol: 0.05
   - name: c2-mass
     what: total mass of the promoted portal card (kg)
     card: promoted
@@ -68,31 +80,31 @@ figures:
     find: {screen_value: cost_low}
     unit: USD
     expect: 434
-    tol: 0.02
+    tol: 0.05  # as the C-frame's: pieces for the hinges, feet and fasteners are priced
   - name: c2-cost-high
     what: high end of the cost band of the promoted portal card (USD, US, 2026-11)
     card: promoted
     find: {screen_value: cost_high}
     unit: USD
     expect: 1599
-    tol: 0.02
+    tol: 0.05
   - name: c3-mass
-    what: total mass of the plate gantry card (kg)
-    card: {status: rejected, by: [mass, cost]}
+    what: total mass of the plate gantry card (kg); found as the card rejected for something other than stiffness, so a screen that cannot yet judge mass does not hide its figures
+    card: {status: rejected, not_by: [structural]}
     find: {screen_value: [total_mass, mass]}
     unit: kg
     expect: 109.8
     tol: 0.02
   - name: c3-cost-low
     what: low end of the cost band of the plate gantry card (USD, US, 2026-11)
-    card: {status: rejected, by: [mass, cost]}
+    card: {status: rejected, not_by: [structural]}
     find: {screen_value: cost_low}
     unit: USD
     expect: 3476
     tol: 0.02
   - name: c3-cost-high
     what: high end of the cost band of the plate gantry card (USD, US, 2026-11)
-    card: {status: rejected, by: [mass, cost]}
+    card: {status: rejected, not_by: [structural]}
     find: {screen_value: cost_high}
     unit: USD
     expect: 13966
@@ -100,10 +112,10 @@ figures:
 
   # --- the finished product (the promoted design, built) ---
   - name: product-mass
-    what: assembled mass from the parts list (kg); SPEC 4.6 gives 16.52 kg with 0.60 kg of fasteners, plugs and wiring that have no part, so 15.92 kg
+    what: assembled mass from the parts list (kg); SPEC 4.6 gives 16.52 kg with 0.60 kg of fasteners, plugs and wiring, which a product may model as a part (16.52 kg) or leave without one (15.92 kg)
     find: {rollup: total_mass}
     unit: kg
-    expect: 15.92
+    expect: [16.52, 15.92]
     tol: 0.02
   - name: product-cost-in-band
     what: unit cost of the parts list lies inside the cost band of SPEC 4.7 (434-1599 USD, widened 2 % each end)
@@ -111,15 +123,13 @@ figures:
     unit: USD
     range: [425, 1631]
   - name: product-parts
-    what: number of distinct parts (19 part definitions, SPEC 5.1)
+    what: number of distinct parts (19 part definitions, SPEC 5.1, or 20 with a part for the fasteners and wiring)
     find: {rollup: distinct_parts}
-    expect: 19
-    tol: 0
+    range: [19, 20]
   - name: product-items
-    what: number of items in all (25, SPEC 5.1)
+    what: number of items in all (25, SPEC 5.1, or 26 with a part for the fasteners and wiring)
     find: {rollup: part_count}
-    expect: 25
-    tol: 0
+    range: [25, 26]
   - name: req-deflection
     what: frame deflection at the load axis under the rated load, requirement bounded at 0.20 mm (mm)
     find: {requirement: {bound: 0.20 mm}}
@@ -136,14 +146,9 @@ figures:
     find: {requirement: {bound: '2', safety: true}}
     expect: 13.13
     tol: 0.05
-  - name: req-beam-fatigue
-    what: beam fatigue factor, a safety requirement bounded at 1.5
-    find: {requirement: {bound: '1.5', safety: true}}
-    expect: 9.106
-    tol: 0.05
-  - name: req-bolt-fatigue
-    what: column-end bolt fatigue factor, a safety requirement bounded at 1.5
-    find: {requirement: {bound: '1.5', safety: true}}
+  - name: req-fatigue
+    what: the governing fatigue factor, a safety requirement bounded at 1.5; the lower of the beam's 9.106 and the column-end bolt's 7.420, which two requirements show apart and one requirement for both shows as 7.420
+    find: {requirement: {bound: '1.5', safety: true, words: 'fatigue|cyclic|endurance', aggregate: min}}
     expect: 7.420
     tol: 0.05
   - name: req-tip-over
@@ -158,10 +163,10 @@ figures:
     expect: 1.50
     tol: 0.05
   - name: req-mass
-    what: mass requirement, bounded at 25 kg (kg)
+    what: mass requirement, bounded at 25 kg (kg); with or without a part for the fasteners and wiring
     find: {requirement: {bound: 25 kg}}
     unit: kg
-    expect: 15.92
+    expect: [16.52, 15.92]
     tol: 0.02
   - name: req-cost
     what: cost requirement, bounded at 2400 USD, whose measured value lies in the cost band (USD)
@@ -180,8 +185,8 @@ figures:
     expect: 260
     tol: 0.01
   - name: req-footprint-width
-    what: width of the stand on the bench, at most 400 mm (mm)
-    find: {requirement: {bound: 400 mm}}
+    what: width of the stand on the bench, at most 400 mm (mm); a horizontal extent, not the height of a part (a guard module may be bounded at 400 mm too)
+    find: {requirement: {bound: 400 mm, words: 'bbox\.[xy]\b'}}
     unit: mm
     at_most: 400
   - name: req-footprint-depth

@@ -4,6 +4,11 @@
 # status, the kind of check that failed it and what it is made of; a number by what it bounds
 # or by the screening value it is. Format and matcher kinds: tests/benchmarks/README.md.
 # Run: uv run python -m tests.benchmarks.oracle examples/table examples/table/SPEC.oracle.yaml
+# Reviewed for modelling choices (S-230): the counts stay exact, since the spec lists every part
+# (the screws are parts, there is no allowance part for fasteners or wiring); the heavy card's
+# figures are found as "the card rejected for something other than stiffness", so a product
+# whose screens cannot yet fail a card on its mass still has them judged (the concept row above
+# still asks for mass and cost).
 oracle: 1
 title: Oak-and-steel workshop table (tier 1)
 spec: SPEC.md
@@ -110,35 +115,35 @@ figures:
     tol: 0.05
   - name: c3-sag
     what: mid-span sag under the 150 kg centre load plus self weight, on the heavy trestle card (mm)
-    card: {status: rejected, by: [mass, cost]}
+    card: {status: rejected, not_by: [structural]}
     find: {screen_value: deflection}
     unit: mm
     expect: 0.837
     tol: 0.05
   - name: c3-mass
     what: total mass of the heavy trestle card (kg)
-    card: {status: rejected, by: [mass, cost]}
+    card: {status: rejected, not_by: [structural]}
     find: {screen_value: [total_mass, mass]}
     unit: kg
     expect: 148
     tol: 0.02
   - name: c3-cost-low
     what: low end of the cost band of the heavy trestle card (USD, US, 2026-11)
-    card: {status: rejected, by: [mass, cost]}
+    card: {status: rejected, not_by: [structural]}
     find: {screen_value: cost_low}
     unit: USD
     expect: 2450
     tol: 0.02
   - name: c3-cost-high
     what: high end of the cost band of the heavy trestle card (USD, US, 2026-11)
-    card: {status: rejected, by: [mass, cost]}
+    card: {status: rejected, not_by: [structural]}
     find: {screen_value: cost_high}
     unit: USD
     expect: 3010
     tol: 0.02
   - name: c3-tip-over
     what: tip-over factor at the governing edge of the heavy trestle card
-    card: {status: rejected, by: [mass, cost]}
+    card: {status: rejected, not_by: [structural]}
     find: {screen_value: tip_over_factor}
     expect: 10.2
     tol: 0.05

@@ -626,6 +626,68 @@ def test_eu_product_is_priced_with_eu_bands_in_euro() -> None:
     assert not any("USD" in v.value for v in values.estimate.out.values())
 
 
+class _Piece:
+    """A rough shape as the cost screen reads it: a name, a process, a mass and a box (mm)."""
+
+    def __init__(self, name: str, process_class: str, mass: float | None, size: tuple[float, ...]):
+        self.name, self.process_class, self.mass, self.size = name, process_class, mass, size
+
+
+def _massing(*pieces: _Piece) -> Any:
+    from types import SimpleNamespace
+
+    return SimpleNamespace(pieces=list(pieces))
+
+
+def _cost_of(massing: Any, items: list[tuple[str, str, float | None]] | None = None) -> Any:
+    from napkin2factory.concepts.screens.base import ScreenValues
+    from napkin2factory.concepts.screens.generic import cost_band as cb_screen
+
+    card = ConceptCard.model_validate({"id": "C-001", "title": "t", "site": {}})
+    values = ScreenValues()
+    values.shared["region"] = "US"
+    values.cost_items += items or []
+    cb_screen(card, massing, values)
+    return values
+
+
+def test_a_piece_bought_by_the_metre_is_priced_by_its_longest_side() -> None:
+    """B-0211, S-230: 1 m of extrusion-cut at 15-45 USD/m, whatever its mass."""
+    tube = _Piece("rail", "extrusion-cut", 2.0, (40.0, 1000.0, 40.0))
+    values = _cost_of(_massing(tube))
+    assert values.estimate.raw["cost_low"].to("USD").magnitude == pytest.approx(15.0)
+    assert values.estimate.raw["cost_high"].to("USD").magnitude == pytest.approx(45.0)
+    assert not any("leaves out" in n for n in values.notes)
+
+
+def test_a_piece_bought_by_the_square_metre_is_priced_by_its_biggest_face() -> None:
+    """B-0211, S-230: a 600 x 400 x 10 mm routed sheet is 0.24 m2 at 35-120 USD/m2."""
+    sheet = _Piece("guard", "cnc-routing", None, (600.0, 10.0, 400.0))
+    values = _cost_of(_massing(sheet))  # no material and no mass: the area is enough
+    assert values.estimate.raw["cost_low"].to("USD").magnitude == pytest.approx(8.4)
+    assert values.estimate.raw["cost_high"].to("USD").magnitude == pytest.approx(28.8)
+    assert not any("no material" in n for n in values.notes)
+
+
+def test_per_metre_and_per_kilogram_pieces_add_up() -> None:
+    """B-0211: a card mixing the three kinds of band counts all of them."""
+    rail = _Piece("rail", "extrusion-cut", 2.0, (1000.0, 40.0, 40.0))
+    plate = _Piece("plate", "sheet-metal", 5.0, (300.0, 300.0, 3.0))
+    values = _cost_of(_massing(rail, plate))
+    assert values.estimate.raw["cost_low"].to("USD").magnitude == pytest.approx(15.0 + 40.0)
+
+
+def test_a_bought_in_item_on_a_per_metre_band_has_no_size_to_price() -> None:
+    """B-0211: a ``cost_items`` entry carries a mass only, so a per-metre band names the gap."""
+    values = _cost_of(
+        _massing(_Piece("plate", "sheet-metal", 5.0, (300.0, 300.0, 3.0))),
+        [("cable", "extrusion-cut", None)],
+    )
+    note = " ".join(values.notes)
+    assert "the cost leaves out the cable" in note and "metre or the square metre" in note
+    assert values.estimate.raw["cost_low"].to("USD").magnitude == pytest.approx(40.0)
+
+
 def test_a_card_region_wins_over_the_product_region() -> None:
     """Gate J: a card's own site.region is the one the bands are read for."""
     values, _ = _cost_screen([("bracket", "sheet-metal", 5.0)], site={"region": "EU"}, region="US")

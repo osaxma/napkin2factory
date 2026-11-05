@@ -6,8 +6,9 @@
   ``site.width``, ``site.depth`` and ``site.height`` (the space it must fit; ``alcove_*``
   read as aliases for one version, F16). A card with no door gets no door words (S-137).
 * **total mass** — the rough shapes plus what other screens add (``values.mass_items``).
-* **cost band** — the rough shapes and other screens' ``cost_items`` priced per process, held
-  against ``site.budget`` when the card gives one (S-207).
+* **cost band** — the rough shapes and other screens' ``cost_items`` priced per process
+  (per kilogram, per metre of the longest side, per square metre of the biggest face, or per
+  item), held against ``site.budget`` when the card gives one (S-207, B-0211).
 * **mass-vs-lift** — how the total can be lifted and moved (``site.lift_class``).
 * **blank-vs-stock-sheet** — every folded sheet's flat blank on a stock sheet (a rule only).
 * **walls-fit-envelope** — an inner size plus two walls inside the body, when a screen of
@@ -210,6 +211,18 @@ def total_mass(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Ru
     return []
 
 
+def piece_extent(piece: Any) -> tuple[float, float]:
+    """A rough shape's longest side (mm) and the area of its biggest face (mm²).
+
+    What a band per metre (``per_m``) or per square metre (``per_m2``) multiplies: the length
+    of a bought-by-the-metre tube or extrusion, the face of a routed or cut sheet (B-0211,
+    S-230). The bounding box stands in for the shape, so a slanted member counts a little
+    short and an L-shaped sheet its box; the band is a range already.
+    """
+    a, b, _ = sorted(piece.size, reverse=True)
+    return a, a * b
+
+
 def cost_region(card: ConceptCard, values: ScreenValues) -> tuple[str | None, str | None]:
     """The region the cost bands are read for, and a sentence when a declared one has none.
 
@@ -265,23 +278,31 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
     no_material: list[str] = []
     no_band: list[str] = []
     no_band_classes: list[str] = []
-    items: list[tuple[str, str, float | None]] = []
+    items: list[tuple[str, str, float | None, tuple[float, float] | None]] = []
     bands: list[mass_cost.CostBand] = []
     if massing is not None:
-        items += [(p.name, p.process_class, p.mass) for p in massing.pieces]
-    items += values.cost_items
-    for name, pclass, kg in items:
+        items += [(p.name, p.process_class, p.mass, piece_extent(p)) for p in massing.pieces]
+    items += [(name, pclass, kg, None) for name, pclass, kg in values.cost_items]
+    no_size: list[str] = []
+    for name, pclass, kg, extent in items:
         try:
             b = mass_cost.cost_band(pclass, region=region)
             c = mass_cost.cost_estimate(
-                pclass, mass=None if kg is None else Quantity(kg, "kg"), region=region
+                pclass,
+                mass=None if kg is None else Quantity(kg, "kg"),
+                length=None if extent is None else Quantity(extent[0], "mm"),
+                area=None if extent is None else Quantity(extent[1], "mm**2"),
+                region=region,
             )
         except ValueError as exc:
-            if any(k in str(exc) for k in ("pass mass=", "pass area=", "pass length=")):
+            if "pass mass=" in str(exc):
                 no_material.append(name)
-                unpriced.append(name)
-                continue
-            raise
+            elif any(k in str(exc) for k in ("pass area=", "pass length=")):
+                no_size.append(name)
+            else:
+                raise
+            unpriced.append(name)
+            continue
         if not c.known or c.low is None or c.high is None:
             no_band.append(name)
             unpriced.append(name)
@@ -299,6 +320,11 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
     if no_material:
         notes.append(
             f"the cost leaves out {the(owner_names(no_material))}: no material, so no mass to price"
+        )
+    if no_size:
+        notes.append(
+            f"the cost leaves out {the(owner_names(no_size))}: it is bought by the metre or the "
+            "square metre and has no rough shape to measure"
         )
     if no_band:
         notes.append(

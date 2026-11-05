@@ -261,6 +261,11 @@ def requirement_values(check: dict[str, Any], find: RequirementFind, unit: str |
             continue
         if find.kind is not None and row.get("kind") != find.kind:
             continue
+        text = f"{row.get('title', '')} {row.get('message', '')}"
+        if find.words is not None and not re.search(find.words, text, re.I):
+            continue
+        if find.not_words is not None and re.search(find.not_words, text, re.I):
+            continue
         try:
             (v, vu), op, bound = parse_bound_message(str(row.get("message", "")))
         except MatchError:
@@ -271,7 +276,17 @@ def requirement_values(check: dict[str, Any], find: RequirementFind, unit: str |
         labels.append(str(row.get("title", "")))
     if not vals:
         raise MatchError(
-            f"no requirement is bounded at {find.bound}" + (f" ({find.op})" if find.op else "")
+            f"no requirement is bounded at {find.bound}"
+            + (f" ({find.op})" if find.op else "")
+            + (f" with the words {find.words!r}" if find.words else "")
+        )
+    if find.aggregate is not None:
+        pick = min(vals) if find.aggregate == "min" else max(vals)
+        return Found(
+            [pick],
+            f"the {find.aggregate} of {len(vals)} requirements bounded at {find.bound}",
+            unit or "",
+            labels=labels,
         )
     return Found(
         vals, f"requirements bounded at {find.bound}", unit or "", several_ok=True, labels=labels

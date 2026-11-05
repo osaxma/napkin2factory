@@ -83,13 +83,23 @@ class ScreenRowFind(Strict):
 
 
 class RequirementFind(Strict):
-    """A requirement found by what it bounds: the bound, the direction, its flags."""
+    """A requirement found by what it bounds: the bound, the direction, its flags, its words.
+
+    Two requirements may bound alike (the footprint and a clear width both at 400 mm); ``words``
+    and ``not_words`` (case-insensitive regexes, searched in the requirement's title and
+    message) tell them apart. ``aggregate`` reduces what is found to one number: ``min`` is the
+    governing factor when one product covers two checks by one requirement and another by two
+    (S-230).
+    """
 
     bound: str
     op: Literal["<", "<=", ">", ">=", "=="] | None = None
     safety: bool | None = None
     category: str | None = None
     kind: str | None = None
+    words: str | None = None
+    not_words: str | None = None
+    aggregate: Literal["min", "max"] | None = None
 
 
 class ResultFind(Strict):

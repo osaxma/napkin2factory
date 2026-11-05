@@ -4,6 +4,9 @@
 # status, the kind of check that failed it and what it is made of; a number by what it bounds
 # or by the screening value it is. Format and matcher kinds: tests/benchmarks/README.md.
 # Run: uv run python -m tests.benchmarks.oracle <copy of examples/kiln> examples/kiln/SPEC.oracle.yaml
+# Reviewed for modelling choices (S-230): nothing loosened. The spec states the BOM counts (145
+# in 46) with its wiring and fasteners already parts, no allowance part; the cards are found by
+# outcome and shape, none by a screen the package lacks.
 oracle: 1
 title: Mini electric test kiln (tier 3)
 spec: SPEC.md

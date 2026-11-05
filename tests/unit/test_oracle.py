@@ -359,6 +359,65 @@ def test_two_different_candidates_in_tolerance_are_ambiguous():
     assert not row.passed and "differing" in row.found
 
 
+def _titled(rid: str, title: str, msg: str, safety: bool = False) -> dict[str, Any]:
+    return {**_req(rid, msg, safety=safety), "title": title}
+
+
+def test_words_tell_two_requirements_with_the_same_bound_apart():
+    """S-230: a footprint width and a guard height both bounded at 400 mm."""
+    check = _check()
+    check["results"] = [
+        _titled("W", "Footprint width", "bbox.x = 380 mm <= 400 mm"),
+        _titled("H", "The guard fits its height", "bbox.z = 400 mm <= 400 mm"),
+    ]
+    plain = _fig({"requirement": {"bound": "400 mm"}}, unit="mm", at_most=400)
+    row = oracle.judge_figure(plain, _ev(check=check), {})
+    assert not row.passed and "differing" in row.found
+    horizontal = _fig(
+        {"requirement": {"bound": "400 mm", "words": r"bbox\.[xy]\b"}}, unit="mm", expect=380
+    )
+    assert oracle.judge_figure(horizontal, _ev(check=check), {}).passed
+    not_height = _fig(
+        {"requirement": {"bound": "400 mm", "not_words": "height|bbox.z"}}, unit="mm", expect=380
+    )
+    assert oracle.judge_figure(not_height, _ev(check=check), {}).passed
+    none = _fig({"requirement": {"bound": "400 mm", "words": "depth"}}, unit="mm", at_most=400)
+    assert "with the words 'depth'" in oracle.judge_figure(none, _ev(check=check), {}).found
+
+
+def test_the_governing_factor_is_the_same_whether_one_requirement_or_two_carry_it():
+    """S-230: beam 9.1 and bolt 7.4 apart, or one fatigue requirement showing 7.4."""
+    apart = _check()
+    apart["results"] = [
+        _titled("A", "Beam fatigue factor", "calc://f.beam = 9.106 >= 1.5", safety=True),
+        _titled("B", "Bolt fatigue factor", "calc://f.bolt = 7.42 >= 1.5", safety=True),
+        _titled("C", "Tip-over factor", "calc://t.tip = 2.124 >= 1.5", safety=True),
+    ]
+    one = _check()
+    one["results"] = [
+        _titled("A", "Fatigue factor", "calc://f.both = 7.42 >= 1.5", safety=True),
+        _titled("C", "Tip-over factor", "calc://t.tip = 2.124 >= 1.5", safety=True),
+    ]
+    find = {"bound": "1.5", "safety": True, "words": "fatigue", "aggregate": "min"}
+    fig = _fig({"requirement": find}, expect=7.42, tol=0.05)
+    for check in (apart, one):
+        assert oracle.judge_figure(fig, _ev(check=check), {}).passed
+    wrong = _fig({"requirement": {**find, "aggregate": "max"}}, expect=7.42, tol=0.05)
+    assert not oracle.judge_figure(wrong, _ev(check=apart), {}).passed
+    assert oracle.judge_figure(wrong, _ev(check=one), {}).passed
+
+
+def test_a_list_of_values_and_a_range_accept_either_modelling():
+    """S-230: the mass with or without a part for the wiring; a count with an allowance part."""
+    mass = _fig({"rollup": "total_mass"}, unit="kg", expect=[45.3, 44.7], tol=0.02)
+    assert oracle.judge_figure(mass, _ev(), {}).passed
+    for got in (5, 6):
+        count = _fig({"rollup": "distinct_parts"}, range=[5, 6])
+        ev = _ev(rollups={"distinct_parts": got})
+        assert oracle.judge_figure(count, ev, {}).passed
+    assert not oracle.judge_figure(count, _ev(rollups={"distinct_parts": 7}), {}).passed
+
+
 def test_several_candidates_for_a_single_surface_are_ambiguous():
     found = judge.__globals__["Found"]([1.0, 2.0], "somewhere")
     with pytest.raises(MatchError, match="2 candidates"):
