@@ -16,7 +16,7 @@ product.
 ## Safety
 
 - **Tipping.** The table is built to stay up under {{ P["edge-load"] }} pressed down at the middle of any edge when it is empty ({{ req("REQ-009").statement }}). Do not stand or climb on it, and do not load one edge heavily while the other is empty. A person has to check and sign this requirement: the calculation alone does not close it.
-- **Rated load.** It is built to take {{ P["centre-load"] }} at the middle of the top for a short time, standing on a base of about {{ P["load-patch-x"] }} by {{ P["load-patch-y"] }} or larger, and a vise and tools of up to {{ P["sustained-load"] }} may stay on it. The steel cross rail under the middle is what carries that load; the oak alone, which is soft across its grain, would dish about 3.9 mm (computed) between the long rails. Put a heavy load over the cross rail, not near the ends of the top.
+- **Rated load.** It is built to take {{ P["centre-load"] }} at the middle of the top for a short time, standing on a base of about {{ P["load-patch-x"] }} by {{ P["load-patch-y"] }} or larger, and a vise and tools of up to {{ P["sustained-load"] }} may stay on it. The steel cross rail under the middle is what carries that load; the oak alone, which is soft across its grain, would dish visibly between the long rails. Put a heavy load over the cross rail, not near the ends of the top.
 - **Moving it.** The table weighs about {{ bom.total_mass }} in all. Two people lift it, one at each end, by the top; carry it level and do not drag it on its glides.
 - **Edges.** Break (lightly round) the sharp edges of the steel before the powder coat. The oak edges are eased by the woodworker.
 
