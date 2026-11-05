@@ -18,7 +18,12 @@ from napkin2factory.concepts.promote.common import (
     _rel,
     _yaml_block,
 )
-from napkin2factory.concepts.promote.decision import _card_text, _labelled, _one_line
+from napkin2factory.concepts.promote.decision import (
+    _card_text,
+    _labelled,
+    _one_line,
+    verdict_words,
+)
 from napkin2factory.concepts.promote.form import form_requirements
 from napkin2factory.concepts.promote.modules import plan_modules
 from napkin2factory.concepts.promote.parameters import plan_parameters
@@ -211,9 +216,9 @@ def promote(
             "assemblies, so they were suggested, not written."
         )
     rationale = (
-        f"Screening of {cid} ({card.verdict}): " + "; ".join(_labelled(card, root)) + "."
+        f"Screening of {cid} ({verdict_words(card)}): " + "; ".join(_labelled(card, root)) + "."
         if _labelled(card, root)
-        else f"Screening of {cid} ({card.verdict})."
+        else f"Screening of {cid} ({verdict_words(card)})."
     )
     links = (
         [f"req://{r.id}" for r in new_reqs]

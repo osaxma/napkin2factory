@@ -198,3 +198,33 @@ def test_the_title_reads_the_checks_band_and_protected_purposes() -> None:
     """What the title reads from the checks is an input of every circuit's rule."""
     words = title_inputs()
     assert words.startswith("power,control|") and re.search(r"\d", words)
+
+
+def test_a_chain_out_through_an_entry_and_back_through_it_draws() -> None:
+    """The E-stop and door interlock chain (B-0213, S-233): the door switch sits beyond the
+    lid entry and two wires return through it to the drive; an empty column between the
+    boxes used to raise an IndexError in the lane search."""
+    via = "iface://lid"
+    devices = [
+        _device("device://estop", "E-stop", ["1", "2"], "control"),
+        _device("device://door", "Door switch", ["1", "2"], "control"),
+        _device("device://drive", "Drive", ["A", "B"], "load"),
+        _device("device://ctl", "Controller", ["24V", "IN"], "control"),
+    ]
+    wires = [
+        _wire("sc-1", "supply://supply#L", "device://estop#1"),
+        _wire("sc-2", "device://estop#2", "device://door#1", via),
+        _wire("sc-3", "device://door#2", "device://drive#A", via),
+        _wire("sc-4", "device://ctl#24V", "device://door#1", via),
+        _wire("sc-5", "device://drive#B", "device://ctl#IN"),
+    ]
+    entries = [{"uri": via, "name": "Lid entry", "external": False}]
+    svg = circuit_svg(_record("control", devices, wires, entries, voltage_v=24.0, dc=True))
+    entry = _x(svg, "entry-lid")
+    assert _x(svg, "device-door") > entry
+    assert all(_x(svg, f"device-{d}") < entry for d in ("estop", "drive", "ctl"))
+    for wid in ("sc-1", "sc-2", "sc-3", "sc-4", "sc-5"):
+        assert f"wire-{wid}" in _groups(svg)
+    # no column is left empty: the boxes' x positions fall into as many columns as are used
+    xs = sorted({round(_x(svg, g), 3) for g in _groups(svg) if g.startswith(("device-", "entry-"))})
+    assert len(xs) >= 4

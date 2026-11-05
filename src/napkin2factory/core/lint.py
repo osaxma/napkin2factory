@@ -122,7 +122,9 @@ def lint(product: Product) -> Problems:
                 rule="L4-safety-verify",
             )
         # L5: verify value unit matches the statement's unit dimension where both exist.
-        if r.verify and r.verify.value is not None:
+        # a bound written with no unit at all (a safety factor, a count: ``>= 2``) has no unit
+        # to compare with the statement's (S-233); an angle or a percent still has one
+        if r.verify and r.verify.value is not None and str(r.verify.value.units) != "dimensionless":
             nums = _NUMBER_WITH_UNIT.findall(r.statement)
             dims = set()
             for n in nums:

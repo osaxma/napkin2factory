@@ -68,6 +68,11 @@ def material_row(material: Any, table: Path | None = None) -> dict[str, Any] | N
 _match_row = material_row
 
 
+def known_material_names(table: Path | None = None) -> list[str]:
+    """The names of the materials the shared table knows, in table order (S-233)."""
+    return [str(row["name"]) for row in _load_rows(table) if row.get("name")]
+
+
 def density_is_assumed(material: Any) -> bool:
     """Whether the density for ``material`` is assumed rather than known.
 

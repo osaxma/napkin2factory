@@ -117,7 +117,6 @@ entry that closed them. Ids are never reused.
 | B-0207 | docs/agent-guide.md is a concurrent task collision hotspot (4 of 7 collision pairs in v0.7) | S-217; modularize reference sections or separate domain syntax so parallel tasks do not collide on the guide |
 | B-0208 | Engineering verification backlog expanded by 98 unconfirmed rows in v0.7 (268 total verify rows) | S-217; verify materials.yaml, cost_bands.yaml, and timber creep/moisture values against handbook sources |
 | B-0210 | The structural screen has no portal or plate-gantry case (it says "not run" on a twin-column frame and a plate gantry), and its column yield check leaves out the column's own axial stress (6.32 against the spec's 5.76 on the C-frame) | S-222; `concepts/screens/structural.py`; closes with a card field for a frame's members and a portal case, then the oracle's card-level pending rows become figures
-| B-0213 | The wiring diagram layout fails with an IndexError (`diagram_layout._channels`, an empty column) when a circuit leaves a cable entry and comes back through it (the E-stop and door interlock chain, out to the door switch and back to the drive); the test stand lists the return wire without its `via` | S-222; `domains/electrical/outputs/diagram_layout.py`
 | B-0214 | The frame kit refuses bare legs (no rails): a four-leg table without an apron is common | S-221 (the table's pine card C-001 has its own screen); wanted: `frame` with `top_rails` and `bottom_rails` both false builds four legs, so the card can show geometry |
 | B-0215 | The structural screen judges a frame with a top, or a column with an arm, not bare legs or trestle ends | S-221 (the table's own screens judge C-001 and C-003); wanted: legs without rails and trestle ends in `concepts/screens/structural.py`, then the table drops its two screens |
 | B-0216 | No per-item cost band for bought hardware (screws, inserts, glides) | S-221 (the table adds the hardware cost in its own screen); wanted: a cost band per bought item the napkin screen adds to the shape's cost |
@@ -136,10 +135,6 @@ entry that closed them. Ids are never reused.
 | B-0230 | Promotion drops the card's loads, sag limit, tip-over and budget (0 parameters seeded), writes 150 lb as 68.0389 kg, adds an unchosen style requirement and pastes a red card's formula text into the decision | gate J C7 (S-225) |
 | B-0231 | Imperial gaps and discoverability: litres for volume, terminal output in mm/N/kg, "drawings stay in mm" said only in the agent guide, no `n2f init --units --region`, the PM role never asks for units | gate J C9, C10 (S-225) |
 | B-0232 | Report overview does not lead with the design (no description, no picture before Safety; a run-on sign-off line); at 390 px the page scrolls sideways and safety columns clip | gate J C11 (S-225); Track C's workbench |
-| B-0234 | No generic screen fails a card on its mass limit; the examples do it in their own screens, so a cold agent's 110 kg gantry is rejected on cost only | spec trial 1 (S-228) |
-| B-0235 | `n2f concept build` crashes with a traceback (`column_height must be non-negative`) on a plate-gantry card with small block feet; the structural screen reads a gantry as a cantilever | spec trial 1 (S-228) |
-| B-0236 | Earth (PE) connections inside a mains circuit are counted as load current (4.0 A over a 2.5 A inlet); an unknown material on a card is accepted silently as steel | spec trial 1 (S-228) |
-| B-0238 | The promotion decision calls a card "(green)" that screening marked "not fully checked"; dimensionless factor requirements draw L5 unit warnings | spec trial 1 (S-228) |
 
 ## Closed
 
@@ -149,6 +144,11 @@ entry that closed them. Ids are never reused.
 | B-0233 | The benchmark oracle encodes the example's modelling: exact part and item counts, the mass without a wiring allowance part, a separate beam-fatigue requirement, card-level figures at ±5 % where the screen simplifies | closed by S-230 |
 | B-0237 | The product's AGENTS.md and roles send the agent to `docs/kit.md`, `docs/electrical.md` … "in the system repo", which an installed tool cannot reach; `n2f init` refuses a folder holding only the owner's brief | closed by S-231 |
 | B-0209 | `tests/e2e/test_release_diff.py::test_diff_page_loads_and_highlights` fails intermittently inside the full `make check` (passes alone and on retry) | closed by S-232 |
+| B-0213 | The wiring diagram layout fails with an IndexError (`diagram_layout._channels`, an empty column) when a circuit leaves a cable entry and comes back through it (the E-stop and door interlock chain, out to the door switch and back to the drive); the test stand lists the return wire without its `via` | closed by S-233 |
+| B-0234 | No generic screen fails a card on its mass limit; the examples do it in their own screens, so a cold agent's 110 kg gantry is rejected on cost only | closed by S-233 |
+| B-0235 | `n2f concept build` crashes with a traceback (`column_height must be non-negative`) on a plate-gantry card with small block feet; the structural screen reads a gantry as a cantilever | closed by S-233 |
+| B-0236 | Earth (PE) connections inside a mains circuit are counted as load current (4.0 A over a 2.5 A inlet); an unknown material on a card is accepted silently as steel | closed by S-233 |
+| B-0238 | The promotion decision calls a card "(green)" that screening marked "not fully checked"; dimensionless factor requirements draw L5 unit warnings | closed by S-233 |
 | B-0220 | The table benchmark omits the top's cross-grain load path: a strip estimate gives 2.6–6.4 mm against the 0.92 mm sag margin | closed by S-229 |
 | B-0212 | The oracle's `requirement` finder cannot read a bound with no unit from a requirement waiting on its sign-off: the optional unit group takes the dash of "— passes by computation" (so `bound: '2'` finds nothing); the safety factors of the test stand are pending | closed by S-223 |
 | B-0193 | Product region (tables looked up by it, loud when missing) and display units | v0.7 W7, W8, M3b; closed by S-219 |

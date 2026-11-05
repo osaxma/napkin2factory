@@ -10,6 +10,8 @@
   (per kilogram, per metre of the longest side, per square metre of the biggest face, or per
   item), held against ``site.budget`` when the card gives one (S-207, B-0211).
 * **mass-vs-lift** — how the total can be lifted and moved (``site.lift_class``).
+* **mass-limit** — the total mass held against ``site.mass_limit``: a failing row over it,
+  amber within 10 % of it (:mod:`.mass_limit`, S-233).
 * **blank-vs-stock-sheet** — every folded sheet's flat blank on a stock sheet (a rule only).
 * **walls-fit-envelope** — an inner size plus two walls inside the body, when a screen of
   the product gives them (``values.shared["inner_size"]``, ``["wall"]``; a rule only).
@@ -34,6 +36,7 @@ from napkin2factory.concepts.screens.base import (
     reads,
     the,
 )
+from napkin2factory.concepts.screens.mass_limit import MASS_LIMIT, MASS_LIMIT_SCREEN
 from napkin2factory.concepts.screens.structural import STRUCTURAL
 from napkin2factory.core.domain import Screen
 from napkin2factory.core.model.concepts import ConceptCard, Label, RuleRow
@@ -76,7 +79,6 @@ DOOR_WIDTH = CardField(
 LIFT_CLASS = CardField(
     "site", "lift_class", None, "words", "two-person", "how it may be lifted (one-person…)"
 )
-MASS_LIMIT = CardField("site", "mass_limit", "kg", "a mass", "40 kg", "the weight limit")
 #: What the owner will spend; the cost band is held against it (S-207).
 BUDGET = CardField("site", "budget", "USD", "a money amount", "1600 USD", "the budget")
 #: Parameters the door term seeds at promotion (S-085): the leaf that swings and the room it
@@ -154,6 +156,19 @@ def fits_the_space(card: ConceptCard, massing: Any, values: ScreenValues) -> lis
         notes.append(
             f"{the(shapes)} {verb} no material yet, so the rough shapes have no mass: "
             "give them a material to weigh them"
+        )
+    guessed = [
+        p.name for p in massing.pieces if (p.density_source or "").startswith("unknown material")
+    ]
+    if guessed:  # the massing weighs an unlisted material as mild steel (S-186, S-233)
+        from napkin2factory.geometry.materials import known_material_names
+
+        shapes = owner_names(guessed)
+        verb = "has" if len(shapes) == 1 else "have"
+        notes.append(
+            f"{the(shapes)} {verb} a material the tool does not know, so "
+            f"{'it is' if len(shapes) == 1 else 'they are'} weighed as mild steel; "
+            f"known materials: {', '.join(known_material_names())}"
         )
     door = str(card.layout.get("door", "") or "").strip().lower()
     if not door or door == "none":  # no door on the card: no door row (review gate B, C11)
@@ -430,6 +445,7 @@ GENERIC_SCREENS: tuple[Screen, ...] = (
     Screen("total-mass", total_mass, title="Total mass"),
     Screen("cost-band", cost_band, title="Cost band"),
     Screen("mass-vs-lift", mass_vs_lift, title="How it can be lifted"),
+    MASS_LIMIT_SCREEN,
     Screen("blank-vs-stock-sheet", blank_vs_stock_sheet, title="Sheets fit stock sizes"),
     Screen("walls-fit-envelope", walls_fit_envelope, title="Walls fit the body"),
     STRUCTURAL,
@@ -441,6 +457,7 @@ __all__ = [
     "DOOR_SWING",
     "DOOR_WIDTH",
     "GENERIC_SCREENS",
+    "MASS_LIMIT",
     "SITE_DEPTH",
     "SITE_HEIGHT",
     "SITE_WIDTH",

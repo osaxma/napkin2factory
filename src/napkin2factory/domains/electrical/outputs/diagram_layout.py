@@ -257,8 +257,11 @@ def _columns(nodes: dict[str, Node], legs: list[Leg]) -> None:
                 moved = True
         if not moved:
             break
+    # close the columns nothing sits in (a leg out and back through one entry leaves one), so
+    # no gap is drawn wider for nothing and every column has boxes to lay lanes past (B-0213)
+    used = {c: i for i, c in enumerate(sorted({col[u] for u in order}))}
     for u in order:
-        nodes[u].col = col[u]
+        nodes[u].col = used[col[u]]
 
 
 def _routes(nodes: dict[str, Node], legs: list[Leg]) -> list[Route]:
@@ -431,6 +434,8 @@ def _channels(nodes: dict[str, Node], cols: range) -> list[tuple[float, float]]:
             for n in nodes.values()
             if n.col == c
         )
+        if not boxes:  # a column nothing sits in (a leg out and back through one entry, B-0213)
+            continue  # is free from top to bottom: it narrows no band
         gaps = [(a[1], b[0]) for a, b in zip(boxes, boxes[1:])] + [(boxes[-1][1], float("inf"))]
         free = [
             (max(lo, glo), min(hi, ghi))

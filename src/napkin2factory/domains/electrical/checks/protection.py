@@ -26,7 +26,7 @@ from napkin2factory.domains.electrical.checks.rows import (
 
 
 def _feeds(w: Wiring, cid: str) -> str:
-    loads = [f"the {d.words}" for d in w.circuit_devices(cid) if d.role == "load"]
+    loads = [f"the {d.words}" for d in w.load_devices(cid)]
     return f" (feeding {_list(loads)})" if loads else ""
 
 

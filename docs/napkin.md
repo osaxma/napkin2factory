@@ -174,6 +174,7 @@ The system's rules (`rulepacks/concept-v0.yaml`), for every product:
 | `fits-site-width` | width (+ the open door) > `site.width` (`alcove_width` before v0.5, still read). A hinged door (`layout.door: hinged-left/right`) adds what its leaf (the `door` massing call, else `envelope.door_width`) reaches past the hinge: leaf × max(0, −cos `envelope.door_swing`), the whole leaf when the card gives no angle; the row then reads "with the door open". A card with no hinged door is held by its width alone, in words that name no door |
 | `fits-site-depth`, `fits-site-height` | depth/height exceed `site.depth`/`site.height` |
 | `mass-vs-lift-class` (warning) | the mass needs more than a two-person lift, or more than `site.lift_class` |
+| `mass-limit` | the total mass is over `site.mass_limit` (a warning within 10 % of it); a product's own `mass-limit` row replaces this one |
 | `blank-vs-stock-sheet` | a sheet-metal call's flat blank (open box: (L + 2H) × (W + 2H)) fits no stock sheet on file |
 | `walls-fit-envelope` | the inside size plus two walls, as a product's screen gives them, does not fit inside the `body` call (no such screen: the row is skipped) |
 

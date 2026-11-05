@@ -43,6 +43,20 @@ def _card_text(root: Path, card_id: str, status: str, decision: dict[str, Any]) 
     return dumps_roundtrip(doc, explicit_null=True)
 
 
+def verdict_words(card: ConceptCard) -> str:
+    """The card's verdict as the decision says it.
+
+    A card screening could not fully check is "no problems found, but not fully checked",
+    never "green" (B1, S-226, S-233).
+    """
+    from napkin2factory.concepts.board import not_checked_line
+
+    if card.verdict == "green" and card.screening is not None:
+        if not_checked_line(card.screening.rules, card):
+            return "no problems found, but not fully checked"
+    return str(card.verdict)
+
+
 def _one_line(card: ConceptCard, root: Path | None = None) -> str:
     from napkin2factory.concepts.build import summary_line
 
@@ -50,7 +64,7 @@ def _one_line(card: ConceptCard, root: Path | None = None) -> str:
         return "not built"
     if card.verdict == "red":
         return "red: " + "; ".join(r.message for r in card.screening.failing)
-    return "green: " + summary_line(card, card.screening, root)
+    return verdict_words(card) + ": " + summary_line(card, card.screening, root)
 
 
 def _labelled(card: ConceptCard, root: Path | None = None) -> list[str]:

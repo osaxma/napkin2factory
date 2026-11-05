@@ -1,0 +1,11 @@
+# A made-up rig: one steel column with an arm at its top and a wide foot block under it. The
+# foot reaches farther than the arm but sits below the column's foot line: it is no arm.
+id: C-006
+title: One column, an arm and a foot
+site:
+  point_load: 2000 N
+  max_deflection: 0.2 mm
+massing:
+  - {kit: tube, as: column, material: mild steel, args: {shape: square, size: 60 mm, wall: 4 mm, length: 400 mm, axis: z}, at: {z: 20 mm}}
+  - {kit: tube, as: arm, material: mild steel, args: {shape: square, size: 60 mm, wall: 4 mm, length: 150 mm, axis: x}, at: {x: 0 mm, z: 420 mm}}
+  - {kit: block, as: base-foot, material: mild steel, args: {length: 500 mm, width: 100 mm, height: 15 mm}, at: {z: 0 mm}}

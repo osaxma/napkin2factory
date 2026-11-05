@@ -452,7 +452,7 @@ def _load_in(w: Wiring, did: str) -> str:
     feeding = [
         c.words
         for c in w.circuits.values()
-        if c.purpose == "power" and any(d.id == did for d in w.circuit_devices(c.id))
+        if c.purpose == "power" and any(d.id == did for d in w.load_devices(c.id))
     ]
     words = f"the {w.devices[did].words}"
     return f"{words} ({_list(feeding)})" if feeding else words

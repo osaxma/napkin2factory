@@ -884,3 +884,53 @@ def test_branch_conductors_carry_downstream_loads_and_fan_branch_passes(tmp_path
     ) in fail_row.message
     # The fan branch (also 0.75 mm² PVC) carries 0.2 A, so it is NOT in the failure list
     assert "Fan" not in fail_row.message
+
+
+# ---- protective earth is no load current (B-0236, S-233) -----------------------------------
+
+
+def _pump_on_its_own_circuit(tmp_path: Path, bond_in_mains: bool) -> Path:
+    """The minimal box plus a 10 A pump on a circuit of its own; its earth is bonded either in
+    its own circuit or, as the test-stand trial wrote it, in the mains circuit (S-233)."""
+    root = _copy(tmp_path)
+    _cots(root, "pump", "Pump")
+    _write(
+        root,
+        "model/electrical/devices/pump.yaml",
+        "id: pump\npart: part://pump\nrole: load\nrating: {voltage: 230 V, power: 2300 W}\n"
+        "terminals: [L, N, PE]\nclass: I\n",
+    )
+    own = [
+        '  - {from: "supply://supply#L", to: "device://pump#L", conductor: cu-1p5-pvc, '
+        "length: 0.4 m}",
+        '  - {from: "supply://supply#N", to: "device://pump#N", conductor: cu-1p5-pvc, '
+        "length: 0.4 m}",
+    ]
+    bond = (
+        '  - {from: "supply://supply#PE", to: "device://pump#PE", conductor: cu-1p5-pvc, '
+        "length: 0.5 m, colour: green-and-yellow}"
+    )
+    _write(
+        root,
+        "model/electrical/circuits/pump.yaml",
+        "id: pump\npurpose: power\nname: Pump\nprotection: supply\nconnections:\n"
+        + "\n".join(own + ([] if bond_in_mains else [bond]))
+        + "\n",
+    )
+    if bond_in_mains:
+        text = (root / CIRCUIT).read_text(encoding="utf-8")
+        (root / CIRCUIT).write_text(text.replace("notes:", bond + "\nnotes:", 1), encoding="utf-8")
+    return root
+
+
+def test_a_mains_circuit_bonding_another_loads_earth_is_not_charged_its_current(
+    tmp_path: Path,
+) -> None:
+    # the heater draws 500 W / 230 V = 2.17 A; the pump 2300 W / 230 V = 10 A on its own
+    # circuit; the mains breaker of the minimal product is 10 A
+    for bond_in_mains in (False, True):
+        rows = _rows(_pump_on_its_own_circuit(tmp_path / str(bond_in_mains), bond_in_mains))
+        row = rows["elec-rule://protection@heater"]
+        assert row.status == "pass", (bond_in_mains, row.message)
+        assert "Pump" not in row.message
+        assert rows["elec-rule://conductor-current@heater"].status != "fail"

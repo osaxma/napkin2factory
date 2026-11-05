@@ -170,6 +170,36 @@ def test_rationale_keeps_every_label(product: Path) -> None:
     assert "(computed)" in dec["rationale"] and "(estimate)" in dec["rationale"]
 
 
+def test_a_card_not_fully_checked_is_not_called_green(product: Path) -> None:
+    """Spec trial 1 (B-0238, S-233): the decision said "(green)" of a card whose structural
+    check could not run; it says what the card screen says, "not fully checked"."""
+    path = product / "concepts" / "C-003.yaml"
+    data = yaml.safe_load(path.read_text())
+    data["site"]["point_load"] = "1000 N"
+    data["screening"]["rules"].append(
+        {
+            "id": "structural-deflection",
+            "title": "Sag stays within the limit",
+            "status": "skip",
+            "message": "not run: this card's shape is not one the structural screen models",
+        }
+    )
+    path.write_text(yaml.safe_dump(data, sort_keys=False))
+    path = product / "concepts" / "C-002.yaml"  # a sibling, read as an alternative
+    sibling = yaml.safe_load(path.read_text())
+    sibling["site"]["point_load"] = "1000 N"
+    sibling["screening"]["rules"].append(
+        {"id": "structural-deflection", "status": "skip", "message": "not run: no shape"}
+    )
+    path.write_text(yaml.safe_dump(sibling, sort_keys=False))
+    promote(product, "C-003", now=NOW)
+    dec = _decisions(product)[-1]
+    assert "(green)" not in dec["rationale"]
+    assert "Screening of C-003 (no problems found, but not fully checked)" in dec["rationale"]
+    first = sibling["title"]
+    assert f'C-002 "{first}" (no problems found, but not fully checked: ' in dec["context"]
+
+
 # --- gates ---------------------------------------------------------------------------------
 
 

@@ -226,18 +226,25 @@ def run_screens(
     values.shared["space_words"] = space
     values.shared["region"] = product_region(root)  # None: not declared (the cost line says so)
     own_rows: dict[str, list[RuleRow]] = {p: [] for p in PHASES}
+    system_rows: set[int] = set()  # id() of the rows the system's own screens gave
     for phase in PHASES:
         if phase == "estimate":
             values.notes += wrong_kind_notes(card, declared_fields(chosen), space)
         for s in chosen:
             if phase_of(s) == phase:
-                own_rows[phase] += _run_one(s, card, massing, values, root)
+                got = _run_one(s, card, massing, values, root)
+                own_rows[phase] += got
+                if s in GENERIC_SCREENS:
+                    system_rows.update(id(r) for r in got)
     _name_cost_basis(values)
     rules = run_concept_rules(
         card, values.computed.raw, values.estimate.raw, massing, values.shared
     )
-    for phase in PHASES:
-        rules += own_rows[phase]
+    # a row of a domain's or product's screen replaces a system row of the same id, so a
+    # product that words its own ``mass-limit`` row is not told twice (S-233)
+    wanted = [r for phase in PHASES for r in own_rows[phase]]
+    taken = {r.id for r in wanted if id(r) not in system_rows}
+    rules += [r for r in wanted if id(r) not in system_rows or r.id not in taken]
     red = any(r.status == "fail" for r in rules)
     stamp = (now or dt.datetime.now()).replace(microsecond=0)
     return Screening(

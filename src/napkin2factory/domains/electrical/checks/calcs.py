@@ -193,6 +193,22 @@ class Wiring:
                     out.setdefault(dev.id, dev)
         return list(out.values())
 
+    def load_devices(self, cid: str) -> list[DeviceRec]:
+        """The load devices a circuit feeds: a load wired by its protective earth alone is not.
+
+        A protective-earth conductor carries no load current, so a circuit that only bonds a
+        load's ``PE`` terminal (the mains circuit with its earth wires) does not feed it and
+        is not charged its current (S-214, S-233).
+        """
+        out: dict[str, DeviceRec] = {}
+        for w in self.circuits[cid].wires:
+            for node in (w.a, w.b):
+                dev = self.device_of(node)
+                if dev is None or dev.role != "load" or node.split("#", 1)[-1] in EARTH_TERMINALS:
+                    continue
+                out.setdefault(dev.id, dev)
+        return list(out.values())
+
 
 # ---- reading the model -----------------------------------------------------------------------
 
@@ -528,9 +544,7 @@ def circuit_load(w: Wiring, cid: str) -> Load:
     volts, _ = circuit_voltage(w, cid)
     known: list[tuple[DeviceRec, Figure]] = []
     unknown: list[DeviceRec] = []
-    for dev in w.circuit_devices(cid):
-        if dev.role != "load":
-            continue
+    for dev in w.load_devices(cid):
         fig = device_current(dev, volts)
         if fig is None:
             unknown.append(dev)
@@ -664,7 +678,7 @@ def conductor_loads(
     Conductors on the earth net carry no load current and are left out.
     """
     c = w.circuits[cid]
-    loads = [d for d in w.circuit_devices(cid) if d.role == "load"]
+    loads = w.load_devices(cid)
     if not loads:
         out: list[ConductorLoad] = []
         for wire in c.wires:

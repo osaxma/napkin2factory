@@ -180,6 +180,25 @@ def test_a_column_with_an_arm_deflects_at_its_tip() -> None:
     assert not [r for r in s.rules if r.id == "structural-tip-over"]  # no edge load given
 
 
+def test_a_plate_gantry_is_not_a_cantilever_and_does_not_raise() -> None:
+    # two 880 mm steel side plates, two bridges and four block feet (B-0235, S-233): the old
+    # reading took a bridge for the arm and a foot sat below the column ("column_height must be
+    # non-negative")
+    s = _screen("plate-gantry")
+    row = _row(s, "deflection")
+    assert row.status == "skip" and row.message.startswith("not run:")
+    assert "not one the structural screen models" in row.message
+    assert "two upright columns" in row.message and "cantilever" not in row.message
+    assert "deflection" not in s.computed  # never a guessed sag
+
+
+def test_a_foot_under_the_column_is_no_arm() -> None:
+    # the 500 mm foot reaches 250 mm from the column's centre line but its middle is below the
+    # column's foot line; the 150 mm arm is the arm (same figures as the plain column-arm card)
+    s = _screen("column-on-foot")
+    assert _mm(s) == pytest.approx(0.2151, abs=0.0005)
+
+
 def test_a_looser_limit_passes_the_arm() -> None:
     s = _screen("column-arm", max_deflection="0.25 mm")
     assert _row(s, "deflection").status == "pass"

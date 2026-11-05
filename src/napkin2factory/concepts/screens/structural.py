@@ -337,19 +337,44 @@ def _tip_row(ctx: _Ctx, frame: Any, edge: Qty, axis: int, leg: float) -> RuleRow
 # --- a column with an arm -----------------------------------------------------------------
 
 
-def _column_and_arm(pieces: list[Any]) -> tuple[Any, Any] | None:
+#: What the screen says of a shape that is not one column with one arm (gate I wording).
+NOT_MODELLED = (
+    "this card's shape is not one the structural screen models: it takes one column and one arm "
+    "of the same material"
+)
+
+
+def _column_and_arm(pieces: list[Any]) -> tuple[Any, Any] | str | None:
+    """The one column and its arm, else the owner's reason this shape is not one (S-233).
+
+    A second upright at least half as tall as the first makes a portal or a gantry, whose
+    stiffness is the two uprights and their bridges together: reading its tallest upright and
+    some bridge as a cantilever gave a wrong sag, or a negative column height (B-0235). An
+    arm is a piece above the column's foot; a foot or base under it carries nothing out.
+    """
     flat = [p for p in pieces if p.kit in ("tube", "block")]
     cols = [p for p in flat if p.size[2] >= 2 * max(p.size[0], p.size[1])]
     if not cols:
         return None
     col = max(cols, key=lambda p: p.size[2])
+    if any(p is not col and p.size[2] >= 0.5 * col.size[2] for p in cols):
+        return (
+            f"{NOT_MODELLED}; this card has two upright columns (a gantry or a portal), so its "
+            "sag is unknown here"
+        )
     cx = [(col.bbox_min[i] + col.bbox_max[i]) / 2 for i in (0, 1)]
 
     def reach(p: Any) -> float:
         a = 0 if p.size[0] >= p.size[1] else 1
         return float(max(abs(p.bbox_max[a] - cx[a]), abs(p.bbox_min[a] - cx[a])))
 
-    arms = [p for p in flat if p is not col and max(p.size[0], p.size[1]) >= p.size[2]]
+    arms = [
+        p
+        for p in flat
+        if p is not col
+        and max(p.size[0], p.size[1]) >= p.size[2]
+        and (p.bbox_min[2] + p.bbox_max[2]) / 2 > col.bbox_min[2]
+    ]
     return (col, max(arms, key=reach)) if arms else None
 
 
@@ -362,16 +387,7 @@ def _cantilever(ctx: _Ctx, col: Any, arm: Any) -> list[RuleRow]:
     if isinstance(astock, str):
         return [_skip("structural-deflection", astock)]
     if col.material != arm.material:
-        return [
-            _skip(
-                "structural-deflection",
-                (
-                    "this card's shape is not one the structural screen models: it takes one "
-                    "column "
-                    "and one arm of the same material"
-                ),
-            )
-        ]
+        return [_skip("structural-deflection", NOT_MODELLED)]
     ax = 0 if arm.size[0] >= arm.size[1] else 1
     centre = (col.bbox_min[ax] + col.bbox_max[ax]) / 2
     reach = Quantity(max(abs(arm.bbox_max[ax] - centre), abs(arm.bbox_min[ax] - centre)), "mm")
@@ -381,7 +397,14 @@ def _cantilever(ctx: _Ctx, col: Any, arm: Any) -> list[RuleRow]:
         return [_skip("structural-deflection", s_col)]
     if isinstance(s_arm, str):
         return [_skip("structural-deflection", s_arm)]
-    res = structural.beam_deflection_cantilever(tip, reach, height, cstock.E, s_arm.Ix, s_col.Ix)
+    if float(height.magnitude) <= 0 or float(reach.magnitude) <= 0:
+        return [_skip("structural-deflection", NOT_MODELLED)]
+    try:
+        res = structural.beam_deflection_cantilever(
+            tip, reach, height, cstock.E, s_arm.Ix, s_col.Ix
+        )
+    except ValueError:  # a shape the formula cannot take is a skip, never a traceback (S-233)
+        return [_skip("structural-deflection", NOT_MODELLED)]
     how = (
         f"{res.formula} for an arm reaching {_len(reach)} from the column's centre line, "
         f"{_len(height)} above its foot; {res.source}; {cstock.ref}"
@@ -419,6 +442,8 @@ def run(card: ConceptCard, massing: Any, values: ScreenValues) -> list[RuleRow]:
     if frame is not None:
         return _table(ctx, frame)
     pair = _column_and_arm(pieces)
+    if isinstance(pair, str):
+        return [_skip("structural-deflection", pair)]
     if pair is not None:
         return _cantilever(ctx, *pair)
     why = (
