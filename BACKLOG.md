@@ -102,10 +102,8 @@ entry that closed them. Ids are never reused.
 | B-0181 | A refusal prints the known ids as a Python list | gate H (`docs/reviews/v0.6-gate-h.md`); C11; `core/product.py:235`, a comma-separated list |
 | B-0182 | `conductor-protection` checks I_n <= I_z only: not I_2 <= 1.45 I_z (a fuse's conventional fusing current), not an earth conductor's size against the device that must clear its fault (IEC 60364-5-54), not a lead fed through another of the product's devices | S-178; cited rows in a table of the calc kit and the walk extended (`domains/electrical/checks/`) |
 | B-0183 | `docs/electrical.md`'s rules table lacks `conductor-protection` and says the Class II case is "one pass row" | S-178; two lines in the table (`docs/electrical.md`, the docs task's file) |
-| B-0185 | Eleven modules over 550 lines after S-184 (`make health` lists them; the longest `core/checks/stage.py`, 734) | S-184 split only those over 750 and its list of five came from a cut-off listing (S-190); long files are where parallel tasks collide (S-080). Split one when a task next touches it, `core/checks/stage.py` first (every new check passes through it); health reviews track the count |
+| B-0185 | Thirteen modules over 550 lines at the v0.7 close (eleven after S-184) (`make health` lists them; the longest `core/checks/stage.py`, 734) | S-184 split only those over 750 and its list of five came from a cut-off listing (S-190); long files are where parallel tasks collide (S-080). Split one when a task next touches it, `core/checks/stage.py` first (every new check passes through it); health reviews track the count |
 | B-0187 | On a built product, changing the persona in `operator.yaml` does not rerun the report: it still shows `data-persona="owner"` (found by S-196; `test_engineer_tables_keep_uri_prefixes` stays on a cold build until fixed) | A stale report shows the wrong persona's tables to the reader; the persona is probably not a recorded read of the report rule (D5). Confirm, then record the read |
-| B-0190 | Frame kit (no rails, tabs, round tube, T-slot), a panel kit, four interface kinds (threaded insert, wood screw, T-slot, hinge pin) | v0.7 W5, M2a/M2b |
-| B-0194 | Three-tier benchmarks: `examples/table`, `examples/test-stand`, the kiln's `SPEC.md`, the oracle | v0.7 W9, M4 |
 | B-0195 | Real-world validation: build the table from its report, or a fabricator quote accepts its files | road-to-v1.0 §4.4; before the v1.0 tag |
 | B-0196 | Imperial units on drawings and exported files | v0.7 W8 non-goal |
 | B-0201 | The impact report mispredicts re-sign-offs (6 listed, 3 needed; 5 listed, 7 needed) | trial 2 C4 (S-208) |
@@ -113,7 +111,6 @@ entry that closed them. Ids are never reused.
 | B-0203 | The release zip has no assembly STEP and no GLB | trial 2 C11 (S-208) |
 | B-0204 | The kiln's calc reference cases cite "hand computation" instead of a published source | trial 1 concern 3 (S-208) |
 | B-0205 | `n2f check --json` gives requirement figures only as message text: a structured value, bound and operator would let the benchmark oracle stop parsing words | the oracle task (v0.7 M4.0) |
-| B-0206 | Union merge on BACKLOG.md resurrects closed rows in the Open table | S-217; scripts/journal_ids.py or make land should prune rows from Open that appear in Closed before the gate |
 | B-0207 | docs/agent-guide.md is a concurrent task collision hotspot (4 of 7 collision pairs in v0.7) | S-217; modularize reference sections or separate domain syntax so parallel tasks do not collide on the guide |
 | B-0208 | Engineering verification backlog expanded by 98 unconfirmed rows in v0.7 (268 total verify rows) | S-217; verify materials.yaml, cost_bands.yaml, and timber creep/moisture values against handbook sources |
 | B-0210 | The structural screen has no portal or plate-gantry case (it says "not run" on a twin-column frame and a plate gantry), and its column yield check leaves out the column's own axial stress (6.32 against the spec's 5.76 on the C-frame) | S-222; `concepts/screens/structural.py`; closes with a card field for a frame's members and a portal case, then the oracle's card-level pending rows become figures
@@ -133,11 +130,21 @@ entry that closed them. Ids are never reused.
 | B-0231 | Imperial gaps and discoverability: litres for volume, terminal output in mm/N/kg, "drawings stay in mm" said only in the agent guide and the PM role (init flags and the PM asking for units: S-236) | gate J C9, C10 (S-225) |
 | B-0232 | Report overview does not lead with the design (no description, no picture before Safety; a run-on sign-off line); at 390 px the page scrolls sideways and safety columns clip | gate J C11 (S-225); Track C's workbench |
 | B-0242 | Before tagging v0.7.0: rewrite the commit history so no commit carries the owner's old personal email (metadata only; the procedure is in the owner's local `OWNER-TODO.md` (untracked), the mapping in a private file outside the repository) | the owner, 2026-11-05; after every v0.7 task has landed |
+| B-0243 | Union merge keeps both versions of a backlog row that two tasks edited (one id twice in a table); S-216 handles only an id in both Open and Closed, so the landing gate fails and the agent repairs by hand | S-237 (reproduced on a scratch repo); `scripts/journal_ids.py` keeps the last copy of an id repeated within one table (the task's wording), flip `tests/unit/test_journals.py` "duplicate inside Open untouched"; ~30 min |
+| B-0244 | `domains/electrical/checks/calcs.py` is 838 lines (+158 in S-233), `ecr/lifecycle.py` 608 (+80 since the v0.7 start), `domains/electrical/outputs/diagram_layout.py` 553; all grew in v0.7 and v0.8 touches them | S-237; move-only splits, every top-level def AST-identical (S-184 method); ~1.5 h; part of B-0185 |
+| B-0245 | `report/builder.py`, an E10 seam file, is 549 lines (479 at the last review, 811 at v0.6.0) after +70 in four seam commits (S-219, S-226, S-227, S-236) | S-237; move the unit, region and not-checked helpers into their own module before the next edit; ~1 h |
+| B-0246 | Four seam commits in the v0.7 window (S-219, S-226, S-227, S-236) edit `report/builder.py`, `docs/engine.py` or `cli/check.py` and their entries do not name the file; only `make health` counts them, afterwards | S-237; `make land` warns when a task commit touches a path in `scripts/health.py` `E10_SEAM_PATHS` and no decision entry of the task names the file; ~45 min |
+| B-0247 | Three skips can no longer fire for the reason they state and would hide a regression: `tests/unit/test_electrical_checks.py` lines 710 and 814 ("elec: rules (M2) not installed"), `tests/e2e/test_benchmarks.py:34` ("no product yet") | S-237; replace with assertions; ~15 min |
+| B-0248 | The health trend never records coverage ("not measured" in all rows): `scripts/health.py` reads `coverage.xml` in its own folder, `make check` leaves it in the main folder (94.78 % there, dated 2026-11-04 08:08) | S-237; read the main folder's file (`git rev-parse --git-common-dir`) and print its age; ~30 min |
+| B-0249 | `STATUS.md` "Where we are" still tells the v0.6 close and v0.7 is only in Milestones; `docs/cli.md:41` says `n2f discard` throws away every change since the last snapshot, though filed change requests survive since S-212 | S-237; rewrite for the v0.7 close, one line in the CLI reference; ~15 min, by the close task |
 
 ## Closed
 
 | id | item | closed by |
 |---|---|---|
+| B-0190 | Frame kit (no rails, tabs, round tube, T-slot), a panel kit, four interface kinds (threaded insert, wood screw, T-slot, hinge pin) | closed by S-237 |
+| B-0194 | Three-tier benchmarks: `examples/table`, `examples/test-stand`, the kiln's `SPEC.md`, the oracle | closed by S-237 |
+| B-0206 | Union merge on BACKLOG.md resurrects closed rows in the Open table | closed by S-237 |
 | B-0240 | `n2f init` asks no region or units; neither cold agent set the product region | closed by S-236 |
 | B-0241 | The table oracle reads figures by the example screen's names, expects exactly one sign-off and ±2 % on card-level costs | closed by S-236 (value names: S-235) |
 | B-0211 | The generic cost screen prices per kilogram and per item only: a piece on a per-metre or per-square-metre band (`extrusion-cut`, `cnc-routing`) is left out with a "no material" note, so the test stand's screen prices them itself | closed by S-230 |
