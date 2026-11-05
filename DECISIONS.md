@@ -260,6 +260,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-231 | The using docs ship with the tool: `n2f docs` | in force |
 | S-232 | The diff page survives a failed shader; its test no longer flakes | in force |
 | S-233 | Package fixes from spec trial 1 | in force |
+| S-234 | Spec reproduction trials 2 and 3 (table, two vendors): both reach a green product; the structural screen cannot judge bare legs, trestles or a cross member | in force |
 
 ---
 
@@ -1794,3 +1795,12 @@ Measured: same page, same 8 loops, 40 of 40 loads clean (34 needed one recompile
 ## S-233 — Package fixes from spec trial 1 (2026-11-05)
 Closes B-0213, B-0234, B-0235, B-0236, B-0238 (S-228). (1) New generic `mass-limit` screen (`screens/mass_limit.py`): over `site.mass_limit` fails, within 10 % of it warns (a screening choice, the mass being read off rough shapes); a product's own row of the same id replaces it (the runner), so the table and the stand are unchanged. (2) The structural screen takes one column and one arm: a second upright at least half as tall, or an "arm" below the column's foot, is a skip in the gate I wording, and the formula's own error is a skip too; the plate gantry with block feet no longer raises. (3) A load wired by its `PE` terminal alone is not fed by that circuit (`Wiring.load_devices`), so earth bonds in a mains circuit add no current; an unlisted card material is named in the screening notes with the known ones (it was weighed as mild steel unannounced; no lint rule, that would be a `core/concepts.py` edit). (4) The wiring layout closes empty columns and `_channels` skips one. (5) The promotion decision says "no problems found, but not fully checked" where it said green; L5 (a `core/lint.py` edit) skips a bound with no unit.
 Measured: each fix has a test that fails without it (`test_structural_screen.py`, `test_mass_limit_screen.py`, `test_electrical_checks.py`, `test_electrical_diagram.py`, `test_promote.py`, `test_lint_unit_agreement.py`); the test stand now lints with no L5 warning. Not changed: B-0210 (a portal or gantry is still "not run"), B-0211 (per-metre pricing, another task).
+## S-234 — Spec reproduction trials 2 and 3: the table, two vendors (2026-11-05)
+Road §4.3: cold agents of two vendors, empty folders, only `SPEC.md` and the installed tool (with
+`n2f docs`, S-231) (`docs/reviews/v0.7-spec-trial-table-1.md`, `-2.md`). Both reach a product with 0
+failing checks. First board 8 / 13 min, first report 17 / 30 min (~95 / ~159 tool calls). Oracle:
+32/18/6 and 38/12/6. Common causes: the generic structural screen has no case for bare legs, trestle
+ends or a cross member under the top (the example judges them in its own screens, which a cold agent
+does not write), so a pine card on four legs is not rejected for sag; the oracle reads figures by the
+example screen's names, expects exactly one sign-off and ±2 % on card-level costs; `n2f init` asks no
+region. The test stand's trial 1 now passes 43/0/7 after S-230 and S-233. Fixes: B-0239–B-0241.

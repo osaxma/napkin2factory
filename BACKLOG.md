@@ -135,6 +135,9 @@ entry that closed them. Ids are never reused.
 | B-0230 | Promotion drops the card's loads, sag limit, tip-over and budget (0 parameters seeded), writes 150 lb as 68.0389 kg, adds an unchosen style requirement and pastes a red card's formula text into the decision | gate J C7 (S-225) |
 | B-0231 | Imperial gaps and discoverability: litres for volume, terminal output in mm/N/kg, "drawings stay in mm" said only in the agent guide, no `n2f init --units --region`, the PM role never asks for units | gate J C9, C10 (S-225) |
 | B-0232 | Report overview does not lead with the design (no description, no picture before Safety; a run-on sign-off line); at 390 px the page scrolls sideways and safety columns clip | gate J C11 (S-225); Track C's workbench |
+| B-0239 | The generic structural screen judges a frame with a top or a column with an arm only: bare legs under a top, trestle ends and a cross member under the top are "not checked"; the frame kit refuses legs without rails | spec trials 2 and 3 (S-234); the most common table shapes |
+| B-0240 | `n2f init` asks no region or units; neither cold agent set the product region | spec trials 2 and 3 (S-234); gate J C10 |
+| B-0241 | The table oracle reads figures by the example screen's names (`sag_with_cross_rail`, `cross_rail_dip`), expects exactly one sign-off and ±2 % on card-level costs | spec trials 2 and 3 (S-234) |
 
 ## Closed
 
