@@ -78,3 +78,70 @@ def test_validate_json_reports_problems(tmp_path: Path):
     assert r.returncode == 1
     payload = json.loads(r.stdout)
     assert payload["ok"] is False and payload["problems"][0]["file"]
+
+
+def test_init_writes_the_region_and_units_it_is_given(tmp_path: Path):
+    """S-236: `--region` and `--units` land in n2f.yaml, validated like the file is."""
+    dest = tmp_path / "placed"
+    r = n2f("init", str(dest), "--region", "us", "--units", "imperial", "--json")
+    assert r.returncode == 0, r.stderr
+    payload = json.loads(r.stdout)
+    assert payload["region"] == "US" and payload["units"] == "imperial"
+    manifest = (dest / "n2f.yaml").read_text()
+    assert "region: US" in manifest and "units: imperial" in manifest
+    assert n2f("validate", cwd=dest).returncode == 0
+
+
+def test_init_refuses_an_unknown_region_or_units_before_writing_anything(tmp_path: Path):
+    for flag, value, word in (
+        ("--region", "ZZ", "unknown region"),
+        ("--units", "cubits", "metric"),
+    ):
+        dest = tmp_path / f"bad{value}"
+        r = n2f("init", str(dest), flag, value)
+        assert r.returncode != 0 and word in r.stdout + r.stderr, (r.stdout, r.stderr)
+        assert "known regions: " in r.stdout + r.stderr or flag == "--units"
+        assert not dest.exists(), "nothing is written for a bad value"
+
+
+def test_init_without_them_asks_nothing_but_tells_the_agent_to_ask_the_owner(tmp_path: Path):
+    dest = tmp_path / "unplaced"
+    r = n2f("init", str(dest))
+    assert r.returncode == 0, r.stderr
+    assert "ask the owner where it will be built and bought" in r.stdout.replace("\n", " ")
+    assert "region:" not in (dest / "n2f.yaml").read_text()
+    # both given: no reminder
+    done = n2f("init", str(tmp_path / "placed2"), "--region", "UK", "--units", "metric")
+    assert "ask the owner" not in done.stdout.replace("\n", " ")
+
+
+def test_init_flags_are_refused_on_an_existing_product(tmp_path: Path):
+    dest = tmp_path / "there"
+    assert n2f("init", str(dest)).returncode == 0
+    r = n2f("init", str(dest), "--region", "US")
+    assert r.returncode != 0 and "already a product" in r.stdout + r.stderr
+
+
+def test_the_product_files_tell_the_agent_to_ask_for_region_and_units(tmp_path: Path):
+    dest = tmp_path / "words"
+    assert n2f("init", str(dest)).returncode == 0
+    pm = (dest / "roles" / "pm.md").read_text()
+    assert "Region and units" in pm and "built and bought" in pm and "imperial" in pm
+    agents = (dest / "AGENTS.md").read_text()
+    assert "`region:`" in agents and "`units:`" in agents
+
+
+def test_check_says_the_us_bands_were_read_while_no_region_is_declared(tmp_path: Path):
+    from tests.conftest import copy_product
+
+    EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
+    work = copy_product(EXAMPLES / "bracket", tmp_path / "bracket", prebuilt=True)
+    data = json.loads(n2f("check", "--json", cwd=work).stdout)
+    assert "US cost bands" in data["region_note"]
+    table = n2f("check", cwd=work).stdout.replace("\n", " ")
+    assert table.count("Costs use the US cost bands") == 1
+    (work / "n2f.yaml").write_text(
+        (work / "n2f.yaml").read_text().rstrip() + "\nregion: US\n", encoding="utf-8"
+    )
+    again = json.loads(n2f("check", "--json", cwd=work).stdout)
+    assert "region_note" not in again

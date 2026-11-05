@@ -383,11 +383,14 @@ def gather(root: Path) -> dict[str, Any]:
     cards = cm.load_concepts(root, problems)
     for p in problems.items:
         notes.append(f"{p.subject}: {p.message} (left off the board; `n2f concept lint`)")
-    return {
-        "product": name,
-        "cards": [gather_card(root, c, style, units=units) for c in cards.values()],
-        "notes": notes,
-    }
+    gathered = [gather_card(root, c, style, units=units) for c in cards.values()]
+    if any("no region declared" in str(v.get("source", "")) for g in gathered for v in g["strip"]):
+        # a US default is never silent (S-236, S-227)
+        notes.append(
+            "No region is declared, so the costs use the US cost bands. Ask the owner where it "
+            "will be built and bought, and set `region:` in n2f.yaml."
+        )
+    return {"product": name, "cards": gathered, "notes": notes}
 
 
 def _embed(cards: list[dict[str, Any]], dropped: set[str]) -> list[dict[str, Any]]:

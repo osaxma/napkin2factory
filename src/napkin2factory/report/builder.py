@@ -83,6 +83,25 @@ def _cost_basis_line(product: Product) -> str:
     return f"Estimated from the {mass_cost.bands_words(bands, declared=declared)}."
 
 
+def cost_region_note(product: Product) -> str | None:
+    """One plain sentence when the cost bands read were the US ones for want of a region.
+
+    ``None`` when the product's region has bands, or when no part's process has a band at all
+    (the costs are then the owner's own numbers). Said by ``n2f check`` so an agent never
+    reads a US figure as the owner's region (S-236, S-227).
+    """
+    if not _cost_basis_line(product).endswith("no region declared."):
+        return None
+    region = getattr(product.manifest, "region", None)
+    why = (
+        f"the region {region} has no cost bands" if region else "no region is declared in n2f.yaml"
+    )
+    return (
+        f"Costs use the US cost bands because {why}. Ask the owner where it will be built "
+        "and bought, and set `region:` in n2f.yaml."
+    )
+
+
 def _cost_notes(product: Product, flat: list[dict[str, Any]]) -> list[str]:
     """Number the distinct cost notes of the parts on the page; each line gets ``cost_note_no``.
 

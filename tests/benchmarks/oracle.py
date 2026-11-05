@@ -235,6 +235,10 @@ def fact_value(fact: Fact, ev: Evidence) -> str | float:
                 continue
             if fact.category is not None and r.get("category") != fact.category:
                 continue
+            if fact.words is not None and not re.search(
+                fact.words, f"{r.get('title', '')} {r.get('message', '')}", re.I
+            ):
+                continue
             n += 1
         return float(n)
     gates = {g["name"]: g for g in ev.status().get("gates", [])}

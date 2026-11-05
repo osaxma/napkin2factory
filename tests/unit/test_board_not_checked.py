@@ -80,3 +80,23 @@ def test_a_missing_input_is_asked_for_not_blamed_on_the_shape(tmp_path: Path) ->
     line = not_checked_line(card.screening.rules, card)
     assert line is not None and "does not model this shape" not in line
     assert line.startswith("not checked: tip-over is unknown")
+
+
+def test_the_board_says_once_that_the_us_bands_were_read_for_want_of_a_region(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S-236: a cost line that read the US bands by default adds one note to the board."""
+    from napkin2factory.concepts import board
+
+    (tmp_path / "n2f.yaml").write_text("product: {id: x, name: X}\n", encoding="utf-8")
+    monkeypatch.setattr(board.cm, "load_concepts", lambda root, problems: {"C-001": 1, "C-002": 2})
+    source = "US cost bands, as of 2026-10, no region declared"
+    monkeypatch.setattr(
+        board,
+        "gather_card",
+        lambda root, card, style, units="metric": {"strip": [{"source": source}]},
+    )
+    notes = board.gather(tmp_path)["notes"]
+    assert sum("No region is declared" in n for n in notes) == 1
+    source = "US cost bands, as of 2026-10"
+    assert not [n for n in board.gather(tmp_path)["notes"] if "No region" in n]

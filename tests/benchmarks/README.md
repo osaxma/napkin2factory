@@ -69,7 +69,7 @@ otherwise the first of cost, mass, envelope, structural whose words (see `LEXICO
 **Facts** (`fact:`): `ceremony` (`check --json`), `region` (`n2f.yaml`), `supply` (`none` or
 `present`: `model/electrical/supply.yaml`), `supply_voltage` / `supply_frequency` (numbers with
 `unit`; a `param://` value is read from `model/parameters.yaml`), `assemblies` (modules in all, the
-final one included), `count_requirements` (filters `safety`, `status`, `status_in`, `category`),
+final one included), `count_requirements` (filters `safety`, `status`, `status_in`, `category`, `words`: a regex over the requirement's title and message, to name "the tip-over requirement" without its id),
 `gate_blockers` (`gate`, `matching` regex, `invert`; from `n2f status --json`). The word kinds use
 `equals`; the numeric ones the same `expect` / `at_least` / `at_most` / `range` as figures, with
 tolerance 0 unless `tol` says otherwise.

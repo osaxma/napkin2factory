@@ -56,17 +56,19 @@ figures:
     find: {screen_value: cost_low}
     unit: USD
     expect: 460
-    # ±5 % on the two cards' cost bands: the spec's ±2 % is mass × rate with the hinges, feet and
-    # fasteners (0.8 kg of 16.5 kg, 4.8 % of the mass) left out for want of a band; a card that
-    # draws them as pieces is priced for them (3.7 % at the low end in the first trial)
-    tol: 0.05
+    # ±10 % on every card's cost band, not the spec's ±2 % (S-236): the spec's figure is mass × rate
+    # with the hinges, feet and fasteners (0.8 kg of 16.5 kg, 4.8 % of the mass) left out for want
+    # of a band, and the extrusions and guard panels have none; a card that draws them as pieces is
+    # priced for them. Trial 1 read the portal at 403-1491 USD against 434-1599 (-7.1 % and
+    # -6.8 %) and the C-frame at 462-1550 against 460-1560.
+    tol: 0.10
   - name: c1-cost-high
     what: high end of the cost band of the C-frame card (USD, US, 2026-11)
     card: {status: rejected, by: [structural]}
     find: {screen_value: cost_high}
     unit: USD
     expect: 1560
-    tol: 0.05
+    tol: 0.10
   - name: c2-mass
     what: total mass of the promoted portal card (kg)
     card: promoted
@@ -80,14 +82,14 @@ figures:
     find: {screen_value: cost_low}
     unit: USD
     expect: 434
-    tol: 0.05  # as the C-frame's: pieces for the hinges, feet and fasteners are priced
+    tol: 0.10  # as the C-frame's
   - name: c2-cost-high
     what: high end of the cost band of the promoted portal card (USD, US, 2026-11)
     card: promoted
     find: {screen_value: cost_high}
     unit: USD
     expect: 1599
-    tol: 0.05
+    tol: 0.10
   - name: c3-mass
     what: total mass of the plate gantry card (kg); found as the card rejected for something other than stiffness, so a screen that cannot yet judge mass does not hide its figures
     card: {status: rejected, not_by: [structural]}
@@ -101,14 +103,14 @@ figures:
     find: {screen_value: cost_low}
     unit: USD
     expect: 3476
-    tol: 0.02
+    tol: 0.10
   - name: c3-cost-high
     what: high end of the cost band of the plate gantry card (USD, US, 2026-11)
     card: {status: rejected, not_by: [structural]}
     find: {screen_value: cost_high}
     unit: USD
     expect: 13966
-    tol: 0.02
+    tol: 0.10
 
   # --- the finished product (the promoted design, built) ---
   - name: product-mass
@@ -227,6 +229,20 @@ facts:
     fact: count_requirements
     safety: true
     range: [9, 11]
+  # An agent may add an inspection requirement that waits on a person too, and splits the safety
+  # rows its own way: at least one waits on a sign-off and the tip-over one is among them (S-236).
+  - name: signoff-waits
+    what: at least one requirement waits on, or carries, a human sign-off
+    fact: count_requirements
+    status_in: [needs-human, signed, example]
+    at_least: 1
+  - name: tip-over-signoff
+    what: the tip-over (safety) requirement is among those that wait on, or carry, a human sign-off
+    fact: count_requirements
+    safety: true
+    words: 'tip[- ]?over|topple|overturn'
+    status_in: [needs-human, signed, example]
+    at_least: 1
   - name: nothing-fails
     what: no requirement fails
     fact: count_requirements

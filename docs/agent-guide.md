@@ -108,6 +108,14 @@ CAD kernel in the background (see "Timing" below). The folder may already hold f
 owner's (a brief, notes): `n2f init` leaves them alone and stops only if it would overwrite
 one, naming it.
 
+**Ask the owner two things, in your first exchange, and set them**: where the product will be
+built and bought (a country or region) and which units they think in. `n2f init <folder>
+--region <code> --units metric|imperial` writes them into `n2f.yaml` (region codes: US, UK, EU,
+AU, SA; an unknown one lists the known ones); on an existing folder edit `region:` and `units:`
+there. The region picks the cost bands and the electrical tables, and the units set what the
+owner reads in reports and on the board; drawings and files stay in millimetres whatever the
+units. Without a region the costs read the US bands, and `n2f check` and the board say so.
+
 ## 4. Hand over to the folder's own instructions
 
 Read these before you say anything about the design:

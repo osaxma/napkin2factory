@@ -72,14 +72,54 @@ def write_style(dest: Path, preset: str = "industrial") -> Path:
     return path
 
 
+def check_place(region: str | None, units: str | None) -> tuple[str | None, str | None]:
+    """Validate ``--region`` and ``--units`` the way ``n2f.yaml`` does; return them cleaned.
+
+    A region code is matched without regard to case (``us`` is ``US``); an unknown one lists
+    the known codes, as ``n2f validate`` does (S-236, W7, W8).
+
+    Raises:
+        N2FError: the region is not a known code, or the units are not metric or imperial.
+    """
+    from pydantic import ValidationError
+
+    from napkin2factory.core.model import Manifest
+
+    code = region.strip().upper() if region and region.strip() else None
+    try:
+        Manifest.model_validate(
+            {
+                "product": {"id": "x", "name": "x"},
+                **({"region": code} if code else {}),
+                **({"units": units} if units else {}),
+            }
+        )
+    except ValidationError as exc:
+        err = exc.errors()[0]
+        field = str(err["loc"][0]) if err["loc"] else "value"
+        message = str(err["msg"]).removeprefix("Value error, ")
+        if field == "units":
+            message = f"unknown units {units!r}; choose metric or imperial"
+        raise N2FError(f"--{field}: {message}") from exc
+    return code, units or None
+
+
 def write_skeleton(
-    dest: Path, template: str, product_id: str, name: str, style: str = "industrial"
+    dest: Path,
+    template: str,
+    product_id: str,
+    name: str,
+    style: str = "industrial",
+    region: str | None = None,
+    units: str | None = None,
 ) -> list[Path]:
     """Copy a template plus the common agent-layer files into ``dest``; return files written.
 
     A new product also gets ``style.yaml`` (written here, not shipped in ``_common``, which
-    is copied onto existing products too).
+    is copied onto existing products too). ``region`` and ``units``, when given, are written
+    into ``n2f.yaml`` (S-236).
     """
+    region, units = check_place(region, units)
     from napkin2factory.core.model.style import PRESETS
 
     if style not in PRESETS:
@@ -117,6 +157,10 @@ def write_skeleton(
     data = load_roundtrip(manifest)
     data["product"]["id"] = product_id
     data["product"]["name"] = name
+    if region:
+        data["region"] = region
+    if units:
+        data["units"] = units
     dump_roundtrip(manifest, data)
     write_style(dest, style)
     return [dest / rel for rel in planned]
@@ -204,6 +248,18 @@ def init(
     style: str = typer.Option(
         "industrial", "--style", help="Starting look for style.yaml: industrial | appliance | lab."
     ),
+    region: str | None = typer.Option(
+        None,
+        "--region",
+        help="Where it will be built and bought, a region code (US, UK, EU, AU or SA): "
+        "costs and electrics are read for it. Written to n2f.yaml; ask the owner.",
+    ),
+    units: str | None = typer.Option(
+        None,
+        "--units",
+        help="metric | imperial: the units the owner thinks in, for reports and the board "
+        "(drawings stay in mm). Written to n2f.yaml; ask the owner.",
+    ),
     no_tracking: bool = typer.Option(
         False, "--no-tracking", help="Skip change tracking setup (tests only)."
     ),
@@ -211,12 +267,18 @@ def init(
 ) -> None:
     """Start a new product folder from a template."""
     dest = Path(directory).resolve()
+    region, units = check_place(region, units)  # before anything is written
     if (dest / "n2f.yaml").is_file():
+        if region or units:
+            raise N2FError(
+                f"{dest} is already a product: set region and units in its n2f.yaml "
+                "(`region:` and `units:`), not with `n2f init`"
+            )
         upgrade_existing(dest, json_out)
         return
     product_id = slugify(dest.name)
     display = name or dest.name.replace("-", " ").replace("_", " ").strip().capitalize()
-    files = write_skeleton(dest, template, product_id, display, style)
+    files = write_skeleton(dest, template, product_id, display, style, region, units)
     snapshot = None
     if not no_tracking:
         vcs = Vcs(dest)
@@ -229,6 +291,8 @@ def init(
                 "dir": str(dest),
                 "product": product_id,
                 "template": template,
+                "region": region,
+                "units": units or "metric",
                 "files": len(files),
                 "snapshot": snapshot,
                 "kernel_warmup": warming,
@@ -241,4 +305,10 @@ def init(
     )
     if snapshot:
         console.print("  first snapshot saved")
+    if not region or not units:
+        console.print(
+            "  ask the owner where it will be built and bought and which units they think in, "
+            "then set `region:` and `units:` in n2f.yaml",
+            soft_wrap=True,
+        )
     console.print(NEXT_WARMING if warming else NEXT_COLD, soft_wrap=True)

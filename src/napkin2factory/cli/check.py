@@ -96,7 +96,15 @@ def check(
 
     ceremony = derive_ceremony(product)  # W6: the level, and once when it rose since the last check
     rose = note_level(product)
-    data = {**data, **ceremony.to_dict(), **({"ceremony_raised": rose} if rose else {})}
+    from napkin2factory.report.builder import cost_region_note
+
+    region_note = cost_region_note(product)  # S-236: a US default is never silent
+    data = {
+        **data,
+        **ceremony.to_dict(),
+        **({"ceremony_raised": rose} if rose else {}),
+        **({"region_note": region_note} if region_note else {}),
+    }
     if json_out or format == "json":
         emit_json(data)
     elif format == "md":
@@ -104,6 +112,8 @@ def check(
     else:
         render_table(data, product.operator.persona, all_rows)
         print_ceremony(ceremony, rose)
+        if region_note:
+            console.print(f"[yellow]Region:[/yellow] {escape(region_note)}")
     if data["summary"].get("fail", 0):
         raise CheckFailed(f"{data['summary']['fail']} check(s) failed")
 

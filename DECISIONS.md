@@ -262,6 +262,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-233 | Package fixes from spec trial 1 | in force |
 | S-234 | Spec reproduction trials 2 and 3 (table, two vendors): both reach a green product; the structural screen cannot judge bare legs, trestles or a cross member | in force |
 | S-235 | The structural screen judges bare legs, trestles and a cross member | in force |
+| S-236 | Init asks for region and units; the oracle allows an agent's extra inspection and its own massing | in force |
 
 ---
 
@@ -1817,3 +1818,8 @@ Values (named in `docs/napkin.md`): `deflection`, `deflection_along`, `cross_mem
 `yield_factor`, `cross_member_yield_factor`, `buckling_factor`, `tip_over_factor`. Measured
 (`test_structural_stands.py`): C-001 sag 14.3 mm (spec 14.25), C-002 1.71 (1.705), C-003 0.837, within 5 %.
 The table's supports and cross-rail screens are deleted; its oracle reads these names (52 passed, a copy).
+
+## S-236 — Init asks for region and units; the oracle allows an agent's extra inspection and its own massing (2026-11-05)
+Spec trials 2 and 3 (S-234): neither cold agent set the product region (the spec says US), so the oracle failed the region row and read US bands without anyone choosing them. `n2f init` gains `--region <code>` and `--units metric|imperial`, validated by the manifest model and written to `n2f.yaml` (nothing is written for a bad value; refused on an existing product). Without them init asks nothing new but prints a reminder; the product `AGENTS.md` (rule 10) and `roles/pm.md` tell the agent to ask the owner, once, where it will be built and bought and which units they think in. `n2f check` prints one sentence and `--json` carries `region_note` while no region is declared and costs read bands; the board adds the same as one note (it builds on S-227's labelled cost line).
+Oracle: the table and the stand no longer count exactly one sign-off; two facts say "at least one requirement waits on a sign-off" and "the tip-over (safety) requirement is among them" (new `words` filter of `count_requirements`). Card-level cost bands carry ±20 % (table) and ±10 % (stand), from the trials: promoted table card 628-1204 USD (+18.7 %, a cross rail given the machining process) and 603-977 against 639-1014, stand portal -7.1 % / -6.8 %; the finished product's parts-list total stays a strict range.
+Measured, oracle on fresh copies after S-235's value names: the table example 53 pass / 0 fail and the stand example 45 / 0; the stand trial product 45 / 0 (it was 30 / 14); the table trial products 46 pass / 7 fail (was 32 / 18) and 47 / 6 (was 38 / 12). What still fails there is the agents' own work, not the oracle: neither set a region (the init flags and the PM question address that), one trial's pine and trestle massing differs from the spec (mass, cost, tip-over), and the cards of one trial carry their own screens, which name no `deflection` or `tip_over_factor`.

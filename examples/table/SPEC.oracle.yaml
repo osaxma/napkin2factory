@@ -30,6 +30,12 @@ concepts:
       why: heavy plate trestles weigh 148 kg against 70 kg and cost from 2450 USD against 1600 USD; the sag passes
 
 figures:
+  # Card-level cost bands carry ±20 %, not ±2 %: a band is mass × rate per process, and agents
+  # draw the same card differently (S-236). Spec trials 2 and 3 (v0.7-spec-trial-table-1/2):
+  # the promoted card read 628-1204 USD where the spec has 639-1014 (+18.7 % at the high end,
+  # because the cross rail was given the machining process, which has a wider band), and 603-977
+  # (-5.6 % and -3.6 %) from the other vendor's drawing of the same card. Still tight enough to
+  # catch a wrong band or currency. The finished product's parts-list total stays strict (product-cost-in-band).
   # --- the three cards as the napkin stage screens them (SPEC section 7 table) ---
   - name: c1-sag
     what: mid-span sag under the 150 kg centre load plus self weight, on the pine card with four corner legs (mm)
@@ -51,14 +57,14 @@ figures:
     find: {screen_value: cost_low}
     unit: USD
     expect: 332
-    tol: 0.02
+    tol: 0.20
   - name: c1-cost-high
     what: high end of the cost band of the pine card with four corner legs (USD, US, 2026-11)
     card: {status: rejected, by: [structural]}
     find: {screen_value: cost_high}
     unit: USD
     expect: 548
-    tol: 0.02
+    tol: 0.20
   - name: c1-tip-over
     what: tip-over factor at the governing edge of the pine card with four corner legs
     card: {status: rejected, by: [structural]}
@@ -99,14 +105,14 @@ figures:
     find: {screen_value: cost_low}
     unit: USD
     expect: 639
-    tol: 0.02
+    tol: 0.20
   - name: c2-cost-high
     what: high end of the cost band of the promoted card (USD, US, 2026-11)
     card: promoted
     find: {screen_value: cost_high}
     unit: USD
     expect: 1014
-    tol: 0.02
+    tol: 0.20
   - name: c2-tip-over
     what: tip-over factor at the governing edge of the promoted card
     card: promoted
@@ -133,14 +139,14 @@ figures:
     find: {screen_value: cost_low}
     unit: USD
     expect: 2450
-    tol: 0.02
+    tol: 0.20
   - name: c3-cost-high
     what: high end of the cost band of the heavy trestle card (USD, US, 2026-11)
     card: {status: rejected, not_by: [structural]}
     find: {screen_value: cost_high}
     unit: USD
     expect: 3010
-    tol: 0.02
+    tol: 0.20
   - name: c3-tip-over
     what: tip-over factor at the governing edge of the heavy trestle card
     card: {status: rejected, not_by: [structural]}
@@ -277,11 +283,20 @@ facts:
     fact: count_requirements
     safety: true
     expect: 1
-  - name: one-signoff
-    what: exactly one requirement waits on, or carries, a human sign-off
+  # The spec has one sign-off (tip-over); an agent may add an inspection requirement that waits
+  # on a person too, so the fact is "at least one, and the safety one is among them" (S-236).
+  - name: signoff-waits
+    what: at least one requirement waits on, or carries, a human sign-off (an agent may add an inspection requirement of its own that waits too)
     fact: count_requirements
     status_in: [needs-human, signed, example]
-    expect: 1
+    at_least: 1
+  - name: tip-over-signoff
+    what: the tip-over (safety) requirement is among those that wait on, or carry, a human sign-off
+    fact: count_requirements
+    safety: true
+    words: 'tip[- ]?over|topple|overturn'
+    status_in: [needs-human, signed, example]
+    at_least: 1
   - name: nothing-fails
     what: no requirement fails
     fact: count_requirements

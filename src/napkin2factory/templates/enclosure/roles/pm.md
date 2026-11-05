@@ -12,6 +12,13 @@ folder is not a product yet (`n2f validate` says so) the owner is at intake. A n
 sketch or "I'm not sure what I want yet" starts at the napkin stage below; `concepts/`
 holds its cards.
 
+**Region and units, once, in your first exchange with the owner.** Ask where the product will be
+built and bought (a country or region: US, UK, EU, AU, SA) and which units they think in (metric
+or imperial). Set `region:` and `units:` in `n2f.yaml` (`n2f init --region <code> --units
+metric|imperial` does it for a new folder). The region picks the cost bands and the electrical
+tables; without it costs read the US bands, and `n2f check` and the board say so. Units change
+what the owner reads, never the model: drawings and files stay in millimetres.
+
 ## Napkin stage (before intake)
 The napkin stage decides *which* product should exist and roughly what it looks like,
 before anyone talks about tolerances. Directions are cheap, plural and disposable; nothing

@@ -503,6 +503,55 @@ def test_count_facts_assemblies_and_gate_blockers():
     assert "no gate named nope" in oracle.judge_fact(nogate, _ev()).found
 
 
+def test_signoff_facts_allow_an_extra_inspection_and_find_the_safety_one_by_its_words():
+    """S-236: "at least one waits on a sign-off, and the tip-over one is among them"."""
+    waiting = ["needs-human", "signed", "example"]
+    anywhere = _fact(
+        fact="count_requirements", status_in=waiting, at_least=1, safety=True, words="tip[- ]?over"
+    )
+    check = _check()
+    for row in check["results"]:
+        if row["id"] == "req://R5":
+            row["status"] = "needs-human"
+            row["title"] = "The table does not tip over"
+    assert oracle.judge_fact(anywhere, _ev(check=check)).passed
+    # an inspection requirement of the agent's own that waits too does not fail it
+    extra = _req("INSPECT", "inspection = 1 >= 1")
+    extra["status"] = "needs-human"
+    plus = {**check, "results": [*check["results"], extra]}
+    assert oracle.judge_fact(anywhere, _ev(check=plus)).passed
+    anyone = _fact(fact="count_requirements", status_in=waiting, at_least=1)
+    assert oracle.judge_fact(anyone, _ev(check=plus)).passed
+    # but the safety one must be the one waiting: a lone inspection is not enough
+    only_extra = {**check, "results": [r for r in plus["results"] if r["id"] != "req://R5"]}
+    assert not oracle.judge_fact(anywhere, _ev(check=only_extra)).passed
+    assert oracle.judge_fact(anyone, _ev(check=only_extra)).passed
+    # the words are case-insensitive and also search the message
+    by_message = _fact(fact="count_requirements", status_in=waiting, at_least=1, words="TIP2")
+    assert oracle.judge_fact(by_message, _ev(check=check)).passed
+    # and none waiting at all fails both
+    none = {**check, "results": [r for r in check["results"] if r.get("kind") != "requirement"]}
+    assert not oracle.judge_fact(anyone, _ev(check=none)).passed
+
+
+def test_the_shipped_oracles_use_the_signoff_facts_and_wide_card_costs():
+    """The table and the stand judge a sign-off by the safety requirement, not by a count of one."""
+    from tests.benchmarks.oracle_schema import load_oracle
+
+    root = Path(__file__).resolve().parents[2] / "examples"
+    for name, tol in (("table", 0.20), ("test-stand", 0.10)):
+        orc = load_oracle(root / name / "SPEC.oracle.yaml")
+        facts = {f.name: f for f in orc.facts}
+        assert "one-signoff" not in facts
+        assert facts["signoff-waits"].at_least == 1
+        assert facts["tip-over-signoff"].safety is True and facts["tip-over-signoff"].words
+        cards = [f for f in orc.figures if f.find.screen_value in ("cost_low", "cost_high")]
+        assert cards and all(f.tol == tol for f in cards), name
+        # the finished product's parts-list total stays strict: a range, never a wide tol
+        total = next(f for f in orc.figures if f.find.rollup == "total_cost")
+        assert total.range is not None and total.tol is None
+
+
 # --- the format and the command ----------------------------------------------------------
 
 

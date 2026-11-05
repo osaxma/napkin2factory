@@ -190,6 +190,9 @@ class Fact(Expect):
     status: str | None = None
     status_in: list[str] | None = None
     category: str | None = None
+    #: count_requirements only: a case-insensitive regex searched in the requirement's title
+    #: and message, to name the one wanted ("the tip-over requirement") without its id (S-236)
+    words: str | None = None
     gate: str | None = None
     matching: str | None = None
     invert: bool = False

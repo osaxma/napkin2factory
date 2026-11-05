@@ -56,6 +56,10 @@ The tool carries its own reference pages: `n2f docs` lists them, `n2f docs <topi
 9. Nothing leaves this folder unless the owner asks. When they want to share the pages,
    `n2f publish` makes `build/publish/`, one folder to send; `n2f publish --online` puts it
    online through the product's GitHub project (see `roles/pm.md`, "Sharing the pages").
+10. Where it will be built and bought, and which units the owner thinks in, are the owner's
+   to say: ask them in your first exchange (`roles/pm.md`, "Before anything"), then set
+   `region:` and `units:` in `n2f.yaml`. Until `region:` is set, costs read the US bands and
+   `n2f check` says so.
 
 ## Where things are
 - `n2f.yaml` manifest (and `scope:`, what this product covers) · `operator.yaml` who the
