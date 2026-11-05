@@ -254,6 +254,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-225 | Review gate J (v0.7) — outcome: NOT READY; four blockers (an unrun structural check reads as an all-clear, costs without region and date, metric manuals in an imperial product, dimension groups half converted) | in force |
 | S-226 | Gate J blockers fixed: unrun checks shown, manuals and dimension groups in the owner's units | in force |
 | S-227 | Gate I blockers fixed: fixed-base racking, the product region in costs | in force |
+| S-228 | Spec reproduction trial 1 (test stand): a cold agent reaches a green product; the oracle passes 30, fails 14, mostly where it encodes the example's modelling | in force |
 
 ---
 
@@ -1755,3 +1756,12 @@ parts table name region and date ("stale" only over 24 months); mid-point prices
 C1/C2/C7/C9: no structural or joints case is `external` unless the source prints that example (kept: datasheet, Eurocode and
 moisture-table lookups); Roark simply supported cases are 2a and 2e; no "Track A" source; citations `[verify]`; joints raise
 `UnitError`. The table and test-stand screens skip adding USD to EUR. C8 and C10-C12 stay with B-0220-B-0226.
+## S-228 — Spec reproduction trial 1: the test stand (2026-11-05)
+Road §4.3, one model of the first vendor, empty folder, only `SPEC.md` and the installed tool
+(`docs/reviews/v0.7-spec-trial-stand-1.md`). First board 15 min / ~42 tool calls, first report 24 min /
+~68 calls; a product with 0 failing checks. Oracle: 30 pass, 14 fail, 7 pending. Most failures are
+the oracle's: it encodes the example's modelling (19 parts exactly, the mass without a wiring part,
+beam fatigue as its own requirement, card figures at ±5 % where the screen simplifies). The rest are
+package gaps: no generic mass-limit screen, per-metre bands unpriced (B-0211), a traceback on a plate
+gantry card, the wiring IndexError (B-0213), earth wires counted as load current, repository docs an
+installed tool cannot reach. Fixes before the second vendor's trials: B-0233–B-0238.

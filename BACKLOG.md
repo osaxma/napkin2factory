@@ -139,6 +139,12 @@ entry that closed them. Ids are never reused.
 | B-0230 | Promotion drops the card's loads, sag limit, tip-over and budget (0 parameters seeded), writes 150 lb as 68.0389 kg, adds an unchosen style requirement and pastes a red card's formula text into the decision | gate J C7 (S-225) |
 | B-0231 | Imperial gaps and discoverability: litres for volume, terminal output in mm/N/kg, "drawings stay in mm" said only in the agent guide, no `n2f init --units --region`, the PM role never asks for units | gate J C9, C10 (S-225) |
 | B-0232 | Report overview does not lead with the design (no description, no picture before Safety; a run-on sign-off line); at 390 px the page scrolls sideways and safety columns clip | gate J C11 (S-225); Track C's workbench |
+| B-0233 | The benchmark oracle encodes the example's modelling: exact part and item counts, the mass without a wiring allowance part, a separate beam-fatigue requirement, card-level figures at ±5 % where the screen simplifies | spec trial 1 (S-228); judge outcomes (counts as ranges, mass with or without the allowance, the governing factor) |
+| B-0234 | No generic screen fails a card on its mass limit; the examples do it in their own screens, so a cold agent's 110 kg gantry is rejected on cost only | spec trial 1 (S-228) |
+| B-0235 | `n2f concept build` crashes with a traceback (`column_height must be non-negative`) on a plate-gantry card with small block feet; the structural screen reads a gantry as a cantilever | spec trial 1 (S-228) |
+| B-0236 | Earth (PE) connections inside a mains circuit are counted as load current (4.0 A over a 2.5 A inlet); an unknown material on a card is accepted silently as steel | spec trial 1 (S-228) |
+| B-0237 | The product's AGENTS.md and roles send the agent to `docs/kit.md`, `docs/electrical.md` … "in the system repo", which an installed tool cannot reach; `n2f init` refuses a folder holding only the owner's brief | spec trial 1 (S-228); ship the docs with the package (a `n2f docs <topic>` verb) |
+| B-0238 | The promotion decision calls a card "(green)" that screening marked "not fully checked"; dimensionless factor requirements draw L5 unit warnings | spec trial 1 (S-228) |
 
 ## Closed
 
