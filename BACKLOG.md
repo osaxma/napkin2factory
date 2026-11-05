@@ -138,6 +138,7 @@ entry that closed them. Ids are never reused.
 | B-0239 | The generic structural screen judges a frame with a top or a column with an arm only: bare legs under a top, trestle ends and a cross member under the top are "not checked"; the frame kit refuses legs without rails | spec trials 2 and 3 (S-234); the most common table shapes |
 | B-0240 | `n2f init` asks no region or units; neither cold agent set the product region | spec trials 2 and 3 (S-234); gate J C10 |
 | B-0241 | The table oracle reads figures by the example screen's names (`sag_with_cross_rail`, `cross_rail_dip`), expects exactly one sign-off and ±2 % on card-level costs | spec trials 2 and 3 (S-234) |
+| B-0242 | Before tagging v0.7.0: rewrite the commit history so no commit carries the owner's old personal email (metadata only; the procedure is in the owner's local `OWNER-TODO.md` (untracked), the mapping in a private file outside the repository) | the owner, 2026-11-05; after every v0.7 task has landed |
 
 ## Closed
 
