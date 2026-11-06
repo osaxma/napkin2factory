@@ -306,6 +306,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-277 | Gate B fixes: seeding skips a requirement already held, the switch names the card's failures | in force |
 | S-278 | The oracle judges a gate B product: every checkpoint, built and parked cards | in force |
 | S-279 | Gate B (v0.8) — outcome: passed by cold agents of two vendors; the oracle passes both products as the spec states them | in force |
+| S-280 | Review gate L (v0.8) — outcome: NOT READY; five blockers (the example failed lint, the report's requirement tile, stale manufacturer text after a change, status silent on an open change request, the close's sign-off wall) | in force |
 
 ---
 
@@ -2150,3 +2151,12 @@ change after a refused stale approval (both lengthened the columns 5 mm to keep 
 undid and redid a hand edit. Oracle (S-278) at the state before each agent's own design change: 50 passed,
 0 failed, 7 pending, both, CR-1 judged on the agent's own aborted request. Gate B passes. Found: B-0289,
 B-0290. Both read `close`'s sign-off list (14) as a surprise; the guide's line on it is gate L's fix task.
+## S-280 — Review gate L (v0.8) — outcome (2026-11-06)
+UX in the owner persona (Dana, a materials-testing lab owner, no git), fresh context, at e3df06a, on the
+gate B start folder (`docs/reviews/v0.8-gate-l.md`, three screenshots). NOT READY. Held: promote, switch,
+undo, redo, rollback and abort each say what happened and how to take it back; refusals clean (no trace,
+no git word); board and report work from `file://`. Blockers: B1 REQ-002's statement lost its number
+(fixed in S-278 before this entry); B2 the report's tile counts rule rows as requirements and leaves gate
+rows blank; B3 a closed change leaves the old size in the part's manufacturer text; B4 `n2f status` never
+names an open change request; B5 `ecr close` lists sign-offs as one paragraph of ids. Concerns C3, C4, C6,
+C7, C10, C11, C12 go to the fix tasks; C1 is B-0288; C13 is B-0269; the rest are rows B-0291 to B-0295.
