@@ -6,6 +6,7 @@ from typing import Any
 
 from napkin2factory.core.graph.impact import _grouped
 from napkin2factory.core.loader import Product
+from napkin2factory.ecr import stale_text
 
 #: How the checks' statuses read to an owner.
 _STATUS = {
@@ -174,6 +175,11 @@ def _requirements(impact: dict[str, Any]) -> list[str]:
             was, now = r["before"], r["after"]
             verdict = _status(now) if was == now else f"{_status(was)} → {_status(now)}"
             out.append(f"- {r['id']} {r['title']}{safety}: {verdict}")
+            if now == "fail" and (r.get("after_message") or r.get("before_message")):
+                before = r.get("before_message") or "no figure"
+                out.append(
+                    f"  - figures: before {before}; after {r.get('after_message') or 'none'}"
+                )
         out.append("")
     broken = [c for c in impact["other_checks"] if c["after"] == "fail"]
     if broken:
@@ -196,4 +202,41 @@ def _signoffs(impact: dict[str, Any]) -> list[str]:
             for sid in impact["signoffs_invalidated"]
         ]
         out.append("")
+    again = set(impact["signoffs_invalidated"])
+    waiting = [s for s in impact.get("signoffs_waiting", []) if s not in again]
+    if waiting:
+        out += ["## Sign-offs `n2f ecr close` will ask for", ""]
+        out += [f"- {sid}: waits for a person's sign-off" for sid in waiting]
+        out.append("")
+    if impact.get("stale_text"):
+        out += ["## Words that may still give the old size", ""]
+        out += stale_text.lines(impact["stale_text"])
+        out.append("")
     return out
+
+
+def failing(impact: dict[str, Any]) -> list[str]:
+    """The requirements and other checks this change leaves failing."""
+    ids = [r["id"] for r in impact["requirements"] if r["after"] == "fail"]
+    ids += [c["id"] for c in impact["other_checks"] if c["after"] == "fail"]
+    return ids
+
+
+def next_step(impact: dict[str, Any], ecr_id: str, approve_first: bool = True) -> str:
+    """What to do next: on a failure, drop or fix it; otherwise approve and close."""
+    bad = failing(impact)
+    if bad:
+        names = ", ".join(i.removeprefix("req://") for i in bad[:5])
+        return (
+            f"this change makes {names} fail, and a failing change cannot close: drop it with "
+            f"`n2f ecr abort {ecr_id}`, or edit the files and run `n2f ecr impact {ecr_id}` again"
+        )
+    if approve_first:
+        return (
+            f"`n2f ecr approve {ecr_id} --by <name>`, or keep editing and run "
+            f"`n2f ecr impact {ecr_id}` again; `n2f ecr abort {ecr_id}` drops it"
+        )
+    return (
+        f"`n2f ecr approve {ecr_id} --by <name> && n2f ecr close {ecr_id}`, "
+        f"or `n2f ecr abort {ecr_id}`"
+    )

@@ -23,12 +23,13 @@ from typing import Any
 from napkin2factory.core import checkpoints
 from napkin2factory.core.checkpoints import Checkpoint
 from napkin2factory.core.graph.impact import parse_set
+from napkin2factory.core.graph.impact_live import parameter_changes
 from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.model import Ecr
 from napkin2factory.core.vcs import Vcs
 from napkin2factory.core.vitals import current_vitals
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip, write_yaml
-from napkin2factory.ecr import live_impact
+from napkin2factory.ecr import live_impact, stale_text
 from napkin2factory.ecr.apply import _set_in_yaml
 from napkin2factory.ecr.checkpointing import (
     checkpoint,
@@ -241,11 +242,12 @@ def close(product: Product, ecr_id: str | None = None) -> dict[str, Any]:
         )
     save_edits_first(product)  # the approved model, saved, so the revision diff sees it
     results = _build_and_check(product)
-    _close_gate(ecr.id, results)
+    _close_gate(ecr.id, results, product)
     assert ecr.baseline is not None
     render = live_impact.render_flag(product)
     with live_impact.baseline_copy(vcs, ecr.baseline.checkpoint) as scratch:
         base = live_impact.baseline_figures(product, ecr, scratch, render)
+        words = stale_text.find(product, parameter_changes(load_product(scratch), product))
     bumped = bump_revisions(
         product,
         dict(base["outputs"]),
@@ -266,6 +268,7 @@ def close(product: Product, ecr_id: str | None = None) -> dict[str, Any]:
         "current_stage": stage.current,
         "next_step": next_step,
         "checkpoint": cp,
+        "stale_text": words,
     }
 
 

@@ -33,13 +33,14 @@ from napkin2factory.core.graph.runner import explain_build, run_build
 from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.model import Ecr
 from napkin2factory.core.vcs import Vcs
+from napkin2factory.ecr import stale_text
 from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE
 
 #: The folder whose files are not part of a change (its own record, S-252).
 RECORDS = "changes/"
 BASELINE_FILE = "baseline.json"
 #: Bump when ``figures`` changes shape: a kept baseline of another format is built again.
-FORMAT = 1
+FORMAT = 2
 #: The build target a live impact (and a close) rebuilds: everything the checks read.
 TARGET = "checks"
 
@@ -72,6 +73,7 @@ def figures(product: Product, build_dir: Path) -> dict[str, Any]:
         "envelope": {},
         "checks": {},
         "messages": {},
+        "req_messages": {},
         "rules": {},
         "outputs": {},
     }
@@ -98,6 +100,11 @@ def figures(product: Product, build_dir: Path) -> dict[str, Any]:
         str(r["id"]): str(r.get("persona_message") or r.get("message") or "")
         for r in checks.get("results", [])
         if r.get("status") == "fail" and "id" in r
+    }
+    out["req_messages"] = {
+        str(r["id"]): str(r.get("persona_message") or r.get("message") or "")
+        for r in checks.get("results", [])
+        if str(r.get("id", "")).startswith("req://")
     }
     manifest = Manifest.load(build_dir)
     out["rules"] = {rid: e.key for rid, e in manifest.entries.items()}
@@ -334,6 +341,9 @@ def _block(
                 "before": base["checks"].get(f"req://{rid}"),
                 "after": now["checks"].get(f"req://{rid}"),
                 "safety": bool(req.safety) if req is not None else False,
+                # the figures behind a verdict, as the check wrote them (gate L, S-281)
+                "before_message": base.get("req_messages", {}).get(f"req://{rid}", ""),
+                "after_message": now.get("req_messages", {}).get(f"req://{rid}", ""),
             }
         )
     other_checks = [
@@ -346,7 +356,19 @@ def _block(
         for cid in sorted(set(base["checks"]) | set(now["checks"]))
         if not cid.startswith("req://") and base["checks"].get(cid) != now["checks"].get(cid)
     ]
-    removed_ids = {e["id"] for e in found.signoffs_removed}
+    # One source for both sign-off lists: the state the check computes (gate L, S-281).
+    redo = sorted(
+        c.removeprefix("req://")
+        for c, status in now["checks"].items()
+        if c.startswith("req://")
+        and status == "needs-human"
+        and base["checks"].get(c) in ("signed", "pass")
+    )
+    waiting = sorted(
+        c.removeprefix("req://")
+        for c, status in now["checks"].items()
+        if c.startswith("req://") and status == "needs-human"
+    )
     return {
         "live": True,
         "baseline": ecr.baseline.checkpoint if ecr.baseline else None,
@@ -365,7 +387,9 @@ def _block(
         "rebuilt": rebuilt,
         "requirements": requirements,
         "other_checks": other_checks,
-        "signoffs_invalidated": [s for s in report.signoffs_invalidated if s not in removed_ids],
+        "signoffs_invalidated": redo,
+        "signoffs_waiting": waiting,
+        "stale_text": stale_text.find(product, params),
         "signoffs_removed": found.signoffs_removed,
         "interfaces": report.interfaces,
         "ports": report.ports,

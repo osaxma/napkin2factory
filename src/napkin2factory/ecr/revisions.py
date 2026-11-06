@@ -90,34 +90,41 @@ def _part_rel(product: Product, part_id: str) -> str:
     return (product.paths.parts / f"{part_id}.yaml").relative_to(product.paths.root).as_posix()
 
 
-def _close_gate(ecr_id: str, results: list[dict[str, Any]]) -> None:
+def _close_gate(ecr_id: str, results: list[dict[str, Any]], product: Product | None = None) -> None:
     """Refuse to close while a check fails or a requirement waits for a human sign-off.
 
     Example sign-offs (``signed`` rows flagged ``example``) do not block: the release gate
-    weighs those.  Failing checks are listed first; the sign-off wording matches the stage
-    blockers (``core/checks/stage.py``) so ``n2f status`` and ``n2f ecr close`` agree.
+    weighs those.  What stands in the way is listed one per line: each failing check, then
+    each requirement waiting for a person with its title and why (gate L, S-281).
     """
-    fails = [r["id"] for r in results if r["status"] == "fail"]
+    fails = [r for r in results if r["status"] == "fail"]
     human = [r for r in results if r["status"] == "needs-human"]
     if not fails and not human:
         return
-    reasons: list[str] = []
-    if fails:
-        reasons.append(f"{len(fails)} check(s) fail ({', '.join(fails[:5])})")
+    lines = [f"{ecr_id} cannot close. Standing in the way:"]
+    for r in fails:
+        lines.append(
+            f"  - {r['id'].split('://')[-1]} fails: {r.get('message') or 'see the checks'}"
+        )
     for r in human:
         rid = r["id"].split("://")[-1]
-        why = r.get("message") or "needs a human sign-off"
-        reasons.append(
-            f"{rid} needs a human sign-off ({why}) — "
-            f'`n2f signoff {rid} --by <name> --statement "…"`'
+        title = f" {r['title']}" if r.get("title") else ""
+        if r.get("safety"):
+            why = "a safety requirement: a person confirms it"
+        else:
+            why = "checked by a person"
+        lines.append(f"  - {rid}{title} waits for a sign-off ({why})")
+    if human and product is not None:
+        never = sum(1 for r in human if r["id"].split("://")[-1] not in product.signoffs)
+        lines.append(f"  {never} of the {len(human)} were never signed before.")
+    if human:
+        first = human[0]["id"].split("://")[-1]
+        lines.append(
+            f'  Sign one with `n2f signoff {first} --by <name> --statement "…"`, then close again.'
         )
-    if not human:
-        tail = "fix them, rebuild, and close again"
-    elif not fails:
-        tail = f"sign {'it' if len(human) == 1 else 'them'} off, then close again"
     else:
-        tail = "fix the failing checks, rebuild, sign off what needs it, and close again"
-    raise GateBlocked(f"{ecr_id} cannot close: {'; '.join(reasons)}; {tail}")
+        lines.append("  Fix them, rebuild, and close again.")
+    raise GateBlocked("\n".join(lines))
 
 
 def _append_changelog(product: Product, ecr: Ecr, bumped: dict[str, tuple[str, str]]) -> None:

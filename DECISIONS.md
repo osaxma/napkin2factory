@@ -307,6 +307,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-278 | The oracle judges a gate B product: every checkpoint, built and parked cards | in force |
 | S-279 | Gate B (v0.8) — outcome: passed by cold agents of two vendors; the oracle passes both products as the spec states them | in force |
 | S-280 | Review gate L (v0.8) — outcome: NOT READY; five blockers (the example failed lint, the report's requirement tile, stale manufacturer text after a change, status silent on an open change request, the close's sign-off wall) | in force |
+| S-281 | Gate L fixes: impact names stale words, close lists what stands in the way | in force |
 
 ---
 
@@ -2160,3 +2161,14 @@ no git word); board and report work from `file://`. Blockers: B1 REQ-002's state
 rows blank; B3 a closed change leaves the old size in the part's manufacturer text; B4 `n2f status` never
 names an open change request; B5 `ecr close` lists sign-offs as one paragraph of ids. Concerns C3, C4, C6,
 C7, C10, C11, C12 go to the fix tasks; C1 is B-0288; C13 is B-0269; the rest are rows B-0291 to B-0295.
+
+## S-281 — Gate L fixes: impact names stale words, close lists what stands in the way (2026-11-06)
+Gate L's blockers 3 and 5, concerns 6 and 7. A closed change left "100 x 100 x 15 mm" in a part's
+`material.spec` and `manufacturer_notes` while the drawing showed 125. `ecr impact` now lists, per
+changed parameter, the free-text fields of the parts and assemblies reading it whose words hold the old
+value with its unit or inside an "a x b" size (`ecr/stale_text.py`; `--json`: `stale_text`); `close`
+prints the same list once, as a warning. `close`'s refusal is one line per failing check and per
+requirement waiting for a person (title, why), the count never signed before, and the sign command. The
+impact's two sign-off lists both come from the check's own state (signed or pass before, waiting now),
+and a failing change shows its figures and offers `n2f ecr abort` instead of "approve and close".
+

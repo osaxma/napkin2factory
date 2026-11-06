@@ -340,3 +340,43 @@ def test_a_pasted_hash_cannot_forge_an_approval(root: Path) -> None:
     path.write_text(re.sub(r"model_hash: \S+", f"model_hash: {forged}", path.read_text()))
     r = _run("ecr", "close", cwd=root, ok=False)
     assert r.returncode == 3 and "changed since ECR-001 was approved" in " ".join(r.stderr.split())
+
+
+def test_impact_names_words_that_may_still_give_the_old_size(root: Path) -> None:
+    """Gate L: free text holding a changed parameter's old size is named, and close warns."""
+    _edit(root, PART, 'spec: "4 mm CR4 (DC01)"', 'spec: "120 x 60 x 4 mm CR4 plate"')
+    _edit(root, PART, "Deburr all edges.", "Cut to 120 mm. Deburr all edges.")
+    _run("ecr", "start", "--title", "Longer", "--set", "param://bracket-length=125mm", cwd=root)
+    text = _run("ecr", "impact", cwd=root).stdout
+    assert "Words that may still give the old size" in text
+    assert "l-bracket" in text and "material.spec" in text and "manufacturer_notes" in text
+    stale = _json("ecr", "impact", cwd=root)["stale_text"]
+    assert {s["field"] for s in stale} == {"material.spec", "manufacturer_notes"}
+    assert all(s["parameter"] == "bracket-length" and s["old"] == "120 mm" for s in stale)
+    _run("ecr", "approve", "--by", "Owner", cwd=root)
+    closed = _run("ecr", "close", cwd=root).stdout
+    assert closed.count("words that may still give the old size") == 1
+    assert "manufacturer_notes" in closed
+
+
+def test_a_failing_change_says_so_with_figures_and_offers_abort(root: Path) -> None:
+    """Gate L: no 'approve and close' for a change that fails; the figures are shown."""
+    out = _run(
+        "ecr", "quick", "--set", "param://bracket-length=200mm", "--title", "Too long", cwd=root
+    ).stdout
+    assert "REQ-001" in out and "figures: before" in out and "after" in out
+    nxt = out.split("next:")[-1]
+    assert "n2f ecr abort ECR-001" in nxt and "REQ-001" in nxt and "ecr close" not in nxt
+    assert "n2f ecr abort ECR-001" in _run("ecr", "impact", cwd=root).stdout.split("next:")[-1]
+
+
+def test_both_signoff_lists_come_from_the_check(root: Path) -> None:
+    """Gate L: 'must be redone' is a signed requirement that now waits; never a static read."""
+    from napkin2factory.ecr import live_impact
+
+    block = live_impact._block  # the lists are derived there from the two builds' checks
+    assert block is not None
+    _run("ecr", "start", "--title", "x", "--set", "param://bracket-width=70mm", cwd=root)
+    impact = _json("ecr", "impact", cwd=root)
+    waiting = set(impact["signoffs_waiting"])
+    assert set(impact["signoffs_invalidated"]) <= waiting

@@ -26,7 +26,7 @@ from napkin2factory.core import checkpoints as cps
 from napkin2factory.core.checkpoints import Checkpoint
 from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.vcs import Vcs
-from napkin2factory.ecr import lifecycle, live
+from napkin2factory.ecr import lifecycle, live, live_text
 from napkin2factory.ecr.checkpointing import matches_approval
 from napkin2factory.ecr.state import EcrError
 
@@ -149,9 +149,8 @@ def impact(
         return
     console.print(text, markup=False)
     console.print(
-        f"  saved to build/changes/{ecr.id}-impact.md · next: `n2f ecr approve {ecr.id} --by "
-        f"<name>`, or keep editing and run `n2f ecr impact {ecr.id}` again; "
-        f"`n2f ecr abort {ecr.id}` drops it"
+        f"  saved to build/changes/{ecr.id}-impact.md · next: "
+        f"{escape(live_text.next_step(block, ecr.id))}"
     )
 
 
@@ -214,6 +213,12 @@ def close(
 
     for uri, (old, new_rev) in result["bumped"].items():
         console.print(f"  {uri}: rev {old} → {new_rev}")
+    if result.get("stale_text"):
+        from napkin2factory.ecr import stale_text
+
+        console.print("  words that may still give the old size (not a refusal):", markup=False)
+        for line in stale_text.lines(result["stale_text"]):
+            console.print(f"  {line}", markup=False)
     nxt = result.get("next_step") or "`n2f release vX.Y.Z`"
     words = STAGE_WORDS[result["current_stage"]]
     saved = f" · checkpoint {escape(_cp(cp))}"
@@ -288,10 +293,7 @@ def quick(
         f"checkpoint {escape(_cp(out['checkpoint']))}"
     )
     console.print(out["text"], markup=False)
-    console.print(
-        f"  next: `n2f ecr approve {ecr_id} --by <name> && n2f ecr close {ecr_id}`, "
-        f"or `n2f ecr abort {ecr_id}`"
-    )
+    console.print(f"  next: {escape(live_text.next_step(out['impact'], ecr_id, False))}")
 
 
 @ecr_app.command("reject")

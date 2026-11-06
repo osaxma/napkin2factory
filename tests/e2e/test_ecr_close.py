@@ -45,7 +45,8 @@ def test_close_refused_while_signoff_needed(tmp_path: Path) -> None:
     assert r.returncode == 3, r.stdout + r.stderr
     assert "ECR-001 cannot close" in err and "REQ-004" in err and "sign-off" in err
     assert '`n2f signoff REQ-004 --by <name> --statement "…"`' in err
-    assert "sign it off, then close again" in err
+    assert "waits for a sign-off" in err and "then close again" in err
+    assert "never signed before" in err and "Standing in the way" in err
     data = yaml.safe_load((root / "changes/ECR-001.yaml").read_text())
     assert data["status"] == "approved"
     _run("signoff", "REQ-004", "--by", "x", "--statement", "inspected", cwd=root)
@@ -79,8 +80,8 @@ def test_close_gate_lists_fails_before_signoffs() -> None:
         _close_gate("ECR-007", results)
     msg = str(exc.value)
     assert exc.value.exit_code == 3
-    assert msg.index("req://REQ-001") < msg.index("REQ-004 needs a human sign-off")
-    assert "(inspect the edges)" in msg and "REQ-002" not in msg
+    assert msg.index("REQ-001 fails: too tall") < msg.index("REQ-004 waits for a sign-off")
+    assert "(checked by a person)" in msg and "REQ-002" not in msg
     _no_git_words(msg)
     # an example sign-off alone never blocks closing
     _close_gate("ECR-007", results[2:])

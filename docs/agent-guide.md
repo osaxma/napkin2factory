@@ -386,7 +386,7 @@ n2f ecr start --title "Longer bracket" --set param://bracket-length=140mm   # re
 n2f build && n2f check
 n2f ecr impact ECR-001              # the live model against the baseline: what it touches
 n2f ecr approve ECR-001 --by "<owner's name>"   # binds to the model as it is now
-n2f ecr close ECR-001               # refuses if the model changed since approval, or build/check is red
+n2f ecr close ECR-001               # refuses if the model changed since approval, build/check is red, or a sign-off is missing
 ```
 
   `n2f ecr quick --set …` does start, edit and impact in one step for a small parameter change;
