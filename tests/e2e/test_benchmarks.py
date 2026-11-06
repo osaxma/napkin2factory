@@ -18,7 +18,7 @@ from tests.benchmarks import oracle, oracle_change
 from tests.benchmarks.oracle_evidence import Evidence
 from tests.benchmarks.oracle_match import MatchError
 from tests.benchmarks.oracle_schema import Change, ChangeSet, Fact, Figure, Find, load_oracle
-from tests.conftest import EXAMPLES, copy_kiln_as_designed, copy_product
+from tests.conftest import EXAMPLES, copy_kiln_as_designed, copy_product, n2f
 
 FIXTURES = Path(__file__).resolve().parents[1] / "benchmarks" / "fixtures"
 SPECS = sorted(EXAMPLES.glob("*/SPEC.oracle.yaml"))
@@ -176,3 +176,56 @@ def test_a_change_figure_and_fact_read_the_impact() -> None:
     assert oracle.judge_figure(mass, Evidence(), {}, impact).passed
     lost = Fact(name="lost", what="sign-offs the change loses", fact="signoffs_lost", expect=2)
     assert oracle.judge_fact(lost, Evidence(), impact).passed
+
+
+def test_the_oracle_judges_an_agents_own_request(tmp_path: Path) -> None:
+    work = copy_product(EXAMPLES / "bracket", tmp_path / "bracket", prebuilt=True)
+    spec = tmp_path / "agent-request.oracle.yaml"
+    spec.write_text(
+        """oracle: 1
+changes:
+  - name: lengthen
+    what: "bracket length 120 to 125 mm"
+    kind: parametric
+    words: "bracket.*125|125 mm"
+    sets:
+      - {value: 120, unit: mm, words: 'bracket[- ]?length', to: '125 mm'}
+    outcome: accepted
+    figures:
+      - name: parts
+        what: one distinct part after the change
+        find: {rollup: distinct_parts}
+        expect: 1
+        tol: 0
+""",
+        encoding="utf-8",
+    )
+    oracle_spec = load_oracle(spec)
+    # (a) open the request ourselves, then judge the draft it left (replay=False).
+    opened = n2f(
+        "ecr",
+        "start",
+        "--title",
+        "bracket length 120 to 125 mm",
+        "--set",
+        "param://bracket-length=125 mm",
+        cwd=work,
+    )
+    assert opened.returncode == 0, opened.stderr
+    rows = oracle.evaluate(oracle_spec, Evidence(work), replay=False)
+    assert not _failures(rows)
+    assert [r.what for r in rows] == [
+        "lengthen: outcome",
+        "lengthen: one distinct part after the change",
+    ]
+    assert len(list((work / "changes").glob("*.yaml"))) == 1  # no second request was started
+    # (b) abort, then judge the aborted path: it restores the work the abort saved, and the
+    # rollup figure is judged without the impact the request never stored.
+    aborted = n2f("ecr", "abort", cwd=work)
+    assert aborted.returncode == 0, aborted.stderr
+    rows = oracle.evaluate(oracle_spec, Evidence(work), replay=False)
+    assert not _failures(rows)
+    assert [r.what for r in rows] == [
+        "lengthen: outcome",
+        "lengthen: one distinct part after the change",
+    ]

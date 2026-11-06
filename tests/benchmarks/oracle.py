@@ -309,7 +309,12 @@ def _change_rows(change: Any, ev: Evidence, extra: Any, replay: bool) -> list[Ro
             return [
                 _row("change", f"{prefix}{name}", False, f"not judged: {exc}", "") for name in names
             ]
-        evc = Evidence(copy)
+        # build=False: ``check()`` below runs ``n2f check``, which builds the "checks" target
+        # (the checks plus the BOM rollups every check reads). A change row judges exactly those
+        # surfaces — the outcome, requirement/result figures and rollup figures — and never the
+        # rendered outputs a full ``n2f build`` also makes, so the full build is skipped.
+        evc = Evidence(copy, build=False)
+
         expected = (
             "no requirement fails"
             if change.outcome == "accepted"
