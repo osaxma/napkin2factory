@@ -297,6 +297,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-261 | M2c: schema 2 and the change-request migration: `draft → approved → closed` / `aborted`, an open request has a baseline, `parked` cards; the old patch steps are gone | in force |
 | S-269 | M4.0: the oracle judges a change request, an agent's own or replayed on a copy | in force |
 | S-270 | v0.8 wave 4 boundary (M3b, M4.0, M4): the core count, R12's four timings, `make check` | in force |
+| S-271 | Review gate K (v0.8) — outcome: NOT READY; three blockers (a change-request id reused after a rollback, impact calls an unrepriced estimate computed and unchanged, a built card's total mass in the shapes row) | in force |
 
 ---
 
@@ -2077,3 +2078,13 @@ Closes B-0218. Designed by the overseer in `docs/handoffs/v0.8-m40-design.md`, i
 
 ## S-270 — v0.8 wave 4 boundary: the core count and R12's four timings (2026-11-06)
 Wave 4 is M3b with B-0278 (S-267), M4 (S-268) and M4.0 (S-269; design in `docs/handoffs/v0.8-m40-design.md`), with a test fix that M4 made due: the pm skill's verb test read concept verbs from `cli/concept.py` alone, and `concept switch` lives elsewhere (fad565b). R13 count, de-duplicated (`git diff --name-only v0.7.0..HEAD -- src/napkin2factory/core`): v0.8 so far 17 distinct `core/` files, unchanged; wave 4 touched one, `core/concept_render.py` (B-0278), already counted in wave 3; M3b, M4 and M4.0 none. R12 on the macOS host, idle, warm, fresh `n2f` processes, one run each, tier 1 (`examples/table`) / tier 2 (`examples/test-stand`): no-change build 1.5 / 1.7 s (target 2 s); `undo` of a one-parameter edit 9.6 / 2.6 s (tier 1 pays a checks build for its sign-off, B-0269); one-parameter `ecr impact` 11.2 / 9.1 s first, 2.1 / 3.0 s again; `concept switch` to a never-promoted card (seeded, `--override` for a red card) 10.1 / 4.8 s, back to the parked one (restored) 9.2 / 4.0 s. `make check` at fad565b (the land gate of S-269, on the tree `main` now holds): 8 min 45 s of tests, 2,014 passed, 5 skipped, green. Not checked: CI on `main` (nothing pushed since S-244). Opened B-0279.
+## S-271 — Review gate K (v0.8) — outcome (2026-11-06)
+Engineering and honesty, fresh context, at b1a88fb (`docs/reviews/v0.8-gate-k.md`). NOT READY. Held:
+history only moves forward, redo after undo is the identity, no checkpoint lost across undo, redo,
+rollback, abort and switch; the approval binding and the red-check refusals; `refs/n2f/` stays out of
+`publish`; schema 2 refuses rather than guesses. Blockers, fixed before the close: B1 an `ecr start`
+after a rollback reuses an id a release already names; B2 `ecr impact` heads its numbers "computed"
+and prints an unrepriced cost as "no change"; B3 compare and the board put a built card's total mass in
+the napkin "mass of the shapes" row. Concerns C1 (approval hash copied into the YAML), C6 (`ecr show`
+after a later edit), C9, C10 go to the fix tasks; C7 (R12 on an idle host) to the close-out measures;
+the rest are rows B-0280 to B-0284.

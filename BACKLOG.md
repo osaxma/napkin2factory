@@ -140,6 +140,11 @@ entry that closed them. Ids are never reused.
 | B-0276 | A shipped example holds a live request whose baseline checkpoint cannot be in a fresh copy's history (the kiln's ECR-001), so `ecr impact` and `undo` on a copy say the history is missing and `ecr start` / `concept switch` refuse until it is aborted | S-261; decide whether examples ship an open request, or `copy_product` and `n2f init` re-base one that points at a missing checkpoint |
 | B-0277 | The kiln's three demos (`examples/kiln/demo.sh`, `demo-design.sh`, `demo-electrical.sh`) and `tests/e2e/test_demos.py` script the old flow (`ecr new`, `apply`, ECR-001 to ECR-003 as shipped drafts); since schema 2 the kiln ships ECR-001 open with its edits in the model and ECR-002 and ECR-003 set aside, so `make demos` and the nightly `check-full` fail until the scripts start their requests with `ecr start` (the patch files are kept for them) | S-261; rewrite the three scripts and the test's request ids |
 | B-0279 | `examples/test-stand`: the load-cell requirement bounds the cell by a literal 2000 N, not by `param://rated-load`, so a change of the rated load leaves it unchanged | S-269; the oracle's CR-1 replay edits it by hand |
+| B-0280 | `concept switch` checks for folders §3's table does not name before it saves unsaved edits, so a new unsaved folder gets through (`concepts/switch.py`, gate K C2) | S-271; check the saved and the unsaved files |
+| B-0281 | A clone without `refs/n2f/` cannot switch back to a parked direction although the card's checkpoint is in the history (gate K C3) | S-271; the plan's risk-table fallback: restore from the card's checkpoint |
+| B-0282 | Parking a rejected card overwrites its rejection reason; a parked card's seeded requirements stay live after switching back, with only a warning (gate K C4) | S-271; keep the earlier reason, name the requirements the card brought |
+| B-0283 | The schema-2 upgrade marks an `applied` request `aborted` while its edit stays in the model, and does not report a cleared approval; old-field errors are raw validator text (gate K C5, C11) | S-271; a status that says it is in the model, one message per retired state |
+| B-0284 | The undo property test has no `ecr abort` or `concept switch` operation, which DoD 2 names (`tests/unit/test_undo_properties.py`, gate K C8) | S-271 |
 
 ## Closed
 
