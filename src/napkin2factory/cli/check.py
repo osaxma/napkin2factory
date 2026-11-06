@@ -429,7 +429,7 @@ def signoff(
         "evidence_keys": keys,
         "example": example,
     }
-    from napkin2factory.cli.checkpointing import checkpoint, save_edits_first
+    from napkin2factory.ecr.checkpointing import checkpoint, save_edits_first
 
     save_edits_first(product)  # the owner's loose edits stay their own step (R4)
     path = product.paths.signoffs / f"{rid}.yaml"

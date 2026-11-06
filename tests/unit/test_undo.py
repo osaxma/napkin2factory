@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from napkin2factory.cli.checkpointing import (
+from napkin2factory.ecr.checkpointing import (
     APPROVAL_HASH_EXCLUDE,
     checkpoint,
     open_change_request,

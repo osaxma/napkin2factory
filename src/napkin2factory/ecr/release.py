@@ -560,7 +560,7 @@ def release(
     snapshot = None
     checkpoint_number = None
     if not dry_run:
-        from napkin2factory.cli.checkpointing import checkpoint
+        from napkin2factory.ecr.checkpointing import checkpoint
 
         cp = checkpoint(product, f"Released {version}")
         snapshot, checkpoint_number = cp.id, cp.number

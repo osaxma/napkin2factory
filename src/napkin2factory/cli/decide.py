@@ -55,7 +55,7 @@ def decide(
 
     root = product_root(dir)
     warn_if_pin_excludes(root, json_out)
-    from napkin2factory.cli.checkpointing import checkpoint, save_edits_first
+    from napkin2factory.ecr.checkpointing import checkpoint, save_edits_first
 
     product = load_product(root)
     data = _ensure_checks(product)  # the choice as the current model offers it

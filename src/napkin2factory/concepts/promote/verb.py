@@ -275,7 +275,7 @@ def promote(
         **{root / rel: text for rel, text in modules.texts.items()},
     }
     if snapshot:
-        from napkin2factory.cli.checkpointing import save_edits_first
+        from napkin2factory.ecr.checkpointing import save_edits_first
 
         save_edits_first(root)  # the owner's loose edits stay their own step (R4)
     _write_all(root, writes, validate)
@@ -302,7 +302,7 @@ def promote(
 
         vcs = Vcs(root)
         if vcs.is_tracked() and vcs.is_repo_root():
-            from napkin2factory.cli.checkpointing import checkpoint
+            from napkin2factory.ecr.checkpointing import checkpoint
 
             cp = checkpoint(root, f"Promoted {cid} ({card.title})")
             result.snapshot, result.checkpoint = cp.id, cp.number

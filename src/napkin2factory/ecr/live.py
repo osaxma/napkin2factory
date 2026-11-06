@@ -5,7 +5,7 @@ folder's checkpoint as the baseline, the agent edits ``model/`` files, and every
 reads the folder against that baseline (:mod:`live_impact`). There is no patch and no
 ``apply``. At most one request is open (``draft`` or ``approved``) at a time (S-254); an
 approval is bound to the hash of the model it approved (R7); every state change leaves a
-checkpoint (R4, ``cli/checkpointing.py``).
+checkpoint (R4, ``ecr/checkpointing.py``).
 
 The start checkpoint rule, shared with ``undo`` (M1b): the first checkpoint after the
 baseline is the one ``start`` records, and nothing is recorded between them, so ``undo``
@@ -20,7 +20,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from napkin2factory.cli.checkpointing import checkpoint, save_edits_first, stale_after_restore
+from napkin2factory.ecr.checkpointing import checkpoint, save_edits_first, stale_after_restore
 from napkin2factory.core import checkpoints
 from napkin2factory.core.checkpoints import Checkpoint
 from napkin2factory.core.graph.impact import parse_set

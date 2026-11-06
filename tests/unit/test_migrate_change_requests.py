@@ -27,7 +27,7 @@ from typer.testing import CliRunner
 
 from napkin2factory.cli import init as init_mod
 from napkin2factory.cli.app import app
-from napkin2factory.cli.checkpointing import APPROVAL_HASH_EXCLUDE
+from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE
 from napkin2factory.core import checkpoints
 from napkin2factory.core.loader import load_product
 from napkin2factory.core.model import migrate

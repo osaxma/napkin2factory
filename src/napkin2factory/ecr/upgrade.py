@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from napkin2factory.cli.checkpointing import APPROVAL_HASH_EXCLUDE, checkpoint
+from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE, checkpoint
 from napkin2factory.core import checkpoints as cps
 from napkin2factory.core.checkpoints import Vitals
 from napkin2factory.core.errors import N2FError

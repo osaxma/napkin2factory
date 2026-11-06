@@ -20,7 +20,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from napkin2factory.cli.checkpointing import checkpoint, open_change_request, save_edits_first
+from napkin2factory.ecr.checkpointing import checkpoint, open_change_request, save_edits_first
 from napkin2factory.cli.undo import do_redo, do_rollback, do_undo
 from napkin2factory.core import checkpoints as cps
 from napkin2factory.core.vcs import Vcs, VcsError

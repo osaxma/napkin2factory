@@ -138,7 +138,6 @@ entry that closed them. Ids are never reused.
 | B-0266 | Gate B, the forward-and-backward trial on the test stand with two vendors' cold agents, is not run | S-245; v0.8 M6 |
 | B-0268 | `examples/table`'s REQ-009 sign-off reads as not holding at the shipped state on the macOS host (`n2f check`: needs your sign-off, evidence changed); no test asserts an example's sign-offs hold except the kiln's | S-253; found by M1b's undo report |
 | B-0269 | `undo`/`redo`/`rollback` on a product with sign-offs run a checks build for R5's stale report: 9.1 s on tier 1 against 1.8 s without sign-offs (tier 2); skip it when no sign-off's evidence can read a restored file (static reads, as `ecr impact` does) | S-253 |
-| B-0270 | `ecr/live.py:23`, `ecr/live_impact.py:27` and `ecr/release.py:563` import `cli/checkpointing.py` (`checkpoint`, `save_edits_first`, `stale_after_restore`, `APPROVAL_HASH_EXCLUDE`): the library calls up into the CLI layer, and M1b and M2b both edited that file (the window's one collision) | S-257 (health review 2026-11-06); move those helpers to a library module (`core/` or `ecr/`) and leave the CLI a thin caller; do it right after M2c lands, which owns `ecr/`; ~1 h |
 | B-0271 | Nothing checks `docs/cli.md` against `n2f --help`: `checkpoints`, `undo`, `redo`, `rollback` and `ecr start/abort/quick` have no row in `docs/cli.md`, and the guide names none of them (nor `ecr reject/list/show`) | S-257; M4 owns the text (with B-0265); add a test that every top-level verb and every `ecr` and `concept` verb appears in `docs/cli.md`, in the same task that writes the rows; ~30 min |
 | B-0274 | `make health` measures only core to domains and domain to domain imports; upward imports from `core/`, `calckit/` and `ecr/` into `cli/` are unmeasured (4 today: `core/graph/runner.py:203` and the three in B-0270) | S-257; add a measure to `scripts/health.py` with its trend column, baseline 4, target 0 after B-0270 (the runner's console import goes with it); ~30 min |
 | B-0275 | `ecr abort` of a request the upgrade carried over from `applied` restores the state right after it was applied, not the state before it (its baseline is the earlier one, but the start checkpoint is the first one after it); `n2f ecr close` is right, `abort` is not | S-261; give a request an explicit start checkpoint, or make the upgrade record one before the applied state |
@@ -149,6 +148,7 @@ entry that closed them. Ids are never reused.
 
 | id | item | closed by |
 |---|---|---|
+| B-0270 | The library called up into the CLI: `ecr/` and `concepts/promote/` imported `cli/checkpointing.py` | closed by S-262 |
 | B-0190 | Frame kit (no rails, tabs, round tube, T-slot), a panel kit, four interface kinds (threaded insert, wood screw, T-slot, hinge pin) | closed by S-237 |
 | B-0194 | Three-tier benchmarks: `examples/table`, `examples/test-stand`, the kiln's `SPEC.md`, the oracle | closed by S-237 |
 | B-0206 | Union merge on BACKLOG.md resurrects closed rows in the Open table | closed by S-237 |

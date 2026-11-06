@@ -3,7 +3,7 @@
 Every restore saves unsaved edits first (as their own checkpoint), puts an earlier state back
 in the folder and records that as a new checkpoint: history only moves forward, so a restore
 is itself undoable and no saved state is ever lost (R2). The checkpoint list is read from the
-log alone (S-246); the shared calls live in ``cli/checkpointing.py``.
+log alone (S-246); the shared calls live in ``ecr/checkpointing.py``.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from typing import Any
 import typer
 from rich.markup import escape
 
-from napkin2factory.cli.checkpointing import (
+from napkin2factory.ecr.checkpointing import (
     checkpoint,
     open_change_request,
     save_edits_first,

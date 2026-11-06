@@ -25,7 +25,7 @@ def snapshot(
     json_out: bool = JsonOption,
 ) -> None:
     """Save the current state of the model as a checkpoint (what releasing and diffing build on)."""
-    from napkin2factory.cli.checkpointing import checkpoint
+    from napkin2factory.ecr.checkpointing import checkpoint
 
     root = product_root(dir)
     vcs = Vcs(root)
@@ -54,7 +54,7 @@ def discard(
     json_out: bool = JsonOption,
 ) -> None:
     """Throw away every change since the last checkpoint (`n2f redo` brings them back)."""
-    from napkin2factory.cli.checkpointing import checkpoint
+    from napkin2factory.ecr.checkpointing import checkpoint
     from napkin2factory.cli.undo import do_undo
 
     root = product_root(dir)
