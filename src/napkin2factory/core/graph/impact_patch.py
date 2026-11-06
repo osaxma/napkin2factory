@@ -90,34 +90,29 @@ def dry_run_patch(
         found.objects, found.revs = _object_changes(product, after)
         found.scope = _scope_changes(product, after)
         found.rebuilds, found.stale = _patch_rebuilds(product, after, build_dir)
-        # S-215: Sign-offs citing removed objects will no longer apply
-        removed_objs = set(found.objects.get("removed", []))
-        signoffs_removed: list[dict[str, str]] = []
-        for so in product.signoffs.values():
-            so_file = f"model/signoffs/{so.requirement.id}.yaml"
-            if f"req://{so.requirement.id}" in removed_objs:
-                signoffs_removed.append(
-                    {
-                        "file": so_file,
-                        "id": so.requirement.id,
-                        "reason": (
-                            f"requirement req://{so.requirement.id} is removed; "
-                            "it will no longer apply"
-                        ),
-                    }
-                )
-            else:
-                cites = [str(e.base) for e in so.evidence if str(e.base) in removed_objs]
-                if cites:
-                    signoffs_removed.append(
-                        {
-                            "file": so_file,
-                            "id": so.requirement.id,
-                            "reason": f"cites removed {', '.join(cites)}; it will no longer apply",
-                        }
-                    )
-        found.signoffs_removed = signoffs_removed
+        found.signoffs_removed = signoffs_removed_by(product, found.objects.get("removed", []))
         yield found, after
+
+
+def signoffs_removed_by(product: Product, removed: list[str]) -> list[dict[str, str]]:
+    """Sign-offs that no longer apply once the objects ``removed`` (URIs) are gone (S-215).
+
+    A sign-off of a removed requirement, or citing a removed object as evidence. Used by the
+    patch dry run and by a live change request's diff (v0.8 R6).
+    """
+    removed_objs = set(removed)
+    out: list[dict[str, str]] = []
+    for so in product.signoffs.values():
+        so_file = f"model/signoffs/{so.requirement.id}.yaml"
+        if f"req://{so.requirement.id}" in removed_objs:
+            reason = f"requirement req://{so.requirement.id} is removed; it will no longer apply"
+            out.append({"file": so_file, "id": so.requirement.id, "reason": reason})
+            continue
+        cites = [str(e.base) for e in so.evidence if str(e.base) in removed_objs]
+        if cites:
+            reason = f"cites removed {', '.join(cites)}; it will no longer apply"
+            out.append({"file": so_file, "id": so.requirement.id, "reason": reason})
+    return out
 
 
 def _relative(path: Path, root: Path) -> str:

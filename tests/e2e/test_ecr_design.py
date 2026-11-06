@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from tests.conftest import EXAMPLES, copy_product
-from tests.e2e.test_ecr import _run
+from tests.e2e.test_ecr import _legacy_new, _run
 
 
 def test_design_ecr_with_patch(tmp_path: Path) -> None:
@@ -27,9 +27,7 @@ def test_design_ecr_with_patch(tmp_path: Path) -> None:
     part.write_text(original)
     (root / "changes").mkdir(exist_ok=True)
     (root / "changes/ECR-001.patch").write_text(diff)
-    _run(
-        "ecr",
-        "new",
+    _legacy_new(
         "--title",
         "Rounder lid",
         "--kind",

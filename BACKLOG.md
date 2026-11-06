@@ -35,7 +35,6 @@ entry that closed them. Ids are never reused.
 | B-0049 | Image → interpretation card with a real sketch or photo (today: worded stand-ins in tests; owner-manual) | NAPKIN_STAGE N9; S-068 |
 | B-0052 | Risk: Linux is covered only by CI; the reference platform is the macOS host | S-001; former STATUS open risk |
 | B-0059 | A requirement bound that is a parameter (`param://` value), so the alcove rule is one row instead of two | S-085: a bound is a plain quantity today; needs the requirement schema and the evaluator |
-| B-0060 | `ecr close` does not see edits never saved to a snapshot before closing; overlapping change requests can bump extra parts | S-089: `core/vcs.py` has no public diff of a snapshot against unsaved files |
 | B-0061 | The board's live 3D viewer and the fallback pictures do not show the layout marks | S-093: the marks live on the styled screenshot page only |
 | B-0062 | `n2f publish --online` run against a real GitHub project (first send, Pages from `gh-pages`) | S-094: tested against a local bare repository only |
 | B-0064 | The placement warning (P1) does not look at joints through ports: a sub-assembly placed by coordinates although a port could place it is not flagged | S-107: `instances.json` records leaves only, not a sub-assembly's own `via`; record the group placements (M3, when the kiln's door is placed by its ports) |
@@ -135,7 +134,6 @@ entry that closed them. Ids are never reused.
 | B-0254 | Lint `L1-measurable` refuses a requirement on a dimensionless factor (a factor of safety, a ratio) unless the statement names a load with a unit | S-239 (table trials 2 and 3, stand trial 4; both vendors); accept the bound's own number when the verify target is dimensionless; `core/lint.py`, a core file named in the commit; ~1 h |
 | B-0257 | `calckit.joints` has no preloaded-bolt fatigue function: the test stand's column-end bolt factor (7.42, SPEC.md section 4.4) is a hand check, so an agent must write the formula, and one left the requirement to the beam | S-210 (noted open), S-239 (spec trial 4: the governing fatigue row failed at 9.105); Goodman for a preloaded bolt (Shigley section 8-11 [verify]) with its `CASES`; ~2 h |
 | B-0267 | Agent shells on the host set `PYTHONDONTWRITEBYTECODE=1` and task folders' environments hold no compiled bytecode, so every fresh Python process (each `n2f` the tests run as a process) recompiles about 2,000 modules, about 3 s (S-247); compile it when `make task` installs (`UV_COMPILE_BYTECODE=1`) and measure the suites after | S-247 |
-| B-0262 | A design change request carries its edit as a `.patch` file, and its approval is not bound to the model it approved | S-245; v0.8 M2b (R6, R7, R9) |
 | B-0263 | Change-request states and the card's `parked` status need schema 2 and the first real migration | S-245; v0.8 M2c (R8, R15) |
 | B-0264 | Promotion is one-way: no `concept switch`, `fork-from-model` or `compare` | S-245; v0.8 M3a (R10, R11, §3 ownership table) |
 | B-0265 | The guide and the pm and design roles do not teach checkpoints, live change requests or switching direction | S-245; v0.8 M4 |
@@ -283,3 +281,5 @@ entry that closed them. Ids are never reused.
 | B-0259 | The nightly `check-full` failed on two timing budgets on the CI runner; CI budgets set at 1.5× the runner's times, host budgets kept | closed by S-249 |
 | B-0121 | Git words older than v0.5 ("nothing tagged", "without tagging", "saved as snapshot <hash>", the doctor's "git (change tracking)") | closed by S-253 |
 | B-0260 | No checkpoints and no `undo` / `redo` / `rollback`; `n2f discard` could not be undone | closed by S-253 |
+| B-0060 | `ecr close` does not see edits never saved to a snapshot before closing; overlapping change requests can bump extra parts | closed by S-254 |
+| B-0262 | A design change request carries its edit as a `.patch` file, and its approval is not bound to the model it approved | closed by S-254 |

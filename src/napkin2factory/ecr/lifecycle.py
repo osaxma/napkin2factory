@@ -7,6 +7,12 @@ unified diff over ``model/``) that ``apply`` applies.  Every step that changes t
 takes a snapshot through the vcs wrapper (D31) and is worded for the operator.
 
 Split across state.py, apply.py and revisions.py (S-248).
+
+v0.8: live change requests (``ecr start``, edited in place, no patch) live in ``live.py``.
+The steps below are the old ones, kept for requests filed without a baseline (the kiln's
+drafts) until M2c migrates them.  TODO(B-0263): M2c removes ``new_ecr``, ``run_impact``,
+``approve``, ``reject`` and ``close`` here, ``apply.apply`` and the patch dry run
+(``core/graph/impact_patch.py``).
 """
 
 from __future__ import annotations

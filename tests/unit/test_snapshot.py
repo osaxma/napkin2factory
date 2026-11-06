@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from tests.conftest import EXAMPLES, copy_product, n2f
+from tests.e2e.test_ecr import _legacy_new
 
 
 def test_discard_preserves_filed_change_request_and_patch(tmp_path: Path) -> None:
@@ -15,9 +16,7 @@ def test_discard_preserves_filed_change_request_and_patch(tmp_path: Path) -> Non
     patch_file = changes_dir / "ECR-001.patch"
     patch_file.write_text("--- a/model/parts/bracket.yaml\n+++ b/model/parts/bracket.yaml\n")
 
-    r_new = n2f(
-        "ecr",
-        "new",
+    _legacy_new(
         "--title",
         "Thicker bracket",
         "--kind",
@@ -26,7 +25,6 @@ def test_discard_preserves_filed_change_request_and_patch(tmp_path: Path) -> Non
         "changes/ECR-001.patch",
         cwd=root,
     )
-    assert r_new.returncode == 0, r_new.stderr
 
     r_impact = n2f("ecr", "impact", "ECR-001", cwd=root)
     assert r_impact.returncode == 0, r_impact.stderr

@@ -23,8 +23,10 @@ from napkin2factory.core.checkpoints import Checkpoint, Vitals
 from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.vcs import Vcs
 
-#: The folders left out of a change request's approval hash (S-252): its own record lives there.
-APPROVAL_EXCLUDE = ("changes/",)
+#: What an approval hash leaves out: the requests' own records (S-252) and sign-offs, which are
+#: checked at close, not approved (S-254 widens S-252); impact, approve, close and the
+#: staleness report all use it.
+APPROVAL_HASH_EXCLUDE = ("changes/", "model/signoffs/")
 #: The states in which a change request is still open: edits count towards it (R5, R6).
 OPEN_STATUSES = ("draft", "approved")
 
@@ -142,7 +144,7 @@ def stale_after_restore(product: Product | Path) -> list[str]:
         if e.status == "approved" and e.approval is not None and e.approval.model_hash
     ]
     if approved:
-        now = Vcs(root).working_hash(exclude=APPROVAL_EXCLUDE)
+        now = Vcs(root).working_hash(exclude=APPROVAL_HASH_EXCLUDE)
         for e in sorted(approved, key=lambda e: e.id):
             assert e.approval is not None
             if e.approval.model_hash != now:

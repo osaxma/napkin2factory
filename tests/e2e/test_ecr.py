@@ -33,6 +33,31 @@ def _run(*args: str, cwd: Path, ok: bool = True):  # type: ignore[no-untyped-def
     return r
 
 
+def _legacy_new(*args: str, cwd: Path) -> None:
+    """File a change request the v0.7 way: no baseline, as the kiln's drafts exist (B-0263).
+
+    Takes the arguments ``ecr new`` took; `ecr new` is now `ecr start`, so the old steps
+    (impact on the patch, approve, apply, close) are reached through this.
+    """
+    import argparse
+
+    from napkin2factory.core.loader import load_product
+    from napkin2factory.ecr import lifecycle
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--title", required=True)
+    ap.add_argument("--kind", default="parametric")
+    ap.add_argument("--reason")
+    ap.add_argument("--set", action="append", default=[])
+    ap.add_argument("--task", action="append", default=[])
+    ap.add_argument("--patch")
+    ap.add_argument("--by", default="human")
+    ns = ap.parse_args(args)
+    lifecycle.new_ecr(
+        load_product(cwd), ns.title, ns.kind, ns.reason, ns.set, ns.task, ns.patch, ns.by
+    )
+
+
 @pytest.fixture(scope="module")
 def product(tmp_path_factory: pytest.TempPathFactory) -> Path:
     root = copy_product(
@@ -48,19 +73,16 @@ def product(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 def test_parametric_loop(product: Path) -> None:
     root = product
-    r = _run(
-        "ecr",
-        "new",
+    _legacy_new(
         "--title",
         "Taller box",
         "--set",
         "param://box-height=100mm",
         "--set",
         "req://REQ-001#verify.value=120 mm",
-        "--json",
         cwd=root,
     )
-    ecr_id = json.loads(r.stdout)["id"]
+    ecr_id = "ECR-001"
     assert ecr_id == "ECR-001" and (root / "changes/ECR-001.yaml").is_file()
     # impact before anything changes
     r = _run("ecr", "impact", ecr_id, "--json", cwd=root)
@@ -111,19 +133,21 @@ def test_parametric_loop(product: Path) -> None:
 
 def test_reject_and_state_machine(tmp_path: Path) -> None:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=True)
-    _run("ecr", "new", "--title", "Nope", "--set", "param://bracket-width=70mm", cwd=root)
+    _legacy_new("--title", "Nope", "--set", "param://bracket-width=70mm", cwd=root)
     r = _run("ecr", "approve", "ECR-001", "--by", "x", cwd=root, ok=False)
     assert r.returncode == 3 and "impact" in r.stderr
     _run("ecr", "reject", "ECR-001", "--reason", "not needed", cwd=root)
     r = _run("ecr", "impact", "ECR-001", cwd=root, ok=False)
     assert r.returncode == 3
-    r = _run("ecr", "new", "--title", "Bad target", "--set", "param://nope=1mm", cwd=root, ok=False)
+    r = _run(
+        "ecr", "start", "--title", "Bad target", "--set", "param://nope=1mm", cwd=root, ok=False
+    )
     assert r.returncode == 3 and "does not exist" in r.stderr
 
 
 def test_not_tracked_refusal_wording(tmp_path: Path) -> None:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=False)
-    _run("ecr", "new", "--title", "x", "--set", "param://bracket-width=70mm", cwd=root)
+    _legacy_new("--title", "x", "--set", "param://bracket-width=70mm", cwd=root)
     _run("ecr", "impact", "ECR-001", cwd=root)
     _run("ecr", "approve", "ECR-001", "--by", "x", cwd=root)
     r = _run("ecr", "apply", "ECR-001", cwd=root, ok=False)

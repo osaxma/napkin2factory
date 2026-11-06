@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from napkin2factory.cli.checkpointing import (
+    APPROVAL_HASH_EXCLUDE,
     checkpoint,
     open_change_request,
     save_edits_first,
@@ -262,7 +263,11 @@ def test_stale_after_restore_names_an_approval_that_no_longer_matches(root: Path
     base = vcs.head()
     assert base is not None
     write_ecr(
-        root, "ECR-001", "approved", baseline=base, model_hash=vcs.working_hash(("changes/",))
+        root,
+        "ECR-001",
+        "approved",
+        baseline=base,
+        model_hash=vcs.working_hash(APPROVAL_HASH_EXCLUDE),
     )
     n2f("snapshot", "-m", "Approved ECR-001", cwd=root)
     assert stale_after_restore(root) == []  # the hash covers the model without changes/

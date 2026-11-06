@@ -14,7 +14,7 @@ import yaml
 
 from napkin2factory.core.vcs import Vcs
 from tests.conftest import EXAMPLES, copy_product
-from tests.e2e.test_ecr import _run
+from tests.e2e.test_ecr import _legacy_new, _run
 
 
 def test_yaml_only_design_change_bumps_revision_after_signoff(tmp_path: Path) -> None:
@@ -31,9 +31,7 @@ def test_yaml_only_design_change_bumps_revision_after_signoff(tmp_path: Path) ->
     part.write_text(original)
     (root / "changes").mkdir(exist_ok=True)
     (root / "changes/ECR-001.patch").write_text(diff)
-    _run(
-        "ecr",
-        "new",
+    _legacy_new(
         "--title",
         "Black lid",
         "--kind",

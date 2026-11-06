@@ -25,7 +25,10 @@ def _output_hashes(product: Product) -> dict[str, str]:
 
 
 def bump_revisions(
-    product: Product, before: dict[str, str], since: str | None = None
+    product: Product,
+    before: dict[str, str],
+    since: str | None = None,
+    new: frozenset[str] = frozenset(),
 ) -> dict[str, tuple[str, str]]:
     """Bump revs of changed parts, then of assemblies whose children changed.
 
@@ -33,12 +36,15 @@ def bump_revisions(
     between the snapshot ``since`` and the latest one (declared fields: finish, material,
     cost... that leave the geometry alone).  ``since`` is the snapshot before the change
     request was applied (:func:`_snapshot_before`); without it only the latest snapshot
-    is diffed.  Returns ``{uri: (old, new)}``.
+    is diffed.  ``new`` holds the URIs a live change request created: they start at their
+    first revision and are not bumped (S-254).  Returns ``{uri: (old, new)}``.
     """
     after = _output_hashes(product)
     declared = _changed_files(product, since)
     bumped: dict[str, tuple[str, str]] = {}
     for part in product.parts.values():
+        if part.uri in new:
+            continue
         rid = f"part:{part.id}"
         changed = before.get(rid) != after.get(rid) if (rid in before or rid in after) else False
         if changed or _part_rel(product, part.id) in declared:
@@ -50,6 +56,8 @@ def bump_revisions(
             bumped[part.uri] = (old, data["rev"])
     for aid in _asm_order(product):
         asm = product.assemblies[aid]
+        if asm.uri in new:
+            continue
         child_bumped = any(c.uri in bumped for c in asm.children)
         rid = f"asm:{aid}"
         changed = before.get(rid) != after.get(rid) if (rid in before or rid in after) else False

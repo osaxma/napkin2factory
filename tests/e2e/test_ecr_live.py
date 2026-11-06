@@ -1,0 +1,311 @@
+"""v0.8 M2b: live change requests, edited in place (R6, R7, R9, S-254).
+
+Every flow runs on a prebuilt copy of the bracket (S-196), so the baseline copy and the
+rebuilds are incremental. ``_legacy_new`` (test_ecr.py) files a request the v0.7 way.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+from pathlib import Path
+from typing import Any
+
+import pytest
+import yaml
+
+from napkin2factory.cli.checkpointing import APPROVAL_HASH_EXCLUDE
+from napkin2factory.core import checkpoints
+from napkin2factory.core.vcs import Vcs
+from tests.conftest import EXAMPLES, copy_product, n2f
+from tests.e2e.test_ecr import _legacy_new, _no_git_words
+
+os.environ.setdefault("N2F_OFFLINE", "1")
+
+PARAMS = "model/parameters.yaml"
+PART = "model/parts/l-bracket.yaml"
+ASM = "model/assemblies/bracket.yaml"
+PAD = """id: rubber-pad
+rev: A
+name: Rubber pad
+kind: cots
+process: none
+material: {name: rubber, spec: "neoprene pad, 20 x 20 x 3 mm"}
+geometry: none
+source: {vendor: McMaster-Carr, mpn: "neoprene pad", url: "https://www.mcmaster.com/"}
+lead_time: 3 d
+mass: 0.010 kg
+interfaces: []
+satisfies: []
+"""
+
+
+@pytest.fixture
+def root(tmp_path: Path) -> Path:
+    return copy_product(EXAMPLES / "bracket", tmp_path / "b", prebuilt=True, render=False)
+
+
+def _run(*args: str, cwd: Path, ok: bool = True) -> Any:
+    r = n2f(*args, cwd=cwd)
+    if ok:
+        assert r.returncode == 0, f"{args}: {r.stdout}\n{r.stderr}"
+    _no_git_words(r.stdout + r.stderr)
+    return r
+
+
+def _json(*args: str, cwd: Path) -> dict[str, Any]:
+    out: dict[str, Any] = json.loads(_run(*args, "--json", cwd=cwd).stdout)
+    return out
+
+
+def _edit(root: Path, rel: str, old: str, new: str) -> None:
+    path = root / rel
+    text = path.read_text()
+    assert old in text, (rel, old)
+    path.write_text(text.replace(old, new, 1))
+
+
+def _ecr(root: Path, ecr_id: str = "ECR-001") -> dict[str, Any]:
+    out: dict[str, Any] = yaml.safe_load((root / f"changes/{ecr_id}.yaml").read_text())
+    return out
+
+
+def _log(root: Path) -> list[checkpoints.Checkpoint]:
+    """The checkpoints, oldest first."""
+    return sorted(checkpoints.read(Vcs(root)), key=lambda c: c.number)
+
+
+def test_start_saves_unsaved_edits_and_leaves_them_out_of_the_impact(root: Path) -> None:
+    _edit(root, PARAMS, "hole-spacing:      {value: 36", "hole-spacing:      {value: 38")
+    out = _json("ecr", "start", "--title", "Thicker steel", "--reason", "stiffer", cwd=root)
+    assert out["id"] == "ECR-001" and out["status"] == "draft"
+    log = _log(root)
+    labels = [c.label for c in log]
+    assert labels[-2].startswith("edits since") and labels[-1] == "Started ECR-001: Thicker steel"
+    assert out["checkpoint"] == log[-1].id
+    # the baseline is the checkpoint holding the unsaved edit; the start checkpoint follows it
+    data = _ecr(root)
+    assert data["baseline"]["checkpoint"] == log[-2].id == out["baseline"]
+    assert Vcs(root).read_ref("ecr/ECR-001/baseline") == log[-2].id
+    assert log[-1].number == log[-2].number + 1
+    _edit(root, PARAMS, "bracket-width:     {value: 60", "bracket-width:     {value: 70")
+    impact = _json("ecr", "impact", cwd=root)
+    assert impact["objects"]["changed"] == ["param://bracket-width"]  # not hole-spacing
+    assert impact["files"]["changed"] == [PARAMS]
+    assert (
+        impact["parameters"][0]["before"] == "60 mm" and impact["parameters"][0]["after"] == "70 mm"
+    )
+    assert impact["checkpoint"] == log[-1].id
+
+
+def test_one_parameter_request_start_impact_approve_close(root: Path) -> None:
+    started = _json(
+        "ecr", "start", "--title", "Thicker", "--set", "param://bracket-width=70mm", cwd=root
+    )
+    assert started["edits"] and started["checkpoint"] != started["baseline"]
+    assert "bracket-width:     {value: 70" in (root / PARAMS).read_text()  # comments kept
+    assert re.search(r"set bracket-width to 70mm", _log(root)[-1].label)
+    text = _run("ecr", "impact", cwd=root).stdout
+    assert "Mass: " in text and "→" in text and "Cost: " in text and "Envelope" in text
+    assert (root / "build/changes/ECR-001-impact.md").is_file()
+    assert (root / "build/changes/ECR-001/baseline.json").is_file()
+    impact = _json("ecr", "impact", "ECR-001", cwd=root)  # the cached baseline is reused
+    assert impact["mass"]["delta"] > 0 and impact["mass"]["unit"] == "kg"
+    assert impact["cost"]["complete"] is True and impact["cost"]["unpriced"] == []
+    assert "part:l-bracket" in impact["rebuilt"]
+    assert impact["envelope"]["asm://bracket"]["after"]
+    assert _ecr(root)["impact"]["model_hash"] == impact["model_hash"]
+    approved = _json("ecr", "approve", "--by", "Owner", "--note", "ok", cwd=root)
+    assert approved["status"] == "approved"
+    data = _ecr(root)
+    vcs = Vcs(root)
+    assert data["approval"]["model_hash"] == vcs.working_hash(exclude=APPROVAL_HASH_EXCLUDE)
+    assert _log(root)[-1].label == "Approved ECR-001 by Owner"
+    closed = _json("ecr", "close", cwd=root)
+    assert closed["status"] == "closed" and closed["bumped"]["part://l-bracket"] == ["A", "B"]
+    assert closed["checkpoint"] == _log(root)[-1].id
+    assert _log(root)[-1].label == "Closed ECR-001: Thicker"
+    assert _ecr(root)["status"] == "closed"
+    assert "ECR-001" in (root / "CHANGELOG.md").read_text()
+    assert "rev: B" in (root / PART).read_text()
+
+
+def test_design_request_reports_added_and_changed_objects(root: Path) -> None:
+    _run(
+        "ecr",
+        "start",
+        "--title",
+        "Add a pad",
+        "--kind",
+        "design",
+        "--task",
+        "Place a pad",
+        cwd=root,
+    )
+    (root / "model/parts/rubber-pad.yaml").write_text(PAD)
+    _edit(
+        root,
+        ASM,
+        "  - {part: part://l-bracket, qty: 1}\n",
+        "  - {part: part://l-bracket, qty: 1}\n  - {part: part://rubber-pad, qty: 2}\n",
+    )
+    _edit(root, PART, "finish: powder coat, black", "finish: powder coat, white")
+    impact = _json("ecr", "impact", cwd=root)
+    assert impact["objects"]["added"] == ["part://rubber-pad"]
+    assert {"part://l-bracket", "asm://bracket"} <= set(impact["objects"]["changed"])
+    assert "model/parts/rubber-pad.yaml" in impact["files"]["added"]
+    assert impact["revs"] == {"rubber-pad": "A"}
+    # the added part has no price: named, never a silent zero
+    assert impact["cost"]["unpriced"] == ["part://rubber-pad"]
+    assert impact["cost"]["newly_unpriced"] == ["part://rubber-pad"]
+    assert impact["cost"]["complete"] is False
+    text = (root / "build/changes/ECR-001-impact.md").read_text()
+    assert "no price on 1 part(s)" in text and "`rubber-pad`" in text
+    assert "Designer tasks" in text and "Place a pad" in text
+    _run("ecr", "approve", "--by", "Owner", cwd=root)
+    closed = _json("ecr", "close", cwd=root)
+    assert closed["bumped"]["part://l-bracket"] == ["A", "B"]
+    assert "part://rubber-pad" not in closed["bumped"]  # born in this request: stays at rev A
+    assert "rev: A" in (root / "model/parts/rubber-pad.yaml").read_text()
+
+
+def test_close_sees_edits_never_saved_b_0060(root: Path) -> None:
+    _run("ecr", "start", "--title", "White", cwd=root)
+    _edit(root, PART, "finish: powder coat, black", "finish: powder coat, white")  # unsaved
+    assert Vcs(root).unsaved_files() == [PART]
+    _run("ecr", "impact", cwd=root)
+    _run("ecr", "approve", "--by", "Owner", cwd=root)
+    # a further unsaved edit after the approval is seen by close, and refused
+    _edit(root, PART, "lead_time: 5 d", "lead_time: 6 d")
+    r = _run("ecr", "close", cwd=root, ok=False)
+    assert r.returncode == 3 and "changed since ECR-001 was approved" in " ".join(r.stderr.split())
+    assert "n2f ecr impact" in r.stderr and "n2f ecr approve" in r.stderr
+    assert _ecr(root)["status"] == "approved"
+    # review again: impact puts it back to draft, approve binds the new model, close passes
+    _run("ecr", "impact", cwd=root)
+    assert _ecr(root)["status"] == "draft" and "approval" not in _ecr(root)
+    _run("ecr", "approve", "--by", "Owner", cwd=root)
+    closed = _json("ecr", "close", cwd=root)
+    # the finish edit was never saved by anyone before the request ran: still in the revision
+    assert closed["bumped"]["part://l-bracket"] == ["A", "B"]
+
+
+def test_approve_refuses_after_an_edit_since_the_impact(root: Path) -> None:
+    _run("ecr", "start", "--title", "T", "--set", "param://bracket-width=70mm", cwd=root)
+    r = _run("ecr", "approve", "--by", "x", cwd=root, ok=False)
+    assert r.returncode == 3 and "no impact report yet" in " ".join(r.stderr.split())
+    _run("ecr", "impact", cwd=root)
+    _edit(root, PARAMS, "hole-spacing:      {value: 36", "hole-spacing:      {value: 37")
+    r = _run("ecr", "approve", "--by", "x", cwd=root, ok=False)
+    err = " ".join(r.stderr.split())
+    assert r.returncode == 3 and "changed since the impact of ECR-001 was computed" in err
+    assert "n2f ecr impact ECR-001" in err
+
+
+def test_abort_restores_the_start_is_recorded_and_can_be_undone(root: Path) -> None:
+    before = (root / PARAMS).read_text()
+    start = _json("ecr", "start", "--title", "Never mind", cwd=root)
+    _edit(root, PARAMS, "bracket-width:     {value: 60", "bracket-width:     {value: 80")
+    (root / "model/notes.md").write_text("scratch\n")  # a new, unsaved file
+    out = _json("ecr", "abort", "--reason", "too heavy", cwd=root)
+    assert out["status"] == "aborted" and out["restored"] == start["checkpoint"]
+    assert out["saved"] and out["checkpoint"] == _log(root)[-1].id
+    assert (root / PARAMS).read_text() == before and not (root / "model/notes.md").exists()
+    data = _ecr(root)
+    assert data["status"] == "aborted" and data["aborted_reason"] == "too heavy"
+    log = _log(root)
+    assert (
+        log[-1].label == "Aborted ECR-001: Never mind" and log[-1].restores == start["checkpoint"]
+    )
+    assert log[-2].label.startswith("edits since")  # the aborted work is a checkpoint
+    # undo = restore the checkpoint before the abort: the request and its edits come back
+    plan = checkpoints.undo_plan(log)
+    assert plan is not None and plan.undoes.id == log[-1].id and plan.restores.id == log[-2].id
+    Vcs(root).restore(plan.restores.id)
+    assert "bracket-width:     {value: 80" in (root / PARAMS).read_text()
+    assert (root / "model/notes.md").is_file() and _ecr(root)["status"] == "draft"
+    # and a new request can start once the first is gone
+    _run("ecr", "abort", cwd=root)
+    again = _run("ecr", "start", "--title", "Second", cwd=root)
+    assert "ECR-002" in again.stdout
+
+
+def test_one_open_request_at_a_time(root: Path) -> None:
+    _run("ecr", "start", "--title", "First", cwd=root)
+    r = _run("ecr", "start", "--title", "Second", cwd=root, ok=False)
+    err = " ".join(r.stderr.split())
+    assert r.returncode == 3 and "ECR-001 (First) is still open" in err
+    assert "n2f ecr close ECR-001" in err and "n2f ecr abort ECR-001" in err
+    assert not (root / "changes/ECR-002.yaml").exists()
+    r = _run("ecr", "quick", "--set", "param://bracket-width=70mm", cwd=root, ok=False)
+    assert r.returncode == 3 and "still open" in " ".join(r.stderr.split())
+    assert "bracket-width:     {value: 60" in (root / PARAMS).read_text()
+
+
+def test_an_old_style_request_does_not_hold_the_folder(root: Path) -> None:
+    _legacy_new("--title", "Old", "--set", "param://bracket-width=70mm", cwd=root)
+    out = _json("ecr", "start", "--title", "New", cwd=root)
+    assert out["id"] == "ECR-002"
+    rows = {r["id"]: r["status"] for r in _json("ecr", "list", cwd=root)["ecrs"]}
+    assert rows == {"ECR-001": "draft", "ECR-002": "draft"}
+
+
+def test_bridges(root: Path) -> None:
+    r = _run("ecr", "new", "--title", "Via new", cwd=root)
+    assert r.stdout.count("`ecr new` is now `ecr start`") == 1 and "started ECR-001" in r.stdout
+    assert _ecr(root)["baseline"]["checkpoint"]
+    _run("ecr", "abort", cwd=root)
+    for verb in ("new", "start"):
+        r = _run("ecr", verb, "--title", "x", "--patch", "changes/p.patch", cwd=root, ok=False)
+        err = " ".join(r.stderr.split())
+        assert r.returncode == 3 and "edit the model files directly after `n2f ecr start`" in err
+    r = _run(
+        "ecr", "quick", "--set", "param://bracket-width=70mm", "--patch", "p", cwd=root, ok=False
+    )
+    assert r.returncode == 3 and "edit the model files directly" in " ".join(r.stderr.split())
+    _run("ecr", "start", "--title", "Live", cwd=root)
+    r = _run("ecr", "apply", cwd=root, ok=False)
+    err = " ".join(r.stderr.split())
+    assert r.returncode == 3 and "n2f ecr approve ECR-002" in err and "n2f ecr close ECR-002" in err
+    r = _run("ecr", "reject", "ECR-002", "--reason", "no", cwd=root, ok=False)
+    assert r.returncode == 3 and "n2f ecr abort ECR-002" in " ".join(r.stderr.split())
+
+
+def test_quick(root: Path) -> None:
+    r = _run("ecr", "quick", "--set", "param://bracket-width=70mm", "--reason", "stiffer", cwd=root)
+    out = " ".join(r.stdout.split())
+    assert "started ECR-001" in out and "Mass:" in out
+    assert "n2f ecr approve ECR-001 --by <name> && n2f ecr close ECR-001" in out
+    assert "n2f ecr abort ECR-001" in out
+    data = _ecr(root)
+    assert data["status"] == "draft" and data["impact"]["mass"]["delta"] > 0
+    assert data["reason"] == "stiffer" and data["title"] == "Set bracket-width to 70mm"
+    _run("ecr", "abort", cwd=root)
+    j = _json("ecr", "quick", "--set", "param://bracket-width=70mm", "--title", "Wider", cwd=root)
+    assert j["id"] == "ECR-002" and j["checkpoint"] and j["mass"]["after"] > j["mass"]["before"]
+
+
+def test_impact_with_no_change_and_a_broken_target(root: Path) -> None:
+    _run("ecr", "start", "--title", "Nothing yet", cwd=root)
+    r = _run("ecr", "impact", cwd=root)
+    assert "Nothing in the model has changed" in r.stdout
+    assert "(no change)" in r.stdout
+    r = _run("ecr", "start", "--title", "y", "--set", "param://nope=1mm", cwd=root, ok=False)
+    assert r.returncode == 3  # refused by the one-open rule first
+    _run("ecr", "abort", cwd=root)
+    r = _run("ecr", "start", "--title", "y", "--set", "param://nope=1mm", cwd=root, ok=False)
+    assert r.returncode == 3 and "does not exist" in r.stderr
+    assert not (root / "changes/ECR-002.yaml").exists()
+
+
+def test_a_signoff_after_approval_does_not_unbind_it(root: Path) -> None:
+    """The approval hash leaves out sign-offs (S-254 amends S-252): sign, then close."""
+    _run("ecr", "quick", "--set", "param://bracket-width=70mm", cwd=root)
+    _run("ecr", "approve", "--by", "Owner", cwd=root)
+    approved = _ecr(root)["approval"]["model_hash"]
+    _run("signoff", "REQ-001", "--by", "Owner", "--statement", "measured", cwd=root)
+    assert list((root / "model/signoffs").glob("*.yaml"))
+    assert Vcs(root).working_hash(exclude=APPROVAL_HASH_EXCLUDE) == approved
+    closed = _json("ecr", "close", cwd=root)
+    assert closed["status"] == "closed"

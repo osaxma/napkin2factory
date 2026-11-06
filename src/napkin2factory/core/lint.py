@@ -273,8 +273,11 @@ def lint(product: Product) -> Problems:
                     rule="L13-assembly-driver",
                 )
 
-    # L10: draft parametric change requests should carry edits.
+    # L10: draft parametric change requests should carry edits. A live request (one with a
+    # baseline, v0.8) is edited in place, so its edits are the model files themselves.
     for e in product.ecrs.values():
+        if e.baseline is not None:
+            continue
         if e.kind == "parametric" and not e.edits:
             problems.add(
                 product.files[e.uri],

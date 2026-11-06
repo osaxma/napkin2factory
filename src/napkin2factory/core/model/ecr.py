@@ -9,16 +9,22 @@ from pydantic import Field, model_validator
 
 from napkin2factory.core.model.base import EcrId, Model, UriField
 
-EcrStatus = Literal["draft", "impact", "approved", "applied", "closed", "rejected"]
+EcrStatus = Literal["draft", "impact", "approved", "applied", "closed", "rejected", "aborted"]
 EcrKind = Literal["parametric", "design"]
 #: Allowed transitions of the ECR state machine.
+#:
+#: A live request (one with a ``baseline``, v0.8 R6) goes ``draft → approved → closed`` or
+#: ``draft | approved → aborted``; a new impact report on an approved one puts it back to
+#: ``draft`` (an approval belongs to one impact report, R7). The ``impact`` and ``applied``
+#: states belong to requests without a baseline and go in schema 2 (B-0263, M2c).
 TRANSITIONS: dict[str, tuple[str, ...]] = {
-    "draft": ("impact", "rejected"),
+    "draft": ("impact", "rejected", "approved", "aborted"),
     "impact": ("approved", "rejected", "impact"),
-    "approved": ("applied", "rejected"),
+    "approved": ("applied", "rejected", "aborted", "draft", "closed"),
     "applied": ("closed",),
     "closed": (),
     "rejected": (),
+    "aborted": (),
 }
 
 
@@ -87,6 +93,7 @@ class Ecr(Model):
     applied: Applied | None = None
     released_in: str | None = None
     rejected_reason: str | None = None
+    aborted_reason: str | None = None
     created: dt.date | None = None
 
     @model_validator(mode="after")

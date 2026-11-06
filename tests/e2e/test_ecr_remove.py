@@ -7,7 +7,7 @@ from pathlib import Path
 
 from napkin2factory.core.vcs import Vcs
 from tests.conftest import EXAMPLES, copy_product, n2f
-from tests.e2e.test_ecr import _no_git_words
+from tests.e2e.test_ecr import _legacy_new, _no_git_words
 
 
 def _run(*args: str, cwd: Path, ok: bool = True):  # type: ignore[no-untyped-def]
@@ -87,9 +87,7 @@ def test_ecr_remove_part_and_parameter(tmp_path: Path) -> None:
     patch_file.write_text(diff)
 
     # File the design ECR
-    _run(
-        "ecr",
-        "new",
+    _legacy_new(
         "--title",
         "Remove shim and offset parameter",
         "--kind",
@@ -144,9 +142,7 @@ def test_ecr_apply_atomicity(tmp_path: Path) -> None:
         "+  broken: {unclosed\n"
     )
 
-    _run(
-        "ecr",
-        "new",
+    _legacy_new(
         "--title",
         "Broken patch",
         "--kind",
