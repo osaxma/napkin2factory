@@ -53,6 +53,13 @@ _UNFINISHED = ("draft", "impact", "approved", "applied")
 _NOT_COPIED = frozenset({"build", ".git", ".worktrees", "__pycache__"})
 BEFORE_LABEL = "Before upgrading the format"
 UPGRADED_LABEL = f"Upgraded the file format to {TO_VERSION}"
+
+
+def carried_approval_label(ecr_id: str) -> str:
+    """The upgrade's checkpoint for an applied request it carries over as approved."""
+    return f"{UPGRADED_LABEL}: approved {ecr_id} carried over"
+
+
 CARRIED_LABEL = "carried over from the old format"
 
 
@@ -364,7 +371,8 @@ def _applied(root: Path, vcs: Vcs, live: _Old, before: str) -> list[str]:
     }
     dump_roundtrip(live.path, data)
     vcs.set_ref(f"ecr/{live.id}/baseline", base)
-    checkpoint(root, UPGRADED_LABEL)
+    # `ecr close` compares the model with this checkpoint, as with an "Approved <id>" one (S-273)
+    checkpoint(root, carried_approval_label(live.id))
     load_product(root)
     return [
         f"{live.name}: was applied but not closed; it is open again and approved for the model "

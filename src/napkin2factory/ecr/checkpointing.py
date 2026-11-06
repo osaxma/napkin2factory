@@ -186,8 +186,11 @@ def _stale_signoffs(product: Product) -> list[str]:
 
 def approved_checkpoint(vcs: Vcs, ecr_id: str) -> cps.Checkpoint | None:
     """The newest ``Approved <id> …`` checkpoint of the history, or None."""
+    from napkin2factory.ecr.upgrade import carried_approval_label
+
+    carried = carried_approval_label(ecr_id)
     for cp in cps.read(vcs):  # newest first
-        if cp.label.startswith(f"Approved {ecr_id} "):
+        if cp.label.startswith(f"Approved {ecr_id} ") or cp.label == carried:
             return cp
     return None
 

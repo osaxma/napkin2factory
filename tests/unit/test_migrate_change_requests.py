@@ -286,6 +286,10 @@ def test_an_applied_request_becomes_approved_for_the_model_as_it_is(tmp_path: Pa
     assert live["approval"]["by"] == "Sam"
     assert vcs.read_ref("ecr/ECR-005/baseline") == live["baseline"]["checkpoint"]
     assert load_product(root).ecrs["ECR-005"].status == "approved"
+    # `ecr close` compares the model with the newest "Approved" checkpoint (gate K)
+    from napkin2factory.ecr.checkpointing import matches_approval
+
+    assert matches_approval(vcs, "ECR-005")
 
 
 def test_an_applied_request_starts_from_the_state_before_it_was_applied(tmp_path: Path) -> None:
