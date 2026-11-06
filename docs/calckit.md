@@ -151,7 +151,7 @@ fabricator's, supplier's) to confirm. DECISIONS.md lists each table as `[verify]
 
 | table | rows | first source |
 |---|---|---|
-| `circuits` | 14 (SA 4, EU 2, UK 2, US 3, AU 3) | the plug and wiring standards named per row (SASO 2203, CEE 7/3, BS 1363, BS 7671, NEMA WD 6 / NEC 210, AS/NZS 3112 / 3000, IEC 60309 / 60898-1) |
+| `circuits` | 16 (SA 4, EU 4, UK 2, US 3, AU 3) | the plug and wiring standards named per row (SASO 2203, CEE 7/3, BS 1363, BS 7671, NEMA WD 6 / NEC 210, AS/NZS 3112 / 3000, IEC 60309 / 60898-1) |
 | `cost_bands` | 7 (`sheet-metal`, `cut-sheet`, `cut-block`, `fiber-board`, `welding`, `machining`, `cots-controls`) | the kiln's own per-part estimates (basis `estimate`, DEC-012) over the built part masses; `cut-sheet` and `welding` rest on a single part each (low = high) |
 | `materials` | 3 (K-23 insulating firebrick, ceramic fiber board (Kaowool 1260), mild steel) | the makers' datasheets (Morgan Thermal Ceramics K-23 and Kaowool 1260 board), at the kiln's chosen values: fiber board k 0.15 W/m·K at a ~400 °C mean (datasheet 0.12–0.18), ρ 260 kg/m³. Concept screening's insulation layers and the massing densities (`geometry/materials.py`) both read these rows, so the napkin and the factory use one number per material |
 | `lift_classes` | 3 (one-person ≤ 25 kg, two-person ≤ 33 kg, equipment) | UK HSE INDG143 / L23 guideline weights — a screening filter, not a safe limit |
