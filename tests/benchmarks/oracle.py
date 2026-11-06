@@ -93,7 +93,13 @@ def judge_concepts(c: Concepts, ev: Evidence, extra: Any) -> list[Row]:
     ]
     if c.count is not None:
         rows.append(
-            _row("concept", "number of cards", len(cards) == c.count, str(len(cards)), str(c.count))
+            _row(
+                "concept",
+                "number of cards",
+                len(cards) == c.count,
+                str(len(cards)) + _left_out_words(ev),
+                str(c.count),
+            )
         )
     promoted = [x for x in cards if x.status == "promoted"]
     rows.append(
@@ -153,6 +159,13 @@ def judge_concepts(c: Concepts, ev: Evidence, extra: Any) -> list[Row]:
                 _row("concept", f"a card is {describe(s)}", True, _card_words(card, extra), s.why)
             )
     return rows
+
+
+def _left_out_words(ev: Evidence) -> str:
+    """Say which cards hold the built design and were not counted (S-278)."""
+    if not ev.left_out:
+        return ""
+    return f" (not counted: {', '.join(ev.left_out)}, made from the built design)"
 
 
 def _card_words(card: Any, extra: Any) -> str:

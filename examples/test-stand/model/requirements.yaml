@@ -15,7 +15,7 @@ requirements:
 
   - id: REQ-002
     title: Load cell rated capacity
-    statement: The chosen load cell's rated capacity is at least the rated test force.
+    statement: The chosen load cell's rated capacity is at least the rated test force, 2000 N.
     category: performance
     priority: must
     verify: {kind: calc, target: "calc://capacity.load_cell_margin", op: ">=", value: '1'}

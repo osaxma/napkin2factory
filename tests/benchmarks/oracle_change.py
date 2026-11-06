@@ -217,7 +217,7 @@ def _agent_impact(
         except EvidenceError as exc:
             raise ChangeFailure(_last_line(exc)) from exc
     try:
-        cps = _json(run_n2f(product, "checkpoints", "--json")).get("checkpoints", [])
+        cps = _json(run_n2f(product, "checkpoints", "--all", "--json")).get("checkpoints", [])
     except EvidenceError as exc:
         raise ChangeFailure(_last_line(exc)) from exc
     if status == "closed":

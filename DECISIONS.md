@@ -304,6 +304,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-275 | The test stand's load-cell requirement follows the rated load (B-0279) | in force |
 | S-276 | Health review 2026-11-06 (v0.8 close) | in force |
 | S-277 | Gate B fixes: seeding skips a requirement already held, the switch names the card's failures | in force |
+| S-278 | The oracle judges a gate B product: every checkpoint, built and parked cards | in force |
 
 ---
 
@@ -2130,3 +2131,10 @@ Not done: B-0266 (cold-agent gate B) stays open, S-272 ran the scripted flow onl
 ## S-277 — Gate B fixes: seeding skips a requirement already held, the switch names the card's failures (2026-11-06)
 Closes B-0285, B-0286 and B-0280. (1) Promotion (and the switch's seeding, R10) does not append a planned requirement when the model already holds one with the same verify target, operator and value, the values compared as quantities (`0.2 m` equals `200 mm`); a manual requirement has no target and is never matched. The result and the text say "REQ-006 already asks this: …" in a note, as for "already declared" parameters. Why: each copy of a safety requirement needed its own sign-off before `ecr close`. (2) The switch's red-card refusal and its result list the card's failing screening checks as `n2f concept show` prints them, and say the model's parts are still the earlier direction's, so a check judges those until the design changes; a never-promoted card brings only its sketch by design (R10), so the failure is shown from the card's screening, not from a new model. (3) The unnamed-folder stop looks at the saved and the unsaved files together, before anything is saved.
 Measured (gate B script): 14 sign-offs before `ecr close` both before and after, because the copies left are the manual sag requirement (no verify target to match) and the weight one (a geometry mass limit, not the model's bom rollup target); the cost, width and depth copies are gone (3 of 5 rows held per seeding). Matching those two by meaning is not done: not decided.
+
+## S-278 — The oracle judges a gate B product: every checkpoint, built and parked cards (2026-11-06)
+Gate B (S-277) ran the forward-and-backward script on the test stand with two cold agents; the oracle failed both identically, for reasons of its own.
+(1) An aborted request is found among `n2f checkpoints --all`, not the last 20: the abort sat 30 checkpoints back.
+(2) A card with a `built` block of event `forked` (written by `concept fork-from-model`) holds the built design, not a napkin idea: the concept rows and the card count leave it out (the count row names it), and its refusal to build is no problem. A `parked` card is an idea set aside, judged like a rejected one by the checks its screening fails.
+(3) The test stand's REQ-002 statement names the rated test force again (2000 N), so `n2f status` no longer reports it unmeasurable.
+Measured on copies of both gate B products: 47 passed 3 failed 7 pending before (gemini), 48 passed 2 failed 7 pending after, both products. The two left fail on the assembled mass (16.98 and 16.91 kg against 16.52 or 15.92): the agents' own design change moved it, expected on the final folder.

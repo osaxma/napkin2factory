@@ -15,7 +15,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from tests.benchmarks import oracle
+from tests.benchmarks import oracle, oracle_change
 from tests.benchmarks.oracle_evidence import Card, Evidence
 from tests.benchmarks.oracle_match import (
     MatchError,
@@ -298,6 +298,73 @@ def test_a_promoted_card_with_a_failing_check_fails():
 def test_no_concept_cards_is_a_fail_not_a_crash():
     rows = oracle.evaluate(Oracle.model_validate({"concepts": {}}), _ev(cards=[]))
     assert any(not r.passed for r in rows)
+
+
+def test_a_card_holding_the_built_design_is_not_a_napkin_idea():
+    cards = _cards()
+    forked = _card("f", "rejected", ["steel"], [_rule("mass-limit", "fail", "Mass")])
+    forked.built_event = "forked"
+    spec = Oracle.model_validate({"concepts": {"count": 3, "rejected": [{"by": ["mass", "cost"]}]}})
+    ev = _ev(cards=[*cards, forked])
+    rows = oracle.evaluate(spec, ev)
+    count = next(r for r in rows if r.what == "number of cards")
+    assert count.passed and "not counted: f" in count.found
+    assert len(ev.cards()) == 3
+
+
+def test_a_parked_card_counts_as_set_aside_and_is_judged_by_its_failing_checks():
+    cards = _cards()
+    parked = _card("p", "parked", ["steel"], [_rule("mass-limit", "fail", "Mass")])
+    parked.built_event = "parked"
+    spec = Oracle.model_validate(
+        {
+            "concepts": {
+                "rejected": [
+                    {"by": ["structural"], "not_by": ["mass"]},
+                    {"by": ["mass", "cost"]},
+                    {"by": ["mass"], "not_by": ["cost"]},
+                ]
+            }
+        }
+    )
+    rows = oracle.evaluate(spec, _ev(cards=[*cards, parked]))
+    assert not [r for r in rows if r.what.startswith("a card is") and not r.passed]
+    assert next(r for r in rows if "every other card" in r.what).passed
+
+
+def test_a_forked_card_refusing_to_build_is_not_a_problem(tmp_path: Path):
+    def runner(product: Path, *args: str) -> str:
+        if args[:2] == ("concept", "build"):
+            errs = [{"id": "C-2", "error": "holds the built design"}, {"id": "C-1", "error": "bad"}]
+            return json.dumps({"errors": errs})
+        if args[:2] == ("concept", "list"):
+            return json.dumps({"concepts": [{"id": "C-1"}, {"id": "C-2"}]})
+        built = {"event": "forked"} if args[2] == "C-2" else None
+        return json.dumps({"id": args[2], "status": "exploring", "built": built})
+
+    (tmp_path / "concepts").mkdir()
+    ev = Evidence(tmp_path, runner=runner)
+    assert [c.id for c in ev.cards()] == ["C-1"]
+    assert len(ev.problems) == 1 and "bad" in ev.problems[0]
+
+
+def test_an_aborted_request_is_found_among_every_checkpoint(tmp_path: Path, monkeypatch):
+    calls: list[tuple[str, ...]] = []
+
+    def fake(product: Path, *args: str) -> str:
+        calls.append(args)
+        if args[0] == "checkpoints":
+            return json.dumps(
+                {"checkpoints": [{"number": 9, "label": "Aborted ECR-001: x"}, {"number": 8}]}
+            )
+        return "{}"
+
+    monkeypatch.setattr(oracle_change, "run_n2f", fake)
+    req = tmp_path / "ECR-001.yaml"
+    req.write_text("id: ECR-001\nstatus: aborted\n", encoding="utf-8")
+    oracle_change._agent_impact(None, tmp_path, req, False)  # type: ignore[arg-type]
+    assert ("checkpoints", "--all", "--json") in calls
+    assert ("rollback", "8", "--json") in calls
 
 
 # --- figures -----------------------------------------------------------------------------

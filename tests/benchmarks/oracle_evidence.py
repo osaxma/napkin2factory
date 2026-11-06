@@ -20,7 +20,7 @@ import os
 import subprocess
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +45,7 @@ class Card:
     materials: list[str] = field(default_factory=list)
     kits: list[str] = field(default_factory=list)
     pieces: int = 0
+    built_event: str = ""  # "forked" (holds the built design), "parked", or "" (S-278)
 
     @property
     def rules(self) -> list[dict[str, Any]]:
@@ -63,6 +64,7 @@ class Card:
             materials=[str(m["material"]) for m in massing if m.get("material")],
             kits=[str(m["kit"]) for m in massing if m.get("kit")],
             pieces=len(massing),
+            built_event=str((data.get("built") or {}).get("event", "")),
         )
 
 
@@ -105,6 +107,7 @@ class Evidence:
         self.build = build
         self.runner = runner
         self.problems: list[str] = []
+        self.left_out: list[str] = []  # ids of forked-from-model cards, not napkin ideas
         self._built = False
         preset = {
             "check": check,
@@ -193,17 +196,35 @@ class Evidence:
         return dict(self._cache["parameters"])
 
     def cards(self) -> list[Card]:
-        """Every concept card, screened afresh (``concept build --all``) unless ``build=False``."""
+        """The napkin cards, screened afresh (``concept build --all``) unless ``build=False``.
+
+        A card made by ``concept fork-from-model`` holds the built design, not a napkin idea,
+        so it is left out (its id goes to ``left_out``); a ``parked`` card is a set-aside idea
+        and counts as ``rejected`` (S-278).
+        """
         if "cards" not in self._cache:
             self._cache["cards"] = self._load_cards()
-        return list(self._cache["cards"])
+        every: list[Card] = self._cache["cards"]
+        self.left_out = [c.id for c in every if c.built_event == "forked"]
+        return [
+            replace(c, status="rejected") if c.status == "parked" else c
+            for c in every
+            if c.built_event != "forked"
+        ]
 
     def _load_cards(self) -> list[Card]:
         product = self._need_product("concept cards")
         if not (product / "concepts").is_dir():
             return []
+        errors: list[Any] = []
         if self.build:
             built = self._json("concept", "build", "--all", "--no-render", "--json")
-            self.problems += [str(e) for e in (built or {}).get("errors", [])]
+            errors = list((built or {}).get("errors", []))
         listed = self._json("concept", "list", "--json").get("concepts", [])
-        return [Card.from_show(self._json("concept", "show", c["id"], "--json")) for c in listed]
+        cards = [Card.from_show(self._json("concept", "show", c["id"], "--json")) for c in listed]
+        # a forked card refuses to build (its figures are the built design's): not a problem
+        forked = {c.id for c in cards if c.built_event == "forked"}
+        self.problems += [
+            str(e) for e in errors if not (isinstance(e, dict) and e.get("id") in forked)
+        ]
+        return cards
