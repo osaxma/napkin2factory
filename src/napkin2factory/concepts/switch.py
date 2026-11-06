@@ -45,7 +45,8 @@ from napkin2factory.ecr.checkpointing import (
 
 NO_HISTORY = (
     "this folder has no saved history to switch from (it was copied without it, or change "
-    "tracking was never set up): run `n2f init .` here, then try again"
+    "tracking was never set up): the steps before this copy are not in it; "
+    "`n2f init .` starts saving from now"
 )
 REQUIREMENTS = "model/requirements.yaml"
 DECISIONS = "model/decisions.yaml"

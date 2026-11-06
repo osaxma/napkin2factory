@@ -117,7 +117,9 @@ def test_gate_b_flow(tmp_path: Path) -> None:
     assert "C-001 has problems" in refused.stderr
     out = run("concept", "switch", "C-001", "--override", "--reason", "Gate B trial", cwd=root)
     assert "C-001 (Single-column C-frame) is now the design direction" in out.stdout
-    assert "C-002 (Twin-column portal) is parked" in out.stdout
+    assert "C-002 (Twin-column portal) is parked: kept," in out.stdout
+    assert "`n2f concept switch C-002` brings it back" in out.stdout  # S-282
+    assert "next: `n2f build` and `n2f check`" in out.stdout
     # S-277: the switch itself names what C-001 fails, and that the parts are still C-002's
     assert "the arm's tip deflects 1.82 mm (computed), beyond the 0.2 mm limit" in out.stdout
     assert "still C-002's" in out.stdout

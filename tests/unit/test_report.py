@@ -324,3 +324,12 @@ def test_engineer_tables_keep_uri_prefixes(tmp_path: Path) -> None:
     assert "param://box-height" in texts["params"]
     assert any("://" in t for t in texts["refs"]), texts["refs"]
     assert all(c.startswith("part://") for c in texts["captions"]), texts["captions"]
+
+
+def test_front_tile_counts_requirements_only_s_new1(report: tuple[Path, str]) -> None:
+    """Gate L, B2: "n / m requirements" counts requirement rows, never rule rows."""
+    root, html = report
+    total = len(load_product(root).requirements)
+    m = re.search(r"(\d+) / (\d+)</div><div class=\"k\">requirements", html)
+    assert m and int(m.group(2)) == total and int(m.group(1)) <= total
+    assert '<span class="example">' in html or "not reached yet" in html or "done" in html

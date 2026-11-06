@@ -275,6 +275,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
                 "signed": rid in product.signoffs,
             }
         )
+    req_summary = {k: sum(1 for r in req_rows if r["status"] == k) for k in SUMMARY_KEYS}
     safety_reqs = [r for r in req_rows if r.get("safety")]
     other_rows = [
         r for r in checks.get("results", []) if r["kind"] != "requirement" and r["status"] != "pass"
@@ -424,6 +425,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "cost_basis_line": _cost_basis_line(product),
         "bom_json": json.dumps(bom_by_uri),
         "req_rows": req_rows,
+        "req_summary": req_summary,
         "safety_reqs": safety_reqs,
         "other_rows": other_rows,
         "rule_summary": rule_summary,

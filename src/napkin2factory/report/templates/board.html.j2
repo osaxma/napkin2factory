@@ -81,7 +81,7 @@ footer{max-width:1600px;margin:0 auto;padding:0 1.2rem 2rem;font-size:.78rem;col
 <article class="concept {{ c.verdict or 'unbuilt' }} {{ c.status }}{{ ' notchecked' if c.not_checked else '' }}" id="card-{{ c.id }}" data-id="{{ c.id }}" data-verdict="{{ c.verdict or '' }}">
   <div class="chead">
     <div class="row"><span class="cid">{{ c.id }}</span><h2>{{ c.title }}</h2><span class="badge {{ 'unbuilt' if not c.built and c.status == 'exploring' else c.status }}">{{ c.status_word }}</span></div>
-    {% if c.verdict == 'red' %}<p class="verdict red">this direction has problems</p>{% elif c.verdict == 'green' %}{% if c.not_checked %}<p class="verdict look">no problems found, but not fully checked</p>{% else %}<p class="verdict green">holds up in screening</p>{% endif %}{% endif %}
+    {% if c.built_checks %}<p class="verdict {{ 'red' if c.verdict == 'red' else 'green' }}">{{ c.built_checks }}</p>{% elif c.verdict == 'red' %}<p class="verdict red">this direction has problems</p>{% elif c.verdict == 'green' %}{% if c.not_checked %}<p class="verdict look">no problems found, but not fully checked</p>{% else %}<p class="verdict green">holds up in screening</p>{% endif %}{% endif %}
     {% if c.origin == 'built' %}<p class="sub">from the built design</p>{% endif %}
     {% if c.built_line %}<p class="sub">{{ c.built_line }}</p>{% endif %}
     {% if c.based_on %}<p class="sub">based on {{ c.based_on }}</p>{% endif %}
@@ -101,11 +101,11 @@ footer{max-width:1600px;margin:0 auto;padding:0 1.2rem 2rem;font-size:.78rem;col
     {% if c.problem_rows %}<div class="limits bad"><strong>this direction has problems:</strong><ul>{% for r in c.problem_rows %}<li>{{ rely(r) }}</li>{% endfor %}</ul></div>{% endif %}
     {% if c.look_rows %}<div class="limits look"><strong>worth a look:</strong><ul>{% for r in c.look_rows %}<li>{{ rely(r) }}</li>{% endfor %}</ul></div>{% endif %}
     {% if c.not_checked %}<div class="limits look unchecked"><strong>{{ c.not_checked }}</strong></div>{% endif %}
-    {% if not c.problems and not c.worth_a_look and not c.not_checked %}<div class="limits clear">screening found no limitations</div>{% endif %}
+    {% if not c.problems and not c.worth_a_look and not c.not_checked and not c.built_checks %}<div class="limits clear">screening found no limitations</div>{% endif %}
     {% endif %}
     {% if c.ref_items %}<div><h3>References</h3><div class="refs">{% for r in c.ref_items %}<figure>{% if r.src %}<img src="{{ r.src }}" alt="{{ r.name }}">{% endif %}<figcaption>{{ r.name }}{% if r.missing %} (missing){% elif not r.src %} (not shown){% endif %}</figcaption></figure>{% endfor %}</div></div>{% endif %}
     {% if c.notes %}<div><h3>Notes</h3><p class="cardnotes">{{ c.notes }}</p></div>{% endif %}
-    {% if c.screening_notes %}<details class="small"><summary>screening notes ({{ c.screening_notes | length }})</summary><ul>{% for n in c.screening_notes %}<li>{{ n }}</li>{% endfor %}</ul></details>{% endif %}
+    {% if c.screening_notes and not c.built_checks %}<details class="small"><summary>screening notes ({{ c.screening_notes | length }})</summary><ul>{% for n in c.screening_notes %}<li>{{ n }}</li>{% endfor %}</ul></details>{% endif %}
   </div>
 </article>
 {% endfor %}

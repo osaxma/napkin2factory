@@ -224,6 +224,19 @@ def _and(items: list[str]) -> str:
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
+def _built_checks_line(card: ConceptCard) -> str | None:
+    """The forked card's verdict in the built design's words, or ``None`` for a napkin card."""
+    if card.built is None or card.built.event != "forked" or card.screening is None:
+        return None
+    failing = [r for r in card.screening.rules if r.status == "fail"]
+    line = (
+        f"the built design: {len(failing)} requirement{'s' if len(failing) != 1 else ''} fail"
+        if failing
+        else "the built design: no requirement fails"
+    )
+    return "; ".join([line, *card.screening.notes])
+
+
 def not_checked_line(rules: list[RuleRow], card: ConceptCard | None = None) -> str | None:
     """One owner-words line for structural checks that did not run, or ``None`` (B1, S-226).
 
@@ -350,6 +363,8 @@ def gather_card(root: Path, card: ConceptCard, style: Any, units: str = "metric"
         if (card.built is not None and card.built.event == "forked")
         else "napkin",
         "built_line": _parked_figures(card),
+        # S-282: a forked card was never screened; it says what its build's checks found
+        "built_checks": _built_checks_line(card),
         "verdict": card.verdict,
         "based_on": card.based_on,
         # P10: the units the direction is built from, in plain words (S-112)

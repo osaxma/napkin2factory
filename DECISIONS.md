@@ -308,6 +308,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-279 | Gate B (v0.8) — outcome: passed by cold agents of two vendors; the oracle passes both products as the spec states them | in force |
 | S-280 | Review gate L (v0.8) — outcome: NOT READY; five blockers (the example failed lint, the report's requirement tile, stale manufacturer text after a change, status silent on an open change request, the close's sign-off wall) | in force |
 | S-281 | Gate L fixes: impact names stale words, close lists what stands in the way | in force |
+| S-282 | Gate L fixes: status names an open change request, the report counts requirements, plainer switch and undo words | in force |
 
 ---
 
@@ -2172,3 +2173,13 @@ requirement waiting for a person (title, why), the count never signed before, an
 impact's two sign-off lists both come from the check's own state (signed or pass before, waiting now),
 and a failing change shows its figures and offers `n2f ecr abort` instead of "approve and close".
 
+
+## S-282 — Gate L fixes in status, report and switch (2026-11-06)
+Gate L (owner UX, `docs/reviews/v0.8-gate-l.md`): `n2f status` ignored an open change request and
+spoke of "unsaved changes since the last snapshot"; the report's front tile counted rule rows
+("183 / 25 requirements"); a forked card said "holds up in screening" though nothing was screened.
+Now: status names the open request (title, state) and its next step (`n2f ecr impact`, or the failing
+requirement with `n2f ecr abort`), unsaved edits say "save as a checkpoint or undo", the tile counts
+requirements only and a gate not reached reads "not reached yet", a forked card reads "the built
+design: no requirement fails" plus the sign-offs waiting, `concept build` suggests `--from`, and
+the no-history error says what `n2f init .` does. Core file: `core/checks/stage.py`.

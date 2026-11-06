@@ -101,6 +101,22 @@ def _bbox(root: Path, product: Any, aid: str) -> dict[str, float]:
     return {k: float(bbox[k]) for k in "xyz"}
 
 
+def _waiting_signoffs(path: Path) -> int:
+    """How many requirements the last ``n2f check`` left waiting for a human sign-off."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return 0
+    rows = data.get("results", []) if isinstance(data, dict) else []
+    return sum(
+        1
+        for r in rows
+        if isinstance(r, dict)
+        and r.get("status") == "needs-human"
+        and str(r.get("id", "")).startswith("req://")
+    )
+
+
 def _failed_requirement_rows(path: Path) -> list[RuleRow]:
     """One ``fail`` rule row per requirement the last ``n2f check`` failed."""
     if not path.is_file():
@@ -296,10 +312,15 @@ def fork_from_model(root: Path | str, title: str | None = None) -> ForkResult:
             computed["cost"] = lv
         else:
             estimates["cost"] = lv
+    waiting = _waiting_signoffs(product.paths.build / "checks" / "checks.json")
     screening = Screening(
         computed=computed,
         estimates=estimates,
         rules=fail_rows,
+        # S-282: said on the card in the built design's words, from its build's checks
+        notes=[f"{waiting} requirement{'s' if waiting != 1 else ''} wait for a sign-off"]
+        if waiting
+        else [],
         verdict="red" if fail_rows else "green",
         at=stamp,
     )

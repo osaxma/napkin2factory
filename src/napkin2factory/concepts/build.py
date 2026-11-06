@@ -115,7 +115,7 @@ def build_concept(
         # place to explore a change.
         raise GateBlocked(
             f"{card.id} holds the built design's figures; make a variant to explore it: "
-            f"`n2f concept new --based-on {card.id}`"
+            f"`n2f concept new --from {card.id}`"
         )
     t0 = time.perf_counter()
     out_dir = concept_build_dir(root, card.id)

@@ -69,7 +69,8 @@ def switch_cmd(
         )
     console.print(
         f"[green]✓[/green] {res.card_id} ({escape(res.title)}) is now the design direction "
-        f"({res.dec_id}); {res.parked_id} ({escape(res.parked_title)}) is parked "
+        f"({res.dec_id}); {res.parked_id} ({escape(res.parked_title)}) is parked: kept, "
+        f"and `n2f concept switch {res.parked_id}` brings it back "
         f"(now checkpoint #{res.number}). `n2f undo` takes the switch back",
         soft_wrap=True,
     )
@@ -93,6 +94,7 @@ def switch_cmd(
             console.print(f"    ✗ {escape(line)}", soft_wrap=True, highlight=False)
     for line in [*res.notes, *res.stale]:
         console.print(f"  [yellow]![/yellow] {escape(line)}", soft_wrap=True)
+    console.print("  next: `n2f build` and `n2f check`", soft_wrap=True)
 
 
 def register(app: typer.Typer) -> None:

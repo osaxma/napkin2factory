@@ -612,6 +612,7 @@ def compute_stage(
     )
     # Verify
     verify_blockers: list[str] = []
+    fail_texts: list[str] = []  # failing rows only: a change request names the first (S-282)
     example_ids: list[str] = []
     checks_path = build_dir / "checks" / "checks.json"
     if not checks_path.is_file() or "checks" not in manifest.entries:
@@ -643,6 +644,7 @@ def compute_stage(
                 elif r["id"].startswith("req://"):
                     text = f"{r['id'].removeprefix('req://')}: {text}"
                 verify_blockers.append(text)
+                fail_texts.append(text)
             elif r["status"] == "needs-human":
                 why = r.get("message") or "needs a human sign-off"
                 rid = r["id"] if product.operator.persona != "owner" else r["id"].split("://")[-1]
@@ -687,7 +689,10 @@ def compute_stage(
             released_blockers.append("change tracking is not set up — run `n2f init` here")
         else:
             if not v.is_clean():
-                released_blockers.append("unsaved changes since the last snapshot")
+                released_blockers.append(
+                    "unsaved edits: save them as a checkpoint (`n2f snapshot`) "
+                    "or undo them (`n2f undo`)"
+                )
             tag = v.tag_for_head()
             if tag is None:
                 released_blockers.append(
@@ -731,4 +736,23 @@ def compute_stage(
         next_step = first_open.caveats[0]
     else:
         next_step = first_open.name
+    # S-282: an open change request is what the owner is in the middle of; status names it
+    # and its next step comes before any requirement line
+    open_ecrs = [e for e in product.ecrs.values() if e.status in ("draft", "approved")]
+    if open_ecrs:
+        e = open_ecrs[0]
+        head = f"{e.id} ({e.title}) is {e.status}: "
+        if fail_texts:
+            next_step = (
+                f"{head}{fail_texts[0]}; fix it, or drop the change with `n2f ecr abort {e.id}`"
+            )
+        elif e.status == "draft":
+            next_step = (
+                f"{head}edit the files under `model/`, then `n2f ecr impact {e.id}`; "
+                f"`n2f ecr abort {e.id}` drops it"
+            )
+        else:
+            next_step = (
+                f"{head}`n2f ecr close {e.id}` when the work is done, or `n2f ecr abort {e.id}`"
+            )
     return StageReport(stage=stage, gates=gates, next_step=next_step, scope=scope_entries(product))

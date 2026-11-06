@@ -380,3 +380,16 @@ def test_both_signoff_lists_come_from_the_check(root: Path) -> None:
     impact = _json("ecr", "impact", cwd=root)
     waiting = set(impact["signoffs_waiting"])
     assert set(impact["signoffs_invalidated"]) <= waiting
+
+
+def test_status_names_an_open_request_and_its_next_step_s_new1(root: Path) -> None:
+    """Gate L, B4: status names the open request; unsaved edits get plain next steps."""
+    _run("ecr", "start", "--title", "Thicker", "--set", "param://bracket-width=70mm", cwd=root)
+    nxt = _json("status", cwd=root)["next_step"]
+    assert nxt.startswith("ECR-001 (Thicker) is draft: ")
+    assert "n2f ecr impact ECR-001" in nxt and "n2f ecr abort ECR-001" in nxt
+    _run("ecr", "abort", "ECR-001", cwd=root)
+    _edit(root, PARAMS, "bracket-width:     {value: 60", "bracket-width:     {value: 61")
+    text = json.dumps(_json("status", cwd=root))
+    assert "save them as a checkpoint (`n2f snapshot`) or undo them (`n2f undo`)" in text
+    assert "unsaved changes since the last snapshot" not in text

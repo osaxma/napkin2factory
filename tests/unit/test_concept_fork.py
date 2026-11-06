@@ -91,7 +91,7 @@ def test_concept_build_refuses_a_forked_card(table: Path) -> None:
     with pytest.raises(GateBlocked) as exc:
         build_mod.build_concept(table, card, render=False)
     assert "holds the built design's figures" in str(exc.value)
-    assert f"n2f concept new --based-on {card.id}" in str(exc.value)
+    assert f"n2f concept new --from {card.id}" in str(exc.value)
     # build-all skips it with that line (no CAD kernel is loaded for the refusal).
     built, errors = build_mod.build_concepts(table, [card], render=False)
     assert built == []
@@ -134,3 +134,34 @@ def test_forked_total_mass_lands_in_the_total_mass_row(table: Path) -> None:
     data = board_mod.gather_card(table, card, build_mod.product_style(table)[0])
     assert any(v["key"] == "total_mass" for v in data["dims"])
     assert not any(v["key"] == "mass" for v in data["dims"])
+
+
+def test_forked_card_says_what_its_build_found_s_new1(tmp_path: Path) -> None:
+    """Gate L, C3: a forked card never claims it was screened."""
+    from napkin2factory.concepts.board import _built_checks_line
+    from napkin2factory.core.model.concepts import ConceptCard
+
+    card = ConceptCard.model_validate(
+        {
+            "id": "C-001",
+            "title": "t",
+            "status": "exploring",
+            "built": {
+                "event": "forked",
+                "checkpoint": "x",
+                "number": 1,
+                "at": "2026-01-01T00:00:00",
+            },
+            "screening": {
+                "computed": {},
+                "estimates": {},
+                "rules": [],
+                "verdict": "green",
+                "at": "2026-01-01T00:00:00",
+                "notes": ["2 requirements wait for a sign-off"],
+            },
+        }
+    )
+    assert _built_checks_line(card) == (
+        "the built design: no requirement fails; 2 requirements wait for a sign-off"
+    )
