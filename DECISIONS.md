@@ -302,6 +302,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-273 | Gate K fixes: one change-request id forever, approval bound to the approved checkpoint | in force |
 | S-274 | Gate K fixes: every impact figure labelled, a built card's mass in the total row | in force |
 | S-275 | The test stand's load-cell requirement follows the rated load (B-0279) | in force |
+| S-276 | Health review 2026-11-06 (v0.8 close) | in force |
 
 ---
 
@@ -2117,3 +2118,10 @@ requirement now uses the `calc` kind on a new example calc, `calc://capacity.loa
 (`model/calcs/capacity.py`, capacity ÷ rated load, case 2000/2000 = 1), verified `>= 1`. No change
 under `src/`. The oracle's CR-1 row drops its hand edit of the requirement's bound and still refuses
 with the same "load cell" row. B-0279 closed.
+## S-276 — Health review 2026-11-06 (v0.8 close) (2026-11-06)
+Trend row `45119c8` (window 32 commits since `5898aae`; report `docs/reviews/health-2026-11-06-v08-close.md`). Worse: unstamped commits 0 -> 3
+(docs-only handoff commits on `main`), E10 seam commits 6 -> 11 (all named in S-259, S-261 to S-263, S-267), skips 34 -> 35 (the strict xfail
+of B-0285), coverage 0.9413 -> 0.9391, open rows 131 -> 138. Better: long modules 13 -> 12 (`core/concepts.py` 740 -> 364, S-259), TODO lines
+5 -> 0 (M2c), upward imports into `cli/` 4 -> 1 (S-262). v0.8 touched 17 distinct `core/` files since v0.7.0.
+Actions: B-0264 closed (S-264, S-265), B-0274's baseline corrected to 1; opened B-0287 (the unstamped measure). No source changes.
+Not done: B-0266 (cold-agent gate B) stays open, S-272 ran the scripted flow only.
