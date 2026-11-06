@@ -68,7 +68,20 @@ class SwitchResult:
     seeded_parameters: int = 0
     seeded_requirements: int = 0
     notes: list[str] = field(default_factory=list)
+    #: what the card's screening fails, in plain words ("Sag stays within the limit: …")
+    failing: list[str] = field(default_factory=list)
     stale: list[str] = field(default_factory=list)
+
+
+def failing_words(card: ConceptCard) -> list[str]:
+    """The card's failing screening checks as ``n2f concept show`` prints them (S-277)."""
+    if card.screening is None:
+        return []
+    out = []
+    for row in card.screening.failing:
+        name = (row.title or row.id).rstrip(".")
+        out.append(f"{name}: {row.message}" if row.message else name)
+    return out
 
 
 def marker_name(card_id: str) -> str:
@@ -109,7 +122,8 @@ def _preflight(root: Path, vcs: Vcs, card: ConceptCard, fresh: bool) -> ConceptC
         )
     if card.id == current[0].id:
         raise GateBlocked(f"{card.id} is already the chosen direction")
-    unnamed = unnamed_entries(vcs.files())
+    # the saved and the unsaved files together: a new unsaved folder is checked too (S-277)
+    unnamed = unnamed_entries(sorted({*vcs.files(), *vcs.unsaved_files()}))
     if unnamed:
         raise GateBlocked(
             f"the product has {', '.join(unnamed)}, which the switch does not know to belong to "
@@ -166,8 +180,11 @@ def switch(
                 f"{target.id}`), then switch"
             )
         if target.verdict == "red" and not override:
+            found = failing_words(target)
             raise GateBlocked(
-                f"{target.id} has problems the screening found. Switch anyway with --override "
+                f"{target.id} has problems the screening found"
+                + (f": {'; '.join(found)}" if found else "")
+                + ". Switch anyway with --override "
                 '--reason "…"; the reason is recorded as a decision.'
             )
     # 2. unsaved edits are their own step (R4)
@@ -248,6 +265,12 @@ def switch(
                 f"{current.id}'s parts stay in the model until you change them; "
                 f"{target.id} brought only its sketch"
             )
+            result.failing = failing_words(target)
+            if result.failing:
+                result.notes.append(
+                    f"the model's parts are still {current.id}'s, so a check judges those "
+                    f"until the design changes"
+                )
             cm.update_card_status(
                 root, target.id, "promoted", {"dec": done.dec_id, "at": at}, clear_built=True
             )

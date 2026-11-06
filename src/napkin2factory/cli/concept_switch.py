@@ -57,6 +57,7 @@ def switch_cmd(
                     "parameters": res.seeded_parameters,
                     "requirements": res.seeded_requirements,
                 },
+                "failing": res.failing,
                 "notes": res.notes,
                 "stale": res.stale,
             }
@@ -86,6 +87,10 @@ def switch_cmd(
             f"  seeded {res.seeded_parameters} parameter(s) and {res.seeded_requirements} "
             "requirement(s) from the sketch"
         )
+    if res.failing:
+        console.print(f"  {res.card_id} fails its screening:", soft_wrap=True)
+        for line in res.failing:
+            console.print(f"    ✗ {escape(line)}", soft_wrap=True, highlight=False)
     for line in [*res.notes, *res.stale]:
         console.print(f"  [yellow]![/yellow] {escape(line)}", soft_wrap=True)
 

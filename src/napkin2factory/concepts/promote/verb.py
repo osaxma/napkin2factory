@@ -17,6 +17,7 @@ from napkin2factory.concepts.promote.common import (
     _next_id,
     _rel,
     _yaml_block,
+    held_requirement,
 )
 from napkin2factory.concepts.promote.decision import (
     _card_text,
@@ -161,6 +162,10 @@ def promote(
     indent = _list_indent(req_text, "requirements")
     blocks = []
     for about, data in planned:
+        asked = held_requirement(product.requirements, data["verify"])
+        if asked is not None:  # the model already asks this: no second copy to sign off (S-277)
+            notes.append(f"{asked} already asks this: {product.requirements[asked].title}")
+            continue
         rid = _next_id("REQ", existing_reqs + req_ids)
         req_ids.append(rid)
         entry = {

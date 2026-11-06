@@ -151,3 +151,35 @@ def _rel(root: Path, path: Path) -> str:
         return path.resolve().relative_to(root.resolve()).as_posix()
     except ValueError:
         return str(path)
+
+
+def held_requirement(held: Any, verify: dict[str, Any]) -> str | None:
+    """The id of a requirement the model already holds that asks what ``verify`` asks.
+
+    "Already asks" means the same verify target, operator and value, the values compared as
+    quantities (``0.2 m`` equals ``200 mm``); a requirement without a target (a manual one)
+    is never matched (S-277).
+
+    Args:
+        held: the model's requirements (``Product.requirements``: id -> Requirement).
+        verify: the planned requirement's ``verify`` mapping.
+    """
+    from napkin2factory.core.units import UnitError, parse_quantity
+
+    target, op, value = verify.get("target"), verify.get("op"), verify.get("value")
+    if target is None or op is None or value is None:
+        return None
+    try:
+        want = parse_quantity(value)
+    except UnitError:
+        return None
+    for rid, req in held.items():
+        v = req.verify
+        if v is None or v.target is None or str(v.target) != str(target) or v.op != op:
+            continue
+        try:
+            if v.value is not None and v.value == want:
+                return str(rid)
+        except Exception:  # noqa: BLE001 — units that do not compare are not the same ask
+            continue
+    return None

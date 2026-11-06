@@ -53,13 +53,9 @@ def test_loads_limit_and_budget_are_seeded(tmp_path: Path) -> None:
     sag = titles["Sag stays within the limit"]
     assert sag.data["statement"].endswith("the sag is at most 2.5 mm.")
     assert sag.data["allocation"] == ["asm://table"]
-    cost = titles["Within the budget"]
-    assert cost.data["verify"] == {
-        "kind": "bom_rollup",
-        "target": "bom://rollups#total_cost",
-        "op": "<=",
-        "value": "1600 USD",
-    }
+    # the table's model already asks for this cost limit, so no second copy is seeded (S-277)
+    assert "Within the budget" not in titles
+    assert any("already asks this" in n for n in result.notes)
 
 
 def test_a_load_of_the_wrong_kind_is_listed_not_dropped(tmp_path: Path) -> None:

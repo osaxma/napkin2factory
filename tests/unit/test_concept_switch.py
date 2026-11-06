@@ -186,6 +186,29 @@ def test_refuses_an_unknown_folder_and_names_it(root: Path) -> None:
     assert "oddities" in refuse(root, "C-001", *OVERRIDE)
 
 
+def test_refuses_an_unsaved_unknown_folder_too(root: Path) -> None:
+    """B-0280: a folder not yet saved is checked before the unsaved edits are saved."""
+    (root / "oddities").mkdir()
+    (root / "oddities" / "x.txt").write_text("x", encoding="utf-8")
+    before = Vcs(root).snapshot_count()
+    assert "oddities" in refuse(root, "C-001", *OVERRIDE)
+    assert Vcs(root).snapshot_count() == before  # nothing was saved on the way
+
+
+def test_a_red_target_is_named_by_its_failures(root: Path) -> None:
+    """S-277: the refusal and the result say what the card fails, in `concept show` words."""
+    card = cm.load_card(root, "C-001")
+    assert card.screening is not None
+    shown = [f"{(r.title or r.id).rstrip('.')}: {r.message}" for r in card.screening.failing]
+    assert shown
+    refused = " ".join(refuse(root, "C-001").split())  # the terminal wraps long lines
+    assert all(line in refused for line in shown)
+    data = go(root, "C-001", *OVERRIDE)
+    assert data["failing"] == shown
+    notes = data["notes"]
+    assert any("still C-002's" in n for n in notes)  # type: ignore[attr-defined]
+
+
 def test_refuses_a_parked_card_without_its_marker_unless_fresh(root: Path) -> None:
     go(root, "C-001", *OVERRIDE)
     Vcs(root).delete_ref(marker_name("C-002"))

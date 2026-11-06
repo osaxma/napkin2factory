@@ -519,3 +519,26 @@ def test_cli_promotion_prints_snapshot_saved_and_plain_refusals(product: Path) -
         "C-003 is already the design direction; this card can be compared on the board, "
         "but choosing it instead is a change request."
     ) in r.stdout
+
+
+def test_promote_skips_a_requirement_the_model_already_holds(tmp_path: Path) -> None:
+    """S-277: a planned requirement with a held one's target, operator and value is not added."""
+    import re
+
+    root = copy_product(EXAMPLES / "test-stand", tmp_path / "stand", prebuilt=True)
+    card = root / "concepts" / "C-002.yaml"
+    text = card.read_text().replace("status: promoted\n", "status: exploring\n", 1)
+    card.write_text(re.sub(r"^decision: \{dec: DEC-001.*\}\n", "", text, flags=re.M))
+    decs = root / "model" / "decisions.yaml"
+    dtext = decs.read_text()
+    decs.write_text(dtext[: dtext.index("- id: DEC-001")] + dtext[dtext.index("- id: DEC-002") :])
+    before = set(load_product(root).requirements)
+    result = promote(root, "C-002", snapshot=False)
+    after = load_product(root).requirements
+    assert len(after) - len(before) == len(result.requirements)
+    held = [n for n in result.notes if "already asks this" in n]
+    assert held and re.match(r"REQ-\d+ already asks this: ", held[0])
+    assert len(held) == 3
+    # the width, depth and cost rows are held; the sag one has no target and the weight one
+    # targets another property than the model's mass limit, so they are still seeded
+    assert {r.about for r in result.requirements} == {"sag", "weight"}
