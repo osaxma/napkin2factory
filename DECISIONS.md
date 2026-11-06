@@ -311,6 +311,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-282 | Gate L fixes: status names an open change request, the report counts requirements, plainer switch and undo words | in force |
 | S-283 | v0.8 close: the §2.1 measures and R12 timings | in force |
 | S-284 | Close v0.8: version 0.8.0, pins >=0.8,<0.9, the handoff | in force |
+| S-285 | v0.8 visual exit: the board's built-design card, judged by the maintainer | in force |
 
 ---
 
@@ -2199,3 +2200,9 @@ and `uv.lock` say 0.8.0; every product pin the package writes or ships (the mani
 `tests/fixtures/schema/v1`, which stands for a v0.7 product the upgrade opens (R15). The manifest default
 is the one `core/` file this bump edits: v0.8 touched 19 distinct `core/` files since v0.7.0. The handoff is
 `docs/reviews/v0.8-handoff.md` (DoD 2 and 6 partly met). Tagging and pushing stay the maintainer's calls (S-072).
+## S-285 — v0.8 visual exit: the board's built-design card, judged by the maintainer (2026-11-06)
+The test stand's board after gate B (DeepSeek's trial product rebuilt at 60bc71d: C-001 parked, C-002
+promoted, C-003 rejected, C-004 "Twin-column portal, as built" with "the built design: no requirement
+fails", total mass 15.8 kg computed, cost 1,017 USD estimate) and the portal's assembly render after the
+platen change were sent to the maintainer. Judged by the maintainer: "Yes, keep it". The card's
+"rejected" label after a later switch stays open as B-0289. This closes M6's visual exit (S-284).
