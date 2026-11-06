@@ -298,6 +298,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-269 | M4.0: the oracle judges a change request, an agent's own or replayed on a copy | in force |
 | S-270 | v0.8 wave 4 boundary (M3b, M4.0, M4): the core count, R12's four timings, `make check` | in force |
 | S-271 | Review gate K (v0.8) — outcome: NOT READY; three blockers (a change-request id reused after a rollback, impact calls an unrepriced estimate computed and unchanged, a built card's total mass in the shapes row) | in force |
+| S-272 | Gate B's scripted flow on the test stand | in force |
 
 ---
 
@@ -2088,3 +2089,7 @@ and prints an unrepriced cost as "no change"; B3 compare and the board put a bui
 the napkin "mass of the shapes" row. Concerns C1 (approval hash copied into the YAML), C6 (`ecr show`
 after a later edit), C9, C10 go to the fix tasks; C7 (R12 on an idle host) to the close-out measures;
 the rest are rows B-0280 to B-0284.
+
+## S-272 — Gate B's scripted flow on the test stand (2026-11-06)
+`tests/e2e/test_gate_b.py` (`full`) runs gate B's script (plan §6) through in-process `n2f()` on a prebuilt tracked copy of `examples/test-stand` put back to "C-002 not promoted" by `prepare_gate_b_start` (C-002 back to `exploring` without its `decision:` line, DEC-001 removed from `model/decisions.yaml`, saved as the checkpoint "Gate B start"; the cold agents reuse it). Steps: promote, build, check (3 sub-assemblies); fork-from-model (card labelled computed); switch to red C-001 with `--override`, back to C-002, the direction files byte-identical; design change request with direct edits, stale approval refused, re-approved, closed; hand edit, `undo`, `redo`, `checkpoints`.
+Measured: `test_gate_b_flow` 217 s on the macOS host (one run, machine busy); the xfail test 15 s. Found: B-0285 (`n2f check` shows no failure after the switch to C-001; one xfail test), B-0286 (promotion and switch seed requirements the model already holds). Walls a cold agent meets: `ecr start` needs `--title`, `approve` needs `--by`; after a stale approval `ecr approve` first needs `ecr impact` (the `close` refusal says so); `ecr close` also lists every requirement waiting for a person's sign-off (the script signs them in rounds, a dozen or more).
