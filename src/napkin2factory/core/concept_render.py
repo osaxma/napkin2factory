@@ -122,4 +122,11 @@ def render_card(data: dict[str, Any], fields: list[Any] | None = None) -> str:
         _scalar("screening", data.get("screening")),
         _scalar("decision", data.get("decision")),
     ]
+    built = data.get("built")
+    if built is not None:  # a card without built figures reads as before (R11, B-0278)
+        flow = yaml.safe_dump(built, default_flow_style=True, sort_keys=False, width=10**6)
+        lines += [
+            "# measured from the built design by `n2f concept fork-from-model` or `concept switch`",
+            f"built: {flow.strip()}",
+        ]
     return "\n".join(lines) + "\n"

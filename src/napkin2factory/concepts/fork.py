@@ -335,11 +335,6 @@ def fork_from_model(root: Path | str, title: str | None = None) -> ForkResult:
         }
     )
     cm.write_card(root, card)
-    # ``render_card`` (used for a new file) does not print ``built`` (R11); the seam's
-    # ``update_card_status`` does, as a flow block.
-    cm.update_card_status(
-        root, cid, "exploring", built=built.model_dump(mode="json", by_alias=True)
-    )
     # 5. checkpoint the fork (R4).
     from napkin2factory.ecr.checkpointing import checkpoint
 

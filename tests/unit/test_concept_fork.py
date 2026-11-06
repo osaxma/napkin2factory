@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 import pytest
+import yaml
 
 from napkin2factory.concepts import board as board_mod
 from napkin2factory.concepts import build as build_mod
@@ -90,3 +91,25 @@ def test_concept_build_refuses_a_forked_card(table: Path) -> None:
     assert built == []
     assert errors[0]["id"] == card.id
     assert "holds the built design's figures" in errors[0]["error"]
+
+
+def test_render_card_prints_built_and_it_reads_back() -> None:
+    """B-0278: a new card file keeps its built figures; one without them reads as before."""
+    from napkin2factory.core.concept_render import render_card
+    from napkin2factory.core.model.concepts import ConceptCard
+
+    built = {
+        "event": "forked",
+        "checkpoint": "abc123",
+        "number": 4,
+        "mass": "24.7 kg",
+        "cost": "640 USD",
+        "at": "2026-11-05T11:39:55",
+    }
+    data = {"id": "C-009", "title": "Forked", "built": built}
+    text = render_card(data, [])
+    card = ConceptCard.model_validate(yaml.safe_load(text))
+    assert card.built is not None
+    assert (card.built.event, card.built.number, card.built.mass) == ("forked", 4, "24.7 kg")
+    assert card.built.cost == "640 USD" and card.built.checkpoint == "abc123"
+    assert "\nbuilt:" not in render_card({"id": "C-009", "title": "Plain"}, [])
