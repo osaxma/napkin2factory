@@ -47,7 +47,7 @@ def test_compare_marks_a_forked_column(table: Path) -> None:
     assert "from the built design" in text
     # the forked card's computed cost joins the strip rows.
     cost = next(r for r in data["rows"] if r["key"] == "cost")
-    assert cost["cells"]["C-004"]["label"] == "computed"
+    assert cost["cells"]["C-004"]["label"] == "estimate"
 
 
 def test_compare_shows_a_parked_cards_figures_when_parked(table: Path) -> None:
@@ -66,7 +66,7 @@ def test_compare_shows_a_parked_cards_figures_when_parked(table: Path) -> None:
         },
     )
     data = compare(table, ["C-003"])
-    mass = next(r for r in data["rows"] if r["key"] == "mass")
+    mass = next(r for r in data["rows"] if r["key"] == "total_mass")
     assert mass["cells"]["C-003"]["value"] == "23.1 kg"
     assert mass["cells"]["C-003"]["parked"] is True
     cost = next(r for r in data["rows"] if r["key"] == "cost")

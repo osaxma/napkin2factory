@@ -333,6 +333,28 @@ def _consumable_to_dict(bl: Any) -> dict[str, Any]:
     return d
 
 
+def cost_basis_of(rollups: dict[str, Any]) -> str:
+    """How the total cost was priced: ``estimate`` if any priced row is one, else the common basis.
+
+    Reads the parts-list structure of ``rollups.json``; rows with no price or no cost (an
+    assembly, a reference part) say nothing. No priced row at all reads as ``estimate``.
+    """
+    found: set[str] = set()
+
+    def walk(rows: Any) -> None:
+        for row in rows if isinstance(rows, list) else []:
+            priced = row.get("unit_cost") is not None
+            if priced and row.get("kind") not in ("assembly", "reference"):
+                found.add(str(row.get("cost_basis") or "estimate"))
+            walk(row.get("children"))
+
+    for rows in (rollups.get("structure") or {}).values():
+        walk(rows)
+    if not found or "estimate" in found:
+        return "estimate"
+    return next(iter(found)) if len(found) == 1 else " + ".join(sorted(found))
+
+
 def line_to_dict(ln: BomLine) -> dict[str, Any]:
     """JSON form of a line (recursive)."""
     d = {k: v for k, v in ln.__dict__.items() if k != "children"}

@@ -56,7 +56,7 @@ def model_hash(vcs: Vcs) -> str:
 
 def figures(product: Product, build_dir: Path) -> dict[str, Any]:
     """What a finished build measured, in the plain form kept for before/after comparison."""
-    from napkin2factory.bom.rollups import top_assemblies
+    from napkin2factory.bom.rollups import cost_basis_of, top_assemblies
 
     out: dict[str, Any] = {
         "mass": None,
@@ -65,6 +65,8 @@ def figures(product: Product, build_dir: Path) -> dict[str, Any]:
         "cost": None,
         "cost_unit": "USD",
         "cost_complete": True,
+        "cost_basis": "estimate",
+        "unit_costs": {},
         "unpriced": [],
         "orphans": [],
         "envelope": {},
@@ -82,6 +84,8 @@ def figures(product: Product, build_dir: Path) -> dict[str, Any]:
         out["cost_unit"] = rollups.get("total_cost_unit", "USD")
         out["cost_complete"] = bool(rollups.get("cost_complete", True))
         parts = rollups.get("parts", {})
+        out["cost_basis"] = cost_basis_of(rollups)
+        out["unit_costs"] = {u: row.get("unit_cost") for u, row in parts.items()}
         out["unpriced"] = sorted(u for u, row in parts.items() if row.get("unit_cost") is None)
         out["orphans"] = sorted(rollups.get("orphans", []))
     for aid in top_assemblies(product):
@@ -279,20 +283,38 @@ def _block(
         "delta": _delta(base["mass"], now["mass"]),
         "unit": now["mass_unit"],
         "complete": now["mass_complete"],
+        "basis": "computed",
     }
+    # A part rebuilt with the same declared unit cost: its shape may have moved, but the
+    # price was not re-quoted, so the cost delta does not speak for it (S-274).
+    not_requoted = sorted(
+        pid
+        for rid in rebuilt
+        if rid.startswith("part:")
+        for pid in [rid.removeprefix("part:")]
+        if f"part://{pid}" in now["unit_costs"]
+        and base.get("unit_costs", {}).get(f"part://{pid}", "")
+        == now["unit_costs"][f"part://{pid}"]
+    )
     cost = {
         "before": base["cost"],
         "after": now["cost"],
         "delta": _delta(base["cost"], now["cost"]),
         "unit": now["cost_unit"],
         "complete": now["cost_complete"],
+        "basis": now["cost_basis"],
+        "shape_changed_not_requoted": not_requoted,
         "unpriced": now["unpriced"],
         "newly_unpriced": [u for u in now["unpriced"] if u not in base["unpriced"]],
         "not_in_an_assembly": [u for u in now["orphans"] if u not in base["orphans"]],
         "note": report.cost_note if not report.cost_complete else "",
     }
     envelope = {
-        asm: {"before": base["envelope"].get(asm), "after": now["envelope"].get(asm)}
+        asm: {
+            "before": base["envelope"].get(asm),
+            "after": now["envelope"].get(asm),
+            "basis": "computed",
+        }
         for asm in sorted(set(base["envelope"]) | set(now["envelope"]))
     }
     affected = {r.id: r for r in report.requirements}

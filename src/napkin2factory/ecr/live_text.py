@@ -26,14 +26,19 @@ def _amount(value: Any, unit: str, places: int) -> str:
     return "not measured" if value is None else f"{value:,.{places}f} {unit}"
 
 
-def _change(block: dict[str, Any], places: int, label: str) -> str:
+def _cost_label(cost: dict[str, Any]) -> str:
+    """``Cost (estimate, from the parts' declared unit costs)``: the basis the figure carries."""
+    return f"Cost ({cost.get('basis', 'estimate')}, from the parts' declared unit costs)"
+
+
+def _change(block: dict[str, Any], places: int, label: str, same: str = "no change") -> str:
     """``46.7 kg → 47.1 kg (+0.4 kg)`` with a note when a total leaves parts out."""
     before = _amount(block["before"], block["unit"], places)
     after = _amount(block["after"], block["unit"], places)
     text = f"{label}: {before} → {after}"
     delta = block["delta"]
     if delta is not None:
-        text += f" ({delta:+,.{places}f} {block['unit']})" if delta else " (no change)"
+        text += f" ({delta:+,.{places}f} {block['unit']})" if delta else f" ({same})"
     return text
 
 
@@ -59,10 +64,15 @@ def summarize_live(impact: dict[str, Any], product: Product, title: str, ecr_id:
         )
         lines += [f"Since this request started: {total} file(s): {counts}.", ""]
         lines += _what_changed(impact, persona)
-    lines += ["## The numbers (computed from the built design)", ""]
-    lines.append("- " + _change(impact["mass"], 2, "Mass"))
-    lines.append("- " + _change(impact["cost"], 0, "Cost"))
     cost = impact["cost"]
+    requoted = cost.get("shape_changed_not_requoted", [])
+    lines += ["## The numbers", ""]
+    lines.append("- " + _change(impact["mass"], 2, "Mass (computed)"))
+    same = "declared prices unchanged" if requoted else "no change"
+    lines.append("- " + _change(cost, 0, _cost_label(cost), same=same))
+    if requoted:
+        names = ", ".join(f"`{p}`" for p in requoted)
+        lines.append(f"  - Shape changed, price not re-quoted: {names}")
     if cost["unpriced"]:
         names = ", ".join(f"`{u.removeprefix('part://')}`" for u in cost["unpriced"])
         new = {u for u in cost["newly_unpriced"]}
@@ -80,9 +90,9 @@ def summarize_live(impact: dict[str, Any], product: Product, title: str, ecr_id:
         was, now = size["before"], size["after"]
         name = asm.removeprefix("asm://")
         if was == now:
-            lines.append(f"- Envelope of `{name}`: {_size(now)} (no change)")
+            lines.append(f"- Envelope (computed) of `{name}`: {_size(now)} (no change)")
         else:
-            lines.append(f"- Envelope of `{name}`: {_size(was)} → {_size(now)}")
+            lines.append(f"- Envelope (computed) of `{name}`: {_size(was)} → {_size(now)}")
     lines.append("")
     lines += _rebuilt(impact, persona)
     lines += _requirements(impact)

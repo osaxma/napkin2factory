@@ -300,6 +300,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-271 | Review gate K (v0.8) — outcome: NOT READY; three blockers (a change-request id reused after a rollback, impact calls an unrepriced estimate computed and unchanged, a built card's total mass in the shapes row) | in force |
 | S-272 | Gate B's scripted flow on the test stand | in force |
 | S-273 | Gate K fixes: one change-request id forever, approval bound to the approved checkpoint | in force |
+| S-274 | Gate K fixes: every impact figure labelled, a built card's mass in the total row | in force |
 
 ---
 
@@ -2105,3 +2106,5 @@ checkpoints as `#<n> "<label>"`. Core files: none (existing `Vcs.list_refs`, `sn
 Not fixed, found: `DEC-` ids (`next_decision_id`, from `model/decisions`) and card ids (`next_concept_id`,
 from `concepts/*.yaml`) read only the folder, so a rollback past them can reuse an id the same way.
 Tests: `tests/e2e/test_ecr_live.py` (id after rollback; forged hash refused).
+## S-274 — Gate K fixes: labelled impact figures, a built card's mass (2026-11-06)
+Blockers 2 and 3 of S-271. `ecr impact --json`: `mass`, `cost` and each `envelope` entry carry `basis`; mass and envelope are `computed`, cost is `estimate` when any priced row of the parts list is one, else the rows' common basis (`bom.rollups.cost_basis_of`). The text drops the blanket "computed" heading and labels each line; parts rebuilt with an unchanged declared unit cost are named ("Shape changed, price not re-quoted"; `cost.shape_changed_not_requoted`), so an estimated cost never reads as a bare "no change". A forked card writes the built total under `total_mass` (computed, "from the built design"), leaves `mass` ("mass of the shapes") empty, and puts the cost under `estimates` when its basis is estimate; compare shows a parked card's built mass in the total-mass row. The fork note now says what the card holds (envelope kept or empty). Not measured: the cost of shape changes stays unestimated, as in v0.7.

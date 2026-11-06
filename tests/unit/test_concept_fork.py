@@ -36,12 +36,18 @@ def test_fork_writes_the_card_with_computed_built_figures(table: Path) -> None:
     # every computed number is labelled computed and named after the checkpoint it was
     # measured on (the saved state just before the fork's own checkpoint, R11).
     computed = card.screening.computed
-    assert set(computed) >= {"width", "depth", "height", "mass", "cost"}
+    assert set(computed) >= {"width", "depth", "height", "total_mass"}
+    assert "mass" not in computed  # "mass of the shapes" stays empty for a built card (S-274)
     assert all(lv.label == "computed" for lv in computed.values())
     base = result.checkpoint.number - 1
+    # the table prices by estimate, so its cost carries that label, not "computed".
+    estimates = card.screening.estimates
+    assert estimates["cost"].label == "estimate"
     assert all(
-        lv.source == f"from the built design (checkpoint #{base})" for lv in computed.values()
+        lv.source == f"from the built design (checkpoint #{base})"
+        for lv in [*computed.values(), *estimates.values()]
     )
+    assert "The envelope numbers are the model's current parameter values" not in card.notes
     # the built block records the same saved state and the measured mass and cost.
     assert card.built is not None
     assert card.built.event == "forked"
@@ -113,3 +119,18 @@ def test_render_card_prints_built_and_it_reads_back() -> None:
     assert (card.built.event, card.built.number, card.built.mass) == ("forked", 4, "24.7 kg")
     assert card.built.cost == "640 USD" and card.built.checkpoint == "abc123"
     assert "\nbuilt:" not in render_card({"id": "C-009", "title": "Plain"}, [])
+
+
+def test_forked_total_mass_lands_in_the_total_mass_row(table: Path) -> None:
+    """S-274: the built total sits beside the napkin cards' totals, not under the shapes."""
+    from napkin2factory.concepts.compare import compare
+
+    result = fork_from_model(table)
+    rows = {r["key"]: r for r in compare(table)["rows"]}
+    assert result.card_id in rows["total_mass"]["cells"]
+    assert result.card_id not in rows.get("mass", {"cells": {}})["cells"]
+    assert rows["total_mass"]["cells"][result.card_id]["label"] == "computed"
+    card = cm.load_card(table, result.card_id)
+    data = board_mod.gather_card(table, card, build_mod.product_style(table)[0])
+    assert any(v["key"] == "total_mass" for v in data["dims"])
+    assert not any(v["key"] == "mass" for v in data["dims"])

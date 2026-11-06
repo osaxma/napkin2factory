@@ -107,7 +107,8 @@ def test_one_parameter_request_start_impact_approve_close(root: Path) -> None:
     assert "bracket-width:     {value: 70" in (root / PARAMS).read_text()  # comments kept
     assert re.search(r"set bracket-width to 70mm", _log(root)[-1].label)
     text = _run("ecr", "impact", cwd=root).stdout
-    assert "Mass: " in text and "→" in text and "Cost: " in text and "Envelope" in text
+    assert "Mass (computed): " in text and "→" in text and "Cost (estimate, " in text
+    assert "Envelope (computed)" in text and "computed from the built design" not in text
     assert (root / "build/changes/ECR-001-impact.md").is_file()
     assert (root / "build/changes/ECR-001/baseline.json").is_file()
     impact = _json("ecr", "impact", "ECR-001", cwd=root)  # the cached baseline is reused
@@ -259,10 +260,25 @@ def test_bridges(root: Path) -> None:
     assert r.returncode == 3 and "n2f ecr abort ECR-002" in " ".join(r.stderr.split())
 
 
+def test_impact_labels_every_figure(root: Path) -> None:
+    """S-274: mass and envelope are computed, cost carries its parts' basis; no blanket heading."""
+    _json("ecr", "start", "--title", "Thicker", "--set", "param://bracket-width=70mm", cwd=root)
+    data = _json("ecr", "impact", cwd=root)
+    assert data["mass"]["basis"] == "computed"
+    assert data["cost"]["basis"] in {"estimate", "quote", "catalog"}
+    assert data["envelope"] and all(e["basis"] == "computed" for e in data["envelope"].values())
+    text = _run("ecr", "impact", cwd=root).stdout
+    assert f"Cost ({data['cost']['basis']}, from the parts' declared unit costs)" in text
+    requoted = data["cost"]["shape_changed_not_requoted"]
+    if requoted:
+        assert "Shape changed, price not re-quoted: " in text
+        assert "(no change)" not in next(ln for ln in text.splitlines() if ln.startswith("- Cost"))
+
+
 def test_quick(root: Path) -> None:
     r = _run("ecr", "quick", "--set", "param://bracket-width=70mm", "--reason", "stiffer", cwd=root)
     out = " ".join(r.stdout.split())
-    assert "started ECR-001" in out and "Mass:" in out
+    assert "started ECR-001" in out and "Mass (computed):" in out
     assert "n2f ecr approve ECR-001 --by <name> && n2f ecr close ECR-001" in out
     assert "n2f ecr abort ECR-001" in out
     data = _ecr(root)

@@ -193,6 +193,20 @@ def _envelope_from_model(
 _NON_RENDER_KINDS = ("validate", "part", "asm", "bom", "checks")
 
 
+def _cost_basis(product: Any) -> str:
+    """``estimate`` when the built parts list prices by estimate, else ``computed``."""
+    import json
+
+    from napkin2factory.bom.rollups import cost_basis_of
+
+    try:
+        data = json.loads((product.paths.build / "bom" / "rollups.json").read_text("utf-8"))
+    except (OSError, ValueError):
+        return "estimate"
+    basis = cost_basis_of(data) if isinstance(data, dict) else "estimate"
+    return basis if basis == "estimate" else "computed"
+
+
 def _stale(product: Any) -> bool:
     """True when the built design no longer matches the model (R11).
 
@@ -271,12 +285,20 @@ def fork_from_model(root: Path | str, title: str | None = None) -> ForkResult:
         "depth": LabelledValue(value=_mm(bbox["y"]), label="computed", source=source),
         "height": LabelledValue(value=_mm(bbox["z"]), label="computed", source=source),
     }
+    estimates: dict[str, LabelledValue] = {}
     if vitals.mass is not None:
-        computed["mass"] = LabelledValue(value=vitals.mass, label="computed", source=source)
+        # The built total (bought parts included), not "mass of the shapes" (S-274).
+        computed["total_mass"] = LabelledValue(value=vitals.mass, label="computed", source=source)
     if vitals.cost is not None:
-        computed["cost"] = LabelledValue(value=vitals.cost, label="computed", source=source)
+        basis = _cost_basis(product)
+        lv = LabelledValue(value=vitals.cost, label=basis, source=source)
+        if basis == "computed":
+            computed["cost"] = lv
+        else:
+            estimates["cost"] = lv
     screening = Screening(
         computed=computed,
+        estimates=estimates,
         rules=fail_rows,
         verdict="red" if fail_rows else "green",
         at=stamp,
@@ -298,9 +320,16 @@ def fork_from_model(root: Path | str, title: str | None = None) -> ForkResult:
         else f"Forked from the built design at checkpoint #{base_cp.number}."
     ]
     note_lines.append(
-        "The envelope numbers are the model's current parameter values; the computed "
-        "figures are measured from the built design."
+        "The size (width, depth, height) and the total mass are measured from the built "
+        "design; the cost is added up from the parts' declared unit costs."
     )
+    if envelope:
+        note_lines.append(
+            "The envelope keeps the chosen card's entries with the model's current "
+            "parameter values."
+        )
+    else:
+        note_lines.append("The envelope is empty: the chosen card gave no entries to carry over.")
     if top_note is not None:
         note_lines.append(top_note)
     note_lines += envelope_notes

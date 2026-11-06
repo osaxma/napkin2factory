@@ -60,11 +60,11 @@ def _column(card: ConceptCard) -> dict[str, Any]:
 def _cell(card: ConceptCard, key: str, units: str) -> dict[str, Any] | None:
     """One card's value for a row, or ``None`` when it has none.
 
-    A parked card's built mass and cost stand in for its napkin figures, marked "when
+    A parked card's built total mass and cost stand in for its napkin figures, marked "when
     parked" (R11).
     """
     if card.built is not None and card.built.event == "parked":
-        if key == "mass" and card.built.mass:
+        if key == "total_mass" and card.built.mass:
             return {
                 "value": display(card.built.mass, units),
                 "label": "computed",
