@@ -125,11 +125,15 @@ def test_pm_skill_napkin_section_says(needle: str):
 
 def test_pm_skill_quotes_concept_verbs_that_exist():
     """Every ``n2f concept <verb>`` the skill quotes is a real verb of the CLI."""
-    cli = (ROOT / "src" / "napkin2factory" / "cli" / "concept.py").read_text(encoding="utf-8")
-    verbs = set(re.findall(r'@concept_app\.command\("(\w+)"\)', cli))
+    import typer
+
+    from napkin2factory.cli.app import app
+
+    # from the app itself: concept verbs are registered in several cli/ modules (S-264, S-265)
+    verbs = set(typer.main.get_command(app).commands["concept"].commands)
     assert {"new", "build", "board", "promote", "reject", "lint"} <= verbs
     for path in (PM, AGENTS):
-        quoted = set(re.findall(r"n2f concept (\w+)", path.read_text(encoding="utf-8")))
+        quoted = set(re.findall(r"n2f concept ([\w-]+)", path.read_text(encoding="utf-8")))
         assert quoted, f"{path.name} quotes no concept verbs"
         assert quoted <= verbs, quoted - verbs
 
