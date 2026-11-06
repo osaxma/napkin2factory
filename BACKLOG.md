@@ -143,6 +143,7 @@ entry that closed them. Ids are never reused.
 | B-0283 | The schema-2 upgrade marks an `applied` request `aborted` while its edit stays in the model, and does not report a cleared approval; old-field errors are raw validator text (gate K C5, C11) | S-271; a status that says it is in the model, one message per retired state |
 | B-0284 | The undo property test has no `ecr abort` or `concept switch` operation, which DoD 2 names (`tests/unit/test_undo_properties.py`, gate K C8) | S-271 |
 | B-0287 | `make health` counts commits without a `Task-started` trailer as unstamped, so docs-only handoff commits made straight on `main` (3 in the v0.8 close window: `3cb4912`, `a70981f`, `f74ace9`) read as a worse trend | S-276; either exempt commits that touch only `docs/handoffs/` and `STATUS.md` in `scripts/health.py`, or land them through `make task`; ~20 min |
+| B-0288 | Promotion and `concept switch` still seed a copy of a held requirement when the two say the same by other means: the sag limit (the seeded one is manual, no target) and the weight limit (assembly mass against the parts-list total); each copy of a safety one needs its own sign-off | S-277; match by meaning (the card field the requirement came from) |
 
 ## Closed
 
