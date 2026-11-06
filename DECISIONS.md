@@ -285,6 +285,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-256 | v0.8 wave 2 boundary: 7 core/ files (10 in v0.8), R12's timings with the new verbs, `make check` time | in force |
 | S-257 | Health review 2026-11-06 (v0.8 wave 2 boundary) — outcome | in force |
 | S-258 | B-0272: local `make check-full` runs the no-change build and screenshot timing tests too | in force |
+| S-259 | B-0273: `core/concepts.py` split into render and lint modules, code moved verbatim | in force |
 
 ---
 
@@ -2024,3 +2025,7 @@ Fixed here: `docs/calckit.md` says 16 circuits (B-0155 closed); B-0185 text corr
 The health review (S-257) found `check-full` set `N2F_TIMING=1` for two files only, so R12's no-change build test (S-247) and the
 two-cards screenshot test (S-249) ran nightly on CI but never on the host. Both are added (the screenshot one by node id, the rest
 of that file already runs in `check`). The kiln's cold-build timing test stays CI-only: a cold kiln build is the slowest step there is.
+## S-259 — B-0273: `core/concepts.py` split before M3a, code moved verbatim (2026-11-06)
+`core/concepts.py` (740 lines) split into `concept_render.py` (125), `concept_lint.py` (330) and `concepts.py` (345), all ≤ 400 lines (S-184 method; S-080's reason: parallel agents collide in long files, and M3a edits concepts next).
+`concept_render.py` holds YAML card text rendering (`render_card` and helpers); `concept_lint.py` holds promotion words and the concept lint (`decision_ids` through `lint_concepts`); `concepts.py` keeps card loading, numbering and status updates, re-exporting every moved name.
+Checked: 42 top-level definitions AST-identical; no caller changed. `core/` touched: `core/concepts.py`, `core/concept_render.py` (new), `core/concept_lint.py` (new).

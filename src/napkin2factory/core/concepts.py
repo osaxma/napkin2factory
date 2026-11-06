@@ -4,6 +4,8 @@ Cards live in ``concepts/C-xxx.yaml`` (images in ``concepts/refs/``) and sit **o
 build graph**: nothing here is called by a build rule, ``load_product`` never reads them and
 ``n2f validate`` ignores them.  ``n2f concept lint`` (:func:`lint_concepts`) is their only
 validator, and it is deliberately light: divergence must be free.
+
+Split across concept_render.py and concept_lint.py (S-259).
 """
 
 from __future__ import annotations
@@ -15,6 +17,13 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
+from napkin2factory.core.concept_render import (  # noqa: F401
+    _flow,
+    _group_lines,
+    _reads_lines,
+    _scalar,
+    render_card,
+)
 from napkin2factory.core.errors import N2FError, Problems
 from napkin2factory.core.model.concepts import CONCEPT_STATUSES, ConceptCard
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip, read_yaml
@@ -229,122 +238,6 @@ def next_concept_id(root: Path) -> str:
     return f"C-{n:03d}"
 
 
-def _flow(value: Any) -> str:
-    return str(
-        yaml.safe_dump(
-            value, default_flow_style=True, sort_keys=False, allow_unicode=True, width=4096
-        )
-    ).strip()
-
-
-def _scalar(key: str, value: Any) -> str:
-    return str(yaml.safe_dump({key: value}, sort_keys=False, allow_unicode=True, width=88)).rstrip(
-        "\n"
-    )
-
-
-def _reads_lines(section: str, fields: list[Any], given: Any = None) -> list[str]:
-    """``#   screens read: width (a length, like 800 mm), …`` wrapped as comment lines.
-
-    A field declared ``hint=False`` (a door's, read only when the card names one) is listed
-    only when ``given`` (the card's section) already holds it (gate F, S-137).
-    """
-    present = set(given) if isinstance(given, dict) else set()
-    items = [
-        f"{f.key} ({f.kind}, like {f.example})" if f.unit else f"{f.key} (like {f.example})"
-        for f in fields
-        if f.section == section
-        and (getattr(f, "hint", True) or present & {f.key, *getattr(f, "aliases", ())})
-    ]
-    if not items:
-        return ["#   (no screen asks for anything here yet)"]
-    lines, line = [], "#   screens read:"
-    for i, item in enumerate(items):
-        piece = f" {item}" + ("," if i < len(items) - 1 else "")
-        if len(line) + len(piece) > 92:
-            lines.append(line)
-            line = "#    "
-        line += piece
-    return [*lines, line]
-
-
-def _group_lines(section: str, fields: list[Any]) -> list[str]:
-    """One comment line per group of optional fields, e.g. the structural ones (B-0253).
-
-    ``#   when it carries a load: point_load, … (also: …)`` names the keys a screen reads only
-    when the card gives them, so they are findable without being asked of every card.
-    """
-    groups: dict[str, list[str]] = {}
-    for f in fields:
-        group = getattr(f, "group", "")
-        if f.section == section and group:
-            groups.setdefault(group, []).append(f.key)
-    return [f"#   {group}, also: {', '.join(keys)}" for group, keys in groups.items()]
-
-
-def render_card(data: dict[str, Any], fields: list[Any] | None = None) -> str:
-    """A card as commented YAML, every §3 section present, in the canonical order.
-
-    ``data`` holds plain values (strings, lists, dicts) as read from YAML or dumped from a
-    :class:`ConceptCard` in JSON mode with aliases. The comments name the fields the
-    installed screens read (``fields``, default the system's and the domains'), so the
-    skeleton follows the screens (F8).
-    """
-    fields = fields if fields is not None else screen_fields()
-    cid = data["id"]
-    lines = [
-        f"# Concept card {cid}: one possible direction for the product.",
-        "# Concepts sit outside the build: nothing here changes `n2f build`; edit freely.",
-        f"# Read it back with `n2f concept show {cid}`; check it with `n2f concept lint`.",
-        _scalar("id", cid),
-        _scalar("title", data.get("title", "")),
-        "# status: exploring | rejected | promoted (reject and promote set it for you)",
-        _scalar("status", data.get("status", "exploring")),
-    ]
-    if data.get("based_on"):
-        lines.append(_scalar("based_on", data["based_on"]) + "  # the card this one started from")
-    lines += [
-        "# refs: images under concepts/refs/ that informed this card (never geometry),",
-        "#   e.g. [refs/sketch-01.jpg]",
-        f"refs: {_flow(data.get('refs') or [])}",
-        "# layout: where things go, in words",
-        *_reads_lines("layout", fields, data.get("layout")),
-        f"layout: {_flow(data.get('layout') or {})}",
-        "# envelope: named rough sizes, any name; they seed parameters when this card is chosen",
-        *_reads_lines("envelope", fields, data.get("envelope")),
-        f"envelope: {_flow(data.get('envelope') or {})}",
-        "# site: the space it must fit and what it plugs into; screening checks what its",
-        "#   screens read, and these become requirements when chosen",
-        *_reads_lines("site", fields, data.get("site")),
-        *_group_lines("site", fields),
-        f"site: {_flow(data.get('site') or {})}",
-        "# style: look and feel,",
-        "#   e.g. {preset: appliance, corner_radius: 8 mm, fastener_visibility: hidden-front}",
-        f"style: {_flow(data.get('style') or {})}",
-        "# modules: the units it is built from and why, when a reason applies (else leave it",
-        "#   empty), e.g. {lid: {driver: [built-as-unit, serviced-as-unit]}};",
-        "#   a massing line joins one with `module: lid`",
-        f"modules: {_flow(data.get('modules') or {})}",
-        "# massing: rough shapes from the kit, one line each, e.g.",
-        "#   - {kit: enclosure, as: body, args: {length: 540 mm, width: 540 mm, height: 620 mm}}",
-        "#   - {kit: block, as: lid, module: lid, args: {…}, at: {…}}",
-    ]
-    massing = data.get("massing") or []
-    if massing:
-        lines.append("massing:")
-        lines += [f"  - {_flow(m)}" for m in massing]
-    else:
-        lines.append("massing: []")
-    lines += [
-        "# notes: anything worth remembering about this direction",
-        _scalar("notes", data.get("notes")),
-        "# written for you: screening by `n2f concept build`, decision by reject or promote",
-        _scalar("screening", data.get("screening")),
-        _scalar("decision", data.get("decision")),
-    ]
-    return "\n".join(lines) + "\n"
-
-
 def new_card(root: Path, title: str, based_on: str | None = None) -> ConceptCard:
     """Write the next free card (status ``exploring``); ``based_on`` copies a card's content."""
     if not title.strip():
@@ -430,311 +323,23 @@ def update_card_status(
     return load_card(root, card.id)
 
 
-def decision_ids(root: Path) -> set[str]:
-    """The ids in ``model/decisions.yaml``, read raw (empty when the file is missing or odd).
-
-    Read without loading the product so ``n2f concept lint`` and the Napkin gate work while
-    the model has unrelated problems.
-    """
-    path = Path(root) / "model" / "decisions.yaml"
-    try:
-        data = read_yaml(path) if path.is_file() else None
-    except Exception:  # an unreadable file is n2f validate's to report
-        return set()
-    rows = data.get("decisions") if isinstance(data, dict) else None
-    return {str(r["id"]) for r in rows or [] if isinstance(r, dict) and "id" in r}
-
-
-def promotion_problem(card: ConceptCard, dec_ids: set[str]) -> str | None:
-    """Why a ``promoted`` card's promotion is not on record, or None when it is (or N/A).
-
-    ``n2f concept promote`` always leaves a screening and ``decision.dec`` naming a decision
-    in ``model/decisions.yaml``; a status typed by hand has neither, and must not complete
-    the Napkin stage (review gate A, B2; D10).
-    """
-    if card.status != "promoted":
-        return None
-    dec = card.decision.dec if card.decision is not None else None
-    if dec is None:
-        return f"{card.id} says promoted but no decision records it"
-    if dec not in dec_ids:
-        return f"{card.id} says promoted by {dec}, but model/decisions.yaml has no {dec}"
-    if card.screening is None:
-        return f"{card.id} says promoted but was never built (no screening)"
-    return None
-
-
-def recorded_promotion(card: ConceptCard, root: Path) -> bool:
-    """True when the card's promotion is on record: ``promoted`` with no :func:`promotion_problem`.
-
-    A ``decision.dec`` naming a decision that ``model/decisions.yaml`` does not hold is not a
-    record, so ``n2f concept reject`` and ``promote`` treat such a card as typed by hand.
-    """
-    return card.status == "promoted" and promotion_problem(card, decision_ids(root)) is None
-
-
-_NOT_CHOSEN = re.compile(r"^not chosen: (C-\d{3}) promoted \((DEC-\d+)\)$")
-
-
-def chosen_instead(chosen: str, dec: str) -> str:
-    """The reason promotion records on a sibling: ``set aside when C-003 was chosen (DEC-001)``."""
-    return f"set aside when {chosen} was chosen ({dec})"
-
-
-def set_aside_words(reason: str | None) -> str:
-    """Why a card was set aside, in one phrase starting ``set aside`` (review gate B, C12).
-
-    Promotion's own reason reads as is; the wording cards carried before (``not chosen: C-003
-    promoted (DEC-001)``) is read the same way; an owner's reason follows ``set aside:``.
-    """
-    text = (reason or "").strip()
-    m = _NOT_CHOSEN.match(text)
-    if m:
-        return chosen_instead(m.group(1), m.group(2))
-    if not text:
-        return "set aside"
-    if text.startswith("set aside"):
-        return text
-    return f"set aside: {text}"
-
-
-MODULES_RULE = "C9-modules"
-#: A module whose card gives no reason it is built on its own (shown on the board).
-NO_REASON_WORDS = "no reason given yet"
-
-
-def module_words(card: ConceptCard) -> list[str]:
-    """Each module the card names, in plain words: ``door (built as one unit)`` (P10).
-
-    The reasons are the assemblies' owner words (``core.build_units.DRIVER_WORDS``,
-    ``docs/vocabulary.md``); a word outside the vocabulary is left out (lint names it).
-    """
-    from napkin2factory.core.build_units import DRIVER_WORDS, PHANTOM_WORDS
-
-    out = []
-    for name in card.module_names():
-        entry = card.module_entry(name)
-        if entry.build == "phantom":
-            why = [PHANTOM_WORDS]
-        else:
-            why = [DRIVER_WORDS[d] for d in entry.driver if d in DRIVER_WORDS] or [NO_REASON_WORDS]
-        out.append(f"{name.replace('-', ' ')} ({', '.join(why)})")
-    return out
-
-
-def _lint_modules(card: ConceptCard, path: Path, problems: Problems) -> None:
-    """C9 (warnings only, P10): the card's modules use the assemblies' words (P7).
-
-    A driver or build word outside the vocabulary, a massing line naming a module with no
-    entry under ``modules:`` (allowed: it promotes with no reason given), and an entry no
-    massing line belongs to (it promotes without a size budget).
-    """
-    from napkin2factory.core.model.assemblies import DRIVERS
-
-    for name, entry in card.modules.items():
-        unknown = [d for d in entry.driver if d not in DRIVERS]
-        if unknown:
-            problems.add(
-                path,
-                card.id,
-                f"module {name}: {', '.join(repr(d) for d in unknown)} is not a reason a "
-                "module is built on its own",
-                f"use one of: {', '.join(DRIVERS)}",
-                severity="warn",
-                rule=MODULES_RULE,
-            )
-        if entry.build not in ("unit", "phantom"):
-            problems.add(
-                path,
-                card.id,
-                f"module {name}: build {entry.build!r} is neither unit nor phantom",
-                "use `build: unit` (built as one unit, the default) or `build: phantom` "
-                "(a grouping only)",
-                severity="warn",
-                rule=MODULES_RULE,
-            )
-        if not any(call.module == name for call in card.massing):
-            problems.add(
-                path,
-                card.id,
-                f"module {name}: no rough shape belongs to it, so promotion gives it no "
-                "size budget",
-                f"add `module: {name}` to the massing lines that make it up",
-                severity="warn",
-                rule=MODULES_RULE,
-            )
-    for i, call in enumerate(card.massing):
-        if call.module is not None and call.module not in card.modules:
-            problems.add(
-                path,
-                card.id,
-                f"massing[{i}] ({call.as_}): module {call.module} has no entry under "
-                "modules:, so nothing says why it is built on its own",
-                f"add `{call.module}: {{driver: [built-as-unit]}}` (or another reason) under "
-                "`modules:`",
-                severity="warn",
-                rule=MODULES_RULE,
-            )
-
-
-RENAMED_RULE = "C10-renamed-keys"
-
-
-def _lint_fields(card: ConceptCard, path: Path, fields: list[Any], problems: Problems) -> None:
-    """Rules C8, C5 and C10 on one card's fields (F8, F16).
-
-    C8: a number of the wrong kind; C5 (a warning): a site key no screen reads; C10 (a
-    warning): a key read under an earlier name for this version only.
-    """
-    for f in fields:
-        key = f.written(card)
-        if key is None:
-            continue
-        wrong = f.wrong_kind(f.raw(card))
-        if wrong is not None:
-            shown, kind, example = wrong
-            problems.add(
-                path,
-                card.id,
-                f"{f.section}.{key} is {shown}, which is not {kind}",
-                f"give it as {kind} with its unit, like {example}",
-                rule="C8-number-kinds",
-            )
-        if key != f.key:
-            problems.add(
-                path,
-                card.id,
-                f"{f.section}.{key} is read as {f.name} for this version only",
-                f"rename it to {f.key} (same value); the old name stops being read in the "
-                "next version",
-                severity="warn",
-                rule=RENAMED_RULE,
-            )
-    site = [f for f in fields if f.section == "site"]
-    known = sorted({f.key for f in site})
-    old = sorted({a for f in site for a in f.aliases})
-    for key in card.site:
-        if key not in known and key not in old:
-            problems.add(
-                path,
-                card.id,
-                f"site key {key!r} is not one any screen reads; it is kept but not checked",
-                f"known keys: {', '.join(known)}"
-                + (f"; read for this version only: {', '.join(old)}" if old else ""),
-                severity="warn",
-                rule="C5-site-keys",
-            )
-
-
-def lint_concepts(root: Path) -> Problems:
-    """``n2f concept lint``: schema plus rules C1–C10; C5, C9 and C10 are warnings.
-
-    The fields checked are those the screens installed for ``root`` declare: the system's,
-    the domains' and the product's own (``model/screens/``, F8, F10).
-    """
-    problems = Problems()
-    cards = load_concepts(root, problems)
-    fields = screen_fields(root)
-    files = {p.stem: p for p in card_files(root)}
-    cdir = concepts_dir(root).resolve()
-    generators = kit_generators()
-    for stem, path in files.items():
-        if not ID_RE.fullmatch(stem):
-            problems.add(
-                path,
-                stem,
-                f"the file name {path.name} is not a concept id",
-                f"rename it to {next_concept_id(root)}.yaml (ids look like C-001) "
-                "and set the same id inside",
-                rule="C1-id-matches-file",
-            )
-    for cid, card in cards.items():
-        path = files[cid]
-        if ID_RE.fullmatch(cid) and card.id != cid:
-            problems.add(
-                path,
-                card.id,
-                f"id {card.id} does not match the file name {path.name}",
-                f"make them agree: set `id: {cid}` or rename the file to {card.id}.yaml",
-                rule="C1-id-matches-file",
-            )
-        for ref in card.refs:
-            target = (cdir / ref).resolve()
-            if not target.is_relative_to(cdir):
-                problems.add(
-                    path,
-                    card.id,
-                    f"refs entry {ref!r} points outside concepts/",
-                    "copy the image into concepts/refs/ and refer to it as refs/<name>",
-                    rule="C2-refs-exist",
-                )
-            elif not target.is_file():
-                problems.add(
-                    path,
-                    card.id,
-                    f"refs entry {ref!r} not found",
-                    f"put the image at concepts/{ref}, or remove it from refs",
-                    rule="C2-refs-exist",
-                )
-        for i, call in enumerate(card.massing):
-            if call.kit not in generators:
-                problems.add(
-                    path,
-                    card.id,
-                    f"massing[{i}] ({call.as_}): {call.kit!r} is not a kit generator",
-                    f"use one of: {', '.join(generators)}",
-                    rule="C3-kit-known",
-                )
-        if card.based_on is not None:
-            if card.based_on == card.id:
-                problems.add(
-                    path,
-                    card.id,
-                    "based_on names the card itself",
-                    "name the card this one started from, or remove based_on",
-                    rule="C4-based-on-exists",
-                )
-            elif card.based_on not in files:
-                known = ", ".join(s for s in files if s != cid) or "none"
-                problems.add(
-                    path,
-                    card.id,
-                    f"based_on {card.based_on}: there is no such card",
-                    f"name an existing card ({known}) or remove based_on",
-                    rule="C4-based-on-exists",
-                )
-        _lint_fields(card, path, fields, problems)
-        _lint_modules(card, path, problems)
-    dec_ids = decision_ids(root)
-    for cid, card in cards.items():
-        why = promotion_problem(card, dec_ids)
-        if why is not None:
-            problems.add(
-                files[cid],
-                card.id,
-                why,
-                f"promote it with `n2f concept build {card.id}` then `n2f concept promote "
-                f"{card.id}` (that records the decision), or set it aside with "
-                f'`n2f concept reject {card.id} --reason "…"`',
-                rule="C7-promoted-has-decision",
-            )
-        elif card.status == "rejected" and (card.decision is None or not card.decision.reason):
-            problems.add(
-                files[cid],
-                card.id,
-                f"{card.id} is rejected but says nothing about why",
-                "give it `decision: {reason: …}`, or use "
-                f'`n2f concept reject {card.id} --reason "…"`',
-                rule="C7-promoted-has-decision",
-            )
-    promoted = [cid for cid, c in cards.items() if c.status == "promoted"]
-    if len(promoted) > 1:
-        for cid in promoted:
-            problems.add(
-                files[cid],
-                cards[cid].id,
-                f"more than one card is promoted ({', '.join(promoted)})",
-                "a product has one chosen direction: set the others to `status: rejected`",
-                rule="C6-one-promoted",
-            )
-    return problems
+# Re-exported from concept_lint at the end to avoid circular imports (S-259).
+from napkin2factory.core.concept_lint import (  # noqa: E402, F401
+    _NOT_CHOSEN,
+    MODULES_RULE,
+    NO_REASON_WORDS,
+    RENAMED_RULE,
+    _lint_fields,
+    _lint_modules,
+    chosen_instead,
+    lint_concepts,
+    module_words,
+    recorded_promotion,
+    set_aside_words,
+)
+from napkin2factory.core.concept_lint import (  # noqa: E402, F401
+    decision_ids as decision_ids,
+)
+from napkin2factory.core.concept_lint import (  # noqa: E402, F401
+    promotion_problem as promotion_problem,
+)
