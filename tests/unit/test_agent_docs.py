@@ -22,7 +22,15 @@ def test_agents_md_is_the_only_instructions_file():
 
 
 @pytest.mark.parametrize(
-    "name", ["AGENTS.md", "STATUS.md", "BACKLOG.md", "README.md", "docs/agent-guide.md"]
+    "name",
+    [
+        "AGENTS.md",
+        "STATUS.md",
+        "BACKLOG.md",
+        "README.md",
+        "docs/agent-guide.md",
+        "src/napkin2factory/skill/SKILL.md",
+    ],
 )
 def test_instructions_name_no_model(name: str):
     text = (REPO / name).read_text(encoding="utf-8")

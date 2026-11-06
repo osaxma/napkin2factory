@@ -45,6 +45,8 @@ folder or the nearest product folder above it) and `--json` for machine-readable
 | `n2f serve [--port N] [--site]` | serve the report on localhost (it also opens from disk); `--site` serves `build/site` (versions and diffs) |
 | `n2f docs [topic] [--json]` | the reference pages that ship with the tool: no topic lists them with their titles; `n2f docs kit` prints the kit of parts, `napkin`, `electrical`, `calckit`, `checks`, `cli`, `product-model`, `render-checklist`, `vocabulary`, `domains`, `how-it-works`, `ecr-loop`, `schema-policy` and `agent-guide` likewise; an unknown topic lists the known ones. `--json` gives `{topic, title, text}`. In a source checkout it reads the repository's `docs/`, so an edit shows at once |
 | `n2f doctor [--json]` | can this machine run napkin2factory, and what to fix if not; then the installed domains, each with its verify kinds (what a requirement's `verify.kind` may name, with what it targets), its check stages and its napkin screens, the screens every product gets and, inside a product folder, the product's own (`model/screens/`) |
+| `n2f mcp [-C DIR]` | serve every verb above as a tool over stdio, one tool per verb named `n2f_<verb>` (`n2f_ecr_new`), acting only inside DIR; needs `pip install "napkin2factory[mcp]"` |
+| `n2f skill [--write DIR]` | print the napkin2factory skill file, or write `DIR/napkin2factory/SKILL.md` into a client's skills folder |
 | `n2f version` | the installed version |
 
 Exit codes: 0 ok, 1 validation/lint/build failure, 2 check failure, 3 gate blocked

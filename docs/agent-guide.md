@@ -145,6 +145,8 @@ client lacks it:
 | looking at renders (`build/parts/<id>/renders/*.png`) | say you cannot see images, check the numbers in `build/parts/<id>/props.json`, and ask the owner to look at the report's 3D view |
 | opening a page for the owner | give them the file path and say how to open it (double-click, or drag it into a browser) |
 | reaching the network | set `N2F_OFFLINE=1`; everything but the vendor-link check works offline |
+| the MCP server, which gives you each command as a tool (`pip install "napkin2factory[mcp]"`, then run `n2f mcp --dir <product folder>`) | use the command line and this guide, as everywhere above; the server is optional |
+| the skill, which lets your client suggest napkin2factory on its own (`n2f skill --write <your client's skills folder>`) | nothing is lost: the README's prompt sends you to this guide |
 
 Commands that work on a product take `--json` (`graph` uses `--format json`, `serve` has none).
 Prefer it whenever you parse output.

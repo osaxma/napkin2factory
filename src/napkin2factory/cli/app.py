@@ -15,9 +15,11 @@ from napkin2factory.cli import doctor as doctor_cmd
 from napkin2factory.cli import ecr as ecr_cmd
 from napkin2factory.cli import graph as graph_cmd
 from napkin2factory.cli import init as init_cmd
+from napkin2factory.cli import mcp as mcp_cmd
 from napkin2factory.cli import publish as publish_cmd
 from napkin2factory.cli import release as release_cmd
 from napkin2factory.cli import serve as serve_cmd
+from napkin2factory.cli import skill as skill_cmd
 from napkin2factory.cli import snapshot as snapshot_cmd
 from napkin2factory.cli import undo as undo_cmd
 from napkin2factory.cli import validate as validate_cmd
@@ -67,6 +69,8 @@ app.command("release")(release_cmd.release)
 app.command("diff")(release_cmd.diff)
 app.command("publish")(publish_cmd.publish)
 app.command("impact")(graph_cmd.impact)
+app.command("mcp")(mcp_cmd.mcp)
+app.command("skill")(skill_cmd.skill)
 
 
 def main() -> None:

@@ -1,0 +1,167 @@
+# The prompts for the trigger-rate trial of the skill (road-to-v1.0 section 4.3, S-255).
+# A client that sees only the skill's name and description reads one prompt at a time and decides
+# whether to load the skill. should_trigger: true means loading it is right.
+# `python scripts/trigger_rates.py` turns a judgments file into the two rates.
+# Ids carry no hint of the answer: the judging model sees them.
+version: 1
+prompts:
+  - id: P01
+    prompt: "Can you help me design a bracket to hold a 12kg shelf off a brick wall?"
+    should_trigger: true
+    note: "Small mechanical part with a load."
+  - id: P02
+    prompt: "I am happy with the enclosure now. Get it ready so I can send it to a workshop to be made."
+    should_trigger: true
+    note: "Release / manufacturing package."
+  - id: P03
+    prompt: "Which of these three ideas for a bike rack is cheapest and strong enough? I only have rough sketches."
+    should_trigger: true
+    note: "Compare rough directions."
+  - id: P04
+    prompt: "Suggest a decorative trinket I could give my aunt for her birthday."
+    should_trigger: false
+    note: "A gift idea, nothing to design."
+  - id: P05
+    prompt: "I would like to make a simple shelf unit from plywood for my workshop, 5 shelves, each holding about 20kg. Where do I start?"
+    should_trigger: true
+    note: "Open request to start a product."
+  - id: P06
+    prompt: "How do I wire a three-way light switch in my hallway?"
+    should_trigger: false
+    note: "Home wiring how-to, not a design."
+  - id: P07
+    prompt: "What grade of bolt do I need to hang a hammock from a ceiling joist?"
+    should_trigger: false
+    note: "A single fact about a bolt grade, no design."
+  - id: P08
+    prompt: "Actually undo that last change, 1600 mm fits my wall better."
+    should_trigger: true
+    note: "Step back on an existing design (no product named)."
+  - id: P09
+    prompt: "Let's turn my napkin sketch of a folding camping table into something a workshop can cut and weld."
+    should_trigger: true
+    note: "Napkin to factory, nearly the tool's own words."
+  - id: P10
+    prompt: "My laptop fan is loud. How do I clean it?"
+    should_trigger: false
+    note: "Hardware repair."
+  - id: P11
+    prompt: "I need a test rig that pulls on a clip with 200 N and shows the force on a gauge. Can you work out the parts and what they cost?"
+    should_trigger: true
+    note: "Test rig, parts and price."
+  - id: P12
+    prompt: "I need drawings and a parts list I can give to a local metal shop for a small stand for my monitor."
+    should_trigger: true
+    note: "Shop drawings and parts list."
+  - id: P13
+    prompt: "Help me write a product description for my online store selling handmade candles."
+    should_trigger: false
+    note: "Marketing copy."
+  - id: P14
+    prompt: "My last design change made the cost go up. Can you show me what changed between the two versions and put it back if it is not worth it?"
+    should_trigger: true
+    note: "Compare and undo, in plain words."
+  - id: P15
+    prompt: "Design me a box for a Raspberry Pi with a few ports and vents, something I can have made."
+    should_trigger: true
+    note: "Enclosure; 'have made' is the signal."
+  - id: P16
+    prompt: "What is the difference between SolidWorks and Onshape for a beginner?"
+    should_trigger: false
+    note: "CAD software comparison."
+  - id: P17
+    prompt: "Open this STEP file and tell me how many faces it has."
+    should_trigger: false
+    note: "Reading a file the person has."
+  - id: P18
+    prompt: "Why is my React component re-rendering every time the parent updates?"
+    should_trigger: false
+    note: "Software."
+  - id: P19
+    prompt: "What is the yield strength of 6061-T6 aluminium?"
+    should_trigger: false
+    note: "A material property question."
+  - id: P20
+    prompt: "Can you design a small cabinet for my electronics with a fan, so it does not overheat, and tell me what to buy?"
+    should_trigger: true
+    note: "Product with a bought-parts list."
+  - id: P21
+    prompt: "What is a good budget for a home renovation of a 10 square metre bathroom?"
+    should_trigger: false
+    note: "Building work, not a product design."
+  - id: P22
+    prompt: "Fix the failing unit test in my repository and explain what was wrong."
+    should_trigger: false
+    note: "Software."
+  - id: P23
+    prompt: "Explain how a four-bar linkage works."
+    should_trigger: false
+    note: "Engineering explanation."
+  - id: P24
+    prompt: "Draw me a cartoon of a robot holding a wrench."
+    should_trigger: false
+    note: "Illustration."
+  - id: P25
+    prompt: "Summarise this article about the history of the steam engine."
+    should_trigger: false
+    note: "Summary."
+  - id: P26
+    prompt: "I need a sturdy workbench for my garage, 1600x800mm, that can hold a 150kg engine block without sagging, and I have a $450 budget."
+    should_trigger: true
+    note: "A plain-words request to design a physical product with loads and a budget (the Track D trial prompt)."
+  - id: P27
+    prompt: "Write a Python function that parses a CSV file and returns the rows as dictionaries."
+    should_trigger: false
+    note: "Software."
+  - id: P28
+    prompt: "Draft a project plan for launching a mobile app in six months."
+    should_trigger: false
+    note: "Project planning, software."
+  - id: P29
+    prompt: "Make the workbench 1800mm wide instead of 1600mm and tell me what that does to the cost."
+    should_trigger: true
+    note: "A change to an existing design and its effect on price."
+  - id: P30
+    prompt: "I want to build something to hold my kayak on the garage ceiling."
+    should_trigger: true
+    note: "Vague: a physical thing to be built, no numbers."
+  - id: P31
+    prompt: "Can you teach me how to make a fillet in Fusion 360?"
+    should_trigger: false
+    note: "CAD tutoring."
+  - id: P32
+    prompt: "I have an idea for a gadget that holds three phones at an angle on my desk. I do not know CAD at all."
+    should_trigger: true
+    note: "Vague idea, no CAD skill."
+  - id: P33
+    prompt: "Which circuit board design tool should I use for a simple LED flasher?"
+    should_trigger: false
+    note: "Other hardware tool."
+  - id: P34
+    prompt: "What would it cost to build the kiln I sketched on a napkin? It is about 60 cm tall and takes ceramic pieces."
+    should_trigger: true
+    note: "Priced design from a rough sketch."
+  - id: P35
+    prompt: "I want to build a wooden storage bench for my hallway that seats two adults and has room for shoes underneath. What would it take?"
+    should_trigger: true
+    note: "Furniture design from an idea."
+  - id: P36
+    prompt: "Can you check whether my design for a standing desk will tip over if I lean on one corner?"
+    should_trigger: true
+    note: "Safety check on a physical design."
+  - id: P37
+    prompt: "Go back to how the bracket looked yesterday, before I changed the hole size."
+    should_trigger: true
+    note: "Rollback in plain words."
+  - id: P38
+    prompt: "How do I slice this model with 20% infill so it prints faster?"
+    should_trigger: false
+    note: "3D printing settings."
+  - id: P39
+    prompt: "I downloaded a benchy STL. What settings should I use to print it on an Ender 3?"
+    should_trigger: false
+    note: "3D printing a downloaded file."
+  - id: P40
+    prompt: "Price out a version of my planter box using cedar instead of pine."
+    should_trigger: true
+    note: "Material change and price."

@@ -21,7 +21,7 @@ entry that closed them. Ids are never reused.
 | B-0014 | Tapered opening (reveal boards) to match the tapered door plug | Gate-3 B5/C14: the plug tapers 6° and the opening is straight, so the hot-end gap is packed with fiber blanket (consumable) |
 | B-0022 | Cost bands in `calckit/data/cost_bands.yaml` are wide (8–68 USD/kg sheet metal) so the board's cost estimate spans ×3 | S-064/S-065: seeded from the kiln's per-part estimates; narrow them from real quotes, or per region |
 | B-0035 | Electrical stage: KiCad schematics as source, an `elec:` rule family, a `circuit` verify kind | GRAND_PLAN §1.2 non-goal; HANDOFF-REPORT §6 |
-| B-0036 | MCP server wrapping the CLI verbs (concept verbs included) so chat clients run intake and builds | GRAND_PLAN §1.2; NAPKIN_STAGE §1.2 (v0.3); thin experimental version planned for v0.8, frozen composite tools at v1.0 (S-191, Track D M0/M3) |
+| B-0036 | MCP server wrapping the CLI verbs (concept verbs included) so chat clients run intake and builds | GRAND_PLAN §1.2; NAPKIN_STAGE §1.2 (v0.3); thin experimental version planned for v0.8, frozen composite tools at v1.0 (S-191, Track D M0/M3); thin experimental server in S-255 |
 | B-0038 | Manufacturer capability profiles as a rule-pack dimension (`n2f check --profile`) | GRAND_PLAN §1.2; HANDOFF-REPORT §6 |
 | B-0039 | Tolerance stack-up over chains of interface frames as a verify kind | GRAND_PLAN §1.2; HANDOFF-REPORT §6 |
 | B-0040 | FEA / simulation gates | GRAND_PLAN §1.2 non-goal |

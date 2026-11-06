@@ -35,6 +35,10 @@ dependencies = [
   "pillow>=11.0",
 ]
 
+[project.optional-dependencies]
+# The experimental MCP server (`n2f mcp`, S-255); the core install stays free of it.
+mcp = ["mcp>=1.2,<2"]
+
 [project.scripts]
 n2f = "napkin2factory.cli.app:main"
 
@@ -56,6 +60,7 @@ dev = [
   "types-PyYAML",
   "types-openpyxl",
   "playwright>=1.48",
+  "mcp>=1.2,<2",
 ]
 
 [build-system]
