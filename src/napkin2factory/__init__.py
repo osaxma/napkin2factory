@@ -1,3 +1,3 @@
 """napkin2factory: compile a text-only product model into a manufacturable package."""
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"

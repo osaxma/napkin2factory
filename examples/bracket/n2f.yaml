@@ -1,5 +1,5 @@
 schema: 2
-system: ">=0.7,<0.8"
+system: ">=0.8,<0.9"
 product:
   id: bracket
   name: Wall bracket for a 10 kg shelf

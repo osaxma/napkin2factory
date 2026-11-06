@@ -243,7 +243,7 @@ def test_manifest_operator_signoff_decision():
     m_us = Manifest.model_validate(
         {
             "schema": 1,
-            "system": ">=0.7,<0.8",
+            "system": ">=0.8,<0.9",
             "product": {"id": "stand", "name": "Test stand"},
             "region": "US",
             "units": "imperial",
@@ -256,7 +256,7 @@ def test_manifest_operator_signoff_decision():
         Manifest.model_validate(
             {
                 "schema": 1,
-                "system": ">=0.7,<0.8",
+                "system": ">=0.8,<0.9",
                 "product": {"id": "p", "name": "P"},
                 "region": "XX",
             }
@@ -266,7 +266,7 @@ def test_manifest_operator_signoff_decision():
         Manifest.model_validate(
             {
                 "schema": 1,
-                "system": ">=0.7,<0.8",
+                "system": ">=0.8,<0.9",
                 "product": {"id": "p", "name": "P"},
                 "units": "fathoms",
             }

@@ -122,7 +122,7 @@ def _create_test_product(root: Path) -> Path:
 
     (root / "n2f.yaml").write_text(
         "schema: 2\n"
-        "system: '>=0.7,<0.8'\n"
+        "system: '>=0.8,<0.9'\n"
         "product:\n"
         "  id: ifaces-test\n"
         "  name: Mechanical Interfaces Test\n"

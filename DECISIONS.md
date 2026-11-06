@@ -310,6 +310,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-281 | Gate L fixes: impact names stale words, close lists what stands in the way | in force |
 | S-282 | Gate L fixes: status names an open change request, the report counts requirements, plainer switch and undo words | in force |
 | S-283 | v0.8 close: the §2.1 measures and R12 timings | in force |
+| S-284 | Close v0.8: version 0.8.0, pins >=0.8,<0.9, the handoff | in force |
 
 ---
 
@@ -2190,3 +2191,11 @@ the no-history error says what `n2f init .` does. Core file: `core/checks/stage.
 Warm one-parameter rebuild: 19.4 / 22.3 / 61.6 s for tiers 1 / 2 / 3 (v0.7: 14.4 / 19.4 / 50.8 s; tier 1 target under 1 s not met); nothing changed 2.8 / 3.1 / 5.0 s (v0.7: 8.2 / 8.7 / 11.2 s).
 Guide plus product `AGENTS.md`: 36,227 characters, about 9,057 tokens (chars / 4), against 9,059 at v0.7 and 9,065 at S-268.
 Gate B trials (copied, a terminal agent harness only, a product with a model so not v0.7's rows): first report 5 min 03 s / 58 calls (Gemini 3.8 Flash), 5 min 18 s / 20 calls (DeepSeek V4 Pro); oracle 50 passed, 0 failed, 7 pending for both. Skill suggestion rate as S-255 (20/20 and 0/20), not re-measured. `core/` touched: none.
+## S-284 — Close v0.8: version 0.8.0, pins >=0.8,<0.9, the handoff (2026-11-06)
+`pyproject.toml`, `packaging/n2f/pyproject.toml` (and its `napkin2factory==` pin), `src/napkin2factory/__init__.py`
+and `uv.lock` say 0.8.0; every product pin the package writes or ships (the manifest default in
+`core/model/manifest.py`, the templates and their workflows, the five examples, the test fixtures,
+`docs/product-model.md`) says `>=0.8,<0.9` (S-083, as S-242). Kept at `>=0.7,<0.8`: the schema-1 fixture
+`tests/fixtures/schema/v1`, which stands for a v0.7 product the upgrade opens (R15). The manifest default
+is the one `core/` file this bump edits: v0.8 touched 19 distinct `core/` files since v0.7.0. The handoff is
+`docs/reviews/v0.8-handoff.md` (DoD 2 and 6 partly met). Tagging and pushing stay the maintainer's calls (S-072).
