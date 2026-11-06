@@ -251,7 +251,9 @@ def test_bridges(root: Path) -> None:
     _run("ecr", "abort", cwd=root)
     for verb in ("new", "start"):  # the patch option went with schema 2
         r = _run("ecr", verb, "--title", "x", "--patch", "changes/p.patch", cwd=root, ok=False)
-        assert r.returncode == 2 and "--patch" in " ".join(r.stderr.split())
+        # CI forces colour, so the usage error splits "--patch" with escape codes.
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", r.stderr)
+        assert r.returncode == 2 and "--patch" in " ".join(plain.split())
     _run("ecr", "start", "--title", "Live", cwd=root)
     r = _run("ecr", "apply", cwd=root, ok=False)
     err = " ".join(r.stderr.split())
