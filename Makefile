@@ -80,7 +80,10 @@ examples-fast:
 	done
 
 check-full: check kiln demos
-	N2F_TIMING=1 $(PY) pytest tests/e2e/test_timing.py tests/e2e/test_concept_build.py -q
+	# Every timing test but the kiln's cold build (CI runs that one nightly job-wide; S-258).
+	N2F_TIMING=1 $(PY) pytest tests/e2e/test_timing.py tests/e2e/test_concept_build.py \
+	  tests/e2e/test_nochange_build.py \
+	  tests/unit/test_screenshot.py::test_two_cards_through_one_session_are_quick -q
 
 # The kiln's concept cards are rebuilt in a scratch copy (build/kiln-napkin). An unchanged card
 # no longer changes on a rebuild (its screening time moves only with its content, S-086), but a

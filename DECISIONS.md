@@ -284,6 +284,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-255 | M5: the thin experimental MCP server (`n2f mcp`), the skill (`n2f skill`), the prompt set and the first trigger rates | in force |
 | S-256 | v0.8 wave 2 boundary: 7 core/ files (10 in v0.8), R12's timings with the new verbs, `make check` time | in force |
 | S-257 | Health review 2026-11-06 (v0.8 wave 2 boundary) — outcome | in force |
+| S-258 | B-0272: local `make check-full` runs the no-change build and screenshot timing tests too | in force |
 
 ---
 
@@ -2018,3 +2019,8 @@ the rebuild), 2.1 / 3.0 s again; `concept switch`: not built yet. `make check` o
 Trend row recorded at 75100c8 (`docs/reviews/health-2026-11-06.md`; window a55f8bb..75100c8, 19 commits). Worse: TODO lines in `src/` 0 -> 5 (all `TODO(B-0263)`, gone with M2c), open rows 124 -> 131, modules over 550 lines still 13 but a different set (`ecr/lifecycle.py` out, 608 -> 247 by S-248; `core/checks/calcs.py` 579 and `core/concepts.py` 740 up in S-240), `make check` 6 min 36 s -> 7 min 39 s (S-250 to S-256, cause not measured). Better: collisions 7 -> 1, tests 1288 -> 1386, skips 36 -> 34, coverage measured for the first time (0.9413).
 All six seam edits since v0.7.0 (S-246, S-247, S-251, S-252, S-253, S-254) have an entry that names the seam file. The library now imports up into the CLI layer in three places (`ecr/live.py`, `ecr/live_impact.py`, `ecr/release.py` use `cli/checkpointing.py`), and `docs/cli.md` lacks `checkpoints`, `undo`, `redo`, `rollback` and `ecr start/abort/quick` with no test to catch it.
 Fixed here: `docs/calckit.md` says 16 circuits (B-0155 closed); B-0185 text corrected. Opened: B-0270 (move the checkpoint helpers out of `cli/`, after M2c), B-0271 (docs/cli.md against `--help`, with M4), B-0272 (`check-full` skips two timing tests), B-0273 (split `core/concepts.py` before M3a), B-0274 (measure upward imports into `cli/`). CI results on `main`: not checked (no token).
+
+## S-258 — B-0272: local `make check-full` runs every timing test but the kiln's (2026-11-06)
+The health review (S-257) found `check-full` set `N2F_TIMING=1` for two files only, so R12's no-change build test (S-247) and the
+two-cards screenshot test (S-249) ran nightly on CI but never on the host. Both are added (the screenshot one by node id, the rest
+of that file already runs in `check`). The kiln's cold-build timing test stays CI-only: a cold kiln build is the slowest step there is.
