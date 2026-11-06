@@ -1,6 +1,6 @@
 # STATUS — napkin2factory
 
-**Version:** 0.8.0 set, not tagged (S-284); 0.7.0 released 2026-11-05 (tag `v0.7.0`, both packages on PyPI, S-244; 0.4.0 and 0.5.0 closed, untagged) · **Trunk:** `main`;
+**Version:** 0.8.0, released 2026-11-06 (tag `v0.8.0`, both packages on PyPI, S-286); 0.7.0 released 2026-11-05 (S-244; 0.4.0 and 0.5.0 closed, untagged) · **Trunk:** `main`;
 work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:** `BACKLOG.md` ·
 **Why things are the way they are:** `DECISIONS.md` (index at the top) · **What shipped:**
 `docs/handoffs/HANDOFF-REPORT-v0.6.md` (v0.6), `docs/handoffs/HANDOFF-REPORT-v0.5.md` (v0.5), `docs/handoffs/HANDOFF-REPORT-v0.4.md` (v0.4), `docs/handoffs/HANDOFF-REPORT-v0.2.md` (v0.2), `docs/handoffs/HANDOFF-REPORT-v0.1.md` (v0.1)
@@ -9,7 +9,7 @@ work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:
 v0.7 (everyday breadth, `docs/stages/v0.7-everyday-breadth.md`) is closed at 0.7.0 (S-242): Track A, S-197 to S-241
 (structural physics, everyday materials, derived ceremony, region and display units, the table and test-stand products,
 the three-tier benchmarks and their two-vendor spec trials, the v0.7 health review); handoff `docs/reviews/v0.7-handoff.md`
-(S-239). The commit history carries no personal email (S-243). Released as `v0.7.0` (S-244). v0.8 (Track B, `docs/stages/v0.8-bidirectional-iteration.md`, S-245) is closed at 0.8.0 (S-284); handoff `docs/reviews/v0.8-handoff.md`, running state `docs/handoffs/v0.8-overseer.md`. Not tagged, not pushed.
+(S-239). The commit history carries no personal email (S-243). Released as `v0.7.0` (S-244). v0.8 (Track B, `docs/stages/v0.8-bidirectional-iteration.md`, S-245) is closed at 0.8.0 (S-284); handoff `docs/reviews/v0.8-handoff.md`, running state `docs/handoffs/v0.8-overseer.md`. Released as `v0.8.0` (S-286).
 
 ## Environment (host facts a cold reader needs)
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via

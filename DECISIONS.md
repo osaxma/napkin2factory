@@ -312,6 +312,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-283 | v0.8 close: the §2.1 measures and R12 timings | in force |
 | S-284 | Close v0.8: version 0.8.0, pins >=0.8,<0.9, the handoff | in force |
 | S-285 | v0.8 visual exit: the board's built-design card, judged by the maintainer | in force |
+| S-286 | v0.8.0 released: CI green on both platforms, tagged, published | in force |
 
 ---
 
@@ -2206,3 +2207,11 @@ promoted, C-003 rejected, C-004 "Twin-column portal, as built" with "the built d
 fails", total mass 15.8 kg computed, cost 1,017 USD estimate) and the portal's assembly render after the
 platen change were sent to the maintainer. Judged by the maintainer: "Yes, keep it". The card's
 "rejected" label after a later switch stays open as B-0289. This closes M6's visual exit (S-284).
+
+## S-286 — v0.8.0 released (2026-11-06)
+The maintainer asked to push, watch CI, then tag. `main` was pushed at fe84fcf; CI `ci` failed on Linux and macOS
+on one test, `tests/e2e/test_ecr_live.py::test_bridges`: CI forces colour, so the usage error split `--patch` with
+escape codes (2,031 passed). The test now strips colour codes before matching (95e6fb0, checked locally with
+`GITHUB_ACTIONS=true FORCE_COLOR=1`). CI `ci` passed on both platforms at 95e6fb0; `v0.8.0` was tagged on it and
+`publish.yml` published both packages (build, pypi, pypi-alias green; `napkin2factory` and `n2f` 0.8.0 on PyPI).
+Visual exit: judged by the maintainer (S-285).
