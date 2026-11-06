@@ -277,6 +277,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-248 | M2a: `ecr/lifecycle.py` split into state, apply and revisions, code moved verbatim | in force |
 | S-249 | B-0259: CI budgets for the two nightly timing tests, measured on the runner | in force |
 | S-250 | v0.8 wave 1 boundary: 4 core/ files, R12's first timings, `make check` time | in force |
+| S-251 | Wave 2 seam: checkpoint vitals from a fresh build; change-request baseline and approval hash fields | in force |
 
 ---
 
@@ -1957,3 +1958,12 @@ copies of `examples/table` (tier 1) and `examples/test-stand` (tier 2): a build 
 2 s; was 8–11 s); a one-parameter `ecr impact` (today's static impact, before M2b's live diff) 1.1 s and 1.3 s; `undo` and
 `concept switch`: not measured (not built yet). `make check` on `main` at 999f78d: 6 min 36 s, green, on a host otherwise idle.
 §2.1 measures: not re-measured at this boundary (no guide or product-file change in wave 1).
+
+## S-251 — Wave 2 seam: vitals and the change-request fields M1b and M2b share (2026-11-05)
+Written by the overseer before M1b and M2b start, so neither waits on the other. `core/vitals.py` `current_vitals(product)`:
+total mass and priced cost from `build/bom/rollups.json` ("47.2 kg", "1,014 USD", with "(some parts without a price)" when
+incomplete) only when the parts-list rule is up to date under either render setting, else not measured (R3); it builds nothing.
+Not in `bom/`: a new file there changes that package's code hash and restales every parts list. `core/model/ecr.py`:
+`Approval.model_hash` (the folder hash at approval, R7) and `Ecr.baseline` (`checkpoint`, `mass`, `cost`, R6), both optional,
+so v0.7 files still load; M2c's schema 2 makes them the rule. Tests: `tests/e2e/test_vitals.py`. `core/` touched: `core/vitals.py`
+(new), `core/model/ecr.py`, `core/model/__init__.py`.

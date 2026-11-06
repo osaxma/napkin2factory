@@ -43,6 +43,21 @@ class Approval(Model):
     by: str
     at: dt.datetime
     note: str | None = None
+    # The folder's saved-state hash when approved (v0.8 R7): `ecr close` refuses when the
+    # model has changed since. Absent on approvals recorded before v0.8.
+    model_hash: str | None = None
+
+
+class Baseline(Model):
+    """The state a live change request started from (v0.8 R6): its checkpoint and vitals.
+
+    The checkpoint is also kept as the marker ``ecr/<ECR id>/baseline``; mass and cost are
+    the plain strings a checkpoint carries (None: not measured, the build was stale).
+    """
+
+    checkpoint: str
+    mass: str | None = None
+    cost: str | None = None
 
 
 class Applied(Model):
@@ -66,6 +81,7 @@ class Ecr(Model):
     edits: list[Edit] = Field(default_factory=list)
     tasks: list[str] = Field(default_factory=list)
     patch: str | None = None
+    baseline: Baseline | None = None
     impact: dict[str, Any] | None = None
     approval: Approval | None = None
     applied: Applied | None = None

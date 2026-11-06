@@ -14,7 +14,7 @@ from napkin2factory.core.model.concepts import (
 )
 from napkin2factory.core.model.decisions import Decision, DecisionsFile
 from napkin2factory.core.model.docs import DocMeta
-from napkin2factory.core.model.ecr import TRANSITIONS, Applied, Approval, Ecr, Edit
+from napkin2factory.core.model.ecr import TRANSITIONS, Applied, Approval, Baseline, Ecr, Edit
 from napkin2factory.core.model.interfaces import (
     BoltPatternSpec,
     Frame,
@@ -46,6 +46,7 @@ __all__ = [
     "TRANSITIONS",
     "Applied",
     "Approval",
+    "Baseline",
     "Assembly",
     "BoltPatternSpec",
     "Child",
