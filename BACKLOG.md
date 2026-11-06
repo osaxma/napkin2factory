@@ -123,7 +123,6 @@ entry that closed them. Ids are never reused.
 | B-0227 | Board: a passing card's structural figures hide behind "more numbers" as bare factors; a failing card's row carries formulas, a file path and [verify] but no fix hint; a 0.04 in limit comes back as 0.0402 in | gate J C2, C3 (S-225) |
 | B-0228 | Rule findings repeat each vendor or parts-list issue three times (9 rows for 3 parts) and list unset style values as "not checked" | gate J C4 (S-225) |
 | B-0229 | Safety sign-off wording is engineer text and never says what to inspect; the report overview prints the full command | gate J C6 (S-225) |
-| B-0230 | Promotion drops the card's loads, sag limit, tip-over and budget (0 parameters seeded), writes 150 lb as 68.0389 kg, adds an unchosen style requirement and pastes a red card's formula text into the decision | gate J C7 (S-225) |
 | B-0231 | Imperial gaps and discoverability: litres for volume, terminal output in mm/N/kg, "drawings stay in mm" said only in the agent guide and the PM role (init flags and the PM asking for units: S-236) | gate J C9, C10 (S-225) |
 | B-0232 | Report overview does not lead with the design (no description, no picture before Safety; a run-on sign-off line); at 390 px the page scrolls sideways and safety columns clip | gate J C11 (S-225); Track C's workbench |
 | B-0244 | `domains/electrical/checks/calcs.py` is 838 lines (+158 in S-233), `domains/electrical/outputs/diagram_layout.py` 553; all grew in v0.7 and v0.8 touches them (`ecr/lifecycle.py` split in S-248) | S-237; move-only splits, every top-level def AST-identical (S-184 method); ~1.5 h; part of B-0185 |
@@ -143,12 +142,13 @@ entry that closed them. Ids are never reused.
 | B-0275 | `ecr abort` of a request the upgrade carried over from `applied` restores the state right after it was applied, not the state before it (its baseline is the earlier one, but the start checkpoint is the first one after it); `n2f ecr close` is right, `abort` is not | S-261; give a request an explicit start checkpoint, or make the upgrade record one before the applied state |
 | B-0276 | A shipped example holds a live request whose baseline checkpoint cannot be in a fresh copy's history (the kiln's ECR-001), so `ecr impact` and `undo` on a copy say the history is missing and `ecr start` / `concept switch` refuse until it is aborted | S-261; decide whether examples ship an open request, or `copy_product` and `n2f init` re-base one that points at a missing checkpoint |
 | B-0277 | The kiln's three demos (`examples/kiln/demo.sh`, `demo-design.sh`, `demo-electrical.sh`) and `tests/e2e/test_demos.py` script the old flow (`ecr new`, `apply`, ECR-001 to ECR-003 as shipped drafts); since schema 2 the kiln ships ECR-001 open with its edits in the model and ECR-002 and ECR-003 set aside, so `make demos` and the nightly `check-full` fail until the scripts start their requests with `ecr start` (the patch files are kept for them) | S-261; rewrite the three scripts and the test's request ids |
-| B-0278 | `core/concept_render.render_card` (a new card file's commented layout) leaves out `built`, so `concept fork-from-model` writes the card and then adds `built` with `update_card_status`; a later writer of new cards would lose it silently | S-265; print `built` in `render_card` beside `screening` and `decision` |
 
 ## Closed
 
 | id | item | closed by |
 |---|---|---|
+| B-0230 | Promotion drops the card's loads, sag limit, tip-over and budget (0 parameters seeded), writes 150 lb as 68.0389 kg, adds an unchosen style requirement and pastes a red card's formula text into the decision | closed by S-267 |
+| B-0278 | `core/concept_render.render_card` (a new card file's commented layout) leaves out `built`, so `concept fork-from-model` writes the card and then adds `built` with `update_card_status`; a later writer of new cards would lose it silently | closed by S-267 |
 | B-0270 | The library called up into the CLI: `ecr/` and `concepts/promote/` imported `cli/checkpointing.py` | closed by S-262 |
 | B-0190 | Frame kit (no rails, tabs, round tube, T-slot), a panel kit, four interface kinds (threaded insert, wood screw, T-slot, hinge pin) | closed by S-237 |
 | B-0194 | Three-tier benchmarks: `examples/table`, `examples/test-stand`, the kiln's `SPEC.md`, the oracle | closed by S-237 |
