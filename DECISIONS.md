@@ -278,6 +278,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-249 | B-0259: CI budgets for the two nightly timing tests, measured on the runner | in force |
 | S-250 | v0.8 wave 1 boundary: 4 core/ files, R12's first timings, `make check` time | in force |
 | S-251 | Wave 2 seam: checkpoint vitals from a fresh build; change-request baseline and approval hash fields | in force |
+| S-252 | Wave 2 seam: `working_hash(exclude=...)`; a change request's approval hashes the model without `changes/` | in force |
 
 ---
 
@@ -1967,3 +1968,10 @@ Not in `bom/`: a new file there changes that package's code hash and restales ev
 `Approval.model_hash` (the folder hash at approval, R7) and `Ecr.baseline` (`checkpoint`, `mass`, `cost`, R6), both optional,
 so v0.7 files still load; M2c's schema 2 makes them the rule. Tests: `tests/e2e/test_vitals.py`. `core/` touched: `core/vitals.py`
 (new), `core/model/ecr.py`, `core/model/__init__.py`.
+
+## S-252 — Wave 2 seam: the approval hash leaves out `changes/` (2026-11-05)
+R7 binds an approval to the folder's hash, but `ecr approve` then writes its own record into `changes/ECR-x.yaml`, and `close`
+and other change requests write there too, so a whole-folder hash would go stale at once. `Vcs.working_hash` takes `exclude`
+(folder prefixes dropped from the temporary index before hashing); the approval hash is `working_hash(exclude=("changes/",))`,
+and M1b's staleness report compares the same. Added before M1b and M2b start so both use one definition. `core/` touched:
+`core/vcs_store.py`.

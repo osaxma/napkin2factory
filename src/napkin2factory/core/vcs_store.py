@@ -215,14 +215,18 @@ class StoreMixin:
             temp.unlink(missing_ok=True)
             Path(f"{temp}.lock").unlink(missing_ok=True)
 
-    def working_hash(self) -> str:
+    def working_hash(self, exclude: Sequence[str] = ()) -> str:
         """The tree id the folder would have if saved now (nothing is saved or changed).
 
         Equal folders give equal ids, and the id equals the tree of the snapshot
-        ``snapshot()`` would make next. Ignored files (``build/``) do not count.
+        ``snapshot()`` would make next. Ignored files (``build/``) do not count. ``exclude``
+        leaves out files under those folder prefixes (``"changes/"``): a change request's
+        approval hashes the model without its own record, which approving rewrites (S-252).
         """
         with self._temp_index() as env:
             self._git("add", "-A", env=env)
+            for prefix in exclude:
+                self._git("rm", "-r", "-q", "--cached", "--ignore-unmatch", "--", prefix, env=env)
             return self._git("write-tree", env=env).stdout.strip()
 
     def diff_working(self, ref: str) -> list[FileChange]:

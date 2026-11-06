@@ -201,6 +201,20 @@ def test_working_hash_stable_changes_and_leaves_the_store_alone(v: Vcs) -> None:
     assert v.tree_of(nxt) == h
 
 
+def test_working_hash_can_leave_a_folder_out(v: Vcs) -> None:
+    _write(v.root, "model/p.yaml", "a: 1")
+    _write(v.root, "changes/ECR-001.yaml", "status: draft")
+    v.snapshot("one")
+    h = v.working_hash(exclude=("changes/",))
+    assert h != v.working_hash()
+    _write(v.root, "changes/ECR-001.yaml", "status: approved")  # the record changes...
+    _write(v.root, "changes/ECR-002.yaml", "status: draft")
+    assert v.working_hash(exclude=("changes/",)) == h  # ...the model hash does not
+    _write(v.root, "model/p.yaml", "a: 2")
+    assert v.working_hash(exclude=("changes/",)) != h
+    assert v.working_hash(exclude=("nothing-here/",)) == v.working_hash()
+
+
 def test_working_hash_sees_a_same_size_edit_in_the_same_second(v: Vcs) -> None:
     _write(v.root, "a.txt", "aaaa")
     v.snapshot("one")
