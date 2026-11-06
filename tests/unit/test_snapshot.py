@@ -3,28 +3,18 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from tests.conftest import EXAMPLES, copy_product, n2f
-from tests.e2e.test_ecr import _legacy_new
 
 
-def test_discard_preserves_filed_change_request_and_patch(tmp_path: Path) -> None:
+def test_discard_preserves_a_started_change_request(tmp_path: Path) -> None:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "b", prebuilt=True)
     changes_dir = root / "changes"
-    changes_dir.mkdir(exist_ok=True)
-    patch_file = changes_dir / "ECR-001.patch"
-    patch_file.write_text("--- a/model/parts/bracket.yaml\n+++ b/model/parts/bracket.yaml\n")
 
-    _legacy_new(
-        "--title",
-        "Thicker bracket",
-        "--kind",
-        "design",
-        "--patch",
-        "changes/ECR-001.patch",
-        cwd=root,
-    )
+    r_start = n2f("ecr", "start", "--title", "Thicker bracket", cwd=root)
+    assert r_start.returncode == 0, r_start.stderr
 
     r_impact = n2f("ecr", "impact", "ECR-001", cwd=root)
     assert r_impact.returncode == 0, r_impact.stderr
@@ -38,16 +28,14 @@ def test_discard_preserves_filed_change_request_and_patch(tmp_path: Path) -> Non
 
     ecr_file = changes_dir / "ECR-001.yaml"
     assert ecr_file.exists()
-    assert patch_file.exists()
 
     r_disc = n2f("discard", "--yes", cwd=root)
     assert r_disc.returncode == 0, r_disc.stderr
     assert "discarded changes in model/parameters.yaml" in r_disc.stdout
-    assert "matches checkpoint #3 again" in r_disc.stdout
+    assert re.search(r"matches checkpoint #\d+ again", r_disc.stdout)
     assert "n2f redo" in r_disc.stdout
 
     assert ecr_file.exists(), "ECR-001.yaml was deleted by discard!"
-    assert patch_file.exists(), "ECR-001.patch was deleted by discard!"
     assert param_file.read_text(encoding="utf-8") == orig_params, "model edit was not undone!"
 
 

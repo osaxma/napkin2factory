@@ -192,19 +192,17 @@ def test_a_table_edit_moves_the_keys_of_the_rules_that_read_it(
     assert {rid for rid in before if before[rid] != after[rid]} == expected
 
 
-# ---- S-180: a change request's patch in its impact report (gate H B1) ------------------------
+# ---- S-180, live since schema 2: a design change request's work in its impact report --------
 
 
-def test_patch_impact_reports_files_entities_scope_and_rebuild_artifacts(tmp_path: Path) -> None:
-    """Gate H B1: a design ECR with a patch lists its files, entities, scope change and rebuild."""
-    import subprocess
+def test_live_impact_reports_files_entities_scope_and_rebuild_artifacts(tmp_path: Path) -> None:
+    """Gate H B1: a design ECR lists its files, entities, scope change and rebuild (S-261)."""
+    from napkin2factory.core.vcs import Vcs
+    from tests.conftest import FIXTURES, n2f
 
-    from napkin2factory.core.graph.impact import summarize
-    from napkin2factory.ecr.lifecycle import new_ecr, run_impact
-    from tests.conftest import FIXTURES
-
-    root = copy_product(FIXTURES / "scope" / "external-box", tmp_path / "box", git=True)
-    # take the wiring out to `later`, keeping the reverse diff as the change request's patch
+    whole = FIXTURES / "scope" / "external-box"
+    root = copy_product(whole, tmp_path / "box", git=True)
+    # take the wiring out to `later` and save that: the request starts from there
     shutil.rmtree(root / "model" / "electrical")
     for name in ("mains-entry.yaml", "control-entry.yaml"):
         p = root / "model" / "interfaces" / name
@@ -222,51 +220,41 @@ def test_patch_impact_reports_files_entities_scope_and_rebuild_artifacts(tmp_pat
         ),
         encoding="utf-8",
     )
-    patch_dir = root / "changes"
-    patch_dir.mkdir(exist_ok=True)
-    diff = subprocess.run(
-        ["git", "--no-pager", "diff", "--no-color", "-R"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
-    (patch_dir / "wiring.patch").write_text(diff, encoding="utf-8")
+    Vcs(root).snapshot("The wiring left for later")
     run_build(load_product(root), render=False, quiet=True)
-    new_ecr(
-        load_product(root),
-        title="Add the wiring",
-        reason="Wire the heater and probe to the control box.",
-        requested_by="human",
-        kind="design",
-        patch="changes/wiring.patch",
+    started = n2f(
+        "ecr",
+        "start",
+        "--title",
+        "Add the wiring",
+        "--kind",
+        "design",
+        "--reason",
+        "Wire the heater and probe to the control box.",
+        "--task",
+        "Wire the heater and probe",
+        cwd=root,
     )
-    report_obj, md = run_impact(load_product(root), "ECR-001")
-    impact = report_obj.to_dict()
-    assert impact["patch"]["applies"] is True
-    assert "model/electrical/supply.yaml" in impact["patch"]["files"]["added"]
-    assert "n2f.yaml" in impact["patch"]["files"]["changed"]
+    assert started.returncode == 0, started.stdout + started.stderr
+    # the designer's work, in place: the wiring is back
+    shutil.copytree(whole / "model" / "electrical", root / "model" / "electrical")
+    for name in ("mains-entry.yaml", "control-entry.yaml"):
+        shutil.copy(whole / "model" / "interfaces" / name, root / "model" / "interfaces" / name)
+    shutil.copy(whole / "n2f.yaml", root / "n2f.yaml")
+    result = n2f("ecr", "impact", "--json", cwd=root)
+    assert result.returncode == 0, result.stdout + result.stderr
+    impact = json.loads(result.stdout)
+    assert "model/electrical/supply.yaml" in impact["files"]["added"]
+    assert "n2f.yaml" in impact["files"]["changed"]
     assert {"supply://supply", "circuit://power", "circuit://control"} <= set(
-        impact["patch"]["objects"]["added"]
+        impact["objects"]["added"]
     )
-    assert "iface://mains-entry" in impact["patch"]["objects"]["changed"]
-    assert [s["words"] for s in impact["patch"]["scope"]] == ["Wiring: left for later → done here"]
-    assert {"elec:power", "elec:control", "checks", "report"} <= set(impact["rules"])
-    assert "Impact of 0 change(s)" not in md
-    assert (
-        "This change request carries the designer's work as a patch (`changes/wiring.patch`)" in md
-    )
-    assert "## What the patch changes" in md
+    assert "iface://mains-entry" in impact["objects"]["changed"]
+    assert [s["words"] for s in impact["scope"]] == ["Wiring: left for later → done here"]
+    assert {"elec:power", "elec:control", "checks"} <= set(impact["rebuilt"])
+    md = (root / "build/changes/ECR-001-impact.md").read_text(encoding="utf-8")
     assert "- Wiring: left for later → done here" in md
-    assert "- Wiring: 2 output(s): `control`, `power`" in md
-    # an unapplicable patch reports why instead of crashing or silently claiming 0 changes
-    bad = patch_dir / "bad.patch"
-    bad.write_text("--- a/n2f.yaml\n+++ b/n2f.yaml\n@@ -1,1 +1,1 @@\n-not-there\n+x\n", "utf-8")
-    prod = load_product(root)
-    rep = compute_impact(prod, [], patch=bad)
-    assert rep.patch is not None and not rep.patch.applies and rep.patch.problem
-    bad_md = summarize(rep, prod)
-    assert "does not apply to the model as it is now" in bad_md
+    assert "## Designer tasks" in md and "Wire the heater and probe" in md
 
 
 def test_impact_cost_delta_edit_to_unpriced_part(tmp_path: Path) -> None:
@@ -289,42 +277,6 @@ def test_impact_cost_delta_edit_to_unpriced_part(tmp_path: Path) -> None:
     assert (
         "; 1 part(s) without a price: door-tray, so the cost change is incomplete" in rep.cost_note
     )
-    md = summarize(rep, prod)
-    assert "at least +0.00 USD per unit" in md
-    assert rep.cost_note in md
-
-
-def test_impact_cost_delta_patch_adding_unpriced_part(tmp_path: Path) -> None:
-    """A patch adding an unpriced part flags the incomplete cost delta (S-187)."""
-    from napkin2factory.core.graph.impact import summarize
-
-    root = copy_product(EXAMPLES / "kiln", tmp_path / "kiln-patch", git=True)
-    patch_dir = root / "changes"
-    patch_dir.mkdir(exist_ok=True)
-    patch_file = patch_dir / "unpriced.patch"
-    patch_content = (
-        "--- /dev/null\n"
-        "+++ b/model/parts/bracket.yaml\n"
-        "@@ -0,0 +1,9 @@\n"
-        "+id: bracket\n"
-        "+rev: A\n"
-        "+name: Bracket\n"
-        "+kind: custom\n"
-        "+process: sheet-metal\n"
-        '+material: {name: mild steel, spec: "1.0 mm CR4 (DC01)"}\n'
-        "+finish: none\n"
-        "+tolerance_class: ISO2768-m\n"
-        "+geometry: none\n"
-    )
-    patch_file.write_text(patch_content, encoding="utf-8")
-
-    prod = load_product(root)
-    rep = compute_impact(prod, [], patch=patch_file)
-    assert rep.patch is not None and rep.patch.applies is True
-    assert rep.cost_delta == 0.0
-    assert rep.cost_complete is False
-    assert rep.to_dict()["cost_complete"] is False
-    assert "; 1 part(s) without a price: bracket, so the cost change is incomplete" in rep.cost_note
     md = summarize(rep, prod)
     assert "at least +0.00 USD per unit" in md
     assert rep.cost_note in md

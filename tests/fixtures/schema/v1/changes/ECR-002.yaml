@@ -1,0 +1,15 @@
+id: ECR-002
+title: Add a levelling step to the installation page
+status: draft
+kind: design
+requested_by: human
+reason: Installers hung the first shelves out of level.
+created: 2026-10-02
+edits: []
+tasks:
+  - Add a levelling step to the installation page.
+patch: changes/ECR-002.patch
+impact: null
+approval: null
+applied: null
+released_in: null

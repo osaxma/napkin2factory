@@ -273,29 +273,8 @@ def lint(product: Product) -> Problems:
                     rule="L13-assembly-driver",
                 )
 
-    # L10: draft parametric change requests should carry edits. A live request (one with a
-    # baseline, v0.8) is edited in place, so its edits are the model files themselves.
-    for e in product.ecrs.values():
-        if e.baseline is not None:
-            continue
-        if e.kind == "parametric" and not e.edits:
-            problems.add(
-                product.files[e.uri],
-                e.uri,
-                "parametric change request has no edits",
-                "add edits: [{set: param://…, to: …}]",
-                severity="warn",
-                rule="L10-ecr-edits",
-            )
-        if e.kind == "design" and not e.tasks and not e.patch:
-            problems.add(
-                product.files[e.uri],
-                e.uri,
-                "design change request has neither tasks nor a patch",
-                "list tasks for the designer, or point patch: at a unified diff",
-                severity="warn",
-                rule="L10-ecr-edits",
-            )
+    # L10 (a draft change request should carry edits or tasks) is retired: from schema 2 a
+    # request is edited in place, so its edits are the model files themselves (S-261).
 
     # L11: operator file present with a persona (intake gate).
     if not paths.operator.is_file():

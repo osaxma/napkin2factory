@@ -17,7 +17,7 @@ import pytest
 from tests.benchmarks import oracle
 from tests.benchmarks.oracle_evidence import Evidence
 from tests.benchmarks.oracle_schema import load_oracle
-from tests.conftest import EXAMPLES, copy_product
+from tests.conftest import EXAMPLES, copy_kiln_as_designed, copy_product
 
 FIXTURES = Path(__file__).resolve().parents[1] / "benchmarks" / "fixtures"
 SPECS = sorted(EXAMPLES.glob("*/SPEC.oracle.yaml"))
@@ -31,7 +31,12 @@ def _failures(rows: list[oracle.Row]) -> list[str]:
 def test_every_shipped_oracle_judges_its_example(spec: Path, tmp_path: Path) -> None:
     product = spec.parent
     assert (product / "n2f.yaml").is_file(), f"examples/{product.name} has an oracle but no product"
-    work = copy_product(product, tmp_path / product.name, prebuilt=True)
+    if product.name == "kiln":
+        # the oracle holds the kiln as designed; its open request ECR-001 changes the chamber
+        # (S-261), and how an oracle judges a change is M4.0's (B-0218)
+        work = copy_kiln_as_designed(tmp_path / product.name, git=True)
+    else:
+        work = copy_product(product, tmp_path / product.name, prebuilt=True)
     rows = oracle.evaluate(load_oracle(spec), Evidence(work))
     assert not _failures(rows)
 

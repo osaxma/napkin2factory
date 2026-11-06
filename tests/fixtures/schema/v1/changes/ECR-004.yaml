@@ -1,0 +1,25 @@
+id: ECR-004
+title: Longer horizontal leg
+status: approved
+kind: parametric
+requested_by: human
+reason: A deeper shelf needs more support.
+created: 2026-10-04
+edits:
+  - {set: param://bracket-length, to: 130 mm}
+tasks: []
+patch: null
+impact:
+  edits:
+    - {set: param://bracket-length, to: 130 mm}
+  parts: [l-bracket]
+  assemblies: [bracket]
+  requirements: [REQ-001]
+  signoffs_invalidated: []
+  cost_delta: 0.0
+approval:
+  by: Sam
+  at: 2026-10-05T09:30:00
+  note: Checked the clearance.
+applied: null
+released_in: null

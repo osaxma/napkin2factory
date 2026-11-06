@@ -1,25 +1,36 @@
-"""Mechanical application of change requests: in-place YAML editing and sign-off invalidation.
+"""In-place YAML editing of a change request's ``--set`` edits (comments and order kept).
 
-Split from lifecycle.py (S-248).
+Split from lifecycle.py (S-248). The patch-based ``apply`` step and the sign-off mover that
+went with it were removed with schema 2 (S-261): a change request is edited in place.
 """
 
 from __future__ import annotations
 
-import datetime as dt
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
-from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.model import Edit
+from napkin2factory.core.product import Paths
 from napkin2factory.core.units import UnitError, format_quantity, parse_quantity
-from napkin2factory.core.vcs import Vcs
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip
-from napkin2factory.ecr.revisions import _output_hashes
-from napkin2factory.ecr.state import EcrError, _require, _transition
+from napkin2factory.ecr.state import EcrError
 
 
-def _set_in_yaml(product: Product, edit: Edit) -> str:
+class HasPaths(Protocol):
+    """What editing needs of a product: where its files live.
+
+    A loaded product has it; so does the upgrade's stand-in for a folder whose files are not
+    readable as a product yet.
+    """
+
+    @property
+    def paths(self) -> Paths:
+        """The folder's file locations."""
+        ...
+
+
+def _set_in_yaml(product: HasPaths, edit: Edit) -> str:
     """Apply one edit to the right YAML file in place; return a human line."""
     u = edit.set
     if u.scheme == "param":
@@ -121,133 +132,9 @@ def _coerce(value: Any, old: Any) -> Any:
     return value
 
 
-def _move_invalidated_signoffs(product: Product, lines: list[str]) -> None:
-    """Move sign-off files citing a removed requirement or object to .yaml.invalid (S-215)."""
-    from napkin2factory.core.uris import Uri
-    from napkin2factory.core.yamlio import read_yaml
-
-    reqs_path = product.paths.requirements
-    known_req_ids: set[str] = set()
-    if reqs_path.is_file():
-        req_data = read_yaml(reqs_path)
-        if isinstance(req_data, dict):
-            known_req_ids = {
-                str(r["id"])
-                for r in req_data.get("requirements", [])
-                if isinstance(r, dict) and "id" in r
-            }
-
-    params_path = product.paths.parameters
-    known_param_ids: set[str] = set()
-    if params_path.is_file():
-        param_data = read_yaml(params_path)
-        if isinstance(param_data, dict):
-            known_param_ids = set(str(k) for k in param_data.get("parameters", {}).keys())
-
-    for so_path in sorted(product.paths.signoffs.glob("REQ-*.yaml")):
-        try:
-            data = read_yaml(so_path)
-        except Exception:
-            continue
-        if not isinstance(data, dict):
-            continue
-        req_ref = str(data.get("requirement", ""))
-        req_id = req_ref.replace("req://", "")
-        invalid_reason = ""
-        if req_id not in known_req_ids:
-            invalid_reason = f"requirement {req_ref} was removed"
-        else:
-            for ev in data.get("evidence", []):
-                try:
-                    u = Uri.parse(str(ev))
-                except Exception:
-                    continue
-                if u.scheme == "part" and not (product.paths.parts / f"{u.id}.yaml").is_file():
-                    invalid_reason = f"cited part {u.base} was removed"
-                    break
-                if u.scheme == "asm" and not (product.paths.assemblies / f"{u.id}.yaml").is_file():
-                    invalid_reason = f"cited assembly {u.base} was removed"
-                    break
-                if (
-                    u.scheme == "iface"
-                    and not (product.paths.interfaces / f"{u.id}.yaml").is_file()
-                ):
-                    invalid_reason = f"cited interface {u.base} was removed"
-                    break
-                if u.scheme == "param" and u.id not in known_param_ids:
-                    invalid_reason = f"cited parameter {u.base} was removed"
-                    break
-
-        if invalid_reason:
-            invalid_path = so_path.with_name(f"{so_path.name}.invalid")
-            so_path.rename(invalid_path)
-            lines.append(f"moved sign-off {so_path.name} → {invalid_path.name} ({invalid_reason})")
-
-
-def apply(product: Product, ecr_id: str, snapshot: bool = True) -> list[str]:
-    """Apply an approved change request to the model and take a snapshot."""
-    ecr = _require(product, ecr_id)
-    if ecr.status != "approved":
-        raise EcrError(
-            f"{ecr.id} is {ecr.status}; only approved change requests are applied "
-            f"(`n2f ecr approve {ecr.id} --by <name>`)"
-        )
-    vcs = Vcs(product.root)
-    vcs.require_repo_root()
-    # S-215: Atomicity (Item 4). Ensure pre-apply state is clean and snapshotted.
-    if not vcs.is_clean():
-        vcs.snapshot(f"Approve {ecr.id}")
-
-    lines: list[str] = []
-    try:
-        before = _output_hashes(product)
-        for e in ecr.edits:
-            lines.append(_set_in_yaml(product, e))
-        if ecr.kind == "design":
-            if ecr.patch:
-                patch_path = product.root / ecr.patch
-                if not patch_path.is_file():
-                    raise EcrError(f"{ecr.id}: patch file {ecr.patch} not found")
-                vcs.apply_patch(patch_path)
-                lines.append(f"applied patch {ecr.patch}")
-            for t in ecr.tasks:
-                lines.append(f"task for the designer: {t}")
-
-        # S-215: Sign-offs citing a removed part/requirement (Item 3)
-        # Move such sign-offs to .invalid so the product loads cleanly.
-        _move_invalidated_signoffs(product, lines)
-
-        # validate the result before snapshotting
-        fresh = load_product(product.root)
-        # always a snapshot of its own (empty for a tasks-only design change), so the one before
-        # it is the model as it stood before this change request (S-089, `_snapshot_before`)
-        sha = (
-            vcs.snapshot(f"Apply {ecr.id}: {ecr.title}", allow_empty=True)
-            if snapshot
-            else (vcs.head() or "")
-        )
-        _transition(
-            fresh,
-            fresh.ecrs[ecr.id],
-            "applied",
-            applied={
-                "snapshot": sha,
-                "at": dt.datetime.now().isoformat(timespec="seconds"),
-                "before": before,
-            },
-        )
-        if snapshot:
-            vcs.snapshot(f"Record {ecr.id} as applied")
-        return lines
-    except Exception as exc:
-        vcs.discard()
-        raise EcrError(f"could not apply {ecr.id}: {exc}") from exc
-
-
 __all__ = [
+    "HasPaths",
     "_coerce",
     "_edit_param_line",
-    "_move_invalidated_signoffs",
     "_set_in_yaml",
-    "apply",
 ]

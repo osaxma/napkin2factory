@@ -7,10 +7,9 @@ parts touched (revision bumps implied); docs with affected reads; interfaces who
 are affected, and which of them are ports (a joint between modules, P4, P12); sign-offs that
 would be invalidated; and a cost delta from declared costs.  Nothing in the model changes.
 
-A design change request's patch (D7) is part of the change: :func:`compute_impact` applies it
-to a scratch copy of the product (:func:`dry_run_patch`), lists the files, model objects and
-scope states it changes, and takes the rebuild set from the build's own dry run of the copy
-against this build (S-180).  A patch that does not apply says so plainly.
+A live change request's impact (the folder against its baseline, v0.8 R6) is built on these
+pieces in :mod:`napkin2factory.ecr.live_impact`; the patch dry run of S-180 went with schema 2
+(S-261).
 """
 
 from __future__ import annotations
@@ -29,20 +28,14 @@ from napkin2factory.core.graph.impact_common import (
 )
 from napkin2factory.core.graph.impact_patch import (
     _COLLECTIONS,
-    _NOT_COPIED,
     _NOUNS,
     _changed_fields,
     _dump,
-    _file_changes,
-    _files_of,
     _object_changes,
     _objects_of,
     _patch_keys,
-    _patch_rebuilds,
-    _relative,
     _scope_changes,
     crossed_ports,
-    dry_run_patch,
 )
 from napkin2factory.core.graph.impact_reads import (
     Uri_base,
@@ -195,27 +188,9 @@ def compute_impact(
     build_dir: Path | None = None,
     kind: str = "parametric",
     tasks: list[str] | None = None,
-    patch: Path | None = None,
 ) -> ImpactReport:
-    """The impact of ``edits`` (and of a design change request's ``patch``) on this build.
-
-    Nothing is modified.  With ``patch``, the patch is applied to a scratch copy
-    (:func:`dry_run_patch`) and the impact is computed on the patched model against this
-    build: what it adds, changes and removes, and what the build would run for it.
-    """
-    build_dir = build_dir or product.paths.build
-    if patch is None:
-        return _impact(product, edits, build_dir, kind, tasks)
-    with dry_run_patch(product, patch, build_dir) as (found, after):
-        if after is None:
-            report = _impact(product, edits, build_dir, kind, tasks, patch=found)
-        else:
-            keys = _patch_keys(product, after, found)
-            report = _impact(
-                after, edits, build_dir, kind, tasks, keys, found.rebuilds, patch=found
-            )
-        report.patch = found
-        return report
+    """The impact of hypothetical ``edits`` on this build.  Nothing is modified."""
+    return _impact(product, edits, build_dir or product.paths.build, kind, tasks)
 
 
 def _impact(
@@ -354,7 +329,6 @@ __all__ = [
     "Uri_base",
     "Uri_refs",
     "_COLLECTIONS",
-    "_NOT_COPIED",
     "_NOUNS",
     "_changed_fields",
     "_cost_delta",
@@ -364,8 +338,6 @@ __all__ = [
     "_edit_matcher",
     "_evidence_affected",
     "_families_added_to",
-    "_file_changes",
-    "_files_of",
     "_grouped",
     "_hypothetical_params",
     "_hypothetical_verdict",
@@ -377,8 +349,6 @@ __all__ = [
     "_part_words",
     "_patch_keys",
     "_patch_lines",
-    "_patch_rebuilds",
-    "_relative",
     "_scope_changes",
     "_static_reads",
     "asm_static_reads",
@@ -389,7 +359,6 @@ __all__ = [
     "dependent_params",
     "doc_static_reads",
     "drawing_static_reads",
-    "dry_run_patch",
     "hyp_after_rebuild",
     "hyp_bom_rollup",
     "hyp_calc",

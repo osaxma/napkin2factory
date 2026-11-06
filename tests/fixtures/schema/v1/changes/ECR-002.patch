@@ -1,0 +1,10 @@
+--- a/model/docs/installation.md
++++ b/model/docs/installation.md
+@@ -15,6 +15,7 @@
+ 1. Mark two holes {{ P["hole-spacing"] }} apart on the wall.
+ 2. Drill for M8 anchors suited to the wall material; the bracket holes are {{ P["hole-diameter"] }}.
+ 3. Bolt the vertical leg to the wall, then the shelf to the horizontal leg.
++4. Check with a spirit level that the shelf sits level before loading it.
+ 
+ ## Manufacturer note
+ 

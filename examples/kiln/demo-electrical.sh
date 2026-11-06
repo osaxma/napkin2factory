@@ -131,10 +131,13 @@ p.write_text(head + sep + hunk + ("diff --git " + tail if nxt_diff else ""), enc
 PY
 $N2F snapshot -m "ECR-003's patch follows the bolts pick"
 
-echo "== ECR-003 (design): add the wiring: impact → approve → apply patch → rebuild"
-$N2F ecr impact ECR-003
-$N2F ecr approve ECR-003 --by "Owner (demo)"
-$N2F ecr apply ECR-003
+echo "== ECR-004 (design): add the wiring: start → make the edits (the kept patch) → impact → approve → rebuild"
+$N2F ecr start --kind design --title "Design the wiring here" \
+  --reason "The kiln was released with its wiring left for later; the electrician needs to know what connects to what." \
+  --task "Design the wiring: supply, circuits, cable entries, parts and the installation manual's wiring."
+git apply changes/ECR-003.patch
+$N2F ecr impact ECR-004
+$N2F ecr approve ECR-004 --by "Owner (demo)"
 $N2F build --no-render
 $N2F check || true
 # The wiring's first build raises the supply-headroom choice (E11): the project manager decides
@@ -157,16 +160,19 @@ p.write_text(text.replace("region: EU\n", "region: EU\ndedicated: true\n", 1), e
 PY
 $N2F build --no-render
 $N2F check || true
-resign_invalidated "ECR-003"
+resign_invalidated "ECR-004"
 status="$(row_status "$HEADROOM")"
 if [ "$status" != "pass" ]; then
   echo "the supply-headroom row does not pass after the pick (it reads: $status)" >&2; exit 1
 fi
-$N2F ecr close ECR-003
+# The pick and the re-signs changed the model after the approval: read the impact again and approve.
+$N2F ecr impact ECR-004
+$N2F ecr approve ECR-004 --by "Owner (demo)"
+$N2F ecr close ECR-004
 echo "== v1.1.0: release with the wiring done here, and the diff"
 $N2F release v1.1.0 --no-render --allow-example-signoffs
 $N2F diff v1.0.0 v1.1.0
 echo
-echo "impact report : $WORK/build/changes/ECR-003-impact.md"
+echo "impact report : $WORK/build/changes/ECR-004-impact.md"
 echo "diff page     : $WORK/build/site/diff/v1.0.0..v1.1.0/index.html"
 echo "package       : $WORK/build/release/kiln-v1.1.0.zip"

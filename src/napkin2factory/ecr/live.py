@@ -41,19 +41,13 @@ OPEN = ("draft", "approved")
 _NOT_COPIED = frozenset({"build", ".git", ".worktrees", "__pycache__"})
 
 
-def is_live(ecr: Ecr) -> bool:
-    """True for a request started with ``ecr start`` (it has a baseline)."""
-    return ecr.baseline is not None
-
-
 def open_request(product: Product) -> Ecr | None:
-    """The one live request still open (draft or approved), if any.
+    """The one request still open (draft or approved), if any.
 
-    A request filed before v0.8 (no baseline) follows the old steps and does not count: it
-    cannot hold the folder, and M2c migrates it (B-0263).
+    Schema 2 gives every open request a baseline, so the status alone tells (S-261).
     """
     for e in product.ecrs.values():
-        if is_live(e) and e.status in OPEN:
+        if e.status in OPEN:
             return e
     return None
 
@@ -181,8 +175,6 @@ def impact(product: Product, ecr_id: str | None = None) -> tuple[Ecr, dict[str, 
     read, and this is a new one (R7).
     """
     ecr = resolve(product, ecr_id)
-    if not is_live(ecr):
-        raise EcrError(f"{ecr.id} was filed the old way; use its own steps")
     if ecr.status not in OPEN:
         raise EcrError(f"{ecr.id} is {ecr.status}; impact is assessed on open change requests")
     block = live_impact.compute(product, ecr)
@@ -200,8 +192,6 @@ def impact(product: Product, ecr_id: str | None = None) -> tuple[Ecr, dict[str, 
 def approve(product: Product, ecr_id: str | None, by: str, note: str | None = None) -> Checkpoint:
     """Record the owner's approval, bound to the model the impact report was computed on (R7)."""
     ecr = resolve(product, ecr_id)
-    if not is_live(ecr):
-        raise EcrError(f"{ecr.id} was filed the old way; use its own steps")
     if ecr.status != "draft":
         raise EcrError(f"{ecr.id} is {ecr.status}; only an open, unapproved request is approved")
     if not ecr.impact or not ecr.impact.get("model_hash"):
@@ -230,8 +220,6 @@ def close(product: Product, ecr_id: str | None = None) -> dict[str, Any]:
     from napkin2factory.core.checks.stage import compute_stage
 
     ecr = resolve(product, ecr_id)
-    if not is_live(ecr):
-        raise EcrError(f"{ecr.id} was filed the old way; use its own steps")
     if ecr.status != "approved" or ecr.approval is None:
         raise EcrError(
             f"{ecr.id} is {ecr.status}; approve it first: `n2f ecr impact {ecr.id}`, "
@@ -318,8 +306,6 @@ def abort(product: Product, ecr_id: str | None = None, reason: str | None = None
     The aborted work stays reachable as a checkpoint, so the abort itself can be undone (R2).
     """
     ecr = resolve(product, ecr_id)
-    if not is_live(ecr):
-        raise EcrError(f"{ecr.id} was filed the old way; `n2f ecr reject {ecr.id} --reason …`")
     if ecr.status not in OPEN:
         raise EcrError(f"{ecr.id} is {ecr.status}; only an open change request is aborted")
     vcs = Vcs(product.root)

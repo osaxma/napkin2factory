@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import shutil
 import tempfile
 from collections.abc import Iterator
@@ -133,10 +134,24 @@ def baseline_copy(vcs: Vcs, checkpoint: str) -> Iterator[Path]:
         wt = Path(tmp) / "baseline"
         vcs.worktree_add(checkpoint, wt)
         try:
+            _read_as_current(wt)
             yield wt
         finally:
             vcs.worktree_remove(wt)
             shutil.rmtree(wt, ignore_errors=True)
+
+
+def _read_as_current(scratch: Path) -> None:
+    """Read a baseline saved before the schema 2 upgrade as the current format.
+
+    Only the change-request records and the ``schema:`` line differ between the formats; the
+    records are not part of the model being compared, so the copy drops them (S-261).
+    """
+    from napkin2factory.core.model import migrate
+
+    if migrate.schema_of(scratch) < migrate.CURRENT:
+        migrate.write_schema(scratch, migrate.CURRENT)
+        shutil.rmtree(scratch / "changes", ignore_errors=True)
 
 
 def baseline_figures(
@@ -168,11 +183,30 @@ def baseline_figures(
     return data
 
 
+_SCHEMA_LINE = re.compile(r"^schema:[^\n#]*", re.MULTILINE)
+
+
+def _only_schema_moved(vcs: Vcs, checkpoint: str) -> bool:
+    """True when ``n2f.yaml`` differs from the baseline's only by its ``schema:`` line."""
+    then = vcs.read_file(checkpoint, "n2f.yaml")
+    try:
+        now = (vcs.root / "n2f.yaml").read_text(encoding="utf-8")
+    except OSError:
+        return False
+    if then is None:
+        return False
+    old = _SCHEMA_LINE.sub("schema:", then.decode("utf-8", errors="replace"), count=1)
+    return old == _SCHEMA_LINE.sub("schema:", now, count=1)
+
+
 def _files(vcs: Vcs, checkpoint: str) -> dict[str, list[str]]:
     out: dict[str, list[str]] = {"added": [], "changed": [], "removed": []}
     for c in vcs.diff_working(checkpoint):
-        if not c.path.startswith(RECORDS):
-            out[c.status].append(c.path)
+        if c.path.startswith(RECORDS):
+            continue
+        if c.path == "n2f.yaml" and _only_schema_moved(vcs, checkpoint):
+            continue  # the upgrade moved the format number, not the design
+        out[c.status].append(c.path)
     return out
 
 

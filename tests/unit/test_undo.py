@@ -49,6 +49,8 @@ def note(root: Path) -> str | None:
 def write_ecr(
     root: Path, ecr_id: str, status: str, baseline: str, model_hash: str | None = None
 ) -> None:
+    if status == "approved" and not model_hash:
+        model_hash = "0" * 40  # schema 2: an approved request names the model it approved
     approval = (
         f"approval: {{by: Owner, at: '2026-11-06T10:00:00', model_hash: '{model_hash}'}}\n"
         if model_hash

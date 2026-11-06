@@ -9,19 +9,19 @@ from pydantic import Field, model_validator
 
 from napkin2factory.core.model.base import EcrId, Model, UriField
 
-EcrStatus = Literal["draft", "impact", "approved", "applied", "closed", "rejected", "aborted"]
+EcrStatus = Literal["draft", "approved", "closed", "rejected", "aborted"]
 EcrKind = Literal["parametric", "design"]
-#: Allowed transitions of the ECR state machine.
+#: The states in which a request is still being worked on: it has a baseline (R6), and an
+#: approved one the hash of the model it approved (R7).
+OPEN_STATUSES: tuple[str, ...] = ("draft", "approved")
+#: Allowed transitions of the ECR state machine (schema 2, R8, S-261).
 #:
-#: A live request (one with a ``baseline``, v0.8 R6) goes ``draft → approved → closed`` or
-#: ``draft | approved → aborted``; a new impact report on an approved one puts it back to
-#: ``draft`` (an approval belongs to one impact report, R7). The ``impact`` and ``applied``
-#: states belong to requests without a baseline and go in schema 2 (B-0263, M2c).
+#: ``draft → approved → closed`` or ``draft | approved → aborted``; a new impact report on an
+#: approved request puts it back to ``draft`` (an approval belongs to one impact report, R7).
+#: ``rejected`` is a state of schema 1 files, kept readable as history: nothing goes there.
 TRANSITIONS: dict[str, tuple[str, ...]] = {
-    "draft": ("impact", "rejected", "approved", "aborted"),
-    "impact": ("approved", "rejected", "impact"),
-    "approved": ("applied", "rejected", "aborted", "draft", "closed"),
-    "applied": ("closed",),
+    "draft": ("approved", "aborted"),
+    "approved": ("aborted", "draft", "closed"),
     "closed": (),
     "rejected": (),
     "aborted": (),
@@ -67,7 +67,7 @@ class Baseline(Model):
 
 
 class Applied(Model):
-    """Which snapshot the ECR was applied in, and the output hashes before it (for rev bumps)."""
+    """Schema 1 history, readable on closed requests only: the snapshot it was applied in."""
 
     snapshot: str
     build_id: str | None = None
@@ -98,11 +98,40 @@ class Ecr(Model):
 
     @model_validator(mode="after")
     def _kind_rules(self) -> Ecr:
-        if self.kind == "parametric" and not self.edits and self.status == "draft":
-            # allowed while drafting; lint warns
-            pass
         if self.kind == "parametric" and self.patch:
             raise ValueError("parametric change requests carry edits, not a patch")
+        return self
+
+    @model_validator(mode="after")
+    def _open_rules(self) -> Ecr:
+        """An open request says where it started; an approved one, which model it approved."""
+        if self.status in OPEN_STATUSES and self.baseline is None:
+            raise ValueError(
+                f"{self.id} is {self.status} but does not say where it started (`baseline:`). "
+                "A change request is opened with `n2f ecr start`; if this file was written by "
+                "hand, abort it with `n2f ecr abort` or set its status to aborted"
+            )
+        if self.status == "approved" and (self.approval is None or not self.approval.model_hash):
+            raise ValueError(
+                f"{self.id} is approved but does not say which model it approved "
+                "(`approval.model_hash:`). Approve it with `n2f ecr approve`, or set its "
+                "status back to draft and run `n2f ecr impact` again"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _history_rules(self) -> Ecr:
+        """A patch file and the old ``applied`` record are history, kept on finished requests."""
+        if self.patch and self.status not in ("closed", "rejected"):
+            raise ValueError(
+                "a change request no longer carries a patch: edit the model files directly "
+                "after `n2f ecr start` (a patch stays readable only on closed and rejected "
+                "requests)"
+            )
+        if self.applied is not None and self.status != "closed":
+            raise ValueError(
+                "`applied:` is history from the old file format; only a closed request has it"
+            )
         return self
 
     @property

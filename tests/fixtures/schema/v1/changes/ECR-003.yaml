@@ -1,0 +1,22 @@
+id: ECR-003
+title: Wider holes for M10 anchors
+status: impact
+kind: parametric
+requested_by: human
+reason: M10 anchors are easier to buy in bulk.
+created: 2026-10-03
+edits:
+  - {set: param://hole-diameter, to: 11 mm}
+tasks: []
+patch: null
+impact:
+  edits:
+    - {set: param://hole-diameter, to: 11 mm}
+  parts: [l-bracket]
+  assemblies: [bracket]
+  requirements: []
+  signoffs_invalidated: []
+  cost_delta: 0.0
+approval: null
+applied: null
+released_in: null

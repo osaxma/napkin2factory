@@ -30,7 +30,7 @@ def _require(product: Product, ecr_id: str) -> Ecr:
     if ecr_id not in product.ecrs:
         known = ", ".join(sorted(product.ecrs)) or "none yet"
         raise EcrError(
-            f"change request {ecr_id} does not exist (known: {known}); `n2f ecr new` creates one"
+            f"change request {ecr_id} does not exist (known: {known}); `n2f ecr start` opens one"
         )
     return product.ecrs[ecr_id]
 

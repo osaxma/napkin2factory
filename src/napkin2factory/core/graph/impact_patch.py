@@ -1,22 +1,20 @@
-"""Design change request patch dry runs, diffs and rebuild sets; split from impact.py (S-184)."""
+"""Object and scope diffs of two models, rebuild keys and port crossings (S-184).
+
+Split from impact.py. The patch dry run went with schema 2 (S-261): a change request is the
+folder itself.
+"""
 
 from __future__ import annotations
 
-import shutil
-import tempfile
-from collections.abc import Iterator
-from contextlib import contextmanager
-from pathlib import Path
 from typing import Any
 
 from napkin2factory.core.graph.impact_common import PatchImpact, dependent_params
-from napkin2factory.core.graph.rules import build_rules
 from napkin2factory.core.loader import Product
 
-# ---- a design change request's patch (D7, S-180) ----------------------------------------
+# ---- what two models differ by (D7, S-180) ---------------------------------------------
 
-#: The core's model collections a patch can touch, by URI scheme (signoffs and change
-#: requests are records, not design: a patch over ``model/`` does not carry them).
+#: The core's model collections a change can touch, by URI scheme (signoffs and change
+#: requests are records, not design: the diff of ``model/`` does not carry them).
 _COLLECTIONS: tuple[tuple[str, str], ...] = (
     ("part", "parts"),
     ("asm", "assemblies"),
@@ -36,62 +34,6 @@ _NOUNS: dict[str, tuple[str, str]] = {
     "dec": ("decision", "decisions"),
     "doc": ("manual page", "manual pages"),
 }
-#: The folders of a product a scratch copy leaves out: its build and its change tracking.
-_NOT_COPIED = frozenset({"build", ".git"})
-
-
-@contextmanager
-def dry_run_patch(
-    product: Product, patch: Path, build_dir: Path
-) -> Iterator[tuple[PatchImpact, Product | None]]:
-    """Apply ``patch`` to a scratch copy of ``product``; yield what it changes and the copy.
-
-    The copy is the product folder without ``build/`` and its change tracking; the patch is
-    applied there through the vcs wrapper (D31), exactly as ``n2f ecr apply`` applies it, and
-    the copy is loaded.  The yielded product is ``None`` when the patch does not apply or the
-    patched model does not load (``PatchImpact.problem`` says why).  The copy is removed when
-    the block ends, so use the patched product inside it.
-    """
-    from napkin2factory.core.errors import ModelError
-    from napkin2factory.core.loader import load_product
-    from napkin2factory.core.vcs import Vcs, VcsError
-
-    shown = _relative(patch, product.root)
-    if not patch.is_file():
-        yield PatchImpact(shown, False, f"the patch file {shown} is not there"), None
-        return
-    with tempfile.TemporaryDirectory(prefix="n2f-patch-") as tmp:
-        copy = Path(tmp) / product.root.name
-        root = product.root.resolve()
-        shutil.copytree(
-            root,
-            copy,
-            ignore=lambda d, names: (
-                [n for n in names if n in _NOT_COPIED]
-                if Path(d).resolve() == root
-                else [n for n in names if n == "__pycache__"]
-            ),
-        )
-        vcs = Vcs(copy)
-        try:
-            vcs.init()  # its own root, so the patch's paths are read from the copy's top
-            vcs.apply_patch(patch.resolve())
-        except VcsError as exc:
-            yield PatchImpact(shown, False, str(exc)), None
-            return
-        try:
-            after = load_product(copy)
-        except ModelError as exc:
-            problem = f"the model does not load after the patch: {exc}"
-            yield PatchImpact(shown, False, problem), None
-            return
-        found = PatchImpact(shown, True)
-        found.files = _file_changes(root, copy)
-        found.objects, found.revs = _object_changes(product, after)
-        found.scope = _scope_changes(product, after)
-        found.rebuilds, found.stale = _patch_rebuilds(product, after, build_dir)
-        found.signoffs_removed = signoffs_removed_by(product, found.objects.get("removed", []))
-        yield found, after
 
 
 def signoffs_removed_by(product: Product, removed: list[str]) -> list[dict[str, str]]:
@@ -113,35 +55,6 @@ def signoffs_removed_by(product: Product, removed: list[str]) -> list[dict[str, 
             reason = f"cites removed {', '.join(cites)}; it will no longer apply"
             out.append({"file": so_file, "id": so.requirement.id, "reason": reason})
     return out
-
-
-def _relative(path: Path, root: Path) -> str:
-    """``path`` relative to ``root`` when it is inside it, else as given."""
-    try:
-        return path.resolve().relative_to(root.resolve()).as_posix()
-    except ValueError:
-        return str(path)
-
-
-def _files_of(root: Path) -> dict[str, bytes]:
-    """Every file of a product folder (no ``build/``, no change tracking) → its bytes."""
-    out: dict[str, bytes] = {}
-    for p in sorted(root.rglob("*")):
-        rel = p.relative_to(root)
-        if rel.parts[0] in _NOT_COPIED or "__pycache__" in rel.parts or not p.is_file():
-            continue
-        out[rel.as_posix()] = p.read_bytes()
-    return out
-
-
-def _file_changes(before: Path, after: Path) -> dict[str, list[str]]:
-    """The product-relative files the patch adds, changes and removes."""
-    a, b = _files_of(before), _files_of(after)
-    return {
-        "added": sorted(set(b) - set(a)),
-        "changed": sorted(k for k in set(a) & set(b) if a[k] != b[k]),
-        "removed": sorted(set(a) - set(b)),
-    }
 
 
 def _objects_of(product: Product) -> dict[str, Any]:
@@ -256,31 +169,6 @@ def _patch_keys(product: Product, after: Product, found: PatchImpact) -> list[st
         for f in _changed_fields(product.manifest.product, after.manifest.product)
     ]
     return list(dict.fromkeys(keys))
-
-
-def _patch_rebuilds(
-    product: Product, after: Product, build_dir: Path
-) -> tuple[dict[str, str], list[str]]:
-    """The rules the build would run after the patch and not before it; those stale already.
-
-    Both from the build's own dry run (:func:`explain_build`, a superset of what a build
-    reruns) against this build, so the list is what ``n2f build`` would do, not a guess.  A
-    rule the patch brings is "added with the change"; a rule that would run anyway (the
-    model moved since the last build) is left out and listed as stale.
-    """
-    from napkin2factory.core.graph.runner import explain_build
-
-    def would_run(p: Product) -> dict[str, str]:
-        return {rid: why for rid, run, why in explain_build(p, "all", build_dir, False) if run}
-
-    before = would_run(product)
-    known = {r.id for r in build_rules(product)}
-    rebuilds = {
-        rid: ("added with the change" if rid not in known else why)
-        for rid, why in would_run(after).items()
-        if rid not in before and rid != "validate"
-    }
-    return rebuilds, sorted(r for r in before if r != "validate")
 
 
 def crossed_ports(product: Product, iface_ids: list[str]) -> list[dict[str, Any]]:

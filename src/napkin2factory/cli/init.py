@@ -171,20 +171,21 @@ def upgrade_existing(dest: Path, json_out: bool = False) -> None:
 
     The upgrade path (S-057, F7): a folder from a newer system stops before anything is
     touched (:class:`~napkin2factory.core.model.migrate.NewerSchema`, a plain message); a
-    folder with migrations pending gets a snapshot of how it is, then the migrations, and the
-    owner reads what changed in plain words.  Nothing else in the folder changes.
+    folder with migrations pending is checked first (a step that cannot be done refuses with
+    the folder untouched), gets a snapshot of how it is, then the migrations, and the owner
+    reads what changed in plain words.  Nothing else in the folder changes.
     """
     from napkin2factory.core.model import migrate
 
     steps = migrate.pending(dest)  # raises NewerSchema before anything is touched
+    migrate.check(dest)  # a step that cannot be done refuses here, before anything is touched
     vcs = Vcs(dest)
     was_tracked = vcs.is_tracked() and vcs.is_repo_root()
     vcs.init()
     before = None
     upgrade = None
-    if steps:
-        before = vcs.snapshot(f"Before updating the files to format {steps[-1].to_version}")
-        upgrade = migrate.apply(dest)
+    # The missing agent files go in first, so a change request carried over by an upgrade does
+    # not count them as part of its change (S-261).
     added = []
     common = TEMPLATES_DIR / "_common"
     for src in sorted(p for p in common.rglob("*") if p.is_file()):
@@ -193,6 +194,9 @@ def upgrade_existing(dest: Path, json_out: bool = False) -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(src.read_bytes())
             added.append(str(target.relative_to(dest)))
+    if steps:
+        before = vcs.snapshot("Before upgrading the format")
+        upgrade = migrate.apply(dest)
     if upgrade is not None:
         message = f"Update the files to format {upgrade.to_version}"
     else:

@@ -1,0 +1,15 @@
+id: ECR-001
+title: Carry a heavier shelf
+status: draft
+kind: parametric
+requested_by: human
+reason: The shelf now holds a 12 kg load.
+created: 2026-10-01
+edits:
+  - {set: param://shelf-load, to: 12 kg}
+tasks: []
+patch: null
+impact: null
+approval: null
+applied: null
+released_in: null

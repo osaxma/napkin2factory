@@ -34,10 +34,10 @@ def bump_revisions(
 
     A part changed when its output hash moved (``before`` → now) or its YAML differs
     between the snapshot ``since`` and the latest one (declared fields: finish, material,
-    cost... that leave the geometry alone).  ``since`` is the snapshot before the change
-    request was applied (:func:`_snapshot_before`); without it only the latest snapshot
-    is diffed.  ``new`` holds the URIs a live change request created: they start at their
-    first revision and are not bumped (S-254).  Returns ``{uri: (old, new)}``.
+    cost... that leave the geometry alone).  ``since`` is the change request's baseline;
+    without it only the latest snapshot is diffed.  ``new`` holds the URIs a live change
+    request created: they start at their first revision and are not bumped (S-254).
+    Returns ``{uri: (old, new)}``.
     """
     after = _output_hashes(product)
     declared = _changed_files(product, since)
@@ -75,27 +75,6 @@ def _asm_order(product: Product) -> list[str]:
     from napkin2factory.geometry.build import assembly_order
 
     return assembly_order(product)
-
-
-#: git's empty tree: what a change request applied in the very first snapshot diffs against.
-_EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-
-
-def _snapshot_before(product: Product, ecr: Ecr) -> str | None:
-    """The snapshot just before ``ecr`` was applied (S-089).
-
-    ``apply`` records the snapshot that holds the change; its parent is the model as it
-    stood before.  Later snapshots (a sign-off, the designer's own work) are all inside
-    the span from there to the latest snapshot.
-    """
-    snap = ecr.applied.snapshot if ecr.applied else ""
-    if not snap:
-        return None
-    vcs = Vcs(product.root)
-    if not vcs.ref_exists(snap):
-        return None
-    parent = f"{snap}~1"
-    return parent if vcs.ref_exists(parent) else _EMPTY_TREE
 
 
 def _changed_files(product: Product, since: str | None) -> set[str]:
@@ -160,13 +139,11 @@ def _append_changelog(product: Product, ecr: Ecr, bumped: dict[str, tuple[str, s
 
 
 __all__ = [
-    "_EMPTY_TREE",
     "_append_changelog",
     "_asm_order",
     "_changed_files",
     "_close_gate",
     "_output_hashes",
     "_part_rel",
-    "_snapshot_before",
     "bump_revisions",
 ]

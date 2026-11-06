@@ -124,6 +124,23 @@ def copy_product(
     return dst
 
 
+def copy_kiln_as_designed(dst: Path, git: bool = False) -> Path:
+    """A copy of the kiln with the two values its open change request ECR-001 carries put back.
+
+    The upgrade to schema 2 applied ECR-001's edits to the shipped kiln (chamber height
+    250 mm, heat-up time 9 h, S-261). Tests that guard the kiln as it was designed (its
+    reference numbers, its napkin cards) read it through this, at 200 mm and 7 h.
+    """
+    from napkin2factory.core.graph.impact import parse_set
+    from napkin2factory.core.loader import load_product
+    from napkin2factory.ecr.apply import _set_in_yaml
+
+    root = copy_product(EXAMPLES / "kiln", dst, git=git)
+    for edit in ("param://chamber-height=200 mm", "param://heat-up-time=7 hour"):
+        _set_in_yaml(load_product(root), parse_set(edit))
+    return root
+
+
 _PREBUILT_ROOT: list[Path] = []  # set once per test process by _prebuilt_root
 
 

@@ -25,7 +25,7 @@ from napkin2factory.core import concepts as cm
 from napkin2factory.core.errors import GateBlocked
 from napkin2factory.core.loader import load_product
 from napkin2factory.core.model import ConceptCard
-from tests.conftest import EXAMPLES, FIXTURES, copy_product, n2f
+from tests.conftest import EXAMPLES, FIXTURES, copy_kiln_as_designed, copy_product, n2f
 
 # the module's shared product is built once, on one worker (S-196)
 pytestmark = pytest.mark.xdist_group("test_promote_modules")
@@ -234,7 +234,7 @@ def test_a_module_named_like_the_product_is_refused(fresh: Path, tmp_path: Path)
 def test_promotion_on_the_kiln_only_suggests_modules(tmp_path: Path) -> None:
     from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip
 
-    root = copy_product(EXAMPLES / "kiln", tmp_path / "kiln", git=False)
+    root = copy_kiln_as_designed(tmp_path / "kiln")
     card = cm.card_path(root, "C-003")  # rewind the shipped choice, as demo-napkin.sh does
     doc = load_roundtrip(card)
     doc["status"], doc["decision"] = "exploring", None

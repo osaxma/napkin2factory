@@ -1,0 +1,11 @@
+id: ECR-001
+title: Taller
+status: approved
+kind: parametric
+edits:
+  - {set: param://box-height, to: 100 mm}
+baseline:
+  checkpoint: 0123456789abcdef0123456789abcdef01234567
+approval:
+  by: Sam
+  at: 2026-11-01T10:00:00

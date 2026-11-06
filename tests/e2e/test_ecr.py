@@ -33,31 +33,6 @@ def _run(*args: str, cwd: Path, ok: bool = True):  # type: ignore[no-untyped-def
     return r
 
 
-def _legacy_new(*args: str, cwd: Path) -> None:
-    """File a change request the v0.7 way: no baseline, as the kiln's drafts exist (B-0263).
-
-    Takes the arguments ``ecr new`` took; `ecr new` is now `ecr start`, so the old steps
-    (impact on the patch, approve, apply, close) are reached through this.
-    """
-    import argparse
-
-    from napkin2factory.core.loader import load_product
-    from napkin2factory.ecr import lifecycle
-
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--title", required=True)
-    ap.add_argument("--kind", default="parametric")
-    ap.add_argument("--reason")
-    ap.add_argument("--set", action="append", default=[])
-    ap.add_argument("--task", action="append", default=[])
-    ap.add_argument("--patch")
-    ap.add_argument("--by", default="human")
-    ns = ap.parse_args(args)
-    lifecycle.new_ecr(
-        load_product(cwd), ns.title, ns.kind, ns.reason, ns.set, ns.task, ns.patch, ns.by
-    )
-
-
 @pytest.fixture(scope="module")
 def product(tmp_path_factory: pytest.TempPathFactory) -> Path:
     root = copy_product(
@@ -73,31 +48,23 @@ def product(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 def test_parametric_loop(product: Path) -> None:
     root = product
-    _legacy_new(
+    params_before = (root / "model/parameters.yaml").read_text()
+    assert re.search(r"box-height:\s+\{value: 80,", params_before)
+    r = _run(
+        "ecr",
+        "start",
         "--title",
         "Taller box",
         "--set",
         "param://box-height=100mm",
         "--set",
         "req://REQ-001#verify.value=120 mm",
+        "--json",
         cwd=root,
     )
-    ecr_id = "ECR-001"
+    ecr_id = json.loads(r.stdout)["id"]
     assert ecr_id == "ECR-001" and (root / "changes/ECR-001.yaml").is_file()
-    # impact before anything changes
-    r = _run("ecr", "impact", ecr_id, "--json", cwd=root)
-    impact = json.loads(r.stdout)
-    assert "part:base" in impact["rules"] and impact["firm"] is True
-    data = yaml.safe_load((root / "changes/ECR-001.yaml").read_text())
-    assert data["status"] == "impact" and data["impact"]["rules"]
-    assert (root / "build/changes/ECR-001-impact.md").is_file()
-    params_before = (root / "model/parameters.yaml").read_text()
-    assert re.search(r"box-height:\s+\{value: 80,", params_before)  # untouched
-    # apply refuses before approval
-    r = _run("ecr", "apply", ecr_id, cwd=root, ok=False)
-    assert r.returncode == 3 and "approve" in r.stderr
-    _run("ecr", "approve", ecr_id, "--by", "Owner", cwd=root)
-    r = _run("ecr", "apply", ecr_id, cwd=root)
+    # the edits are in the files at once; the impact reads the folder against its baseline
     params_after = (root / "model/parameters.yaml").read_text()
     assert re.search(r"box-height:\s+\{value: 100,\s+unit: mm", params_after), params_after
     # comments and the other lines are preserved (one-value diff)
@@ -109,9 +76,19 @@ def test_parametric_loop(product: Path) -> None:
     assert len(diff_lines) == 1
     reqs = yaml.safe_load((root / "model/requirements.yaml").read_text())
     assert reqs["requirements"][0]["verify"]["value"] == "120 mm"
+    # approve refuses before the impact has been read
+    r = _run("ecr", "approve", ecr_id, "--by", "Owner", cwd=root, ok=False)
+    assert r.returncode == 3 and "impact" in r.stderr
+    r = _run("ecr", "impact", ecr_id, "--json", cwd=root)
+    impact = json.loads(r.stdout)
+    assert "part:base" in impact["rebuilt"] and impact["objects"]["changed"]
     data = yaml.safe_load((root / "changes/ECR-001.yaml").read_text())
-    assert data["status"] == "applied" and data["applied"]["snapshot"]
-    # rebuild + check + close → revision bumps and changelog
+    assert data["status"] == "draft" and data["impact"]["model_hash"]
+    assert (root / "build/changes/ECR-001-impact.md").is_file()
+    _run("ecr", "approve", ecr_id, "--by", "Owner", cwd=root)
+    data = yaml.safe_load((root / "changes/ECR-001.yaml").read_text())
+    assert data["status"] == "approved" and data["approval"]["model_hash"]
+    # build + check, then close → revision bumps and changelog
     _run("build", "--no-render", cwd=root)
     _run("check", cwd=root)
     # REQ-004 is checked by hand: close waits for its sign-off (B-0015)
@@ -131,14 +108,17 @@ def test_parametric_loop(product: Path) -> None:
     assert json.loads(r.stdout)["ecrs"][0]["status"] == "closed"
 
 
-def test_reject_and_state_machine(tmp_path: Path) -> None:
+def test_abort_and_state_machine(tmp_path: Path) -> None:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=True)
-    _legacy_new("--title", "Nope", "--set", "param://bracket-width=70mm", cwd=root)
+    _run("ecr", "start", "--title", "Nope", "--set", "param://bracket-width=70mm", cwd=root)
     r = _run("ecr", "approve", "ECR-001", "--by", "x", cwd=root, ok=False)
     assert r.returncode == 3 and "impact" in r.stderr
-    _run("ecr", "reject", "ECR-001", "--reason", "not needed", cwd=root)
-    r = _run("ecr", "impact", "ECR-001", cwd=root, ok=False)
-    assert r.returncode == 3
+    _run("ecr", "abort", "ECR-001", "--reason", "not needed", cwd=root)
+    data = yaml.safe_load((root / "changes/ECR-001.yaml").read_text())
+    assert data["status"] == "aborted" and data["aborted_reason"] == "not needed"
+    for verb in ("impact", "close", "abort"):
+        r = _run("ecr", verb, "ECR-001", cwd=root, ok=False)
+        assert r.returncode == 3, verb
     r = _run(
         "ecr", "start", "--title", "Bad target", "--set", "param://nope=1mm", cwd=root, ok=False
     )
@@ -147,8 +127,9 @@ def test_reject_and_state_machine(tmp_path: Path) -> None:
 
 def test_not_tracked_refusal_wording(tmp_path: Path) -> None:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=False)
-    _legacy_new("--title", "x", "--set", "param://bracket-width=70mm", cwd=root)
-    _run("ecr", "impact", "ECR-001", cwd=root)
-    _run("ecr", "approve", "ECR-001", "--by", "x", cwd=root)
-    r = _run("ecr", "apply", "ECR-001", cwd=root, ok=False)
+    before = (root / "model/parameters.yaml").read_text()
+    r = _run(
+        "ecr", "start", "--title", "x", "--set", "param://bracket-width=70mm", cwd=root, ok=False
+    )
     assert r.returncode == 4 and "n2f init" in r.stderr
+    assert (root / "model/parameters.yaml").read_text() == before  # nothing was edited

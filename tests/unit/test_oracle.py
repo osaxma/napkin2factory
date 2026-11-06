@@ -573,7 +573,7 @@ def test_the_format_refuses_what_it_does_not_know():
 def _write(tmp_path: Path, doc: dict[str, Any]) -> tuple[Path, Path]:
     prod = tmp_path / "product"
     prod.mkdir()
-    (prod / "n2f.yaml").write_text("schema: 1\n", encoding="utf-8")
+    (prod / "n2f.yaml").write_text("schema: 2\n", encoding="utf-8")
     spec = tmp_path / "SPEC.oracle.yaml"
     spec.write_text(yaml.safe_dump(doc), encoding="utf-8")
     return prod, spec

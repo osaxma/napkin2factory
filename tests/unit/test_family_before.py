@@ -128,7 +128,7 @@ def make_domain(root: Path, before: tuple[str, ...] = ("doc",)) -> Domain:
 
 
 FILES = {
-    "n2f.yaml": """schema: 1
+    "n2f.yaml": """schema: 2
 system: '>=0.5,<0.6'
 product: {id: beacon-box, name: Beacon box, description: A product with one beacon.}
 units: metric

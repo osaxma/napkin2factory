@@ -16,7 +16,7 @@ from napkin2factory.calckit import _tables as tables
 from napkin2factory.calckit import thermal_enclosure as te
 from napkin2factory.calckit.thermal_enclosure import Layer
 from napkin2factory.core.units import Quantity as Q
-from tests.conftest import EXAMPLES, copy_product
+from tests.conftest import EXAMPLES, copy_kiln_as_designed
 
 SIGMA = 5.670374419e-8
 CUBE = (Q(1, "m"), Q(1, "m"), Q(1, "m"))
@@ -469,9 +469,7 @@ KILN_BASELINE = {
 def kiln(tmp_path_factory):
     from napkin2factory.core.loader import load_product
 
-    return load_product(
-        copy_product(EXAMPLES / "kiln", tmp_path_factory.mktemp("k") / "kiln", git=False)
-    )
+    return load_product(copy_kiln_as_designed(tmp_path_factory.mktemp("k") / "kiln"))
 
 
 def test_kiln_numbers_reproduce_through_calckit(kiln):

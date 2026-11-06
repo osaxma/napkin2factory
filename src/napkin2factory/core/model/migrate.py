@@ -12,8 +12,9 @@ changed meaning bumps :data:`CURRENT`, ships a :class:`Migration` registered her
 * :func:`refuse_unreadable` is the loader's guard: a folder from a newer system stops with a
   plain message, a folder with migrations pending stops and names ``n2f init .``.
 
-The registry is empty while only schema 1 has existed; the test suite registers a throwaway
-``1 → 2`` migration to prove the path round-trips (``tests/unit/test_migrate.py``).
+The registry holds the real migrations (``1 → 2``: the change-request states, S-261, carried
+out by ``napkin2factory.ecr.upgrade``); the test suite registers throwaway ones above
+:data:`CURRENT` to prove the path round-trips (``tests/unit/test_migrate.py``).
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ from typing import Any
 from napkin2factory.core.errors import ModelError, N2FError, Problems
 
 #: The schema this system reads and writes.  Bumped only with a registered migration (F7).
-CURRENT = 1
+CURRENT = 2
 
 #: The schema a folder without a ``schema:`` key is read as (every v0.1–v0.4 product had 1).
 DEFAULT = 1
@@ -56,12 +57,16 @@ class Migration:
         run: ``run(root)`` edits the files under the product folder ``root`` in place and
             returns one owner-word line per change it made ("n2f.yaml: renamed …").  It
             never touches ``schema:``; :func:`apply` writes that after the last step.
+        check: optional ``check(root)`` that raises (an :class:`N2FError`) when the step
+            cannot be done on this folder; ``n2f init .`` calls it before it touches
+            anything, so a refusal leaves the folder as it was.
     """
 
     from_version: int
     to_version: int
     title: str
     run: Callable[[Path], list[str]]
+    check: Callable[[Path], None] | None = None
 
 
 @dataclass
@@ -86,6 +91,20 @@ class Upgrade:
 _REGISTRY: dict[tuple[int, int], Migration] = {}
 
 
+def _check_change_requests_v2(root: Path) -> None:
+    """Refuse before anything is touched when an open change request cannot be carried over."""
+    from napkin2factory.ecr.upgrade import check_change_requests
+
+    check_change_requests(root)
+
+
+def _change_requests_v2(root: Path) -> list[str]:
+    """Schema 1 → 2 (S-261, R8): the change-request states; imported late, it needs the store."""
+    from napkin2factory.ecr.upgrade import upgrade_change_requests
+
+    return upgrade_change_requests(root)
+
+
 def register(migration: Migration) -> None:
     """Add a migration to the registry (one per ``(from, to)``).
 
@@ -99,6 +118,18 @@ def register(migration: Migration) -> None:
     if key in _REGISTRY:
         raise ValueError(f"a migration {key[0]} → {key[1]} is registered already")
     _REGISTRY[key] = migration
+
+
+register(
+    Migration(
+        1,
+        2,
+        "change requests are edited in place: draft, approved, closed or aborted, one open at "
+        "a time, each open one with the checkpoint it started from",
+        _change_requests_v2,
+        _check_change_requests_v2,
+    )
+)
 
 
 def unregister(from_version: int, to_version: int) -> None:
@@ -187,10 +218,24 @@ def pending(product_or_root: Any) -> list[Migration]:
     return chain
 
 
+def check(product_or_root: Any) -> None:
+    """Run the first pending migration's pre-check, if it has one (see :attr:`Migration.check`).
+
+    Raises:
+        NewerSchema: as :func:`pending`.
+        SchemaError: as :func:`pending`.
+        N2FError: the check's own refusal; nothing has been touched yet.
+    """
+    root = _root(product_or_root)
+    steps = pending(root)
+    if steps and steps[0].check is not None:
+        steps[0].check(root)
+
+
 _SCHEMA_LINE = re.compile(r"^schema:[^\n#]*", re.MULTILINE)
 
 
-def _write_schema(root: Path, version: int) -> None:
+def write_schema(root: Path, version: int) -> None:
     """Rewrite only the ``schema:`` line (or add it first), so nothing else in the file moves."""
     path = root / MANIFEST
     text = path.read_text(encoding="utf-8")
@@ -220,7 +265,7 @@ def apply(product_or_root: Any) -> Upgrade:
         upgrade.changes += step.run(root)
         upgrade.steps.append(step)
         upgrade.to_version = step.to_version
-        _write_schema(root, step.to_version)  # each step leaves a consistent folder
+        write_schema(root, step.to_version)  # each step leaves a consistent folder
     return upgrade
 
 
@@ -266,6 +311,7 @@ __all__ = [
     "SchemaError",
     "Upgrade",
     "apply",
+    "check",
     "newer_message",
     "pending",
     "refuse_unreadable",
@@ -274,4 +320,5 @@ __all__ = [
     "registered_migration",
     "schema_of",
     "unregister",
+    "write_schema",
 ]

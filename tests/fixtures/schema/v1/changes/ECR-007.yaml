@@ -1,0 +1,16 @@
+id: ECR-007
+title: Drop the bend radius
+status: rejected
+kind: parametric
+requested_by: human
+reason: A tighter bend would crack the sheet.
+created: 2026-09-22
+edits:
+  - {set: param://bend-radius, to: 1 mm}
+tasks: []
+patch: null
+impact: null
+approval: null
+applied: null
+released_in: null
+rejected_reason: The supplier cannot bend to a 1 mm radius.

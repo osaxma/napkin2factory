@@ -375,14 +375,14 @@ def _validate_uris(product: Product, problems: Problems) -> None:
                 )
                 continue
             if file.parent == product.paths.changes:
-                # S-215: applied/closed change requests are history; dangling references warn
+                # S-215: finished change requests are history; dangling references warn
                 ecr_obj = product.ecrs.get(file.stem)
-                if ecr_obj and ecr_obj.status in ("applied", "closed"):
+                if ecr_obj and ecr_obj.status in ("closed", "rejected", "aborted"):
                     problems.add(
                         file,
                         subject,
                         f"change request cites removed or unknown {uri}",
-                        "applied change request is history",
+                        "a finished change request is history",
                         severity="warn",
                         rule="uri",
                     )

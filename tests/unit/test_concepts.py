@@ -55,7 +55,7 @@ def test_section3_example_validates_and_round_trips() -> None:
     "data, fragment",
     [
         (_card(id="C-1"), r"does not match C-\d{3}"),
-        (_card(status="maybe"), "'exploring', 'rejected' or 'promoted'"),
+        (_card(status="maybe"), "'exploring', 'rejected', 'promoted' or 'parked'"),
         (_card(colour="red"), "Extra inputs are not permitted"),
         (_card(envelope={"insulation": "lots mm"}), "is not a quantity"),
         (_card(massing=[{"as": "body", "args": {}}]), "massing.0.kit"),

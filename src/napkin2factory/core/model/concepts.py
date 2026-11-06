@@ -24,9 +24,10 @@ from napkin2factory.core.model.style import StyleRole
 from napkin2factory.core.units import UnitError, format_quantity, parse_quantity
 
 ConceptId = Annotated[str, _id(r"C-\d{3}")]
-ConceptStatus = Literal["exploring", "rejected", "promoted"]
-#: Every status word a card can carry, in display order.
-CONCEPT_STATUSES: tuple[str, ...] = ("exploring", "rejected", "promoted")
+ConceptStatus = Literal["exploring", "rejected", "promoted", "parked"]
+#: Every status word a card can carry, in display order. ``parked`` is a promoted direction
+#: set aside by ``concept switch`` (schema 2, R10); nothing writes it before M3a.
+CONCEPT_STATUSES: tuple[str, ...] = ("exploring", "rejected", "promoted", "parked")
 
 
 def _to_layer(v: dict[str, Any]) -> dict[str, Any]:

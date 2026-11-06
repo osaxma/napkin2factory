@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The design ECO loop, unattended: demo.sh, then ECR-002 (peephole with plug) applied from its
-# pre-authored patch (D7), brought up to date with the bolts pick demo.sh made → v1.2.0.
+# The design ECO loop, unattended: demo.sh, then ECR-005 (peephole with plug) made from the
+# patch kept in changes/ECR-002.patch (D7), brought up to date with the bolts pick demo.sh made → v1.2.0.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SYSTEM="$(cd "$HERE/../.." && pwd)"
@@ -45,14 +45,17 @@ p.write_text(text.replace(old, "   - {part: part://m6x12-bolt, qty: 8}\n"), enco
 PY
 $N2F snapshot -m "ECR-002's patch follows the bolts pick"
 
-echo "== ECR-002 (design): impact → approve → apply patch → rebuild → check"
-$N2F ecr impact ECR-002
-$N2F ecr approve ECR-002 --by "Owner (demo)"
-$N2F ecr apply ECR-002
+echo "== ECR-005 (design): start → make the edits (the kept patch) → impact → approve → rebuild → check"
+$N2F ecr start --kind design --title "Add a peephole with a plug to the door" \
+  --reason "The owner wants to see cones and glaze melt without opening the door." \
+  --task "Add a peephole through the door, a ceramic plug as a bought part, the manufacturer note and the operation-manual safety line."
+git apply changes/ECR-002.patch
+$N2F ecr impact ECR-005
+$N2F ecr approve ECR-005 --by "Owner (demo)"
 $N2F build --no-render
 $N2F check || true
-resign_invalidated "ECR-002"
-$N2F ecr close ECR-002
+resign_invalidated "ECR-005"
+$N2F ecr close ECR-005
 echo "== v1.2.0: release and diff"
 redecide_bolts
 $N2F release v1.2.0 --no-render --allow-example-signoffs

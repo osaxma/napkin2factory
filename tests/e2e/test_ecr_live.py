@@ -1,7 +1,7 @@
 """v0.8 M2b: live change requests, edited in place (R6, R7, R9, S-254).
 
 Every flow runs on a prebuilt copy of the bracket (S-196), so the baseline copy and the
-rebuilds are incremental. ``_legacy_new`` (test_ecr.py) files a request the v0.7 way.
+rebuilds are incremental.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from napkin2factory.cli.checkpointing import APPROVAL_HASH_EXCLUDE
 from napkin2factory.core import checkpoints
 from napkin2factory.core.vcs import Vcs
 from tests.conftest import EXAMPLES, copy_product, n2f
-from tests.e2e.test_ecr import _legacy_new, _no_git_words
+from tests.e2e.test_ecr import _no_git_words
 
 os.environ.setdefault("N2F_OFFLINE", "1")
 
@@ -243,27 +243,14 @@ def test_one_open_request_at_a_time(root: Path) -> None:
     assert "bracket-width:     {value: 60" in (root / PARAMS).read_text()
 
 
-def test_an_old_style_request_does_not_hold_the_folder(root: Path) -> None:
-    _legacy_new("--title", "Old", "--set", "param://bracket-width=70mm", cwd=root)
-    out = _json("ecr", "start", "--title", "New", cwd=root)
-    assert out["id"] == "ECR-002"
-    rows = {r["id"]: r["status"] for r in _json("ecr", "list", cwd=root)["ecrs"]}
-    assert rows == {"ECR-001": "draft", "ECR-002": "draft"}
-
-
 def test_bridges(root: Path) -> None:
     r = _run("ecr", "new", "--title", "Via new", cwd=root)
     assert r.stdout.count("`ecr new` is now `ecr start`") == 1 and "started ECR-001" in r.stdout
     assert _ecr(root)["baseline"]["checkpoint"]
     _run("ecr", "abort", cwd=root)
-    for verb in ("new", "start"):
+    for verb in ("new", "start"):  # the patch option went with schema 2
         r = _run("ecr", verb, "--title", "x", "--patch", "changes/p.patch", cwd=root, ok=False)
-        err = " ".join(r.stderr.split())
-        assert r.returncode == 3 and "edit the model files directly after `n2f ecr start`" in err
-    r = _run(
-        "ecr", "quick", "--set", "param://bracket-width=70mm", "--patch", "p", cwd=root, ok=False
-    )
-    assert r.returncode == 3 and "edit the model files directly" in " ".join(r.stderr.split())
+        assert r.returncode == 2 and "--patch" in " ".join(r.stderr.split())
     _run("ecr", "start", "--title", "Live", cwd=root)
     r = _run("ecr", "apply", cwd=root, ok=False)
     err = " ".join(r.stderr.split())

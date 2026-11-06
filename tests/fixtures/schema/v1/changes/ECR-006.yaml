@@ -1,0 +1,23 @@
+id: ECR-006
+title: Thicker sheet
+status: closed
+kind: parametric
+requested_by: human
+reason: Shelf tests showed the bracket flexing.
+created: 2026-09-20
+edits:
+  - {set: param://bracket-thickness, to: 4 mm}
+tasks: []
+patch: null
+impact:
+  edits:
+    - {set: param://bracket-thickness, to: 4 mm}
+  parts: [l-bracket]
+approval:
+  by: Sam
+  at: 2026-09-21T09:00:00
+applied:
+  snapshot: "1111111111111111111111111111111111111111"
+  at: 2026-09-21T09:05:00
+  before: {}
+released_in: null

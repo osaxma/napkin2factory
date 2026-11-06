@@ -13,7 +13,6 @@ import pytest
 from selectolax.lexbor import LexborHTMLParser
 
 from tests.conftest import EXAMPLES, copy_product, n2f
-from tests.e2e.test_ecr import _legacy_new
 
 # the module's shared product is built once, on one worker (S-196)
 pytestmark = pytest.mark.xdist_group("test_release_diff")
@@ -171,7 +170,9 @@ def test_release_refused_when_a_check_fails(released: Path) -> None:
 
 def test_ecr_then_release_then_diff(released: Path) -> None:
     root = released
-    _legacy_new(
+    _run(
+        "ecr",
+        "start",
         "--title",
         "Taller box",
         "--set",
@@ -182,7 +183,6 @@ def test_ecr_then_release_then_diff(released: Path) -> None:
     )
     _run("ecr", "impact", "ECR-001", cwd=root)
     _run("ecr", "approve", "ECR-001", "--by", "Owner", cwd=root)
-    _run("ecr", "apply", "ECR-001", cwd=root)
     _run("build", "--no-render", cwd=root)
     r = _run("check", cwd=root, ok=False)
     # REQ-004's example sign-off cites the base, whose evidence changed → needs-human, not fail

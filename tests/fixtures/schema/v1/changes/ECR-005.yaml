@@ -1,0 +1,27 @@
+id: ECR-005
+title: Holes a little further from the leg ends
+status: applied
+kind: parametric
+requested_by: human
+reason: The holes were too close to the edge for thick walls.
+created: 2026-10-06
+edits:
+  - {set: param://hole-inset, to: 22 mm}
+tasks: []
+patch: null
+impact:
+  edits:
+    - {set: param://hole-inset, to: 22 mm}
+  parts: [l-bracket]
+  assemblies: [bracket]
+  requirements: []
+  signoffs_invalidated: []
+  cost_delta: 0.0
+approval:
+  by: Sam
+  at: 2026-10-07T10:00:00
+applied:
+  snapshot: "0000000000000000000000000000000000000000"
+  at: 2026-10-07T10:05:00
+  before: {}
+released_in: null

@@ -35,13 +35,13 @@ def test_demo_parametric(tmp_path: Path) -> None:
     for w in GIT_WORDS:
         assert w not in out.lower(), f"git vocabulary {w!r} leaked"
     work = tmp_path / "demo"
-    assert (work / "build/changes/ECR-001-impact.md").is_file()
+    assert (work / "build/changes/ECR-004-impact.md").is_file()
     assert (work / "build/site/diff/v1.0.0..v1.1.0/index.html").is_file()
     assert (work / "build/release/kiln-v1.1.0.zip").is_file()
     assert "EXAMPLE" in out  # the re-sign step is labelled
     import yaml
 
-    assert yaml.safe_load((work / "changes/ECR-001.yaml").read_text())["released_in"] == "v1.1.0"
+    assert yaml.safe_load((work / "changes/ECR-004.yaml").read_text())["released_in"] == "v1.1.0"
     html = (work / "build/site/diff/v1.0.0..v1.1.0/index.html").read_text()
     assert "chamber-height" in html and "250 mm" in html
 
@@ -55,7 +55,7 @@ def test_demo_design(tmp_path: Path) -> None:
     assert (work / "model/parts/peephole-plug.yaml").is_file()
     import yaml
 
-    assert yaml.safe_load((work / "changes/ECR-002.yaml").read_text())["released_in"] == "v1.2.0"
+    assert yaml.safe_load((work / "changes/ECR-005.yaml").read_text())["released_in"] == "v1.2.0"
 
 
 def test_demo_electrical(tmp_path: Path) -> None:
@@ -73,7 +73,7 @@ def test_demo_electrical(tmp_path: Path) -> None:
     assert "Wiring (left for later" in first
     later = (work / "build/release/v1.1.0/README.txt").read_text(encoding="utf-8")
     assert "Wiring (left for later" not in later
-    assert yaml.safe_load((work / "changes/ECR-003.yaml").read_text())["released_in"] == "v1.1.0"
+    assert yaml.safe_load((work / "changes/ECR-004.yaml").read_text())["released_in"] == "v1.1.0"
     assert yaml.safe_load((work / "n2f.yaml").read_text())["scope"]["electrical"]["state"] == "in"
     decs = yaml.safe_load((work / "model/decisions.yaml").read_text())["decisions"]
     picked = [d for d in decs if any("supply-headroom" in s for s in d.get("sources", []))]

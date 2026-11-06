@@ -1,6 +1,6 @@
 id: ECR-002
 title: Add a peephole with a plug to the door
-status: draft
+status: aborted
 kind: design
 requested_by: human
 reason: The owner wants to see cones and glaze melt without opening the door.
@@ -11,8 +11,4 @@ tasks:
   - Add a ceramic peephole plug as a bought part and place it in the door sub-assembly.
   - Note in the manufacturer package that the fiber plug and brick slab are drilled Ø25 mm after bonding.
   - "Add a safety line to the operation manual: look through the peephole with the plug removed only with eye protection; replace the plug after."
-patch: changes/ECR-002.patch
-impact: null
-approval: null
-applied: null
-released_in: null
+aborted_reason: 'set aside when upgrading: one change request is open at a time. Its edit is kept in changes/ECR-002.patch; start it again with `n2f ecr start`.'

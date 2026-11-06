@@ -120,7 +120,7 @@ def test_folder_is_fixed_and_cannot_be_overridden(tmp_path: Path) -> None:
     for bad in ("../elsewhere/x", str(elsewhere / "x"), "link/x", "/etc/passwd"):
         with pytest.raises(ToolError, match="outside the product folder"):
             build_argv(tools["n2f_diff"], {"ref_a": "a", "ref_b": "b", "out": bad}, folder)
-    with pytest.raises(ToolError, match="outside the product folder"):
+    with pytest.raises(ToolError, match="unknown argument"):  # the patch option went (S-261)
         build_argv(tools["n2f_ecr_new"], {"title": "t", "patch": "../p.diff"}, folder)
     ok = build_argv(tools["n2f_diff"], {"ref_a": "a", "ref_b": "b", "out": "site/diff"}, folder)
     assert "--out=site/diff" in ok

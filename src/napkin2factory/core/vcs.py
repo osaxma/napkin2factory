@@ -430,13 +430,12 @@ class Vcs(StoreMixin):
         )
 
     def apply_patch(self, patch_path: Path) -> None:
-        """Apply a unified diff over the working tree (design change requests, D7)."""
+        """Apply a unified diff over the working tree (the schema 2 upgrade uses it, S-261)."""
         proc = self._git("apply", "--whitespace=nowarn", str(patch_path), check=False)
         if proc.returncode != 0:
             raise VcsError(
-                f"the change request's patch ({patch_path.name}) no longer fits the model; "
-                "it was written against an earlier state — re-create it with "
-                "`n2f ecr new --kind design`",
+                f"the patch {patch_path.name} no longer fits the model; "
+                "it was written against an earlier state",
                 detail=proc.stderr.strip(),
                 code="patch",
             )

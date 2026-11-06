@@ -17,7 +17,8 @@ is the rule for changing the format. It is written once, here; `AGENTS.md` point
      `run(root)` edits the files under the product folder in place and returns one plain-words
      line per change ("n2f.yaml: renamed …"), and `title` says what changed for the owner;
    - a fixture product of the *old* version under `tests/fixtures/schema/v<n>/`, kept for good
-     (one folder per version that has existed; today `v1`, the bracket as of v0.4);
+     (one folder per version a migration reads; today `v1`, the bracket as of v0.4 with a change
+     request in each v1 state);
    - a test that the migration takes `v<n>` to the new version, and that the result loads;
    - the templates and `examples/` at the new version (run the migration on them).
 3. **Aliases are a bridge, not a policy.** When a name changes, the old name may be read as an
@@ -29,13 +30,24 @@ is the rule for changing the format. It is written once, here; `AGENTS.md` point
 | the folder says | `n2f init .` (the upgrade path) | every other command |
 |---|---|---|
 | the current format | nothing to update; sets up change tracking and missing agent files | runs |
-| an older format with migrations installed | saves a snapshot of the folder as it is, applies each migration in order, writes the new `schema:`, saves a snapshot, prints what changed in plain words | stops: "this product's files are in an older file format …; run `n2f init .`" |
+| an older format with migrations installed | first runs the migration's pre-check (a step that cannot be done refuses here and touches nothing), adds the missing agent files, saves a snapshot of the folder as it is, applies each migration in order, writes the new `schema:`, saves a snapshot, prints what changed in plain words | stops: "this product's files are in an older file format …; run `n2f init .`" |
 | an older format with no migration installed | stops, naming both formats | stops, as above |
 | a newer format than this system reads | stops with a plain message ("saved by a newer napkin2factory … Update napkin2factory, then try again; nothing was changed"), touching nothing | stops with the same message, before any other validation |
 
 `n2f init .` refuses nothing it can update, and the snapshot first means nothing is lost: the
 owner can go back to the folder as it was. `n2f init . --json` reports `updated: {from, to,
 steps, changes, snapshot_before}` (or `null`).
+
+## The migrations so far
+
+- **1 → 2** (v0.8, R8): the change-request states are `draft → approved → closed` and
+  `draft | approved → aborted`; an open request records the checkpoint it started from, an
+  approved one the hash of the model it approved; a card may be `parked`. The migration
+  (`ecr/upgrade.py`) carries each v1 request into that: an unfinished request becomes the one open
+  request (the lowest id) with its edits or patch applied to the model files, the others are set
+  aside as `aborted` with their edit kept; `applied` becomes `approved` for the model as it is;
+  `closed` and `rejected` are unchanged. It leaves checkpoints, so an owner can go back.
+  Fixture: `tests/fixtures/schema/v1`; test: `tests/unit/test_migrate_change_requests.py` (S-261).
 
 ## Why
 

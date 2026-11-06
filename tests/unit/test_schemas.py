@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from napkin2factory.core.model import (
     Assembly,
+    ConceptCard,
     Decision,
     Ecr,
     Interface,
@@ -139,17 +140,91 @@ def test_interface_kinds():
         Interface.model_validate({**ok, "frames": {"part://zz": {}}})
 
 
+BASELINE = {"checkpoint": "0123456789abcdef0123456789abcdef01234567"}
+
+
 def test_ecr_state_machine_and_patch_rule():
-    e = Ecr.model_validate(
-        {"id": "ECR-001", "title": "t", "edits": [{"set": "param://x", "to": "1 mm"}]}
+    edits = [{"set": "param://x", "to": "1 mm"}]
+    e = Ecr.model_validate({"id": "ECR-001", "title": "t", "edits": edits, "baseline": BASELINE})
+    assert e.status == "draft"
+    assert e.can_transition("approved") and e.can_transition("aborted")
+    assert not e.can_transition("closed") and not e.can_transition("rejected")
+    for gone in ("impact", "applied"):
+        with pytest.raises(ValidationError):
+            Ecr.model_validate({"id": "ECR-001", "title": "t", "status": gone})
+    approved = Ecr.model_validate(
+        {
+            "id": "ECR-001",
+            "title": "t",
+            "status": "approved",
+            "baseline": BASELINE,
+            "approval": {"by": "Sam", "at": "2026-11-01T10:00:00", "model_hash": "abc"},
+        }
     )
-    assert e.can_transition("impact") and not e.can_transition("closed")
+    assert approved.can_transition("closed") and approved.can_transition("draft")
+    for final in ("closed", "rejected", "aborted"):
+        done = Ecr.model_validate({"id": "ECR-001", "title": "t", "status": final})
+        assert not any(done.can_transition(to) for to in ("draft", "approved", "closed"))
     with pytest.raises(ValidationError, match="not a patch"):
         Ecr.model_validate({"id": "ECR-001", "title": "t", "patch": "changes/ECR-001.patch"})
     with pytest.raises(ValidationError, match="needs a selector"):
         Ecr.model_validate(
             {"id": "ECR-001", "title": "t", "edits": [{"set": "req://REQ-001", "to": 1}]}
         )
+
+
+def test_an_open_change_request_says_where_it_started_and_what_it_approved():
+    """Schema 2: a hand-edited file without a baseline or an approval hash fails plainly."""
+    with pytest.raises(ValidationError, match="does not say where it started"):
+        Ecr.model_validate({"id": "ECR-001", "title": "t", "status": "draft"})
+    with pytest.raises(ValidationError, match="does not say where it started"):
+        Ecr.model_validate({"id": "ECR-001", "title": "t", "status": "approved"})
+    with pytest.raises(ValidationError, match="which model it approved"):
+        Ecr.model_validate(
+            {
+                "id": "ECR-001",
+                "title": "t",
+                "status": "approved",
+                "baseline": BASELINE,
+                "approval": {"by": "Sam", "at": "2026-11-01T10:00:00"},
+            }
+        )
+    # finished requests need neither
+    for final in ("closed", "rejected", "aborted"):
+        Ecr.model_validate({"id": "ECR-001", "title": "t", "status": final})
+
+
+def test_a_patch_and_the_applied_record_are_history_of_finished_requests_only():
+    for final in ("closed", "rejected"):
+        e = Ecr.model_validate(
+            {"id": "ECR-001", "title": "t", "kind": "design", "status": final, "patch": "p.patch"}
+        )
+        assert e.patch == "p.patch"
+    with pytest.raises(ValidationError, match="no longer carries a patch"):
+        Ecr.model_validate(
+            {
+                "id": "ECR-001",
+                "title": "t",
+                "kind": "design",
+                "status": "aborted",
+                "patch": "p.patch",
+            }
+        )
+    applied = {"snapshot": "abc", "at": "2026-11-01T10:00:00"}
+    Ecr.model_validate({"id": "ECR-001", "title": "t", "status": "closed", "applied": applied})
+    with pytest.raises(ValidationError, match="history from the old file format"):
+        Ecr.model_validate(
+            {"id": "ECR-001", "title": "t", "status": "rejected", "applied": applied}
+        )
+
+
+def test_a_card_can_be_parked():
+    from napkin2factory.core.model import CONCEPT_STATUSES
+
+    assert "parked" in CONCEPT_STATUSES
+    assert ConceptCard.model_validate({"id": "C-001", "title": "t", "status": "parked"}).status == (
+        "parked"
+    )
 
 
 def test_manifest_operator_signoff_decision():

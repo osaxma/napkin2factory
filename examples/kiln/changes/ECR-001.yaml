@@ -1,6 +1,6 @@
 id: ECR-001
 title: Increase chamber height by 50 mm
-status: draft
+status: aborted
 kind: parametric
 requested_by: human
 reason: Need to fire taller pieces (vases up to 240 mm). The taller chamber loses and stores more heat, so the heat-up time goes from 7 h to 9 h to keep the element's 20 % power margin (REQ-016; 8 h would leave 1.22) without exceeding the 16 A circuit.
@@ -9,8 +9,4 @@ edits:
   - {set: param://chamber-height, to: 250 mm}
   - {set: param://heat-up-time, to: 9 hour}
 tasks: []
-patch: null
-impact: null
-approval: null
-applied: null
-released_in: null
+aborted_reason: "set aside when upgrading: one change request is open at a time. Its edits are kept here; start it again with `n2f ecr start --set param://chamber-height='250 mm'`."

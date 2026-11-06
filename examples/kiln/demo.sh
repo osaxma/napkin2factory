@@ -3,7 +3,7 @@
 # Copies the kiln example to a temporary folder, sets up change tracking, decides the choice
 # the checks hold the release on (as the owner would), makes the pick in the model (as the
 # owner's agent would: a decided pick holds the release until the model shows it), releases v1.0.0,
-# runs ECR-001 (chamber height +50 mm) through impact → approve → apply → rebuild → check →
+# runs ECR-004 (chamber height +50 mm) through start → impact → approve → rebuild → check →
 # re-sign (an EXAMPLE sign-off, labelled as such) → release v1.1.0, and builds the diff page.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -84,20 +84,22 @@ $N2F check || true   # safety sign-offs whose evidence changed are now needs-hum
 resign_invalidated "the bolts pick"
 $N2F snapshot -m "Shorter bolts into the standoffs, as decided"
 $N2F release v1.0.0 --no-render --allow-example-signoffs
-echo "== ECR-001: impact → approve → apply → rebuild → check"
-$N2F ecr impact ECR-001
-$N2F ecr approve ECR-001 --by "Owner (demo)"
-$N2F ecr apply ECR-001
+echo "== ECR-004: start (the edits are made now) → impact → approve → rebuild → check"
+$N2F ecr start --title "Increase chamber height by 50 mm" --kind parametric \
+  --reason "Need to fire taller pieces (vases up to 240 mm); the heat-up time goes from 7 h to 9 h to keep the element's 20 % power margin." \
+  --set param://chamber-height="250 mm" --set param://heat-up-time="9 hour"
+$N2F ecr impact ECR-004
+$N2F ecr approve ECR-004 --by "Owner (demo)"
 $N2F build --no-render
 $N2F check || true   # safety sign-offs whose evidence changed are now needs-human
-resign_invalidated "ECR-001"
-$N2F ecr close ECR-001
+resign_invalidated "ECR-004"
+$N2F ecr close ECR-004
 echo "== v1.1.0: release and diff"
 redecide_bolts
 $N2F release v1.1.0 --no-render --allow-example-signoffs
 $N2F diff v1.0.0 v1.1.0
 echo
-echo "impact report : $WORK/build/changes/ECR-001-impact.md"
+echo "impact report : $WORK/build/changes/ECR-004-impact.md"
 echo "diff page     : $WORK/build/site/diff/v1.0.0..v1.1.0/index.html"
 echo "package       : $WORK/build/release/kiln-v1.1.0.zip"
 echo "site          : $WORK/build/site/index.html"

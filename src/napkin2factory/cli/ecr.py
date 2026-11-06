@@ -1,8 +1,8 @@
 """``n2f ecr start|impact|approve|close|abort|quick|list|show`` (live change requests, v0.8).
 
-``new`` and ``apply`` bridge to the new steps for one version (R9, S-254). A change request
-filed before v0.8 (no baseline) keeps its old steps (``impact``, ``approve``, ``apply``,
-``close``, ``reject``) until M2c migrates it.
+``new``, ``apply`` and ``reject`` bridge to the new steps for one version (R9, S-254): they
+say which step to take. A request filed before v0.8 was carried into this flow by the schema 2
+upgrade (``n2f init .``, ``ecr/upgrade.py``, S-261).
 """
 
 from __future__ import annotations
@@ -32,10 +32,6 @@ ecr_app = typer.Typer(
     no_args_is_help=True,
 )
 
-NO_PATCH = (
-    "a change request no longer carries a patch: edit the model files directly after "
-    "`n2f ecr start`"
-)
 #: The one line `ecr new` prints before it does what `ecr start` does (R9).
 NEW_BRIDGE = "`ecr new` is now `ecr start`"
 
@@ -43,11 +39,6 @@ NEW_BRIDGE = "`ecr new` is now `ecr start`"
 def _check_kind(kind: str) -> None:
     if kind not in ("parametric", "design"):
         raise typer.BadParameter("--kind must be parametric or design")
-
-
-def _no_patch(patch: str | None) -> None:
-    if patch is not None:
-        raise EcrError(NO_PATCH)
 
 
 def _cp(cp: Checkpoint) -> str:
@@ -65,13 +56,11 @@ def _start(
     reason: str | None,
     set_: list[str],
     task: list[str],
-    patch: str | None,
     by: str,
     dir: Path | None,
     json_out: bool,
     note: str | None = None,
 ) -> None:
-    _no_patch(patch)
     _check_kind(kind)
     product = load_product(product_root(dir))
     out = live.start(product, title, kind, reason, set_, task, by)
@@ -113,13 +102,12 @@ def start(
         [], "--set", help="Edit <uri>=<value>, applied now; repeatable."
     ),
     task: list[str] = typer.Option([], "--task", help="Designer task; repeatable (design)."),
-    patch: str | None = typer.Option(None, "--patch", hidden=True),
     by: str = typer.Option("human", "--by"),
     dir: Path | None = DirOption,
     json_out: bool = JsonOption,
 ) -> None:
     """Open a change request. Edit `model/` files directly, then `n2f ecr impact`."""
-    _start(title, kind, reason, set_, task, patch, by, dir, json_out)
+    _start(title, kind, reason, set_, task, by, dir, json_out)
 
 
 @ecr_app.command("new")
@@ -130,13 +118,12 @@ def new(
     reason: str | None = typer.Option(None, "--reason"),
     set_: list[str] = typer.Option([], "--set", help="Edit <uri>=<value>, applied now."),
     task: list[str] = typer.Option([], "--task", help="Designer task; repeatable (design)."),
-    patch: str | None = typer.Option(None, "--patch", hidden=True),
     by: str = typer.Option("human", "--by"),
     dir: Path | None = DirOption,
     json_out: bool = JsonOption,
 ) -> None:
     """Bridge for one version: does what `n2f ecr start` does."""
-    _start(title, kind, reason, set_, task, patch, by, dir, json_out, note=NEW_BRIDGE)
+    _start(title, kind, reason, set_, task, by, dir, json_out, note=NEW_BRIDGE)
 
 
 @ecr_app.command("impact")
@@ -149,18 +136,6 @@ def impact(
     """Show what the change does: files, objects, mass, cost, envelope, rebuilds, sign-offs."""
     product = load_product(product_root(dir))
     ecr = _pick(product, ecr_id)
-    if not live.is_live(ecr):
-        # TODO(B-0263): M2c migrates requests without a baseline; this branch goes with it
-        report, md = lifecycle.run_impact(product, ecr.id)
-        if json_out:
-            emit_json(report.to_dict())
-        else:
-            console.print(md, markup=False)
-            console.print(
-                f"  saved to build/changes/{ecr.id}-impact.md · next: "
-                f"`n2f ecr approve {ecr.id} --by <name>` or `n2f ecr reject {ecr.id} --reason …`"
-            )
-        return
     ecr, block, text = live.impact(product, ecr.id)
     if json_out:
         from napkin2factory.core import checkpoints
@@ -189,17 +164,6 @@ def approve(
     """Approve a change request after reading its impact report."""
     product = load_product(product_root(dir))
     ecr = _pick(product, ecr_id)
-    if not live.is_live(ecr):
-        # TODO(B-0263): the old steps go with the migration
-        lifecycle.approve(product, ecr.id, by, note)
-        if json_out:
-            emit_json({"id": ecr.id, "status": "approved"})
-        else:
-            console.print(
-                f"[green]✓[/green] {ecr.id} approved by {escape(by)} · next: "
-                f"`n2f ecr apply {ecr.id}`"
-            )
-        return
     cp = live.approve(product, ecr.id, by, note)
     if json_out:
         emit_json({"id": ecr.id, "status": "approved", "checkpoint": cp.id})
@@ -219,26 +183,13 @@ def apply(
 ) -> None:
     """Bridge for one version: there is nothing to apply, the model is edited in place."""
     product = load_product(product_root(dir))
-    old = product.ecrs.get((ecr_id or "").replace("ecr://", ""))
-    if old is None or live.is_live(old):
-        open_one = live.open_request(product)
-        target = ecr_id or (open_one.id if open_one else "ECR-xxx")
-        raise EcrError(
-            "there is no apply step any more: the model is edited in place. "
-            f"Approve with `n2f ecr approve {target} --by <name>`, then close with "
-            f"`n2f ecr close {target}`"
-        )
-    # TODO(B-0263): a request without a baseline still applies; M2c migrates it
-    lines = lifecycle.apply(product, old.id)
-    if json_out:
-        emit_json({"id": old.id, "status": "applied", "changes": lines})
-    else:
-        for ln in lines:
-            console.print(f"  {escape(ln)}")
-        console.print(
-            f"[green]✓[/green] {old.id} applied and saved · next: "
-            f"`n2f build && n2f check`, then `n2f ecr close {old.id}`"
-        )
+    open_one = live.open_request(product)
+    target = ecr_id or (open_one.id if open_one else "ECR-xxx")
+    raise EcrError(
+        "there is no apply step any more: the model is edited in place. "
+        f"Approve with `n2f ecr approve {target} --by <name>`, then close with "
+        f"`n2f ecr close {target}`"
+    )
 
 
 @ecr_app.command("close")
@@ -251,15 +202,10 @@ def close(
     """Close an approved change request: checks must be green; revisions bump; changelog grows."""
     product = load_product(product_root(dir))
     ecr = _pick(product, ecr_id)
-    if live.is_live(ecr):
-        result = live.close(product, ecr.id)
-        cp: Checkpoint | None = result.pop("checkpoint")
-    else:
-        # TODO(B-0263): the old steps go with the migration
-        result = lifecycle.close(product, ecr.id)
-        cp = None
+    result = live.close(product, ecr.id)
+    cp: Checkpoint = result.pop("checkpoint")
     if json_out:
-        emit_json({"id": ecr.id, "status": "closed", **result, "checkpoint": cp.id if cp else None})
+        emit_json({"id": ecr.id, "status": "closed", **result, "checkpoint": cp.id})
         return
     from napkin2factory.core.checks.stage import STAGE_WORDS
 
@@ -267,7 +213,7 @@ def close(
         console.print(f"  {uri}: rev {old} → {new_rev}")
     nxt = result.get("next_step") or "`n2f release vX.Y.Z`"
     words = STAGE_WORDS[result["current_stage"]]
-    saved = f" · checkpoint {escape(_cp(cp))}" if cp else ""
+    saved = f" · checkpoint {escape(_cp(cp))}"
     console.print(f"[green]✓[/green] {ecr.id} closed{saved} · stage: {words} · next: {escape(nxt)}")
 
 
@@ -314,13 +260,11 @@ def quick(
     set_: list[str] = typer.Option(..., "--set", help="Edit <uri>=<value>; repeatable."),
     reason: str | None = typer.Option(None, "--reason"),
     title: str | None = typer.Option(None, "--title", help="Defaults to the edit in words."),
-    patch: str | None = typer.Option(None, "--patch", hidden=True),
     by: str = typer.Option("human", "--by"),
     dir: Path | None = DirOption,
     json_out: bool = JsonOption,
 ) -> None:
     """Start, apply the edits and show the impact in one step (a small parameter change)."""
-    _no_patch(patch)
     product = load_product(product_root(dir))
     out = live.quick(product, set_, reason, title, by)
     ecr_id = out["ecr"]
@@ -351,23 +295,18 @@ def quick(
 @handle_errors
 def reject(
     ecr_id: str = typer.Argument(...),
-    reason: str = typer.Option(..., "--reason"),
+    reason: str | None = typer.Option(None, "--reason"),
     dir: Path | None = DirOption,
     json_out: bool = JsonOption,
 ) -> None:
-    """Reject a change request."""
+    """Bridge for one version: a change request is dropped with `n2f ecr abort`."""
     product = load_product(product_root(dir))
     found = lifecycle._require(product, ecr_id)
-    if live.is_live(found):
-        raise EcrError(
-            f"{found.id} is edited in place; drop it with `n2f ecr abort {found.id}` "
-            "(that also puts the model back)"
-        )
-    lifecycle.reject(product, ecr_id, reason)
-    if json_out:
-        emit_json({"id": ecr_id, "status": "rejected"})
-    else:
-        console.print(f"[yellow]•[/yellow] {ecr_id} rejected: {escape(reason)}")
+    why = f' --reason "{reason}"' if reason else ""
+    raise EcrError(
+        f"a change request is not rejected any more; drop {found.id} with "
+        f"`n2f ecr abort {found.id}{why}` (that also puts the model back)"
+    )
 
 
 @ecr_app.command("list")
