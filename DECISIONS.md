@@ -282,6 +282,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-253 | M1b: checkpoints, `undo` / `redo` / `rollback`, an undoable `discard`, plain words for B-0121 | in force |
 | S-254 | M2b: live change requests: `ecr start`, edited in place, one open at a time; `impact`, `approve`, `close`, `abort`, `quick`; `new` and `apply` bridge; amends S-252 | in force |
 | S-255 | M5: the thin experimental MCP server (`n2f mcp`), the skill (`n2f skill`), the prompt set and the first trigger rates | in force |
+| S-256 | v0.8 wave 2 boundary: 7 core/ files (10 in v0.8), R12's timings with the new verbs, `make check` time | in force |
 
 ---
 
@@ -2002,3 +2003,12 @@ change before 1.0; nothing else does. The skill is `skill/SKILL.md` in the packa
 `n2f init` writes neither it nor a server config. The guide's "Adapting to your client" gained two rows with the fallback (the command line and the guide). `docs/reviews/prompt-set.yaml`: 40 prompts (20 should trigger, 20 should not; ids neutral, shuffled);
 `scripts/trigger_rates.py` writes the judge's brief (no answers in it) and computes the rates. First measurement, one run by Gemini 3.8 Flash High through agyctl (a vendor other than the skill's author) seeing the name and description and the 40 prompts in one brief, workspace holding only the brief:
 should-trigger 20/20 (100 %), should-not-trigger 0/20 (0 %). Too clean to be a target: the set is easy and one judge read the list in one pass, so Gate D (two vendors, one prompt per call, harder near-misses) sets the targets. `core/` touched: none.
+
+## S-256 — v0.8 wave 2 boundary: the core count and R12's timings (2026-11-06)
+Wave 2 (seams S-251, S-252; M1b S-253, M2b S-254, M5 S-255): about 05:45–07:02, two subagents at once, landed one at a time.
+R13 count, this wave 7 `core/` files: the overseer's seams `core/vitals.py` (new), `core/model/ecr.py`, `core/model/__init__.py`,
+`core/vcs_store.py`; M2b `core/graph/impact_live.py` (new), `impact_patch.py`, `core/lint.py` (unplanned: L10 skips live requests)
+and `core/model/ecr.py`; M1b and M5 none. v0.8 so far: 10 distinct `core/` files. R12 on the macOS host, idle, warm, fresh `n2f`
+processes, tier 1 (`examples/table`) / tier 2 (`examples/test-stand`): no-change build 1.4 / 1.7 s; `undo` of a one-parameter edit
+7.8 / 2.5 s (tier 1 pays a checks build for its sign-off, B-0269); one-parameter `ecr impact` 11.1 / 8.4 s first (baseline cache and
+the rebuild), 2.1 / 3.0 s again; `concept switch`: not built yet. `make check` on `main` at 11a1b35: 7 min 39 s, 1,945 passed, green.
