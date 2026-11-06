@@ -182,3 +182,22 @@ def _stale_signoffs(product: Product) -> list[str]:
                 f"{so.get('why', 'the evidence changed')}; sign it again with `n2f signoff {rid}`"
             )
     return lines
+
+
+def approved_checkpoint(vcs: Vcs, ecr_id: str) -> cps.Checkpoint | None:
+    """The newest ``Approved <id> …`` checkpoint of the history, or None."""
+    for cp in cps.read(vcs):  # newest first
+        if cp.label.startswith(f"Approved {ecr_id} "):
+            return cp
+    return None
+
+
+def matches_approval(vcs: Vcs, ecr_id: str) -> bool:
+    """Whether the model is the one in the approval's checkpoint (same files left out as the hash).
+
+    The hash in the request file can be typed by anyone; the checkpoint cannot (S-273).
+    """
+    cp = approved_checkpoint(vcs, ecr_id)
+    if cp is None:
+        return False
+    return not [c for c in vcs.diff_working(cp.id) if not c.path.startswith(APPROVAL_HASH_EXCLUDE)]

@@ -12,6 +12,7 @@ from typing import Any
 from napkin2factory.core.errors import N2FError
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import TRANSITIONS, Ecr
+from napkin2factory.core.vcs import Vcs
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip
 
 
@@ -48,8 +49,17 @@ def _transition(product: Product, ecr: Ecr, to: str, **fields: Any) -> None:
 
 
 def next_ecr_id(product: Product) -> str:
-    """``ECR-001``, or one past the highest existing id."""
-    nums = [int(m.group(1)) for e in product.ecrs for m in [re.match(r"ECR-(\d{3})", e)] if m]
+    """One past the highest ``ECR-nnn`` ever used: in ``changes/``, the markers and the history.
+
+    A rollback removes a request's file but not its checkpoints, so the id must not be read
+    from ``changes/`` alone: a reused id would make "ECR-001" mean two requests (S-273).
+    """
+    seen = list(product.ecrs)
+    vcs = Vcs(product.root)
+    if vcs.is_repo_root():
+        seen += list(vcs.list_refs("ecr"))
+        seen += [s.label for s in vcs.snapshots()]
+    nums = [int(n) for text in seen for n in re.findall(r"ECR-(\d{3,})", text)]
     return f"ECR-{(max(nums) + 1) if nums else 1:03d}"
 
 

@@ -296,3 +296,31 @@ def test_a_signoff_after_approval_does_not_unbind_it(root: Path) -> None:
     assert Vcs(root).working_hash(exclude=APPROVAL_HASH_EXCLUDE) == approved
     closed = _json("ecr", "close", cwd=root)
     assert closed["status"] == "closed"
+
+
+def test_a_change_request_id_is_never_reused_after_a_rollback(root: Path) -> None:
+    """The next id is past every id the history knows, not only those in changes/ (S-273)."""
+    _run("ecr", "quick", "--set", "param://bracket-width=70mm", cwd=root)
+    _run("ecr", "approve", "--by", "Owner", cwd=root)
+    _run("ecr", "close", cwd=root)
+    first = next(c for c in _log(root) if c.label.startswith("Started ECR-001"))
+    before = [c for c in _log(root) if c.number < first.number][-1]
+    _run("rollback", f"#{before.number}", cwd=root)
+    assert not (root / "changes/ECR-001.yaml").exists()
+    started = _json("ecr", "start", "--title", "Again", cwd=root)
+    assert started["id"] == "ECR-002"
+
+
+def test_a_pasted_hash_cannot_forge_an_approval(root: Path) -> None:
+    """Close needs the model of the approval's checkpoint, not just a matching hash (S-273)."""
+    _run("ecr", "quick", "--set", "param://bracket-width=70mm", cwd=root)
+    _run("ecr", "approve", "--by", "Owner", cwd=root)
+    _edit(root, PARAMS, "hole-spacing:      {value: 36", "hole-spacing:      {value: 37")
+    shown = _run("ecr", "show", "ECR-001", cwd=root).stdout
+    assert "approved, but the model changed since" in " ".join(shown.split())
+    assert "#" in shown and "started from checkpoint" not in shown
+    forged = Vcs(root).working_hash(exclude=APPROVAL_HASH_EXCLUDE)
+    path = root / "changes/ECR-001.yaml"
+    path.write_text(re.sub(r"model_hash: \S+", f"model_hash: {forged}", path.read_text()))
+    r = _run("ecr", "close", cwd=root, ok=False)
+    assert r.returncode == 3 and "changed since ECR-001 was approved" in " ".join(r.stderr.split())

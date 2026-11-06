@@ -299,6 +299,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-270 | v0.8 wave 4 boundary (M3b, M4.0, M4): the core count, R12's four timings, `make check` | in force |
 | S-271 | Review gate K (v0.8) — outcome: NOT READY; three blockers (a change-request id reused after a rollback, impact calls an unrepriced estimate computed and unchanged, a built card's total mass in the shapes row) | in force |
 | S-272 | Gate B's scripted flow on the test stand | in force |
+| S-273 | Gate K fixes: one change-request id forever, approval bound to the approved checkpoint | in force |
 
 ---
 
@@ -2093,3 +2094,14 @@ the rest are rows B-0280 to B-0284.
 ## S-272 — Gate B's scripted flow on the test stand (2026-11-06)
 `tests/e2e/test_gate_b.py` (`full`) runs gate B's script (plan §6) through in-process `n2f()` on a prebuilt tracked copy of `examples/test-stand` put back to "C-002 not promoted" by `prepare_gate_b_start` (C-002 back to `exploring` without its `decision:` line, DEC-001 removed from `model/decisions.yaml`, saved as the checkpoint "Gate B start"; the cold agents reuse it). Steps: promote, build, check (3 sub-assemblies); fork-from-model (card labelled computed); switch to red C-001 with `--override`, back to C-002, the direction files byte-identical; design change request with direct edits, stale approval refused, re-approved, closed; hand edit, `undo`, `redo`, `checkpoints`.
 Measured: `test_gate_b_flow` 217 s on the macOS host (one run, machine busy); the xfail test 15 s. Found: B-0285 (`n2f check` shows no failure after the switch to C-001; one xfail test), B-0286 (promotion and switch seed requirements the model already holds). Walls a cold agent meets: `ecr start` needs `--title`, `approve` needs `--by`; after a stale approval `ecr approve` first needs `ecr impact` (the `close` refusal says so); `ecr close` also lists every requirement waiting for a person's sign-off (the script signs them in rounds, a dozen or more).
+## S-273 — Gate K fixes: one change-request id forever, approval bound to the approved checkpoint (2026-11-06)
+Gate K (S-271) blocker 1 and concerns 1 and 6. `next_ecr_id` is one past the highest `ECR-nnn` in
+`changes/`, the `refs/n2f/ecr/*` markers and every checkpoint label: a rollback removes a request's
+file but not its history, so an id was reused and "ECR-001" meant two requests. `ecr close` also needs
+the model to equal the one in the newest "Approved <id>" checkpoint (the hash in the request file can
+be pasted by anyone; the history cannot), compared by name and content with the same files left out as
+the hash (`APPROVAL_HASH_EXCLUDE`). `ecr show` says "approved, but the model changed since" and names
+checkpoints as `#<n> "<label>"`. Core files: none (existing `Vcs.list_refs`, `snapshots`, `diff_working`).
+Not fixed, found: `DEC-` ids (`next_decision_id`, from `model/decisions`) and card ids (`next_concept_id`,
+from `concepts/*.yaml`) read only the folder, so a rollback past them can reuse an id the same way.
+Tests: `tests/e2e/test_ecr_live.py` (id after rollback; forged hash refused).

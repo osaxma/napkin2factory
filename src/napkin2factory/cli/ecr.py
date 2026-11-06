@@ -22,9 +22,12 @@ from napkin2factory.cli.common import (
     handle_errors,
     product_root,
 )
+from napkin2factory.core import checkpoints as cps
 from napkin2factory.core.checkpoints import Checkpoint
 from napkin2factory.core.loader import Product, load_product
+from napkin2factory.core.vcs import Vcs
 from napkin2factory.ecr import lifecycle, live
+from napkin2factory.ecr.checkpointing import matches_approval
 from napkin2factory.ecr.state import EcrError
 
 ecr_app = typer.Typer(
@@ -328,6 +331,16 @@ def list_(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
         console.print("  none yet · `n2f ecr start --title …` or `n2f ecr quick --set param://x=…`")
 
 
+def _named(product: Any, checkpoint_id: str) -> str:
+    """``#<n> "<label>"`` for a checkpoint id, as `n2f checkpoints` numbers it."""
+    vcs = Vcs(product.root)
+    if vcs.is_repo_root():
+        for cp in cps.read(vcs):
+            if cp.id == checkpoint_id:
+                return f'#{cp.number} "{escape(cp.label)}"'
+    return "an earlier checkpoint"
+
+
 @ecr_app.command("show")
 @handle_errors
 def show(
@@ -348,7 +361,7 @@ def show(
     for t in ecr.tasks:
         console.print(f"  task: {escape(t)}")
     if ecr.baseline:
-        console.print(f"  started from checkpoint {ecr.baseline.checkpoint[:8]}")
+        console.print(f"  started from {_named(product, ecr.baseline.checkpoint)}")
     if ecr.impact:
         console.print(
             f"  impact: {len(ecr.impact.get('rules', []))} rule(s), "
@@ -358,5 +371,11 @@ def show(
         console.print(f"  aborted: {escape(ecr.aborted_reason)}")
     if ecr.approval:
         console.print(f"  approved by {escape(ecr.approval.by)} at {ecr.approval.at}")
+        if ecr.status == "approved":
+            vcs = Vcs(product.root)
+            if vcs.is_repo_root() and not matches_approval(vcs, ecr.id):
+                console.print(
+                    f"  approved, but the model changed since; review it: `n2f ecr impact {ecr.id}`"
+                )
     if ecr.released_in:
         console.print(f"  released in {ecr.released_in}")
