@@ -14,11 +14,14 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import sys
+import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from tests.benchmarks import oracle_change
 from tests.benchmarks.oracle_evidence import Evidence, EvidenceError
 from tests.benchmarks.oracle_match import (
     Found,
@@ -28,6 +31,7 @@ from tests.benchmarks.oracle_match import (
     describe,
     expectation,
     failing_categories,
+    impact_value,
     judge,
     matches,
     number_and_unit,
@@ -159,7 +163,9 @@ def _card_words(card: Any, extra: Any) -> str:
 # --- figures -----------------------------------------------------------------------------
 
 
-def find_figure(fig: Figure, ev: Evidence, extra: Any) -> tuple[Found, str]:
+def find_figure(
+    fig: Figure, ev: Evidence, extra: Any, impact: dict[str, Any] | None = None
+) -> tuple[Found, str]:
     """Read the number of a figure from its surface; returns it and a words note."""
     f, unit = fig.find, fig.unit
     if f.screen_value is not None:
@@ -175,16 +181,20 @@ def find_figure(fig: Figure, ev: Evidence, extra: Any) -> tuple[Found, str]:
         return requirement_values(ev.check(), f.requirement, unit), ""
     if f.rollup is not None:
         return rollup_value(ev.rollups(), f.rollup, unit), ""
+    if f.impact is not None:
+        return impact_value(impact, f.impact, unit), ""
     assert f.result is not None
     return result_value(ev.check(), f.result, unit), ""
 
 
-def judge_figure(fig: Figure, ev: Evidence, extra: Any) -> Row:
+def judge_figure(
+    fig: Figure, ev: Evidence, extra: Any, impact: dict[str, Any] | None = None
+) -> Row:
     """One figure: found without ids, then compared within its tolerance."""
     want = expectation(fig, FIGURE_TOL)
 
     def run() -> tuple[bool, str]:
-        found, _ = find_figure(fig, ev, extra)
+        found, _ = find_figure(fig, ev, extra, impact)
         return judge(found, fig, FIGURE_TOL)
 
     return _guard("figure", fig.what, want, run)
@@ -198,7 +208,7 @@ def _quantity_fact(text: Any, unit: str | None) -> float:
     return convert(v, u, unit)
 
 
-def fact_value(fact: Fact, ev: Evidence) -> str | float:
+def fact_value(fact: Fact, ev: Evidence, impact: dict[str, Any] | None = None) -> str | float:
     """The product's value for a fact: a word for the word kinds, else a number."""
     k = fact.fact
     if k == "ceremony":
@@ -206,6 +216,12 @@ def fact_value(fact: Fact, ev: Evidence) -> str | float:
         if got is None:
             raise MatchError("check printed no ceremony (the product's tool is older than M3a)")
         return str(got)
+    if k == "signoffs_lost":
+        if not impact:
+            raise MatchError("the request kept no impact")
+        invalidated = impact.get("signoffs_invalidated") or []
+        removed = impact.get("signoffs_removed") or []
+        return float(len(invalidated) + len(removed))
     if k == "region":
         return str(ev.manifest().get("region", "none"))
     if k == "supply":
@@ -250,29 +266,90 @@ def fact_value(fact: Fact, ev: Evidence) -> str | float:
     return float(len(blockers))
 
 
-def judge_fact(fact: Fact, ev: Evidence) -> Row:
+def judge_fact(fact: Fact, ev: Evidence, impact: dict[str, Any] | None = None) -> Row:
     """One fact: a word that must be equal, or a number judged like a figure (tol 0)."""
     if fact.equals is not None:
         want = fact.equals
 
         def run_word() -> tuple[bool, str]:
-            got = str(fact_value(fact, ev))
+            got = str(fact_value(fact, ev, impact))
             return got.lower() == want.lower(), got
 
         return _guard("fact", fact.what, want, run_word)
 
     def run() -> tuple[bool, str]:
-        got = fact_value(fact, ev)
+        got = fact_value(fact, ev, impact)
         assert not isinstance(got, str)
         return number_ok(got, fact, 0.0), f"{got:g}" + (f" {fact.unit}" if fact.unit else "")
 
     return _guard("fact", fact.what, expectation(fact, 0.0), run)
 
 
+# --- change rows -------------------------------------------------------------------------
+
+
+def _change_rows(change: Any, ev: Evidence, extra: Any, replay: bool) -> list[Row]:
+    """Judge one ``changes:`` row on a scratch copy of the product, never the folder given."""
+    product = ev.product
+    if product is None:
+        raise EvidenceError("a change row needs a product folder to replay in")
+    prefix = f"{change.name}: "
+    with tempfile.TemporaryDirectory(prefix="n2f-oracle-") as tmp:
+        copy = Path(tmp) / product.name
+        shutil.copytree(product, copy)
+        try:
+            impact = oracle_change.obtain_impact(change, copy, replay)
+        except (oracle_change.ChangeFailure, MatchError) as exc:
+            if isinstance(exc, oracle_change.ChangeFailure) and exc.whole:
+                names = (
+                    ["outcome"] + [f.name for f in change.figures] + [f.name for f in change.facts]
+                )
+            else:
+                names = ["replay"]
+            return [
+                _row("change", f"{prefix}{name}", False, f"not judged: {exc}", "") for name in names
+            ]
+        evc = Evidence(copy)
+        expected = (
+            "no requirement fails"
+            if change.outcome == "accepted"
+            else f"the failing requirement(s) named by {', '.join(change.fails)}"
+        )
+        rows = [
+            _guard(
+                "change",
+                f"{prefix}outcome",
+                expected,
+                lambda: oracle_change.outcome_failures(change, evc.check()),
+            )
+        ]
+        rows += [
+            _row(
+                "change",
+                f"{prefix}{r.what}",
+                r.passed,
+                r.found,
+                r.expected,
+            )
+            for r in (judge_figure(f, evc, extra, impact) for f in change.figures)
+        ]
+        rows += [
+            _row(
+                "change",
+                f"{prefix}{r.what}",
+                r.passed,
+                r.found,
+                r.expected,
+            )
+            for r in (judge_fact(f, evc, impact) for f in change.facts)
+        ]
+        return rows
+
+
 # --- the whole oracle --------------------------------------------------------------------
 
 
-def evaluate(oracle: Oracle, ev: Evidence) -> list[Row]:
+def evaluate(oracle: Oracle, ev: Evidence, replay: bool = False) -> list[Row]:
     """Every row of an oracle judged against the product's evidence."""
     extra = oracle.lexicon
     rows: list[Row] = []
@@ -280,6 +357,7 @@ def evaluate(oracle: Oracle, ev: Evidence) -> list[Row]:
         rows += judge_concepts(oracle.concepts, ev, extra)
     rows += [judge_figure(f, ev, extra) for f in oracle.figures]
     rows += [judge_fact(f, ev) for f in oracle.facts]
+    rows += [r for change in oracle.changes for r in _change_rows(change, ev, extra, replay)]
     return rows
 
 
@@ -304,6 +382,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("oracle", type=Path, help="the SPEC.oracle.yaml to judge it by")
     ap.add_argument("--json", action="store_true", help="print the rows as JSON")
     ap.add_argument("--no-build", action="store_true", help="trust the build/ already there")
+    ap.add_argument(
+        "--replay",
+        action="store_true",
+        help="always replay a change row instead of looking for the agent's own request",
+    )
     args = ap.parse_args(argv)
     try:
         oracle = load_oracle(args.oracle)
@@ -314,7 +397,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{args.product} is not a product folder (no n2f.yaml)", file=sys.stderr)
         return 2
     try:
-        rows = evaluate(oracle, Evidence(args.product, build=not args.no_build))
+        rows = evaluate(oracle, Evidence(args.product, build=not args.no_build), replay=args.replay)
     except EvidenceError as exc:
         print(str(exc), file=sys.stderr)
         return 2

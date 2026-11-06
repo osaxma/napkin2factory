@@ -6,7 +6,7 @@ in a trial, so it asserts **outcomes, never ids**: a cold agent names its parts,
 cards differently and must still pass.
 
 ```
-uv run python -m tests.benchmarks.oracle <product_dir> <SPEC.oracle.yaml> [--json] [--no-build]
+uv run python -m tests.benchmarks.oracle <product_dir> <SPEC.oracle.yaml> [--json] [--no-build] [--replay]
 ```
 
 It runs the n2f commands its rows need inside `product_dir` (`n2f build` only if a row reads the
@@ -42,6 +42,19 @@ figures:              # numbers
     # or: at_least / at_most / range: [lo, hi]
 facts:                # about the product
   - {name: x, what: ..., fact: ceremony, equals: lite}
+changes:              # the planned change requests of the spec's section 6, judged on a copy
+  - name: ecr-1       # a label for the report, never looked up
+    what: plain words
+    kind: parametric  # parametric | design: the request's kind
+    words: "top.*31|31 mm"   # regex over a request's title and reason, to find the agent's own
+    sets:             # the replay of a parametric change, parameters found by their value
+      - {value: 30, unit: mm, words: "top", to: "31 mm"}
+    edits:            # the replay of a design change, applied in order
+      - {file: model/parts/top.yaml, find: "...", replace: "..."}   # or remove: true, or content
+    outcome: accepted # accepted: no requirement fails; refused: the fails below name them
+    fails: ["tip"]    # refused only: each regex matches exactly one failing requirement
+    figures: [ ... ]  # the same Figure rows as the top level, judged as the change leaves it
+    facts: [ ... ]    # the same Fact rows, plus the new signoffs_lost
 pending:              # stated by the spec, not showable yet; printed, never failing
   - {what: ..., reason: ...}
 ```
@@ -74,11 +87,35 @@ final one included), `count_requirements` (filters `safety`, `status`, `status_i
 `equals`; the numeric ones the same `expect` / `at_least` / `at_most` / `range` as figures, with
 tolerance 0 unless `tol` says otherwise.
 
+## Change rows
+
+A `changes:` row judges one planned change request (SPEC section 6) on **the product as the
+change leaves it**, never in the folder given: `oracle.py` copies the product with its history
+(`.git`) and `build/` into a temporary directory, one copy per row, so the rows do not see each
+other and the product itself is untouched. The row's figures and facts are the same finders as
+the top level, prefixed with the change's `name` in the report.
+
+The change's impact comes from one of two sources. **An agent's own request** (no `--replay`):
+read `changes/*.yaml` for a request whose `kind` equals the row's and whose title or reason
+matches `words`; exactly one is judged, at the state it left — `draft`/`approved` as the working
+folder is, `closed` at its `Closed <id>:` checkpoint, `aborted` at the snapshot just before its
+`Aborted <id>:` one. Several matches, or an edit that cannot apply, fail the row naming what it
+found. **The replay** (`--replay`, which `make check` uses): `n2f ecr start` with the resolved
+`sets` (a parameter found by its current value converted to `unit`, narrowed by `words`), the
+`edits` applied in order, then `n2f ecr impact --json`.
+
+Two surfaces read that impact JSON: the figure finder `impact: <dotted path>` (`mass.after`,
+`cost.delta`, ...) and the fact `signoffs_lost` — the number of sign-offs the change invalidates
+or removes (`signoffs_invalidated` plus `signoffs_removed`). Both are allowed only inside a change
+row. A design change whose edits on the shipped example would exceed about 40 lines stays a
+`pending:` entry whose reason says so, rather than a large model edit in the oracle.
+
 ## Files
 
 - `oracle_schema.py` the format (pydantic, unknown fields are errors);
 - `oracle_evidence.py` the lazy outputs of a product (`Evidence`), commands run once;
 - `oracle_match.py` card selection, finders, judging; `oracle.py` the rows and the command;
+- `oracle_change.py` a change row's request finder, replay and outcome;
 - `fixtures/` two oracles that pin the real surfaces on shipped examples (bracket, kiln cards).
 
 Unit tests (`tests/unit/test_oracle.py`) use synthetic outputs shaped like n2f's; the end-to-end

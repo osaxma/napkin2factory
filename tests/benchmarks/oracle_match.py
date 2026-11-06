@@ -293,6 +293,22 @@ def requirement_values(check: dict[str, Any], find: RequirementFind, unit: str |
     )
 
 
+def impact_value(impact: dict[str, Any] | None, path: str, unit: str | None) -> Found:
+    """A number inside a change row's impact JSON, read by its dotted path (``mass.after``)."""
+    if not impact:
+        raise MatchError("the request kept no impact")
+    cur: Any = impact
+    for part in path.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            have = ", ".join(sorted(impact)) if isinstance(impact, dict) else "nothing"
+            raise MatchError(f"the impact has no {path} (it has: {have})")
+        cur = cur[part]
+    if isinstance(cur, int | float):
+        return Found([float(cur)], f"the impact's {path}", unit or "")
+    v, u = number_and_unit(str(cur))
+    return Found([convert(v, u, unit)], f"the impact's {path}", unit or u)
+
+
 def rollup_value(rollups: dict[str, Any], key: str, unit: str | None) -> Found:
     """A BOM roll-up number, in its own unit (``total_mass`` is in kg)."""
     if key not in rollups or not isinstance(rollups[key], int | float):

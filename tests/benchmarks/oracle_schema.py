@@ -121,18 +121,23 @@ class ResultFind(Strict):
 
 
 class Find(Strict):
-    """Where a figure's number comes from: exactly one of these surfaces."""
+    """Where a figure's number comes from: exactly one of these surfaces.
+
+    ``impact`` reads a number from a change row's impact JSON by its dotted path (``mass.after``,
+    ``cost.delta``); it is allowed only inside a ``changes:`` row.
+    """
 
     screen_value: str | list[str] | None = None
     screen_row: ScreenRowFind | None = None
     requirement: RequirementFind | None = None
     rollup: str | None = None
     result: ResultFind | None = None
+    impact: str | None = None
 
     @model_validator(mode="after")
     def _one_surface(self) -> Find:
         n = sum(v is not None for v in (self.screen_value, self.screen_row, self.requirement))
-        n += sum(v is not None for v in (self.rollup, self.result))
+        n += sum(v is not None for v in (self.rollup, self.result, self.impact))
         if n != 1:
             raise ValueError("a figure is found in exactly one surface")
         return self
@@ -175,6 +180,7 @@ FactKind = Literal[
     "assemblies",
     "count_requirements",
     "gate_blockers",
+    "signoffs_lost",
 ]
 
 
@@ -214,6 +220,73 @@ class Fact(Expect):
         return self
 
 
+class ChangeSet(Strict):
+    """One parametric edit of a change row, found by the parameter's current value.
+
+    ``value`` is matched against the product's parameters converted to ``unit`` (relative
+    tolerance 1e-6); ``words`` (a case-insensitive regex over the parameter's name and
+    description) tells several candidates apart. ``to`` is the ``--set`` value applied.
+    """
+
+    value: float
+    unit: str = ""
+    words: str
+    to: str
+
+
+class ChangeEdit(Strict):
+    """One design edit of a change row: replace a span, remove a file, or write a file."""
+
+    file: str
+    find: str | None = None
+    replace: str | None = None
+    remove: bool = False
+    content: str | None = None
+
+    @model_validator(mode="after")
+    def _one_way(self) -> ChangeEdit:
+        if self.remove:
+            if self.find is not None or self.replace is not None or self.content is not None:
+                raise ValueError("an edit that removes a file sets nothing else")
+        elif self.content is not None:
+            if self.find is not None or self.replace is not None:
+                raise ValueError("an edit that writes a file sets no find/replace")
+        elif self.find is None or self.replace is None:
+            raise ValueError("an edit needs find and replace, remove: true, or content")
+        return self
+
+
+class Change(Strict):
+    """One planned change request (SPEC section 6), judged as the product it leaves.
+
+    ``sets`` replays a parametric change (parameters found by value), ``edits`` a design change
+    (file edits applied in order); either or both may be given. ``words`` finds an agent's own
+    request among ``changes/*.yaml`` by its title and reason. ``outcome`` is what the change's
+    requirements must show; ``fails`` names the failing requirement(s) a refusal must show.
+    """
+
+    name: str
+    what: str
+    kind: Literal["parametric", "design"]
+    words: str
+    sets: list[ChangeSet] = []
+    edits: list[ChangeEdit] = []
+    outcome: Literal["accepted", "refused"]
+    fails: list[str] = []
+    figures: list[Figure] = []
+    facts: list[Fact] = []
+
+    @model_validator(mode="after")
+    def _consistent(self) -> Change:
+        if not self.sets and not self.edits:
+            raise ValueError("a change replays by sets, edits, or both")
+        if self.outcome == "accepted" and self.fails:
+            raise ValueError("fails names a refusing requirement; an accepted change has none")
+        if self.outcome == "refused" and not self.fails:
+            raise ValueError("a refused change says what refuses it (fails)")
+        return self
+
+
 class Pending(Strict):
     """A figure the spec states that n2f cannot show yet; it becomes a row when it can."""
 
@@ -231,7 +304,18 @@ class Oracle(Strict):
     concepts: Concepts | None = None
     figures: list[Figure] = []
     facts: list[Fact] = []
+    changes: list[Change] = []
     pending: list[Pending] = []
+
+    @model_validator(mode="after")
+    def _change_only_surfaces(self) -> Oracle:
+        for fig in self.figures:
+            if fig.find.impact is not None:
+                raise ValueError("the impact finder is allowed only inside a change row")
+        for fact in self.facts:
+            if fact.fact == "signoffs_lost":
+                raise ValueError("the signoffs_lost fact is allowed only inside a change row")
+        return self
 
 
 def load_oracle(path: Path) -> Oracle:

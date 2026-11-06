@@ -256,6 +256,47 @@ facts:
     invert: true
     expect: 0
 
+# The planned change requests of SPEC.md section 6, judged on a scratch copy as the change
+# leaves it. CR-1 is parametric (the rated load, replayed to 2500 N) and refused by the
+# load-cell requirement; the requirement's verify is edited to read 2500 N, as the spec's own
+# "cell >= rated load" says. CR-2 stays a pending entry: a sliding door replaces the hinge-pin
+# interface and adds channels, too large to script as the oracle's small edits.
+changes:
+  - name: cr-1
+    what: "CR-1: rated load 2000 to 2500 N"
+    kind: parametric
+    words: "rated[- ]?load.*2500|2500 N"
+    sets:
+      - {value: 2000, unit: N, words: 'rated[- ]?load', to: '2500 N'}
+    edits:
+      - file: model/requirements.yaml
+        find: 'target: "param://load-cell-capacity", op: ">=", value: 2000 N'
+        replace: 'target: "param://load-cell-capacity", op: ">=", value: 2500 N'
+    outcome: refused
+    fails: ['load cell']
+    figures:
+      - name: deflection
+        what: frame deflection at the load axis under the 2500 N rated load (mm)
+        find: {requirement: {bound: 0.20 mm}}
+        unit: mm
+        expect: 0.131
+        tol: 0.05
+      - name: beam-fatigue
+        what: beam fatigue factor at 2500 N
+        find: {requirement: {bound: '1.5', safety: true, words: 'beam', aggregate: min}}
+        expect: 7.28
+        tol: 0.05
+      - name: bolt-fatigue
+        what: column-end bolt fatigue factor at 2500 N
+        find: {requirement: {bound: '1.5', safety: true, words: 'bolt', aggregate: min}}
+        expect: 5.94
+        tol: 0.05
+      - name: buckling
+        what: column buckling factor with the rated load reversed at 2500 N
+        find: {requirement: {bound: '3'}}
+        expect: 21.8
+        tol: 0.05
+
 # Figures SPEC.md states that n2f cannot show yet. Each becomes a row when the thing exists.
 pending:
   - what: card-level frame deflection 0.105 mm, yield factors 13.1 and 64.4 and the other structural figures of the promoted portal, and 0.0162 mm and 40.0 of the plate gantry
@@ -270,5 +311,5 @@ pending:
     reason: the package has no supply screen for a mains-powered product without a heating element; the finished product's calc is judged instead
   - what: cost band of the finished product (434 and 1599 USD)
     reason: the parts list carries one total cost, band mid-points (DEC-002); the finished product is judged as inside the band
-  - what: CR-1 (rated load 2500 N) gives deflection 0.131 mm and fails the load-cell requirement until it is swapped; CR-2 (sliding door) gives tip-over 2.03 and mass 16.51 kg, and requirements 18 and 19 must be signed again
-    reason: the oracle has no change-request replay step; it needs a scripted n2f ecr run on a copy of the product, judged against the figures of SPEC.md section 6
+  - what: CR-2 (the hinged door becomes a vertically sliding door) gives tip-over 2.03 and mass 16.51 kg, and the interlock and shield requirements must be signed again (two sign-offs lost)
+    reason: the replay is a design change that removes the hinges, adds two channels and turns the hinge-pin interface into a mating face, more than about 40 edited lines across the parts and interfaces; too large a model edit to script in the oracle

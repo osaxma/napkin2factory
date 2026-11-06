@@ -310,10 +310,46 @@ facts:
     invert: true
     expect: 0
 
+# The planned change requests of SPEC.md section 6, judged on a scratch copy as the change
+# leaves it. ECR-1 is parametric (found by the top's thickness, replayed to 31 mm). ECR-2 stays
+# a pending entry: it is a design change that decouples the top from the frame, too large to
+# script as the oracle's small edits.
+changes:
+  - name: ecr-1
+    what: "ECR-1: top 30 to 31 mm, legs to 699 mm"
+    kind: parametric
+    words: "top.*31|31 mm"
+    sets:
+      - {value: 30, unit: mm, words: 'top[- ]?thickness', to: '31 mm'}
+    outcome: accepted
+    figures:
+      - name: sag
+        what: mid-span sag under the 150 kg centre load after the top thickens to 31 mm (mm)
+        find: {requirement: {bound: 2.5 mm}}
+        unit: mm
+        expect: 1.66
+        tol: 0.05
+      - name: mass
+        what: assembled mass after the top thickens to 31 mm (kg)
+        find: {rollup: total_mass}
+        unit: kg
+        expect: 48.2
+        tol: 0.02
+      - name: cost
+        what: unit cost after the top thickens to 31 mm, inside the 648-1035 USD band (US, 2026-11)
+        find: {rollup: total_cost}
+        unit: USD
+        range: [648, 1035]
+      - name: tip-over
+        what: tip-over factor after the top thickens to 31 mm
+        find: {requirement: {bound: '2', safety: true}}
+        expect: 4.17
+        tol: 0.05
+
 # Figures SPEC.md states that n2f cannot show yet. Each becomes a row when the thing exists.
 pending:
-  - what: ECR-1 (top 30 to 31 mm) accepted with sag 1.66 mm, mass 48.2 kg, cost 648-1035 USD, tip-over 4.17; ECR-2 (500 mm seating overhang) refused, tip-over 1.09
-    reason: the oracle has no change-request replay step; it needs a scripted n2f ecr run on a copy of the product, judged against the figures of SPEC.md section 6
+  - what: "ECR-2 (a 500 mm seating overhang at one end: top 2100 mm long, one end 575 mm beyond the end glides) refused by tip-over 1.09"
+    reason: the replay is a design change that decouples the top from the frame (a longer top shifted off the base, the frame left where it is), more than about 40 edited lines across the part, the layout and the fixing interface; too large a model edit to script in the oracle
   - what: across-grain movement 7.05 mm and slot free travel 13 mm, each on its own
     reason: the requirement bounds their difference (req-slot-clearance judges 13 less 7.05 mm); no requirement bounds either figure alone, and a calc's reference case is not read as the product's figure
   - what: long-rail yield factor 5.62 and long-term sag 0.811 mm on the napkin card

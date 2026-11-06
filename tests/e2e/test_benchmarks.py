@@ -14,9 +14,10 @@ from pathlib import Path
 
 import pytest
 
-from tests.benchmarks import oracle
+from tests.benchmarks import oracle, oracle_change
 from tests.benchmarks.oracle_evidence import Evidence
-from tests.benchmarks.oracle_schema import load_oracle
+from tests.benchmarks.oracle_match import MatchError
+from tests.benchmarks.oracle_schema import Change, ChangeSet, Fact, Figure, Find, load_oracle
 from tests.conftest import EXAMPLES, copy_kiln_as_designed, copy_product
 
 FIXTURES = Path(__file__).resolve().parents[1] / "benchmarks" / "fixtures"
@@ -37,7 +38,7 @@ def test_every_shipped_oracle_judges_its_example(spec: Path, tmp_path: Path) -> 
         work = copy_kiln_as_designed(tmp_path / product.name, git=True)
     else:
         work = copy_product(product, tmp_path / product.name, prebuilt=True)
-    rows = oracle.evaluate(load_oracle(spec), Evidence(work))
+    rows = oracle.evaluate(load_oracle(spec), Evidence(work), replay=True)
     assert not _failures(rows)
 
 
@@ -77,3 +78,101 @@ def test_the_command_exits_1_on_a_failure_and_prints_each_row(tmp_path: Path, ca
     spec = FIXTURES / "bracket.oracle.yaml"
     assert oracle.main([str(work), str(spec), "--no-build"]) == 0
     assert capsys.readouterr().out.count("PASS") == 9
+
+
+def test_a_change_sets_row_is_found_by_value_and_words() -> None:
+    # No build: resolve_set reads the evaluated parameters passed straight in.
+    parameters = {
+        "top-thickness": {"value": 30.0, "unit": "mm", "description": "White-oak top thickness"},
+        "frame-height": {
+            "value": 700.0,
+            "unit": "mm",
+            "description": "Apron frame height, leg length",
+        },
+        "rated-load": {"value": 2000.0, "unit": "N", "description": "Rated compressive load"},
+        "load-cell-capacity": {
+            "value": 2000.0,
+            "unit": "N",
+            "description": "Load cell rated capacity",
+        },
+    }
+    top = ChangeSet(value=30, unit="mm", words=r"top[- ]?thickness", to="31 mm")
+    assert oracle_change.resolve_set(top, parameters) == "top-thickness"
+    rated = ChangeSet(value=2000, unit="N", words=r"rated[- ]?load", to="2500 N")
+    assert oracle_change.resolve_set(rated, parameters) == "rated-load"
+    with pytest.raises(MatchError):
+        oracle_change.resolve_set(
+            ChangeSet(value=2000, unit="N", words="", to="2500 N"), parameters
+        )
+
+
+def test_the_request_finder_reads_changes_by_kind_and_words(tmp_path: Path) -> None:
+    changes = tmp_path / "changes"
+    changes.mkdir()
+    (changes / "ECR-1.yaml").write_text(
+        "kind: parametric\ntitle: top 30 to 31 mm\nreason: the owner wants a heavier look\n",
+        encoding="utf-8",
+    )
+    (changes / "ECR-2.yaml").write_text(
+        "kind: design\ntitle: a 500 mm seating overhang\nreason: more room at one end\n",
+        encoding="utf-8",
+    )
+    change = Change(
+        name="ecr-1",
+        what="ECR-1: top 30 to 31 mm",
+        kind="parametric",
+        words=r"top.*31|31 mm",
+        sets=[ChangeSet(value=30, unit="mm", words="top", to="31 mm")],
+        outcome="accepted",
+    )
+    found = oracle_change.find_requests(tmp_path, change)
+    assert [p.name for p in found] == ["ECR-1.yaml"]
+
+
+def test_a_wrong_fails_regex_reports_the_failing_requirement() -> None:
+    check = {
+        "matrix": {"requirements": [{"id": "REQ-002", "title": "Load cell rated capacity"}]},
+        "results": [
+            {
+                "id": "req://REQ-002",
+                "kind": "requirement",
+                "status": "fail",
+                "title": "Load cell rated capacity",
+                "message": "Load cell rated capacity: 2000 N >= 2500 N — fails",
+            }
+        ],
+    }
+    change = Change(
+        name="cr-1",
+        what="CR-1: rated load 2000 to 2500 N",
+        kind="parametric",
+        words=r"rated[- ]?load.*2500",
+        sets=[ChangeSet(value=2000, unit="N", words="rated", to="2500 N")],
+        outcome="refused",
+        fails=["tip-over"],
+    )
+    passed, found = oracle_change.outcome_failures(change, check)
+    assert not passed
+    assert "Load cell rated capacity" in found
+    change = change.model_copy(update={"fails": ["load cell"]})
+    passed, found = oracle_change.outcome_failures(change, check)
+    assert passed
+
+
+def test_a_change_figure_and_fact_read_the_impact() -> None:
+    impact = {
+        "mass": {"before": 47.2, "after": 48.2, "delta": 1.0, "unit": "kg"},
+        "signoffs_invalidated": ["req://REQ-018"],
+        "signoffs_removed": [{"id": "req://REQ-019"}],
+    }
+    mass = Figure(
+        name="mass",
+        what="assembled mass after the change (kg)",
+        find=Find(impact="mass.after"),
+        unit="kg",
+        expect=48.2,
+        tol=0.02,
+    )
+    assert oracle.judge_figure(mass, Evidence(), {}, impact).passed
+    lost = Fact(name="lost", what="sign-offs the change loses", fact="signoffs_lost", expect=2)
+    assert oracle.judge_fact(lost, Evidence(), impact).passed
