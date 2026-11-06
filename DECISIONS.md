@@ -286,6 +286,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-257 | Health review 2026-11-06 (v0.8 wave 2 boundary) — outcome | in force |
 | S-258 | B-0272: local `make check-full` runs the no-change build and screenshot timing tests too | in force |
 | S-259 | B-0273: `core/concepts.py` split into render and lint modules, code moved verbatim | in force |
+| S-260 | Runs hand off in the repository (`docs/handoffs/v<x>-overseer.md`); the per-client file test checks tracked files | in force; amends S-076's test |
 
 ---
 
@@ -2029,3 +2030,10 @@ of that file already runs in `check`). The kiln's cold-build timing test stays C
 `core/concepts.py` (740 lines) split into `concept_render.py` (125), `concept_lint.py` (330) and `concepts.py` (345), all ≤ 400 lines (S-184 method; S-080's reason: parallel agents collide in long files, and M3a edits concepts next).
 `concept_render.py` holds YAML card text rendering (`render_card` and helpers); `concept_lint.py` holds promotion words and the concept lint (`decision_ids` through `lint_concepts`); `concepts.py` keeps card loading, numbering and status updates, re-exporting every moved name.
 Checked: 42 top-level definitions AST-identical; no caller changed. `core/` touched: `core/concepts.py`, `core/concept_render.py` (new), `core/concept_lint.py` (new).
+
+## S-260 — Runs hand off in the repository; the per-client file rule is about tracked files (2026-11-06)
+The maintainer asked that ongoing work be picked up by any agent of any model, so a run's state lives in the repository, not
+in one agent's private notes: the overseer keeps `docs/handoffs/v<x>-overseer.md` current at each wave boundary and when it
+stops (AGENTS.md, How work flows; STATUS points at it). And S-076's rule (no per-client instructions files) is about what the
+repository carries: a maintainer's own local, ignored file on their machine never reaches another contributor. The test now
+checks tracked paths (`git ls-files`), falling back to the disk when there is no history. `core/` touched: none.

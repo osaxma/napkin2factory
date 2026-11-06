@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -16,9 +17,23 @@ MODEL_WORDS = re.compile(
 )
 
 
+def _in_repo(rel: str) -> bool:
+    """True when ``rel`` (a file or folder) is part of the repository: tracked, not local.
+
+    The rule is about what the repository carries (S-076): a maintainer's own ignored file
+    on their machine is theirs, and other contributors never see it (S-260).
+    """
+    proc = subprocess.run(
+        ["git", "ls-files", "--", rel], cwd=REPO, capture_output=True, text=True, check=False
+    )
+    if proc.returncode != 0:  # no history (an unpacked copy): fall back to what is on disk
+        return (REPO / rel).exists()
+    return bool(proc.stdout.strip())
+
+
 def test_agents_md_is_the_only_instructions_file():
     # One generic file for every client (S-076); a CLAUDE.md copy would drift.
-    assert (REPO / "AGENTS.md").is_file() and not (REPO / "CLAUDE.md").exists()
+    assert (REPO / "AGENTS.md").is_file() and not _in_repo("CLAUDE.md")
 
 
 @pytest.mark.parametrize(
@@ -71,7 +86,8 @@ def test_no_per_client_files() -> None:
     common = REPO / "src/napkin2factory/templates/_common"
     for root in (REPO, common, *(p for p in (REPO / "examples").iterdir() if p.is_dir())):
         for name in ("CLAUDE.md", ".claude", "GEMINI.md", ".cursor", ".codex"):
-            assert not (root / name).exists(), f"{root.relative_to(REPO)}/{name}"
+            rel = str((root / name).relative_to(REPO))
+            assert not _in_repo(rel), rel
 
 
 def test_installed_tool_pointers_use_n2f_docs() -> None:

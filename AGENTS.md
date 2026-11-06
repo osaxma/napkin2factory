@@ -51,6 +51,9 @@ make check                                # in the main folder, before anything 
   another folder is queued, not stuck; do not cancel it or set `N2F_TEST_LOCK=0` to jump the
   queue, two suites side by side each take twice as long. Before a push, run `make check` once on `main` for everything landed since the
   last push; if it fails, `git bisect run make check` finds the task (history is linear).
+- **A run of several tasks hands off in the repository**, never in one agent's memory: its overseer keeps
+  `docs/handoffs/v<x>-overseer.md` current at each wave boundary and when stopping, so an agent of any
+  model can continue (S-260).
 - **Push only when the maintainer asks** (another agent may still be landing).
 - **Commits**: `M<n>: <what>` while a milestone is open, plain imperative otherwise. Stage
   explicit paths, never `git add -A`. Never commit `build/` or `examples/*/build/`.

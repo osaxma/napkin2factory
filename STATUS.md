@@ -9,7 +9,7 @@ work happens in task worktrees (`make task`, `make land`; S-097) · **Open work:
 v0.7 (everyday breadth, `docs/stages/v0.7-everyday-breadth.md`) is closed at 0.7.0 (S-242): Track A, S-197 to S-241
 (structural physics, everyday materials, derived ceremony, region and display units, the table and test-stand products,
 the three-tier benchmarks and their two-vendor spec trials, the v0.7 health review); handoff `docs/reviews/v0.7-handoff.md`
-(S-239). The commit history carries no personal email (S-243). Released as `v0.7.0` (S-244). Now: v0.8, Track B (`docs/stages/v0.8-bidirectional-iteration.md`, S-245).
+(S-239). The commit history carries no personal email (S-243). Released as `v0.7.0` (S-244). Now: v0.8, Track B (`docs/stages/v0.8-bidirectional-iteration.md`, S-245). The overseer's running state: `docs/handoffs/v0.8-overseer.md`.
 
 ## Environment (host facts a cold reader needs)
 - Reference platform: the macOS host (S-001); Linux is covered by the CI matrix. Python 3.13 via
