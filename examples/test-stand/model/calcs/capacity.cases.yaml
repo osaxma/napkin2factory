@@ -1,0 +1,9 @@
+# Reference case of capacity.py (F17): the 2 kN cell on the 2 kN rated load is exactly at its limit.
+inputs:
+  load-cell-capacity: 2000 N
+  rated-load: 2000 N
+cases:
+  load_cell_margin:
+    - expect: 1
+      rel: 1.0e-9
+      source: "hand computation (SPEC.md 6, CR-1): 2000 N / 2000 N = 1"

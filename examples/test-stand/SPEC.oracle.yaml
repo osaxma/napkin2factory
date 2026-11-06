@@ -258,9 +258,10 @@ facts:
 
 # The planned change requests of SPEC.md section 6, judged on a scratch copy as the change
 # leaves it. CR-1 is parametric (the rated load, replayed to 2500 N) and refused by the
-# load-cell requirement; the requirement's verify is edited to read 2500 N, as the spec's own
-# "cell >= rated load" says. CR-2 stays a pending entry: a sliding door replaces the hinge-pin
-# interface and adds channels, too large to script as the oracle's small edits.
+# load-cell requirement, whose calc compares the cell's capacity with the rated load itself
+# (capacity ÷ rated load ≥ 1), so no edit of the requirement is needed. CR-2 stays a pending
+# entry: a sliding door replaces the hinge-pin interface and adds channels, too large to
+# script as the oracle's small edits.
 changes:
   - name: cr-1
     what: "CR-1: rated load 2000 to 2500 N"
@@ -268,10 +269,6 @@ changes:
     words: "rated[- ]?load.*2500|2500 N"
     sets:
       - {value: 2000, unit: N, words: 'rated[- ]?load', to: '2500 N'}
-    edits:
-      - file: model/requirements.yaml
-        find: 'target: "param://load-cell-capacity", op: ">=", value: 2000 N'
-        replace: 'target: "param://load-cell-capacity", op: ">=", value: 2500 N'
     outcome: refused
     fails: ['load cell']
     figures:

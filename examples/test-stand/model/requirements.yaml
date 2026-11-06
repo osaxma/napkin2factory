@@ -18,7 +18,7 @@ requirements:
     statement: The chosen load cell's rated capacity is at least the rated test force of 2000 N.
     category: performance
     priority: must
-    verify: {kind: param_bound, target: "param://load-cell-capacity", op: ">=", value: 2000 N}
+    verify: {kind: calc, target: "calc://capacity.load_cell_margin", op: ">=", value: '1'}
     allocation: [part://load-cell, param://load-cell-capacity, param://rated-load]
     rationale: SPEC row 2. A change of the rated load to 2500 N makes this fail until the cell is swapped for a 3 kN one (SPEC section 6, CR-1).
     source: intake

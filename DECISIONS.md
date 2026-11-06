@@ -301,6 +301,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-272 | Gate B's scripted flow on the test stand | in force |
 | S-273 | Gate K fixes: one change-request id forever, approval bound to the approved checkpoint | in force |
 | S-274 | Gate K fixes: every impact figure labelled, a built card's mass in the total row | in force |
+| S-275 | The test stand's load-cell requirement follows the rated load (B-0279) | in force |
 
 ---
 
@@ -2108,3 +2109,11 @@ from `concepts/*.yaml`) read only the folder, so a rollback past them can reuse 
 Tests: `tests/e2e/test_ecr_live.py` (id after rollback; forged hash refused).
 ## S-274 — Gate K fixes: labelled impact figures, a built card's mass (2026-11-06)
 Blockers 2 and 3 of S-271. `ecr impact --json`: `mass`, `cost` and each `envelope` entry carry `basis`; mass and envelope are `computed`, cost is `estimate` when any priced row of the parts list is one, else the rows' common basis (`bom.rollups.cost_basis_of`). The text drops the blanket "computed" heading and labels each line; parts rebuilt with an unchanged declared unit cost are named ("Shape changed, price not re-quoted"; `cost.shape_changed_not_requoted`), so an estimated cost never reads as a bare "no change". A forked card writes the built total under `total_mass` (computed, "from the built design"), leaves `mass` ("mass of the shapes") empty, and puts the cost under `estimates` when its basis is estimate; compare shows a parked card's built mass in the total-mass row. The fork note now says what the card holds (envelope kept or empty). Not measured: the cost of shape changes stays unestimated, as in v0.7.
+
+## S-275 — The test stand's load-cell requirement follows the rated load (B-0279) (2026-11-06)
+REQ-002's verify read a literal 2000 N, so raising `rated-load` to 2500 N (SPEC §6, CR-1) left it
+passing. `param_bound` compares a parameter against a literal value, not another parameter, so the
+requirement now uses the `calc` kind on a new example calc, `calc://capacity.load_cell_margin`
+(`model/calcs/capacity.py`, capacity ÷ rated load, case 2000/2000 = 1), verified `>= 1`. No change
+under `src/`. The oracle's CR-1 row drops its hand edit of the requirement's bound and still refuses
+with the same "load cell" row. B-0279 closed.
