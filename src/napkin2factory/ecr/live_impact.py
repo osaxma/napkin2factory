@@ -25,7 +25,6 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE
 from napkin2factory.core.errors import N2FError
 from napkin2factory.core.graph.impact import _impact, _patch_keys
 from napkin2factory.core.graph.impact_live import live_diff
@@ -34,6 +33,7 @@ from napkin2factory.core.graph.runner import explain_build, run_build
 from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.model import Ecr
 from napkin2factory.core.vcs import Vcs
+from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE
 
 #: The folder whose files are not part of a change (its own record, S-252).
 RECORDS = "changes/"

@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from napkin2factory.core import checkpoints as cps
+from napkin2factory.core.vcs import Vcs
 from napkin2factory.ecr.checkpointing import (
     APPROVAL_HASH_EXCLUDE,
     checkpoint,
@@ -19,8 +21,6 @@ from napkin2factory.ecr.checkpointing import (
     save_edits_first,
     stale_after_restore,
 )
-from napkin2factory.core import checkpoints as cps
-from napkin2factory.core.vcs import Vcs
 from tests.conftest import n2f
 
 NOTE = "notes.txt"

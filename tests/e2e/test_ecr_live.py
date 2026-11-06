@@ -15,9 +15,9 @@ from typing import Any
 import pytest
 import yaml
 
-from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE
 from napkin2factory.core import checkpoints
 from napkin2factory.core.vcs import Vcs
+from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE
 from tests.conftest import EXAMPLES, copy_product, n2f
 from tests.e2e.test_ecr import _no_git_words
 

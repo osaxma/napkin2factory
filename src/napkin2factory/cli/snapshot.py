@@ -54,8 +54,8 @@ def discard(
     json_out: bool = JsonOption,
 ) -> None:
     """Throw away every change since the last checkpoint (`n2f redo` brings them back)."""
-    from napkin2factory.ecr.checkpointing import checkpoint
     from napkin2factory.cli.undo import do_undo
+    from napkin2factory.ecr.checkpointing import checkpoint
 
     root = product_root(dir)
     vcs = Vcs(root)

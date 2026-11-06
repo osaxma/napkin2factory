@@ -33,7 +33,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE, checkpoint
 from napkin2factory.core import checkpoints as cps
 from napkin2factory.core.checkpoints import Vitals
 from napkin2factory.core.errors import N2FError
@@ -44,6 +43,7 @@ from napkin2factory.core.product import Paths
 from napkin2factory.core.vcs import Vcs, VcsError
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip
 from napkin2factory.ecr.apply import _set_in_yaml
+from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE, checkpoint
 
 #: The version this migration writes.
 TO_VERSION = 2

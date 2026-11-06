@@ -20,7 +20,6 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from napkin2factory.ecr.checkpointing import checkpoint, save_edits_first, stale_after_restore
 from napkin2factory.core import checkpoints
 from napkin2factory.core.checkpoints import Checkpoint
 from napkin2factory.core.graph.impact import parse_set
@@ -31,6 +30,7 @@ from napkin2factory.core.vitals import current_vitals
 from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip, write_yaml
 from napkin2factory.ecr import live_impact
 from napkin2factory.ecr.apply import _set_in_yaml
+from napkin2factory.ecr.checkpointing import checkpoint, save_edits_first, stale_after_restore
 from napkin2factory.ecr.live_text import summarize_live
 from napkin2factory.ecr.revisions import _append_changelog, _close_gate, bump_revisions
 from napkin2factory.ecr.state import EcrError, _ecr_path, _require, next_ecr_id

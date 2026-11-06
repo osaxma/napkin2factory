@@ -17,12 +17,6 @@ from typing import Any
 import typer
 from rich.markup import escape
 
-from napkin2factory.ecr.checkpointing import (
-    checkpoint,
-    open_change_request,
-    save_edits_first,
-    stale_after_restore,
-)
 from napkin2factory.cli.common import (
     DirOption,
     JsonOption,
@@ -35,6 +29,12 @@ from napkin2factory.core import checkpoints as cps
 from napkin2factory.core.checkpoints import Checkpoint, Vitals
 from napkin2factory.core.loader import load_product
 from napkin2factory.core.vcs import FileChange, Vcs, VcsError
+from napkin2factory.ecr.checkpointing import (
+    checkpoint,
+    open_change_request,
+    save_edits_first,
+    stale_after_restore,
+)
 
 NO_HISTORY = (
     "this folder has no saved history to go back to (it was copied without it, or change "
