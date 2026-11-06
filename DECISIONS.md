@@ -309,6 +309,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-280 | Review gate L (v0.8) — outcome: NOT READY; five blockers (the example failed lint, the report's requirement tile, stale manufacturer text after a change, status silent on an open change request, the close's sign-off wall) | in force |
 | S-281 | Gate L fixes: impact names stale words, close lists what stands in the way | in force |
 | S-282 | Gate L fixes: status names an open change request, the report counts requirements, plainer switch and undo words | in force |
+| S-283 | v0.8 close: the §2.1 measures and R12 timings | in force |
 
 ---
 
@@ -2183,3 +2184,9 @@ requirement with `n2f ecr abort`), unsaved edits say "save as a checkpoint or un
 requirements only and a gate not reached reads "not reached yet", a forked card reads "the built
 design: no requirement fails" plus the sign-offs waiting, `concept build` suggests `--from`, and
 the no-history error says what `n2f init .` does. Core file: `core/checks/stage.py`.
+
+## S-283 — v0.8 close: the §2.1 measures and R12's timings (2026-11-06)
+`docs/reviews/v0.8-measures.md`, at 6bd45b4 on the macOS host, quiet but not idle (load 2 to 4), three runs each, medians, tier 1 / tier 2. R12: no-change build 2.2 / 2.6 s, **target of 2 s not met** (start-up floor `n2f --help` 1.7 s); `undo` 3.2 (first run 11.3) / 3.9 s; `ecr impact` first 12.7 / 20.4 s, again 2.9 / 4.0 s; `concept switch` 11.5 / 7.2 s, back 11.0 / 6.1 s. Against S-270's single runs, tier 1's first `undo`, first `impact` and `switch` hold (within 20 %); the no-change build, the second `impact` and all tier 2 figures but the no-change build and `undo` are 30 to 120 % slower, cause not isolated (load or the gate K and L fixes).
+Warm one-parameter rebuild: 19.4 / 22.3 / 61.6 s for tiers 1 / 2 / 3 (v0.7: 14.4 / 19.4 / 50.8 s; tier 1 target under 1 s not met); nothing changed 2.8 / 3.1 / 5.0 s (v0.7: 8.2 / 8.7 / 11.2 s).
+Guide plus product `AGENTS.md`: 36,227 characters, about 9,057 tokens (chars / 4), against 9,059 at v0.7 and 9,065 at S-268.
+Gate B trials (copied, a terminal agent harness only, a product with a model so not v0.7's rows): first report 5 min 03 s / 58 calls (Gemini 3.8 Flash), 5 min 18 s / 20 calls (DeepSeek V4 Pro); oracle 50 passed, 0 failed, 7 pending for both. Skill suggestion rate as S-255 (20/20 and 0/20), not re-measured. `core/` touched: none.
