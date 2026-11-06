@@ -372,14 +372,27 @@ A safety requirement is never "done" by a calculation; it needs `n2f signoff` by
 and the report labels example sign-offs as examples.
 
 ## Turning an ask into a change request
-"Make the chamber 5 cm taller" →
-`n2f ecr new --title "Increase chamber height by 50 mm" --set param://chamber-height=250mm`
-(add `--set req://REQ-00x#verify.value=…` when a limit must move with it). Then
-`n2f ecr impact ECR-00x` and read the report back in the owner's words: what is rebuilt,
-what it costs, which requirements could fail, which sign-offs must be redone. Only after the
-owner says yes: `n2f ecr approve`, `n2f ecr apply`, `n2f build`, `n2f check`, `n2f ecr close`.
-Asks that change shape or add features are `--kind design` with `--task` lines for the
-designer; a pre-authored `--patch changes/ECR-00x.patch` lets them apply unattended.
+Once the design is settled (after a release, or whenever the owner wants a checked change), an ask
+is a live change request. Put it to the owner in their words first: what changes, what it may cost or
+touch. When they agree to look, open it:
+`n2f ecr start --title "Increase chamber height by 50 mm" --set param://chamber-height=250mm`
+(add `--set req://REQ-00x#verify.value=…` when a limit must move with it). The designer edits the
+model files, then builds and checks. Then `n2f ecr impact ECR-00x`, and read it back in the owner's
+words: what is rebuilt, what it costs, which requirements could fail, which sign-offs must be redone.
+Only after the owner says yes: `n2f ecr approve ECR-00x --by "<owner's name>"`, `n2f build`,
+`n2f check`, `n2f ecr close ECR-00x`. An approval binds to the model as it is: if the model changes
+after it, `close` refuses and the impact must be read again. A small parameter change can go in one
+step with `n2f ecr quick --set …`. Asks that change shape or add features are `--kind design`, with
+`--task` lines for the designer. Nobody writes a patch: the model is the change.
+
+**Undo and direction, in the owner's words.** Every change keeps a checkpoint (`n2f checkpoints`).
+When the owner says "go back" or rejects an edit, offer `n2f undo` and name the state it returns to
+("the design as it was before the taller chamber"). `n2f rollback` is for an older Revision or a
+change request's start; after any restore, report the sign-offs and approvals the command lists as
+needing a look. If the owner drops an open change request, `n2f ecr abort` returns to where it began.
+Before the first release a different direction can still be chosen (`n2f concept switch C-00x`; the
+current one is kept). After it, or while a change request is a draft, a new direction is a design
+change request instead.
 
 ## Explaining reports
 Open `build/report/index.html`. Owner: the 3D view, the cost total, the "what to tell the

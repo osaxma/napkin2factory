@@ -225,33 +225,16 @@ massing:
   - {kit: block, as: gusset, material: mild steel, args: {length: 40 mm, width: 4 mm, height: 40 mm}, at: {x: 24 mm, z: 4 mm}}
 ```
 
-The card fields screening reads come from the installed screens (`n2f doctor` lists them):
-`n2f concept new` writes each into a new card's skeleton with an example, and
+The card fields the installed screens read are in the skeleton `n2f concept new` writes, and
 `n2f concept lint` says when a number is the wrong kind. The space the product must fit is
-`site.width`, `site.depth` and `site.height` (`alcove_width` and the like, from before v0.5,
-are still read and the lint says so). `envelope.door_swing: 110 degree` (how far a hinged
-door opens; without it the door counts swung fully back, the widest case) narrows the fit
-check to what the door really needs. A card that gives a load on its `site` also gets the
-generic `structural` screen: `point_load` (at the middle of the top, or the arm's tip),
-`distributed_load` (spread over the top), `edge_load` with `edge_offset` (how far beyond the
-support it acts, for tipping), `max_deflection` and `cycles`, each a number with its unit. It
-reads the supports from the massing (a `frame` call and the widest flat board on it, or a
-`tube`/`block` column with an arm) and reports sag, yield, buckling and tip-over with the
-formula and source of each; a check whose input is missing is shown as not run, saying which.
-A product's own word for one of these (a throat, an overhang) lives in its own folder.
-A product can bring screens of its own in
-`model/screens/` (the kiln's heated-box screens read a power, a supply circuit, a touch
-limit); `n2f docs napkin` explains the stage and its packs.
+`site.width`, `site.depth` and `site.height`; `envelope.door_swing` narrows the fit. A card with a
+load on its `site` also gets the generic `structural` screen. `n2f docs napkin` explains the
+screens, the structural one included, and the stage; a product's own screens live in `model/screens/`.
 
-A card may also name the units the product is built from, when a reason applies (built,
-tested or serviced as one unit, made by another process or supplier): `modules: {door:
-{driver: [built-as-unit]}}`, and `module: door` on the massing lines that make it up.
-Promotion then seeds the structure when the product has no assembly yet: the top assembly
-`model/assemblies/<product id>.yaml`, one empty `model/assemblies/<module>.yaml` per module
-and three size budgets per module (requirements on `asm://<module>#props.bbox.x`, `.y`,
-`.z`, from its rough shapes); `n2f build && n2f check` stays green, each empty module worth
-a look until the designer gives it parts. On a product that already has assemblies it only
-prints the modules as a suggestion.
+A card may name the units the product is built from (`modules: {door: {driver: [built-as-unit]}}`,
+and `module: door` on the massing lines that make them up). Promotion then seeds the top assembly and
+one empty `model/assemblies/<module>.yaml` per module, each with three size budgets from its rough
+shapes; a product that already has assemblies only gets the suggestion.
 
 The kit list is in the product's `AGENTS.md`; `n2f docs napkin` explains the stage.
 
@@ -328,21 +311,12 @@ stay a person's sign-off.
 - `units`: display units for reports and the board (`metric` or `imperial`, defaults to `metric`; `imperial` shows imperial first, metric in brackets; drawings stay in mm).
 - `ceremony: standard` (optional): raises the ceremony; there is no way to lower it.
 
-**Ceremony: how much paperwork a product carries.** It is derived from the model, not
-chosen. A product is `standard` when a domain with content reports hazardous energy (the
-wiring does for a supply above extra-low voltage), when more than one domain has content, when
-a requirement carries a `hazard:<kind>` tag the hazard table (`core/data/hazards.yaml`: mains,
-high-temperature, moving-machinery, stored-energy) classes as raising, or when `n2f.yaml`
-says `ceremony: standard`; otherwise it is `lite`. Every `safety: true` requirement names its
-hazard with such a tag (`hazard:tip-over`, `hazard:sharp-edge`, … the lint lists the kinds);
-tip-over, sharp-edge and pinch keep their sign-off without raising the ceremony. `lite`
-relaxes three things only: a custom part may leave out `tolerance_class` when its process has
-a default (the parts list and the drawing say "(default)"), one `model/docs/build-and-care.md`
-page with `safety: true` stands for the manual set, and the report leaves out its empty
-Sign-offs, Joints between units and Change requests sections. Provenance, port alignment and
-safety sign-offs are the same at both levels. `n2f check` names the ceremony (`ceremony` and
-`ceremony_reasons` in `--json`) and, the first time a product rises from `lite` to
-`standard`, lists what it now needs.
+**Ceremony: how much paperwork a product carries.** It is derived from the model, not chosen:
+`standard` when a domain with content reports hazardous energy, when more than one domain has
+content, when a `hazard:<kind>` tag raises it, or when `n2f.yaml` says `ceremony: standard`;
+otherwise `lite`, which relaxes only the paperwork (`n2f docs product-model` has the rules). Safety
+sign-offs are the same at both levels. `n2f check` names the level and its reasons (`ceremony` in
+`--json`).
 
 **Scope: what this product covers.** When the owner says a step is done elsewhere or comes
 later ("the electrician wires it"), record it once in `n2f.yaml` with the decision behind it:
@@ -394,17 +368,36 @@ a gate holds the release (`n2f release` says so, with the pick). `n2f check` nev
 decided choice reopens by itself when what it was decided on changes, like a sign-off.
 `--agent` records an agent's pick, allowed only for a choice that holds nothing.
 
-**Changes after a release** go through a change request, and the owner approves after
-reading the impact:
+**Stepping back, changing, switching: three loops.** Every command that changes the design saves
+a checkpoint before it changes anything (`n2f checkpoints` lists them, newest first). History only
+moves forward: a restore is a new checkpoint, so no work is lost.
+
+- **Step back.** `n2f undo` puts the design back as it was before the last checkpoint (repeat it to
+  go further); `n2f redo` brings back the step it took away. `n2f rollback <checkpoint, ECR-xxx or
+  v1.0.0>` restores an older state the same way. After a restore the command lists the sign-offs and
+  approvals whose evidence no longer matches; it never revives one. Inside an open change request,
+  `undo` stops at the request's start. `n2f discard` saves the edits it drops as a checkpoint first.
+- **Change after the design is settled.** A change is a live change request: the model is edited in
+  place, and the owner approves what it becomes.
 
 ```bash
-n2f ecr new --title "Longer bracket" --set param://bracket-length=140mm
-n2f ecr impact ECR-001              # what it touches, before anything changes
-n2f ecr approve ECR-001 --by "<owner's name>"
-n2f ecr apply ECR-001
+n2f ecr start --title "Longer bracket" --set param://bracket-length=140mm   # records the baseline
+# edit the model/ files directly, then:
 n2f build && n2f check
-n2f ecr close ECR-001
+n2f ecr impact ECR-001              # the live model against the baseline: what it touches
+n2f ecr approve ECR-001 --by "<owner's name>"   # binds to the model as it is now
+n2f ecr close ECR-001               # refuses if the model changed since approval, or build/check is red
 ```
+
+  `n2f ecr quick --set …` does start, edit and impact in one step for a small parameter change;
+  `n2f ecr abort` returns the model to the start (undoable). There is no patch and no apply step.
+- **Switch direction before the first release.** `n2f concept switch C-002` parks the current
+  direction (kept, not lost) and restores another; `n2f concept fork-from-model` turns the built
+  design into a new card; `n2f concept compare` puts the cards' figures side by side. After the first
+  release, and while a change request is a draft, a switch is refused: a new direction is then
+  `n2f ecr start --kind design`.
+
+Every flag of these verbs is in [docs/cli.md](cli.md).
 
 **Sign-offs and releases.** A requirement that cannot be checked by computation shows as
 `needs your sign-off`. `n2f check` still exits 0, but `n2f release` refuses until a person has

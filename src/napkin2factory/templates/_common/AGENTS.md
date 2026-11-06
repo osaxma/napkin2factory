@@ -14,7 +14,7 @@ The tool carries its own reference pages: `n2f docs` lists them, `n2f docs <topi
 
 ## Vocabulary (use these words with the owner; never git words)
 - **draft** — work in progress on the model
-- **snapshot** — a saved state of the model (`n2f ecr apply`, `n2f ecr close`, `n2f concept promote` and `n2f release` make them)
+- **snapshot** — a saved state of the model (`n2f snapshot`, `n2f ecr close`, `n2f concept promote` and `n2f release` make them)
 - **change request (ECR)** — a proposed change, filed in `changes/ECR-xxx.yaml`
 - **impact report** — what a change request would touch, computed before anything changes
 - **approved** — the owner said yes to a change request after reading its impact report
@@ -39,9 +39,9 @@ The tool carries its own reference pages: `n2f docs` lists them, `n2f docs <topi
    calc carries a reference case (`model/calcs/<topic>.cases.yaml`, `roles/design.md`).
 3. Log every choice made on the owner's behalf as a `DEC-xxx` in `model/decisions.yaml`
    with rationale and links. Decisions are delegated, never deleted.
-4. Changes to a released product go through a change request: `n2f ecr new`, then
-   `n2f ecr impact`, then the owner approves, then `n2f ecr apply`, `n2f build`,
-   `n2f check`, `n2f ecr close`.
+4. Changes to a released product go through a change request: `n2f ecr start`, edit the `model/`
+   files, `n2f build`, `n2f check`, `n2f ecr impact`; the owner approves (`n2f ecr approve`), then
+   `n2f ecr close`. There is no patch; `n2f undo` steps back a wrong edit.
 5. Safety floor: anything safety-relevant (mains power, hot surfaces, sharp edges,
    pinch points, lifting, stored energy) is stated to the owner in plain words regardless
    of how expert they are. Safety requirements can never be ticked off by a calculation

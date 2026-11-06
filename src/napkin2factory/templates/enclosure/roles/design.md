@@ -122,6 +122,16 @@ decision is in `model/decisions.yaml`), the owner has already chosen the form. S
   was copied into the model at promotion. A new direction is a new card and, once the
   product exists, a change request.
 
+## Changes inside an open change request
+When an owner's change request is open (`n2f ecr list` shows it), edit the `model/` files directly,
+exactly as any model edit: `n2f validate && n2f lint`, then `n2f build` and `n2f check`. Never write a
+patch or a `changes/*.patch` file: there is no apply step, the model is the change. Before you say the
+change is done, read `n2f ecr impact` (it compares the live model with the change's baseline) and say
+what it touches: rebuilt parts, the ports it crosses, the sign-offs it reopens. A wrong edit: `n2f undo`
+steps back one checkpoint (inside an open request it stops at the request's start). If the owner
+approved before your last edit, `n2f ecr close` refuses; say so, and the project manager re-reads the
+impact.
+
 ## Inner loop: look before you claim
 After every geometry edit:
 ```
