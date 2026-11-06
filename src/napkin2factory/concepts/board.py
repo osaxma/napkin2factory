@@ -55,8 +55,9 @@ KEY_DIMS: tuple[str, ...] = (
     "mass",
     "total_mass",
 )
-#: The estimate strip, in display order.
+#: The estimate strip, in display order (``cost`` is the built design's priced cost, R11).
 STRIP: tuple[str, ...] = (
+    "cost",
     "cost_low",
     "cost_high",
     "heat_up_time",
@@ -77,6 +78,7 @@ NAMES: dict[str, str] = {
     "mass": "mass of the shapes",
     "total_mass": "total mass",
     "volume": "volume of the shapes",
+    "cost": "cost",
     "cost_low": "cost, low",
     "cost_high": "cost, high",
     "heat_up_time": "heat-up",
@@ -280,6 +282,15 @@ def _decision_line(card: ConceptCard) -> str | None:
     return f"{cm.set_aside_words(d.reason)}{when}"
 
 
+def _parked_figures(card: ConceptCard) -> str | None:
+    """A parked card's built figures, as one line (``built: 23.1 kg, 180 USD when parked``)."""
+    b = card.built
+    if b is None or b.event != "parked":
+        return None
+    parts = [p for p in (b.mass, b.cost) if p]
+    return f"built: {', '.join(parts)} when parked" if parts else None
+
+
 def gather_card(root: Path, card: ConceptCard, style: Any, units: str = "metric") -> dict[str, Any]:
     """One card's board data: words, labelled values and the files to embed (as paths)."""
     from napkin2factory.concepts.screenshot import card_materials
@@ -334,6 +345,11 @@ def gather_card(root: Path, card: ConceptCard, style: Any, units: str = "metric"
         "status": card.status,
         "status_word": _status_word(card),
         "built": sc is not None,
+        # R11: a forked card's figures are the built design's, not a napkin build's.
+        "origin": "built"
+        if (card.built is not None and card.built.event == "forked")
+        else "napkin",
+        "built_line": _parked_figures(card),
         "verdict": card.verdict,
         "based_on": card.based_on,
         # P10: the units the direction is built from, in plain words (S-112)

@@ -82,6 +82,8 @@ footer{max-width:1600px;margin:0 auto;padding:0 1.2rem 2rem;font-size:.78rem;col
   <div class="chead">
     <div class="row"><span class="cid">{{ c.id }}</span><h2>{{ c.title }}</h2><span class="badge {{ 'unbuilt' if not c.built and c.status == 'exploring' else c.status }}">{{ c.status_word }}</span></div>
     {% if c.verdict == 'red' %}<p class="verdict red">this direction has problems</p>{% elif c.verdict == 'green' %}{% if c.not_checked %}<p class="verdict look">no problems found, but not fully checked</p>{% else %}<p class="verdict green">holds up in screening</p>{% endif %}{% endif %}
+    {% if c.origin == 'built' %}<p class="sub">from the built design</p>{% endif %}
+    {% if c.built_line %}<p class="sub">{{ c.built_line }}</p>{% endif %}
     {% if c.based_on %}<p class="sub">based on {{ c.based_on }}</p>{% endif %}
     {% if c.decision %}<p class="decision">{{ c.decision }}</p>{% endif %}
   </div>

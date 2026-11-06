@@ -27,7 +27,7 @@ from napkin2factory.concepts.screenshot import (
     styled_screenshots,
 )
 from napkin2factory.core import concepts as cm
-from napkin2factory.core.errors import N2FError, Problems
+from napkin2factory.core.errors import GateBlocked, N2FError, Problems
 from napkin2factory.core.model.concepts import ConceptCard, Screening
 from napkin2factory.core.model.style import StyleFile
 
@@ -109,6 +109,14 @@ def build_concept(
     """
     from napkin2factory.core.style import merge_card_style
 
+    if card.built is not None and card.built.event == "forked":
+        # R11: a forked card holds the built design's figures, not a rough-shape massing's;
+        # a variant (which copies the card's sections, not ``built`` or ``screening``) is the
+        # place to explore a change.
+        raise GateBlocked(
+            f"{card.id} holds the built design's figures; make a variant to explore it: "
+            f"`n2f concept new --based-on {card.id}`"
+        )
     t0 = time.perf_counter()
     out_dir = concept_build_dir(root, card.id)
     before = recorded_screens_key(out_dir)  # read before compose clears the folder
