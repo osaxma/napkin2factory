@@ -26,7 +26,7 @@ from napkin2factory.core.units import UnitError, format_quantity, parse_quantity
 ConceptId = Annotated[str, _id(r"C-\d{3}")]
 ConceptStatus = Literal["exploring", "rejected", "promoted", "parked"]
 #: Every status word a card can carry, in display order. ``parked`` is a promoted direction
-#: set aside by ``concept switch`` (schema 2, R10); nothing writes it before M3a.
+#: set aside by ``concept switch`` (schema 2, R10); ``concept switch`` writes it (M3a).
 CONCEPT_STATUSES: tuple[str, ...] = ("exploring", "rejected", "promoted", "parked")
 
 
@@ -255,6 +255,29 @@ class ConceptDecision(Model):
         return {k: v for k, v in data.items() if v is not None}
 
 
+class BuiltDesign(Model):
+    """The figures measured from a direction's built design (R10, R11), never the napkin's.
+
+    ``event`` is ``forked`` (the card was made from the built design) or ``parked`` (a
+    switch set the direction aside). ``mass`` and ``cost`` are the strings
+    ``core/vitals.current_vitals`` gives (None: not measured, or a stale build); ``checkpoint``
+    is the saved state they were measured on and ``number`` its checkpoint number. Empty
+    fields are left out when written.
+    """
+
+    event: Literal["forked", "parked"]
+    checkpoint: str
+    number: int | None = None
+    mass: str | None = None
+    cost: str | None = None
+    at: dt.datetime | str | None = None
+
+    @model_serializer(mode="wrap")
+    def _compact(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        return {k: v for k, v in data.items() if v is not None}
+
+
 class ConceptCard(Model):
     """One concept card (``concepts/C-xxx.yaml``); outside the build graph (N1)."""
 
@@ -273,12 +296,16 @@ class ConceptCard(Model):
     notes: str | None = None
     screening: Screening | None = None
     decision: ConceptDecision | None = None
+    #: The built design's figures; written by ``concept switch`` and ``concept fork-from-model``.
+    built: BuiltDesign | None = None
 
     @model_serializer(mode="wrap")
     def _compact(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         data: dict[str, Any] = handler(self)
         if not data.get("modules"):  # a v0.3 card dumps as before (P14)
             data.pop("modules", None)
+        if data.get("built") is None:  # a card without built figures dumps as before
+            data.pop("built", None)
         return data
 
     def module_names(self) -> list[str]:

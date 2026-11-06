@@ -432,3 +432,10 @@ def lint(dir: Path | None = DirOption, json_out: bool = JsonOption) -> None:
             )
     if problems.errors:
         raise typer.Exit(code=1)
+
+
+# S-257: new verbs live in their own modules, registered here (M3a seam).
+from napkin2factory.cli import concept_fork, concept_switch  # noqa: E402
+
+concept_switch.register(concept_app)
+concept_fork.register(concept_app)

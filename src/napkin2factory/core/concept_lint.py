@@ -317,6 +317,14 @@ def lint_concepts(root: Path) -> Problems:
                 f'`n2f concept reject {card.id} --reason "…"`',
                 rule="C7-promoted-has-decision",
             )
+        elif card.status == "parked" and (card.decision is None or not card.decision.reason):
+            problems.add(
+                files[cid],
+                card.id,
+                f"{card.id} is parked and says nothing about why it was set aside",
+                "give it `decision: {reason: …}` naming the direction chosen instead",
+                rule="C7-parked-has-reason",
+            )
     promoted = [cid for cid, c in cards.items() if c.status == "promoted"]
     if len(promoted) > 1:
         for cid in promoted:

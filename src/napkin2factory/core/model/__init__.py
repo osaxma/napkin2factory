@@ -4,6 +4,7 @@ from napkin2factory.core.model.assemblies import Assembly, Child, Exploded
 from napkin2factory.core.model.base import Model, Quantity, UriField
 from napkin2factory.core.model.concepts import (
     CONCEPT_STATUSES,
+    BuiltDesign,
     ConceptCard,
     ConceptDecision,
     ConceptModule,
@@ -50,6 +51,7 @@ __all__ = [
     "Assembly",
     "BoltPatternSpec",
     "Child",
+    "BuiltDesign",
     "ConceptCard",
     "ConceptDecision",
     "ConceptModule",

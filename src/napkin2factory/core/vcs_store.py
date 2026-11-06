@@ -195,6 +195,16 @@ class StoreMixin:
         self.tree_of(ref)  # raises when it is the state that does not exist
         return None
 
+    def files(self, ref: str = "@") -> list[str]:
+        """Every file saved in state ``ref``, sorted, as ``/``-separated paths in the folder.
+
+        Paths are relative to the product folder, even when the folder sits inside a larger
+        repository. An error when ``ref`` names no saved state.
+        """
+        tree = self.tree_of(ref)  # the owner's error for a missing state
+        proc = self._git("ls-tree", "-r", "--name-only", "-z", tree)
+        return sorted(name for name in proc.stdout.split("\x00") if name)
+
     # ---- the folder against a saved state ----------------------------------
 
     @contextmanager

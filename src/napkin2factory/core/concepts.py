@@ -302,9 +302,18 @@ def write_card(root: Path, card: ConceptCard) -> Path:
 
 
 def update_card_status(
-    root: Path, concept_id: str, status: str, decision: dict[str, Any] | None = None
+    root: Path,
+    concept_id: str,
+    status: str,
+    decision: dict[str, Any] | None = None,
+    *,
+    built: dict[str, Any] | None = None,
+    clear_built: bool = False,
 ) -> ConceptCard:
-    """Set a card's ``status`` (and ``decision``) in place, keeping comments and key order."""
+    """Set a card's ``status``, ``decision`` and ``built`` in place, keeping comments and key order.
+
+    ``built`` sets the card's built-design figures; ``clear_built`` removes them.
+    """
     from ruamel.yaml.comments import CommentedMap
 
     card = load_card(root, concept_id)
@@ -312,6 +321,10 @@ def update_card_status(
     merged = {**read_yaml(path), "status": status}
     if decision is not None:
         merged["decision"] = decision
+    if clear_built:
+        merged.pop("built", None)
+    if built is not None:
+        merged["built"] = built
     ConceptCard.model_validate(merged)  # refuse before touching the file
     doc = load_roundtrip(path)
     doc["status"] = status
@@ -319,6 +332,12 @@ def update_card_status(
         flow = CommentedMap(decision)
         flow.fa.set_flow_style()
         doc["decision"] = flow
+    if clear_built:
+        doc.pop("built", None)
+    if built is not None:
+        flow_built = CommentedMap(built)
+        flow_built.fa.set_flow_style()
+        doc["built"] = flow_built
     dump_roundtrip(path, doc, explicit_null=True)
     return load_card(root, card.id)
 

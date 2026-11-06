@@ -387,6 +387,18 @@ def _validate_uris(product: Product, problems: Problems) -> None:
                         rule="uri",
                     )
                     continue
+            if file == product.paths.decisions:
+                # S-263: decisions are history (as finished change requests, S-215); a concept
+                # switch leaves a parked direction's links behind
+                problems.add(
+                    file,
+                    subject,
+                    f"decision cites removed or unknown {uri}",
+                    "a decision is history; it keeps its links as written",
+                    severity="warn",
+                    rule="uri",
+                )
+                continue
             problems.add(file, subject, str(exc), _hint_for(uri), rule="uri")
             continue
         if uri.selector and uri.selector[0] != "props" and uri.scheme not in ("bom", "doc"):

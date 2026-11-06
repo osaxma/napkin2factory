@@ -288,6 +288,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-259 | B-0273: `core/concepts.py` split into render and lint modules, code moved verbatim | in force |
 | S-260 | Runs hand off in the repository (`docs/handoffs/v<x>-overseer.md`); the per-client file test checks tracked files | in force; amends S-076's test |
 | S-262 | B-0270: `cli/checkpointing.py` moved to `ecr/checkpointing.py`, code verbatim; imports updated | in force |
+| S-263 | M3a seam: a card's built figures (`built:`), `Vcs.files`, a parked card needs a reason, decision links warn | in force |
 | S-261 | M2c: schema 2 and the change-request migration: `draft → approved → closed` / `aborted`, an open request has a baseline, `parked` cards; the old patch steps are gone | in force |
 
 ---
@@ -2046,3 +2047,6 @@ Landed with the kiln settled (maintainer: "Set it aside"): ECR-001 ships `aborte
 
 ## S-262 — B-0270: the checkpoint helpers move below `cli/` (2026-11-06)
 `cli/checkpointing.py` (`checkpoint`, `save_edits_first`, `stale_after_restore`, `open_change_request`, `APPROVAL_HASH_EXCLUDE`) is now `ecr/checkpointing.py`: `ecr/` and `concepts/promote/` no longer import up into `cli/`; the CLI verbs import from `ecr/`. Moved with `git mv`; AST of the module identical before and after (S-184 method); only import paths and two docstring mentions changed. No `core/` file touched (R13: 0). Tests: undo, undo properties, change-request migration, `ecr_live` e2e import the new path. Not run beyond the land gate. B-0274 (measure upward imports) is still open; its baseline is now 1 (`core/graph/runner.py` console import).
+
+## S-263 — M3a seam: the card's built figures, `Vcs.files`, decision links are history (2026-11-06)
+The concept bridge (R10, R11) is designed in `docs/handoffs/v0.8-m3a-design.md`; this seam lands what both of its tasks share. A card gains an optional `built: {event: forked | parked, checkpoint, number, mass, cost, at}`: the figures measured from a direction's built design, never the napkin's; schema 2 is not released yet, so the optional field joins it without a new bump (F7, `docs/schema-policy.md`), and a card without it dumps as before. `update_card_status` sets or clears it; `Vcs.files(ref)` lists a saved state's files (the switch checks every tracked folder against §3). A parked card needs a reason, as a rejected one does (`C7-parked-has-reason`). A link in `model/decisions.yaml` that no longer resolves warns instead of stopping the load: decisions are history, as finished change requests are (S-215), and a switch leaves the parked direction's links behind. `core/` touched (R13): `core/model/concepts.py`, `core/model/__init__.py`, `core/concepts.py`, `core/concept_lint.py`, `core/vcs_store.py`, `core/loader.py`. Tests: `tests/unit/test_concept_built.py`.
