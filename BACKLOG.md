@@ -62,7 +62,6 @@ entry that closed them. Ids are never reused.
 | B-0113 | An unknown finish in `style.yaml` passes every command silently (F6: load-time validation) | Gate E C11; validate `style.yaml` in the loader or lint, listing the known finishes |
 | B-0114 | A malformed calc case prints "expected None, computed —" | Gate E C12; print only the reason (`core/checks/calcs.py`); lint L16 reads the cases files |
 | B-0120 | Ids without titles in owner text: the sign-off bullets, "1 requirement waits for it: REQ-028", "(evidence changed since signing: part://…)" | Gate F 15 (the release refusal and the cover were fixed in S-139); pair each id with its title |
-| B-0121 | Git words older than v0.5: "nothing tagged", "without tagging" (`cli/release.py`), "saved as snapshot <hash>", the doctor's "git (change tracking)" | Gate F 16; "nothing frozen", drop the hash; `test_release_diff` asserts the old text |
 | B-0122 | The overview tile "279 / 27 requirements OK" divides all OK checks by the requirement count | Gate F 18; `report/sections/overview.html.j2`, count requirements only |
 | B-0123 | Format 0 with no migration: `n2f init .` gives no next step | Gate F 20; say what to do (`core/model/migrate.py`) |
 | B-0124 | The README's "What you get" says nothing about scope or choices, the two things an owner newly sees in v0.5 | Gate F 21; a line each in `README.md` |
@@ -135,13 +134,14 @@ entry that closed them. Ids are never reused.
 | B-0252 | The `tube` kit draws round and square sections only: a rectangular hollow section (the spec's 60 x 40 x 5 beams, 100 x 50 x 3 stretcher) becomes a solid block of equal area in every cold agent's card | S-239 (table trials 2 and 3, stand trials 1 and 4); `shape: rect` with width, height and wall in `geometry/kit/tube.py`, the structural screen's section read (`structural_base.py`), the cut list, `docs/kit.md`; ~2 h |
 | B-0254 | Lint `L1-measurable` refuses a requirement on a dimensionless factor (a factor of safety, a ratio) unless the statement names a load with a unit | S-239 (table trials 2 and 3, stand trial 4; both vendors); accept the bound's own number when the verify target is dimensionless; `core/lint.py`, a core file named in the commit; ~1 h |
 | B-0257 | `calckit.joints` has no preloaded-bolt fatigue function: the test stand's column-end bolt factor (7.42, SPEC.md section 4.4) is a hand check, so an agent must write the formula, and one left the requirement to the beam | S-210 (noted open), S-239 (spec trial 4: the governing fatigue row failed at 9.105); Goodman for a preloaded bolt (Shigley section 8-11 [verify]) with its `CASES`; ~2 h |
-| B-0260 | No checkpoints and no `undo` / `redo` / `rollback`: `n2f discard` is the only way back and cannot itself be undone | S-245; v0.8 M1a, M1b (`docs/stages/v0.8-bidirectional-iteration.md` R1–R5) |
 | B-0267 | Agent shells on the host set `PYTHONDONTWRITEBYTECODE=1` and task folders' environments hold no compiled bytecode, so every fresh Python process (each `n2f` the tests run as a process) recompiles about 2,000 modules, about 3 s (S-247); compile it when `make task` installs (`UV_COMPILE_BYTECODE=1`) and measure the suites after | S-247 |
 | B-0262 | A design change request carries its edit as a `.patch` file, and its approval is not bound to the model it approved | S-245; v0.8 M2b (R6, R7, R9) |
 | B-0263 | Change-request states and the card's `parked` status need schema 2 and the first real migration | S-245; v0.8 M2c (R8, R15) |
 | B-0264 | Promotion is one-way: no `concept switch`, `fork-from-model` or `compare` | S-245; v0.8 M3a (R10, R11, §3 ownership table) |
 | B-0265 | The guide and the pm and design roles do not teach checkpoints, live change requests or switching direction | S-245; v0.8 M4 |
 | B-0266 | Gate B, the forward-and-backward trial on the test stand with two vendors' cold agents, is not run | S-245; v0.8 M6 |
+| B-0268 | `examples/table`'s REQ-009 sign-off reads as not holding at the shipped state on the macOS host (`n2f check`: needs your sign-off, evidence changed); no test asserts an example's sign-offs hold except the kiln's | S-253; found by M1b's undo report |
+| B-0269 | `undo`/`redo`/`rollback` on a product with sign-offs run a checks build for R5's stale report: 9.1 s on tier 1 against 1.8 s without sign-offs (tier 2); skip it when no sign-off's evidence can read a restored file (static reads, as `ecr impact` does) | S-253 |
 
 ## Closed
 
@@ -281,3 +281,5 @@ entry that closed them. Ids are never reused.
 | B-0242 | Before tagging v0.7.0: rewrite the commit history so no commit carries the owner's old personal email (metadata only; the procedure is in the owner's local `OWNER-TODO.md` (untracked), the mapping in a private file outside the repository) | closed by S-243 |
 | B-0261 | A build with nothing changed cost 8 to 11 s on tier 1; now 1.3 to 1.5 s (the CAD kernel loads only when a rule runs) | closed by S-247 |
 | B-0259 | The nightly `check-full` failed on two timing budgets on the CI runner; CI budgets set at 1.5× the runner's times, host budgets kept | closed by S-249 |
+| B-0121 | Git words older than v0.5 ("nothing tagged", "without tagging", "saved as snapshot <hash>", the doctor's "git (change tracking)") | closed by S-253 |
+| B-0260 | No checkpoints and no `undo` / `redo` / `rollback`; `n2f discard` could not be undone | closed by S-253 |

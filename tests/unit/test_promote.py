@@ -130,7 +130,7 @@ def test_promote_green_card_writes_the_expected_model(product: Path) -> None:
     # a snapshot, and nothing left unsaved
     vcs = Vcs(root)
     assert vcs.head() != head and result.snapshot == vcs.head() and vcs.is_clean()
-    assert "Promote C-003: Appliance-style compact kiln" in vcs._git("log", "-1").stdout
+    assert "Promoted C-003 (Appliance-style compact kiln)" in vcs._git("log", "-1").stdout
     # the model loads, every new requirement validates and the ids are all in the JSON
     model = load_product(root)
     assert [f"req://REQ-00{i}" for i in range(4, 10)] == [

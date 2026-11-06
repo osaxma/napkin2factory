@@ -74,7 +74,7 @@ def promote(
         reason: why (recorded in the decision's context).
         by: the person who chose (``made_by: human``); without it the agent made the call.
         now: the timestamp to record (default: now, to the second).
-        snapshot: take the ``Promote C-00x`` snapshot (when the folder is a project root).
+        snapshot: save the ``Promoted C-00x`` checkpoint (when the folder is a project root).
 
     Raises:
         GateBlocked: a gate refused (exit 3); nothing was written.
@@ -274,6 +274,10 @@ def promote(
         **{cm.card_path(root, k): v for k, v in card_texts.items()},
         **{root / rel: text for rel, text in modules.texts.items()},
     }
+    if snapshot:
+        from napkin2factory.cli.checkpointing import save_edits_first
+
+        save_edits_first(root)  # the owner's loose edits stay their own step (R4)
     _write_all(root, writes, validate)
     result = PromotionResult(
         card_id=cid,
@@ -298,7 +302,10 @@ def promote(
 
         vcs = Vcs(root)
         if vcs.is_tracked() and vcs.is_repo_root():
-            result.snapshot = vcs.snapshot(f"Promote {cid}: {card.title}")
+            from napkin2factory.cli.checkpointing import checkpoint
+
+            cp = checkpoint(root, f"Promoted {cid} ({card.title})")
+            result.snapshot, result.checkpoint = cp.id, cp.number
         else:
             notes.append("this folder is not a tracked project, so no snapshot was taken")
     return result

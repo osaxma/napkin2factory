@@ -279,6 +279,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-250 | v0.8 wave 1 boundary: 4 core/ files, R12's first timings, `make check` time | in force |
 | S-251 | Wave 2 seam: checkpoint vitals from a fresh build; change-request baseline and approval hash fields | in force |
 | S-252 | Wave 2 seam: `working_hash(exclude=...)`; a change request's approval hashes the model without `changes/` | in force |
+| S-253 | M1b: checkpoints, `undo` / `redo` / `rollback`, an undoable `discard`, plain words for B-0121 | in force |
 
 ---
 
@@ -1975,3 +1976,14 @@ and other change requests write there too, so a whole-folder hash would go stale
 (folder prefixes dropped from the temporary index before hashing); the approval hash is `working_hash(exclude=("changes/",))`,
 and M1b's staleness report compares the same. Added before M1b and M2b start so both use one definition. `core/` touched:
 `core/vcs_store.py`.
+
+## S-253 — M1b: checkpoints, undo, redo and rollback (2026-11-06)
+`n2f checkpoints [--all]` (newest first, 20 by default, "not measured" without vitals, marks undone ones and the current one), `undo`, `redo` and `rollback <#n | n | ECR-x | v1.0.0>`
+(`cli/undo.py`; the steps are `do_undo`/`do_redo`/`do_rollback`, the verbs only print). Each saves unsaved edits first ("edits since #12 <label>"), restores,
+and records "Undid: …", "Redid: …" or "Rolled back to …" with `restores=`; the vitals are copied from the state brought back. Undo stops at the open change
+request's start (`draft` or `approved`; `cli/checkpointing.py` `open_change_request`), rollback refuses then and names `n2f ecr abort`. The staleness report reads the
+checks after a restore (sign-offs, in `n2f check`'s words, built without renders) and compares each approved request's `model_hash` with `working_hash(exclude=("changes/",))`; it never revives. Labels: "Promoted
+C-002 (title)", "Decided D-004: …", "Signed off REQ-003", "Released v1.1.0", the snapshot message. `discard` saves the edits as "edits discarded", then undoes them, so `redo` brings them
+back. B-0121 and B-0260 closed ("nothing frozen", no hash, "change tracking", `docs/vocabulary.md` "checkpoint"). Measured R12, fresh `n2f undo` processes, bytecode on, best of three: tier 1
+(`table`, one parameter) 9.1 s (10.0, 10.7, 9.1; one sign-off, so the checks rebuild what the parameter touches, a plain rebuild was 10.7 s), tier 2 (`test-stand`) 1.8 s (no sign-offs, no build). Tests: 13 unit
+(`test_undo.py`), 1 property test of 10 random sequences (`test_undo_properties.py`, about 20 s), 1 e2e (`test_undo_signoff.py`, a stale sign-off named); old tests updated. Opened: B-0268 (the table's shipped REQ-009 sign-off reads stale), B-0269 (skip the checks build when no sign-off can be touched). `core/` touched: none.

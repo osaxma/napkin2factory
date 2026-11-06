@@ -24,7 +24,7 @@ def release(
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
-        help="Build the package and site preview without tagging or editing the model.",
+        help="Build the package and site preview without freezing a Revision or editing the model.",
     ),
     no_render: bool = typer.Option(False, "--no-render"),
     allow_example_signoffs: bool = typer.Option(
@@ -57,7 +57,7 @@ def release(
     if result.get("repackaged"):
         tag = f"[yellow]dry run[/yellow] — Revision [bold]{result['version']}[/bold] packaged again"
     elif dry_run:
-        tag = "[yellow]dry run[/yellow] — nothing tagged"
+        tag = "[yellow]dry run[/yellow] — nothing frozen"
     else:
         tag = f"Revision [bold]{result['version']}[/bold] released"
     console.print(f"[green]✓[/green] {tag}")

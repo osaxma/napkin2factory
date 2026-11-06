@@ -55,10 +55,13 @@ def decide(
 
     root = product_root(dir)
     warn_if_pin_excludes(root, json_out)
+    from napkin2factory.cli.checkpointing import checkpoint, save_edits_first
+
     product = load_product(root)
     data = _ensure_checks(product)  # the choice as the current model offers it
     row = find_choice(data["results"], check)
     entry = decision_entry(product, row, pick, by, note, agent)
+    save_edits_first(product)  # the owner's loose edits stay their own step (R4)
     append_decision(product.paths.decisions, entry)
     # refresh the checks so `n2f status` agrees, and save: a decision is a record
     after = _ensure_checks(load_product(root))
@@ -67,8 +70,10 @@ def decide(
 
     vcs = Vcs(root)
     saved = None
+    saved_number = None
     if vcs.is_tracked() and vcs.is_repo_root():
-        saved = vcs.snapshot(f"Decide {entry['id']}: {entry['title']}")
+        cp = checkpoint(root, f"Decided {entry['id']}: {entry['title']}")
+        saved, saved_number = cp.id, cp.number
     option_id = pick_option(row, pick)
     detail = row.get("detail") or {}
     option = next(o for o in detail.get("options", []) if o["id"] == option_id)
@@ -86,6 +91,7 @@ def decide(
                 "option": option_id,
                 "status": now["status"] if now else None,
                 "snapshot": saved,
+                "checkpoint": saved_number,
                 "next": next_step,
             }
         )

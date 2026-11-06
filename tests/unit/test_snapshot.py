@@ -45,7 +45,8 @@ def test_discard_preserves_filed_change_request_and_patch(tmp_path: Path) -> Non
     r_disc = n2f("discard", "--yes", cwd=root)
     assert r_disc.returncode == 0, r_disc.stderr
     assert "discarded changes in model/parameters.yaml" in r_disc.stdout
-    assert "matches the last snapshot again" in r_disc.stdout
+    assert "matches checkpoint #3 again" in r_disc.stdout
+    assert "n2f redo" in r_disc.stdout
 
     assert ecr_file.exists(), "ECR-001.yaml was deleted by discard!"
     assert patch_file.exists(), "ECR-001.patch was deleted by discard!"

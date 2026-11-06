@@ -19,6 +19,7 @@ from napkin2factory.cli import publish as publish_cmd
 from napkin2factory.cli import release as release_cmd
 from napkin2factory.cli import serve as serve_cmd
 from napkin2factory.cli import snapshot as snapshot_cmd
+from napkin2factory.cli import undo as undo_cmd
 from napkin2factory.cli import validate as validate_cmd
 
 app = typer.Typer(
@@ -57,6 +58,7 @@ app.command("context")(context_cmd.context)
 app.command("serve")(serve_cmd.serve)
 app.command("snapshot")(snapshot_cmd.snapshot)
 app.command("discard")(snapshot_cmd.discard)
+undo_cmd.register(app)
 app.command("doctor")(doctor_cmd.doctor)
 app.command("docs")(docs_cmd.docs)
 app.add_typer(ecr_cmd.ecr_app, name="ecr")

@@ -429,6 +429,9 @@ def signoff(
         "evidence_keys": keys,
         "example": example,
     }
+    from napkin2factory.cli.checkpointing import checkpoint, save_edits_first
+
+    save_edits_first(product)  # the owner's loose edits stay their own step (R4)
     path = product.paths.signoffs / f"{rid}.yaml"
     write_yaml(path, payload)
     # refresh the checks so `n2f status` agrees, and save: a sign-off is a record
@@ -437,10 +440,12 @@ def signoff(
 
     vcs = Vcs(product.root)
     saved = None
+    saved_number = None
     if vcs.is_tracked() and vcs.is_repo_root():
-        saved = vcs.snapshot(f"Sign off {rid}" + (" (EXAMPLE)" if example else ""))
+        cp = checkpoint(product.root, f"Signed off {rid}" + (" (EXAMPLE)" if example else ""))
+        saved, saved_number = cp.id, cp.number
     if json_out:
-        emit_json({"written": str(path), "snapshot": saved, **payload})
+        emit_json({"written": str(path), "snapshot": saved, "checkpoint": saved_number, **payload})
     else:
         console.print(
             f"[green]✓[/green] sign-off for {rid} recorded and saved"

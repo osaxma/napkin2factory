@@ -50,7 +50,7 @@ def released(tmp_path_factory: pytest.TempPathFactory) -> Path:
     r = _run("release", "v1.0.0", cwd=root, ok=False)
     assert r.returncode == 4 and "n2f snapshot" in r.stderr and "n2f discard" in r.stderr
     r = _run("snapshot", "-m", "intake note", cwd=root)
-    assert "saved as snapshot" in r.stdout
+    assert "saved as checkpoint #" in r.stdout
     r = _run("snapshot", cwd=root)
     assert "nothing changed" in r.stdout
     # signing off saves automatically (B1) and refreshes the checks (B5)
@@ -133,7 +133,7 @@ def test_dry_run_repackages_a_revision_from_its_own_snapshot(released: Path) -> 
     assert zip_path.stat().st_mtime_ns == stamp
     # a dry run for a new Revision still previews it (then the preview is cleared away)
     r = _run("release", "v1.0.1", "--dry-run", "--no-render", "--allow-example-signoffs", cwd=root)
-    assert "nothing tagged" in r.stdout and vcs.tags() == ["v1.0.0"]
+    assert "nothing frozen" in r.stdout and vcs.tags() == ["v1.0.0"]
     shutil.rmtree(root / "build/site/v1.0.1")
     (root / "build/release/enclosure-v1.0.1.zip").unlink()
 

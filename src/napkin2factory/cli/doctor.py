@@ -88,7 +88,7 @@ def _probe() -> list[dict[str, str]]:
     git = shutil.which("git")
     rows.append(
         {
-            "check": "git (change tracking)",
+            "check": "change tracking",
             "status": "ok" if git else "fail",
             "detail": git or "not found; install git so snapshots and releases work",
         }

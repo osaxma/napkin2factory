@@ -30,6 +30,7 @@ class PromotionResult:
     already_rejected: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     snapshot: str | None = None
+    checkpoint: int | None = None
     files: list[str] = field(default_factory=list)
     #: the top assembly and the module stubs written (P10); empty when none were
     assemblies: list[SeededAssembly] = field(default_factory=list)
@@ -114,6 +115,7 @@ class PromotionResult:
             "rejected": self.rejected,
             "already_rejected": self.already_rejected,
             "snapshot": self.snapshot,
+            "checkpoint": self.checkpoint,
             "files": self.files,
             "assemblies": [
                 {

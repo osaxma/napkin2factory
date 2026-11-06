@@ -44,7 +44,7 @@ checks have no `fail`, every safety requirement is `signed`, the Revision name i
 Writes `released_in` on closed change requests, the changelog release header, snapshots,
 tags, builds `build/release/<product>-vX.Y.Z.zip` (STEP, drawings SVG + PDF bundle, DXF flat
 patterns, BOM, manuals, report, checks, changelog) and freezes `build/site/vX.Y.Z/`
-(report, ZIP, `data/` for diffs). `--dry-run` builds everything without tagging or editing.
+(report, ZIP, `data/` for diffs). `--dry-run` builds everything without freezing a Revision or editing.
 
 ## Diff
 

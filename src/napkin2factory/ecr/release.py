@@ -558,8 +558,12 @@ def release(
     shutil.copyfile(build_dir / "report" / "index.html", frozen / "index.html")
     export_data(product, build_dir, frozen / "data")
     snapshot = None
+    checkpoint_number = None
     if not dry_run:
-        snapshot = vcs.snapshot(f"Release {version}")
+        from napkin2factory.cli.checkpointing import checkpoint
+
+        cp = checkpoint(product, f"Released {version}")
+        snapshot, checkpoint_number = cp.id, cp.number
         vcs.tag(version, f"Revision {version}")
         # the report must say "Released vX.Y.Z": re-render now that the Revision exists, into
         # the frozen site, the build and the package (gate F, blocker 2: the zip held the draft)
@@ -580,6 +584,7 @@ def release(
         "zip": str(zip_path),
         "site": str(frozen),
         "snapshot": snapshot,
+        "checkpoint": checkpoint_number,
         "closed_ecrs": closed,
         "dry_run": dry_run,
     }
