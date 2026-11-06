@@ -1,41 +1,66 @@
 # The change loop (ECR)
 
+A change to a product after its design is settled is a live change request. The model
+files are edited in place; the request records a baseline when it starts, and compares
+the live model with that baseline until it is closed. There is no patch and no apply step.
+
 ```
-n2f ecr new --title "Taller box" --set param://box-height=100mm      # draft
-n2f ecr impact ECR-001         # what it touches, before anything changes
-n2f ecr approve ECR-001 --by "Owner"
-n2f ecr apply ECR-001          # edits the model in place, snapshot
+n2f ecr start --title "Taller box" --set param://box-height=100mm   # records the baseline
+# edit the model/ files directly, then:
 n2f build && n2f check
+n2f ecr impact ECR-001              # the live model against the baseline: what it touches
 n2f signoff REQ-004 --by "…" --statement "…"   # if a safety sign-off was invalidated
-n2f ecr close ECR-001          # checks must be green; revisions bump; CHANGELOG grows
-n2f release v1.1.0             # tag, ZIP, frozen site version
-n2f diff v1.0.0 v1.1.0         # overlays, BOM delta, side-by-side 3D
+n2f ecr approve ECR-001 --by "Owner"           # binds to the model as it is now
+n2f ecr close ECR-001               # refuses if the model changed since approval, or build/check is red
+n2f release v1.1.0                  # tag, ZIP, frozen site version
+n2f diff v1.0.0 v1.1.0              # overlays, BOM delta, side-by-side 3D
 ```
+
+Every change command saves a checkpoint before it changes anything, so a wrong edit is
+undone with `n2f undo` (inside an open request it stops at the request's start); `n2f
+checkpoints` lists them, and `n2f rollback` restores one.
+
+## Verbs
+
+- `n2f ecr start --title TEXT [--kind parametric|design] [--reason TEXT] [--set uri=value …]
+  [--task TEXT …] [--by NAME]`: opens the request and records its baseline. `--set` applies
+  its edits now.
+- `n2f ecr quick --set uri=value … [--title TEXT] [--reason TEXT] [--by NAME]`: start, apply the
+  edits and show the impact in one step, for a small parameter change.
+- `n2f ecr impact [ECR-xxx]`: what the change touches; nothing changes.
+- `n2f ecr approve [ECR-xxx] --by NAME [--note TEXT]`: approval after reading the impact. It
+  stores the model as it is now; any later edit makes the approval stale.
+- `n2f ecr close [ECR-xxx]`: refuses if the model changed since approval, or if build or check
+  is not green. Otherwise it bumps revisions, grows the changelog and saves a snapshot.
+- `n2f ecr abort [ECR-xxx] [--reason TEXT]`: drops the request and returns the model to where it
+  started. Undoable.
+- `n2f ecr list` and `n2f ecr show ECR-xxx`: the requests and one of them.
+- Bridges for one version: `n2f ecr new` does what `start` does and says so. `n2f ecr apply`
+  refuses and names the next steps (`approve`, then `close`). `n2f ecr reject` says to use
+  `abort`.
 
 ## Kinds (D7)
 
-**parametric** — `edits: [{set: <uri[#path]>, to: <value>}]`, applied mechanically.
-Parameter edits change one line; selector edits (`req://REQ-001#verify.value`,
-`part://x#cost.unit`) round-trip the YAML keeping comments.
+**parametric** (the default): edits to parameters and selectors (`param://…`,
+`req://REQ-001#verify.value`, `part://x#cost.unit`), applied mechanically. Parameter edits change
+one line; selector edits round-trip the YAML keeping comments.
 
-**design** — `tasks: [...]` for the designer agent and optionally `patch:
-changes/ECR-00x.patch`, a unified diff over `model/` produced by making the change,
-capturing the diff and reverting. `apply` applies the patch and prints the tasks; the
-impact report marks geometry-dependent verdicts as estimates until rebuilt.
+**design**: for asks that change shape or add features. `--task TEXT` gives the designer a
+task; the designer edits the model files as any model edit, builds and checks. Nothing is
+written as a patch file.
 
 ## Impact report
 
-Rules that would rerun (from recorded reads), parts touched with implied revision bumps,
-drawings, manual pages, interfaces to re-verify, requirements with hypothetical verdicts
-(`param_bound` and declared-cost `bom_rollup` are evaluated now; geometry-dependent ones
-are estimates), sign-offs that would be invalidated, cost delta from declared costs.
-Stored in the ECR (`impact:`) and as `build/changes/ECR-xxx-impact.md`.
+What the live model changes against the baseline: parts touched with the revisions they imply,
+drawings, manual pages, interfaces to re-verify, requirements whose verdict could change (values
+that depend on geometry are estimates until the model is built), sign-offs that would be
+invalidated, and the cost delta from declared costs. `n2f ecr impact --json` gives the same data.
 
 ## Close
 
-Requires zero `fail`. Bumps the rev of every part whose geometry output or YAML changed,
+Requires zero `fail`. Bumps the revision of every part whose geometry output or YAML changed,
 then every assembly containing a bumped child, rebuilds the checks so title blocks and the
-report carry the new revs, appends to `CHANGELOG.md`, snapshots.
+report carry the new revisions, appends to `CHANGELOG.md`, and saves a snapshot.
 
 ## Release
 

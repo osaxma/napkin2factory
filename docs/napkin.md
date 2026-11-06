@@ -201,6 +201,8 @@ Each value has its rule row: `structural-deflection`, `structural-yield`,
 `structural-cross-member`, `structural-buckling`, `structural-tip-over`. Hardware that another screen adds to the
 card's mass counts in the weight.
 
+A product's own word for one of these (a throat, an overhang) lives in its own folder, with its own screen.
+
 ## The rules
 
 The system's rules (`rulepacks/concept-v0.yaml`), for every product:

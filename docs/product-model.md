@@ -48,8 +48,23 @@ interference | count | interface | manual | rule`; the target scheme must match 
 a measurable value with a unit in the statement (unless the kind is binary), a verify block,
 an allocation, and `safety: true` requirements need verify and a tag `hazard:<kind>` (kinds
 in `core/data/hazards.yaml`, each classed as raising the ceremony or not; `L4-hazard-tag`).
-`n2f.yaml` may carry `ceremony: standard`; the level is otherwise derived from the model
-(docs/agent-guide.md, "Ceremony").
+`n2f.yaml` may carry `ceremony: standard`; the level is otherwise derived from the model.
+
+**Ceremony: how much paperwork a product carries.** It is derived from the model, not
+chosen. A product is `standard` when a domain with content reports hazardous energy (the
+wiring does for a supply above extra-low voltage), when more than one domain has content, when
+a requirement carries a `hazard:<kind>` tag the hazard table (`core/data/hazards.yaml`: mains,
+high-temperature, moving-machinery, stored-energy) classes as raising, or when `n2f.yaml`
+says `ceremony: standard`; otherwise it is `lite`. Every `safety: true` requirement names its
+hazard with such a tag (`hazard:tip-over`, `hazard:sharp-edge`, … the lint lists the kinds);
+tip-over, sharp-edge and pinch keep their sign-off without raising the ceremony. `lite`
+relaxes three things only: a custom part may leave out `tolerance_class` when its process has
+a default (the parts list and the drawing say "(default)"), one `model/docs/build-and-care.md`
+page with `safety: true` stands for the manual set, and the report leaves out its empty
+Sign-offs, Joints between units and Change requests sections. Provenance, port alignment and
+safety sign-offs are the same at both levels. `n2f check` names the ceremony (`ceremony` and
+`ceremony_reasons` in `--json`) and, the first time a product rises from `lite` to
+`standard`, lists what it now needs.
 
 **parameters.yaml** — `parameters: {slug: {value, unit, description} | {expr, unit}}`.
 Expressions are arithmetic over other parameter slugs (write `a - b` with spaces, since
