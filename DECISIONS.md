@@ -305,6 +305,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-276 | Health review 2026-11-06 (v0.8 close) | in force |
 | S-277 | Gate B fixes: seeding skips a requirement already held, the switch names the card's failures | in force |
 | S-278 | The oracle judges a gate B product: every checkpoint, built and parked cards | in force |
+| S-279 | Gate B (v0.8) — outcome: passed by cold agents of two vendors; the oracle passes both products as the spec states them | in force |
 
 ---
 
@@ -2138,3 +2139,14 @@ Gate B (S-277) ran the forward-and-backward script on the test stand with two co
 (2) A card with a `built` block of event `forked` (written by `concept fork-from-model`) holds the built design, not a napkin idea: the concept rows and the card count leave it out (the count row names it), and its refusal to build is no problem. A `parked` card is an idea set aside, judged like a rejected one by the checks its screening fails.
 (3) The test stand's REQ-002 statement names the rated test force again (2000 N), so `n2f status` no longer reports it unmeasurable.
 Measured on copies of both gate B products: 47 passed 3 failed 7 pending before (gemini), 48 passed 2 failed 7 pending after, both products. The two left fail on the assembled mass (16.98 and 16.91 kg against 16.52 or 15.92): the agents' own design change moved it, expected on the final folder.
+## S-279 — Gate B (v0.8) — outcome (2026-11-06)
+Track B §4's script, run by two cold agents in folders outside the repository on the test stand put back
+to "no direction chosen" (S-272's start, no build, no oracle file), from six owner-worded requests:
+Gemini 3.8 Flash (Google) 27 min, 213 tool calls, 687k tokens; DeepSeek V4 Pro 28 min, 75 tool calls,
+0.33 USD (`docs/reviews/v0.8-gate-b-trial-{gemini,deepseek}.md`). Both did all six: promoted and built
+the portal (first report 5 min in, after 58 and 20 tool calls), forked the built design, switched to the
+C-frame and back with nothing lost, aborted the 2500 N change on the load-cell failure, closed the platen
+change after a refused stale approval (both lengthened the columns 5 mm to keep the 250 mm daylight),
+undid and redid a hand edit. Oracle (S-278) at the state before each agent's own design change: 50 passed,
+0 failed, 7 pending, both, CR-1 judged on the agent's own aborted request. Gate B passes. Found: B-0289,
+B-0290. Both read `close`'s sign-off list (14) as a surprise; the guide's line on it is gate L's fix task.
