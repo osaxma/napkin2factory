@@ -64,6 +64,7 @@ def promote(
     *,
     now: dt.datetime | None = None,
     snapshot: bool = True,
+    supersedes: str | None = None,
 ) -> PromotionResult:
     """Promote one concept card into the product model (see the module docstring).
 
@@ -75,6 +76,8 @@ def promote(
         by: the person who chose (``made_by: human``); without it the agent made the call.
         now: the timestamp to record (default: now, to the second).
         snapshot: save the ``Promoted C-00x`` checkpoint (when the folder is a project root).
+        supersedes: the decision (``DEC-0xx``) this promotion replaces, as ``concept switch``
+            does (R10): its words join the new decision's context and ``dec://`` joins its links.
 
     Raises:
         GateBlocked: a gate refused (exit 3); nothing was written.
@@ -98,9 +101,17 @@ def promote(
         raise GateBlocked(f"{cid} is already the chosen direction")
     chosen = [c for c in cards.values() if cm.recorded_promotion(c, root) and c.id != cid]
     if chosen:
+        from napkin2factory.core.vcs import Vcs
+
+        vcs = Vcs(root)
+        released = vcs.is_tracked() and bool(vcs.tags())
+        way = (
+            'start a design change: `n2f ecr start --kind design --title "…"`'
+            if released
+            else f"run `n2f concept switch {cid}`"
+        )
         raise GateBlocked(
-            f"{chosen[0].id} is already the chosen direction — changing direction after "
-            "promotion is a change request: `n2f ecr new --kind design --title …`"
+            f"{chosen[0].id} is already the chosen direction — to choose {cid} instead, {way}"
         )
     reason = (reason or "").strip() or None
     if override and not reason:
@@ -190,6 +201,8 @@ def promote(
         context.append(f"Promoted despite screening, which says: {failing}.")
     if override:
         context.append(f"Reason given for --override: {reason}.")
+    if supersedes:
+        context.append(f"This supersedes {supersedes}.")
     over = [p for p in seeded if p.status == "overwritten"]
     if over:
         context.append(
@@ -224,6 +237,7 @@ def promote(
         [f"req://{r.id}" for r in new_reqs]
         + [f"param://{p.name}" for p in seeded]
         + [f"asm://{a.id}" for a in modules.seeded]
+        + ([f"dec://{supersedes}"] if supersedes else [])
     )
     assert card.screening is not None
     title = f"Design direction: {card.title}" + (", despite screening" if red_override else "")

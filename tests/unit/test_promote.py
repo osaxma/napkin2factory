@@ -510,8 +510,8 @@ def test_cli_promotion_prints_snapshot_saved_and_plain_refusals(product: Path) -
     r = n2f("concept", "promote", "C-002", cwd=product)
     assert r.returncode == 3
     assert (
-        "changing direction after promotion is a change request: "
-        "`n2f ecr new --kind design --title …`"
+        "C-003 is already the chosen direction — to choose C-002 instead, "
+        "run `n2f concept switch C-002`"
     ) in r.stderr
     r = n2f("concept", "new", "Taller", "--from", "C-002", cwd=product)
     assert r.returncode == 0, r.stderr
