@@ -54,6 +54,31 @@ def _q_text(q: Any) -> str:
     return format_quantity(q)
 
 
+def display_units(root: Path | None) -> str:
+    """The product's display units (``metric`` or ``imperial``, ``n2f.yaml`` ``units``, S-219)."""
+    manifest = Path(root) / "n2f.yaml" if root is not None else None
+    if manifest is None or not manifest.is_file():
+        return "metric"
+    try:
+        data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return "metric"
+    return "imperial" if isinstance(data, dict) and data.get("units") == "imperial" else "metric"
+
+
+def _shown(q: Any, units: str) -> str:
+    """A quantity in the owner's words: the display units, rounded by the display rules.
+
+    The stored bound stays exact in the model's units; only the statement a person reads
+    uses this: ``150 lb``, never ``68.0389 kg``. The metric figure in brackets that the
+    report adds is left out, since it is the unrounded number (B-0230).
+    """
+    from napkin2factory.report.units import display
+
+    text = display(q, units)
+    return re.sub(r" \([^()]*\)$", "", text) if units == "imperial" else text
+
+
 def _split(q: Any) -> tuple[float | int, str]:
     text = format_quantity(q)
     mag, _, unit = text.partition(" ")

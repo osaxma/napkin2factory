@@ -57,7 +57,7 @@ class PromotionResult:
         abouts: dict[str, int] = {}
         for r in self.requirements:
             abouts[r.about] = abouts.get(r.about, 0) + 1
-        order = ("form", "space", "supply", "weight", "budget")
+        order = ("form", "space", "supply", "sag", "cost", "weight", "budget")
         words = {**_ABOUT_WORDS, "space": f"the {self.space}"}
         parts = [f"{abouts[a]} about {words[a]}" for a in order if a in abouts]
         reqs = _count(len(self.requirements), "requirement") + (
@@ -145,4 +145,6 @@ _ABOUT_WORDS = {
     "supply": "the supply",
     "weight": "the weight",
     "budget": "module sizes",
+    "sag": "the sag limit",  # B-0230: what the card's loads and limits become
+    "cost": "the cost budget",
 }

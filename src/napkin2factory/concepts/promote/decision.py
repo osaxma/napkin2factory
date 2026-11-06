@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -57,13 +58,32 @@ def verdict_words(card: ConceptCard) -> str:
     return str(card.verdict)
 
 
+#: What marks a clause as a formula or a source: an operator, a verify flag, a table or edition.
+_CALC = re.compile(r"\[verify\]|[\^*=·σ]|\bed\.,|calckit")
+
+
+def plain_reason(message: str) -> str:
+    """A screening message without its calculation text (B-0230).
+
+    The rows say the finding first and may add ``— formula; source`` after a dash, and a factor
+    check adds ``(limit ÷ sag is 0.175, 1 needed, static case)``. A decision names an idea
+    by what went wrong, never by the other idea's formulas.
+    """
+    first, *rest = message.split(" — ")
+    # a dash also sets off plain explanation ("it needs 1245 mm — 995 mm for the body plus …"),
+    # which stays; only a clause that reads as a formula or a source goes
+    head = " — ".join([first, *(r for r in rest if not _CALC.search(r))])
+    head = re.sub(r"\s*\([^()]*\bneeded\b[^()]*\)", "", head)
+    return head.strip()
+
+
 def _one_line(card: ConceptCard, root: Path | None = None) -> str:
     from napkin2factory.concepts.build import summary_line
 
     if card.screening is None or card.verdict is None:
         return "not built"
     if card.verdict == "red":
-        return "red: " + "; ".join(r.message for r in card.screening.failing)
+        return "red: " + "; ".join(plain_reason(r.message) for r in card.screening.failing)
     return verdict_words(card) + ": " + summary_line(card, card.screening, root)
 
 

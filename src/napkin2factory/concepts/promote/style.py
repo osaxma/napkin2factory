@@ -101,3 +101,30 @@ def plan_style(card: ConceptCard, root: Path, notes: list[str]) -> tuple[str, St
             "and promote again"
         ) from exc
     return text, style, created
+
+
+def stated_style_keys(card: ConceptCard, root: Path) -> set[str]:
+    """The style fields the card or the owner chose, as opposed to a preset's defaults.
+
+    A form requirement may only come from a choice (B-0230): the card's own ``style`` keys,
+    every key of a preset the card names, and the keys of an existing ``style.yaml`` that
+    differ from that file's own preset. A product that merely has the default style chose
+    nothing, so no requirement is written for it.
+    """
+    from napkin2factory.core.style import style_path
+    from napkin2factory.core.yamlio import load_roundtrip
+
+    stated = {k for k in card.style if k in StyleFile.model_fields}
+    named = card.style.get("preset")
+    if named in PRESETS:
+        stated |= set(PRESETS[str(named)])
+    path = style_path(root)
+    if path.is_file():
+        doc = load_roundtrip(path)
+        if isinstance(doc, dict):
+            preset = PRESETS.get(str(doc.get("preset", "industrial")), {})
+            for key, value in doc.items():
+                if key in StyleFile.model_fields and key in preset:
+                    if str(_plain(value)) != str(preset[key]):
+                        stated.add(str(key))
+    return stated

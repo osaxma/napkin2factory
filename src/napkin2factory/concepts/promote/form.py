@@ -16,9 +16,19 @@ FORM_PACK = "form-v0"
 
 
 def form_requirements(
-    card: ConceptCard, style: StyleFile, top: str | None, notes: list[str]
+    card: ConceptCard,
+    style: StyleFile,
+    top: str | None,
+    notes: list[str],
+    stated: set[str] | None = None,
 ) -> list[tuple[str, dict[str, Any]]]:
-    """Form requirements from the merged style and the card's layout (the template library)."""
+    """Form requirements from the merged style and the card's layout (the template library).
+
+    ``stated``: the style fields the card or the owner chose (:func:`.style.stated_style_keys`;
+    default the card's own ``style`` keys). A style field nobody chose is a preset's default
+    and writes no requirement (B-0230).
+    """
+    chosen = set(card.style) if stated is None else stated
     src = f"concept {card.id} style"
     allocation: Any = [f"asm://{top}"] if top else "unallocated"
     out: list[tuple[str, dict[str, Any]]] = []
@@ -27,7 +37,7 @@ def form_requirements(
         return {"kind": "rule", "target": f"rule://{FORM_PACK}/{rule_id}"}
 
     radius = style.corner_radius
-    if float(radius.to("mm").magnitude) > 0:
+    if "corner_radius" in chosen and float(radius.to("mm").magnitude) > 0:
         out.append(
             (
                 "form",
@@ -42,7 +52,7 @@ def form_requirements(
                 },
             )
         )
-    if style.fastener_visibility == "hidden-front":
+    if "fastener_visibility" in chosen and style.fastener_visibility == "hidden-front":
         out.append(
             (
                 "form",
@@ -75,9 +85,9 @@ def form_requirements(
         )
     if len(out) == 1:  # none at all needs no note: the summary says so (gate B, B4)
         why = []
-        if float(radius.to("mm").magnitude) <= 0:
+        if "corner_radius" not in chosen or float(radius.to("mm").magnitude) <= 0:
             why.append("no corner radius")
-        if style.fastener_visibility != "hidden-front":
+        if "fastener_visibility" not in chosen or style.fastener_visibility != "hidden-front":
             why.append(f"fasteners {str(style.fastener_visibility).replace('-', ' ')}")
         if not controls:
             why.append("no place for the controls in the layout")

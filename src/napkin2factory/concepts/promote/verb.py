@@ -22,6 +22,7 @@ from napkin2factory.concepts.promote.decision import (
     _card_text,
     _labelled,
     _one_line,
+    plain_reason,
     verdict_words,
 )
 from napkin2factory.concepts.promote.form import form_requirements
@@ -29,7 +30,7 @@ from napkin2factory.concepts.promote.modules import plan_modules
 from napkin2factory.concepts.promote.parameters import plan_parameters
 from napkin2factory.concepts.promote.result import PromotionResult
 from napkin2factory.concepts.promote.site import site_requirements
-from napkin2factory.concepts.promote.style import plan_style
+from napkin2factory.concepts.promote.style import plan_style, stated_style_keys
 from napkin2factory.concepts.screens import SPACE_WORDS
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.errors import GateBlocked, N2FError
@@ -150,7 +151,7 @@ def promote(
     top = _top_assembly(product, notes) or modules.top
     planned = (
         site_requirements(card, seeded, top, notes, root)
-        + form_requirements(card, style, top, notes)
+        + form_requirements(card, style, top, notes, stated_style_keys(card, root))
         + modules.budgets
     )
     req_ids: list[str] = []
@@ -197,7 +198,7 @@ def promote(
     red_override = card.verdict == "red"
     if red_override:
         assert card.screening is not None
-        failing = "; ".join(f"{r.id}: {r.message}" for r in card.screening.failing)
+        failing = "; ".join(f"{r.id}: {plain_reason(r.message)}" for r in card.screening.failing)
         context.append(f"Promoted despite screening, which says: {failing}.")
     if override:
         context.append(f"Reason given for --override: {reason}.")
@@ -211,8 +212,10 @@ def promote(
             + "."
         )
     n_new = len([p for p in seeded if p.status == "new"])
+    from_site = any(p.source.startswith("site.") for p in seeded)
     decision_text = (
-        f"Take {cid} ({card.title}) forward as the design direction: its envelope seeds "
+        f"Take {cid} ({card.title}) forward as the design direction: its "
+        f"{'envelope and loads seed ' if from_site else 'envelope seeds '}"
         f"{_count(n_new, 'parameter')}, its site constraints and style choices become "
         f"{_count(len(new_reqs), 'requirement')}, and style.yaml takes its look."
     )

@@ -17,6 +17,7 @@ from napkin2factory.concepts.promote.common import (
     _slug,
     _split,
 )
+from napkin2factory.concepts.promote.loads import load_seeds
 from napkin2factory.concepts.promote.swing import door_seeds, seed_words
 from napkin2factory.core import concepts as cm
 from napkin2factory.core.model.concepts import ConceptCard
@@ -84,7 +85,10 @@ def _edit_param_value(text: str, slug: str, value: str) -> str | None:
     for i, line in enumerate(lines):
         m = pat.match(line)
         if m:
-            lines[i] = f"{m.group(1)}{m.group(2)}{value}{m.group(4)}"
+            newline = line[
+                len(line.rstrip("\r\n")) :
+            ]  # keep the line ending: the next line stays its own
+            lines[i] = f"{m.group(1)}{m.group(2)}{value}{m.group(4)}{newline}"
             return "".join(lines)
     return None
 
@@ -106,6 +110,11 @@ def plan_parameters(
     ]
     planned_names = {item[0] for item in plan}
     plan += [item for item in door_seeds(card) if item[0] not in planned_names]
+    # the loads, sag limit and budget the card states (B-0230)
+    planned_names = {item[0] for item in plan}
+    plan += [
+        item for item in load_seeds(card, product.paths.root, notes) if item[0] not in planned_names
+    ]
     for name, q, source, expr in plan:
         value_text = _q_text(q)
         if name in product.parameters:

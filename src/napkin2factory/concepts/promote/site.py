@@ -8,7 +8,10 @@ from typing import Any
 from napkin2factory.concepts.promote.common import (
     SeededParam,
     _q_text,
+    _shown,
+    display_units,
 )
+from napkin2factory.concepts.promote.loads import limit_requirements
 from napkin2factory.concepts.promote.packs import pack_requirements
 from napkin2factory.concepts.promote.swing import (
     DOOR_ROOM_PARAM,
@@ -44,6 +47,12 @@ def site_requirements(
     from napkin2factory.rulepacks.concept_checks import HINGED
 
     space = product_words(root).get("space", SPACE_WORDS)
+    units = display_units(root)
+
+    def shown(q: Any) -> str:
+        """A number in a statement: the product's display units (B-0230)."""
+        return _shown(q, units)
+
     door = str(card.layout.get("door", "") or "").strip().lower()
 
     src = f"concept {card.id} site constraint"
@@ -80,8 +89,8 @@ def site_requirements(
                 SPACE_ABOUT,
                 {
                     "title": f"Fits the {space} with the door open",
-                    "statement": f"The closed width plus the {_q_text(allowance)} the open door "
-                    f"takes beside the hinge stays within the {_q_text(width)} {space}.",
+                    "statement": f"The closed width plus the {shown(allowance)} the open door "
+                    f"takes beside the hinge stays within the {shown(width)} {space}.",
                     "category": "geometry",
                     "verify": geometry("bbox.x", "<=", limit),
                     "allocation": [f"asm://{top}", room] if top else "unallocated",
@@ -97,7 +106,7 @@ def site_requirements(
                 SPACE_ABOUT,
                 {
                     "title": DOOR_ROW_TITLE,
-                    "statement": f"The open door takes at most {_q_text(allowance)} beside the "
+                    "statement": f"The open door takes at most {shown(allowance)} beside the "
                     f"hinge, the room the {space} leaves it.",
                     "category": "geometry",
                     "verify": {
@@ -122,7 +131,7 @@ def site_requirements(
                 SPACE_ABOUT,
                 {
                     "title": f"Fits the {space} width",
-                    "statement": f"The assembled product is at most {_q_text(width)} wide.",
+                    "statement": f"The assembled product is at most {shown(width)} wide.",
                     "category": "geometry",
                     "verify": geometry("bbox.x", "<=", width),
                     "rationale": f"site.{generic.SITE_WIDTH.written(card)} on {card.id}.",
@@ -140,7 +149,7 @@ def site_requirements(
         limit = (width - term).to("mm")
         term_mm = float(term.magnitude)
         swing = (
-            f"the door swing of {_q_text(term)}"
+            f"the door swing of {shown(term)}"
             if term_mm > 0
             else "no door swing (the door does not open sideways)"
         )
@@ -150,7 +159,7 @@ def site_requirements(
                 {
                     "title": f"Fits the {space} with the door open",
                     "statement": f"The closed width plus {swing} stays within the "
-                    f"{_q_text(width)} {space}.",
+                    f"{shown(width)} {space}.",
                     "category": "geometry",
                     "verify": geometry("bbox.x", "<=", limit),
                     "rationale": f"Door-swing term {_q_text(term)} (computed by screening: "
@@ -171,7 +180,7 @@ def site_requirements(
                 SPACE_ABOUT,
                 {
                     "title": f"Fits the {space} {site_field.key}",
-                    "statement": f"The assembled product is at most {_q_text(limit)} {word}.",
+                    "statement": f"The assembled product is at most {shown(limit)} {word}.",
                     "category": "geometry",
                     "verify": geometry(axis, "<=", limit),
                     "rationale": f"site.{site_field.written(card)} on {card.id}.",
@@ -180,6 +189,8 @@ def site_requirements(
         )
     # what only the product's own screens know (a heated box's supply, B-0086)
     out += pack_requirements(root, card, seeded, top, notes)
+    # the loads' limits and the budget (B-0230)
+    out += limit_requirements(card, top, root)
     mass_limit: Any = card.site.get("mass_limit")
     basis = f"site.mass_limit on {card.id}"
     if not is_quantity(mass_limit) and isinstance(card.site.get("lift_class"), str):
@@ -203,7 +214,7 @@ def site_requirements(
                     "weight",
                     {
                         "title": "Light enough to move as planned",
-                        "statement": f"The assembled product weighs less than {_q_text(kg)}.",
+                        "statement": f"The assembled product weighs less than {shown(kg)}.",
                         "category": "mass",
                         "verify": geometry("mass", "<", kg),
                         "rationale": basis + ".",
