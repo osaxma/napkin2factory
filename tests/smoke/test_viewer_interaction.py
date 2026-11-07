@@ -95,16 +95,26 @@ def test_viewer_picking_isolation_and_section_cuts(tmp_path: Path) -> None:
         # 2. Drag of 40 px across the canvas moves the camera and leaves selection unchanged.
         cam_before = page.evaluate("window.n2fViewer.camera.position.toArray()")
         ev_count_before = page.evaluate("window.__events.length")
-        page.mouse.move(left_pt["x"], left_pt["y"])
-        page.mouse.down()
-        page.mouse.move(left_pt["x"] + 40, left_pt["y"] + 10, steps=5)
-        page.mouse.up()
-        # OrbitControls (damped) moves the camera in the frame loop, so wait for a frame
-        # rather than reading at once (a loaded host read the old position, S-232).
-        page.wait_for_function(
-            "(b) => window.n2fViewer.camera.position.toArray().some((v, i) => v !== b[i])",
-            arg=cam_before,
-        )
+        # A drag that starts without a real mouse move first is, under heavy CPU load, sometimes
+        # delivered to the page not at all (measured: an empty event log, ten busy loops), so the
+        # drag moves first and is tried a few times; one that moved the camera proves the path, and every try must leave the
+        # selection alone.
+        for _ in range(4):
+            page.mouse.move(left_pt["x"] - 30, left_pt["y"] - 30)  # a real move first: hover is set
+            page.mouse.move(left_pt["x"], left_pt["y"], steps=3)
+            page.mouse.down()
+            page.mouse.move(left_pt["x"] + 40, left_pt["y"] + 10, steps=5)
+            page.mouse.up()
+            assert page.evaluate("window.__selected") == "part://left"
+            try:  # OrbitControls (damped) moves the camera in the frame loop
+                page.wait_for_function(
+                    "(b) => window.n2fViewer.camera.position.toArray().some((v, i) => v !== b[i])",
+                    arg=cam_before,
+                    timeout=1500,
+                )
+                break
+            except Error:
+                continue
         cam_after = page.evaluate("window.n2fViewer.camera.position.toArray()")
         assert cam_after != cam_before
         assert page.evaluate("window.__selected") == "part://left"
