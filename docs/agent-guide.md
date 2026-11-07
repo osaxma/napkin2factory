@@ -19,6 +19,8 @@ open a file. Talk to them in plain words.
 2. Ask the owner the region and units, then `n2f init <folder> --name "…" --region … --units …`
    (step 3). It also starts the folder's warm engine, which speeds up every later command.
 3. Read `<folder>/AGENTS.md` and `roles/pm.md`; from here the folder's own instructions rule.
+   Every product verb takes `--dir <folder>` (`-C`), so you can run them from anywhere without
+   changing directory.
 4. Napkin stage: `n2f concept new "<title>"` per direction, `n2f concept build`,
    `n2f concept board`; the owner picks, `n2f concept promote C-00x`. Or edit `model/` directly.
 5. `n2f build`, then `n2f check`; fix and repeat until the checks are green.
@@ -473,8 +475,9 @@ refuses and changes nothing: bring them in (`git pull`) and publish again.
   under a command, a read-only one is run again; for one that changes the product (`undo`,
   `ecr close`, …) n2f exits 70 and says what to look at and which command to run next.
 - **Failures under `--json`** are one object on stdout, `{"error", "message", "next"}`: `next`
-  is the step to take. Exit codes: 0 ok, 1 an error, 2 a failed check or a usage error, 3 a
-  gate refused, 4 the machine, 70 the engine stopped under a command that changes the product.
+  is the step to take. Exit codes: 0 ok, 1 an error, 2 a usage error (fix the command line), 3 a
+  gate refused, 4 the machine, 5 a failed check (fix the design), 70 the engine stopped under a command
+  that changes the product.
 - **Something fails.** Run `n2f doctor`, then `n2f status`. Error messages say what to do
   next. Never edit anything under `build/`; edit the model and rebuild.
 - **Unsure what a page or number means.** `n2f docs how-it-works` (the ideas),

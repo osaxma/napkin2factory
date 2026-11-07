@@ -41,9 +41,11 @@ EPILOG = "\n\n".join(
         'Every verb takes `--json` (stdout is then one JSON object; an error is `{"error", '
         '"message", "next"}`) except `graph` (`--format json`), `serve`, `mcp`, `skill`.',
         "Exit codes: 0 ok; 1 the model or the command failed (the message says what to do); "
-        "2 a failed check, or a usage error; 3 a gate refused (release, change request, "
-        "promote); 4 a problem with this machine; 70 the warm engine stopped under a command "
-        "that changes the product (the message says what to look at and what to run).",
+        "2 a usage error (a bad option or verb: fix the command line); 3 a gate refused "
+        "(release, change request, promote); 4 a problem with this machine; 5 a failed check "
+        "(fix the design); 70 the warm engine stopped under a command that changes the product "
+        "(the message says what to look at and what to run).",
+        "Every product verb takes `--dir <folder>` (`-C`), so you never have to change directory.",
         "Commands run in a warm per-product process that `n2f init` starts: "
         "`n2f engine status`; `N2F_NO_ENGINE=1` turns it off.",
         "`n2f docs` lists the rest.",

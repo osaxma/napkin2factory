@@ -1,7 +1,7 @@
 """Under ``--json`` every failure is one JSON object on stdout: error, message, next (S-313).
 
 The agent is the first caller: it reads stdout, so a failure it can parse says what happened and
-what to run next, with the exit code kept (1 a product error, 2 a usage error or a failed check).
+what to run next, with the exit code kept (1 a product error, 2 a usage error, 5 a failed check).
 Text mode is unchanged: ``✗`` and click's own messages on stderr, nothing on stdout.
 """
 
@@ -39,9 +39,11 @@ def test_not_a_product_is_an_object_with_the_init_next_step(
     obj = json.loads(out)
     assert set(obj) == {"error", "message", "next"} and obj["error"] == "not_a_product"
     assert "n2f init" in obj["next"] and "isn't a napkin2factory product" in obj["message"]
+    # an agent never has to change directory: the message and the next step name --dir / -C
+    assert "--dir" in obj["message"] and "--dir" in obj["next"] and "-C" in obj["next"]
     assert "✗" in err  # the stderr line stays
     code, out, err = run(["status", "--dir", str(tmp_path), "--json"], capsys, monkeypatch)
-    assert code == 1 and json.loads(out)["next"].startswith(f"n2f init {tmp_path}")
+    assert code == 1 and f"n2f init {tmp_path}" in json.loads(out)["next"]
 
 
 def test_text_mode_is_unchanged(
@@ -112,6 +114,6 @@ def test_a_failing_check_keeps_its_own_json_and_exit_code(
 """
     )
     code, out, _ = run(["check", "--json", "--dir", str(root)], capsys, monkeypatch)
-    assert code == 2
+    assert code == 5  # a failed check, apart from 2 (a usage error)
     data = json.loads(out)  # one object: the check result, not an error wrapped around it
     assert "error" not in data and data["summary"]["fail"] >= 1

@@ -281,7 +281,7 @@ def test_check_lists_a_never_promoted_directions_screening_failures(root: Path) 
     assert shown and shown == direction_failures(root)
     # check lists them under the new key and exits non-zero while one stands
     r = n2f("check", "--json", cwd=root)
-    assert r.returncode == 2, r.stdout + r.stderr
+    assert r.returncode == 5, r.stdout + r.stderr
     assert json.loads(r.stdout)["direction_failures"] == shown
     # switching back to the restored direction has its own parts back: nothing to list
     go(root, "C-002")

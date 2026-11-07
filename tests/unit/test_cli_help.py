@@ -57,9 +57,9 @@ def test_the_json_claim_is_true_and_its_exceptions_are_exactly_these() -> None:
 
 
 def test_the_exit_codes_in_the_epilogue_are_the_real_ones() -> None:
-    assert (N2FError.exit_code, CheckFailed.exit_code, GateBlocked.exit_code) == (1, 2, 3)
+    assert (N2FError.exit_code, CheckFailed.exit_code, GateBlocked.exit_code) == (1, 5, 3)
     assert (EnvironmentProblem.exit_code, EXIT_INTERNAL) == (4, 70)
-    for text in ("0 ok", "1 the model", "2 a failed check, or a usage error", "3 a gate", "4 a"):
+    for text in ("0 ok", "1 the model", "2 a usage error", "3 a gate", "4 a", "5 a failed check"):
         assert text in EPILOG
     assert "70 the warm engine" in EPILOG
 

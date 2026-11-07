@@ -213,12 +213,12 @@ def test_summary_keys_and_released_next_step(tmp_path: Path) -> None:
     assert st.headline == "released"
 
 
-def test_broken_product_exits_2(tmp_path: Path) -> None:
+def test_broken_product_exits_5(tmp_path: Path) -> None:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "b", git=False)
     req = root / "model/requirements.yaml"
     req.write_text(req.read_text().replace('op: "<=", value: 150 mm', 'op: "<=", value: 100 mm'))
     r = n2f("check", cwd=root)
-    assert r.returncode == 2, r.stdout + r.stderr
+    assert r.returncode == 5, r.stdout + r.stderr  # a failed check; 2 is a usage error
     assert "needs attention" in r.stdout  # owner vocabulary for a failing row
     ok = n2f("check", "--json", cwd=EXAMPLES / "bracket")
     assert ok.returncode == 0

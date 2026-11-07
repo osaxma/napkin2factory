@@ -133,7 +133,11 @@ class GateBlocked(N2FError):
 
 
 class CheckFailed(N2FError):
-    """``n2f check`` found at least one failing check."""
+    """``n2f check`` found at least one failing check.
 
-    exit_code = 2
+    Exit code 5, apart from 2 (a usage error, the shell and Click convention): an agent tells
+    "fix the design" from "fix the command line" by the code alone (S-315).
+    """
+
+    exit_code = 5
     reported = True

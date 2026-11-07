@@ -155,7 +155,7 @@ def test_part_density_checks_uses_recording_proxy() -> None:
 
 
 def test_n2f_check_fails_for_custom_part_with_assumed_density(tmp_path: Path) -> None:
-    """n2f check fails with exit code 2 when a made part has assumed density."""
+    """n2f check fails with exit code 5 when a made part has assumed density."""
     dst = copy_product(EXAMPLES / "bracket", tmp_path / "bracket")
     part_file = dst / "model/parts/l-bracket.yaml"
     data = yaml.safe_load(part_file.read_text(encoding="utf-8"))
@@ -163,7 +163,7 @@ def test_n2f_check_fails_for_custom_part_with_assumed_density(tmp_path: Path) ->
     part_file.write_text(yaml.safe_dump(data), encoding="utf-8")
 
     res = n2f("check", "--json", cwd=dst)
-    assert res.returncode == 2
+    assert res.returncode == 5
     checks = json.loads(res.stdout)
     mat_row = next(r for r in checks["results"] if r["id"] == "material://l-bracket")
     assert mat_row["status"] == "fail"

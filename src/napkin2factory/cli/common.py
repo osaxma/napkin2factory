@@ -34,16 +34,18 @@ def product_root(path: Path | None) -> Path:
                 f"{p} isn't a napkin2factory product folder (no {MANIFEST}); "
                 "run `n2f init <dir>` to start one",
                 code="not_a_product",
-                next=f"n2f init {p}  (or point --dir at a product folder)",
+                next=f"pass `--dir <product folder>` (`-C`), or `n2f init {p}` to start one here",
             )
         return p
     found = find_product_root()
     if found is None:
         raise N2FError(
             f"this folder isn't a napkin2factory product (no {MANIFEST} here or above); "
-            "cd into a product folder or run `n2f init <dir>` to start one",
+            "run it from a product folder, or pass `--dir <folder>` (`-C`); "
+            "`n2f init <dir>` starts a product",
             code="not_a_product",
-            next="cd into a product folder, or run `n2f init <dir>` to start one",
+            next="run it from a product folder, or pass `--dir <folder>` (`-C <folder>`); "
+            "`n2f init <dir>` starts one",
         )
     return found
 

@@ -39,7 +39,7 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 def _json(*args: str, cwd: Path) -> Any:
     res = n2f(*args, "--json", cwd=cwd)
-    assert res.returncode in (0, 1, 2), res.stderr  # 2: a check failed (the fixture has no finish)
+    assert res.returncode in (0, 1, 5), res.stderr  # 5: a check failed (the fixture has no finish)
     return json.loads(res.stdout)
 
 
