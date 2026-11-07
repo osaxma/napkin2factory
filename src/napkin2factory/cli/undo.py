@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -161,10 +161,15 @@ def do_undo(root: Path) -> Step:
         undoes=plan.undoes.id,
         vitals=plan.restores.vitals,
     )
+    shown = (
+        plan.restores
+        if plan.restores.vitals or not new.vitals
+        else replace(plan.restores, vitals=new.vitals)
+    )
     headline = (
         f"undid {_ref(plan.undoes)}; back to {_ref(plan.restores)}. `n2f redo` brings it back"
     )
-    return Step("undone", new, plan.restores, changes, saved, headline)
+    return Step("undone", new, shown, changes, saved, headline)
 
 
 def do_redo(root: Path) -> Step:
@@ -183,7 +188,12 @@ def do_redo(root: Path) -> Step:
         redoes=plan.redoes.id,
         vitals=plan.restores.vitals,
     )
-    return Step("redone", new, plan.restores, changes, saved, f"brought back {_ref(plan.redoes)}")
+    shown = (
+        plan.restores
+        if plan.restores.vitals or not new.vitals
+        else replace(plan.restores, vitals=new.vitals)
+    )
+    return Step("redone", new, shown, changes, saved, f"brought back {_ref(plan.redoes)}")
 
 
 _NUMBER = re.compile(r"^#?(\d+)$")
@@ -216,6 +226,9 @@ def _resolve(root: Path, vcs: Vcs, log: list[Checkpoint], target: str) -> tuple[
         return ecr.baseline.checkpoint, f"before {ecr.id} ({ecr.title})", vitals
     state = vcs.revision_snapshot(text) if text in vcs.tags() else None
     if state is None:
+        by_label = next((c for c in log if text in (c.label, c.since)), None)
+        if by_label is not None:
+            return by_label.id, _ref(by_label), by_label.vitals
         raise VcsError(
             f"{target!r} is not a checkpoint number, a change request or a released "
             "Revision; `n2f checkpoints` lists checkpoints",
@@ -243,8 +256,11 @@ def do_rollback(root: Path, target: str) -> Step:
         return _nothing("rolled_back", vcs, saved, why)
     changes = vcs.restore(state)
     new = checkpoint(root, f"Rolled back to {words}", restores=state, vitals=vitals)
-    shown = next((c for c in log if c.id == state), None) or Checkpoint(
-        id=state, number=0, label=words, when=new.when, vitals=vitals
+    found_cp = next((c for c in log if c.id == state), None)
+    if found_cp is not None and not found_cp.vitals and new.vitals:
+        found_cp = replace(found_cp, vitals=new.vitals)
+    shown = found_cp or Checkpoint(
+        id=state, number=0, label=words, when=new.when, vitals=new.vitals or vitals
     )
     return Step(
         "rolled_back", new, shown, changes, saved, f"rolled back to {words}. `n2f undo` reverses it"
@@ -270,7 +286,7 @@ def _report(root: Path, step: Step, json_out: bool) -> None:
             console.print(escape(step.reason), soft_wrap=True)
         return
     assert step.shown is not None
-    stale = stale_after_restore(root)
+    stale = stale_after_restore(root, step.changes)
     if json_out:
         emit_json(
             {
@@ -335,16 +351,32 @@ def checkpoints(
         console.print(
             f"[yellow]unsaved edits[/yellow] in {len(unsaved)} file(s) since #{log[0].number}"
         )
-    for c in shown:
-        marks = ("  (undone)" if c.id in undone else "") + (
-            "  <- the folder is here" if c is log[0] else ""
-        )
-        console.print(
-            f"#{c.number:<4}{ago(c.when):<14}{escape(c.label)}  "
-            f"({escape(vitals_words(c.vitals))}){marks}",
-            soft_wrap=True,
-            highlight=False,
-        )
+    for group in cps.fold_signoffs(shown, undone):
+        if len(group) == 1:
+            c = group[0]
+            marks = ("  (undone)" if c.id in undone else "") + (
+                "  <- the folder is here" if c is log[0] else ""
+            )
+            console.print(
+                f"#{c.number:<4}{ago(c.when):<14}{escape(c.label)}  "
+                f"({escape(vitals_words(c.vitals))}){marks}",
+                soft_wrap=True,
+                highlight=False,
+            )
+        else:
+            newest_cp, oldest_cp = group[0], group[-1]
+            first_title = cps.signoff_first_title(oldest_cp)
+            label = f"{len(group)} sign-offs: {first_title}, …"
+            num_range = f"#{oldest_cp.number}–#{newest_cp.number}"
+            marks = ("  (undone)" if newest_cp.id in undone else "") + (
+                "  <- the folder is here" if any(c is log[0] for c in group) else ""
+            )
+            console.print(
+                f"{num_range:<8}{ago(newest_cp.when):<14}{escape(label)}  "
+                f"({escape(vitals_words(newest_cp.vitals))}){marks}",
+                soft_wrap=True,
+                highlight=False,
+            )
     if len(shown) < len(log):
         console.print(f"[dim]{len(log) - len(shown)} older ones: `n2f checkpoints --all`[/dim]")
 

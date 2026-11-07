@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.conftest import EXAMPLES, copy_product, n2f
 
@@ -31,7 +32,7 @@ def test_redo_over_a_changed_parameter_names_the_stale_signoff(tmp_path: Path) -
 
     r = n2f("undo", cwd=root)  # back to the signed-off state: the sign-off holds again
     assert r.returncode == 0, r.stderr
-    assert 'undid #3 "Taller box"; back to #2 "Signed off REQ-004"' in r.stdout
+    assert 'undid #3 "Taller box"; back to #2 "Signed off REQ-004: No sharp edges"' in r.stdout
     assert "changed: model/parameters.yaml" in r.stdout
     assert "sign-off" not in r.stdout.split("changed:")[1]
 
@@ -46,3 +47,34 @@ def test_redo_over_a_changed_parameter_names_the_stale_signoff(tmp_path: Path) -
     assert data["stale"] == [] and data["checkpoint"]["number"] == 6
     data = json.loads(n2f("redo", "--json", cwd=root).stdout)
     assert len(data["stale"]) == 1 and "REQ-004" in data["stale"][0]
+
+
+def test_undo_skips_checks_build_when_no_signoff_evidence_reads_restored_file(
+    tmp_path: Path,
+) -> None:
+    root = copy_product(EXAMPLES / "enclosure", tmp_path / "e", prebuilt=True, render=False)
+    r = n2f(
+        "signoff",
+        "REQ-004",
+        "--by",
+        "Tester",
+        "--statement",
+        "Overhang checked.",
+        "--evidence",
+        "param://lid-overhang",
+        cwd=root,
+    )
+    assert r.returncode == 0, r.stderr
+    params = root / "model" / "parameters.yaml"
+    params.write_text(
+        params.read_text().replace(
+            "box-height:        {value: 80,", "box-height:        {value: 85,"
+        )
+    )
+    with patch("napkin2factory.core.graph.runner.run_build") as mock_build:
+        u = n2f("undo", cwd=root)
+        assert u.returncode == 0, u.stderr
+        assert 'undid #3 "box-height 80 mm → 85 mm"' in u.stdout
+        re_out = n2f("redo", cwd=root)
+        assert re_out.returncode == 0, re_out.stderr
+        mock_build.assert_not_called()

@@ -159,7 +159,7 @@ def switch(
     """
     from napkin2factory.concepts.promote import promote
     from napkin2factory.core.loader import load_product, validate
-    from napkin2factory.core.vitals import current_vitals
+    from napkin2factory.core.vitals import current_vitals, recorded_vitals
 
     root = Path(root)
     stamp = (now or dt.datetime.now()).replace(microsecond=0)
@@ -196,7 +196,7 @@ def switch(
         loaded = load_product(root)
     except Exception:  # an unloadable model has no figures; validation reports it below
         loaded = None
-    vitals = current_vitals(loaded) if loaded is not None else cps.Vitals()
+    vitals = (current_vitals(loaded) if loaded is not None else cps.Vitals()) or start.vitals
     dec_id = _next_id("DEC", _dec_ids(root))
     old_marker = vcs.read_ref(marker_name(current.id))
     result = SwitchResult(
@@ -283,7 +283,14 @@ def switch(
             vcs.set_ref(marker_name(current.id), old_marker)
         raise
     # 6. one checkpoint, then what the restore left stale
-    cp = checkpoint(root, f"Switched to {target.id} ({target.title}); {current.id} parked")
+    cp = checkpoint(
+        root,
+        f"Switched to {target.id} ({target.title}); {current.id} parked",
+        vitals=recorded_vitals(root, marker if restoring else None)
+        or (
+            cps.Vitals(target.built.mass, target.built.cost) if restoring and target.built else None
+        ),
+    )
     result.checkpoint, result.number = cp.id, cp.number
     result.stale = stale_after_restore(root)
     if restoring:

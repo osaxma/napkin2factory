@@ -82,7 +82,10 @@ def test_start_saves_unsaved_edits_and_leaves_them_out_of_the_impact(root: Path)
     assert out["id"] == "ECR-001" and out["status"] == "draft"
     log = _log(root)
     labels = [c.label for c in log]
-    assert labels[-2].startswith("edits since") and labels[-1] == "Started ECR-001: Thicker steel"
+    assert labels[-2] == "hole-spacing 36 mm → 38 mm" and (log[-2].since or "").startswith(
+        "edits since"
+    )
+    assert labels[-1] == "Started ECR-001: Thicker steel"
     assert out["checkpoint"] == log[-1].id
     # the baseline is the checkpoint holding the unsaved edit; the start checkpoint follows it
     data = _ecr(root)
@@ -219,7 +222,9 @@ def test_abort_restores_the_start_is_recorded_and_can_be_undone(root: Path) -> N
     assert (
         log[-1].label == "Aborted ECR-001: Never mind" and log[-1].restores == start["checkpoint"]
     )
-    assert log[-2].label.startswith("edits since")  # the aborted work is a checkpoint
+    assert log[-2].label == "bracket-width 60 mm → 80 mm" and (log[-2].since or "").startswith(
+        "edits since"
+    )  # the aborted work is a checkpoint
     # undo = restore the checkpoint before the abort: the request and its edits come back
     plan = checkpoints.undo_plan(log)
     assert plan is not None and plan.undoes.id == log[-1].id and plan.restores.id == log[-2].id

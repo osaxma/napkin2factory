@@ -278,3 +278,69 @@ def test_stale_after_restore_names_an_approval_that_no_longer_matches(root: Path
     assert len(lines) == 1 and "ECR-001 (Widen it)" in lines[0] and "approve it again" in lines[0]
     # the report never rewrites the request: still approved with the old hash
     assert "status: approved" in (root / "changes" / "ECR-001.yaml").read_text()
+
+
+def test_saved_edits_name_changed_parameters_and_keep_since_recoverable(root: Path) -> None:
+    params = root / "model" / "parameters.yaml"
+    params.parent.mkdir(exist_ok=True)
+    params.write_text("parameters:\n  width: {value: 60, unit: mm}\n", encoding="utf-8")
+    checkpoint(root, "Base model")
+    params.write_text("parameters:\n  width: {value: 75, unit: mm}\n", encoding="utf-8")
+    cp = save_edits_first(root)
+    assert cp is not None
+    assert cp.label == "width 60 mm → 75 mm"
+    assert cp.since == "edits since #2 Base model"
+    r = n2f("undo", cwd=root)
+    assert r.returncode == 0 and 'undid #3 "width 60 mm → 75 mm"' in r.stdout
+    assert "value: 60" in params.read_text(encoding="utf-8")
+    # targeting the old `edits since ...` text still resolves
+    rb = n2f("rollback", "edits since #2 Base model", cwd=root)
+    assert rb.returncode == 0 and "value: 75" in params.read_text(encoding="utf-8")
+
+
+def test_signoffs_carry_titles_fold_consecutive_rows_and_keep_json_and_numbers(root: Path) -> None:
+    reqs = root / "model" / "requirements.yaml"
+    reqs.parent.mkdir(exist_ok=True)
+    reqs.write_text(
+        "requirements:\n"
+        "  - {id: REQ-001, title: Hull thickness, statement: At least 4 mm.,"
+        " category: geometry, priority: must, verify: {kind: manual}}\n"
+        "  - {id: REQ-002, title: Freeboard, statement: At least 200 mm.,"
+        " category: geometry, priority: must, verify: {kind: manual}}\n"
+        "  - {id: REQ-003, title: Emergency stop, statement: Accessible.,"
+        " category: safety, priority: must, verify: {kind: manual}}\n",
+        encoding="utf-8",
+    )
+    for rid in ("REQ-001", "REQ-002", "REQ-003"):
+        (root / NOTE).write_text(rid, encoding="utf-8")
+        c = checkpoint(root, f"Signed off {rid}")
+        assert ":" in c.label
+    out = n2f("checkpoints", cwd=root).stdout
+    assert "#2–#4" in out and "3 sign-offs: Hull thickness, …" in out
+    assert "Signed off REQ-002" not in out
+    data = json.loads(n2f("checkpoints", "--json", cwd=root).stdout)
+    assert len(data["checkpoints"]) == 4
+    assert data["checkpoints"][2]["label"] == "Signed off REQ-001: Hull thickness"
+    # individual sign-off checkpoints remain addressable by number
+    rb = n2f("rollback", "3", cwd=root)
+    assert rb.returncode == 0 and note(root) == "REQ-002"
+
+
+def test_restore_checkpoints_copy_earlier_recorded_vitals_for_same_state(root: Path) -> None:
+    params = root / "model" / "parameters.yaml"
+    params.parent.mkdir(exist_ok=True)
+    params.write_text("parameters:\n  width: {value: 60, unit: mm}\n", encoding="utf-8")
+    first = checkpoint(root, "Initial design")  # unbuilt when saved: no vitals on #2
+    assert not first.vitals
+    # Later checkpoint on the same design state (only decisions.yaml changed) records vitals
+    decs = root / "model" / "decisions.yaml"
+    decs.write_text("decisions: []\n", encoding="utf-8")
+    with_vitals = checkpoint(root, "Measured state", vitals=cps.Vitals("12.0 kg", "250 USD"))
+    assert with_vitals.vitals == cps.Vitals("12.0 kg", "250 USD")
+    params.write_text("parameters:\n  width: {value: 80, unit: mm}\n", encoding="utf-8")
+    unbuilt = checkpoint(root, "Unbuilt edit")
+    assert not unbuilt.vitals
+    # Rolling back to #2 (which had no vitals then, but shares #3's design state) takes #3's vitals
+    rb = json.loads(n2f("rollback", str(first.number), "--json", cwd=root).stdout)
+    assert rb["checkpoint"]["mass"] == "12.0 kg" and rb["checkpoint"]["cost"] == "250 USD"
+    assert rb["restored"]["mass"] == "12.0 kg"

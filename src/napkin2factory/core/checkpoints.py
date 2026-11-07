@@ -26,16 +26,24 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from napkin2factory.core.vcs import SnapshotInfo, Vcs
+from napkin2factory.core.yamlio import safe_load
 
 KEY_MASS = "Checkpoint-Mass"
 KEY_COST = "Checkpoint-Cost"
 KEY_RESTORES = "Checkpoint-Restores"
 KEY_UNDOES = "Checkpoint-Undoes"
 KEY_REDOES = "Checkpoint-Redoes"
+KEY_SINCE = "Checkpoint-Since"
 
 _WHITESPACE = re.compile(r"\s+")
+_SIGNOFF_PREFIX = "Signed off "
+_SIGNOFF_LABEL_RE = re.compile(
+    r"^Signed off (?P<id>REQ-[A-Za-z0-9_-]+)(?::\s*(?P<title>.+?))?(?P<ex>\s+\(EXAMPLE\))?$"
+)
 
 
 @dataclass(frozen=True)
@@ -47,6 +55,10 @@ class Vitals:
 
     mass: str | None = None
     cost: str | None = None
+
+    def __bool__(self) -> bool:
+        """True when at least one figure (mass or cost) is recorded."""
+        return bool(self.mass or self.cost)
 
 
 @dataclass(frozen=True)
@@ -65,6 +77,7 @@ class Checkpoint:
     restores: str | None = None
     undoes: str | None = None
     redoes: str | None = None
+    since: str | None = None
 
     @classmethod
     def from_snapshot(cls, info: SnapshotInfo, number: int) -> Checkpoint:
@@ -79,6 +92,7 @@ class Checkpoint:
             restores=t.get(KEY_RESTORES) or None,
             undoes=t.get(KEY_UNDOES) or None,
             redoes=t.get(KEY_REDOES) or None,
+            since=t.get(KEY_SINCE) or None,
         )
 
 
@@ -124,6 +138,7 @@ def checkpoint_message(
     restores: str | None = None,
     undoes: str | None = None,
     redoes: str | None = None,
+    since: str | None = None,
 ) -> str:
     """The snapshot message: the label, a blank line, then one ``Key: value`` line per trailer.
 
@@ -136,6 +151,7 @@ def checkpoint_message(
         (KEY_RESTORES, restores),
         (KEY_UNDOES, undoes),
         (KEY_REDOES, redoes),
+        (KEY_SINCE, since),
     ]
     trailers = [f"{key}: {_flat(value)}" for key, value in lines if value and _flat(value)]
     head = _flat(label) or "checkpoint"
@@ -169,6 +185,7 @@ def record(
     restores: str | None = None,
     undoes: str | None = None,
     redoes: str | None = None,
+    since: str | None = None,
     allow_empty: bool = False,
 ) -> Checkpoint:
     """Save everything as a new checkpoint.
@@ -179,23 +196,198 @@ def record(
     returned unchanged.
     """
     forced = allow_empty or any((restores, undoes, redoes))
-    message = checkpoint_message(label, vitals, restores, undoes, redoes)
+    message = checkpoint_message(label, vitals, restores, undoes, redoes, since)
     ident = vcs.snapshot(message, allow_empty=forced)
     infos = vcs.snapshots(ident, limit=1)
     return Checkpoint.from_snapshot(infos[0], vcs.snapshot_count(ident))
+
+
+def _param_value_words(entry: Any) -> str | None:
+    if not isinstance(entry, dict):
+        return None
+    if entry.get("value") is not None:
+        unit = str(entry.get("unit") or "").strip()
+        return f"{entry['value']} {unit}".strip()
+    if entry.get("expr") is not None:
+        return f"= {entry['expr']}"
+    return None
+
+
+def _load_yaml_dict(raw: bytes | None) -> dict[str, Any]:
+    if not raw:
+        return {}
+    try:
+        loaded = safe_load(raw.decode("utf-8"))
+    except Exception:
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def _read_pair(vcs: Vcs, ref: str, path: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    old_raw = vcs.read_file(ref, path)
+    full = vcs.root / path
+    new_raw = full.read_bytes() if full.is_file() else None
+    return _load_yaml_dict(old_raw), _load_yaml_dict(new_raw)
+
+
+def _param_edits(vcs: Vcs, ref: str) -> list[str]:
+    old_doc, new_doc = _read_pair(vcs, ref, "model/parameters.yaml")
+    old_p = old_doc.get("parameters")
+    new_p = new_doc.get("parameters")
+    old_map = old_p if isinstance(old_p, dict) else {}
+    new_map = new_p if isinstance(new_p, dict) else {}
+    slugs = list(new_map) + [k for k in old_map if k not in new_map]
+    items: list[str] = []
+    for slug in slugs:
+        old_e, new_e = old_map.get(slug), new_map.get(slug)
+        if old_e == new_e:
+            continue
+        old_w, new_w = _param_value_words(old_e), _param_value_words(new_e)
+        if old_w is not None and new_w is not None and old_w != new_w:
+            items.append(f"{slug} {old_w} → {new_w}")
+        else:
+            items.append(str(slug))
+    return items
+
+
+def _list_id_edits(vcs: Vcs, ref: str, path: str, key: str) -> list[str]:
+    old_doc, new_doc = _read_pair(vcs, ref, path)
+    old_list = old_doc.get(key)
+    new_list = new_doc.get(key)
+    old_map = {
+        str(x["id"]): x
+        for x in (old_list if isinstance(old_list, list) else [])
+        if isinstance(x, dict) and x.get("id")
+    }
+    new_map = {
+        str(x["id"]): x
+        for x in (new_list if isinstance(new_list, list) else [])
+        if isinstance(x, dict) and x.get("id")
+    }
+    ids = list(new_map) + [k for k in old_map if k not in new_map]
+    return [oid for oid in ids if old_map.get(oid) != new_map.get(oid)]
+
+
+_MODEL_OBJECT_DIRS = frozenset(
+    {
+        "parts",
+        "assemblies",
+        "interfaces",
+        "signoffs",
+        "loads",
+        "electrical",
+        "process",
+        "controls",
+        "software",
+        "architecture",
+        "test_plans",
+    }
+)
+
+
+def _changed_object_id(path: str) -> str | None:
+    p = Path(path)
+    parts = p.parts
+    if len(parts) >= 3 and parts[0] == "model":
+        sub = parts[1]
+        if sub in _MODEL_OBJECT_DIRS and p.suffix in {".yaml", ".yml"}:
+            return p.stem
+        if sub == "docs" and p.suffix == ".md":
+            return p.stem
+        if sub in {"calcs", "geometry", "screens", "rulepacks"} and p.suffix == ".py":
+            if not p.stem.startswith(("_", "test_")):
+                return p.stem
+    if len(parts) == 2 and parts[0] in {"concepts", "changes"} and p.suffix in {".yaml", ".yml"}:
+        return p.stem
+    if path == "style.yaml":
+        return "style"
+    if path == "n2f.yaml":
+        return "n2f.yaml"
+    return None
+
+
+def describe_edits(vcs: Vcs, ref: str) -> str | None:
+    """Owner-words summary of what changed between ``ref`` and the working folder, or None.
+
+    Changed parameter values read ``slug old → new``; other changed model objects name their
+    id; at most three items are listed before ``and N more`` (B-0293). Returns None when
+    nothing nameable changed, so callers fall back to ``edits since <last>``.
+    """
+    changes = vcs.diff_working(ref)
+    if not changes:
+        return None
+    items: list[str] = []
+    for ch in changes:
+        if ch.path == "model/parameters.yaml":
+            items.extend(_param_edits(vcs, ref))
+        elif ch.path == "model/requirements.yaml":
+            items.extend(_list_id_edits(vcs, ref, ch.path, "requirements"))
+        elif ch.path == "model/decisions.yaml":
+            items.extend(_list_id_edits(vcs, ref, ch.path, "decisions"))
+        else:
+            oid = _changed_object_id(ch.path)
+            if oid is not None:
+                items.append(oid)
+    unique = list(dict.fromkeys(items))
+    if not unique:
+        return None
+    shown = ", ".join(unique[:3])
+    return f"{shown} and {len(unique) - 3} more" if len(unique) > 3 else shown
 
 
 def save_edits(vcs: Vcs, label_fmt: str = "edits since {last}") -> Checkpoint | None:
     """Save unsaved edits as their own checkpoint; None when the folder has nothing unsaved.
 
     ``{last}`` in ``label_fmt`` is the label of the newest checkpoint, so ``undo`` can undo
-    the edits and ``redo`` bring them back (R3).
+    the edits and ``redo`` bring them back (R3). When nameable model values or objects
+    changed, the label names them and ``Checkpoint-Since`` keeps the ``edits since …`` text
+    recoverable (B-0293).
     """
     if vcs.is_clean():
         return None
     newest = vcs.snapshots(limit=1)
     last = newest[0].label if newest else "the start"
-    return record(vcs, label_fmt.format(last=last))
+    fallback = label_fmt.format(last=last)
+    described = (
+        describe_edits(vcs, newest[0].id) if newest and label_fmt == "edits since {last}" else None
+    )
+    return record(vcs, described or fallback, since=fallback if described else None)
+
+
+def is_signoff(cp: Checkpoint) -> bool:
+    """True when ``cp`` is a requirement sign-off checkpoint (not a restore of one)."""
+    return (
+        cp.restores is None
+        and cp.undoes is None
+        and cp.redoes is None
+        and cp.label.startswith(_SIGNOFF_PREFIX)
+    )
+
+
+def signoff_first_title(cp: Checkpoint) -> str:
+    """The requirement title (or id when untitled) from a sign-off checkpoint's label."""
+    m = _SIGNOFF_LABEL_RE.match(cp.label)
+    if m:
+        return (m.group("title") or m.group("id")).strip()
+    return cp.label.removeprefix(_SIGNOFF_PREFIX).strip()
+
+
+def fold_signoffs(
+    checkpoints: Sequence[Checkpoint], undone: set[str] | frozenset[str] = frozenset()
+) -> list[list[Checkpoint]]:
+    """Group consecutive sign-off checkpoints (sharing ``undone`` state) into single rows."""
+    groups: list[list[Checkpoint]] = []
+    for cp in checkpoints:
+        if (
+            groups
+            and is_signoff(cp)
+            and is_signoff(groups[-1][-1])
+            and (cp.id in undone) == (groups[-1][-1].id in undone)
+        ):
+            groups[-1].append(cp)
+        else:
+            groups.append([cp])
+    return groups
 
 
 # ---- undo and redo, derived from the log --------------------------------------------------

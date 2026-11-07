@@ -201,7 +201,7 @@ def test_gate_b_flow(tmp_path: Path) -> None:
         "Switched to C-002",
         "Started ECR-001",
         "Approved ECR-001",
-        "edits since",
+        "foot-height 11 mm → 13 mm",
         "Undid:",
         "Redid:",
     ):

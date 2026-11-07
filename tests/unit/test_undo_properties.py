@@ -21,39 +21,92 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from napkin2factory.cli.undo import do_redo, do_rollback, do_undo
+from napkin2factory.concepts.promote import promote
+from napkin2factory.concepts.switch import switch
 from napkin2factory.core import checkpoints as cps
+from napkin2factory.core import concepts as cm
+from napkin2factory.core.errors import GateBlocked
+from napkin2factory.core.loader import load_product
 from napkin2factory.core.vcs import Vcs, VcsError
 from napkin2factory.ecr.checkpointing import checkpoint, open_change_request, save_edits_first
+from napkin2factory.ecr.live import abort, next_ecr_id
 from tests.conftest import n2f
 
-FILES = ("model/notes.txt", "extra.txt")
+FILES = ("model/docs/notes.txt", "extra.txt")
 
 Op = tuple[str, int, str]
 OPS = st.lists(
     st.tuples(
         st.sampled_from(
-            ["edit", "edit", "command", "undo", "undo", "redo", "rollback", "start", "close"]
+            [
+                "edit",
+                "edit",
+                "command",
+                "undo",
+                "undo",
+                "redo",
+                "rollback",
+                "start",
+                "close",
+                "abort",
+                "switch",
+            ]
         ),
         st.integers(0, 40),
         st.sampled_from(["a", "b", "c", ""]),
     ),
-    max_size=7,
+    max_size=8,
 )
+
+
+def _card_yaml(cid: str, title: str, length: int) -> str:
+    return (
+        f"id: {cid}\n"
+        f"title: {title}\n"
+        "status: exploring\n"
+        "refs: []\n"
+        "layout: {}\n"
+        "site: {}\n"
+        "massing:\n"
+        "  - {kit: block, as: body, material: aluminum,"
+        f" args: {{length: {length} mm, width: 60 mm, height: 10 mm}}}}\n"
+        "notes: ''\n"
+        "screening:\n"
+        "  given: {}\n"
+        "  computed: {}\n"
+        "  estimates: {}\n"
+        "  rules: []\n"
+        "  verdict: green\n"
+        "  at: '2026-11-06T10:00:00'\n"
+        "decision: null\n"
+    )
 
 
 @pytest.fixture(scope="module")
 def blank(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """A blank tracked product, copied for each example."""
+    """A blank tracked product with two screened concepts (C-001 promoted), copied per example."""
     folder = tmp_path_factory.mktemp("blank") / "prod"
     assert n2f("init", str(folder)).returncode == 0
     (folder / "model").mkdir(exist_ok=True)
+    (folder / "concepts").mkdir(exist_ok=True)
+    (folder / "concepts" / "C-001.yaml").write_text(
+        _card_yaml("C-001", "First concept", 100), encoding="utf-8"
+    )
+    (folder / "concepts" / "C-002.yaml").write_text(
+        _card_yaml("C-002", "Second concept", 120), encoding="utf-8"
+    )
+    promote(folder, "C-001", by="Owner", snapshot=False)
+    shutil.rmtree(folder / ".git")
+    vcs = Vcs(folder)
+    vcs.init()
+    vcs.snapshot("Start of prod")
     return folder
 
 
-def _write_ecr(root: Path, status: str, baseline: str) -> None:
+def _write_ecr(root: Path, ecr_id: str, status: str, baseline: str) -> None:
     (root / "changes").mkdir(exist_ok=True)
-    (root / "changes" / "ECR-001.yaml").write_text(
-        f"id: ECR-001\ntitle: Try it\nstatus: {status}\nkind: design\n"
+    (root / "changes" / f"{ecr_id}.yaml").write_text(
+        f"id: {ecr_id}\ntitle: Try it\nstatus: {status}\nkind: design\n"
         f"baseline: {{checkpoint: '{baseline}'}}\n",
         encoding="utf-8",
     )
@@ -81,13 +134,26 @@ def _run(root: Path, ops: list[Op]) -> None:
         elif kind == "start" and open_change_request(root) is None:
             save_edits_first(root)
             baseline = cps.read(vcs, limit=1)[0].id
-            _write_ecr(root, "draft", baseline)
-            checkpoint(root, "Started ECR-001")
-        elif kind == "close" and open_change_request(root) is not None:
+            ecr_id = next_ecr_id(load_product(root))
+            _write_ecr(root, ecr_id, "draft", baseline)
+            checkpoint(root, f"Started {ecr_id}")
+        elif kind == "close" and (found := open_change_request(root)) is not None:
             save_edits_first(root)
-            baseline = (root / "changes" / "ECR-001.yaml").read_text().split("'")[1]
-            _write_ecr(root, "closed", baseline)
-            checkpoint(root, "Closed ECR-001")
+            baseline = (root / "changes" / f"{found[0]}.yaml").read_text().split("'")[1]
+            _write_ecr(root, found[0], "closed", baseline)
+            checkpoint(root, f"Closed {found[0]}")
+        elif kind == "abort" and (found := open_change_request(root)) is not None:
+            abort(load_product(root), found[0])
+            assert open_change_request(root) is None
+        elif kind == "switch":
+            target_id = "C-002" if cm.load_card(root, "C-001").status == "promoted" else "C-001"
+            was_open = open_change_request(root) is not None
+            try:
+                switch(root, target_id, by="Owner")
+            except GateBlocked:
+                assert was_open
+            else:
+                assert not was_open
         elif kind == "undo":
             save_edits_first(root)
             found = open_change_request(root)
@@ -144,3 +210,27 @@ def test_restores_are_identities_and_never_lose_a_checkpoint(blank: Path, ops: l
         root = Path(tmp) / "prod"
         shutil.copytree(blank, root, symlinks=True)
         _run(root, ops)
+
+
+def test_abort_and_concept_switch_preserve_undo_redo_invariants(
+    blank: Path, tmp_path: Path
+) -> None:
+    root = tmp_path / "prod"
+    shutil.copytree(blank, root, symlinks=True)
+    _run(
+        root,
+        [
+            ("edit", 0, "a"),
+            ("switch", 0, "a"),
+            ("undo", 0, "a"),
+            ("redo", 0, "a"),
+            ("switch", 1, "b"),
+            ("start", 2, "a"),
+            ("edit", 1, "b"),
+            ("switch", 0, "a"),
+            ("abort", 0, "a"),
+            ("undo", 0, "a"),
+            ("abort", 0, "a"),
+            ("rollback", 0, "a"),
+        ],
+    )

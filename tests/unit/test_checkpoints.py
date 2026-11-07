@@ -423,3 +423,45 @@ def test_checkpoint_from_snapshot_ignores_unrelated_trailers() -> None:
     info = SnapshotInfo("x" * 40, (), 5, "L", "", {"Co-Authored-By": "someone", cp.KEY_COST: "$9"})
     c = Checkpoint.from_snapshot(info, 3)
     assert c.vitals == Vitals(None, "$9") and c.number == 3 and c.undoes is None
+
+
+def test_save_edits_labels_changed_parameters_and_objects_with_more_cap(tmp_path: Path) -> None:
+    v = Vcs(tmp_path)
+    v.init()
+    params = tmp_path / "model" / "parameters.yaml"
+    params.parent.mkdir(parents=True)
+    params.write_text(
+        "parameters:\n"
+        "  width: {value: 60, unit: mm}\n"
+        "  height: {value: 80, unit: mm}\n"
+        "  depth: {value: 40, unit: mm}\n"
+        "  load: {value: 10, unit: kg}\n"
+    )
+    cp.record(v, "Start")
+    params.write_text(
+        "parameters:\n"
+        "  width: {value: 65, unit: mm}\n"
+        "  height: {value: 85, unit: mm}\n"
+        "  depth: {value: 45, unit: mm}\n"
+        "  load: {value: 12, unit: kg}\n"
+    )
+    (tmp_path / "model" / "parts").mkdir()
+    (tmp_path / "model" / "parts" / "frame.yaml").write_text("id: frame\n")
+    saved = cp.save_edits(v)
+    assert saved is not None
+    expected = "width 60 mm → 65 mm, height 80 mm → 85 mm, depth 40 mm → 45 mm and 2 more"
+    assert saved.label == expected
+    assert saved.since == "edits since Start"
+
+
+def test_fold_signoffs_groups_consecutive_signoffs_only() -> None:
+    log = _log(
+        ("Start", {}),
+        ("Signed off REQ-001: Hull thickness", {}),
+        ("Signed off REQ-002: Freeboard", {}),
+        ("Promoted C-002", {}),
+        ("Signed off REQ-003: Emergency stop", {}),
+    )
+    groups = cp.fold_signoffs(log)
+    assert [len(g) for g in groups] == [1, 2, 1, 1]
+    assert cp.signoff_first_title(groups[1][0]) == "Hull thickness"

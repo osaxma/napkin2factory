@@ -324,9 +324,10 @@ def promote(
 
         vcs = Vcs(root)
         if vcs.is_tracked() and vcs.is_repo_root():
+            from napkin2factory.core.vitals import recorded_vitals
             from napkin2factory.ecr.checkpointing import checkpoint
 
-            cp = checkpoint(root, f"Promoted {cid} ({card.title})")
+            cp = checkpoint(root, f"Promoted {cid} ({card.title})", vitals=recorded_vitals(root))
             result.snapshot, result.checkpoint = cp.id, cp.number
         else:
             notes.append("this folder is not a tracked project, so no snapshot was taken")
