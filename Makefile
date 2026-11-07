@@ -30,6 +30,9 @@ TAKE_LOCK :=
 endif
 
 export N2F_OFFLINE ?= 1
+# S-306: a make target never starts the warm engine (a background process that would outlive
+# the run; S-291). The examples step of `make check` runs the CLI in the examples' folders.
+export N2F_NO_ENGINE ?= 1
 
 # Parallel test runs (pytest-xdist). One worker per logical CPU (S-196: on the 8-core,
 # 16-thread host the four suites took 406 s with 16 workers and 432 s with 8, the many
