@@ -210,10 +210,15 @@ CHECK_STAGES = (
 
 
 def _section(
-    sid: str, label: str, group: str, show: Callable[[Any], bool] | None = None
+    sid: str,
+    label: str,
+    group: str,
+    show: Callable[[Any], bool] | None = None,
+    *,
+    lens: str,
 ) -> ReportSection:
     """A section whose data the report builder gathers (``report/builder.py::gather``)."""
-    return ReportSection(sid, label, group, f"report/sections/{sid}.html.j2", show=show)
+    return ReportSection(sid, label, group, f"report/sections/{sid}.html.j2", show=show, lens=lens)
 
 
 def _full_or(has: Callable[[Any], bool]) -> Callable[[Any], bool]:
@@ -235,26 +240,41 @@ def _has_sub_assemblies(product: Any) -> bool:
 
 #: The report's sections in reading order (anchor, side-index label, group).
 REPORT_SECTIONS = (
-    _section("overview", "Overview", ""),
-    _section("safety", "Safety", ""),
-    _section("model", "3D model", "Product"),
-    _section("parts", "Parts & cost", "Product"),
-    _section("drawings", "Drawings", "Product"),
-    _section("interfaces", "Interfaces", "Product"),
-    _section("build", "Build plan", "Product"),
-    _section("joints", "Joints between units", "Product", _full_or(_has_sub_assemblies)),
-    _section("requirements", "Requirements", "Verification"),
-    _section("rules", "Rule checks", "Verification"),
-    _section("signoffs", "Sign-offs", "Verification", _full_or(lambda p: bool(p.signoffs))),
-    _section("parameters", "Parameters", "Design record"),
-    _section("decisions", "Decisions", "Design record"),
-    _section("changes", "Change requests", "Design record", _full_or(lambda p: bool(p.ecrs))),
+    _section("overview", "Overview", "", lens="workbench"),
+    _section("safety", "Safety", "", lens="verification"),
+    _section("model", "3D model", "Product", lens="workbench"),
+    _section("parts", "Parts & cost", "Product", lens="build"),
+    _section("drawings", "Drawings", "Product", lens="drawings"),
+    _section("interfaces", "Interfaces", "Product", lens="workbench"),
+    _section("build", "Build plan", "Product", lens="build"),
+    _section(
+        "joints", "Joints between units", "Product", _full_or(_has_sub_assemblies), lens="workbench"
+    ),
+    _section("requirements", "Requirements", "Verification", lens="verification"),
+    _section("rules", "Rule checks", "Verification", lens="verification"),
+    _section(
+        "signoffs",
+        "Sign-offs",
+        "Verification",
+        _full_or(lambda p: bool(p.signoffs)),
+        lens="verification",
+    ),
+    _section("parameters", "Parameters", "Design record", lens="history"),
+    _section("decisions", "Decisions", "Design record", lens="history"),
+    _section(
+        "changes",
+        "Change requests",
+        "Design record",
+        _full_or(lambda p: bool(p.ecrs)),
+        lens="history",
+    ),
     # a product whose only page is its safety page has nothing to list here (gate J, C5)
     _section(
         "manuals",
         "Manuals",
         "",
         lambda p: not p.docs or any(not d.meta.safety for d in p.docs.values()),
+        lens="verification",
     ),
 )
 

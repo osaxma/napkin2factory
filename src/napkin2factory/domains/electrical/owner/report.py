@@ -279,5 +279,6 @@ REPORT_SECTIONS = (
         data=wiring_report_data,
         reads=wiring_report_reads,
         show=show_wiring,
+        lens="drawings",
     ),
 )

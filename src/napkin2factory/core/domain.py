@@ -239,6 +239,10 @@ class SectionContext:
         return _recorded(obj, uri, self.log)
 
 
+#: The five lenses of the report page (decision V5), in bar order.
+LENSES: tuple[str, ...] = ("workbench", "drawings", "build", "verification", "history")
+
+
 @dataclass(frozen=True)
 class ReportSection:
     """A section of the report page (F5): a Jinja fragment plus the data it renders.
@@ -249,7 +253,8 @@ class ReportSection:
     through ``sctx.proxy`` and each field shown is a recorded read).  A section goes at the
     end of its ``group`` in the side index.  ``reads(product)`` names further keys it shows
     (a rule's output, say), added to the report rule's recorded reads.  ``show(product)``
-    false leaves it off the page.
+    false leaves it off the page.  ``lens`` is the lens that holds the section; a section
+    that declares none lands in the Verification lens.
     """
 
     id: str
@@ -259,6 +264,7 @@ class ReportSection:
     data: Callable[[SectionContext], dict[str, Any]] | None = None
     reads: Callable[[Product], list[str]] | None = None
     show: Callable[[Product], bool] | None = None
+    lens: str = "verification"
 
 
 @dataclass
@@ -450,6 +456,9 @@ class Domain:
     ``has_content(product)`` says whether the product holds anything of this domain (no hook:
     never counts), and ``hazards(product)`` returns, in owner words, the hazardous energy the
     domain finds in its content (no hook: none); both feed the derived ceremony (W6, S-205).
+    ``inspector(sctx)`` returns entries for the domain's own objects keyed by their URI; read
+    the model through ``sctx.proxy`` so each field shown is a recorded read (D5; no hook
+    means no entries).
     """
 
     name: str
@@ -475,5 +484,6 @@ class Domain:
     bom_lines: Callable[[Any, Callable[[str], Any]], list[BomLine]] | None = None
     has_content: Callable[[Product], bool] | None = None
     hazards: Callable[[Product], list[str]] | None = None
+    inspector: Callable[[SectionContext], dict[str, dict[str, Any]]] | None = None
     code: tuple[str, ...] = ()
     in_place: bool = False

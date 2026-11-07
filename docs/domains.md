@@ -495,7 +495,7 @@ def toy_report_data(sctx):                           # sctx: SectionContext (§4
     shown = [sctx.proxy(t, f"toy://{tid}") for tid, t in sorted(things(sctx.product).items())]
     return {"things": [{"id": t.id, "name": t.name, "glow": t.glow} for t in shown]}
 ```
-- `ReportSection(id, label, group, fragment, data=None, reads=None, show=None)`.
+- `ReportSection(id, label, group, fragment, data=None, reads=None, show=None, lens="verification")`.
 - `data(sctx)` returns the dict the fragment renders; `sctx` is a `SectionContext` (§4.4):
   read the model through `sctx.proxy(obj, uri)` and each field shown is a read of the
   `report` rule, so editing it reruns the report.
@@ -523,6 +523,13 @@ def toy_report_data(sctx):                           # sctx: SectionContext (§4
   (`domains/electrical/owner/report.py`).
 - `reads(product)`: further keys it shows that are not model fields read through the proxy
   (a rule's output, say), added to the report rule's reads.
+- `lens` names the report lens that holds the section (V5): one of `LENSES = ("workbench",
+  "drawings", "build", "verification", "history")`, defaulting to `"verification"` when a
+  section declares none (an unknown lens is refused at `register`). A domain may also pass
+  `inspector=callable` on `Domain`: `inspector(sctx: SectionContext) -> dict[str, dict[str,
+  Any]]` returns inspector entries for the domain's own objects keyed by their URI (read the
+  model through `sctx.proxy` so each field shown is a recorded read, D5; non-URI keys and
+  duplicate keys across domains are refused).
 
 ### 3.7 Doc helpers — `doc_helpers={"toy": factory}`
 Names a manual page (`model/docs/*.md`, a Jinja template) can call.

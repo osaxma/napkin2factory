@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from napkin2factory.core.domain import (
+    LENSES,
     CheckStage,
     ContextContribution,
     Domain,
@@ -37,6 +38,7 @@ from napkin2factory.core.domain import (
     ReportSection,
     RuleFamily,
     Screen,
+    SectionContext,
     StyleRoleSpec,
     VerifyKind,
 )
@@ -169,6 +171,7 @@ class Registry:
             raise ValueError(f"a domain named {domain.name!r} is already registered")
         _check_release_files(domain)
         _check_family_names(domain)
+        _check_section_lenses(domain)
         self.domains.append(domain)
         self._check_unique()
         _apply_schemes(self)
@@ -395,6 +398,49 @@ class Registry:
                 return s
         raise unknown("report section", sid, [s.id for s in self.report_sections()])
 
+    def lens_of(self, section_id: str) -> str:
+        """The lens that holds report section ``section_id`` (V5)."""
+        return self.report_section(section_id).lens
+
+    def lens_sections(self, lens: str) -> list[ReportSection]:
+        """The report sections in ``lens``, in page order (V5)."""
+        self.ensure()
+        if lens not in LENSES:
+            raise unknown("lens", lens, LENSES)
+        return [s for s in self.report_sections() if s.lens == lens]
+
+    def inspector_entries(self, sctx: SectionContext) -> dict[str, dict[str, Any]]:
+        """Inspector entries from every domain with an ``inspector`` hook, in installation order."""
+        from napkin2factory.core.uris import Uri, UriError
+
+        self.ensure()
+        out: dict[str, dict[str, Any]] = {}
+        seen: dict[str, str] = {}
+        for d in self.domains:
+            if d.inspector is None:
+                continue
+            entries = d.inspector(sctx)
+            for key, val in entries.items():
+                try:
+                    Uri.parse(key)
+                except UriError as exc:
+                    raise ValueError(
+                        f"domain {d.name!r} inspector entry {key!r} is not a URI: {exc}"
+                    ) from exc
+                if not isinstance(val, dict):
+                    raise ValueError(
+                        f"domain {d.name!r} inspector entry {key!r} must be a dict, "
+                        f"got {type(val).__name__}"
+                    )
+                if key in seen:
+                    raise ValueError(
+                        f"domain {d.name!r} returns inspector entry {key!r}, which domain "
+                        f"{seen[key]!r} already returned"
+                    )
+                seen[key] = d.name
+                out[key] = val
+        return out
+
     def fragment_path(self, section: ReportSection) -> Path:
         """The template file of a section (relative paths are the owning domain's)."""
         domain = self.owner("report section", section.id)
@@ -585,6 +631,19 @@ def _check_family_names(domain: Domain) -> None:
             raise ValueError(
                 f"domain {domain.name!r} registers model family {f.name!r}, a name the system's "
                 f"own sets use ({', '.join(taken)}); pick another"
+            )
+
+
+def _check_section_lenses(domain: Domain) -> None:
+    """Every report section's ``lens`` must be one of :data:`LENSES` (V5).
+
+    Refused at ``register``, naming the domain, the section id, the bad lens and the valid ones.
+    """
+    for s in domain.report_sections:
+        if s.lens not in LENSES:
+            raise ValueError(
+                f"domain {domain.name!r} report section {s.id!r} has unknown lens {s.lens!r}; "
+                f"known: {', '.join(LENSES)}"
             )
 
 
