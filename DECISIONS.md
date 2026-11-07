@@ -338,6 +338,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-309 | The maintainer's answers on the renders and the engine's dropped connection (Q13, Q14) | in force |
 | S-310 | The engine's dropped connection by verb class (Q14): safe verbs rerun cold, state-changing verbs exit 70 with the next step | in force |
 | S-311 | The engine preloads the kernel before it binds its socket | in force |
+| S-312 | The maintainer's request after trying the CLI as an agent: the engine from init, status, JSON errors, help, guide (Q15) | in force |
 
 ---
 
@@ -2369,4 +2370,7 @@ Built as the maintainer asked (S-309, Q14, S-308); replaces S-305's "never rerun
 
 ## S-311 — The engine preloads the kernel before it binds its socket (2026-11-07)
 Amends S-305's "preloads `build123d` in a background thread after the socket is bound". Under load the import held the interpreter for seconds and starved the engine's accept loop, so a status call right after `engine start` timed out; the engine tests failed twice in a landing gate for it, and S-305's `warm` flag only moved the problem. The import now runs first, then the socket is bound: no answer before the engine can give one, a command in the meantime runs cold (the design's own fallback), `engine start` waits up to 30 s for the socket. The `warm` field stays (always true once reachable). `core/` files: 0.
+
+## S-312 — The engine from init on, and the agent's first run (2026-11-07)
+Asked the maintainer: after the coordinator ran the CLI from an agent's side in an empty folder, the principle, in the maintainer's words: the engine should be flexible as long as it is in an initialised product folder; no workflow that constrains clients for no good reason; agent first (S-308). Five requests (plan §3, Q15): (1) the engine from `n2f init` on: any engine-routed verb in a folder with `n2f.yaml` may start it, built or not, and `init` starts it in place of its separate kernel warm-up, so the first build is warm; S-305's "only where `build/` exists" was inconsistent with `engine start` creating `build/`, and engine files stay out of what `n2f status` reads as built; (2) `n2f engine status` says whether the next command will start an engine and how to start one now, with the socket path, idle time left and the version under `--json`; (3) early errors under `--json` print one JSON object `{error, message, next}` with the exit code kept, and the exit codes (1 user error, 2 usage, 3 failed check, 70 dropped state-changing run) are documented in `n2f --help` and the guide; (4) `n2f --help` opens with a short "start here" for agents, says every verb takes `--json`, where the engine is involved and `N2F_NO_ENGINE=1`, and `serve`, `mcp` and `engine` each name the other two; (5) one numbered sequence from install to the first report in the agent guide, with the engine's place in it, and the guide's claim that a chat-only way in is not there yet checked against the MCP server. How it was built and measured is recorded by the task that follows. `core/` files: 0 so far.
 
