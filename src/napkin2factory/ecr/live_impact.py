@@ -188,7 +188,6 @@ def baseline_figures(
             scratch / "build",
             symlinks=True,
             dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns("engine.sock"),  # the warm engine's socket (S-305)
         )
     other = load_product(scratch)
     run_build(other, target=TARGET, quiet=True, render=render, build_dir=scratch / "build")

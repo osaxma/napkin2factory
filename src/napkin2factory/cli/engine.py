@@ -171,8 +171,11 @@ def runtime_dir(root: Path) -> Path:
     """The engine's folder for the product at ``root``: socket, pid file, lock and log (S-313).
 
     ``/tmp/n2f-<uid>/<first 16 hex of sha256(realpath of the product)>/``: always in the user's
-    runtime area, never in the product, so ``build/`` and ``n2f status`` never see engine files,
-    and the path stays short for any product location (a Unix socket path holds about 104 bytes).
+    runtime area, never in the product. ``build/`` is generated output, and a socket, a lock and a
+    pid file are runtime state, not output: kept there they would be copied, hashed and shipped with
+    it (``ecr impact`` copies ``build/``). The path also stays short for any product location (a
+    Unix socket path holds about 104 bytes). It is not about ``n2f status``, which does not read
+    whether ``build/`` exists (S-314).
     """
     real = os.path.realpath(root)
     digest = hashlib.sha256(os.fsencode(real)).hexdigest()[:16]

@@ -112,3 +112,17 @@ def test_the_runtime_folder_is_created_0700(
         assert eng.prepare_runtime_dir(tmp_path) == folder  # again: fine
     finally:
         shutil.rmtree(base, ignore_errors=True)
+
+
+def test_status_is_the_same_with_no_build_folder_and_with_an_empty_one(tmp_path: Path) -> None:
+    """``n2f status`` does not read whether ``build/`` exists; the engine puts nothing in it."""
+    from tests.conftest import EXAMPLES, copy_product, n2f
+
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "bracket")
+    assert not (root / "build").exists()
+    bare = [n2f("status", cwd=root), n2f("status", "--json", cwd=root)]
+    (root / "build").mkdir()
+    empty = [n2f("status", cwd=root), n2f("status", "--json", cwd=root)]
+    for before, after in zip(bare, empty, strict=True):
+        assert before.returncode == after.returncode
+        assert before.stdout == after.stdout
