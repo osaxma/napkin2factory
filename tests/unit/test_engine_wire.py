@@ -232,7 +232,6 @@ def test_a_client_that_left_while_waiting_gets_nothing_run(tmp_path: Path) -> No
 def _crashing_engine(monkeypatch: pytest.MonkeyPatch, root: Path, partial: bool = True) -> None:
     """Make ``try_forward`` talk to a fake engine that dies after it was sent ``run``."""
     (root / "n2f.yaml").write_text("x: 1\n")
-    (root / "build").mkdir(exist_ok=True)
     monkeypatch.chdir(root)
     monkeypatch.delenv("N2F_NO_ENGINE", raising=False)
     server_end, client_end = socket.socketpair()
@@ -283,7 +282,6 @@ def test_held_output_is_written_in_order_when_the_command_finishes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     (tmp_path / "n2f.yaml").write_text("x: 1\n")
-    (tmp_path / "build").mkdir()
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("N2F_NO_ENGINE", raising=False)
     server_end, client_end = socket.socketpair()
@@ -329,6 +327,10 @@ def test_a_state_changing_verb_under_json_says_so_on_stdout_too(
     seen = capsys.readouterr()
     assert json.loads(seen.out) == {
         "error": "engine_stopped",
+        "message": "the n2f engine stopped during `n2f ecr close ECR-001 --json`; the change may "
+        "or may not have been made",
+        "next": "run `n2f ecr list` to see whether it happened; "
+        "if not, run `n2f ecr close ECR-001 --json` again",
         "changes_state": True,
         "outcome": "unknown",
         "look_at": "n2f ecr list",

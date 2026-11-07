@@ -22,7 +22,7 @@ folder or the nearest product folder above it) and `--json` for machine-readable
 | `n2f status [--json]` | stage (intake → design → verify → released, with an optional napkin stage first while `concepts/` holds cards), gates (with a row per installed domain that has content, and the product's scope: a domain done elsewhere or left for later says so under its gate), what blocks the next gate and the command that unblocks it, then "Waiting on you": the open choices, each with its options, what each takes and costs, and the gate it holds (`waiting_on_you` in `--json`). The stage shown is the one being worked in; `--json` gives it as `current_stage` next to `stage`, the last stage passed (kept for older scripts) |
 | `n2f decide CHECK --pick OPTION --by NAME [--note TEXT] [--agent]` | record the owner's pick of a choice (`CHECK` is the row id `n2f status` shows, e.g. `fastening://a/b`; `OPTION` is the option's id or its number in `n2f status`, which prints one runnable command per option): a `DEC-` entry naming the check, the option and the evidence it was decided on; the row then reads OK with its decision until that evidence changes, when the choice opens again. It prints what happens next: the agent makes the change the option takes, then builds and checks; until the check passes on the model itself the Design gate stays open and, unless the choice holds nothing, the release is held. `n2f check` never decides. `--agent` is for a choice that holds nothing (an agent decides it under the delegation rule and says so) |
 | `n2f graph [--format dot\|json] [--around URI]` | the build graph (for engineers) |
-| `n2f engine start\|status\|stop` | the warm engine of this product: a background process that keeps the next commands fast (`N2F_NO_ENGINE=1` turns it off) |
+| `n2f engine start\|status\|stop [--json]` | the warm engine of this product: a background process (files in `/tmp/n2f-<uid>/<product hash>/`, none in the product) that keeps commands fast. `n2f init` starts it; any initialised folder's first `build`, `check`, `status` and similar command does too. `status` says whether it runs and, if not, whether the next command will start one and the command that starts it now. `N2F_NO_ENGINE=1` turns it off |
 | `n2f impact (--ecr ECR-001 \| --set uri=value …)` | what a change would touch, before anything changes |
 | `n2f ecr start --title TEXT [--kind parametric\|design] [--reason TEXT] [--set uri=value …] [--task TEXT …] [--by NAME]` | open a live change request: records the baseline (unsaved edits are checkpointed first); edit the `model/` files directly, then `n2f ecr impact` |
 | `n2f ecr quick --set uri=value … [--title TEXT] [--reason TEXT] [--by NAME]` | start, apply the edits and show the impact in one step (a small parameter change) |
@@ -59,7 +59,13 @@ folder or the nearest product folder above it) and `--json` for machine-readable
 
 Exit codes: 0 ok, 1 validation/lint/build failure, 2 check failure, 3 gate blocked
 (release or close refused; the message says what to do), 4 environment problem (including
-change-tracking refusals, worded for the operator).
+change-tracking refusals, worded for the operator), 70 the warm engine stopped under a command
+that changes the product (the message says what to look at and which command to run). A usage
+error (bad option, unknown verb) exits 2 like a failed check.
+
+Under `--json` a failure is one object on stdout, `{"error": "<code>", "message": "…",
+"next": "<the step to take>"}`, with the same exit code (a failed `check` prints its own result
+instead). Every verb takes `--json` except `graph` (`--format json`), `serve`, `mcp` and `skill`.
 
 Environment: `N2F_OFFLINE=1` skips the vendor-link check during builds (`make check` sets
 it); `N2F_TIMING=1` turns on the timing assertions in the test-suite.

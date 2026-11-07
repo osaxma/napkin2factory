@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import shlex
+import sys
+
 import typer
 
 from napkin2factory import __version__
@@ -25,9 +29,31 @@ from napkin2factory.cli import snapshot as snapshot_cmd
 from napkin2factory.cli import undo as undo_cmd
 from napkin2factory.cli import validate as validate_cmd
 
+EPILOG = "\n\n".join(
+    [
+        "[bold]Start here[/bold]",
+        "1. `n2f version` (is it installed?), then `n2f doctor` (is this machine ready?)",
+        "2. `n2f init <dir>` makes the product folder; work in it from now on",
+        "3. Shape the design: `n2f concept new` and the other `n2f concept` verbs, then the "
+        "files under `model/`",
+        "4. `n2f build`, then `n2f check`; open `build/report/index.html`, or `n2f serve`",
+        "[bold]For an agent[/bold]",
+        'Every verb takes `--json` (stdout is then one JSON object; an error is `{"error", '
+        '"message", "next"}`) except `graph` (`--format json`), `serve`, `mcp`, `skill`.',
+        "Exit codes: 0 ok; 1 the model or the command failed (the message says what to do); "
+        "2 a failed check, or a usage error; 3 a gate refused (release, change request, "
+        "promote); 4 a problem with this machine; 70 the warm engine stopped under a command "
+        "that changes the product (the message says what to look at and what to run).",
+        "Commands run in a warm per-product process that `n2f init` starts: "
+        "`n2f engine status`; `N2F_NO_ENGINE=1` turns it off.",
+        "`n2f docs` lists the rest.",
+    ]
+)
+
 app = typer.Typer(
     name="n2f",
     help="napkin2factory: from napkin to factory.",
+    epilog=EPILOG,
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode="rich",
@@ -73,6 +99,45 @@ app.command("publish")(publish_cmd.publish)
 app.command("impact")(graph_cmd.impact)
 app.command("mcp")(mcp_cmd.mcp)
 app.command("skill")(skill_cmd.skill)
+
+
+def run_app(args: list[str], prog_name: str | None = None) -> None:
+    """Run the ``n2f`` command line ``args`` and exit with its code (the one entry, S-313).
+
+    The CLI and the warm engine both call this, so a command reads the same either way. Under
+    ``--json`` a usage error (a bad option, an unknown verb) is one JSON object on stdout like
+    the other errors: ``{"error": "usage_error", "message", "next"}``, exit 2; in text mode
+    click and typer print theirs as they always did.
+    """
+    if "--json" not in args:
+        app(args=args, prog_name=prog_name)
+        return
+    try:
+        rv = app(args=args, prog_name=prog_name, standalone_mode=False)
+    except Exception as exc:
+        # click's exception classes: typer carries its own copy of click, so they are told apart
+        # by what they have rather than imported
+        if type(exc).__name__ == "Abort":
+            sys.stderr.write("Aborted!\n")
+            raise SystemExit(1) from None
+        if not (hasattr(exc, "format_message") and hasattr(exc, "exit_code")):
+            raise
+        ctx = getattr(exc, "ctx", None)
+        names: list[str] = []
+        while ctx is not None and ctx.parent is not None:
+            names.insert(0, str(ctx.info_name))
+            ctx = ctx.parent
+        helper = shlex.join(["n2f", *names, "--help"])
+        message = exc.format_message()
+        sys.stderr.write(f"Error: {message}\n")
+        sys.stdout.write(
+            json.dumps(
+                {"error": "usage_error", "message": message, "next": f"run `{helper}`"}, indent=2
+            )
+            + "\n"
+        )
+        raise SystemExit(exc.exit_code) from None
+    raise SystemExit(rv if isinstance(rv, int) else 0)
 
 
 def main() -> None:

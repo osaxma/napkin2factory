@@ -1,4 +1,4 @@
-"""Where the warm engine's socket lives (S-305): in the product when it fits, else in /tmp."""
+"""Where the warm engine keeps its files (S-313): always the user's runtime folder."""
 
 from __future__ import annotations
 
@@ -12,88 +12,103 @@ from pathlib import Path
 import pytest
 
 from napkin2factory.cli import engine as eng
-from tests.conftest import EngineGuard
+from tests.conftest import EXAMPLES, EngineGuard, copy_product
 
 
-def test_a_short_product_path_keeps_the_socket_in_the_product(short_product: Path) -> None:
-    sock = eng.socket_path(short_product)
-    assert sock == Path(os.path.realpath(short_product)) / "build" / ".n2f" / "engine.sock"
-    assert len(os.fsencode(sock)) <= eng.SOCKET_BYTES
-    assert eng.pid_path(short_product).parent == sock.parent
+def test_the_runtime_folder_is_per_user_and_per_product(tmp_path: Path) -> None:
+    a, b = tmp_path / "a", tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+    digest = hashlib.sha256(os.fsencode(os.path.realpath(a))).hexdigest()[:16]
+    assert eng.runtime_dir(a) == Path("/tmp") / f"n2f-{os.getuid()}" / digest
+    assert eng.runtime_dir(a) != eng.runtime_dir(b)
+    assert eng.runtime_dir(a) == eng.runtime_dir(a)  # stable
+    for path in (eng.socket_path(a), eng.pid_path(a), eng.lock_path(a), eng.log_path(a)):
+        assert path.parent == eng.runtime_dir(a)
+        assert tmp_path not in path.parents  # nothing under the product
+    assert len(os.fsencode(eng.socket_path(a))) < 60
 
 
-def test_a_long_product_path_gets_a_hashed_socket_in_tmp(tmp_path: Path) -> None:
-    deep = tmp_path / ("d" * 40) / ("e" * 40) / "product"
+def test_a_product_under_a_very_deep_path_has_the_same_short_socket(tmp_path: Path) -> None:
+    deep = tmp_path / ("d" * 60) / ("e" * 60) / "product"
     deep.mkdir(parents=True)
+    assert len(os.fsencode(deep)) > 150
     sock = eng.socket_path(deep)
-    digest = hashlib.sha256(os.fsencode(os.path.realpath(deep))).hexdigest()[:16]
-    assert sock == Path("/tmp") / f"n2f-{os.getuid()}" / f"{digest}.sock"
-    assert len(os.fsencode(sock)) <= eng.SOCKET_BYTES
-    # the pid file and lock stay beside the product either way
-    assert eng.pid_path(deep) == Path(deep) / "build" / ".n2f" / "engine.pid"
-    assert eng.lock_path(deep).parent == eng.pid_path(deep).parent
-    assert eng.socket_path(deep) == sock  # stable
+    assert len(os.fsencode(sock)) <= 100
+    assert sock.parent == eng.runtime_dir(deep)
 
 
-def test_the_socket_path_of_a_symlinked_product_is_the_real_one(tmp_path: Path) -> None:
+def test_the_runtime_folder_of_a_symlinked_product_is_the_real_ones(tmp_path: Path) -> None:
     real = tmp_path / "real"
     real.mkdir()
     link = tmp_path / "link"
     link.symlink_to(real)
-    assert eng.socket_path(link) == eng.socket_path(real)
+    assert eng.runtime_dir(link) == eng.runtime_dir(real)
 
 
-def test_a_long_path_engine_runs_and_uses_the_tmp_socket(
+def test_a_deep_product_runs_an_engine_with_private_files(
     engines: EngineGuard, tmp_path: Path
 ) -> None:
-    from tests.conftest import EXAMPLES, copy_product
-
     root = copy_product(
-        EXAMPLES / "bracket", tmp_path / ("d" * 40) / ("e" * 40) / "bracket", git=False
+        EXAMPLES / "bracket", tmp_path / ("d" * 60) / ("e" * 60) / "bracket", git=False
     )
-    sock = eng.socket_path(root)
-    assert sock.parent.parent == Path("/tmp")
     pid = engines.start(root)
     assert pid > 0
-    assert stat.S_IMODE(sock.stat().st_mode) == 0o600
-    assert stat.S_IMODE(sock.parent.stat().st_mode) == 0o700
-    assert eng.pid_path(root).is_file()
-    assert str(sock) in eng.pid_path(root).read_text()
+    folder = eng.runtime_dir(root)
+    assert stat.S_IMODE(folder.stat().st_mode) == 0o700
+    assert stat.S_IMODE(folder.parent.stat().st_mode) == 0o700
+    assert stat.S_IMODE(eng.socket_path(root).stat().st_mode) == 0o600
+    assert eng.pid_path(root).is_file() and eng.lock_path(root).is_file()
+    assert str(eng.socket_path(root)) in eng.pid_path(root).read_text()
+    assert not (root / "build").exists()  # the engine never makes the product's build folder
     info = eng.engine_status(root)
-    assert info is not None and info["socket"] == str(sock)
+    assert info is not None and info["socket"] == str(eng.socket_path(root))
     engines.stop_all()
-    assert not sock.exists() and not eng.pid_path(root).exists()
+    assert not eng.socket_path(root).exists() and not eng.pid_path(root).exists()
 
 
-def test_a_socket_folder_open_to_others_is_refused() -> None:
-    # the rule applies to /tmp/n2f-<uid>, the folder the engine makes itself
-    shared = Path("/tmp") / f"n2f-{uuid.uuid4().hex[:8]}"
-    shared.mkdir(mode=0o755)
-    os.chmod(shared, 0o755)
+def _fake_home(monkeypatch: pytest.MonkeyPatch, name: str) -> Path:
+    """Point the runtime area at a throwaway ``/tmp/n2f-<name>`` (the real one is ``n2f-<uid>``)."""
+    base = Path("/tmp") / f"n2f-{name}"
+    monkeypatch.setattr(eng, "runtime_dir", lambda root: base / "product")
+    return base
+
+
+def test_a_runtime_folder_open_to_others_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base = _fake_home(monkeypatch, f"t{uuid.uuid4().hex[:8]}")
+    base.mkdir(mode=0o755)
+    os.chmod(base, 0o755)
     try:
         with pytest.raises(PermissionError, match="open to other users"):
-            eng.prepare_socket_dir(shared / "x.sock")
+            eng.prepare_runtime_dir(tmp_path)
     finally:
-        shutil.rmtree(shared, ignore_errors=True)
+        shutil.rmtree(base, ignore_errors=True)
 
 
-def test_a_socket_folder_that_is_a_symbolic_link_is_refused(tmp_path: Path) -> None:
+def test_a_runtime_folder_that_is_a_symbolic_link_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base = _fake_home(monkeypatch, f"t{uuid.uuid4().hex[:8]}")
     target = tmp_path / "target"
     target.mkdir()
-    link = Path("/tmp") / f"n2f-{uuid.uuid4().hex[:8]}"
-    link.symlink_to(target)
+    base.symlink_to(target)
     try:
         with pytest.raises(PermissionError, match="symbolic link"):
-            eng.prepare_socket_dir(link / "x.sock")
+            eng.prepare_runtime_dir(tmp_path)
     finally:
-        link.unlink()
+        base.unlink()
 
 
-def test_the_folder_is_created_0700(tmp_path: Path) -> None:
-    sock = Path("/tmp") / f"n2f-{uuid.uuid4().hex[:8]}" / "x.sock"
+def test_the_runtime_folder_is_created_0700(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base = _fake_home(monkeypatch, f"t{uuid.uuid4().hex[:8]}")
     try:
-        eng.prepare_socket_dir(sock)
-        assert stat.S_IMODE(sock.parent.stat().st_mode) == 0o700
-        eng.prepare_socket_dir(sock)  # again: fine
+        folder = eng.prepare_runtime_dir(tmp_path)
+        assert stat.S_IMODE(base.stat().st_mode) == 0o700
+        assert stat.S_IMODE(folder.stat().st_mode) == 0o700
+        assert eng.prepare_runtime_dir(tmp_path) == folder  # again: fine
     finally:
-        shutil.rmtree(sock.parent, ignore_errors=True)
+        shutil.rmtree(base, ignore_errors=True)

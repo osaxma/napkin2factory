@@ -41,7 +41,7 @@ V1 = FIXTURES / "v1"
 
 @pytest.fixture(autouse=True)
 def _no_warmup(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(init_mod, "start_kernel_warmup", lambda: False)
+    monkeypatch.setattr(init_mod, "start_kernel_warmup", lambda *a: False)
 
 
 def _init(root: Path, *extra: str) -> Any:

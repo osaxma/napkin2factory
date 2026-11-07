@@ -20,6 +20,7 @@ class EcrError(N2FError):
     """A change request cannot take this step; the message says why and what to do."""
 
     exit_code = 3
+    next_step = "run `n2f ecr list` to see the change requests and where each stands"
 
 
 def _ecr_path(product: Product, ecr_id: str) -> Path:

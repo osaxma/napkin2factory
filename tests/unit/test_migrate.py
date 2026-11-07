@@ -56,7 +56,7 @@ def cur(tmp_path: Path) -> Path:
 
 @pytest.fixture(autouse=True)
 def _no_warmup(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(init_mod, "start_kernel_warmup", lambda: False)
+    monkeypatch.setattr(init_mod, "start_kernel_warmup", lambda *a: False)
 
 
 def _files(root: Path) -> dict[str, str]:

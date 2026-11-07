@@ -34,6 +34,7 @@ class BuildError(N2FError):
     """A rule failed; the message names the rule and the cause."""
 
     exit_code = 1
+    next_step = "fix what the message names, then run `n2f build` again"
 
 
 @dataclass

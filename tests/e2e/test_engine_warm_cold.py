@@ -34,6 +34,8 @@ COMMANDS: list[list[str]] = [
     ["build", "--offline"],
     ["check", "--scope", "asm://nope"],  # fails: exit 1 and a ✗ line
     ["build", "--no-such-option"],  # a usage error: exit 2 and click's own message
+    ["check", "--scope", "asm://nope", "--json"],  # the same failure as one JSON object
+    ["build", "--no-such-option", "--json"],  # a usage error as one JSON object
 ]
 
 
@@ -61,7 +63,7 @@ def test_each_command_matches_a_cold_run(product: Path) -> None:
     assert info is not None and info["requests"] == len(COMMANDS)  # none fell back to cold
     codes = {
         tuple(argv): n2f(*argv, cwd=product, env={"N2F_NO_ENGINE": "1"}).returncode
-        for argv in COMMANDS[-2:]
+        for argv in COMMANDS[-4:-2]
     }
     assert sorted(codes.values()) == [1, 2]  # one failure of the command, one usage error
 
@@ -190,7 +192,7 @@ def test_a_safe_command_cut_short_by_the_engine_dying_is_run_again_once(
 def _fake_engine_that_dies_on_run(root: Path) -> tuple[threading.Thread, socket.socket]:
     """Listens where the engine of ``root`` would; says ready, drops the connection on ``run``."""
     sock = eng.socket_path(root)
-    eng.prepare_socket_dir(sock)
+    eng.prepare_runtime_dir(root)
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(os.fspath(sock))
     server.listen(4)
@@ -215,7 +217,6 @@ def test_a_state_changing_command_cut_short_is_never_rerun(
     tmp_path: Path, engines: EngineGuard
 ) -> None:
     root = copy_product(EXAMPLES / "bracket", tmp_path / "bracket")  # with its history
-    (root / "build").mkdir()
     engines.track(root)
     manifest = root / "n2f.yaml"
     manifest.write_text(manifest.read_text().replace("A single", "One single"))
@@ -255,6 +256,10 @@ def test_a_state_changing_command_cut_short_is_never_rerun(
     assert j.returncode == 70
     assert json.loads(j.stdout) == {
         "error": "engine_stopped",
+        "message": "the n2f engine stopped during `n2f undo --json`; the change may or may not "
+        "have been made",
+        "next": "run `n2f checkpoints` to see whether it happened; if not, run "
+        "`n2f undo --json` again",
         "changes_state": True,
         "outcome": "unknown",
         "look_at": "n2f checkpoints",
@@ -275,3 +280,20 @@ def _gone(root: Path) -> bool:
     while engine_processes(root) and time.monotonic() < deadline:
         time.sleep(0.1)
     return not engine_processes(root)
+
+
+def test_json_errors_are_the_same_objects_warm_and_cold(product: Path) -> None:
+    for argv, code, error in (
+        (["check", "--scope", "asm://nope", "--json"], 1, "error"),
+        (["build", "--no-such-option", "--json"], 2, "usage_error"),
+    ):
+        cold = n2f(*argv, cwd=product, process=True, env={"N2F_NO_ENGINE": "1"})
+        warm = n2f(*argv, cwd=product, process=True)
+        assert (warm.returncode, warm.stdout) == (
+            cold.returncode,
+            cold.stdout,
+        ) and code == warm.returncode
+        obj = json.loads(warm.stdout)
+        assert obj["error"] == error and obj["message"] and obj["next"]
+    info = eng.engine_status(product)
+    assert info is not None and info["requests"] == 2  # both went through the engine

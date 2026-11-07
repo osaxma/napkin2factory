@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from collections.abc import Callable
 from functools import wraps
@@ -31,14 +32,18 @@ def product_root(path: Path | None) -> Path:
         if not (p / MANIFEST).is_file():
             raise N2FError(
                 f"{p} isn't a napkin2factory product folder (no {MANIFEST}); "
-                "run `n2f init <dir>` to start one"
+                "run `n2f init <dir>` to start one",
+                code="not_a_product",
+                next=f"n2f init {p}  (or point --dir at a product folder)",
             )
         return p
     found = find_product_root()
     if found is None:
         raise N2FError(
             f"this folder isn't a napkin2factory product (no {MANIFEST} here or above); "
-            "cd into a product folder or run `n2f init <dir>` to start one"
+            "cd into a product folder or run `n2f init <dir>` to start one",
+            code="not_a_product",
+            next="cd into a product folder, or run `n2f init <dir>` to start one",
         )
     return found
 
@@ -90,8 +95,40 @@ def print_problems(problems: Problems, root: Path) -> None:
         err_console.print(f"[yellow]![/yellow] {escape(p.format(root))}")
 
 
+GENERIC_NEXT = "run `n2f --help`"
+
+
+def error_object(exc: N2FError) -> dict[str, Any]:
+    """The ``--json`` form of an error: ``error`` (a code), ``message``, ``next`` (S-313).
+
+    A change-tracking error also carries its raw ``detail`` (the git text).
+    """
+    code = getattr(exc, "code", "") or _snake(type(exc).__name__)
+    out: dict[str, Any] = {
+        "error": code,
+        "message": str(exc),
+        "next": getattr(exc, "next_step", "") or GENERIC_NEXT,
+    }
+    detail = getattr(exc, "detail", "")
+    if detail:
+        out["detail"] = detail
+    return out
+
+
+def _snake(name: str) -> str:
+    """``ModelError`` -> ``model_error``; the base ``N2FError`` -> ``error``."""
+    if name == "N2FError":
+        return "error"
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
 def handle_errors(fn: Callable[P, R]) -> Callable[P, R]:
-    """Translate :class:`N2FError` into the exit codes of GRAND_PLAN §5."""
+    """Translate :class:`N2FError` into the exit codes of GRAND_PLAN §5.
+
+    The ``✗`` line goes to stderr as always. Under ``--json`` stdout also gets one JSON object
+    ``{"error", "message", "next"}`` (not for an error whose command already printed its own
+    JSON, such as a failed check).
+    """
 
     @wraps(fn)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
@@ -99,9 +136,8 @@ def handle_errors(fn: Callable[P, R]) -> Callable[P, R]:
             return fn(*args, **kwargs)
         except N2FError as exc:
             err_console.print(f"[red]✗[/red] {escape(str(exc))}")
-            detail = getattr(exc, "detail", "")
-            if detail and "--json" in sys.argv:
-                emit_json({"error": str(exc), "detail": detail, "code": getattr(exc, "code", "")})
+            if (kwargs.get("json_out") or "--json" in sys.argv) and not exc.reported:
+                emit_json(error_object(exc))
             raise typer.Exit(code=exc.exit_code) from exc
 
     return wrapper

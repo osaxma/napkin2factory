@@ -31,7 +31,11 @@ def _sdk_present() -> bool:
 
 
 def mcp(dir_: Path | None = DirOption) -> None:
-    """Serve the n2f verbs as tools over stdio (experimental); needs the mcp extra."""
+    """Serve the n2f verbs as tools over stdio (experimental); needs the mcp extra.
+
+    Not this: `n2f serve` (the report on localhost) and `n2f engine` (a warm process that makes
+    commands faster).
+    """
     if not _sdk_present():
         typer.echo(INSTALL_LINE, err=True)
         raise typer.Exit(code=1)

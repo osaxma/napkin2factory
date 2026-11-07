@@ -300,7 +300,6 @@ class EngineGuard:
         root = Path(os.path.realpath(root))
         if root not in self.roots:
             self.roots.append(root)
-        (root / "build").mkdir(exist_ok=True)
         proc = engine.spawn(root)
         if proc is not None:
             self.procs.append(proc)
@@ -325,8 +324,7 @@ class EngineGuard:
         from napkin2factory.cli import engine
 
         for root in self.roots:
-            if (root / "build").is_dir():
-                engine.stop_engine(root, wait=10.0)
+            engine.stop_engine(root, wait=10.0)
         for proc in self.procs:
             try:
                 proc.wait(timeout=10)
@@ -344,6 +342,8 @@ class EngineGuard:
                 left.append(f"socket {engine.socket_path(root)}")
             if engine.pid_path(root).exists():
                 left.append(f"pid file of {root}")
+            if not engine_processes(root):
+                shutil.rmtree(engine.runtime_dir(root), ignore_errors=True)  # lock and log
         self.roots.clear()
         self.procs.clear()
         assert not left, f"an engine was left behind: {left}"
@@ -360,12 +360,11 @@ def engines(monkeypatch: pytest.MonkeyPatch) -> Iterator[EngineGuard]:
 
 @pytest.fixture
 def short_product(engines: EngineGuard) -> Iterator[Path]:
-    """A bracket model (not built, ``build/`` empty) at a short path: the socket sits in it."""
+    """A bracket model, not built, at a short path."""
     import tempfile
 
     base = Path(os.path.realpath(tempfile.mkdtemp(prefix="n2f-t-", dir="/tmp")))
     root = copy_product(EXAMPLES / "bracket", base / "bracket", git=False)
-    (root / "build").mkdir()
     engines.track(root)
     yield root
     engines.stop_all()

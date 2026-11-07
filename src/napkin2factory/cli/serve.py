@@ -21,7 +21,11 @@ def serve(
         False, "--site", help="Serve build/site (versions and diffs) instead of the latest report."
     ),
 ) -> None:
-    """Serve the generated report on localhost (the report also opens straight from disk)."""
+    """Serve the generated report on localhost (the report also opens straight from disk).
+
+    Not this: `n2f mcp` (the verbs as tools over stdio for a chat client) and `n2f engine` (a
+    warm process that makes commands faster).
+    """
     root = product_root(dir)
     folder = root / "build" / ("site" if site else "report")
     if not (folder / "index.html").is_file():

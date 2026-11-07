@@ -47,7 +47,6 @@ IDLE_SECONDS = 15 * 60
 MAX_REQUESTS = 200  # the CAD kernel leaks a little per build; a recycle bounds memory
 CONNECT_TIMEOUT = 1.0
 HELLO_TIMEOUT = 1.0
-SOCKET_BYTES = 100  # sun_path holds 104 on macOS and 108 on Linux
 EXIT_INTERNAL = 70  # EX_SOFTWARE: the engine failed, or stopped under a command
 
 
@@ -168,52 +167,56 @@ _SKIP_DIRS = frozenset({"__pycache__", "vendor", "templates"})
 # paths
 
 
-def engine_dir(root: Path) -> Path:
-    """``<product>/build/.n2f``: the pid file and the lock always live here."""
-    return Path(root) / "build" / ".n2f"
+def runtime_dir(root: Path) -> Path:
+    """The engine's folder for the product at ``root``: socket, pid file, lock and log (S-313).
+
+    ``/tmp/n2f-<uid>/<first 16 hex of sha256(realpath of the product)>/``: always in the user's
+    runtime area, never in the product, so ``build/`` and ``n2f status`` never see engine files,
+    and the path stays short for any product location (a Unix socket path holds about 104 bytes).
+    """
+    real = os.path.realpath(root)
+    digest = hashlib.sha256(os.fsencode(real)).hexdigest()[:16]
+    return Path("/tmp") / f"n2f-{os.getuid()}" / digest
+
+
+def socket_path(root: Path) -> Path:
+    """The engine's socket (0600) in :func:`runtime_dir`."""
+    return runtime_dir(root) / "engine.sock"
 
 
 def pid_path(root: Path) -> Path:
     """The pid file: JSON with the pid, the socket path and when the engine started."""
-    return engine_dir(root) / "engine.pid"
+    return runtime_dir(root) / "engine.pid"
 
 
 def lock_path(root: Path) -> Path:
     """The lock the running engine holds (``flock``); free when no engine runs."""
-    return engine_dir(root) / "engine.lock"
+    return runtime_dir(root) / "engine.lock"
 
 
-def socket_path(root: Path) -> Path:
-    """The engine's socket for the product at ``root``.
-
-    ``<product>/build/.n2f/engine.sock`` when that path is at most 100 bytes, else
-    ``/tmp/n2f-<uid>/<16 hex of sha256(realpath)>.sock`` (a Unix socket path is limited to 104
-    bytes on macOS).
-    """
-    real = Path(os.path.realpath(root))
-    short = engine_dir(real) / "engine.sock"
-    if len(os.fsencode(short)) <= SOCKET_BYTES:
-        return short
-    digest = hashlib.sha256(os.fsencode(real)).hexdigest()[:16]
-    return Path("/tmp") / f"n2f-{os.getuid()}" / f"{digest}.sock"
+def log_path(root: Path) -> Path:
+    """What the engine process wrote to its stdout and stderr (a crash shows here)."""
+    return runtime_dir(root) / "engine.log"
 
 
-def prepare_socket_dir(sock: Path) -> None:
-    """Create the socket's folder (mode 0700); refuse one that is not ours or is open to others.
+def prepare_runtime_dir(root: Path) -> Path:
+    """Create the engine's folder for ``root`` (mode 0700) and return it.
 
     Raises:
-        PermissionError: the folder exists but is owned by someone else or is group/world
-            accessible.
+        PermissionError: it, or ``/tmp/n2f-<uid>``, is owned by someone else, open to group or
+            others, or a symbolic link.
     """
-    folder = sock.parent
-    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
-    if folder.is_symlink():
-        raise PermissionError(f"{folder} is a symbolic link")
-    st = folder.stat()
-    if st.st_uid != os.getuid():
-        raise PermissionError(f"{folder} is not owned by this user")
-    if folder.parent == Path("/tmp") and st.st_mode & 0o077:  # the shared one we made ourselves
-        raise PermissionError(f"{folder} is open to other users (mode {st.st_mode & 0o777:o})")
+    folder = runtime_dir(root)
+    for part in (folder.parent, folder):
+        part.mkdir(mode=0o700, exist_ok=True)
+        if part.is_symlink():
+            raise PermissionError(f"{part} is a symbolic link")
+        st = part.stat()
+        if st.st_uid != os.getuid():
+            raise PermissionError(f"{part} is not owned by this user")
+        if st.st_mode & 0o077:
+            raise PermissionError(f"{part} is open to other users (mode {st.st_mode & 0o777:o})")
+    return folder
 
 
 # ---------------------------------------------------------------------------------------------
@@ -457,6 +460,7 @@ class Engine:
             "requests": self.requests,
             "started": self.started,
             "idle_s": round(time.monotonic() - self.last_active, 1),
+            "idle_left_s": round(max(0.0, self.idle - (time.monotonic() - self.last_active)), 1),
             "busy": self._busy > 0,
             "warm": self.warm,
             "version": self.version,
@@ -589,7 +593,7 @@ def run_in_process(req: dict[str, Any], out: TextIO, err: TextIO, root: Path) ->
     """
     from rich.console import Console
 
-    from napkin2factory.cli.app import app
+    from napkin2factory.cli.app import run_app
     from napkin2factory.cli.common import console, err_console
 
     saved_env = dict(os.environ)
@@ -615,7 +619,7 @@ def run_in_process(req: dict[str, Any], out: TextIO, err: TextIO, root: Path) ->
         Console.__init__(console, highlight=False)
         Console.__init__(err_console, stderr=True, highlight=False)
         try:
-            app(args=list(req["argv"]), prog_name=str(req.get("prog") or "n2f"))
+            run_app(list(req["argv"]), prog_name=str(req.get("prog") or "n2f"))
         except SystemExit as exc:
             code, text = _exit_code(exc.code)
             if text:
@@ -656,6 +660,7 @@ def _preload_kernel(engine: Engine) -> None:
 def serve_main() -> None:
     """Entry of the engine process, started by :func:`spawn` with the product folder as argument."""
     root = Path(os.path.realpath(sys.argv[1]))
+    prepare_runtime_dir(root)
     lock = os.open(lock_path(root), os.O_CREAT | os.O_RDWR, 0o600)
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -663,7 +668,6 @@ def serve_main() -> None:
         return  # another engine holds this product
     code = package_code()
     sock = socket_path(root)
-    prepare_socket_dir(sock)
     with contextlib.suppress(FileNotFoundError):
         sock.unlink()  # a stale one: we hold the lock, so nobody serves it
     # named at once, so `engine stop` can end an engine that is still importing (S-311)
@@ -917,6 +921,11 @@ def stopped_during(argv: list[str], klass: VerbClass) -> tuple[str, str]:
             json.dumps(
                 {
                     "error": "engine_stopped",
+                    "message": (
+                        f"the n2f engine stopped during `{cmd}`; the change may or may not have "
+                        "been made"
+                    ),
+                    "next": f"run `{look}` to see whether it happened; if not, run `{cmd}` again",
                     "changes_state": True,
                     "outcome": "unknown",
                     "look_at": look,
@@ -960,18 +969,15 @@ _spawned = False
 
 
 def spawn(root: Path) -> subprocess.Popen[bytes] | None:
-    """Start an engine for ``root`` in the background unless one runs or is starting.
+    """Start an engine for the product at ``root`` in the background unless one runs or starts.
 
-    Needs ``build/`` to exist already: the engine never creates a product's build folder (it
-    would change what ``n2f status`` says about a product never built). Returns the process,
-    or None when nothing was started.
+    Any initialised product folder qualifies (built or not); the engine's files live in
+    :func:`runtime_dir`, never in the product. Returns the process, or None when nothing was
+    started (an engine holds the lock, or the runtime folder is not usable).
     """
     global _spawned
-    if not (Path(root) / "build").is_dir():
-        return None
-    folder = engine_dir(root)
     try:
-        folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+        prepare_runtime_dir(root)
         fd = os.open(lock_path(root), os.O_CREAT | os.O_RDWR, 0o600)
     except OSError:
         return None
@@ -983,19 +989,20 @@ def spawn(root: Path) -> subprocess.Popen[bytes] | None:
         os.close(fd)
     _spawned = True
     try:
-        return subprocess.Popen(
-            [
-                sys.executable,
-                "-c",
-                "from napkin2factory.cli.engine import serve_main; serve_main()",
-                str(root),
-            ],
-            cwd="/",
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
+        with open(log_path(root), "wb") as log:  # a crash leaves its traceback here
+            return subprocess.Popen(
+                [
+                    sys.executable,
+                    "-c",
+                    "from napkin2factory.cli.engine import serve_main; serve_main()",
+                    str(root),
+                ],
+                cwd="/",
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=log,
+                start_new_session=True,
+            )
     except OSError:
         return None
 
@@ -1243,63 +1250,146 @@ def capture(
 # the verbs `n2f engine start|status|stop`
 
 
+def engine_starting(root: Path) -> bool:
+    """True when an engine process for ``root`` holds the lock but does not answer yet."""
+    try:
+        fd = os.open(lock_path(root), os.O_RDWR)
+    except OSError:
+        return False
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return True
+    finally:
+        os.close(fd)
+    return False
+
+
+def start_outlook(root: Path) -> tuple[bool, str]:
+    """Whether the next forwarded command in ``root`` will start an engine, and why (not)."""
+    if engine_disabled():
+        return False, "N2F_NO_ENGINE is set, so commands run in their own process"
+    if engine_starting(root):
+        return (
+            False,
+            "an engine for this product is still loading; commands run normally until it is ready",
+        )
+    return True, "this folder is an initialised product and N2F_NO_ENGINE is not set"
+
+
+def status_report(root: Path, dir_given: bool = False) -> dict[str, Any]:
+    """Everything ``n2f engine status --json`` says about the engine of ``root``."""
+    info = engine_status(root)
+    will, reason = start_outlook(root)
+    where = f" --dir {shlex.quote(str(root))}" if dir_given else ""
+    return {
+        "running": info is not None,
+        "will_start_on_next_command": info is None and will,
+        "reason": "an engine is running" if info is not None else reason,
+        "start_command": f"n2f engine start{where}",
+        "socket": str(socket_path(root)),
+        "pid": None if info is None else info["pid"],
+        "idle_s": None if info is None else info["idle_s"],
+        "idle_left_s": None if info is None else info["idle_left_s"],
+        "requests": None if info is None else info["requests"],
+        "busy": None if info is None else info["busy"],
+        "version": _version() if info is None else info["version"],
+    }
+
+
 def engine_app() -> typer.Typer:
     """The ``n2f engine`` verbs (built on demand: typer is not imported on the client path)."""
     import typer
 
-    from napkin2factory.cli.common import DirOption, JsonOption, handle_errors, product_root
+    from napkin2factory.cli.common import (
+        DirOption,
+        JsonOption,
+        emit_json,
+        handle_errors,
+        product_root,
+    )
+    from napkin2factory.core.errors import N2FError
 
     app = typer.Typer(
-        help="The warm engine: a background process that keeps this product's n2f commands fast.",
+        help=(
+            "The warm engine: a background process per product that keeps its n2f commands fast. "
+            "Not this: `n2f serve` (the report on localhost), `n2f mcp` (tools over stdio)."
+        ),
         no_args_is_help=True,
     )
 
     @app.command("start")
     @handle_errors
-    def start(dir_: Path | None = DirOption) -> None:
-        """Start the engine for this product now (the first build or check also starts one)."""
+    def start(dir_: Path | None = DirOption, json_out: bool = JsonOption) -> None:
+        """Start the engine for this product now (`n2f init` and the first command also do)."""
         root = product_root(dir_)
-        if engine_status(root) is not None:
+        if engine_disabled():
+            raise N2FError(
+                "N2F_NO_ENGINE is set, so commands would not use an engine",
+                code="engine_disabled",
+                next="unset N2F_NO_ENGINE, then run `n2f engine start`",
+            )
+        started = False
+        status = engine_status(root)
+        proc = None
+        if status is None:
+            proc = spawn(root)
+            started = proc is not None
+            deadline = time.monotonic() + 30.0
+            while status is None and time.monotonic() < deadline:
+                status = engine_status(root)
+                if status is None and proc is not None and proc.poll() is not None:
+                    raise N2FError(
+                        "the engine stopped while starting",
+                        code="engine_failed",
+                        next=f"read {log_path(root)}",
+                    )
+                if status is None and proc is None and not engine_starting(root):
+                    break
+                time.sleep(0.1)
+        if json_out:
+            emit_json({**status_report(root, dir_ is not None), "started": started})
+        elif status is None:
+            typer.echo("the engine is still loading; `n2f engine status` says when it answers")
+        elif not started:
             typer.echo("the engine is already running")
-            return
-        (root / "build").mkdir(exist_ok=True)
-        proc = spawn(root)
-        if proc is None:
-            typer.echo("an engine is starting; run `n2f engine status` in a moment")
-            return
-        deadline = time.monotonic() + 30.0
-        while time.monotonic() < deadline:
-            if (status := engine_status(root)) is not None:
-                typer.echo(f"the engine is running (process {status['pid']})")
-                return
-            if proc.poll() is not None:
-                raise typer.Exit(code=1)
-            time.sleep(0.1)
-        typer.echo("the engine is still starting; run `n2f engine status` in a moment")
+        else:
+            typer.echo(f"the engine is running (process {status['pid']})")
 
     @app.command("status")
     @handle_errors
     def status(dir_: Path | None = DirOption, json_out: bool = JsonOption) -> None:
-        """Say whether this product's engine is running."""
+        """Say whether this product's engine runs; if not, whether the next command starts one."""
         root = product_root(dir_)
-        info = engine_status(root)
+        report = status_report(root, dir_ is not None)
         if json_out:
-            typer.echo(json.dumps({"running": info is not None, **(info or {})}, indent=2))
-        elif info is None:
-            typer.echo("no engine is running for this product")
-        else:
-            busy = "running a command" if info["busy"] else f"idle {info['idle_s']:.0f} s"
+            emit_json(report)
+        elif report["running"]:
+            busy = "running a command" if report["busy"] else f"idle {report['idle_s']:.0f} s"
             typer.echo(
-                f"the engine is running (process {info['pid']}, {info['requests']} commands "
-                f"served, {busy})"
+                f"the engine is running (process {report['pid']}, {report['requests']} commands "
+                f"served, {busy}; it leaves after {report['idle_left_s']:.0f} s more idle)"
+            )
+        elif report["will_start_on_next_command"]:
+            typer.echo(
+                "no engine is running for this product. The next build, check or other command "
+                f"will start one ({report['reason']}). To start it now: {report['start_command']}"
+            )
+        else:
+            typer.echo(
+                f"no engine is running for this product, and none will start by itself: "
+                f"{report['reason']}. To start one now: {report['start_command']}"
             )
 
     @app.command("stop")
     @handle_errors
-    def stop(dir_: Path | None = DirOption) -> None:
+    def stop(dir_: Path | None = DirOption, json_out: bool = JsonOption) -> None:
         """Stop this product's engine (it finishes the command in progress first)."""
         root = product_root(dir_)
         result = stop_engine(root)
-        typer.echo("no engine was running" if result == "none" else "the engine is stopped")
+        if json_out:
+            emit_json({"running": False, "result": result})
+        else:
+            typer.echo("no engine was running" if result == "none" else "the engine is stopped")
 
     return app

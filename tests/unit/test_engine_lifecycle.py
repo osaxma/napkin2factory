@@ -82,8 +82,7 @@ def test_a_command_through_the_engine_counts_and_matches_the_cold_one(
 def test_a_stale_pid_file_and_socket_are_cleaned_up(
     short_product: Path, engines: EngineGuard
 ) -> None:
-    folder = eng.engine_dir(short_product)
-    folder.mkdir(parents=True, exist_ok=True)
+    eng.prepare_runtime_dir(short_product)
     dead = os.fork()
     if dead == 0:
         os._exit(0)
@@ -133,6 +132,8 @@ def test_the_first_command_runs_cold_and_starts_the_engine_for_the_next(
     assert _wait(lambda: eng.engine_status(short_product) is not None, 30)
     info = eng.engine_status(short_product)
     assert info is not None and info["requests"] == 0  # the first one did not go through it
+    # the product was never built, and the engine neither needed nor made a build folder
+    assert not (short_product / "build").exists()
     second = n2f("validate", cwd=short_product, process=True)
     assert (second.returncode, second.stdout, second.stderr) == (
         first.returncode,
@@ -141,17 +142,6 @@ def test_the_first_command_runs_cold_and_starts_the_engine_for_the_next(
     )
     info = eng.engine_status(short_product)
     assert info is not None and info["requests"] == 1
-
-
-def test_no_build_folder_means_no_engine_and_none_is_created(
-    short_product: Path, engines: EngineGuard
-) -> None:
-    os.rmdir(short_product / "build")
-    result = n2f("validate", cwd=short_product, process=True)
-    assert result.returncode == 0
-    time.sleep(0.5)
-    assert not (short_product / "build").exists()
-    assert engine_processes(short_product) == []
 
 
 def test_the_engine_leaves_when_idle(
@@ -205,3 +195,75 @@ def test_a_package_change_makes_the_engine_leave(
     monkeypatch.setattr(eng, "package_code", lambda: "something-else")
     assert eng.capture(short_product, ["validate"]) is None  # refused: run it cold
     assert _wait(lambda: not engine_processes(short_product), 15)
+
+
+def test_status_says_whether_the_next_command_starts_an_engine(
+    short_product: Path, engines: EngineGuard
+) -> None:
+    plain = n2f("engine", "status", cwd=short_product)
+    assert plain.returncode == 0
+    assert "no engine is running" in plain.stdout and "will start one" in plain.stdout
+    assert "n2f engine start" in plain.stdout
+    info = json.loads(n2f("engine", "status", "--json", cwd=short_product).stdout)
+    assert info["running"] is False and info["will_start_on_next_command"] is True
+    assert info["start_command"] == "n2f engine start" and info["pid"] is None
+    assert info["socket"] == str(eng.socket_path(short_product)) and info["reason"]
+    assert info["idle_s"] is None and info["idle_left_s"] is None and info["version"]
+
+    off = n2f("engine", "status", cwd=short_product, env={"N2F_NO_ENGINE": "1"})
+    assert "none will start by itself" in off.stdout and "N2F_NO_ENGINE" in off.stdout
+    assert "n2f engine start" in off.stdout
+    off_json = json.loads(
+        n2f("engine", "status", "--json", cwd=short_product, env={"N2F_NO_ENGINE": "1"}).stdout
+    )
+    assert off_json["will_start_on_next_command"] is False
+    assert "N2F_NO_ENGINE" in off_json["reason"]
+
+    pid = engines.start(short_product)
+    up = json.loads(n2f("engine", "status", "--json", cwd=short_product).stdout)
+    assert up["running"] is True and up["pid"] == pid and up["will_start_on_next_command"] is False
+    assert 0 <= up["idle_s"] < 60 and 800 < up["idle_left_s"] <= 900  # the 15 minute default
+    assert "leaves after" in n2f("engine", "status", cwd=short_product).stdout
+
+
+def test_engine_start_refuses_when_the_engine_is_off(short_product: Path) -> None:
+    r = n2f("engine", "start", "--json", cwd=short_product, env={"N2F_NO_ENGINE": "1"})
+    assert r.returncode == 1
+    obj = json.loads(r.stdout)
+    assert obj["error"] == "engine_disabled" and "N2F_NO_ENGINE" in obj["next"]
+    assert engine_processes(short_product) == []
+
+
+def test_init_starts_the_engine_and_the_first_build_is_served_by_it(
+    tmp_path: Path, engines: EngineGuard
+) -> None:
+    import re
+    import shutil
+
+    from napkin2factory.cli.kernel import KERNEL_NOTE
+
+    live = tmp_path / "a" / "prod"
+    live.parent.mkdir()
+    made = n2f("init", str(live), "--template", "bracket", "--json")
+    assert made.returncode == 0, made.stderr
+    assert json.loads(made.stdout)["kernel_warmup"] is True  # the engine is the warm-up
+    engines.track(live)
+    assert not (live / "build").exists()  # init built nothing; the engine made no build folder
+    assert _wait(lambda: eng.engine_status(live) is not None, 40)
+    twin = tmp_path / "b" / "prod"  # the same product, to build cold
+    twin.parent.mkdir()
+    shutil.copytree(live, twin, symlinks=True)
+
+    warm = n2f("build", "--offline", cwd=live, process=True)
+    assert warm.returncode == 0, warm.stderr
+    info = eng.engine_status(live)
+    assert info is not None and info["requests"] == 1  # the very first build was served warm
+    cold = n2f("build", "--offline", cwd=twin, process=True, env={"N2F_NO_ENGINE": "1"})
+    assert cold.returncode == 0, cold.stderr
+
+    def plain(text: str) -> str:
+        text = re.sub(r"\d+\.\ds", "<t>s", text)
+        return "".join(ln for ln in text.splitlines(keepends=True) if KERNEL_NOTE not in ln)
+
+    assert plain(warm.stdout) == plain(cold.stdout)
+    assert plain(warm.stderr) == plain(cold.stderr)

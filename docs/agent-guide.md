@@ -13,6 +13,18 @@ The person is the **owner**: the product is theirs, and the decisions are theirs
 the README, pasted a prompt, and expect you to guide them. They may never type a command or
 open a file. Talk to them in plain words.
 
+## The path in order
+
+1. `n2f version` (install if missing, step 1), then `n2f doctor`.
+2. Ask the owner the region and units, then `n2f init <folder> --name "…" --region … --units …`
+   (step 3). It also starts the folder's warm engine, which speeds up every later command.
+3. Read `<folder>/AGENTS.md` and `roles/pm.md`; from here the folder's own instructions rule.
+4. Napkin stage: `n2f concept new "<title>"` per direction, `n2f concept build`,
+   `n2f concept board`; the owner picks, `n2f concept promote C-00x`. Or edit `model/` directly.
+5. `n2f build`, then `n2f check`; fix and repeat until the checks are green.
+6. Show the owner the report, `build/report/index.html` (step 5). `n2f engine status` and
+   `N2F_NO_ENGINE=1` are for when you want to see or switch off the engine.
+
 ## Rules from the first message
 
 1. **Disclaimer first.** Before any design work, tell the owner once, in your own words, that
@@ -38,8 +50,9 @@ open a file. Talk to them in plain words.
 
 You need a shell on the owner's computer. napkin2factory is tested on macOS and Linux;
 Windows is not tested. If you have no shell (a chat app with no terminal), tell the owner
-plainly that this needs an agent that can run commands on their computer. A chat-only way in
-is planned but does not exist yet.
+plainly that this needs an agent that can run commands on their computer. A chat client that
+can run MCP servers is the exception: it uses `n2f mcp` (see "Adapting to your client"), once
+napkin2factory is installed on that computer.
 
 ```bash
 n2f version        # already installed?
@@ -451,13 +464,17 @@ refuses and changes nothing: bring them in (`git pull`) and publish again.
   a build that has to wait prints "loading the CAD kernel…". Later builds rebuild only what
   changed and take seconds for a small product. Tell the owner about the first wait before it
   happens.
-- **The warm engine.** Once a product has been built, the first `build`, `check`, `status` and
-  similar command in its folder starts a background process that keeps the program and the CAD
-  kernel loaded, so the next commands start in a fraction of a second. It is automatic, exits
-  after 15 idle minutes and gives the same output as a plain run. `n2f engine status` says
-  whether it is running and `n2f engine stop` ends it; `N2F_NO_ENGINE=1` turns it off. If it dies under a command,
-  a read-only one is simply run again; for one that changes the product (`undo`, `ecr close`, …)
-  n2f exits 70 and says what to look at and which command to run next (`--json`: the same facts).
+- **The warm engine.** `n2f init` starts a background process for the product folder; in any
+  folder with `n2f.yaml`, the first `build`, `check`, `status` or similar command starts one if
+  none runs. It keeps the program and the CAD kernel loaded, so later commands (the first build
+  included) start in a fraction of a second. It exits after 15 idle minutes and gives the same
+  output as a plain run. `n2f engine status` says whether it runs and, if not, whether the next
+  command will start one; `n2f engine stop` ends it; `N2F_NO_ENGINE=1` turns it off. If it dies
+  under a command, a read-only one is run again; for one that changes the product (`undo`,
+  `ecr close`, …) n2f exits 70 and says what to look at and which command to run next.
+- **Failures under `--json`** are one object on stdout, `{"error", "message", "next"}`: `next`
+  is the step to take. Exit codes: 0 ok, 1 an error, 2 a failed check or a usage error, 3 a
+  gate refused, 4 the machine, 70 the engine stopped under a command that changes the product.
 - **Something fails.** Run `n2f doctor`, then `n2f status`. Error messages say what to do
   next. Never edit anything under `build/`; edit the model and rebuild.
 - **Unsure what a page or number means.** `n2f docs how-it-works` (the ideas),

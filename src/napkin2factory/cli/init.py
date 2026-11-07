@@ -35,11 +35,18 @@ NEXT_COLD = (
 )
 
 
-def start_kernel_warmup() -> bool:
-    """Warm the CAD kernel in a detached process unless it is already loaded here (B-0016).
+def start_kernel_warmup(root: Path | None = None) -> bool:
+    """Warm the CAD kernel in the background (B-0016); True when a warm-up was started.
 
-    Returns True when a background warm-up was started.
+    With the engine on (no ``N2F_NO_ENGINE``), the product's engine is started: it loads the
+    package and the kernel before it listens, so the first ``n2f build`` after ``init`` may be
+    served warm. Otherwise a detached process imports the kernel, unless it is already loaded
+    here.
     """
+    from napkin2factory.cli import engine
+
+    if root is not None and not engine.engine_disabled():
+        return engine.spawn(root) is not None
     if kernel_loaded():
         return False
     return warm_kernel_in_background() is not None
@@ -202,7 +209,7 @@ def upgrade_existing(dest: Path, json_out: bool = False) -> None:
     else:
         message = "Start change tracking" if not was_tracked else "Add agent files"
     sha = vcs.snapshot(message)
-    warming = start_kernel_warmup()
+    warming = start_kernel_warmup(dest)
     if json_out:
         emit_json(
             {
@@ -288,7 +295,7 @@ def init(
         vcs = Vcs(dest)
         vcs.init()
         snapshot = vcs.snapshot(f"Start of {display}")
-    warming = start_kernel_warmup()
+    warming = start_kernel_warmup(dest)
     if json_out:
         emit_json(
             {

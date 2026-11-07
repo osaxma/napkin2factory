@@ -20,8 +20,8 @@ def main() -> None:
     if code is not None:
         sys.exit(code)
     try:
-        from napkin2factory.cli.app import app
+        from napkin2factory.cli.app import run_app
 
-        app()
+        run_app(argv)
     finally:
         engine.after_cold(argv)

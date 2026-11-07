@@ -82,15 +82,33 @@ class Problems:
 
 
 class N2FError(Exception):
-    """Base class for all napkin2factory errors."""
+    """Base class for all napkin2factory errors.
+
+    Under ``--json`` the CLI prints ``{"error": code, "message": …, "next": …}``: ``code`` is
+    the ``code=`` given at the raise site, else a word made from the class name; ``next`` is the
+    ``next=`` given there, else the class's ``next_step``, else a generic pointer (S-313).
+    """
 
     exit_code = 1
+    code = ""
+    next_step = ""
+    #: True when the command already printed its own answer (a failed check prints the check
+    #: result, then exits non-zero): ``--json`` adds no second object.
+    reported = False
+
+    def __init__(self, *args: object, next: str = "", code: str = "") -> None:
+        super().__init__(*args)
+        if next:
+            self.next_step = next
+        if code:
+            self.code = code
 
 
 class ModelError(N2FError):
     """The product model failed to load or validate."""
 
     exit_code = 1
+    next_step = "fix what the message names in the model files, then run `n2f validate`"
 
     def __init__(self, problems: Problems, summary: str = "the product model has problems") -> None:
         self.problems = problems
@@ -104,15 +122,18 @@ class EnvironmentProblem(N2FError):
     """Something about the machine, not the model (missing tool, bad directory)."""
 
     exit_code = 4
+    next_step = "run `n2f doctor` to see what this machine needs"
 
 
 class GateBlocked(N2FError):
     """A gate (release, close) refused; the message says what to do."""
 
     exit_code = 3
+    next_step = "run `n2f status` to see what blocks it"
 
 
 class CheckFailed(N2FError):
     """``n2f check`` found at least one failing check."""
 
     exit_code = 2
+    reported = True
