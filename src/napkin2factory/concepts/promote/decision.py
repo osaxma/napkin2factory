@@ -28,19 +28,32 @@ RATIONALE_KEYS: tuple[str, ...] = (
 RATIONALE_SPLIT = 6
 
 
-def _card_text(root: Path, card_id: str, status: str, decision: dict[str, Any]) -> str:
-    """The card file with ``status`` and ``decision`` set (comments and order kept)."""
+def _card_text(
+    root: Path,
+    card_id: str,
+    status: str,
+    decision: dict[str, Any],
+    built: dict[str, Any] | None = None,
+) -> str:
+    """The card file with ``status``, ``decision`` and ``built`` set (comments and order kept)."""
     from ruamel.yaml.comments import CommentedMap
 
     from napkin2factory.core.yamlio import dumps_roundtrip, load_roundtrip, read_yaml
 
     path = cm.card_path(root, card_id)
-    ConceptCard.model_validate({**read_yaml(path), "status": status, "decision": decision})
+    merged = {**read_yaml(path), "status": status, "decision": decision}
+    if built is not None:
+        merged["built"] = built
+    ConceptCard.model_validate(merged)
     doc = load_roundtrip(path)
     doc["status"] = status
     flow = CommentedMap(decision)
     flow.fa.set_flow_style()
     doc["decision"] = flow
+    if built is not None:
+        flow_built = CommentedMap(built)
+        flow_built.fa.set_flow_style()
+        doc["built"] = flow_built
     return dumps_roundtrip(doc, explicit_null=True)
 
 

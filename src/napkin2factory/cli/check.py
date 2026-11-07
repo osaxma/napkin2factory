@@ -109,6 +109,13 @@ def check(
         **({"ceremony_raised": rose} if rose else {}),
         **({"region_note": region_note} if region_note else {}),
     }
+    # B-0290: a napkin card the direction switched to (never promoted) has parts that are
+    # still the earlier direction's, so the product's checks cannot see its own screening
+    # failures; `n2f check` lists them and fails while one stands.
+    from napkin2factory.concepts.switch import direction_failures
+
+    direction_failures_list = [] if scope is not None else direction_failures(root)
+    data["direction_failures"] = direction_failures_list
     if json_out or format == "json":
         emit_json(data)
     elif format == "md":
@@ -122,6 +129,11 @@ def check(
             console.print(f"[yellow]Hazard:[/yellow] {escape(hazard_note)}")
     if data["summary"].get("fail", 0):
         raise CheckFailed(f"{data['summary']['fail']} check(s) failed")
+    if direction_failures_list:
+        raise CheckFailed(
+            f"the chosen direction fails its screening: {len(direction_failures_list)} "
+            "problem(s) the sketch found (listed above)"
+        )
 
 
 def print_ceremony(ceremony, rose: dict | None) -> None:  # type: ignore[no-untyped-def,type-arg]
@@ -210,7 +222,20 @@ def render_table(data: dict, persona: str, all_rows: bool) -> None:  # type: ign
                 escape(r["message"]),
             )
         console.print(t2)
+    print_direction_failures(data.get("direction_failures") or [])
     console.print(render_summary(data["summary"], persona))
+
+
+def print_direction_failures(failures: list[str]) -> None:
+    """The chosen direction's own screening failures, under the check (B-0290).
+
+    The words are the same ``n2f concept switch`` prints when it names the card's failures.
+    """
+    if not failures:
+        return
+    console.print("[bold red]The chosen direction fails its screening:[/bold red]")
+    for line in failures:
+        console.print(f"  ✗ {escape(line)}", soft_wrap=True, highlight=False)
 
 
 def render_summary(summary: dict[str, int], persona: str) -> str:
@@ -240,6 +265,9 @@ def render_md(data: dict) -> str:  # type: ignore[type-arg]
     for r in data["results"]:
         if r["kind"] != "requirement":
             lines.append(f"| {r['id']} | {r['subject']} | {r['status']} | {r['message']} |")
+    for failure in data.get("direction_failures") or []:
+        lines.append("")
+        lines.append(f"- the chosen direction fails its screening: {failure}")
     return "\n".join(lines) + "\n"
 
 

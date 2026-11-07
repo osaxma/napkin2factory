@@ -542,3 +542,57 @@ def test_promote_skips_a_requirement_the_model_already_holds(tmp_path: Path) -> 
     # the width, depth and cost rows are held; the sag one has no target and the weight one
     # targets another property than the model's mass limit, so they are still seeded
     assert {r.about for r in result.requirements} == {"sag", "weight"}
+    # B-0288: every seeded requirement carries the card field it came from
+    for r in result.requirements:
+        assert r.data["tags"] == [f"card-field:{r.about}"]
+
+
+def test_seeding_skips_a_field_the_model_already_holds_by_tag(tmp_path: Path) -> None:
+    """B-0288: a requirement with the same ``card-field:`` tag is held, even with no target."""
+    import re
+
+    root = copy_product(EXAMPLES / "test-stand", tmp_path / "stand", prebuilt=True)
+    card = root / "concepts" / "C-002.yaml"
+    text = card.read_text().replace("status: promoted\n", "status: exploring\n", 1)
+    card.write_text(re.sub(r"^decision: \{dec: DEC-001.*\}\n", "", text, flags=re.M))
+    decs = root / "model" / "decisions.yaml"
+    dtext = decs.read_text()
+    decs.write_text(dtext[: dtext.index("- id: DEC-001")] + dtext[dtext.index("- id: DEC-002") :])
+    # a manual requirement (no verify target) already holds the sag field by its tag
+    reqs = root / "model" / "requirements.yaml"
+    reqs.write_text(
+        reqs.read_text().rstrip("\n") + "\n  - id: REQ-900\n"
+        "    title: The sag already asked\n"
+        "    statement: checked by hand\n"
+        "    category: performance\n"
+        "    priority: should\n"
+        "    verify: {kind: manual, note: by hand}\n"
+        "    tags: [card-field:sag]\n"
+    )
+    before = set(load_product(root).requirements)
+    result = promote(root, "C-002", snapshot=False)
+    after = load_product(root).requirements
+    assert len(after) - len(before) == len(result.requirements)
+    # the sag requirement is now held by its tag; only the weight one is seeded
+    assert {r.about for r in result.requirements} == {"weight"}
+    assert any("REQ-900 already asks this" in n for n in result.notes)
+
+
+def test_held_requirement_matches_the_card_field_tag_without_a_target() -> None:
+    """B-0288: the ``card-field:`` tag matches a held requirement even when it has no target."""
+    from napkin2factory.concepts.promote.common import held_requirement
+
+    held = {
+        "REQ-001": Requirement.model_validate(
+            {
+                "id": "REQ-001",
+                "title": "t",
+                "statement": "s",
+                "category": "performance",
+                "verify": {"kind": "manual", "note": "by hand"},
+                "tags": ["card-field:weight"],
+            }
+        )
+    }
+    assert held_requirement(held, {"kind": "manual"}, card_field="weight") == "REQ-001"
+    assert held_requirement(held, {"kind": "manual"}, card_field="form") is None

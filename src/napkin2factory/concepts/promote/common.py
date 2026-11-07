@@ -165,19 +165,29 @@ def _rel(root: Path, path: Path) -> str:
         return str(path)
 
 
-def held_requirement(held: Any, verify: dict[str, Any]) -> str | None:
+def held_requirement(
+    held: Any, verify: dict[str, Any], *, card_field: str | None = None
+) -> str | None:
     """The id of a requirement the model already holds that asks what ``verify`` asks.
 
     "Already asks" means the same verify target, operator and value, the values compared as
-    quantities (``0.2 m`` equals ``200 mm``); a requirement without a target (a manual one)
-    is never matched (S-277).
+    quantities (``0.2 m`` equals ``200 mm``), or a requirement already carrying the planned
+    ``card-field:<field>`` tag (B-0288). A requirement without a target (a manual one) is
+    matched by its tag only (S-277).
 
     Args:
         held: the model's requirements (``Product.requirements``: id -> Requirement).
         verify: the planned requirement's ``verify`` mapping.
+        card_field: the planned requirement's ``about`` (the card field it came from); the
+            matching ``card-field:`` tag is checked when given.
     """
     from napkin2factory.core.units import UnitError, parse_quantity
 
+    field_tag = f"card-field:{card_field}" if card_field else None
+    if field_tag is not None:
+        for rid, req in held.items():
+            if field_tag in (req.tags or []):
+                return str(rid)
     target, op, value = verify.get("target"), verify.get("op"), verify.get("value")
     if target is None or op is None or value is None:
         return None

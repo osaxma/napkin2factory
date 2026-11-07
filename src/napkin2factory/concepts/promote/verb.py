@@ -58,6 +58,36 @@ def _top_assembly(product: Any, notes: list[str]) -> str | None:
     return tops[0] if tops else None
 
 
+def _parked_sibling_built(root: Path, card: ConceptCard, at: str) -> dict[str, Any]:
+    """The ``built`` record promotion writes on a built sibling it parks (B-0289).
+
+    Mirrors how ``concept switch`` parks the current direction: the saved state a later
+    ``concept switch`` restores from is the newest checkpoint (the state before this
+    promotion), and the figures are the built design's own. A built card cannot exist
+    without saved history (``concept fork-from-model`` refuses it), so the newest checkpoint
+    is always available; the card's own checkpoint is the fallback.
+    """
+    from napkin2factory.core import checkpoints as cps
+    from napkin2factory.core.vcs import Vcs
+
+    assert card.built is not None
+    built: dict[str, Any] = {
+        "event": "parked",
+        "checkpoint": card.built.checkpoint,
+        "number": card.built.number,
+        "at": at,
+    }
+    if card.built.mass:
+        built["mass"] = card.built.mass
+    if card.built.cost:
+        built["cost"] = card.built.cost
+    newest = cps.read(Vcs(root), limit=1)
+    if newest:
+        built["checkpoint"] = newest[0].id
+        built["number"] = newest[0].number
+    return built
+
+
 def promote(
     root: Path,
     card_id: str,
@@ -163,7 +193,7 @@ def promote(
     indent = _list_indent(req_text, "requirements")
     blocks = []
     for about, data in planned:
-        asked = held_requirement(product.requirements, data["verify"])
+        asked = held_requirement(product.requirements, data["verify"], card_field=about)
         if asked is not None:  # the model already asks this: no second copy to sign off (S-277)
             notes.append(f"{asked} already asks this: {product.requirements[asked].title}")
             continue
@@ -179,6 +209,7 @@ def promote(
             "allocation": data["allocation"],
             "rationale": data["rationale"],
             "source": data["source"],
+            "tags": [f"card-field:{about}"],
         }
         blocks.append(_yaml_block(entry, indent))
         new_reqs.append(NewRequirement(rid, data["title"], about, entry))
@@ -276,19 +307,37 @@ def promote(
         chosen_decision["reason"] = card.decision.reason
     card_texts = {cid: _card_text(root, cid, "promoted", chosen_decision)}
     rejected: list[str] = []
+    parked: list[str] = []
     already: list[str] = []
     for c in siblings:
         # an exploring card, or one marked promoted by hand with no decision (B2)
         by_hand = c.status == "promoted" and not cm.recorded_promotion(c, root)
         if c.status == "exploring" or by_hand:
             earlier = c.decision.reason if c.decision is not None else None
-            card_texts[c.id] = _card_text(
-                root,
-                c.id,
-                "rejected",
-                {"reason": append_reason(earlier, cm.chosen_instead(cid, dec_id)), "at": at},
-            )
-            rejected.append(c.id)
+            if c.built is not None:
+                # a card holding a built design (forked) is parked, not rejected (B-0289):
+                # record the saved state a later switch restores from, like switch parks
+                card_texts[c.id] = _card_text(
+                    root,
+                    c.id,
+                    "parked",
+                    {
+                        "reason": append_reason(
+                            earlier, f"parked when {cid} was chosen ({dec_id})"
+                        ),
+                        "at": at,
+                    },
+                    built=_parked_sibling_built(root, c, at),
+                )
+                parked.append(c.id)
+            else:
+                card_texts[c.id] = _card_text(
+                    root,
+                    c.id,
+                    "rejected",
+                    {"reason": append_reason(earlier, cm.chosen_instead(cid, dec_id)), "at": at},
+                )
+                rejected.append(c.id)
         else:
             already.append(c.id)
     # validate the texts on their own before touching the disk
@@ -317,6 +366,7 @@ def promote(
         requirements=new_reqs,
         style_created=style_created,
         rejected=rejected,
+        parked=parked,
         already_rejected=already,
         notes=notes,
         files=sorted(_rel(root, p) for p in writes),

@@ -164,6 +164,28 @@ def test_parking_a_rejected_card_keeps_its_rejection_reason(root: Path) -> None:
     assert parked.decision.reason == f"{before}. parked when C-003 was chosen ({data['decision']})"
 
 
+def test_promoting_parks_a_forked_sibling_and_switch_restores_it(root: Path) -> None:
+    """B-0289: a promotion sets a built (forked) sibling aside as `parked`, not `rejected`."""
+    from napkin2factory.concepts.fork import fork_from_model
+
+    fork_from_model(root)  # C-004: exploring, built (forked from C-002's built design)
+    forked = cm.load_card(root, "C-004")
+    assert forked.status == "exploring" and forked.built is not None
+    assert forked.built.event == "forked"
+    # switching to C-001 promotes it; the forked sibling C-004 is parked, not rejected
+    data = go(root, "C-001", *OVERRIDE)
+    parked = cm.load_card(root, "C-004")
+    assert parked.status == "parked"
+    assert parked.built is not None and parked.built.event == "parked"
+    assert parked.built.checkpoint is not None and Vcs(root).ref_exists(parked.built.checkpoint)
+    assert parked.decision is not None
+    assert parked.decision.reason == f"parked when C-001 was chosen ({data['decision']})"
+    # switching back to the parked forked card restores the built design it was forked from
+    data2 = go(root, "C-004")
+    assert data2["route"] == "restored"
+    assert status(root, "C-004") == "promoted"
+
+
 def test_switching_back_names_the_requirements_the_card_brought(root: Path) -> None:
     """B-0282: the restored switch names, in ``--json``, the requirements the card brought."""
     go(root, "C-001", *OVERRIDE)  # parks C-002 and seeds C-001's own requirements
@@ -247,6 +269,23 @@ def test_switch_back_restores_from_the_recorded_checkpoint_without_a_marker(root
     data = go(root, "C-002")
     assert data["route"] == "restored"
     assert status(root, "C-002") == "promoted" and status(root, "C-001") == "parked"
+
+
+def test_check_lists_a_never_promoted_directions_screening_failures(root: Path) -> None:
+    """B-0290: ``n2f check`` lists the direction's own screening failures and fails."""
+    from napkin2factory.concepts.switch import direction_failures, failing_words
+
+    go(root, "C-001", *OVERRIDE)  # a napkin card, never promoted: its parts stay C-002's
+    card = cm.load_card(root, "C-001")
+    shown = failing_words(card)
+    assert shown and shown == direction_failures(root)
+    # check lists them under the new key and exits non-zero while one stands
+    r = n2f("check", "--json", cwd=root)
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert json.loads(r.stdout)["direction_failures"] == shown
+    # switching back to the restored direction has its own parts back: nothing to list
+    go(root, "C-002")
+    assert direction_failures(root) == []
 
 
 def test_refuses_a_parked_card_with_neither_marker_nor_checkpoint(root: Path) -> None:

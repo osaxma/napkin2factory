@@ -27,6 +27,7 @@ class PromotionResult:
     style_file: str = "style.yaml"
     style_created: bool = False
     rejected: list[str] = field(default_factory=list)
+    parked: list[str] = field(default_factory=list)
     already_rejected: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     snapshot: str | None = None
@@ -78,10 +79,11 @@ class PromotionResult:
                 f" The product's structure starts from its {_count(len(stubs), 'module')}: "
                 f"{_and(stubs)}, each still empty, inside the top assembly."
             )
-        if self.rejected:
-            names = _and(self.rejected)
-            verb = "is" if len(self.rejected) == 1 else "are"
-            noun = "an alternative" if len(self.rejected) == 1 else "alternatives"
+        if self.rejected or self.parked:
+            n = len(self.rejected) + len(self.parked)
+            names = _and([*self.rejected, *self.parked])
+            verb = "is" if n == 1 else "are"
+            noun = "an alternative" if n == 1 else "alternatives"
             line += f" {names} {verb} kept as {noun}."
         return line + " Next: `n2f build && n2f check`."
 
@@ -113,6 +115,7 @@ class PromotionResult:
             ],
             "style": {"file": self.style_file, "created": self.style_created},
             "rejected": self.rejected,
+            "parked": self.parked,
             "already_rejected": self.already_rejected,
             "snapshot": self.snapshot,
             "checkpoint": self.checkpoint,

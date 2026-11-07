@@ -327,6 +327,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-298 | v0.9 M5c part B: `concept compare` heads, one cost row, one number format; B-0289 and B-0290 held for the maintainer | in force |
 | S-299 | v0.9 wave 2 boundary: M2 the inspector index, the `core/` count, §11 timings, `make check` | in force |
 | S-300 | The maintainer's answers after wave 2 (Q7 to Q10); the gate B test's wording regex (B-0307) | in force |
+| S-301 | v0.9 M5c part C: the card-field tag, a built card set aside is parked, `n2f check` lists the direction's failures | in force |
 
 ---
 
@@ -2325,4 +2326,7 @@ Wave 2 landed M7 (S-295, the one-parameter rebuild profiled and the YAML hot-spo
 
 ## S-300 — The maintainer's answers after wave 2 (2026-11-07)
 Asked the maintainer: the recommended option on all four (plan §3, Q7 to Q10). Q7, M7: build renders off the warm path and the faster triangle fill, then re-profile and take every further plain hot spot ("as performant as possible"); the warm long-running process gets a design note in `docs/handoffs/` first and is not built before it is reported. Q8, B-0288: a free `card-field:<name>` tag on a seeded requirement, no schema change. Q9, B-0289: a built card set aside by a promotion is `parked`, restorable. Q10, B-0290: `n2f check` after a switch to a never-promoted card lists the direction's screening failures and exits non-zero while one stands. B-0307 (the gate B test's stale "needs a human sign-off" regex; the refusal says "waits for a sign-off" since S-281): the regex follows the refusal's wording and the test passes (run in full). `core/` files: 0.
+
+## S-301 — v0.9 M5c part C: the concept bridge's last three rows (2026-11-07)
+As the maintainer decided (S-300). **B-0288**: a requirement seeded from a card is written with the free tag `card-field:<field>` (`concepts/promote/verb.py`); `held_requirement` also treats a held requirement carrying the same tag as the same, besides the match on verify target (S-277); products seeded before this carry no tag and behave as before; no schema change. **B-0289**: the promotion's sibling rule sets a card that holds a built design aside as `parked` (not `rejected`), keeping its earlier reason, and records the newest saved step (the state before the promotion) as the state `concept switch` restores from; a napkin card is still `rejected`. **B-0290**: `n2f check` lists the chosen direction's own screening failures (`direction_failures` in `--json`, and under the text result) and fails (exit 3, `CheckFailed`) while one stands, when the direction is a promoted card with no built design and no parked marker. Known edge, for the maintainer: the failure stands as long as the card's recorded screening has failing rows, including after the owner has designed real parts, until the card is re-screened or set aside; if that proves a trap, end it when the parts change after the switch. `core/` files: 0.
 

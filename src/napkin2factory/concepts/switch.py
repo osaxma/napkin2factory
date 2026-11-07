@@ -94,6 +94,27 @@ def marker_name(card_id: str) -> str:
     return f"parked/{card_id}"
 
 
+def direction_failures(root: Path) -> list[str]:
+    """The current direction card's screening failures when it is a never-promoted card.
+
+    After ``concept switch`` to a napkin card that was never promoted (the seeded route) the
+    direction's parts stay the earlier ones, so the card's own screening failures are not
+    caught by the product's checks; ``n2f check`` lists them (B-0290). A restored card
+    (switched back to a parked direction) has its own parts back, so nothing is listed: its
+    leftover ``parked/<id>`` marker tells the two apart (``_parked_source`` falls back to it).
+    """
+    from napkin2factory.core.vcs import Vcs
+
+    vcs = Vcs(root)
+    for card in cm.load_concepts(root).values():
+        if not recorded_promotion(card, root):
+            continue
+        if card.built is not None or vcs.read_ref(marker_name(card.id)) is not None:
+            return []
+        return failing_words(card)
+    return []
+
+
 def _parked_source(vcs: Vcs, card: ConceptCard) -> str | None:
     """The saved state to restore a parked card from: its marker, else its checkpoint (B-0281).
 
