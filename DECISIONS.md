@@ -337,6 +337,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-308 | The agent is the first caller: a project-wide design rule | in force |
 | S-309 | The maintainer's answers on the renders and the engine's dropped connection (Q13, Q14) | in force |
 | S-310 | The engine's dropped connection by verb class (Q14): safe verbs rerun cold, state-changing verbs exit 70 with the next step | in force |
+| S-311 | The engine preloads the kernel before it binds its socket | in force |
 
 ---
 
@@ -2365,4 +2366,7 @@ Asked the maintainer: (Q13) the renders stay in the warm path, quality over spee
 
 ## S-310 — The engine's dropped connection, by verb class (2026-11-07)
 Built as the maintainer asked (S-309, Q14, S-308); replaces S-305's "never rerun once the command was sent". `cli/engine.py` `VERB_CLASSES` classes every forwarded verb next to the allow-list, `NEVER_FORWARD` names the rest, and `tests/unit/test_engine_classes.py` walks the real command tree and fails for a verb in neither, so a new verb has to choose. **Safe to repeat** (build, check, status, impact, graph, validate, lint, checkpoints, context, docs, `ecr impact|list|show`, `concept list|show|build|board|lint|compare`; `concept build` and `board` only regenerate files under `build/`): a dropped connection after the command was sent makes the client run it again cold in its own process, after one stderr line saying so; when stdout is not a terminal the engine's output is held until its closing message, so the rerun never repeats partial output (an agent sees a long build's progress at the end); on a terminal it streams live and a rerun repeats output after the line. **Changes state** (undo, redo, rollback, `concept switch|new|promote|reject|fork-from-model`, `ecr start|quick|approve|close|abort`): never rerun; exit 70 with what happened, what to look at (`n2f checkpoints`, `n2f ecr list` or `n2f concept list`, with the original `--dir`) and the exact command to run if it did not happen; under `--json` stdout is one object (`error: engine_stopped`, `changes_state`, `outcome: unknown`, `look_at`, `rerun`, `exit`). The MCP server follows the same rule. Tested with a real engine killed mid-build and a fake engine dropping the connection on `undo` (the checkpoint count stays). Not tested under a real terminal (a fake-terminal unit test). `core/` files: 0.
+
+## S-311 — The engine preloads the kernel before it binds its socket (2026-11-07)
+Amends S-305's "preloads `build123d` in a background thread after the socket is bound". Under load the import held the interpreter for seconds and starved the engine's accept loop, so a status call right after `engine start` timed out; the engine tests failed twice in a landing gate for it, and S-305's `warm` flag only moved the problem. The import now runs first, then the socket is bound: no answer before the engine can give one, a command in the meantime runs cold (the design's own fallback), `engine start` waits up to 30 s for the socket. The `warm` field stays (always true once reachable). `core/` files: 0.
 

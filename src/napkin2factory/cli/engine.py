@@ -641,10 +641,11 @@ def run_in_process(req: dict[str, Any], out: TextIO, err: TextIO, root: Path) ->
 
 
 def _preload_kernel(engine: Engine) -> None:
-    """Import the CAD kernel in the background; idle time counts from when it is done.
+    """Import the CAD kernel before the engine binds its socket (S-311).
 
-    The import holds the interpreter for seconds, during which the engine cannot answer, so
-    a short idle limit (the tests') must not run out before the first answer is possible.
+    The import holds the interpreter for seconds under load, so a thread doing it starved the
+    accept loop (a status call timed out right after ``engine start``). Imported first, the
+    engine is unreachable, and a command meanwhile simply runs cold, until it can answer.
     """
     with contextlib.suppress(Exception):
         import build123d  # noqa: F401
@@ -665,6 +666,11 @@ def serve_main() -> None:
     prepare_socket_dir(sock)
     with contextlib.suppress(FileNotFoundError):
         sock.unlink()  # a stale one: we hold the lock, so nobody serves it
+    # named at once, so `engine stop` can end an engine that is still importing (S-311)
+    pid_path(root).write_text(
+        json.dumps({"pid": os.getpid(), "socket": str(sock), "started": time.time()}) + "\n",
+        encoding="utf-8",
+    )
     import napkin2factory.cli.app  # noqa: F401  (the package imports: the 1.1 s a client saves)
 
     idle = float(os.environ.get(IDLE_ENV, IDLE_SECONDS))
@@ -677,6 +683,7 @@ def serve_main() -> None:
         idle=idle,
         max_requests=limit,
     )
+    _preload_kernel(engine)
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     old_umask = os.umask(0o177)
     try:
@@ -704,7 +711,6 @@ def serve_main() -> None:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
     threading.Thread(target=accept_loop, daemon=True).start()
-    threading.Thread(target=_preload_kernel, args=(engine,), daemon=True).start()
     try:
         engine.run_jobs()
     finally:
