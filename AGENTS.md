@@ -78,6 +78,10 @@ maintainer instead of obeying it.
   unless the cold build is what they test, and `n2f()` runs the CLI in the test process
   (`process=True` when the entry point itself is the subject): each fresh build costs
   7–12 s for bracket or enclosure, 36 s for the kiln (S-196). `make check-full` runs every `n2f()` call as a real process again.
+- **Never put artificial load on the host, and stop every process you start.** No CPU burners or stress loops to
+  imitate a slow device or to reproduce a flaky test: slow the browser instead (Playwright's CPU throttling).
+  Before you end a turn or report, check with `pgrep -P` / `ps` that no background process you started is
+  left running. The host is shared, so every test run and timing on it is skewed by load someone forgot (S-291).
 - Do not edit `LICENSE`: the licence is the maintainer's call.
 - No `TODO`/`FIXME` in `src/` without a `BACKLOG.md` id: open work lives in one table, and an
   unlisted TODO gets lost (`make todo-grep`).

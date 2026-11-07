@@ -317,6 +317,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-288 | v0.9 wave 1: the lens seam, viewer picking, the bridges gone, the upgrade's applied requests | in force |
 | S-289 | v0.9 wave 1 boundary: the `core/` count, §11's sizes and timings, `make check` | in force |
 | S-290 | The maintainer's answers to the v0.9 questions Q1 to Q6 | in force |
+| S-291 | No artificial load on the host; every started process is stopped (AGENTS.md non-negotiable) | in force |
 
 ---
 
@@ -2265,3 +2266,11 @@ never load the host to imitate a slow device (an AGENTS.md rule). Q4: one trial 
 (no shell), after checking that the app connects to an MCP server, else another chat client with a bring-your-own key; waits for M6. Q5: no kiln change;
 B-0276 and B-0277 are closed as already done, the question's premise having been stale (S-288). Q6: M7 joins wave 2 and must split start-up from build
 work and measure a long-running process that keeps shapes in memory.
+
+## S-291 — No artificial load on the host; stop every process you start (2026-11-07)
+On 2026-11-07 an overseer reproduced a flaky browser test under load with `yes > /dev/null` loops, started from a background shell task, and left 86 of
+them running: the host load reached about 840 and every test run and timing on the shared machine between 10:59 and 11:26 was taken under it. The
+coordinating session killed them. The cause of the flake was then found without load (the software GL loses WebGL, S-288). Asked the maintainer, who
+asked for a rule: AGENTS.md now forbids artificial load (slow the browser with Playwright's CPU throttling to imitate a slow device) and requires
+that a turn ends with no background process of its own left (`pgrep -P` / `ps`). The rule is generic (S-076); worker briefs repeat it, since a
+worker reads AGENTS.md but not the brief's context. `docs/handoffs/v0.9-overseer.md` carries it in "How the waves have run".
