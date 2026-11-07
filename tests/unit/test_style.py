@@ -158,3 +158,38 @@ def test_init_style_appliance_writes_a_parsing_file(tmp_path: Path) -> None:
     bad = n2f("init", str(tmp_path / "other"), "--style", "baroque", cwd=tmp_path)
     assert bad.returncode != 0 and "industrial | appliance | lab" in bad.stderr
     assert not (tmp_path / "other").exists()
+
+
+def test_style_cache_invalidates_on_edit_and_copies_mutable(tmp_path: Path) -> None:
+    # S-302: load_style caches parsed style.yaml keyed by (path, mtime_ns, size)
+    # and returns a copy so callers cannot mutate the cached object.
+    style_file = tmp_path / "style.yaml"
+    style_file.write_text("preset: industrial\nreveal: 2 mm\n")
+    s1 = load_style(tmp_path)
+    assert s1.reveal == parse_quantity("2 mm")
+
+    # Mutating returned object does not alter cached value
+    s1.reveal = parse_quantity("99 mm")
+    assert load_style(tmp_path).reveal == parse_quantity("2 mm")
+
+    # Editing the file causes a cache miss and returns updated value
+    import time
+
+    time.sleep(0.01)
+    style_file.write_text("preset: industrial\nreveal: 5 mm\n")
+    s2 = load_style(tmp_path)
+    assert s2.reveal == parse_quantity("5 mm")
+
+    # finishes() and style_roles() also protect against mutation
+    from napkin2factory.core.registry import registry
+
+    reg = registry()
+    fin = reg.finishes()
+    assert "painted" in fin
+    fin["painted"]["roughness"] = 0.999
+    assert reg.finishes()["painted"]["roughness"] != 0.999
+
+    roles = reg.style_roles()
+    assert "body" in roles
+    roles.pop("body")
+    assert "body" in reg.style_roles()

@@ -333,3 +333,38 @@ def test_front_tile_counts_requirements_only_s_new1(report: tuple[Path, str]) ->
     m = re.search(r"(\d+) / (\d+)</div><div class=\"k\">requirements", html)
     assert m and int(m.group(2)) == total and int(m.group(1)) <= total
     assert '<span class="example">' in html or "not reached yet" in html or "done" in html
+
+
+def test_report_template_bytecode_cache_and_invalidation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # S-302: FileSystemBytecodeCache in build/.n2f/templates caches compiled templates,
+    # and invalidates when a template file changes.
+    import shutil
+
+    from napkin2factory.report import builder
+    from napkin2factory.report.builder import render_report
+
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "b", prebuilt=True, render=False)
+    p = load_product(root)
+    build_dir = root / "build"
+    cache_dir = build_dir / ".n2f" / "templates"
+
+    custom_templates = tmp_path / "templates"
+    shutil.copytree(builder.TEMPLATES, custom_templates)
+    monkeypatch.setattr(builder, "TEMPLATES", custom_templates)
+
+    html1 = render_report(p, build_dir, "2026-11-01")
+    assert cache_dir.is_dir()
+    assert list(cache_dir.glob("__jinja2_*.cache"))
+    assert "MARKER_TEST_123" not in html1
+
+    # Edit the template in custom_templates
+    base_tpl = custom_templates / "report.html.j2"
+    base_tpl.write_text(
+        base_tpl.read_text().replace("<!doctype html>", "<!doctype html><!-- MARKER_TEST_123 -->")
+    )
+
+    # Render again sees the change
+    html2 = render_report(p, build_dir, "2026-11-01")
+    assert "MARKER_TEST_123" in html2

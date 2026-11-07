@@ -60,3 +60,15 @@ def test_compare_mismatch():
 def test_mm_helper():
     assert mm(parse_quantity("2.5 cm")) == 25.0
     assert mm(3) == 3.0
+
+
+def test_parse_quantity_memoisation():
+    # S-302: memoised parse_quantity returns fresh Quantity objects
+    from napkin2factory.core.units import _PARSE_CACHE
+
+    _PARSE_CACHE.clear()
+    q1 = parse_quantity("15 mm")
+    assert ("15 mm", None) in _PARSE_CACHE
+    q2 = parse_quantity("15 mm")
+    assert q1 == q2
+    assert q1 is not q2  # distinct instances, no shared mutable state

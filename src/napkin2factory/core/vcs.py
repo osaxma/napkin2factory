@@ -46,6 +46,10 @@ NO_ONLINE_COPY = (
 # nothing but the shared pages, is rewritten on every send, and is never shown to the owner.
 PAGES_LINE = "gh-pages"
 
+# S-302: fallback git identity cached once per process per repository
+# to avoid repeated subprocesses.
+_FALLBACK_IDENTITY_CACHE: dict[Path, dict[str, str]] = {}
+
 
 class VcsError(EnvironmentProblem):
     """A change-tracking problem, worded for the operator; raw git text is on ``detail``."""
@@ -68,6 +72,8 @@ class Vcs(StoreMixin):
     root: Path
 
     _identity: dict[str, str] | None = field(default=None, init=False, repr=False)
+    # S-302: cache is_tracked per Vcs instance to avoid repeated subprocess invocations.
+    _is_tracked: bool | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.root = Path(self.root).resolve()
@@ -89,23 +95,27 @@ class Vcs(StoreMixin):
         A configured ``user.name``/``user.email`` (or ``GIT_*`` variables) always wins; an
         owner who has never heard of git gets the product name, so snapshots still work.
         """
-        if self._identity is None:
-            cwd = self.root if self.root.is_dir() else None
-            missing: dict[str, str] = {}
-            for field_, value in (("name", self._product_name()), ("email", "n2f@localhost")):
-                proc = subprocess.run(
-                    ["git", "config", f"user.{field_}"],
-                    cwd=cwd,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                if not proc.stdout.strip():
-                    upper = field_.upper()
-                    missing[f"GIT_AUTHOR_{upper}"] = value
-                    missing[f"GIT_COMMITTER_{upper}"] = value
-            self._identity = missing
-        return self._identity
+        # S-302: fallback identity computed once per repository per process.
+        cached = _FALLBACK_IDENTITY_CACHE.get(self.root)
+        if cached is not None:
+            return cached
+        cwd = self.root if self.root.is_dir() else None
+        missing: dict[str, str] = {}
+        for field_, value in (("name", self._product_name()), ("email", "n2f@localhost")):
+            proc = subprocess.run(
+                ["git", "config", f"user.{field_}"],
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if not proc.stdout.strip():
+                upper = field_.upper()
+                missing[f"GIT_AUTHOR_{upper}"] = value
+                missing[f"GIT_COMMITTER_{upper}"] = value
+        _FALLBACK_IDENTITY_CACHE[self.root] = missing
+        self._identity = missing
+        return missing
 
     def _env(self, env: dict[str, str] | None = None) -> dict[str, str]:
         """The environment every git call runs in."""
@@ -202,7 +212,10 @@ class Vcs(StoreMixin):
 
     def is_tracked(self) -> bool:
         """True if ``root`` is inside any repository."""
-        return self._git("rev-parse", "--git-dir", check=False).returncode == 0
+        # S-302: cache per Vcs instance to avoid repeated rev-parse subprocess work.
+        if self._is_tracked is None:
+            self._is_tracked = self._git("rev-parse", "--git-dir", check=False).returncode == 0
+        return self._is_tracked
 
     def require_repo_root(self) -> None:
         """Raise the persona-worded error unless this folder is a repository root."""
@@ -275,6 +288,9 @@ class Vcs(StoreMixin):
         if self.is_tracked() and self.is_repo_root():
             return
         self._git("init", "-q", "-b", "main")
+        # S-302: invalidate tracking and fallback identity on repository creation.
+        self._is_tracked = True
+        _FALLBACK_IDENTITY_CACHE.pop(self.root, None)
 
     def snapshot(self, message: str, allow_empty: bool = False) -> str:
         """Record a snapshot of everything; returns its id."""
@@ -328,6 +344,8 @@ class Vcs(StoreMixin):
     def worktree_remove(self, path: Path) -> None:
         """Remove a scratch folder created by :meth:`worktree_add`."""
         self._git("worktree", "remove", "--force", str(path), check=False)
+        # S-302: invalidate fallback identity cache for removed worktree.
+        _FALLBACK_IDENTITY_CACHE.pop(Path(path).resolve(), None)
 
     def changed_in_last_snapshot(self) -> list[str]:
         """Files the most recent snapshot changed (empty before the second snapshot)."""

@@ -15,6 +15,7 @@ from __future__ import annotations
 import base64
 import datetime as dt
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -502,9 +503,28 @@ def render_report(
     reg = registry()
     fragments = {f"section:{sec.id}": reg.fragment_path(sec) for sec in reg.report_sections()}
 
-    def load_fragment(name: str) -> str | None:
+    def load_fragment(name: str) -> tuple[str, str, Callable[[], bool]] | None:
         path = fragments.get(name)
-        return path.read_text(encoding="utf-8") if path is not None else None
+        if path is None:
+            return None
+        mtime = path.stat().st_mtime
+        return (
+            path.read_text(encoding="utf-8"),
+            str(path),
+            lambda: path.is_file() and path.stat().st_mtime == mtime,
+        )
+
+    # S-302: filesystem bytecode cache in build/.n2f/templates avoids recompiling templates.
+    cache_dir = Path(build_dir) / ".n2f" / "templates"
+    bytecode_cache: jinja2.BytecodeCache | None = None
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        probe = cache_dir / ".probe"
+        probe.touch()
+        probe.unlink()
+        bytecode_cache = jinja2.FileSystemBytecodeCache(str(cache_dir))
+    except OSError:
+        bytecode_cache = None
 
     # the page shell, then one fragment per registered section (F5): a domain adds a section
     # without editing the page
@@ -514,6 +534,7 @@ def render_report(
         ),
         autoescape=True,
         undefined=jinja2.StrictUndefined,
+        bytecode_cache=bytecode_cache,
     )
     env.globals["n2f_favicon"] = favicon_link()
     env.globals["n2f_mark"] = footer_mark()

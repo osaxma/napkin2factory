@@ -41,6 +41,10 @@ def style_path(root: Path) -> Path:
     return Path(root) / STYLE_FILE
 
 
+# S-302: cache parsed style.yaml data keyed by (path, mtime_ns, size) to avoid reparsing.
+_STYLE_CACHE: dict[tuple[str, int, int], StyleFile] = {}
+
+
 def load_style(root: Path) -> StyleFile:
     """The product's resolved style; ``industrial`` defaults when there is no file.
 
@@ -55,6 +59,13 @@ def load_style(root: Path) -> StyleFile:
     path = style_path(root)
     if not path.is_file():
         return StyleFile().resolved()
+    st = path.stat()
+    # S-302: cached resolved style keyed by (path, mtime_ns, size);
+    # deep copy protects mutable state.
+    key = (str(path.resolve()), st.st_mtime_ns, st.st_size)
+    cached = _STYLE_CACHE.get(key)
+    if cached is not None:
+        return cached.model_copy(deep=True)
     try:
         data = safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
@@ -62,7 +73,9 @@ def load_style(root: Path) -> StyleFile:
     if not isinstance(data, dict):
         raise N2FError("style.yaml must be a mapping (preset: industrial, palette: {...}, ...)")
     try:
-        return StyleFile.model_validate(data).resolved()
+        resolved = StyleFile.model_validate(data).resolved()
+        _STYLE_CACHE[key] = resolved
+        return resolved.model_copy(deep=True)
     except ValidationError as exc:
         first = exc.errors()[0]
         where = ".".join(str(p) for p in first["loc"]) or "style.yaml"

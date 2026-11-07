@@ -17,12 +17,35 @@ The parse/format pair round-trips ``"60 degC"``, ``"85 USD"``, ``"10 d"``, ``"1.
 
 from __future__ import annotations
 
+import os
 import re
+from pathlib import Path
 from typing import Any
 
 import pint
 
-ureg = pint.UnitRegistry(autoconvert_offset_to_baseunit=False)
+
+def _pint_cache_folder() -> str | None:
+    """Persistent pint definition cache directory under XDG_CACHE_HOME or ~/.cache (S-302)."""
+    try:
+        base = os.environ.get("XDG_CACHE_HOME")
+        cache_dir = Path(base) if base else Path.home() / ".cache"
+        folder = cache_dir / "napkin2factory" / "pint"
+        folder.mkdir(parents=True, exist_ok=True)
+        return str(folder)
+    except Exception:
+        return None
+
+
+# S-302: persistent definitions cache saves ~150 ms on UnitRegistry creation.
+_cache_folder = _pint_cache_folder()
+try:
+    if _cache_folder:
+        ureg = pint.UnitRegistry(autoconvert_offset_to_baseunit=False, cache_folder=_cache_folder)
+    else:
+        ureg = pint.UnitRegistry(autoconvert_offset_to_baseunit=False)
+except Exception:
+    ureg = pint.UnitRegistry(autoconvert_offset_to_baseunit=False)
 ureg.define("USD = [currency] = usd = dollar")
 ureg.define("EUR = [currency_eur]")  # kept distinct on purpose: no silent FX
 ureg.define("GBP = [currency_gbp]")
@@ -51,6 +74,11 @@ class UnitError(ValueError):
     """A string could not be parsed as a quantity, or units do not match."""
 
 
+# S-302: parse_quantity memoised on (text, default_unit) to avoid regex parsing
+# and unit resolution.
+_PARSE_CACHE: dict[tuple[str, str | None], tuple[int | float, Any]] = {}
+
+
 def parse_quantity(text: str | int | float, default_unit: str | None = None) -> Any:
     """Parse ``"60 degC"``, ``"85 USD"``, ``"10 d"``, ``"200"`` into a pint quantity.
 
@@ -65,6 +93,11 @@ def parse_quantity(text: str | int | float, default_unit: str | None = None) -> 
         raise UnitError(f"{text!r} is not a quantity")
     if isinstance(text, (int, float)):
         return Quantity(text, default_unit or "dimensionless")
+    # S-302: return fresh Quantity from memoised magnitude and unit to avoid shared mutable state.
+    key = (str(text), default_unit)
+    cached = _PARSE_CACHE.get(key)
+    if cached is not None:
+        return Quantity(cached[0], cached[1])
     m = _QTY_RE.match(str(text))
     if not m:
         raise UnitError(
@@ -78,6 +111,7 @@ def parse_quantity(text: str | int | float, default_unit: str | None = None) -> 
         unit = ureg.Unit(unit_s) if unit_s else ureg.Unit("dimensionless")
     except Exception as exc:  # pint raises several unrelated classes
         raise UnitError(f"unknown unit {unit_s!r} in {text!r}: {exc}") from exc
+    _PARSE_CACHE[key] = (mag, unit)
     return Quantity(mag, unit)
 
 

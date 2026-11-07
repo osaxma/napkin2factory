@@ -50,6 +50,10 @@ ROW_GATES: tuple[str, ...] = ("design", "verify")
 #: Suffixes hashed as a domain's code (the same set as a system package's, S-031).
 CODE_SUFFIXES: tuple[str, ...] = (".py", ".js", ".html", ".css", ".yaml", ".j2")
 
+# S-302: cached finishes and style_roles keyed by (path, mtime_ns, size, domain_tuple)
+_FINISHES_CACHE: dict[tuple[str, int, int, tuple[str, ...]], dict[str, dict[str, float]]] = {}
+_STYLE_ROLES_CACHE: dict[tuple[str, int, int, tuple[str, ...]], dict[str, StyleRoleSpec]] = {}
+
 
 class UnknownName(ValueError, LookupError):
     """A registry lookup missed; the message names the known values.
@@ -535,6 +539,15 @@ class Registry:
     def finishes(self) -> dict[str, dict[str, float]]:
         """Finish → its rendering factors (a domain's finish renders with neutral ones)."""
         self.ensure()
+        # S-302: cache resolved finishes keyed by finishes.yaml stat and domains.
+        path = DATA / "finishes.yaml"
+        try:
+            st = path.stat()
+            key = (str(path), st.st_mtime_ns, st.st_size, tuple(d.name for d in self.domains))
+        except OSError:
+            key = None
+        if key is not None and key in _FINISHES_CACHE:
+            return {k: dict(v) for k, v in _FINISHES_CACHE[key].items()}
         out = {
             row["id"]: {"metallic": float(row["metallic"]), "roughness": float(row["roughness"])}
             for row in _table("finishes")
@@ -542,7 +555,9 @@ class Registry:
         for d in self.domains:
             for f in d.finishes:
                 out.setdefault(f, {"metallic": 0.0, "roughness": 0.5})
-        return out
+        if key is not None:
+            _FINISHES_CACHE[key] = out
+        return {k: dict(v) for k, v in out.items()}
 
     def categories(self) -> tuple[str, ...]:
         """Requirement categories."""
@@ -559,6 +574,15 @@ class Registry:
         earlier role of the same id.
         """
         self.ensure()
+        # S-302: cache resolved style roles keyed by style_roles.yaml stat and domains.
+        path = DATA / "style_roles.yaml"
+        try:
+            st = path.stat()
+            key = (str(path), st.st_mtime_ns, st.st_size, tuple(d.name for d in self.domains))
+        except OSError:
+            key = None
+        if key is not None and key in _STYLE_ROLES_CACHE:
+            return dict(_STYLE_ROLES_CACHE[key])
         out = {
             str(row["id"]): StyleRoleSpec(
                 str(row["id"]),
@@ -571,7 +595,9 @@ class Registry:
         for d in self.domains:
             for r in d.style_roles:
                 out.setdefault(r.id, r)
-        return out
+        if key is not None:
+            _STYLE_ROLES_CACHE[key] = out
+        return dict(out)
 
     def drivers(self) -> dict[str, str]:
         """Build-unit driver → its owner words (v0.4 P7)."""

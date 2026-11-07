@@ -170,3 +170,37 @@ def test_configured_identity_wins(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     v.init()
     v.snapshot("first")
     assert _author(v) == "Ada <ada@example.com>"
+
+
+def test_vcs_caches_is_tracked_and_identity(tmp_path: Path) -> None:
+    # S-302: is_tracked is cached per Vcs instance and updated on init;
+    # fallback identity is cached once per repository per process.
+    root = tmp_path / "repo"
+    root.mkdir()
+    v1 = Vcs(root)
+    assert not v1.is_tracked()
+    assert v1._is_tracked is False
+    v1.init()
+    assert v1.is_tracked()
+    assert v1._is_tracked is True
+
+    # Repeated calls do not invoke git rev-parse
+    calls = []
+    real_git = v1._git
+
+    def count_git(*args: str, **kwargs: object) -> object:
+        calls.append(args)
+        return real_git(*args, **kwargs)  # type: ignore[arg-type]
+
+    v1._git = count_git  # type: ignore[assignment]
+    assert v1.is_tracked()
+    assert not any("rev-parse" in a for a in calls)
+
+    # Fallback identity is cached across multiple Vcs instances for root
+    id1 = v1._fallback_identity()
+    v2 = Vcs(root)
+    id2 = v2._fallback_identity()
+    assert id1 == id2
+    from napkin2factory.core.vcs import _FALLBACK_IDENTITY_CACHE
+
+    assert root in _FALLBACK_IDENTITY_CACHE
