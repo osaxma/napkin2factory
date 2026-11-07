@@ -62,6 +62,13 @@ CUT_SHADE = 0.65
 #: ... with 1 px 45° hatch lines every ``HATCH_PITCH`` px in the part colour times this.
 HATCH_SHADE = 0.35
 HATCH_PITCH = 8
+#: Maximum number of bounding-box fragments per chunk in :func:`rasterize`.
+CHUNK_CAP = 2_000_000
+CHUNK_FRAGMENTS = CHUNK_CAP
+#: Bounding-box area threshold for batching triangles in :func:`rasterize`.
+#: Triangles with bbox area at or below this are batched into chunks;
+#: larger triangles are filled individually using contiguous slices.
+CHUNK_AREA_THRESHOLD = 256
 
 
 @dataclass
@@ -266,15 +273,20 @@ def rasterize(
     if not scene.meshes:
         return (img * 255).astype(np.uint8)
     zbuf = np.full((h, w), -np.inf)
+    zbuf_flat = zbuf.ravel()
+    img_flat = img.reshape(-1, 3)
     fr = _framing(scene, view, size)
     fwd, center = fr.fwd, fr.center
     lo, hi = scene.bounds()
     cap = section_z is not None and float(fwd[2]) > 1e-9
     capbuf = np.zeros((h, w), dtype=bool) if cap else None
+    capbuf_flat = capbuf.ravel() if capbuf is not None else None
     # back faces lose ties against front faces at silhouettes
     bias = 1e-6 * float(np.linalg.norm(hi - lo))
     light = np.asarray([0.4, -0.6, 0.7])
     light /= np.linalg.norm(light)
+    all_xs = (np.arange(w, dtype=np.float64) + 0.5)[None, :]
+    all_ys = (np.arange(h, dtype=np.float64) + 0.5)[:, None]
     for m in scene.meshes:
         verts, tris = m.vertices, np.asarray(m.triangles, dtype=np.int64).reshape(-1, 3)
         capped = False
@@ -304,62 +316,197 @@ def rasterize(
         unit[length <= 1e-12] = (0.0, 0.0, 1.0)
         shades = 0.35 + 0.65 * np.abs(unit @ light)
         back = (unit @ fwd < 0.0) if capped else np.zeros(len(tris), dtype=bool)
-        base = np.asarray(m.color)
+        base = np.asarray(m.color, dtype=np.float64)
         cut_color = base * CUT_SHADE
-        for tri, shade, is_back in zip(tris, shades, back, strict=True):
-            a, b, c = px[tri[0]], px[tri[1]], px[tri[2]]
-            da, db, dc = depth[tri[0]], depth[tri[1]], depth[tri[2]]
-            if is_back:
-                _fill_triangle(
-                    img, zbuf, a, b, c, da - bias, db - bias, dc - bias, cut_color, capbuf, True
-                )
+
+        tri_a = px[tris[:, 0]]
+        tri_b = px[tris[:, 1]]
+        tri_c = px[tris[:, 2]]
+        tri_da = depth[tris[:, 0]].copy()
+        tri_db = depth[tris[:, 1]].copy()
+        tri_dc = depth[tris[:, 2]].copy()
+        if capped and np.any(back):
+            tri_da[back] -= bias
+            tri_db[back] -= bias
+            tri_dc[back] -= bias
+
+        colors = base[None, :] * shades[:, None]
+        if capped and np.any(back):
+            colors[back] = cut_color
+        is_cap = back
+
+        min_x = np.minimum(np.minimum(tri_a[:, 0], tri_b[:, 0]), tri_c[:, 0])
+        max_x = np.maximum(np.maximum(tri_a[:, 0], tri_b[:, 0]), tri_c[:, 0])
+        min_y = np.minimum(np.minimum(tri_a[:, 1], tri_b[:, 1]), tri_c[:, 1])
+        max_y = np.maximum(np.maximum(tri_a[:, 1], tri_b[:, 1]), tri_c[:, 1])
+
+        xmin = np.maximum(np.floor(min_x).astype(np.int64), 0)
+        xmax = np.minimum(np.ceil(max_x).astype(np.int64), w - 1)
+        ymin = np.maximum(np.floor(min_y).astype(np.int64), 0)
+        ymax = np.minimum(np.ceil(max_y).astype(np.int64), h - 1)
+
+        det = (tri_b[:, 0] - tri_a[:, 0]) * (tri_c[:, 1] - tri_a[:, 1]) - (
+            tri_c[:, 0] - tri_a[:, 0]
+        ) * (tri_b[:, 1] - tri_a[:, 1])
+
+        valid = (xmin <= xmax) & (ymin <= ymax) & (np.abs(det) >= 1e-12)
+        if not np.any(valid):
+            continue
+
+        orig_idx = np.flatnonzero(valid)
+        tri_a = tri_a[valid]
+        tri_b = tri_b[valid]
+        tri_c = tri_c[valid]
+        tri_da = tri_da[valid]
+        tri_db = tri_db[valid]
+        tri_dc = tri_dc[valid]
+        det = det[valid]
+        xmin = xmin[valid]
+        xmax = xmax[valid]
+        ymin = ymin[valid]
+        ymax = ymax[valid]
+        tri_w = xmax - xmin + 1
+        areas = tri_w * (ymax - ymin + 1)
+        colors = colors[valid]
+        is_cap = is_cap[valid]
+
+        num_tris = len(areas)
+        idx = 0
+        while idx < num_tris:
+            if areas[idx] > CHUNK_AREA_THRESHOLD:
+                # Contiguous per-triangle path for large triangles
+                x0, x1 = xmin[idx], xmax[idx]
+                y0, y1 = ymin[idx], ymax[idx]
+                d = det[idx]
+                a_pt, b_pt, c_pt = tri_a[idx], tri_b[idx], tri_c[idx]
+                c_val = colors[idx]
+                ic_val = is_cap[idx]
+                da_val, db_val, dc_val = tri_da[idx], tri_db[idx], tri_dc[idx]
+
+                xs_1d = all_xs[:, x0 : x1 + 1]
+                ys_1d = all_ys[y0 : y1 + 1, :]
+                bx_xs = b_pt[0] - xs_1d
+                cx_xs = c_pt[0] - xs_1d
+                ax_xs = a_pt[0] - xs_1d
+                cy_ys = c_pt[1] - ys_1d
+                by_ys = b_pt[1] - ys_1d
+                ay_ys = a_pt[1] - ys_1d
+                l1 = (bx_xs * cy_ys - cx_xs * by_ys) / d
+                l2 = (cx_xs * ay_ys - ax_xs * cy_ys) / d
+                l3 = 1.0 - l1 - l2
+                inside = (l1 >= -1e-6) & (l2 >= -1e-6) & (l3 >= -1e-6)
+                if inside.any():
+                    z = l1 * da_val + l2 * db_val + l3 * dc_val
+                    region = zbuf[y0 : y1 + 1, x0 : x1 + 1]
+                    update = inside & (z > region)
+                    if update.any():
+                        region[update] = z[update]
+                        img[y0 : y1 + 1, x0 : x1 + 1][update] = c_val
+                        if capbuf is not None:
+                            capbuf[y0 : y1 + 1, x0 : x1 + 1][update] = ic_val
+                idx += 1
             else:
-                _fill_triangle(img, zbuf, a, b, c, da, db, dc, base * shade, capbuf, False)
+                # Batched vectorised chunk for consecutive small triangles
+                start = idx
+                cum_frags = 0
+                while (
+                    idx < num_tris
+                    and areas[idx] <= CHUNK_AREA_THRESHOLD
+                    and cum_frags + areas[idx] <= CHUNK_CAP
+                ):
+                    cum_frags += areas[idx]
+                    idx += 1
+                end = idx
+
+                chunk_areas = areas[start:end]
+                tot_frags = int(np.sum(chunk_areas))
+                if tot_frags == 0:
+                    continue
+                chunk_k = end - start
+                offsets = np.empty(chunk_k + 1, dtype=np.int64)
+                offsets[0] = 0
+                np.cumsum(chunk_areas, out=offsets[1:])
+                starts = np.repeat(offsets[:-1], chunk_areas)
+                tri_rel = np.repeat(np.arange(chunk_k, dtype=np.int64), chunk_areas)
+                j = np.arange(tot_frags, dtype=np.int64) - starts
+                cw = tri_w[start:end][tri_rel]
+                dx = j % cw
+                dy = j // cw
+                px_x = xmin[start:end][tri_rel] + dx
+                px_y = ymin[start:end][tri_rel] + dy
+                xs = px_x.astype(np.float64) + 0.5
+                ys = px_y.astype(np.float64) + 0.5
+
+                chunk_a = tri_a[start:end]
+                chunk_b = tri_b[start:end]
+                chunk_c = tri_c[start:end]
+                chunk_det = det[start:end]
+
+                bx = chunk_b[tri_rel, 0]
+                by = chunk_b[tri_rel, 1]
+                cx = chunk_c[tri_rel, 0]
+                cy = chunk_c[tri_rel, 1]
+                ax = chunk_a[tri_rel, 0]
+                ay = chunk_a[tri_rel, 1]
+                d = chunk_det[tri_rel]
+
+                l1 = ((bx - xs) * (cy - ys) - (cx - xs) * (by - ys)) / d
+                l2 = ((cx - xs) * (ay - ys) - (ax - xs) * (cy - ys)) / d
+                l3 = 1.0 - l1 - l2
+                inside = (l1 >= -1e-6) & (l2 >= -1e-6) & (l3 >= -1e-6)
+                if not np.any(inside):
+                    continue
+
+                l1 = l1[inside]
+                l2 = l2[inside]
+                l3 = l3[inside]
+                tri_rel_in = tri_rel[inside]
+                px_x_in = px_x[inside]
+                px_y_in = px_y[inside]
+
+                chunk_da = tri_da[start:end]
+                chunk_db = tri_db[start:end]
+                chunk_dc = tri_dc[start:end]
+                z = (
+                    l1 * chunk_da[tri_rel_in]
+                    + l2 * chunk_db[tri_rel_in]
+                    + l3 * chunk_dc[tri_rel_in]
+                )
+
+                pix = px_y_in * w + px_x_in
+                survives = z > zbuf_flat[pix]
+                if not np.any(survives):
+                    continue
+
+                pix = pix[survives]
+                z = z[survives]
+                tri_rel_surv = tri_rel_in[survives]
+                chunk_orig_idx = orig_idx[start:end]
+                tri_order = chunk_orig_idx[tri_rel_surv]
+
+                order = np.lexsort((tri_order, -z, pix))
+                sorted_pix = pix[order]
+                mask = np.empty(len(sorted_pix), dtype=bool)
+                mask[0] = True
+                mask[1:] = sorted_pix[1:] != sorted_pix[:-1]
+                winner_order = order[mask]
+
+                win_pix = pix[winner_order]
+                win_z = z[winner_order]
+                win_tri_rel = tri_rel_surv[winner_order]
+                win_colors = colors[start:end][win_tri_rel]
+
+                zbuf_flat[win_pix] = win_z
+                img_flat[win_pix] = win_colors
+                if capbuf_flat is not None:
+                    capbuf_flat[win_pix] = is_cap[start:end][win_tri_rel]
+
     if capbuf is not None and capbuf.any():
         # 45° section hatching over the cut faces (drafting convention)
         yy, xx = np.mgrid[0:h, 0:w]
         lines = capbuf & ((xx + yy) % HATCH_PITCH == 0)
         img[lines] *= HATCH_SHADE / CUT_SHADE
     return np.clip(img * 255, 0, 255).astype(np.uint8)
-
-
-def _fill_triangle(
-    img: Float,
-    zbuf: Float,
-    a: Float,
-    b: Float,
-    c: Float,
-    da: float,
-    db: float,
-    dc: float,
-    color: Float,
-    capbuf: NDArray[np.bool_] | None = None,
-    is_cap: bool = False,
-) -> None:
-    h, w = zbuf.shape
-    xmin = max(int(np.floor(min(a[0], b[0], c[0]))), 0)
-    xmax = min(int(np.ceil(max(a[0], b[0], c[0]))), w - 1)
-    ymin = max(int(np.floor(min(a[1], b[1], c[1]))), 0)
-    ymax = min(int(np.ceil(max(a[1], b[1], c[1]))), h - 1)
-    if xmin > xmax or ymin > ymax:
-        return
-    det = (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])
-    if abs(det) < 1e-12:
-        return
-    xs, ys = np.meshgrid(np.arange(xmin, xmax + 1) + 0.5, np.arange(ymin, ymax + 1) + 0.5)
-    l1 = ((b[0] - xs) * (c[1] - ys) - (c[0] - xs) * (b[1] - ys)) / det
-    l2 = ((c[0] - xs) * (a[1] - ys) - (a[0] - xs) * (c[1] - ys)) / det
-    l3 = 1.0 - l1 - l2
-    inside = (l1 >= -1e-6) & (l2 >= -1e-6) & (l3 >= -1e-6)
-    if not inside.any():
-        return
-    z = l1 * da + l2 * db + l3 * dc
-    region = zbuf[ymin : ymax + 1, xmin : xmax + 1]
-    update = inside & (z > region)
-    region[update] = z[update]
-    img[ymin : ymax + 1, xmin : xmax + 1][update] = color
-    if capbuf is not None:
-        capbuf[ymin : ymax + 1, xmin : xmax + 1][update] = is_cap
 
 
 def write_png(path: Path | str, image: NDArray[np.uint8]) -> Path:
