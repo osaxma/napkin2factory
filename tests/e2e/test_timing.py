@@ -94,3 +94,26 @@ def test_two_concepts_and_board_under_a_minute_warm(tmp_path: Path) -> None:
         browser.close()
     assert real_page_errors(errors) == [], errors
     assert len(viewers) == 2
+
+
+@pytest.mark.timing
+@pytest.mark.skipif(not TIMING, reason="timing assertions run only under N2F_TIMING=1 (D30)")
+def test_table_one_parameter_rebuild_budget(tmp_path: Path) -> None:
+    """A one-parameter change on the tier-1 table rebuilds in a process of its own within 16 s.
+
+    Measured at 10.4 to 10.9 s on a quiet host after M7's fast YAML loader (19.4 s at v0.8
+    on a busier host; S-295 holds the split: 1.1 s start-up, 2.8 s CAD kernel import, about
+    5.7 s of rules, 2.1 s of it renders). The 1 s target of road §2.1 is not met; this is a
+    regression guard, not the target. The budget is generous because the host is shared.
+    """
+    from tests.conftest import EXAMPLES, copy_product
+
+    demo = copy_product(EXAMPLES / "table", tmp_path / "table", prebuilt=True)
+    params = demo / "model" / "parameters.yaml"
+    text = params.read_text(encoding="utf-8")
+    assert "table-height:      {value: 750" in text
+    params.write_text(text.replace("{value: 750", "{value: 751", 1), encoding="utf-8")
+    t0 = time.perf_counter()
+    assert n2f("build", cwd=demo, env={"N2F_OFFLINE": "1"}, process=True).returncode == 0
+    seconds = time.perf_counter() - t0
+    assert seconds < 16, f"one-parameter rebuild took {seconds:.1f} s (budget 16 s, S-295)"

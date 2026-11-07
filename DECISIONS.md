@@ -321,6 +321,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-292 | The maintainer's answers to the explode design: all four recommended | in force |
 | S-293 | v0.9 M1: one explode resolver, each unit along its own direction | in force |
 | S-294 | v0.9 wave 1 final boundary: the `core/` count, §11 timings, `make check` | in force |
+| S-295 | v0.9 M7: where a one-parameter rebuild spends its 10.9 s; the fast YAML loader; a long-running process measured | in force |
 
 ---
 
@@ -2301,3 +2302,7 @@ agents, medians of three: report 1.95 / 3.00 / 3.94 MB (table / test stand / kil
 page open to first frame 0.33 / 0.54 / 0.70 s. `make check` on main at 5a19932 plus the viewer, resolver and journal commits: green, 2,052 passed, 6 skipped, 10 min 6 s wall
 (9 min 17 s in pytest; v0.6's budget was 10 min 4 s, on a host at load 4.4 at the start, so at the budget, not clearly over). Wave 1 added M2s, M1 (picking, section cuts, the explode),
 M5a, M5d and the recorded answers; no process of mine is left running.
+
+## S-295 — v0.9 M7: where a one-parameter rebuild spends its time (2026-11-07)
+Tier 1 (`examples/table`, `table-height` +1 mm, `n2f build --offline` in a process of its own), quiet host (load 1.5 to 3), medians of runs: **10.4 to 10.9 s** (19.4 s at v0.8 on a busier host). Split, measured: interpreter and package imports 1.1 s (`n2f --help`; a no-change build is 1.4 s); CAD kernel import 2.8 s; the 12 rules that rerun 5.7 s, of which the PNG renders 2.1 s (`--no-render`: 8.8 s); the rest (manifest, hashing, writing) about 0.9 s. cProfile on the rerun showed the model's YAML parsed 517 times a build with the pure-Python scanner (the style file about 20 times). Built: `core/yamlio.py` `safe_load`/`read_yaml` and `core/style.py` use libyaml's loader when present: **-0.5 s** in a process and in the CLI (in-process 6.3 to 5.7 s). `tests/e2e/test_timing.py` gains a 16 s regression guard (not the target). **The maintainer's option, measured with the same copy in one process (kernel imported, nothing cached but Python's own)**: 5.7 s with renders, 3.5 s without; a parameter reaching one part (`insert-bore`, `tab-thickness`) 5.3 and 4.6 s, because the checks, bill of materials, manual and report rerun for any change (11 to 12 of 14 rules). So a long-running process saves the start-up and kernel import (about 4.2 s), and no more than that without a shape cache; its target-reaching share is not there: the rules themselves are 3.5 s without renders. Not built. Reaching road §2.1's 1 s needs the rules themselves incremental (and renders off the warm path), not only a warm process: B-0303 stays open with these numbers. `core/` files: 2 (`core/yamlio.py`, `core/style.py`).
+

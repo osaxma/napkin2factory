@@ -21,10 +21,22 @@ def _represent_null(representer: Any, _data: Any) -> Any:
 _ExplicitNullRepresenter.add_representer(type(None), _represent_null)
 
 
+#: PyYAML's libyaml loader when the wheel has it, else the pure-Python one. The model is
+#: read many times per build (the style file alone about twenty times), and the pure-Python
+#: scanner was a measured part of a one-parameter rebuild (S-295, M7). Same safe subset,
+#: same ``YAMLError`` family.
+_SAFE_LOADER: Any = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
+
+def safe_load(stream: Any) -> Any:
+    """``yaml.safe_load`` through the fast loader (S-295)."""
+    return yaml.load(stream, Loader=_SAFE_LOADER)  # noqa: S506 - a safe loader
+
+
 def read_yaml(path: Path) -> Any:
     """Load a YAML file; returns ``{}`` for an empty file."""
     with Path(path).open("r", encoding="utf-8") as fh:
-        data = yaml.safe_load(fh)
+        data = safe_load(fh)
     return {} if data is None else data
 
 

@@ -50,11 +50,13 @@ def load_style(root: Path) -> StyleFile:
     import yaml
     from pydantic import ValidationError
 
+    from napkin2factory.core.yamlio import safe_load
+
     path = style_path(root)
     if not path.is_file():
         return StyleFile().resolved()
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        data = safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
         raise N2FError(f"style.yaml is not valid YAML: {exc}") from exc
     if not isinstance(data, dict):
