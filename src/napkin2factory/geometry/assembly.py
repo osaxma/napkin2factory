@@ -10,15 +10,19 @@ meet (P3).
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from numpy.typing import NDArray
 
 from napkin2factory.geometry.glb import GlbGroup, GlbInstance, GlbMesh, write_glb
 from napkin2factory.geometry.render import Mesh, Scene, color_for
+
+if TYPE_CHECKING:
+    from napkin2factory.geometry.explode import ExplodeMove
 
 Vec3 = tuple[float, float, float]
 Quat = tuple[float, float, float, float]
@@ -41,6 +45,7 @@ class Placement:
     location: Any  # build123d Location
     label: str | None = None
     via: str = COORDINATES
+    away: Vec3 | None = None
 
     @property
     def is_assembly(self) -> bool:
@@ -280,8 +285,23 @@ def place_by(
         m[:3, :3], m[:3, 3] = rot, trans
         m = m @ np.linalg.inv(_matrix(inner_loc))
         rot, trans = m[:3, :3], m[:3, 3]
+    raw_away = sign * basis_a[:, 2]
+    away_snapped = np.where(np.abs(raw_away) < 1e-12, 0.0, raw_away)
+    away_snapped = np.where(
+        np.abs(np.abs(away_snapped) - 1.0) < 1e-12, np.sign(away_snapped), away_snapped
+    )
+    away: Vec3 = (
+        float(away_snapped[0]),
+        float(away_snapped[1]),
+        float(away_snapped[2]),
+    )
     return Placement(
-        uri=uri, built=built, location=_from_matrix(rot, trans), label=label, via=where
+        uri=uri,
+        built=built,
+        location=_from_matrix(rot, trans),
+        label=label,
+        via=where,
+        away=away,
     )
 
 
@@ -345,6 +365,7 @@ class FlatInstance:
     built: Any
     label: str | None = None
     via: str = COORDINATES  # how it was placed (P1); a nested leaf keeps its own
+    away: Vec3 | None = None
 
 
 def flatten(result: AssemblyResult, top_uri: str) -> tuple[list[FlatInstance], list[GlbGroup]]:
@@ -364,7 +385,16 @@ def flatten(result: AssemblyResult, top_uri: str) -> tuple[list[FlatInstance], l
                 counters[p.uri] += 1
                 node = f"{p.uri}#{counters[p.uri]}"
                 t, q = location_to_trs(p.location)
-                groups.append(GlbGroup(name=node, translation=t, rotation=q, parent=parent_node))
+                groups.append(
+                    GlbGroup(
+                        name=node,
+                        translation=t,
+                        rotation=q,
+                        parent=parent_node,
+                        away=p.away if parent_node is None else None,
+                        label=p.label,
+                    )
+                )
                 walk(p.built.result, world, node)
             else:
                 pending.append((p.uri, world, parent_node, p.built, p))
@@ -398,6 +428,7 @@ def flatten(result: AssemblyResult, top_uri: str) -> tuple[list[FlatInstance], l
                 built,
                 label=placement.label,
                 via=placement.via,
+                away=placement.away if parent is None else None,
             )
         )
     return leaves, groups
@@ -408,12 +439,27 @@ def instance_counts(leaves: list[FlatInstance]) -> dict[str, int]:
     return dict(sorted(Counter(leaf.uri for leaf in leaves).items()))
 
 
+def _explode_extra(move: ExplodeMove) -> dict[str, Any]:
+    return {
+        "n2f_explode": {
+            "dir": [round(float(c), 6) + 0.0 for c in move.direction],
+            "distance": round(float(move.distance), 6) + 0.0,
+            "source": move.source,
+        }
+    }
+
+
 def export_assembly_glb(
-    top_uri: str, leaves: list[FlatInstance], groups: list[GlbGroup], path: Path
+    top_uri: str,
+    leaves: list[FlatInstance],
+    groups: list[GlbGroup],
+    path: Path,
+    moves: Mapping[str, ExplodeMove] | None = None,
 ) -> Path:
     """One mesh per part URI, one node per occurrence with its *local* transform (D13)."""
     meshes: dict[str, GlbMesh] = {}
     instances: list[GlbInstance] = []
+    out_groups: list[GlbGroup] = []
     # Local transform relative to the parent group: recompute from placements by walking
     # again would need the tree; instead store world transforms and put every leaf under the
     # root group of its parent chain with the parent's inverse applied.
@@ -431,9 +477,16 @@ def export_assembly_glb(
         loc = Location(trsf)
         parent_world = group_world.get(g.parent) if g.parent else None
         group_world[g.name] = parent_world * loc if parent_world is not None else loc
+        g_extras = dict(g.extras or {})
+        if g.parent is None and moves and g.name in moves:
+            g_extras.update(_explode_extra(moves[g.name]))
+        out_groups.append(replace(g, extras=g_extras))
     for leaf in leaves:
+        tess = getattr(leaf.built, "tess", None)
+        if tess is None or len(tess[0]) == 0:
+            continue
         if leaf.uri not in meshes:
-            v, t = leaf.built.tess
+            v, t = tess
             meshes[leaf.uri] = GlbMesh(
                 leaf.uri, v.astype(np.float32), t.astype(np.uint32), color_for(leaf.uri)
             )
@@ -441,11 +494,21 @@ def export_assembly_glb(
         if leaf.parent is not None:
             local = group_world[leaf.parent].inverse() * leaf.location
         tr, q = location_to_trs(local)
+        inst_extras: dict[str, Any] = {}
+        if leaf.parent is None and moves and leaf.node in moves:
+            inst_extras.update(_explode_extra(moves[leaf.node]))
         instances.append(
-            GlbInstance(leaf.node, leaf.uri, translation=tr, rotation=q, parent=leaf.parent)
+            GlbInstance(
+                leaf.node,
+                leaf.uri,
+                translation=tr,
+                rotation=q,
+                parent=leaf.parent,
+                extras=inst_extras,
+            )
         )
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(write_glb(list(meshes.values()), instances, groups, scene_name=top_uri))
+    path.write_bytes(write_glb(list(meshes.values()), instances, out_groups, scene_name=top_uri))
     return path
 
 
@@ -453,7 +516,10 @@ def scene_for_assembly(leaves: list[FlatInstance]) -> Scene:
     """World-space meshes coloured per part URI."""
     scene = Scene()
     for leaf in leaves:
-        v, t = leaf.built.tess
+        tess = getattr(leaf.built, "tess", None)
+        if tess is None or len(tess[0]) == 0:
+            continue
+        v, t = tess
         scene.meshes.append(
             Mesh(transform_points(v, leaf.location), t, color_for(leaf.uri), leaf.node)
         )
@@ -461,17 +527,18 @@ def scene_for_assembly(leaves: list[FlatInstance]) -> Scene:
 
 
 def exploded_scene(
-    leaves: list[FlatInstance], groups: list[GlbGroup], axis: str, spacing: float
+    leaves: list[FlatInstance],
+    groups: list[GlbGroup],
+    moves: Mapping[str, ExplodeMove],
 ) -> Scene:
     """The assembly pulled apart as the report's viewer does at full explode (P8 sheets).
 
-    Each top-level occurrence (a part, or a whole sub-assembly) moves along ``axis`` by
-    ``spacing`` times its rank, ranked by its position along that axis, so the picture on an
-    assembly sheet matches what the owner sees with the viewer's slider at its end.
+    Each top-level occurrence (a part, or a whole sub-assembly) moves along its resolved
+    ``direction`` by its resolved ``distance`` (:func:`~napkin2factory.geometry.explode.resolve`),
+    so the picture on an assembly sheet matches what the owner sees with the viewer's
+    slider at its end.
     """
-    k = "xyz".index(axis)
     parent_of = {g.name: g.parent for g in groups}
-    base: dict[str, float] = {g.name: g.translation[k] for g in groups if g.parent is None}
 
     def top_of(leaf: FlatInstance) -> str:
         node = leaf.parent
@@ -481,16 +548,19 @@ def exploded_scene(
             node = parent_of[node] or node
         return node
 
-    for leaf in leaves:
-        if leaf.parent is None:
-            base[leaf.node] = location_to_trs(leaf.location)[0][k]
-    rank = {name: i for i, name in enumerate(sorted(base, key=lambda n: (base[n], n)))}
     scene = Scene()
     for leaf in leaves:
-        v, t = leaf.built.tess
+        tess = getattr(leaf.built, "tess", None)
+        if tess is None or len(tess[0]) == 0:
+            continue
+        v, t = tess
         pts = transform_points(v, leaf.location)
-        shift = np.zeros(3)
-        shift[k] = spacing * rank.get(top_of(leaf), 0)
+        move = moves.get(top_of(leaf))
+        shift = (
+            np.asarray(move.direction, dtype=np.float64) * move.distance
+            if move is not None
+            else np.zeros(3)
+        )
         scene.meshes.append(Mesh(pts + shift, t, color_for(leaf.uri), leaf.node))
     return scene
 

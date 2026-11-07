@@ -89,7 +89,9 @@ them. `role` is the part's style role (`body`, `opening`, `support`, `controls`,
 
 **assemblies/<id>.yaml** — `id, rev, name, build: unit|phantom|external, driver: [...], geometry:
 {module} | none, children: [{part|asm, qty, spare?, loose?}], ports: [iface uris], exploded:
-{axis, spacing}, satisfies`. The YAML is the BOM
+{axis, spacing, directions?}, satisfies` (`directions: {<part/asm uri or label>: [x, y, z]}`
+overrides a top-level unit's explode direction, `[0, 0, 0]` meaning "stays"; `axis` is now only
+the viewer's fallback for a GLB without `n2f_explode` extras). The YAML is the BOM
 structure; the module places instances, by interface with `place_by` or by coordinates with
 `place`; the checker verifies instance counts equal quantities (D18).
 `build/assemblies/<id>/instances.json` records each occurrence's `via` (`coordinates` or

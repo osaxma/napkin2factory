@@ -13,8 +13,8 @@ which the loader exposes untouched as ``userData``.  The viewer keys on that.
 from __future__ import annotations
 
 import struct
-from dataclasses import dataclass
-from typing import Sequence
+from dataclasses import dataclass, field
+from typing import Any, Sequence
 
 import numpy as np
 import pygltflib
@@ -41,6 +41,7 @@ class GlbInstance:
     rotation: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)  # quaternion xyzw
     scale: tuple[float, float, float] = (1.0, 1.0, 1.0)
     parent: str | None = None  # name of a parent node (sub-assembly), if any
+    extras: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -51,6 +52,9 @@ class GlbGroup:
     translation: tuple[float, float, float] = (0.0, 0.0, 0.0)
     rotation: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)
     parent: str | None = None
+    away: tuple[float, float, float] | None = None
+    label: str | None = None
+    extras: dict[str, Any] = field(default_factory=dict)
 
 
 def _pad4(b: bytes, fill: bytes = b"\x00") -> bytes:
@@ -163,7 +167,12 @@ def write_glb(
                 name=g.name,
                 translation=list(g.translation),
                 rotation=list(g.rotation),
-                extras={"n2f_uri": g.name.split("#")[0], "n2f_node": g.name, "n2f_kind": "group"},
+                extras={
+                    "n2f_uri": g.name.split("#")[0],
+                    "n2f_node": g.name,
+                    "n2f_kind": "group",
+                    **(g.extras or {}),
+                },
             )
         )
         node_index[g.name] = len(gltf.nodes) - 1
@@ -177,7 +186,12 @@ def write_glb(
                 translation=list(inst.translation),
                 rotation=list(inst.rotation),
                 scale=list(inst.scale),
-                extras={"n2f_uri": inst.mesh_uri, "n2f_node": inst.name, "n2f_kind": "instance"},
+                extras={
+                    "n2f_uri": inst.mesh_uri,
+                    "n2f_node": inst.name,
+                    "n2f_kind": "instance",
+                    **(inst.extras or {}),
+                },
             )
         )
         node_index[inst.name] = len(gltf.nodes) - 1

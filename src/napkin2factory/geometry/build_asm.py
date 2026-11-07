@@ -37,6 +37,11 @@ from napkin2factory.geometry.build_part import (
     build_part,
     load_built_part,
 )
+from napkin2factory.geometry.explode import (
+    assembly_centre,
+    resolve,
+    units_of,
+)
 from napkin2factory.geometry.exporters import (
     read_render_notes,
     render_views,
@@ -181,7 +186,14 @@ def build_assembly(
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    export_assembly_glb(asm.uri, leaves, groups, out_dir / "model.glb")
+    spacing = float(asm.exploded.spacing.to("mm").magnitude)
+    moves = resolve(
+        units_of(leaves, groups),
+        assembly_centre(leaves),
+        spacing,
+        asm.exploded.directions,
+    )
+    export_assembly_glb(asm.uri, leaves, groups, out_dir / "model.glb", moves)
     props = assembly_props(leaves)
     props["uri"] = asm.uri
     props["rev"] = asm.rev
@@ -196,10 +208,9 @@ def build_assembly(
             scene_for_assembly(leaves), out_dir / "renders", section_z=props["centroid"]["z"]
         )
         # P8: the exploded picture for the unit's assembly sheet (the viewer's full explode)
-        spacing = float(asm.exploded.spacing.to("mm").magnitude)
         write_png(
             out_dir / "renders" / "exploded.png",
-            rasterize(exploded_scene(leaves, groups, asm.exploded.axis, spacing), "iso"),
+            rasterize(exploded_scene(leaves, groups, moves), "iso"),
         )
     built = BuiltAssembly(
         assembly=asm,

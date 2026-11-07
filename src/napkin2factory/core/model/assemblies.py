@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import (
@@ -24,6 +25,7 @@ from napkin2factory.core.model.base import (
     table_check,
 )
 from napkin2factory.core.model.parts import ModuleGeometry
+from napkin2factory.core.uris import Uri
 
 if TYPE_CHECKING:
     from napkin2factory.core.errors import Problems
@@ -109,10 +111,61 @@ class Child(Model):
 
 
 class Exploded(Model):
-    """Viewer hint for the exploded mode."""
+    """Viewer and assembly-sheet configuration for the exploded view."""
 
     axis: Literal["x", "y", "z"] = "z"
     spacing: Quantity = "80 mm"
+    directions: dict[str, list[float]] = Field(default_factory=dict)
+
+    @field_validator("directions", mode="before")
+    @classmethod
+    def _check_directions(cls, v: Any) -> dict[str, list[float]]:
+        if v is None:
+            return {}
+        if not isinstance(v, dict):
+            raise ValueError("exploded.directions must be a mapping of uri/label to [x, y, z]")
+        out: dict[str, list[float]] = {}
+        for raw_key, raw_vec in v.items():
+            if not isinstance(raw_key, str) or not raw_key.strip():
+                raise ValueError(
+                    "exploded.directions keys must be a part:// or asm:// URI "
+                    "or an occurrence label"
+                )
+            key = raw_key.strip()
+            if "://" in key:
+                u = Uri.parse(key)
+                if u.scheme not in ("part", "asm") or u.fragment:
+                    raise ValueError(
+                        f"{raw_key!r}: direction key must be a part:// or asm:// URI "
+                        "or an occurrence label"
+                    )
+                key = str(u)
+            elif any(c.isspace() for c in key) or ":" in key or "/" in key or "#" in key:
+                raise ValueError(
+                    f"{raw_key!r}: direction key must be a part:// or asm:// URI "
+                    "or an occurrence label"
+                )
+            if not isinstance(raw_vec, (list, tuple)) or len(raw_vec) != 3:
+                raise ValueError(
+                    f"direction for {key!r} must be a list of exactly 3 finite numbers"
+                )
+            coords: list[float] = []
+            for c in raw_vec:
+                if (
+                    isinstance(c, bool)
+                    or not isinstance(c, (int, float))
+                    or not math.isfinite(float(c))
+                ):
+                    raise ValueError(
+                        f"direction for {key!r} must be a list of exactly 3 finite numbers"
+                    )
+                coords.append(float(c))
+            out[key] = coords
+        return out
+
+    @model_serializer(mode="wrap")
+    def _dump(self, handler: SerializerFunctionWrapHandler) -> Any:
+        return _drop_defaults(handler(self), {"directions": {}})
 
 
 class Assembly(Model):
