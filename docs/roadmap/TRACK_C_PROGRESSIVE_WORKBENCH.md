@@ -5,6 +5,9 @@
 >
 > **Goal:** Replace the 15-section vertical scroll wall in [`report.html.j2`](../../src/napkin2factory/report/templates/report.html.j2) with a **Progressive Disclosure Workbench** where the interactive 3D design is front-and-center, clicking any part or sub-assembly immediately surfaces its 2D shop drawing, flat pattern, BOM row, mating fasteners, wiring terminals, and engineering checks, and every specialized lens (Drawings & Schematics, Build Player, Verification, History) is reachable without scrolling through irrelevant boilerplate.
 
+> [!NOTE]
+> **Scheduled as `docs/stages/v0.9-progressive-workbench.md` (S-287).** Its §9 checks this document's "today" claims against the code (2026-11-07). Where they differ (the section registry, the existing pick, explode and section controls, the URI schemes, the CAD paths), the stage plan's V-series governs.
+
 ---
 
 ## 1. Vision & Problem Statement

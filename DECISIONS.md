@@ -313,6 +313,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-284 | Close v0.8: version 0.8.0, pins >=0.8,<0.9, the handoff | in force |
 | S-285 | v0.8 visual exit: the board's built-design card, judged by the maintainer | in force |
 | S-286 | v0.8.0 released: CI green on both platforms, tagged, published | in force |
+| S-287 | Open v0.9 (Track C): the progressive-workbench stage plan, V-series | in force |
 
 ---
 
@@ -2215,3 +2216,13 @@ escape codes (2,031 passed). The test now strips colour codes before matching (9
 `GITHUB_ACTIONS=true FORCE_COLOR=1`). CI `ci` passed on both platforms at 95e6fb0; `v0.8.0` was tagged on it and
 `publish.yml` published both packages (build, pypi, pypi-alias green; `napkin2factory` and `n2f` 0.8.0 on PyPI).
 Visual exit: judged by the maintainer (S-285).
+
+## S-287 — Open v0.9, Track C: the design first (2026-11-07)
+`docs/stages/v0.9-progressive-workbench.md` schedules Track C (M0 to M6, V1–V13) and finishes Track B: the R9 bridges go (`ecr new`,
+`ecr apply`, and `ecr reject`, which S-261 joined to them; no product file names them, so no schema bump), and the v0.8 handoff's open
+DoD rows are M5a to M5d. Checked against the code first (road §5.4, plan §9): sections are registered (F5) and already hide at `lite`
+(W6); the viewer already picks (on pointer-down, so every orbit picks), explodes along one ranked axis and cuts on Z at mid-height; no
+insertion axis exists; the schemes are `iface://` and the domain families' (no `ifc://`, `elec://` or `product://`); no STL is exported;
+only the first top GLB is embedded. So V4 keys the inspector by existing URIs and V5 adds a lens and inspector seam (M2s). Six questions
+are with the maintainer (plan §3, Q1–Q6). Rows B-0296 to B-0304. Baseline: `core/` files touched in v0.9: 0. `make check` on `main` at
+ae87589: green, 2,032 passed, 9 min 57 s (load 3.1 rising to 18 from other agents; not idle). The stage records §11's sizes and timings.

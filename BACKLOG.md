@@ -150,6 +150,15 @@ entry that closed them. Ids are never reused.
 | B-0293 | Checkpoint labels for saved edits do not say what changed ("edits since #33"); sign-off rows carry no title and thirteen fill the list (gate L C8) | S-280; name the changed values, fold consecutive sign-offs |
 | B-0294 | Checkpoints of promote, switch and undo read "not measured" although a build exists, because vitals need a fresh build at save time (gate L C9) | S-280 |
 | B-0295 | The report's "Rendered views" are false-colour diagnostics beside the product viewer, uncaptioned (gate L C14) | S-280 |
+| B-0296 | The report's viewer picks on pointer-down, so every orbit drag picks; it cannot frame or ghost a part, and its section is one Z plane at mid-height | S-287 (v0.9 M1) |
+| B-0297 | No inspector index: a part's drawing, parts-list row, interfaces, requirements and checks sit in separate sections; only the first top assembly's GLB is embedded | S-287 (v0.9 M2s, M2) |
+| B-0298 | The report is one scroll page of up to 16 sections, with the 3D model third; no lenses, no deep link to a selection | S-287 (v0.9 M3a) |
+| B-0299 | The report has no build-step player, shows none of the cut lists the build writes (`features.json`), and has no print stylesheet | S-287 (v0.9 M3c) |
+| B-0300 | The report has no phone layout, no keyboard path through the model, and no interaction tests that pick, inspect or deep-link | S-287 (v0.9 M4) |
+| B-0301 | The R9 bridges `ecr new`, `ecr apply` and `ecr reject` are still verbs and MCP tools; `core/vcs.py`'s unsaved-edits message names `ecr new` | S-287 (v0.9 M5a) |
+| B-0302 | v0.9's gates are not run: Gate C (three tiers, desktop and phone, the maintainer's judgment), the two-vendor cold-agent trial, gates M and N | S-287 (v0.9 M6) |
+| B-0303 | The warm one-parameter rebuild is 19.4 s on tier 1 against road §2.1's 1 s target | S-283, S-287 (Q6: a v0.9 M7 or later) |
+| B-0304 | The explode moves each top-level unit along one axis by rank (viewer and assembly sheets alike), not along its insertion axis | S-287 (Track C §3.1 assumed the axes were computed; Q2) |
 
 ## Closed
 
