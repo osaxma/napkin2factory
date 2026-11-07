@@ -96,9 +96,9 @@ def test_viewer_picking_isolation_and_section_cuts(tmp_path: Path) -> None:
         cam_before = page.evaluate("window.n2fViewer.camera.position.toArray()")
         ev_count_before = page.evaluate("window.__events.length")
         # A drag that starts without a real mouse move first is, under heavy CPU load, sometimes
-        # delivered to the page not at all (measured: an empty event log, ten busy loops), so the
-        # drag moves first and is tried a few times; one that moved the camera proves the path, and every try must leave the
-        # selection alone.
+        # delivered to the page not at all (measured: an empty event log, ten busy loops), so
+        # the drag moves first and is tried a few times; one that moved the camera proves the
+        # path, and every try must leave the selection alone.
         for _ in range(4):
             page.mouse.move(left_pt["x"] - 30, left_pt["y"] - 30)  # a real move first: hover is set
             page.mouse.move(left_pt["x"], left_pt["y"], steps=3)
