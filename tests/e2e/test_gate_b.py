@@ -165,7 +165,9 @@ def test_gate_b_flow(tmp_path: Path) -> None:
     signed: list[str] = []
     for _ in range(4):  # a refusal lists what waits; one round may uncover a few more
         closed = n2f("ecr", "close", cwd=root, env=NO_SHOTS)
-        waiting = re.findall(r"(REQ-\d+) needs a human sign-off", closed.stderr)
+        waiting = re.findall(
+            r"(REQ-\d+)\b[^\n]* waits for a sign-off", closed.stderr
+        )  # S-281 wording
         if closed.returncode == 0:
             break
         assert closed.returncode == 3 and waiting, closed.stderr

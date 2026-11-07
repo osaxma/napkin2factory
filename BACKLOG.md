@@ -144,13 +144,13 @@ entry that closed them. Ids are never reused.
 | B-0300 | The report has no phone layout, no keyboard path through the model, and no interaction tests that pick, inspect or deep-link | S-287 (v0.9 M4) |
 | B-0302 | v0.9's gates are not run: Gate C (three tiers, desktop and phone, the maintainer's judgment), the two-vendor cold-agent trial, gates M and N | S-287 (v0.9 M6) |
 | B-0303 | The warm one-parameter rebuild is 10.9 s on tier 1 (a quiet host; 19.4 s at v0.8) against road §2.1's 1 s target: start-up 1.1 s + CAD kernel 2.8 s + rules 5.7 s (renders 2.1 s); a warm process would save about 4.2 s and leaves 5.7 s; reaching 1 s needs incremental rules and renders off the warm path | S-283, S-295 (M7 measured it and took the YAML hot-spot) |
-| B-0307 | `tests/e2e/test_gate_b.py::test_gate_b_flow` (marked `full`) fails on main: its close loop matches "needs a human sign-off", the refusal now says "waits for a sign-off" (S-281); the nightly will show it | S-296 (M5b saw it) |
 | B-0305 | Fasteners are not drawn in the exploded view: every example models bolts, nuts and standoffs as `geometry: none`, so nothing comes out of a hole | S-293; hook: `geometry/explode.py` `units_of` (an `ExplodeUnit` with `has_geometry`) fed from the joints `core/build_units.py` counts; the resolver, GLB extra, sheet and viewer need no change; new geometry is a Track C non-goal, so it needs the maintainer |
 | B-0306 | Enclosed units (the kiln's lining) explode radially and pass through their shell; there is no rule that holds a unit that sits inside another | S-293; hook: a new `(source, rule)` pair in `geometry/explode.py` `RULES` before `fallback` returning `(0, 0, 0)`; today an owner holds one with `exploded.directions: {<uri>: [0, 0, 0]}` |
 
 ## Closed
 
 | id | item | closed by |
+| B-0307 | `tests/e2e/test_gate_b.py::test_gate_b_flow` (marked `full`) fails on main: its close loop matches "needs a human sign-off", the refusal now says "waits for a sign-off" (S-281); the nightly will show it | closed by S-300 |
 | B-0269 | `undo`/`redo`/`rollback` on a product with sign-offs run a checks build for R5's stale report: 9.1 s on tier 1 against 1.8 s without sign-offs (tier 2); skip it when no sign-off's evidence can read a restored file (static reads, as `ecr impact` does) | closed by S-296 (M5b) |
 | B-0284 | The undo property test has no `ecr abort` or `concept switch` operation, which DoD 2 names (`tests/unit/test_undo_properties.py`, gate K C8) | closed by S-296 (M5b) |
 | B-0293 | Checkpoint labels for saved edits do not say what changed ("edits since #33"); sign-off rows carry no title and thirteen fill the list (gate L C8) | closed by S-296 (M5b) |
