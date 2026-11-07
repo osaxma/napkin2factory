@@ -116,7 +116,7 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
     assert _req(data, "REQ-008")["status"] == "pass"
     # … and fails a 6 mm one (gate A: the threshold flipped, the requirement fails)
     _set_style(root, "corner_radius: 4 mm", "corner_radius: 6 mm")
-    data = _check(root, code=2)
+    data = _check(root, code=5)
     row = _req(data, "REQ-007")
     assert row["status"] == "fail"
     assert "bend B1 is 4 mm, below the 6 mm corner radius chosen in style.yaml" in row["message"]
@@ -130,7 +130,7 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
         )
     )
     _run("build", "--no-render", cwd=root)
-    data = _check(root, code=2)
+    data = _check(root, code=5)
     row = _req(data, "REQ-008")
     assert row["status"] == "fail" and "is on the front" in row["message"]
     assert _req(data, "REQ-007")["status"] == "pass"
@@ -143,6 +143,6 @@ def test_napkin_to_factory_with_form_requirements_that_bite(product: Path) -> No
         text.replace("door-leaf-width: {value: 300,", "door-leaf-width: {value: 360,")
     )
     _run("build", "--no-render", cwd=root)
-    data = _check(root, code=2)
+    data = _check(root, code=5)
     row = _req(data, "REQ-005")
     assert row["status"] == "fail" and row["message"] == "360 mm <= 300 mm"

@@ -54,7 +54,7 @@ def test_red_card_overridden_and_its_alcove_requirement_fails(product: Path) -> 
     assert not any("form requirement" in n for n in res["notes"])
     _run("validate", cwd=root)
     _run("build", "--no-render", cwd=root)
-    data = _check(root, code=2)
+    data = _check(root, code=5)
     row = _req(data, "REQ-004")
     assert row["status"] == "fail" and row["message"] == "bbox.x = 120 mm <= 100 mm"
     assert _req(data, "REQ-005")["status"] == "pass"  # the door itself did not change
