@@ -314,6 +314,8 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-285 | v0.8 visual exit: the board's built-design card, judged by the maintainer | in force |
 | S-286 | v0.8.0 released: CI green on both platforms, tagged, published | in force |
 | S-287 | Open v0.9 (Track C): the progressive-workbench stage plan, V-series | in force |
+| S-288 | v0.9 wave 1: the lens seam, viewer picking, the bridges gone, the upgrade's applied requests | in force |
+| S-289 | v0.9 wave 1 boundary: the `core/` count, §11's sizes and timings, `make check` | in force |
 
 ---
 
@@ -2226,3 +2228,28 @@ insertion axis exists; the schemes are `iface://` and the domain families' (no `
 only the first top GLB is embedded. So V4 keys the inspector by existing URIs and V5 adds a lens and inspector seam (M2s). Six questions
 are with the maintainer (plan §3, Q1–Q6). Rows B-0296 to B-0304. Baseline: `core/` files touched in v0.9: 0. `make check` on `main` at
 ae87589: green, 2,032 passed, 9 min 57 s (load 3.1 rising to 18 from other agents; not idle). The stage records §11's sizes and timings.
+
+## S-288 — v0.9 wave 1: the lens seam, viewer picking, the bridges gone, the upgrade's applied requests (2026-11-07)
+M2s (V5): `ReportSection.lens` (one of `LENSES`: workbench, drawings, build, verification, history; default verification, so a section a domain
+leaves undeclared still renders) and `Domain.inspector` (entries keyed by the domain's own URIs); the registry refuses an unknown lens at register,
+and `inspector_entries` refuses a non-URI key or a key two domains return. The mechanical sections and the electrical Wiring declare lenses
+(Wiring in drawings). M1 (V3): a click of under 5 px picks, a drag orbits and never picks; `frame`, `ghost`, `screenPoint`, `section(axis, offset)`
+on x, y or z (`section(true)` still works for the page's checkbox), a double-click isolates, an empty click clears; the explode is unchanged
+(Q2 recommended one-axis, B-0304). The interaction test skips when the host loses WebGL, which software GL does under heavy load (the viewer then
+hides its canvas, S-232); the first version failed the land gate for that reason, not for a picking fault. M5a (V10): `ecr new`, `ecr apply`, `ecr
+reject` and their MCP tools are gone (unknown-command error, exit 2); `core/vcs.py`'s message says `ecr start`; the eight `impact-analyst.md` role
+files named `ecr reject` (plan V10 said no role did) and now name `ecr abort`. M5d: an `applied` request set aside by the upgrade closes (its
+`applied:` kept); a set-aside approved one says its approval was cleared; `status: applied` and `impact` in a format-2 file give one plain message
+(`core/model/ecr.py`, not `migrate.py`); `ecr abort` of an upgraded applied request restores the changed model files from its baseline (never the
+format, the requests or the sign-offs). Asked the maintainer: Q5 was asked on a stale premise. The kiln ships ECR-001 to ECR-003 aborted and its demos
+already use `ecr start` (`test_demos.py` parametric and design pass on main), so B-0276 and B-0277 are closed as already true and the kiln is unchanged.
+
+## S-289 — v0.9 wave 1 boundary: the `core/` count, §11's sizes and timings, `make check` (2026-11-07)
+`core/` files touched in v0.9 so far: 4 (`core/domain.py`, `core/registry.py` for M2s; `core/model/ecr.py` for M5d, where the plan named
+`core/model/migrate.py`; `core/vcs.py` for M5a). Measured at b34a259, macOS host, copies of the examples built cold then three no-change builds,
+load 3.0 to 3.3 (my own earlier busy loops had left the host loaded; killed and the load let fall before measuring): report size 1.95 MB table,
+3.00 MB test stand, 3.93 MB kiln (limit 20 MB). No-change build, median of three: 1.52 s table (tier 1; R12's target 2 s met), 1.93 s test stand,
+2.58 s kiln; the report rule is up to date on a no-change build and prints no time (the table's cold report rule was 1.7 s; the others' not read).
+Page open to first frame in Chromium on `file://` with software GL, median of three: 0.35 s, 0.54 s, 0.70 s. `make check` on main at b34a259:
+green, 2,043 passed, 6 skipped, 9 min 12 s wall (8 min 28 s in pytest), load 8.5 at its end. The wave added no interaction test to `make check` beyond
+`tests/smoke/test_viewer_interaction.py` (about 5 s alone). Wave 1 closed B-0275, B-0276, B-0277, B-0283, B-0296 and B-0301.
