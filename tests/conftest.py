@@ -307,7 +307,7 @@ class EngineGuard:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             info = engine.engine_status(root)
-            if info is not None:
+            if info is not None and info.get("warm"):  # the kernel preload holds it up for seconds
                 return int(info["pid"])
             time.sleep(0.1)
         raise AssertionError(f"the engine of {root} did not start in {timeout:.0f} s")

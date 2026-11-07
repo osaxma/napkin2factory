@@ -323,6 +323,7 @@ class Engine:
         self.code_now = code_now
         self.requests = 0
         self.started = time.time()
+        self.warm = False  # True once the CAD kernel is preloaded (the engine answers promptly)
         self.last_active = time.monotonic()
         self.done = threading.Event()
         self.stale = False
@@ -395,6 +396,7 @@ class Engine:
             "started": self.started,
             "idle_s": round(time.monotonic() - self.last_active, 1),
             "busy": self._busy > 0,
+            "warm": self.warm,
             "version": self.version,
         }
 
@@ -457,7 +459,7 @@ class Engine:
                 job = self._jobs.get(timeout=tick)
             except queue.Empty:
                 if self._busy == 0 and (
-                    time.monotonic() - self.last_active > self.idle or self.stale
+                    (self.warm and time.monotonic() - self.last_active > self.idle) or self.stale
                 ):
                     return
                 if not self.root.is_dir():
@@ -576,9 +578,16 @@ def run_in_process(req: dict[str, Any], out: TextIO, err: TextIO, root: Path) ->
     return code
 
 
-def _preload_kernel() -> None:
+def _preload_kernel(engine: Engine) -> None:
+    """Import the CAD kernel in the background; idle time counts from when it is done.
+
+    The import holds the interpreter for seconds, during which the engine cannot answer, so
+    a short idle limit (the tests') must not run out before the first answer is possible.
+    """
     with contextlib.suppress(Exception):
         import build123d  # noqa: F401
+    engine.last_active = time.monotonic()
+    engine.warm = True
 
 
 def serve_main() -> None:
@@ -633,7 +642,7 @@ def serve_main() -> None:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
     threading.Thread(target=accept_loop, daemon=True).start()
-    threading.Thread(target=_preload_kernel, daemon=True).start()
+    threading.Thread(target=_preload_kernel, args=(engine,), daemon=True).start()
     try:
         engine.run_jobs()
     finally:
