@@ -122,10 +122,14 @@ def _cost_notes(product: Product, flat: list[dict[str, Any]]) -> list[str]:
     return notes
 
 
-def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, Any]:
+def gather(
+    product: Product, build_dir: Path, snapshot_date: str, log: Any = None
+) -> dict[str, Any]:
     """Collect everything the template needs from ``build/`` and the model."""
     from napkin2factory.bom.rollups import top_assemblies
     from napkin2factory.core.checks.stage import compute_stage
+    from napkin2factory.core.domain import SectionContext
+    from napkin2factory.report.inspector import inspector_index, inspector_json
 
     checks = _read_json(build_dir / "checks" / "checks.json") or {
         "summary": {},
@@ -148,16 +152,36 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     manifest_units = getattr(product.manifest, "units", "metric")
 
     # 3D: the top assemblies' GLBs (or every part's GLB when there is no assembly)
-    glb_paths = [build_dir / "assemblies" / a / "model.glb" for a in top_assemblies(product)]
-    if not glb_paths:
-        glb_paths = [
-            build_dir / "parts" / p.id / "model.glb" for p in product.parts_with_geometry()
-        ]
-    glb_paths = [p for p in glb_paths if p.is_file()]
-    glb_b64 = base64.b64encode(glb_paths[0].read_bytes()).decode() if glb_paths else ""
+    tops = top_assemblies(product)
+    glbs: list[dict[str, Any]] = []
+    for a in tops:
+        glb_file = build_dir / "assemblies" / a / "model.glb"
+        if glb_file.is_file():
+            ex_a = product.assemblies[a].exploded
+            glbs.append(
+                {
+                    "id": a,
+                    "b64": base64.b64encode(glb_file.read_bytes()).decode(),
+                    "exploded": {
+                        "axis": ex_a.axis,
+                        "spacing": float(ex_a.spacing.to("mm").magnitude),
+                    },
+                }
+            )
+    if not glbs:
+        for part in product.parts_with_geometry():
+            glb_file = build_dir / "parts" / part.id / "model.glb"
+            if glb_file.is_file():
+                glbs.append(
+                    {
+                        "id": part.id,
+                        "b64": base64.b64encode(glb_file.read_bytes()).decode(),
+                        "exploded": {"axis": "z", "spacing": 80.0},
+                    }
+                )
+    glb_b64 = glbs[0]["b64"] if glbs else ""
     viewer_options = _viewer_options(product)
     exploded = {"axis": "z", "spacing": 80.0}
-    tops = top_assemblies(product)
     if tops:
         ex = product.assemblies[tops[0]].exploded
         exploded = {"axis": ex.axis, "spacing": float(ex.spacing.to("mm").magnitude)}
@@ -402,6 +426,18 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
     else:
         revision_label = f"draft · saved {snapshot_date}"
 
+    sctx = SectionContext(product, build_dir)
+    if log is not None:
+        sctx.log = log
+    ins_index = inspector_index(
+        sctx,
+        rollups=rollups,
+        checks=checks,
+        stage=stage,
+        waiting=waiting,
+        build_steps=build_steps,
+    )
+
     return {
         "product": product.manifest.product,
         "persona": persona,
@@ -414,6 +450,7 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "stage_class": stage_class,
         "revision_label": revision_label,
         "summary": summary,
+        "glbs": glbs,
         "glb_b64": glb_b64,
         "viewer_options": viewer_options,
         "exploded": exploded,
@@ -424,6 +461,8 @@ def gather(product: Product, build_dir: Path, snapshot_date: str) -> dict[str, A
         "cost_notes": cost_notes,
         "cost_basis_line": _cost_basis_line(product),
         "bom_json": json.dumps(bom_by_uri),
+        "inspector_index": ins_index,
+        "inspector_json": inspector_json(ins_index),
         "req_rows": req_rows,
         "req_summary": req_summary,
         "safety_reqs": safety_reqs,
@@ -479,7 +518,7 @@ def render_report(
     env.globals["n2f_favicon"] = favicon_link()
     env.globals["n2f_mark"] = footer_mark()
     env.globals["n2f_wordmark"] = footer_wordmark()
-    data = gather(product, build_dir, snapshot_date)
+    data = gather(product, build_dir, snapshot_date, log=log)
     anchors = data["anchors"]
     persona = data["persona"]
     env.filters["ref"] = lambda uri: ref_html(uri, anchors, persona)

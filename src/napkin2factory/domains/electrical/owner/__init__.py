@@ -11,8 +11,17 @@ from __future__ import annotations
 from napkin2factory.domains.electrical.owner.context import CONTEXT
 from napkin2factory.domains.electrical.owner.docs_helpers import DOC_HELPERS
 from napkin2factory.domains.electrical.owner.gates import GATE_ROWS
+from napkin2factory.domains.electrical.owner.inspector import electrical_inspector
 from napkin2factory.domains.electrical.owner.report import REPORT_SECTIONS
 from napkin2factory.domains.electrical.owner.screens import SCREENS
 from napkin2factory.domains.electrical.owner.vocabulary import VOCABULARY
 
-__all__ = ["CONTEXT", "DOC_HELPERS", "GATE_ROWS", "REPORT_SECTIONS", "SCREENS", "VOCABULARY"]
+__all__ = [
+    "CONTEXT",
+    "DOC_HELPERS",
+    "GATE_ROWS",
+    "REPORT_SECTIONS",
+    "SCREENS",
+    "VOCABULARY",
+    "electrical_inspector",
+]

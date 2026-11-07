@@ -43,7 +43,7 @@ def test_self_contained(report: tuple[Path, str]) -> None:
     assert (links[0].attributes.get("href") or "").startswith("data:image/svg+xml;base64,")
     assert not EXTERNAL.search(html), "external reference found"
     assert all(
-        s.attributes.get("type") in ("module", "text/plain")
+        s.attributes.get("type") in ("module", "text/plain", "application/json")
         for s in tree.css("script")
         if s.attributes.get("type")
     )

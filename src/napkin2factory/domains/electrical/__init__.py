@@ -43,6 +43,7 @@ from napkin2factory.domains.electrical.owner import (
     REPORT_SECTIONS,
     SCREENS,
     VOCABULARY,
+    electrical_inspector,
 )
 from napkin2factory.domains.electrical.owner.hazards import hazards
 
@@ -77,4 +78,5 @@ DOMAIN = Domain(
     bom_lines=BOM_LINES,
     has_content=has_content,  # W6: counts toward "more than one domain"
     hazards=hazards,  # W6: mains raises the ceremony
+    inspector=electrical_inspector,
 )
