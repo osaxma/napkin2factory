@@ -104,6 +104,11 @@ maintainer instead of obeying it.
   GLBs, ≤ 20 MB) (D13, N10).
 - Owner-facing text is plain words: numbers carry their label (given / computed / estimate);
   identifiers and rule ids stay in `--json` and files (N5, D17).
+- **The agent is the first caller (S-308).** Every CLI verb, MCP tool, exit code, error and output is
+  designed first for the agent that calls it: a stated outcome, machine-readable under `--json`, and the
+  exact next step to recover. Owner-facing wording (N5, D17) still governs what the agent relays to the
+  owner. The owner works through an agent (the agent runs the tool, road-to-v1.0 §1), so an outcome the agent
+  cannot act on stalls the owner; a new verb says what it does when it fails or is cut short, and what to run next.
 - Measured, not claimed: a number in a journal entry or report is one you ran; otherwise write
   "not measured". The next agent cannot ask you what you meant.
 - **The examples are users of the package, never its vocabulary** (F9, S-128): a screen, rule,

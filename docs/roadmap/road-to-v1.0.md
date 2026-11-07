@@ -36,6 +36,7 @@ Honest, not defensive; confident, not hype. napkin2factory does its best and say
 - **Numbers speak through their label** (given / computed / estimate, N5) and their source, not through caveats around them.
 - **No sales voice** in the README, the skill description, the agent's first offer or the report: no superlatives, no exclamation marks, no "automatically" for what is simply what the tool does. Say what it does in plain words and stop.
 - **Safety stays where it acts:** a safety requirement's sign-off and a failed check say what they need, once, where the owner acts on them. That is a result, not a warning.
+- **The agent is the first caller (S-308).** The owner works through an agent, so every verb, tool, exit code and message is designed for the agent first: a stated outcome, the same facts machine-readable under `--json`, and the exact next command to recover. Tracks and milestones that add or change a verb carry this in their definition of done; the owner-facing wording rules above govern what the agent relays.
 
 ---
 
