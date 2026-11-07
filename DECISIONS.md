@@ -318,6 +318,9 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-289 | v0.9 wave 1 boundary: the `core/` count, §11's sizes and timings, `make check` | in force |
 | S-290 | The maintainer's answers to the v0.9 questions Q1 to Q6 | in force |
 | S-291 | No artificial load on the host; every started process is stopped (AGENTS.md non-negotiable) | in force |
+| S-292 | The maintainer's answers to the explode design: all four recommended | in force |
+| S-293 | v0.9 M1: one explode resolver, each unit along its own direction | in force |
+| S-294 | v0.9 wave 1 final boundary: the `core/` count, §11 timings, `make check` | in force |
 
 ---
 
@@ -2274,3 +2277,27 @@ coordinating session killed them. The cause of the flake was then found without 
 asked for a rule: AGENTS.md now forbids artificial load (slow the browser with Playwright's CPU throttling to imitate a slow device) and requires
 that a turn ends with no background process of its own left (`pgrep -P` / `ps`). The rule is generic (S-076); worker briefs repeat it, since a
 worker reads AGENTS.md but not the brief's context. `docs/handoffs/v0.9-overseer.md` carries it in "How the waves have run".
+
+## S-292 — The maintainer's answers to the explode design (2026-11-07)
+Asked the maintainer (`docs/handoffs/v0.9-explode-design.md`, four questions, the recommended option each): fasteners stay out of the exploded view in v0.9 because no
+example models one in 3D (B-0305); the assembly sheets are redrawn to match the viewer, one picture of the explode; the optional `exploded.directions` field ships now; enclosed
+units explode radially and show through the section cut (B-0306). Their instruction: do the groundwork for later changes, so one resolver, each direction carrying its source, and
+a unit with no geometry passing through the resolver and skipped only when drawn.
+
+## S-293 — v0.9 M1: one explode resolver, each unit along its own direction (2026-11-07)
+`geometry/explode.py`: `resolve(units, assembly_centre, spacing_mm, declared)` gives every top-level unit a direction, a distance and a source, by rules in priority order
+(`RULES`: declared, interface, fallback). Interface: the direction `place_by` pushed the unit into place (`Placement.away`, the interface normal signed from the placed party toward
+the unit). Fallback: away from the assembly centre along the dominant axis, +Z when centred. Units sharing a direction take steps nearest-first (`spacing` times the step); a zero
+vector stays; a unit with no geometry gets a move and no step. `build_asm` resolves once; the GLB carries `n2f_explode` on each top-level node (extras, no format bump), the sheet's
+`exploded_scene` draws from the same map, the viewer applies it (`explode`, `explodeInfo`) and keeps its one-axis code for a GLB without the extra. `core/model/assemblies.py` gains
+`Exploded.directions` (optional, absent from a dump when empty, no schema bump). Measured on built copies: the enclosure's lid goes up and its brackets off the side; of the top
+assemblies' units, interface directions give 2 of 3 (table), 6 of 8 (kiln) and 1 of 4 (enclosure); the rest use the fallback. The golden props did not change (they fingerprint parts,
+not sheets). Judged by me on the enclosure's and the kiln's sheets (readable); the maintainer's judgment of the viewer is at Gate C. `core/` files: 1 (`core/model/assemblies.py`).
+
+## S-294 — v0.9 wave 1 final boundary: the `core/` count, §11 timings, `make check` (2026-11-07)
+Supersedes S-289's count and `make check` line (S-289's sizes and timings stand). `core/` files touched in v0.9: 5 (`core/domain.py`, `core/registry.py` for M2s;
+`core/model/ecr.py` for M5d; `core/vcs.py` for M5a; `core/model/assemblies.py` for the explode's `directions`). Re-measured after the explode landed, load 4.0 to 4.5 from other
+agents, medians of three: report 1.95 / 3.00 / 3.94 MB (table / test stand / kiln; the explode adds under 0.02 MB); no-change build 1.51 / 1.91 / 2.51 s (tier 1 under R12's 2 s);
+page open to first frame 0.33 / 0.54 / 0.70 s. `make check` on main at 5a19932 plus the viewer, resolver and journal commits: green, 2,052 passed, 6 skipped, 10 min 6 s wall
+(9 min 17 s in pytest; v0.6's budget was 10 min 4 s, on a host at load 4.4 at the start, so at the budget, not clearly over). Wave 1 added M2s, M1 (picking, section cuts, the explode),
+M5a, M5d and the recorded answers; no process of mine is left running.

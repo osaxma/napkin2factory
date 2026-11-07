@@ -152,12 +152,14 @@ entry that closed them. Ids are never reused.
 | B-0300 | The report has no phone layout, no keyboard path through the model, and no interaction tests that pick, inspect or deep-link | S-287 (v0.9 M4) |
 | B-0302 | v0.9's gates are not run: Gate C (three tiers, desktop and phone, the maintainer's judgment), the two-vendor cold-agent trial, gates M and N | S-287 (v0.9 M6) |
 | B-0303 | The warm one-parameter rebuild is 19.4 s on tier 1 against road §2.1's 1 s target | S-283, S-287 (Q6: a v0.9 M7 or later) |
-| B-0304 | The explode moves each top-level unit along one axis by rank (viewer and assembly sheets alike), not along its insertion axis | S-287 (Track C §3.1 assumed the axes were computed; Q2); the maintainer wants it in v0.9 M1 (S-290), design note first |
+| B-0305 | Fasteners are not drawn in the exploded view: every example models bolts, nuts and standoffs as `geometry: none`, so nothing comes out of a hole | S-293; hook: `geometry/explode.py` `units_of` (an `ExplodeUnit` with `has_geometry`) fed from the joints `core/build_units.py` counts; the resolver, GLB extra, sheet and viewer need no change; new geometry is a Track C non-goal, so it needs the maintainer |
+| B-0306 | Enclosed units (the kiln's lining) explode radially and pass through their shell; there is no rule that holds a unit that sits inside another | S-293; hook: a new `(source, rule)` pair in `geometry/explode.py` `RULES` before `fallback` returning `(0, 0, 0)`; today an owner holds one with `exploded.directions: {<uri>: [0, 0, 0]}` |
 
 ## Closed
 
 | id | item | closed by |
 |---|---|---|
+| B-0304 | The explode moves each top-level unit along one axis by rank, not along its own direction | closed by S-293 (each unit along its own direction: `geometry/explode.py` `resolve`) |
 | B-0275 | `ecr abort` of a request the upgrade carried over from `applied` restores the state right after it was applied, not the state before it (its baseline is the earlier one, but the start checkpoint is the first one after it); `n2f ecr close` is right, `abort` is not | closed by S-288 (abort of an upgraded applied request restores the model files from before the edit) |
 | B-0276 | A shipped example holds a live request whose baseline checkpoint cannot be in a fresh copy's history (the kiln's ECR-001), so `ecr impact` and `undo` on a copy say the history is missing and `ecr start` / `concept switch` refuse until it is aborted | closed by S-288 (already true: the kiln ships ECR-001 to ECR-003 aborted; no request is open in a shipped example) |
 | B-0277 | The kiln's three demos (`examples/kiln/demo.sh`, `demo-design.sh`, `demo-electrical.sh`) and `tests/e2e/test_demos.py` script the old flow (`ecr new`, `apply`, ECR-001 to ECR-003 as shipped drafts); since schema 2 the kiln ships ECR-001 open with its edits in the model and ECR-002 and ECR-003 set aside, so `make demos` and the nightly `check-full` fail until the scripts start their requests with `ecr start` (the patch files are kept for them) | closed by S-288 (already done in S-261: the demos use `ecr start`; `test_demos.py` parametric and design pass on main) |
