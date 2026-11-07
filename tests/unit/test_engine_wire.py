@@ -6,6 +6,7 @@ pair and the client side talks to the other, with a fake runner in place of the 
 
 from __future__ import annotations
 
+import io
 import json
 import socket
 import sys
@@ -228,12 +229,11 @@ def test_a_client_that_left_while_waiting_gets_nothing_run(tmp_path: Path) -> No
     assert ran == []
 
 
-def test_the_command_is_never_run_cold_after_run_was_sent(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    (tmp_path / "n2f.yaml").write_text("x: 1\n")
-    (tmp_path / "build").mkdir()
-    monkeypatch.chdir(tmp_path)
+def _crashing_engine(monkeypatch: pytest.MonkeyPatch, root: Path, partial: bool = True) -> None:
+    """Make ``try_forward`` talk to a fake engine that dies after it was sent ``run``."""
+    (root / "n2f.yaml").write_text("x: 1\n")
+    (root / "build").mkdir(exist_ok=True)
+    monkeypatch.chdir(root)
     monkeypatch.delenv("N2F_NO_ENGINE", raising=False)
     server_end, client_end = socket.socketpair()
     monkeypatch.setattr(eng, "connect", lambda *a, **k: client_end)
@@ -243,13 +243,109 @@ def test_the_command_is_never_run_cold_after_run_was_sent(
         wire.recv()
         wire.send("ready")
         wire.recv()
+        if partial:
+            wire.send("out", d="half of the output\n")
+            wire.send("err", d="a warning\n")
         server_end.close()
 
-    # the hello check needs this process's own code and version, which converse computes
     threading.Thread(target=crash, daemon=True).start()
-    assert eng.try_forward(["status"]) == 70
-    assert capsys.readouterr().err == "the n2f engine stopped during the command; run it again\n"
-    client_end.close()
+
+
+def test_a_safe_verb_dropped_after_run_is_rerun_by_the_caller_with_one_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _crashing_engine(monkeypatch, tmp_path)
+    assert eng.try_forward(["status"]) is None  # the caller runs it cold
+    seen = capsys.readouterr()
+    # stdout is not a terminal: the partial output was held and dropped, so a rerun cannot repeat it
+    assert seen.out == ""
+    assert seen.err == (
+        "the n2f engine stopped during this command; running it again without the engine\n"
+    )
+
+
+def test_a_terminal_streams_live_and_accepts_the_repeat(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    class Terminal(io.StringIO):
+        def isatty(self) -> bool:
+            return True
+
+    out = Terminal()
+    monkeypatch.setattr(sys, "stdout", out)
+    _crashing_engine(monkeypatch, tmp_path)
+    assert eng.try_forward(["status"]) is None
+    assert out.getvalue() == "half of the output\n"  # shown as it came
+    assert capsys.readouterr().err.endswith("running it again without the engine\n")
+
+
+def test_held_output_is_written_in_order_when_the_command_finishes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "n2f.yaml").write_text("x: 1\n")
+    (tmp_path / "build").mkdir()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("N2F_NO_ENGINE", raising=False)
+    server_end, client_end = socket.socketpair()
+    monkeypatch.setattr(eng, "connect", lambda *a, **k: client_end)
+
+    def serve() -> None:
+        wire = eng.Wire(server_end)
+        wire.recv()
+        wire.send("ready")
+        wire.recv()
+        wire.send("out", d="one\n")
+        wire.send("err", d="two\n")
+        wire.send("exit", code=4)
+        server_end.close()
+
+    threading.Thread(target=serve, daemon=True).start()
+    assert eng.try_forward(["status"]) == 4
+    seen = capsys.readouterr()
+    assert (seen.out, seen.err) == ("one\n", "two\n")
+
+
+def test_a_state_changing_verb_dropped_after_run_is_never_rerun(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _crashing_engine(monkeypatch, tmp_path)
+    assert eng.try_forward(["undo", "--dir", str(tmp_path)]) == 70
+    seen = capsys.readouterr()
+    assert seen.out == ""  # partial output of a command that may have partly run is not shown
+    assert seen.err == (
+        f"the n2f engine stopped during `n2f undo --dir {tmp_path}`; the change may or may not "
+        "have been made.\n"
+        f"look at: n2f checkpoints --dir {tmp_path}\n"
+        f"if it did not happen, run again: n2f undo --dir {tmp_path}\n"
+    )
+
+
+def test_a_state_changing_verb_under_json_says_so_on_stdout_too(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _crashing_engine(monkeypatch, tmp_path)
+    argv = ["ecr", "close", "ECR-001", "--json"]
+    assert eng.try_forward(argv) == 70
+    seen = capsys.readouterr()
+    assert json.loads(seen.out) == {
+        "error": "engine_stopped",
+        "changes_state": True,
+        "outcome": "unknown",
+        "look_at": "n2f ecr list",
+        "rerun": "n2f ecr close ECR-001 --json",
+        "exit": 70,
+    }
+    assert "may or may not have been made" in seen.err
+    assert "look at: n2f ecr list" in seen.err
+
+
+def test_capture_follows_the_same_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _crashing_engine(monkeypatch, tmp_path)
+    assert eng.capture(tmp_path, ["check"]) is None  # safe: the caller runs it itself
+    _crashing_engine(monkeypatch, tmp_path)
+    got = eng.capture(tmp_path, ["rollback", "--json"])
+    assert got is not None and got[0] == 70
+    assert json.loads(got[1])["rerun"] == "n2f rollback --json" and "look at" in got[2]
 
 
 def test_try_forward_does_nothing_when_off_or_not_allowed(

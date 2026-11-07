@@ -1,4 +1,4 @@
-"""A command gives the same stdout, stderr and exit code through the warm engine as cold (S-305).
+"""A command gives the same stdout, stderr and exit code through the warm engine as cold (S-310).
 
 The engine runs the CLI's own command in a long-lived process; this is the test that it does so
 without leaking one request into the next: a fixed list of commands (read-only or idempotent, one
@@ -9,8 +9,14 @@ started engine, and the three streams are compared.
 from __future__ import annotations
 
 import io
+import json
 import os
+import re
+import signal
+import socket
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -140,27 +146,126 @@ def test_a_request_leaves_the_engine_process_as_it_found_it(product: Path) -> No
     assert not [m for m in added if m.startswith("n2f_")]
 
 
-def test_a_command_cut_short_by_the_engine_dying_is_not_rerun(
+def _kill_engine_when_busy(root: Path) -> threading.Thread:
+    """A thread that SIGKILLs the engine of ``root`` as soon as it is running a command."""
+
+    def watch() -> None:
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline:
+            info = eng.engine_status(root)
+            if info is not None and info["busy"]:
+                os.kill(int(info["pid"]), signal.SIGKILL)
+                return
+            time.sleep(0.02)
+
+    thread = threading.Thread(target=watch, daemon=True)
+    thread.start()
+    return thread
+
+
+def _no_timings(text: str) -> str:
+    return re.sub(r"\d+\.\ds", "<t>s", text)
+
+
+def test_a_safe_command_cut_short_by_the_engine_dying_is_run_again_once(
     product: Path, engines: EngineGuard
 ) -> None:
-    # N2F_TEST_EXIT_AFTER makes the build call os._exit(3) after one rule: the engine dies
-    # in the middle of the command
-    r = n2f(
-        "build",
-        "--clean",
-        "--offline",
-        cwd=product,
-        process=True,
-        env={"N2F_TEST_EXIT_AFTER": "part:l-bracket"},
-    )
-    assert r.returncode == 70
-    assert r.stderr.strip().endswith("the n2f engine stopped during the command; run it again")
-    assert "built: " not in r.stdout  # it did not finish, and nothing ran it a second time cold
-    assert _gone(product)
-    # the next command still works: cold, and it starts a fresh engine
-    again = n2f("validate", cwd=product, process=True)
-    assert again.returncode == 0, again.stderr
+    argv = ["build", "--clean", "--offline"]
+    cold = n2f(*argv, cwd=product, process=True, env={"N2F_NO_ENGINE": "1"})
+    assert cold.returncode == 0, cold.stderr
+    watcher = _kill_engine_when_busy(product)  # the engine dies in the middle of the rebuild
+    r = n2f(*argv, cwd=product, process=True)
+    watcher.join(5)
+    assert r.returncode == 0, r.stderr
+    assert r.stderr.count(eng.RERUN_LINE) == 1 and r.stderr.startswith(eng.RERUN_LINE)
+    # not a terminal: the engine's partial output was held, so nothing is printed twice
+    assert _no_timings(r.stdout) == _no_timings(cold.stdout)
+    lines = [ln for ln in r.stdout.splitlines() if ln.startswith("  built ")]
+    assert len(lines) == len(set(lines)) and r.stdout.count("✓ built:") == 1
+    # the engine is replaced for the next command
     engines.track(product)
+    assert n2f("validate", cwd=product, process=True).returncode == 0
+
+
+def _fake_engine_that_dies_on_run(root: Path) -> tuple[threading.Thread, socket.socket]:
+    """Listens where the engine of ``root`` would; says ready, drops the connection on ``run``."""
+    sock = eng.socket_path(root)
+    eng.prepare_socket_dir(sock)
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(os.fspath(sock))
+    server.listen(4)
+
+    def serve() -> None:
+        try:
+            conn, _ = server.accept()
+        except OSError:
+            return
+        wire = eng.Wire(conn)
+        wire.recv()
+        wire.send("ready")
+        wire.recv()  # the run: now the engine "crashes" before doing or answering anything
+        wire.close()
+
+    thread = threading.Thread(target=serve, daemon=True)
+    thread.start()
+    return thread, server
+
+
+def test_a_state_changing_command_cut_short_is_never_rerun(
+    tmp_path: Path, engines: EngineGuard
+) -> None:
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "bracket")  # with its history
+    (root / "build").mkdir()
+    engines.track(root)
+    manifest = root / "n2f.yaml"
+    manifest.write_text(manifest.read_text().replace("A single", "One single"))
+    assert n2f("snapshot", "-m", "second", cwd=root).returncode == 0
+
+    def count() -> int:
+        out = n2f("checkpoints", "--all", "--json", cwd=root).stdout
+        data = json.loads(out)
+        rows = data["checkpoints"] if isinstance(data, dict) else data
+        return len(rows)
+
+    before = count()
+    assert before >= 2
+    thread, server = _fake_engine_that_dies_on_run(root)
+    try:
+        r = n2f("undo", "--dir", str(root), cwd=root, process=True)
+        thread.join(10)
+    finally:
+        server.close()
+        eng.socket_path(root).unlink(missing_ok=True)
+    cmd = f"n2f undo --dir {root}"
+    assert r.returncode == 70 and r.stdout == ""
+    assert f"the n2f engine stopped during `{cmd}`; the change may or may not have been made." in (
+        r.stderr
+    )
+    assert f"look at: n2f checkpoints --dir {root}" in r.stderr
+    assert r.stderr.strip().endswith(f"if it did not happen, run again: {cmd}")
+    assert count() == before  # nothing ran it a second time
+
+    thread, server = _fake_engine_that_dies_on_run(root)
+    try:
+        j = n2f("undo", "--json", cwd=root, process=True)
+        thread.join(10)
+    finally:
+        server.close()
+        eng.socket_path(root).unlink(missing_ok=True)
+    assert j.returncode == 70
+    assert json.loads(j.stdout) == {
+        "error": "engine_stopped",
+        "changes_state": True,
+        "outcome": "unknown",
+        "look_at": "n2f checkpoints",
+        "rerun": "n2f undo --json",
+        "exit": 70,
+    }
+    assert "may or may not have been made" in j.stderr
+    assert count() == before
+    # and the rerun it asks for does what it says (so the assertions above could have failed)
+    assert n2f("undo", cwd=root).returncode == 0
+    assert count() == before + 1
 
 
 def _gone(root: Path) -> bool:

@@ -23,6 +23,7 @@ import io
 import json
 import os
 import queue
+import shlex
 import signal
 import socket
 import subprocess
@@ -31,6 +32,7 @@ import threading
 import time
 import traceback
 from collections.abc import Buffer, Callable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TextIO
 
@@ -48,28 +50,88 @@ HELLO_TIMEOUT = 1.0
 SOCKET_BYTES = 100  # sun_path holds 104 on macOS and 108 on Linux
 EXIT_INTERNAL = 70  # EX_SOFTWARE: the engine failed, or stopped under a command
 
-#: The verbs that go through the engine. Everything else (init, release, publish, serve, mcp,
-#: skill, doctor, snapshot, discard, decide, signoff, diff, version, engine) runs in the
-#: client's own process: they write outside the product, never return, or ask questions.
-ALLOWED: frozenset[str] = frozenset(
+
+@dataclass(frozen=True)
+class VerbClass:
+    """What a dropped connection means for a verb the engine forwards (S-310)."""
+
+    changes_state: bool
+    #: For a verb that changes state: the read-only command that shows whether it happened.
+    look_at: str | None = None
+
+
+SAFE = VerbClass(False)
+
+
+def _changes(look_at: str) -> VerbClass:
+    return VerbClass(True, look_at)
+
+
+#: Every verb the engine forwards, by command path, and its class. ``SAFE``: the rules re-run only
+#: what is stale (or the verb only reads), so repeating it is harmless: after a dropped connection
+#: the client runs it again cold. ``changes_state``: it writes the product or its history, so it is
+#: never repeated: the client says what happened, what to look at (``look_at``) and what to run
+#: next. A verb not in this table is not forwarded; ``NEVER_FORWARD`` names the ones that chose
+#: not to be, and a test fails for a verb in neither (a new verb has to choose).
+VERB_CLASSES: dict[tuple[str, ...], VerbClass] = {
+    ("build",): SAFE,
+    ("check",): SAFE,
+    ("status",): SAFE,
+    ("impact",): SAFE,
+    ("graph",): SAFE,
+    ("validate",): SAFE,
+    ("lint",): SAFE,
+    ("checkpoints",): SAFE,
+    ("context",): SAFE,
+    ("docs",): SAFE,
+    ("undo",): _changes("n2f checkpoints"),
+    ("redo",): _changes("n2f checkpoints"),
+    ("rollback",): _changes("n2f checkpoints"),
+    ("ecr", "impact"): SAFE,
+    ("ecr", "list"): SAFE,
+    ("ecr", "show"): SAFE,
+    ("ecr", "start"): _changes("n2f ecr list"),
+    ("ecr", "quick"): _changes("n2f ecr list"),
+    ("ecr", "approve"): _changes("n2f ecr list"),
+    ("ecr", "close"): _changes("n2f ecr list"),
+    ("ecr", "abort"): _changes("n2f ecr list"),
+    ("concept", "list"): SAFE,
+    ("concept", "show"): SAFE,
+    ("concept", "build"): SAFE,
+    ("concept", "board"): SAFE,
+    ("concept", "lint"): SAFE,
+    ("concept", "compare"): SAFE,
+    ("concept", "new"): _changes("n2f concept list"),
+    ("concept", "promote"): _changes("n2f concept list"),
+    ("concept", "reject"): _changes("n2f concept list"),
+    ("concept", "switch"): _changes("n2f checkpoints"),
+    ("concept", "fork-from-model"): _changes("n2f concept list"),
+}
+
+#: The verbs that run in the client's own process: they write outside the product, never return,
+#: ask questions, or are the engine's own controls.
+NEVER_FORWARD: frozenset[tuple[str, ...]] = frozenset(
     {
-        "build",
-        "check",
-        "status",
-        "impact",
-        "graph",
-        "validate",
-        "lint",
-        "undo",
-        "redo",
-        "rollback",
-        "checkpoints",
-        "ecr",
-        "concept",
-        "context",
-        "docs",
+        ("init",),
+        ("release",),
+        ("diff",),
+        ("publish",),
+        ("serve",),
+        ("mcp",),
+        ("skill",),
+        ("doctor",),
+        ("snapshot",),
+        ("discard",),
+        ("decide",),
+        ("signoff",),
+        ("version",),
+        ("engine", "start"),
+        ("engine", "status"),
+        ("engine", "stop"),
     }
 )
+
+_GROUPS: frozenset[str] = frozenset(path[0] for path in VERB_CLASSES if len(path) > 1)
 
 #: Environment the request carries: these prefixes and names. The engine sets exactly these
 #: from the request (and unsets those the client lacks) and puts everything back afterwards.
@@ -794,11 +856,75 @@ def connect(sock_path: Path, timeout: float = CONNECT_TIMEOUT) -> socket.socket 
     return s
 
 
+def verb_path(argv: list[str]) -> tuple[str, ...]:
+    """The command path of ``argv``: ``("build",)``, or ``("ecr", "impact")`` for a group verb."""
+    if not argv:
+        return ()
+    if argv[0] in _GROUPS:
+        sub = next((a for a in argv[1:] if not a.startswith("-")), None)
+        return (argv[0], sub) if sub is not None else (argv[0],)
+    return (argv[0],)
+
+
+def verb_class(argv: list[str]) -> VerbClass | None:
+    """The class of the verb ``argv`` runs, or None when it is not in :data:`VERB_CLASSES`."""
+    return VERB_CLASSES.get(verb_path(argv))
+
+
 def verb_allowed(argv: list[str]) -> bool:
-    """True when ``argv`` is a command the engine may run (see :data:`ALLOWED`)."""
-    if not argv or argv[0] not in ALLOWED:
+    """True when ``argv`` is a command the engine may run (it is in :data:`VERB_CLASSES`)."""
+    if verb_class(argv) is None:
         return False
     return not any(a in ("--help", "-h") for a in argv)
+
+
+def _dir_tokens(argv: list[str]) -> list[str]:
+    """The ``--dir``/``-C`` words of ``argv``: a command built with them acts on the same folder."""
+    out: list[str] = []
+    for i, arg in enumerate(argv):
+        if arg in ("--dir", "-C") and i + 1 < len(argv):
+            out += [arg, argv[i + 1]]
+        elif arg.startswith(("--dir=", "-C")) and arg != "-C":
+            out.append(arg)
+        elif arg == "--":
+            break
+    return out
+
+
+def stopped_during(argv: list[str], klass: VerbClass) -> tuple[str, str]:
+    """(stdout, stderr) for a state-changing verb whose engine stopped under it; never rerun.
+
+    The text names what happened, what to look at to learn whether it happened and the exact
+    command to run if it did not. With ``--json`` in ``argv`` stdout is one JSON object with the
+    same facts (the machine-readable outcome); stderr always has the text.
+    """
+    cmd = "n2f " + shlex.join(argv)
+    look = shlex.join([*shlex.split(klass.look_at or "n2f status"), *_dir_tokens(argv)])
+    text = (
+        f"the n2f engine stopped during `{cmd}`; the change may or may not have been made.\n"
+        f"look at: {look}\n"
+        f"if it did not happen, run again: {cmd}\n"
+    )
+    stdout = ""
+    if "--json" in argv:
+        stdout = (
+            json.dumps(
+                {
+                    "error": "engine_stopped",
+                    "changes_state": True,
+                    "outcome": "unknown",
+                    "look_at": look,
+                    "rerun": cmd,
+                    "exit": EXIT_INTERNAL,
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+    return stdout, text
+
+
+RERUN_LINE = "the n2f engine stopped during this command; running it again without the engine\n"
 
 
 def product_of(argv: list[str], cwd: Path | None = None) -> Path | None:
@@ -994,12 +1120,19 @@ def engine_status(root: Path) -> dict[str, Any] | None:
 def try_forward(argv: list[str]) -> int | None:
     """Run ``argv`` through the product's engine; return its exit code, or None to run cold.
 
-    None means nothing ran: the verb is not forwarded, the engine is off, absent, refused or
-    silent. Once ``run`` has been sent the command is never repeated cold (it may have partly
-    executed): a dropped connection prints one line and returns 70.
+    None means the command did not complete in the engine and the caller runs it cold: the verb
+    is not forwarded, the engine is off, absent, refused or silent (nothing ran, no message), or
+    the connection dropped after ``run`` for a ``SAFE`` verb (one line on stderr first, since
+    repeating it is harmless). A dropped connection under a verb that changes state is never
+    repeated: it prints what happened, what to look at and what to run, and returns 70.
+
+    When stdout is not a terminal the output is held until the engine's ``exit``, so a command
+    that is run again never repeats partial output; on a terminal it streams live.
     """
     if engine_disabled() or not verb_allowed(argv):
         return None
+    klass = verb_class(argv)
+    assert klass is not None
     try:  # nothing here has run the command: whatever goes wrong, run it cold
         root = product_of(argv)
         if root is None:
@@ -1013,23 +1146,41 @@ def try_forward(argv: list[str]) -> int | None:
     except Exception:
         return None
 
+    held: list[tuple[TextIO, str]] = []
+
     def write(stream: TextIO) -> Callable[[str], None]:
         def put(text: str) -> None:
-            stream.write(text)
-            stream.flush()
+            if tty:
+                stream.write(text)
+                stream.flush()
+            else:
+                held.append((stream, text))
 
         return put
 
     try:
-        return converse(
+        code = converse(
             s, argv, cwd, on_out=write(stdout), on_err=write(stderr), tty=tty, etty=etty, cols=cols
         )
+        for stream, text in held:
+            stream.write(text)
+        for stream in {id(st): st for st, _ in held}.values():
+            stream.flush()
+        return code
     except NotReady as exc:
         if exc.stale:
             request_stop(root)
         return None
     except Dropped:
-        sys.stderr.write("the n2f engine stopped during the command; run it again\n")
+        if not klass.changes_state:
+            sys.stderr.write(RERUN_LINE)
+            sys.stderr.flush()
+            return None
+        out, err = stopped_during(argv, klass)
+        if out:
+            sys.stdout.write(out)
+            sys.stdout.flush()
+        sys.stderr.write(err)
         return EXIT_INTERNAL
     except BrokenPipeError:
         return 141
@@ -1052,9 +1203,11 @@ def capture(
 ) -> tuple[int, str, str] | None:
     """Run ``argv`` in ``root`` through its engine and return (exit code, stdout, stderr).
 
-    None when no engine took it (off, absent, refused: nothing ran; an engine is started for
-    the next call). A connection dropped after ``run`` gives exit code 70 and the one-line
-    message, as the CLI client does. For the MCP server (S-255), which runs without a terminal.
+    None when the caller should run the command itself: no engine took it (off, absent,
+    refused: nothing ran; an engine is started for the next call), or the connection dropped
+    after ``run`` under a ``SAFE`` verb (repeating it is harmless). A drop under a verb that
+    changes state is never repeated: exit code 70 and the same outcome as the CLI client
+    (:func:`stopped_during`). For the MCP server (S-255), which runs without a terminal.
     """
     if engine_disabled() or not verb_allowed(argv):
         return None
@@ -1072,8 +1225,11 @@ def capture(
             request_stop(root)
         return None
     except Dropped:
-        err.append("the n2f engine stopped during the command; run it again\n")
-        code = EXIT_INTERNAL
+        klass = verb_class(argv)
+        if klass is None or not klass.changes_state:
+            return None
+        stdout, stderr = stopped_during(argv, klass)
+        return EXIT_INTERNAL, stdout, stderr
     return code, "".join(out), "".join(err)
 
 

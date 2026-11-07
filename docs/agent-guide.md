@@ -455,7 +455,9 @@ refuses and changes nothing: bring them in (`git pull`) and publish again.
   similar command in its folder starts a background process that keeps the program and the CAD
   kernel loaded, so the next commands start in a fraction of a second. It is automatic, exits
   after 15 idle minutes and gives the same output as a plain run. `n2f engine status` says
-  whether it is running and `n2f engine stop` ends it; `N2F_NO_ENGINE=1` turns it off.
+  whether it is running and `n2f engine stop` ends it; `N2F_NO_ENGINE=1` turns it off. If it dies under a command,
+  a read-only one is simply run again; for one that changes the product (`undo`, `ecr close`, …)
+  n2f exits 70 and says what to look at and which command to run next (`--json`: the same facts).
 - **Something fails.** Run `n2f doctor`, then `n2f status`. Error messages say what to do
   next. Never edit anything under `build/`; edit the model and rebuild.
 - **Unsure what a page or number means.** `n2f docs how-it-works` (the ideas),
