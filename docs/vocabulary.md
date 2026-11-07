@@ -9,12 +9,12 @@ templates for the right-hand words.
 | napkin2factory says | underneath (git) | where you meet it |
 |---|---|---|
 | **draft** | a branch / uncommitted work | `n2f status` ("draft · snapshot …") |
-| **snapshot** | a commit (the older word; a snapshot is a checkpoint) | `n2f init`, `n2f ecr new`, `n2f ecr approve`, `n2f ecr apply`, `n2f ecr close`, `n2f concept promote`, `n2f release` make them |
+| **snapshot** | a commit (the older word; a snapshot is a checkpoint) | `n2f init`, `n2f ecr start`, `n2f ecr approve`, `n2f ecr close`, `n2f concept promote`, `n2f release` make them |
 | **checkpoint** (`#12`) | a commit, listed with its label and the product's mass and cost at that point | `n2f checkpoints`; every command that changes the design makes one; `n2f undo`, `redo` and `rollback` move between them and never lose one |
 | **change request (ECR)** | a pull request | `changes/ECR-xxx.yaml`, `n2f ecr …` |
 | **impact report** | the PR description, computed | `n2f ecr impact`, `n2f impact --set` |
 | **approved** | review approval | `n2f ecr approve` |
-| **applied** | merged into the draft | `n2f ecr apply` |
+| **applied** | merged into the draft | `n2f ecr start --set`, `n2f ecr quick --set` (and `applied:` on older closed requests) |
 | **closed** | merged and verified | `n2f ecr close` |
 | **released / Revision vX.Y.Z** | a tag | `n2f release`, `build/site/vX.Y.Z/` |
 | **unsaved changes** | dirty working tree | release refusal wording |

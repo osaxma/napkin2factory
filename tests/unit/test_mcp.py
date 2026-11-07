@@ -45,7 +45,8 @@ def test_every_leaf_verb_is_a_tool() -> None:
     names = [t.name for t in build_tools()]
     assert len(names) == len(set(names))
     assert set(names) == expected
-    assert {"n2f_build", "n2f_ecr_new", "n2f_concept_build", "n2f_undo", "n2f_docs"} <= expected
+    assert {"n2f_build", "n2f_ecr_start", "n2f_concept_build", "n2f_undo", "n2f_docs"} <= expected
+    assert not {"n2f_ecr_new", "n2f_ecr_apply", "n2f_ecr_reject"} & set(names)
     for skipped in ("mcp", "serve", "skill"):
         assert f"n2f_{skipped}" not in names
         assert skipped in (tools_mod.__doc__ or "")
@@ -62,15 +63,15 @@ def test_schemas_of_two_known_verbs() -> None:
     # the folder and the JSON switch are the server's, never the agent's
     for hidden in ("dir", "json", "json_out", "C"):
         assert hidden not in props
-    ecr_new = tools["n2f_ecr_new"].schema
-    assert ecr_new["required"] == ["title"]
-    assert ecr_new["properties"]["set"] == {
+    ecr_start = tools["n2f_ecr_start"].schema
+    assert ecr_start["required"] == ["title"]
+    assert ecr_start["properties"]["set"] == {
         "type": "array",
         "items": {"type": "string"},
-        "description": ecr_new["properties"]["set"]["description"],
+        "description": ecr_start["properties"]["set"]["description"],
     }
     assert tools["n2f_concept_build"].schema["properties"]["concept_id"]["type"] == "string"
-    assert tools["n2f_ecr_new"].description  # the verb's own help text
+    assert tools["n2f_ecr_start"].description  # the verb's own help text
     assert "experimental" not in " ".join(t.description for t in tools.values()).lower()
 
 
@@ -121,7 +122,7 @@ def test_folder_is_fixed_and_cannot_be_overridden(tmp_path: Path) -> None:
         with pytest.raises(ToolError, match="outside the product folder"):
             build_argv(tools["n2f_diff"], {"ref_a": "a", "ref_b": "b", "out": bad}, folder)
     with pytest.raises(ToolError, match="unknown argument"):  # the patch option went (S-261)
-        build_argv(tools["n2f_ecr_new"], {"title": "t", "patch": "../p.diff"}, folder)
+        build_argv(tools["n2f_ecr_start"], {"title": "t", "patch": "../p.diff"}, folder)
     ok = build_argv(tools["n2f_diff"], {"ref_a": "a", "ref_b": "b", "out": "site/diff"}, folder)
     assert "--out=site/diff" in ok
     with pytest.raises(ToolError, match="required"):

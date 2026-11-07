@@ -34,7 +34,7 @@ NOT_TRACKED = (
 )
 UNSAVED = (
     "you have changes that are not saved yet: `n2f snapshot` saves them, "
-    "`n2f discard` drops them, or `n2f ecr new …` files them as a change request"
+    "`n2f discard` drops them, or `n2f ecr start …` files them as a change request"
 )
 NO_GIT = "git is not installed or not on PATH; install git (https://git-scm.com) and try again"
 NO_ONLINE_COPY = (

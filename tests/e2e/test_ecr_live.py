@@ -244,22 +244,15 @@ def test_one_open_request_at_a_time(root: Path) -> None:
     assert "bracket-width:     {value: 60" in (root / PARAMS).read_text()
 
 
-def test_bridges(root: Path) -> None:
-    r = _run("ecr", "new", "--title", "Via new", cwd=root)
-    assert r.stdout.count("`ecr new` is now `ecr start`") == 1 and "started ECR-001" in r.stdout
-    assert _ecr(root)["baseline"]["checkpoint"]
-    _run("ecr", "abort", cwd=root)
-    for verb in ("new", "start"):  # the patch option went with schema 2
-        r = _run("ecr", verb, "--title", "x", "--patch", "changes/p.patch", cwd=root, ok=False)
-        # CI forces colour, so the usage error splits "--patch" with escape codes.
+def test_removed_verbs(root: Path) -> None:
+    for args in (("ecr", "new", "--title", "x"), ("ecr", "apply"), ("ecr", "reject", "ECR-001")):
+        r = _run(*args, cwd=root, ok=False)
         plain = re.sub(r"\x1b\[[0-9;]*m", "", r.stderr)
-        assert r.returncode == 2 and "--patch" in " ".join(plain.split())
-    _run("ecr", "start", "--title", "Live", cwd=root)
-    r = _run("ecr", "apply", cwd=root, ok=False)
-    err = " ".join(r.stderr.split())
-    assert r.returncode == 3 and "n2f ecr approve ECR-002" in err and "n2f ecr close ECR-002" in err
-    r = _run("ecr", "reject", "ECR-002", "--reason", "no", cwd=root, ok=False)
-    assert r.returncode == 3 and "n2f ecr abort ECR-002" in " ".join(r.stderr.split())
+        assert r.returncode == 2 and "no such command" in " ".join(plain.split()).lower()
+    r = _run("ecr", "start", "--title", "x", "--patch", "changes/p.patch", cwd=root, ok=False)
+    # CI forces colour, so the usage error splits "--patch" with escape codes.
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", r.stderr)
+    assert r.returncode == 2 and "--patch" in " ".join(plain.split())
 
 
 def test_impact_labels_every_figure(root: Path) -> None:

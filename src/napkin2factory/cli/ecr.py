@@ -1,8 +1,7 @@
 """``n2f ecr start|impact|approve|close|abort|quick|list|show`` (live change requests, v0.8).
 
-``new``, ``apply`` and ``reject`` bridge to the new steps for one version (R9, S-254): they
-say which step to take. A request filed before v0.8 was carried into this flow by the schema 2
-upgrade (``n2f init .``, ``ecr/upgrade.py``, S-261).
+A request filed before v0.8 was carried into this flow by the schema 2 upgrade
+(``n2f init .``, ``ecr/upgrade.py``, S-261).
 """
 
 from __future__ import annotations
@@ -28,15 +27,11 @@ from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.vcs import Vcs
 from napkin2factory.ecr import lifecycle, live, live_text
 from napkin2factory.ecr.checkpointing import matches_approval
-from napkin2factory.ecr.state import EcrError
 
 ecr_app = typer.Typer(
     help="Change requests: start, edit the model, see the impact, approve, close (or abort).",
     no_args_is_help=True,
 )
-
-#: The one line `ecr new` prints before it does what `ecr start` does (R9).
-NEW_BRIDGE = "`ecr new` is now `ecr start`"
 
 
 def _check_kind(kind: str) -> None:
@@ -62,7 +57,6 @@ def _start(
     by: str,
     dir: Path | None,
     json_out: bool,
-    note: str | None = None,
 ) -> None:
     _check_kind(kind)
     product = load_product(product_root(dir))
@@ -76,12 +70,9 @@ def _start(
                 "baseline": out["baseline"],
                 "checkpoint": out["checkpoint"].id,
                 "edits": out["edits"],
-                **({"note": note} if note else {}),
             }
         )
         return
-    if note:
-        console.print(f"[dim]{note}[/dim]")
     ecr_id = out["ecr"]
     console.print(
         f"[green]✓[/green] started {ecr_id} ({kind}): {escape(title)} · "
@@ -111,22 +102,6 @@ def start(
 ) -> None:
     """Open a change request. Edit `model/` files directly, then `n2f ecr impact`."""
     _start(title, kind, reason, set_, task, by, dir, json_out)
-
-
-@ecr_app.command("new")
-@handle_errors
-def new(
-    title: str = typer.Option(..., "--title", help="What the change is, in one line."),
-    kind: str = typer.Option("parametric", "--kind", help="parametric | design"),
-    reason: str | None = typer.Option(None, "--reason"),
-    set_: list[str] = typer.Option([], "--set", help="Edit <uri>=<value>, applied now."),
-    task: list[str] = typer.Option([], "--task", help="Designer task; repeatable (design)."),
-    by: str = typer.Option("human", "--by"),
-    dir: Path | None = DirOption,
-    json_out: bool = JsonOption,
-) -> None:
-    """Bridge for one version: does what `n2f ecr start` does."""
-    _start(title, kind, reason, set_, task, by, dir, json_out, note=NEW_BRIDGE)
 
 
 @ecr_app.command("impact")
@@ -174,24 +149,6 @@ def approve(
             f"[green]✓[/green] {ecr.id} approved by {escape(by)} · checkpoint {escape(_cp(cp))} "
             f"· next: `n2f ecr close {ecr.id}`"
         )
-
-
-@ecr_app.command("apply")
-@handle_errors
-def apply(
-    ecr_id: str | None = typer.Argument(None),
-    dir: Path | None = DirOption,
-    json_out: bool = JsonOption,
-) -> None:
-    """Bridge for one version: there is nothing to apply, the model is edited in place."""
-    product = load_product(product_root(dir))
-    open_one = live.open_request(product)
-    target = ecr_id or (open_one.id if open_one else "ECR-xxx")
-    raise EcrError(
-        "there is no apply step any more: the model is edited in place. "
-        f"Approve with `n2f ecr approve {target} --by <name>`, then close with "
-        f"`n2f ecr close {target}`"
-    )
 
 
 @ecr_app.command("close")
@@ -294,24 +251,6 @@ def quick(
     )
     console.print(out["text"], markup=False)
     console.print(f"  next: {escape(live_text.next_step(out['impact'], ecr_id, False))}")
-
-
-@ecr_app.command("reject")
-@handle_errors
-def reject(
-    ecr_id: str = typer.Argument(...),
-    reason: str | None = typer.Option(None, "--reason"),
-    dir: Path | None = DirOption,
-    json_out: bool = JsonOption,
-) -> None:
-    """Bridge for one version: a change request is dropped with `n2f ecr abort`."""
-    product = load_product(product_root(dir))
-    found = lifecycle._require(product, ecr_id)
-    why = f' --reason "{reason}"' if reason else ""
-    raise EcrError(
-        f"a change request is not rejected any more; drop {found.id} with "
-        f"`n2f ecr abort {found.id}{why}` (that also puts the model back)"
-    )
 
 
 @ecr_app.command("list")

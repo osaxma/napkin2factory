@@ -33,15 +33,16 @@ def test_every_cli_verb_has_a_row_in_cli_doc() -> None:
     missing = [
         row
         for row in _expected_rows()
-        # a verb name ends at a word boundary: `n2f ecr new` is not `n2f ecr newer`
+        # a verb name ends at a word boundary: `n2f ecr start` is not `n2f ecr starter`
         if not re.search(re.escape(row) + r"(?![\w-])", doc)
     ]
     assert not missing, f"docs/cli.md has no row for: {', '.join(missing)}"
 
 
 def test_no_removed_verb_is_still_documented_as_usage() -> None:
-    # `--patch` and the apply step went with the live change loop (v0.8, R9): the map must not
-    # teach them as current usage. `ecr apply` and `ecr new` stay, as bridges that say so.
+    # `--patch` and the bridges went with the live change loop (v0.8 R9, v0.9 V10): the map must
+    # not teach them as current usage.
     doc = (REPO / "docs/cli.md").read_text(encoding="utf-8")
     assert "--patch" not in doc
-    assert "n2f ecr apply ECR-" not in doc
+    for removed in ("n2f ecr new", "n2f ecr apply", "n2f ecr reject"):
+        assert removed not in doc

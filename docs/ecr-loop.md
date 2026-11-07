@@ -35,9 +35,8 @@ checkpoints` lists them, and `n2f rollback` restores one.
 - `n2f ecr abort [ECR-xxx] [--reason TEXT]`: drops the request and returns the model to where it
   started. Undoable.
 - `n2f ecr list` and `n2f ecr show ECR-xxx`: the requests and one of them.
-- Bridges for one version: `n2f ecr new` does what `start` does and says so. `n2f ecr apply`
-  refuses and names the next steps (`approve`, then `close`). `n2f ecr reject` says to use
-  `abort`.
+
+A change request is dropped with `n2f ecr abort`.
 
 ## Kinds (D7)
 
