@@ -8,6 +8,7 @@ marked "from the built design"; a parked card's mass and cost show its built fig
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,14 @@ from napkin2factory.report.units import display
 
 #: The owner's words for a screening verdict (JSON keeps ``verdict: green|red``; gate B, C7).
 VERDICT_WORDS = {"green": "holds up", "red": "has problems"}
+
+
+_BARE_THOUSANDS = re.compile(r"(?<![\d.,])(\d{4,})(?![\d,])")
+
+
+def _grouped(text: str) -> str:
+    """Whole numbers of four or more digits with thousands separators: "13965" as "13,965"."""
+    return _BARE_THOUSANDS.sub(lambda m: f"{int(m.group(1)):,}", text)
 
 
 def _manifest(root: Path) -> dict[str, Any]:
@@ -106,6 +115,38 @@ def _value_row(key: str, cards: list[ConceptCard], units: str) -> dict[str, Any]
     }
 
 
+def _cost_row(rows: list[dict[str, Any]]) -> None:
+    """Fold the cost rows into one: a card's priced figure, else its band as "low to high".
+
+    A built or parked card has one cost figure and no band, a napkin card has a band and no
+    figure; two or three rows each half empty read as missing data (gate L C5, B-0292).
+    """
+    by_key = {r["key"]: r for r in rows}
+    parts = [by_key[k] for k in ("cost", "cost_low", "cost_high") if k in by_key]
+    if not parts:
+        return
+    cells: dict[str, dict[str, Any]] = {}
+    ids = {cid for r in parts for cid in r["cells"]}
+    for cid in ids:
+        figure = by_key.get("cost", {"cells": {}})["cells"].get(cid)
+        low = by_key.get("cost_low", {"cells": {}})["cells"].get(cid)
+        high = by_key.get("cost_high", {"cells": {}})["cells"].get(cid)
+        if figure is not None:
+            cells[cid] = {**figure, "value": _grouped(str(figure["value"]))}
+        elif low is not None and high is not None:
+            lo, hi = _grouped(str(low["value"])), _grouped(str(high["value"]))
+            value = lo if lo == hi else f"{lo} to {hi}"
+            cells[cid] = {**low, "value": value}
+        else:
+            only = low if low is not None else high
+            if only is not None:
+                cells[cid] = {**only, "value": _grouped(str(only["value"]))}
+    first = min(rows.index(r) for r in parts)
+    merged = {"key": "cost", "name": "cost", "label": None, "cells": cells}
+    rows[:] = [r for r in rows if r not in parts]
+    rows.insert(first, merged)
+
+
 def _verdict_row(cards: list[ConceptCard]) -> dict[str, Any]:
     """The verdict row: a screening verdict per card."""
     cells: dict[str, dict[str, Any]] = {}
@@ -131,6 +172,7 @@ def compare(root: Path | str, ids: list[str] | None = None) -> dict[str, Any]:
         row = _value_row(key, cards, units)
         if row is not None:
             rows.append(row)
+    _cost_row(rows)
     rows.append(_verdict_row(cards))
     return {
         "product": _manifest(root)["name"],
@@ -156,17 +198,28 @@ def render_text(data: dict[str, Any]) -> str:
     cards = data["cards"]
     rows = data["rows"]
     headers = [c["id"] for c in cards]
+    titles = [c.get("title") or "" for c in cards]
     origin = ["from the built design" if c["origin"] == "built" else "" for c in cards]
     name_width = max((len(r["name"]) for r in rows), default=0) + 2
     widths = [
         max(len(h), max((len(_cell_text(r["cells"].get(c["id"]))) for r in rows), default=0))
         for h, c in zip(headers, cards, strict=True)
     ]
+    titles = [
+        t if len(t) <= w else t[: max(w - 1, 1)] + "…" for t, w in zip(titles, widths, strict=True)
+    ]
     lines: list[str] = [
         (
             " " * name_width + "  ".join(h.ljust(w) for h, w in zip(headers, widths, strict=True))
         ).rstrip()
     ]
+    if any(titles):
+        lines.append(
+            (
+                " " * name_width
+                + "  ".join(t.ljust(w) for t, w in zip(titles, widths, strict=True))
+            ).rstrip()
+        )
     if any(origin):
         lines.append(
             (

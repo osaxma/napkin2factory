@@ -140,7 +140,6 @@ entry that closed them. Ids are never reused.
 | B-0290 | After `concept switch` to a never-promoted card, `n2f check` judges the earlier direction's parts and exits 0; both gate B agents expected the card's failure there (the switch now says so, S-277) | S-279; the check could list the direction's own screening failures |
 | B-0288 | Promotion and `concept switch` still seed a copy of a held requirement when the two say the same by other means: the sag limit (the seeded one is manual, no target) and the weight limit (assembly mass against the parts-list total); each copy of a safety one needs its own sign-off | S-277; match by meaning (the card field the requirement came from) | **S-297: needs a decision before it is built: a seeded requirement records no card field to match on** |
 | B-0291 | Screening failures print the formula, handbook and data path to the owner (switch refusal, `concept build`, the board); the owner wants one sentence, the derivation in `concept show` and `--json` (gate L C2) | S-280 |
-| B-0292 | `concept compare` heads columns with ids only, splits the cost across rows the built card does not fill, and formats "1,017" beside "13965" (gate L C5) | S-280 |
 | B-0293 | Checkpoint labels for saved edits do not say what changed ("edits since #33"); sign-off rows carry no title and thirteen fill the list (gate L C8) | S-280; name the changed values, fold consecutive sign-offs |
 | B-0294 | Checkpoints of promote, switch and undo read "not measured" although a build exists, because vitals need a fresh build at save time (gate L C9) | S-280 |
 | B-0295 | The report's "Rendered views" are false-colour diagnostics beside the product viewer, uncaptioned (gate L C14) | S-280 |
@@ -157,6 +156,7 @@ entry that closed them. Ids are never reused.
 ## Closed
 
 | id | item | closed by |
+| B-0292 | `concept compare` heads columns with ids only, splits the cost across rows the built card does not fill, and formats "1,017" beside "13965" (gate L C5) | closed by S-298 (M5c part B) |
 | B-0281 | A clone without `refs/n2f/` cannot switch back to a parked direction although the card's checkpoint is in the history (gate K C3) | closed by S-297 (M5c part A) |
 | B-0282 | Parking a rejected card overwrites its rejection reason; a parked card's seeded requirements stay live after switching back, with only a warning (gate K C4) | closed by S-297 (M5c part A) |
 |---|---|---|

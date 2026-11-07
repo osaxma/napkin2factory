@@ -324,6 +324,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-295 | v0.9 M7: where a one-parameter rebuild spends its 10.9 s; the fast YAML loader; a long-running process measured | in force |
 | S-296 | v0.9 M5b: checkpoint labels, folded sign-offs, restored vitals, the undo stale-build skip | in force |
 | S-297 | v0.9 M5c part A: switch back without refs/n2f, rejection reasons kept, the requirements a card brought named; B-0288 left open | in force |
+| S-298 | v0.9 M5c part B: `concept compare` heads, one cost row, one number format; B-0289 and B-0290 held for the maintainer | in force |
 
 ---
 
@@ -2313,4 +2314,7 @@ B-0293: the checkpoint for saved loose edits is labelled from what changed (`hol
 
 ## S-297 — v0.9 M5c part A: the concept switch's leftovers (2026-11-07)
 B-0281: `concept switch` to a parked card restores from the card's own recorded saved state (`built.checkpoint`) when this copy has no `refs/n2f/` marker (a fresh clone), with the same result and words; with neither, the plain refusal stays. B-0282: parking and the promotion's sibling rule keep a card's earlier rejection reason in front of the new one (`append_reason`); a card promoted again keeps its reason too (the reason was lost at promotion, before parking read it); switching back names the requirements the card brought, by id and title, in the words and in `--json` `seeded_requirements` (the older `requirements` count stays). B-0288 is **not done**: held requirements carry no record of the card field they were seeded from (the written requirement keeps id, title, statement, category, priority, safety, verify, allocation, rationale, source, tags), so matching by meaning needs a stored field or a mapping, which is the maintainer's call; the row stays open with that finding. `core/` files: 0.
+
+## S-298 — v0.9 M5c part B: `concept compare` (2026-11-07)
+B-0292: columns are headed by id and title (the title cut to the column's width); the cost rows fold into one (a priced figure when the card has one, else its band as "low to high"), so a built or parked card no longer leaves two rows empty; whole numbers of four or more digits carry thousands separators in that row ("13,965", not "13965" beside "1,017"). `--json` loses the `cost_low` and `cost_high` rows (keys: `cost` only; nothing in the package reads them). **Not done, waiting for the maintainer's choice** (each row names two ways and the plan does not pick): B-0289 (a built card set aside by a promotion: keep its status, or set it aside as parked and restorable, or keep "rejected" with the reason said) and B-0290 (what `n2f check` shows after a switch to a never-promoted card: only a listing, or also a non-zero exit). `core/` files: 0.
 

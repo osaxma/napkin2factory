@@ -25,8 +25,9 @@ def test_compare_returns_rows_and_columns(table: Path) -> None:
     ids = [c["id"] for c in data["cards"]]
     assert "C-002" in ids
     keys = [r["key"] for r in data["rows"]]
-    for key in ("width", "cost_low", "verdict"):
+    for key in ("width", "cost", "verdict"):
         assert key in keys
+    assert "cost_low" not in keys and "cost_high" not in keys  # one cost row (B-0292)
     verdict = next(r for r in data["rows"] if r["key"] == "verdict")
     assert verdict["cells"]["C-002"]["value"] == "holds up"
 
@@ -72,3 +73,23 @@ def test_compare_shows_a_parked_cards_figures_when_parked(table: Path) -> None:
     cost = next(r for r in data["rows"] if r["key"] == "cost")
     assert cost["cells"]["C-003"]["value"] == "180 USD"
     assert "when parked" in render_text(data)
+
+
+def test_compare_heads_columns_with_titles_and_groups_thousands(table: Path) -> None:
+    fork_from_model(table)
+    data = compare(table)
+    text = render_text(data)
+    for col in data["cards"]:
+        assert col["title"][:6] in text  # id and title head each column (B-0292)
+    cost = next(r for r in data["rows"] if r["key"] == "cost")
+    for cell in cost["cells"].values():
+        assert not any(tok.isdigit() and len(tok) >= 4 for tok in cell["value"].split())
+
+
+def test_grouped_numbers() -> None:
+    from napkin2factory.concepts.compare import _grouped
+
+    assert _grouped("13965 USD") == "13,965 USD"
+    assert _grouped("1,017 USD") == "1,017 USD"
+    assert _grouped("23.1 kg") == "23.1 kg"
+    assert _grouped("750 mm") == "750 mm"
