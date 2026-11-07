@@ -45,6 +45,18 @@ def _and(items: list[str]) -> str:
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + f" and {items[-1]}"
 
 
+def append_reason(earlier: str | None, new: str) -> str:
+    """``new`` after an earlier reason, a full stop between them unless one ends the line (B-0282).
+
+    Parking and the promotion's sibling rule record a new reason without throwing away the
+    reason a card already carried ("The frame sags …" stays in front of "parked when …").
+    """
+    text = (earlier or "").strip()
+    if not text:
+        return new
+    return f"{text} {new}" if text.endswith((".", "!", "?")) else f"{text}. {new}"
+
+
 def _num(x: float) -> str:
     """A magnitude for YAML: integers without a decimal point, else up to 6 digits."""
     return str(int(round(x))) if abs(x - round(x)) < 1e-9 else f"{x:.6g}"

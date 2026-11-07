@@ -5,12 +5,14 @@ puts the folder back to the saved state taken there and the parked marker as it 
 
 1. refusals: no saved history, a released Revision, an open change request, no recorded
    promotion, the card already chosen, a tracked folder ``concepts/direction.py`` does not
-   name, a parked card whose marker this copy lacks (without ``fresh``);
+   name, a parked card whose saved state this copy lacks (no marker and no recorded
+   checkpoint, without ``fresh``);
 2. unsaved edits are saved as their own checkpoint (R4);
 3. the current card is parked: marker ``parked/<id>`` set to the saved state, its card marked
    ``parked`` with the figures measured there;
-4. the target comes in: a parked card with its marker has its direction files put back (by
-   file) and a decision recorded; any other card (or ``fresh``) is promoted as it is;
+4. the target comes in: a parked card with its marker (or, without one, its recorded
+   checkpoint) has its direction files put back (by file) and a decision recorded; any other
+   card (or ``fresh``) is promoted as it is;
 5. the model is validated; 6. a checkpoint ``Switched to …`` is recorded.
 """
 
@@ -29,6 +31,7 @@ from napkin2factory.concepts.promote.common import (
     _list_indent,
     _next_id,
     _yaml_block,
+    append_reason,
 )
 from napkin2factory.core import checkpoints as cps
 from napkin2factory.core import concepts as cm
@@ -67,7 +70,8 @@ class SwitchResult:
     saved_edits: int | None = None
     changes: list[FileChange] = field(default_factory=list)
     seeded_parameters: int = 0
-    seeded_requirements: int = 0
+    #: the requirements the card brought (``{"id", "title"}``), for the words and ``--json``
+    seeded_requirements: list[dict[str, str]] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     #: what the card's screening fails, in plain words ("Sag stays within the limit: …")
     failing: list[str] = field(default_factory=list)
@@ -88,6 +92,42 @@ def failing_words(card: ConceptCard) -> list[str]:
 def marker_name(card_id: str) -> str:
     """The parked marker of a card (relative name under the store's markers)."""
     return f"parked/{card_id}"
+
+
+def _parked_source(vcs: Vcs, card: ConceptCard) -> str | None:
+    """The saved state to restore a parked card from: its marker, else its checkpoint (B-0281).
+
+    A parked card records the saved state it was parked on in ``built.checkpoint``. A fresh
+    copy of the folder has no ``refs/n2f/`` marker, so the switch falls back to that recorded
+    saved state when it is in the history; when neither exists the plain refusal stays.
+    """
+    marker = vcs.read_ref(marker_name(card.id))
+    if marker is not None:
+        return marker
+    b = card.built
+    if b is not None and b.event == "parked" and b.checkpoint and vcs.ref_exists(b.checkpoint):
+        return b.checkpoint
+    return None
+
+
+def _parked_reason(current: ConceptCard, target_id: str, dec_id: str) -> str:
+    """The reason a card is parked, keeping an earlier rejection reason in front (B-0282)."""
+    earlier = current.decision.reason if current.decision is not None else None
+    return append_reason(earlier, f"parked when {target_id} was chosen ({dec_id})")
+
+
+def _brought_requirements(product: Any, card: ConceptCard) -> list[dict[str, str]]:
+    """The requirements the card made live, by id and title (B-0282).
+
+    A seeded requirement records its origin in ``source`` ("concept C-002 site constraint",
+    "… style", "… massing"), so the ones that name the card are exactly the ones it brought.
+    """
+    prefix = f"concept {card.id}"
+    return [
+        {"id": req.id, "title": req.title}
+        for req in product.requirements.values()
+        if req.source and str(req.source).startswith(prefix)
+    ]
 
 
 def _figures(mass: str | None, cost: str | None) -> str:
@@ -131,7 +171,7 @@ def _preflight(root: Path, vcs: Vcs, card: ConceptCard, fresh: bool) -> ConceptC
             "the design direction or to the product, so nothing was changed. Ask whoever "
             "maintains napkin2factory to name it."
         )
-    if card.status == "parked" and not fresh and vcs.read_ref(marker_name(card.id)) is None:
+    if card.status == "parked" and not fresh and _parked_source(vcs, card) is None:
         raise GateBlocked(
             f"{card.id} was parked, but this folder does not hold its saved direction "
             "(it was copied without it). Run `n2f concept switch "
@@ -169,8 +209,8 @@ def switch(
     current = _preflight(root, vcs, target, fresh)
     assert current.decision is not None and current.decision.dec is not None
     old_dec = current.decision.dec
-    marker = vcs.read_ref(marker_name(target.id))
-    restoring = target.status == "parked" and marker is not None and not fresh
+    source = _parked_source(vcs, target)
+    restoring = target.status == "parked" and source is not None and not fresh
     reason = (reason or "").strip() or None
     if not restoring:  # promotion's own gates, asked before anything is saved or written
         if override and not reason:
@@ -221,13 +261,13 @@ def switch(
             root,
             current.id,
             "parked",
-            {"reason": f"parked when {target.id} was chosen ({dec_id})", "at": at},
+            {"reason": _parked_reason(current, target.id, dec_id), "at": at},
             built=built,
         )
         # 4. bring the target
         if restoring:
-            assert marker is not None
-            _restore(root, vcs, target, current, marker, old_dec, dec_id, by, stamp, result)
+            assert source is not None
+            _restore(root, vcs, target, current, source, old_dec, dec_id, by, stamp, result)
             cm.update_card_status(
                 root, target.id, "promoted", {"dec": dec_id, "at": at}, clear_built=True
             )
@@ -240,6 +280,7 @@ def switch(
                     f"{target.id} does not fit the product as it stands now{what}, so nothing "
                     "was switched"
                 )
+            result.seeded_requirements = _brought_requirements(product, target)
         else:
             done = promote(
                 root,
@@ -256,11 +297,11 @@ def switch(
                     root,
                     current.id,
                     "parked",
-                    {"reason": f"parked when {target.id} was chosen ({done.dec_id})", "at": at},
+                    {"reason": _parked_reason(current, target.id, done.dec_id), "at": at},
                 )
             result.dec_id = done.dec_id
             result.seeded_parameters = len([p for p in done.params if p.status != "declared"])
-            result.seeded_requirements = len(done.requirements)
+            result.seeded_requirements = [{"id": r.id, "title": r.title} for r in done.requirements]
             result.notes += done.notes
             result.notes.append(
                 f"{current.id}'s parts stay in the model until you change them; "
@@ -272,9 +313,10 @@ def switch(
                     f"the model's parts are still {current.id}'s, so a check judges those "
                     f"until the design changes"
                 )
-            cm.update_card_status(
-                root, target.id, "promoted", {"dec": done.dec_id, "at": at}, clear_built=True
-            )
+            target_decision: dict[str, Any] = {"dec": done.dec_id, "at": at}
+            if target.decision is not None and target.decision.reason:
+                target_decision["reason"] = target.decision.reason
+            cm.update_card_status(root, target.id, "promoted", target_decision, clear_built=True)
     except BaseException:
         vcs.restore(start.id)
         if old_marker is None:
@@ -286,7 +328,7 @@ def switch(
     cp = checkpoint(
         root,
         f"Switched to {target.id} ({target.title}); {current.id} parked",
-        vitals=recorded_vitals(root, marker if restoring else None)
+        vitals=recorded_vitals(root, source if restoring else None)
         or (
             cps.Vitals(target.built.mass, target.built.cost) if restoring and target.built else None
         ),
@@ -294,8 +336,8 @@ def switch(
     result.checkpoint, result.number = cp.id, cp.number
     result.stale = stale_after_restore(root)
     if restoring:
-        assert marker is not None
-        old = vcs.read_file(marker, REQUIREMENTS)
+        assert source is not None
+        old = vcs.read_file(source, REQUIREMENTS)
         now_text = (root / REQUIREMENTS).read_bytes() if (root / REQUIREMENTS).is_file() else None
         if old != now_text:
             result.stale.append(
@@ -310,15 +352,15 @@ def _restore(
     vcs: Vcs,
     target: ConceptCard,
     current: ConceptCard,
-    marker: str,
+    source: str,
     old_dec: str,
     dec_id: str,
     by: str | None,
     stamp: dt.datetime,
     result: SwitchResult,
 ) -> None:
-    """Put the target's direction files back from its marker and record the decision."""
-    result.changes = vcs.restore(marker, paths=direction_paths())
+    """Put the target's direction files back from its saved state and record the decision."""
+    result.changes = vcs.restore(source, paths=direction_paths())
     b = target.built
     figures = _figures(b.mass, b.cost) if b else "not measured"
     where = f" at checkpoint #{b.number}" if b and b.number else ""

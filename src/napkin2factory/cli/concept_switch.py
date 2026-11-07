@@ -55,8 +55,9 @@ def switch_cmd(
                 "changed": [{"path": c.path, "status": c.status} for c in res.changes],
                 "seeded": {
                     "parameters": res.seeded_parameters,
-                    "requirements": res.seeded_requirements,
+                    "requirements": len(res.seeded_requirements),
                 },
+                "seeded_requirements": res.seeded_requirements,
                 "failing": res.failing,
                 "notes": res.notes,
                 "stale": res.stale,
@@ -83,10 +84,13 @@ def switch_cmd(
             if shown
             else "  the design files already matched its parked direction"
         )
+        if res.seeded_requirements:
+            named = ", ".join(f"{r['id']} ({escape(r['title'])})" for r in res.seeded_requirements)
+            console.print(f"  brings back these requirements: {named}", soft_wrap=True)
     else:
         console.print(
-            f"  seeded {res.seeded_parameters} parameter(s) and {res.seeded_requirements} "
-            "requirement(s) from the sketch"
+            f"  seeded {res.seeded_parameters} parameter(s) and "
+            f"{len(res.seeded_requirements)} requirement(s) from the sketch"
         )
     if res.failing:
         console.print(f"  {res.card_id} fails its screening:", soft_wrap=True)

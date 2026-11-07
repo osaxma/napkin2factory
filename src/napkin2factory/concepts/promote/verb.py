@@ -17,6 +17,7 @@ from napkin2factory.concepts.promote.common import (
     _next_id,
     _rel,
     _yaml_block,
+    append_reason,
     held_requirement,
 )
 from napkin2factory.concepts.promote.decision import (
@@ -268,18 +269,24 @@ def promote(
     )
     # 7. cards
     at = stamp.isoformat()
-    card_texts = {cid: _card_text(root, cid, "promoted", {"dec": dec_id, "at": at})}
+    chosen_decision: dict[str, Any] = {"dec": dec_id, "at": at}
+    # a card promoted again keeps its earlier rejection reason so a later parking does not
+    # lose it (B-0282: "The frame sags …" stays in front of "parked when …")
+    if card.decision is not None and card.decision.reason:
+        chosen_decision["reason"] = card.decision.reason
+    card_texts = {cid: _card_text(root, cid, "promoted", chosen_decision)}
     rejected: list[str] = []
     already: list[str] = []
     for c in siblings:
         # an exploring card, or one marked promoted by hand with no decision (B2)
         by_hand = c.status == "promoted" and not cm.recorded_promotion(c, root)
         if c.status == "exploring" or by_hand:
+            earlier = c.decision.reason if c.decision is not None else None
             card_texts[c.id] = _card_text(
                 root,
                 c.id,
                 "rejected",
-                {"reason": cm.chosen_instead(cid, dec_id), "at": at},
+                {"reason": append_reason(earlier, cm.chosen_instead(cid, dec_id)), "at": at},
             )
             rejected.append(c.id)
         else:

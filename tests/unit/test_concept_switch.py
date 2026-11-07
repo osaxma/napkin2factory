@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -152,6 +153,36 @@ def test_fresh_promotes_the_sketch_even_with_a_parked_direction(root: Path) -> N
     assert status(root, "C-002") == "promoted"
 
 
+def test_parking_a_rejected_card_keeps_its_rejection_reason(root: Path) -> None:
+    """B-0282: parking appends "parked when …" after the reason the card already carried."""
+    before = cm.load_card(root, "C-001").decision.reason
+    assert before
+    go(root, "C-001", *OVERRIDE)  # C-001 promoted; its rejection reason is kept (B-0282)
+    data = go(root, "C-003", *OVERRIDE)  # parks C-001
+    parked = cm.load_card(root, "C-001")
+    assert parked.status == "parked" and parked.decision is not None
+    assert parked.decision.reason == f"{before}. parked when C-003 was chosen ({data['decision']})"
+
+
+def test_switching_back_names_the_requirements_the_card_brought(root: Path) -> None:
+    """B-0282: the restored switch names, in ``--json``, the requirements the card brought."""
+    go(root, "C-001", *OVERRIDE)  # parks C-002 and seeds C-001's own requirements
+    data = go(root, "C-002")
+    assert data["route"] == "restored"
+    assert {"id": "REQ-001", "title": "Light enough to move as planned"} in data[
+        "seeded_requirements"
+    ]
+    assert all(set(r) == {"id", "title"} for r in data["seeded_requirements"])
+
+
+def test_switching_back_text_names_the_requirements(root: Path) -> None:
+    """B-0282: the restored switch's words name the card's requirements by id and title."""
+    go(root, "C-001", *OVERRIDE)
+    r = n2f("concept", "switch", "C-002", cwd=root)
+    assert r.returncode == 0, r.stderr
+    assert "REQ-001 (Light enough to move as planned)" in r.stdout
+
+
 # ---- the refusals ------------------------------------------------------------------------------
 
 
@@ -209,14 +240,49 @@ def test_a_red_target_is_named_by_its_failures(root: Path) -> None:
     assert any("still C-002's" in n for n in notes)  # type: ignore[attr-defined]
 
 
-def test_refuses_a_parked_card_without_its_marker_unless_fresh(root: Path) -> None:
+def test_switch_back_restores_from_the_recorded_checkpoint_without_a_marker(root: Path) -> None:
+    """B-0281: with no ``refs/n2f/`` marker the switch restores from the card's checkpoint."""
     go(root, "C-001", *OVERRIDE)
     Vcs(root).delete_ref(marker_name("C-002"))
-    # C-002 is the parked one; C-001 is current. Switch to C-003 first, then to parked C-001.
-    go(root, "C-003", *OVERRIDE)
-    Vcs(root).delete_ref(marker_name("C-001"))
-    assert "--fresh" in refuse(root, "C-001", *OVERRIDE)
-    assert status(root, "C-003") == "promoted"
+    data = go(root, "C-002")
+    assert data["route"] == "restored"
+    assert status(root, "C-002") == "promoted" and status(root, "C-001") == "parked"
+
+
+def test_refuses_a_parked_card_with_neither_marker_nor_checkpoint(root: Path) -> None:
+    """B-0281: only when there is no marker and no recorded checkpoint does the refusal stay."""
+    go(root, "C-001", *OVERRIDE)
+    Vcs(root).delete_ref(marker_name("C-002"))
+    cm.update_card_status(
+        root,
+        "C-002",
+        "parked",
+        built={
+            "event": "parked",
+            "checkpoint": "deadbeef" * 5,  # a saved state this folder does not hold
+            "number": 0,
+            "at": "2026-01-01T00:00:00",
+        },
+    )
+    assert "--fresh" in refuse(root, "C-002", *OVERRIDE)
+    assert status(root, "C-002") == "parked"
+
+
+def test_a_clone_without_markers_switches_back_via_the_recorded_checkpoint(
+    root: Path, tmp_path: Path
+) -> None:
+    """B-0281: a fresh copy has no ``refs/n2f/``, so the switch uses ``built.checkpoint``."""
+    go(root, "C-001", *OVERRIDE)  # parks C-002 with its checkpoint on record
+    remote = tmp_path / "online.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(remote)], check=True)
+    subprocess.run(["git", "-C", str(root), "remote", "add", "origin", str(remote)], check=True)
+    Vcs(root).send_online("origin", "main")
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+    assert Vcs(clone).read_ref(marker_name("C-002")) is None  # the clone carries no markers
+    data = go(clone, "C-002")
+    assert data["route"] == "restored"
+    assert status(clone, "C-002") == "promoted" and status(clone, "C-001") == "parked"
 
 
 def test_unscreened_or_red_target_is_refused_before_anything_changes(root: Path) -> None:
