@@ -84,6 +84,18 @@ def test_viewer_picking_isolation_and_section_cuts(tmp_path: Path) -> None:
         )
         assert nodes == ["part://left", "part://right"]
 
+        def need_gl() -> None:
+            """Skip when the host lost WebGL (software GL under load does; the viewer then shows
+            its notice and hides the canvas, S-232): the pointer tests need a canvas."""
+            ok = page.evaluate(
+                "window.n2fViewer.glState !== 'unavailable' && "
+                "window.n2fViewer.renderer.domElement.getBoundingClientRect().width > 0"
+            )
+            if not ok:
+                pytest.skip("WebGL unavailable on this host (S-232)")
+
+        need_gl()
+
         # 1. Click on part://left selects it.
         left_pt = page.evaluate("window.n2fViewer.screenPoint('part://left')")
         assert left_pt is not None
@@ -92,34 +104,32 @@ def test_viewer_picking_isolation_and_section_cuts(tmp_path: Path) -> None:
         page.mouse.up()
         assert page.evaluate("window.__selected") == "part://left"
 
+        need_gl()
         # 2. Drag of 40 px across the canvas moves the camera and leaves selection unchanged.
         cam_before = page.evaluate("window.n2fViewer.camera.position.toArray()")
         ev_count_before = page.evaluate("window.__events.length")
-        # A drag that starts without a real mouse move first is, under heavy CPU load, sometimes
-        # delivered to the page not at all (measured: an empty event log, ten busy loops), so
-        # the drag moves first and is tried a few times; one that moved the camera proves the
-        # path, and every try must leave the selection alone.
-        for _ in range(4):
-            page.mouse.move(left_pt["x"] - 30, left_pt["y"] - 30)  # a real move first: hover is set
-            page.mouse.move(left_pt["x"], left_pt["y"], steps=3)
-            page.mouse.down()
-            page.mouse.move(left_pt["x"] + 40, left_pt["y"] + 10, steps=5)
-            page.mouse.up()
-            assert page.evaluate("window.__selected") == "part://left"
-            try:  # OrbitControls (damped) moves the camera in the frame loop
-                page.wait_for_function(
-                    "(b) => window.n2fViewer.camera.position.toArray().some((v, i) => v !== b[i])",
-                    arg=cam_before,
-                    timeout=1500,
-                )
-                break
-            except Error:
-                continue
+        page.mouse.move(left_pt["x"] - 30, left_pt["y"] - 30)  # a real move first: hover is set
+        page.mouse.move(left_pt["x"], left_pt["y"], steps=3)
+        page.mouse.down()
+        page.mouse.move(left_pt["x"] + 40, left_pt["y"] + 10, steps=5)
+        page.mouse.up()
+        assert page.evaluate("window.__selected") == "part://left"
+        # OrbitControls (damped) moves the camera in the frame loop: wait for a frame
+        try:
+            page.wait_for_function(
+                "(b) => window.n2fViewer.camera.position.toArray().some((v, i) => v !== b[i])",
+                arg=cam_before,
+                timeout=5000,
+            )
+        except Error:
+            need_gl()  # the host lost WebGL during the drag: skip; otherwise a real failure
+            raise
         cam_after = page.evaluate("window.n2fViewer.camera.position.toArray()")
         assert cam_after != cam_before
         assert page.evaluate("window.__selected") == "part://left"
         assert page.evaluate("window.__events.length") == ev_count_before
 
+        need_gl()
         # 3. Click on empty canvas clears selection to null without moving camera.
         page.evaluate("window.n2fViewer.fit()")
         cam_fit = page.evaluate("window.n2fViewer.camera.position.toArray()")
