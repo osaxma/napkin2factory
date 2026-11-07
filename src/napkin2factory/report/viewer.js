@@ -4,9 +4,17 @@
 //
 // Public surface (window.n2fViewer):
 //   nodes()                -> array of part URIs present in the scene
+//   instanceCount(uri)     -> number of scene instances for a part URI
 //   select(uri)            -> highlight one part, fire 'n2f:select' on the container
 //   highlight(uris, color) -> colour a set of parts (changed-part highlighting)
+//   frame(uri)             -> orbit target to part's centre and fit distance along current view
+//   ghost(uris)            -> make every part not in uris transparent; ghost([]) restores all
+//   screenPoint(uri)       -> {x, y} client pixels of part's projected bounding-box centre
 //   explode(factor)        -> move top-level instances along the exploded axis
+//   section(axisOrOn, off) -> clip high side along 'x'|'y'|'z' at 0..1 offset (true/false toggles)
+//   sectionState()         -> {on, axis, offset} current section cut state
+//   fit()                  -> frame the whole model from the default isometric direction
+//   reset()                -> clear selection, highlights, ghosting and explode
 //   render()               -> queue a redraw (after mutating scene/camera directly)
 //   ready                  -> Promise resolving after the first frame
 //   applyMaterials(map)    -> {uri: {color: '#hex', metallic, roughness}} per part (style.yaml)
@@ -230,6 +238,8 @@ function n2fCreateViewer(container, options) {
   const partNodes = new Map();   // uri -> [Object3D]
   const baseMaterials = new Map(); // mesh.uuid -> material
   const basePositions = new Map(); // object.uuid -> Vector3
+  const ghosted = new Set();     // ghosted part URIs (skipped by raycast)
+  const secState = { on: false, axis: 'z', offset: 0.5 };
   let root = null;
   let selected = null;
 
@@ -311,6 +321,7 @@ function n2fCreateViewer(container, options) {
     camera.updateProjectionMatrix();
     controls.target.copy(center);
     controls.update();
+    camera.updateMatrixWorld();
     requestRender();
   }
 
@@ -325,8 +336,82 @@ function n2fCreateViewer(container, options) {
     camera.far = radius * 100;
     camera.updateProjectionMatrix();
     controls.target.copy(center);
+    controls._sphericalDelta.set(0, 0, 0);
+    controls._panOffset.set(0, 0, 0);
     controls.update();
+    camera.updateMatrixWorld();
     requestRender();
+  }
+
+  // Bounding box across all instance nodes of one part URI (V3).
+  function partBox(uri) {
+    const nodes = partNodes.get(uri);
+    if (!nodes || !nodes.length) return null;
+    const box = new Box3();
+    for (const node of nodes) box.expandByObject(node);
+    return box.isEmpty() ? null : box;
+  }
+
+  // Frame one part by moving the orbit target to its centre along the current viewing direction (V3).
+  function framePart(uri) {
+    const box = partBox(uri);
+    if (!box) return;
+    const size = box.getSize(new Vector3());
+    const center = box.getCenter(new Vector3());
+    const radius = Math.max(size.x, size.y, size.z, 1);
+    const dir = camera.position.clone().sub(controls.target);
+    if (dir.lengthSq() === 0) dir.set(1.4, -1.6, 1.1);
+    dir.normalize();
+    camera.position.copy(center).addScaledVector(dir, radius * 2.4);
+    camera.near = radius / 100;
+    camera.far = radius * 100;
+    camera.updateProjectionMatrix();
+    controls.target.copy(center);
+    controls._sphericalDelta.set(0, 0, 0);
+    controls._panOffset.set(0, 0, 0);
+    controls.update();
+    camera.updateMatrixWorld();
+    requestRender();
+  }
+
+  // Isolate listed parts by turning every other part translucent; empty/null restores all (V3).
+  function ghost(uris) {
+    ghosted.clear();
+    const keep = uris && uris.length ? new Set(uris) : null;
+    for (const [uri, nodes] of partNodes.entries()) {
+      const isGhost = keep !== null && !keep.has(uri);
+      if (isGhost) ghosted.add(uri);
+      for (const node of nodes) {
+        node.traverse((o) => {
+          if (!o.isMesh) return;
+          const base = baseMaterials.get(o.uuid);
+          if (isGhost) {
+            o.material.transparent = true;
+            o.material.opacity = 0.12;
+            o.material.depthWrite = false;
+          } else {
+            o.material.transparent = base ? Boolean(base.transparent) : false;
+            o.material.opacity = base && typeof base.opacity === 'number' ? base.opacity : 1;
+            o.material.depthWrite = base && typeof base.depthWrite === 'boolean' ? base.depthWrite : true;
+          }
+          o.material.needsUpdate = true;
+        });
+      }
+    }
+    requestRender();
+  }
+
+  // Project a part's bounding-box centre to client (page) pixels for interaction tests (V3).
+  function screenPoint(uri) {
+    const box = partBox(uri);
+    if (!box) return null;
+    camera.updateMatrixWorld();
+    const p = box.getCenter(new Vector3()).project(camera);
+    const rect = renderer.domElement.getBoundingClientRect();
+    return {
+      x: rect.left + ((p.x + 1) / 2) * rect.width,
+      y: rect.top + ((1 - p.y) / 2) * rect.height,
+    };
   }
 
   function setColor(uri, hex, emissive) {
@@ -363,6 +448,7 @@ function n2fCreateViewer(container, options) {
     reset() {
       for (const uri of partNodes.keys()) setColor(uri, null);
       selected = null;
+      ghost([]);
       api.explode(0);
     },
     explode(factor) {
@@ -377,28 +463,74 @@ function n2fCreateViewer(container, options) {
       });
       requestRender();
     },
+    frame: framePart,
+    ghost,
+    screenPoint,
     fit,
     view,
     applyMaterials,
-    // Section: clip everything above the model's mid-height (a global clipping plane).
-    section(on) {
-      if (!on) { renderer.clippingPlanes = []; requestRender(); return; }
+    // Section cut on x, y or z at 0..1 offset (keeps low side); true/false toggles last cut (V3).
+    section(axisOrOn, offset) {
+      if (!axisOrOn) {
+        secState.on = false;
+        renderer.clippingPlanes = [];
+        requestRender();
+        return;
+      }
+      if (axisOrOn === 'x' || axisOrOn === 'y' || axisOrOn === 'z') {
+        secState.axis = axisOrOn;
+        secState.offset = typeof offset === 'number' && !Number.isNaN(offset)
+          ? Math.max(0, Math.min(1, offset))
+          : 0.5;
+      }
+      secState.on = true;
       const box = new Box3().setFromObject(root || scene);
-      const midZ = (box.min.z + box.max.z) / 2;
-      renderer.clippingPlanes = [new Plane(new Vector3(0, 0, -1), midZ)];
+      const a = secState.axis;
+      const cut = box.min[a] + (box.max[a] - box.min[a]) * secState.offset;
+      const normal = new Vector3(a === 'x' ? -1 : 0, a === 'y' ? -1 : 0, a === 'z' ? -1 : 0);
+      renderer.clippingPlanes = [new Plane(normal, cut)];
       requestRender();
     },
+    sectionState() { return { on: secState.on, axis: secState.axis, offset: secState.offset }; },
     render: requestRender,
     snapshot() { renderer.render(scene, camera); return renderer.domElement.toDataURL('image/png'); },
   };
 
   const raycaster = new Raycaster();
-  renderer.domElement.addEventListener('pointerdown', (ev) => {
+  // Raycast from client coordinates, skipping ghosted (transparent) parts (V3).
+  function pickUri(ev) {
+    camera.updateMatrixWorld();
     const rect = renderer.domElement.getBoundingClientRect();
     const ndc = new Vector2(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
     const hits = raycaster.intersectObjects(scene.children, true);
-    api.select(hits.length ? uriOf(hits[0].object) : null);
+    for (const h of hits) {
+      const uri = uriOf(h.object);
+      if (uri && !ghosted.has(uri)) return uri;
+    }
+    return null;
+  }
+  // Pick only on a click (< 5 px pointer travel since down) so orbit drags never change selection (V3).
+  let downPos = null;
+  renderer.domElement.addEventListener('pointerdown', (ev) => {
+    downPos = { x: ev.clientX, y: ev.clientY, t: ev.timeStamp };
+  });
+  renderer.domElement.addEventListener('pointerup', (ev) => {
+    if (!downPos) return;
+    const moved = Math.hypot(ev.clientX - downPos.x, ev.clientY - downPos.y);
+    downPos = null;
+    if (moved >= 5) return;
+    const uri = pickUri(ev);
+    if (!uri) ghost([]);
+    api.select(uri);
+  });
+  // Double-click isolates and frames the clicked part; empty space does nothing (V3).
+  renderer.domElement.addEventListener('dblclick', (ev) => {
+    const uri = pickUri(ev);
+    if (!uri) return;
+    api.select(uri);
+    framePart(uri);
+    ghost([uri]);
   });
 
   // The first frame is drawn even off screen so that `ready` always resolves.
@@ -450,5 +582,25 @@ window.n2fViewerReady = (async () => {
     }
   }
   window.n2fViewer = window.n2fViewers.default || Object.values(window.n2fViewers)[0] || null;
+  // Wire the section axis/offset and show-all controls on the default viewer (V3).
+  if (window.n2fViewer) {
+    const v = window.n2fViewer;
+    const secCheck = document.getElementById('section');
+    const secAxis = document.getElementById('section-axis');
+    const secOff = document.getElementById('section-offset');
+    const showAll = document.getElementById('show-all');
+    const applySec = () => {
+      const axis = secAxis ? secAxis.value : 'z';
+      const off = secOff ? parseFloat(secOff.value) : 0.5;
+      if (secCheck) secCheck.checked = true;
+      v.section(axis, off);
+    };
+    if (secAxis) secAxis.addEventListener('change', applySec);
+    if (secOff) {
+      secOff.addEventListener('input', applySec);
+      secOff.addEventListener('change', applySec);
+    }
+    if (showAll) showAll.addEventListener('click', () => { v.select(null); v.ghost([]); v.fit(); });
+  }
   return window.n2fViewers;
 })();
