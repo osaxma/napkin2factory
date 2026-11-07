@@ -10,7 +10,8 @@
 //   frame(uri)             -> orbit target to part's centre and fit distance along current view
 //   ghost(uris)            -> make every part not in uris transparent; ghost([]) restores all
 //   screenPoint(uri)       -> {x, y} client pixels of part's projected bounding-box centre
-//   explode(factor)        -> move top-level instances along the exploded axis
+//   explode(factor)        -> each unit along its own n2f_explode direction; one axis when the GLB has none
+//   explodeInfo()          -> {[nodeName]: {dir, distance, source}} for top-level units with n2f_explode
 //   section(axisOrOn, off) -> clip high side along 'x'|'y'|'z' at 0..1 offset (true/false toggles)
 //   sectionState()         -> {on, axis, offset} current section cut state
 //   fit()                  -> frame the whole model from the default isometric direction
@@ -451,17 +452,50 @@ function n2fCreateViewer(container, options) {
       ghost([]);
       api.explode(0);
     },
+    // Move each top-level unit along its n2f_explode direction; fall back to one axis for older GLBs (B-0304).
     explode(factor) {
       if (!root) return;
-      const axis = opts.explodeAxis;
-      const children = root.children.slice();
-      children.sort((a, b) => basePositions.get(a.uuid)[axis] - basePositions.get(b.uuid)[axis]);
-      children.forEach((child, i) => {
-        const base = basePositions.get(child.uuid);
-        child.position.copy(base);
-        child.position[axis] = base[axis] + factor * opts.explodeSpacing * i;
-      });
+      const hasExtra = root.children.some((c) => c.userData && c.userData.n2f_explode);
+      if (hasExtra) {
+        for (const child of root.children) {
+          const base = basePositions.get(child.uuid);
+          child.position.copy(base);
+          const ex = child.userData && child.userData.n2f_explode;
+          if (ex && factor) {
+            const d = ex.dir || [0, 0, 0];
+            const s = (ex.distance || 0) * factor;
+            child.position.x = base.x + (d[0] || 0) * s;
+            child.position.y = base.y + (d[1] || 0) * s;
+            child.position.z = base.z + (d[2] || 0) * s;
+          }
+        }
+      } else {
+        const axis = opts.explodeAxis;
+        const children = root.children.slice();
+        children.sort((a, b) => basePositions.get(a.uuid)[axis] - basePositions.get(b.uuid)[axis]);
+        children.forEach((child, i) => {
+          const base = basePositions.get(child.uuid);
+          child.position.copy(base);
+          child.position[axis] = base[axis] + factor * opts.explodeSpacing * i;
+        });
+      }
       requestRender();
+    },
+    explodeInfo() {
+      const out = {};
+      if (!root) return out;
+      for (const child of root.children) {
+        const ex = child.userData && child.userData.n2f_explode;
+        if (ex) {
+          const name = (child.userData && (child.userData.n2f_node || child.userData.n2f_uri)) || child.name;
+          out[name] = {
+            dir: Array.isArray(ex.dir) ? ex.dir.slice() : [0, 0, 0],
+            distance: typeof ex.distance === 'number' ? ex.distance : 0,
+            source: ex.source || '',
+          };
+        }
+      }
+      return out;
     },
     frame: framePart,
     ghost,
