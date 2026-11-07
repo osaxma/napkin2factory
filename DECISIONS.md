@@ -316,6 +316,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-287 | Open v0.9 (Track C): the progressive-workbench stage plan, V-series | in force |
 | S-288 | v0.9 wave 1: the lens seam, viewer picking, the bridges gone, the upgrade's applied requests | in force |
 | S-289 | v0.9 wave 1 boundary: the `core/` count, §11's sizes and timings, `make check` | in force |
+| S-290 | The maintainer's answers to the v0.9 questions Q1 to Q6 | in force |
 
 ---
 
@@ -2253,3 +2254,14 @@ load 3.0 to 3.3 (my own earlier busy loops had left the host loaded; killed and 
 Page open to first frame in Chromium on `file://` with software GL, median of three: 0.35 s, 0.54 s, 0.70 s. `make check` on main at b34a259:
 green, 2,043 passed, 6 skipped, 9 min 12 s wall (8 min 28 s in pytest), load 8.5 at its end. The wave added no interaction test to `make check` beyond
 `tests/smoke/test_viewer_interaction.py` (about 5 s alone). Wave 1 closed B-0275, B-0276, B-0277, B-0283, B-0296 and B-0301.
+
+## S-290 — The maintainer's answers to the v0.9 questions (2026-11-07)
+Asked the maintainer, answered through the coordinating session; recorded in plan §3. Q1: the product's inspector entry is keyed `manifest://product`
+(no new scheme, 0 `core/` files). Q2: **not** the one-axis explode: every unit moves along its own direction in v0.9, so B-0304 joins M1; a design note
+(`docs/handoffs/v0.9-explode-design.md`: where a direction comes from, the fallback, the assembly sheets, any schema change under `docs/schema-policy.md`)
+goes to the maintainer before the explode is built. Q3: the phone measure uses Playwright Chromium's CPU throttling; 4× is the multiplier of
+Lighthouse's default mobile profile and DevTools' mid-tier preset [verify], and M4 calibrates it to this host with a CPU benchmark and records both;
+never load the host to imitate a slow device (an AGENTS.md rule). Q4: one trial agent runs DeepSeek in the DeepSeek harness's web app through the MCP server only
+(no shell), after checking that the app connects to an MCP server, else another chat client with a bring-your-own key; waits for M6. Q5: no kiln change;
+B-0276 and B-0277 are closed as already done, the question's premise having been stale (S-288). Q6: M7 joins wave 2 and must split start-up from build
+work and measure a long-running process that keeps shapes in memory.

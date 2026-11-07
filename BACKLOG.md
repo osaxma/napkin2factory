@@ -152,7 +152,7 @@ entry that closed them. Ids are never reused.
 | B-0300 | The report has no phone layout, no keyboard path through the model, and no interaction tests that pick, inspect or deep-link | S-287 (v0.9 M4) |
 | B-0302 | v0.9's gates are not run: Gate C (three tiers, desktop and phone, the maintainer's judgment), the two-vendor cold-agent trial, gates M and N | S-287 (v0.9 M6) |
 | B-0303 | The warm one-parameter rebuild is 19.4 s on tier 1 against road §2.1's 1 s target | S-283, S-287 (Q6: a v0.9 M7 or later) |
-| B-0304 | The explode moves each top-level unit along one axis by rank (viewer and assembly sheets alike), not along its insertion axis | S-287 (Track C §3.1 assumed the axes were computed; Q2) |
+| B-0304 | The explode moves each top-level unit along one axis by rank (viewer and assembly sheets alike), not along its insertion axis | S-287 (Track C §3.1 assumed the axes were computed; Q2); the maintainer wants it in v0.9 M1 (S-290), design note first |
 
 ## Closed
 
