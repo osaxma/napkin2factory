@@ -32,6 +32,7 @@ from napkin2factory.core.yamlio import dump_roundtrip, load_roundtrip, write_yam
 from napkin2factory.ecr import live_impact, stale_text
 from napkin2factory.ecr.apply import _set_in_yaml
 from napkin2factory.ecr.checkpointing import (
+    APPROVAL_HASH_EXCLUDE,
     checkpoint,
     matches_approval,
     save_edits_first,
@@ -300,13 +301,17 @@ def _build_and_check(product: Product) -> list[dict[str, Any]]:
 
 
 def start_checkpoint(vcs: Vcs, ecr: Ecr) -> Checkpoint:
-    """The checkpoint ``start`` recorded: the first one after the baseline."""
+    """The ``Started <id>`` checkpoint after the baseline, or the baseline itself (B-0275)."""
     if ecr.baseline is None:
         raise EcrError(f"{ecr.id} has no baseline")
     cps = sorted(checkpoints.read(vcs), key=lambda c: c.number)
+    prefix = f"Started {ecr.id}"
     for i, cp in enumerate(cps):
-        if cp.id == ecr.baseline.checkpoint and i + 1 < len(cps):
-            return cps[i + 1]
+        if cp.id == ecr.baseline.checkpoint:
+            for after in cps[i + 1 :]:
+                if after.label.startswith(prefix):
+                    return after
+            return cp
     raise EcrError(f"the history {ecr.id} started from is not in this folder; it cannot be undone")
 
 
@@ -322,7 +327,15 @@ def abort(product: Product, ecr_id: str | None = None, reason: str | None = None
     vcs.require_repo_root()
     start_cp = start_checkpoint(vcs, ecr)
     saved = save_edits_first(product)
-    vcs.restore(start_cp.id)
+    if ecr.baseline is not None and start_cp.id == ecr.baseline.checkpoint:
+        paths = [
+            c.path
+            for c in vcs.diff_working(start_cp.id)
+            if not c.path.startswith(APPROVAL_HASH_EXCLUDE) and c.path != "n2f.yaml"
+        ]
+        vcs.restore(start_cp.id, paths=paths)
+    else:
+        vcs.restore(start_cp.id)
     path = _ecr_path(product, ecr.id)
     data = load_roundtrip(path)
     data["status"] = "aborted"

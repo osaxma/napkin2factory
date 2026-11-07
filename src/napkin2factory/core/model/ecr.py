@@ -5,11 +5,22 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 
 from napkin2factory.core.model.base import EcrId, Model, UriField
 
 EcrStatus = Literal["draft", "approved", "closed", "rejected", "aborted"]
+_RETIRED_STATUS_MESSAGES: dict[str, str] = {
+    "applied": (
+        "status `applied` is gone in file format 2: its edit is in the model, so set "
+        "`closed` (`n2f init .` does this for a folder still in format 1)"
+    ),
+    "impact": (
+        "status `impact` is gone in file format 2: use `draft`, and look at the impact "
+        "with `n2f ecr impact`"
+    ),
+}
 EcrKind = Literal["parametric", "design"]
 #: The states in which a request is still being worked on: it has a baseline (R6), and an
 #: approved one the hash of the model it approved (R7).
@@ -95,6 +106,14 @@ class Ecr(Model):
     rejected_reason: str | None = None
     aborted_reason: str | None = None
     created: dt.date | None = None
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _retired_status(cls, v: Any) -> Any:
+        """Give a plain message when a schema-1 status is written in a schema-2 file (B-0283)."""
+        if isinstance(v, str) and v in _RETIRED_STATUS_MESSAGES:
+            raise PydanticCustomError("retired_status", _RETIRED_STATUS_MESSAGES[v])
+        return v
 
     @model_validator(mode="after")
     def _kind_rules(self) -> Ecr:

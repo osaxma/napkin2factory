@@ -28,11 +28,12 @@ from typer.testing import CliRunner
 from napkin2factory.cli import init as init_mod
 from napkin2factory.cli.app import app
 from napkin2factory.core import checkpoints
+from napkin2factory.core.errors import ModelError
 from napkin2factory.core.loader import load_product
 from napkin2factory.core.model import migrate
 from napkin2factory.core.vcs import Vcs
 from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE
-from tests.conftest import copy_product, n2f
+from tests.conftest import EXAMPLES, copy_product, n2f
 from tests.unit.test_migrate import FIXTURES, _files
 
 V1 = FIXTURES / "v1"
@@ -106,23 +107,28 @@ def test_each_state_is_mapped(upgraded: tuple[Path, dict[str, Any], dict[str, st
     for gone in ("patch", "impact", "approval", "applied"):
         assert gone not in live
     assert _value((root / "model/parameters.yaml").read_text(), "shelf-load") == "12"
-    # every other unfinished request is set aside with its edit kept
-    for number in (2, 3, 4, 5):
+    # every other unapplied unfinished request is set aside as aborted with its edit kept
+    for number in (2, 3, 4):
         aside = _ecr(root, number)
         assert aside["status"] == "aborted", number
         assert aside["aborted_reason"].startswith(
             "set aside when upgrading: one change request is open at a time. "
         )
-        if number != 5:
-            assert aside["aborted_reason"].endswith("start it again with `n2f ecr start`.")
+        assert aside["aborted_reason"].endswith("start it again with `n2f ecr start`.")
         for gone in ("patch", "impact", "approval", "applied"):
             assert gone not in aside, (number, gone)
+    # an applied request with a lower id still open becomes closed, keeping its applied record
+    closed_applied = _ecr(root, 5)
+    assert closed_applied["status"] == "closed"
+    assert "aborted_reason" not in closed_applied
+    assert closed_applied["applied"]["snapshot"] == "0000000000000000000000000000000000000000"
+    for gone in ("patch", "impact", "approval"):
+        assert gone not in closed_applied, gone
     assert "changes/ECR-002.patch" in _ecr(root, 2)["aborted_reason"]
     assert (root / "changes/ECR-002.patch").read_text() == (
         V1 / "changes/ECR-002.patch"
     ).read_text()
     assert "the edits listed above" in _ecr(root, 3)["aborted_reason"]
-    assert "already part of the model" in _ecr(root, 5)["aborted_reason"]
     # finished requests are untouched, byte for byte
     for number in (6, 7):
         name = f"changes/ECR-{number:03d}.yaml"
@@ -150,13 +156,21 @@ def test_the_report_is_in_plain_words(
         (2, "Add a levelling step to the installation page"),
         (3, "Wider holes for M10 anchors"),
         (4, "Longer horizontal leg"),
-        (5, "Holes a little further from the leg ends"),
     ):
         assert any(c.startswith(f"ECR-00{number} ({title}): set aside") for c in changes), number
+    assert any(
+        c.startswith("ECR-004 (Longer horizontal leg): set aside")
+        and "its approval was cleared" in c
+        for c in changes
+    )
+    assert (
+        "ECR-005 (Holes a little further from the leg ends): was applied but never closed; "
+        "its edit is already part of the model, so it is closed. (One change request is "
+        "open at a time.)"
+    ) in changes
     assert "one change request is open at a time" in text
     assert "ECR-002 (Add a levelling step to the installation page): set aside" in text
     assert "its patch stays in changes/ECR-002.patch; start it again with `n2f ecr start`" in text
-    assert "so there is nothing to start again" in text  # ECR-005 was applied: its edit is in
     assert "2 finished change request(s) kept as they were" in text
     assert "`n2f ecr abort ECR-001`" in text and "`n2f rollback #" in text
     for word in ("commit", "git ", "branch", "baseline", "schema"):
@@ -202,7 +216,7 @@ def test_the_upgraded_product_builds_and_checks_and_shows_its_impact(
         "ECR-002": "aborted",
         "ECR-003": "aborted",
         "ECR-004": "aborted",
-        "ECR-005": "aborted",
+        "ECR-005": "closed",
         "ECR-006": "closed",
         "ECR-007": "rejected",
     }
@@ -317,6 +331,47 @@ def test_an_applied_request_starts_from_the_state_before_it_was_applied(tmp_path
     out = json.loads(impact.stdout)
     assert out["objects"]["changed"] == ["param://hole-inset"]
     assert out["files"]["changed"] == ["model/parameters.yaml"]
+    # aborting the upgraded applied request restores the model before its edit (B-0275)
+    other_requests = {n: (root / f"changes/ECR-{n:03d}.yaml").read_text() for n in (6, 7)}
+    aborted = n2f("ecr", "abort", "ECR-005", cwd=root)
+    assert aborted.returncode == 0, aborted.stdout + aborted.stderr
+    assert _value((root / "model/parameters.yaml").read_text(), "hole-inset") == "20"
+    assert migrate.schema_of(root) == 2
+    assert {n: (root / f"changes/ECR-{n:03d}.yaml").read_text() for n in (6, 7)} == other_requests
+    assert _ecr(root, 5)["status"] == "aborted"
+    for k, v in _files(root / "model").items():
+        assert (vcs.read_file(before_apply, f"model/{k}") or b"").decode() == v
+
+
+def test_retired_statuses_give_one_plain_message_through_load_product(tmp_path: Path) -> None:
+    root = copy_product(EXAMPLES / "bracket", tmp_path / "bracket", git=False)
+    ecr = root / "changes/ECR-001.yaml"
+    ecr.parent.mkdir(parents=True, exist_ok=True)
+    ecr.write_text("id: ECR-001\ntitle: Heavier shelf\nstatus: applied\n")
+    with pytest.raises(ModelError) as exc_applied:
+        load_product(root)
+    msg_applied = _words(str(exc_applied.value))
+    assert (
+        "status `applied` is gone in file format 2: its edit is in the model, so set `closed` "
+        "(`n2f init .` does this for a folder still in format 1)"
+    ) in msg_applied
+    assert "Input should be" not in msg_applied and "Value error" not in msg_applied
+    ecr.write_text("id: ECR-001\ntitle: Heavier shelf\nstatus: impact\n")
+    with pytest.raises(ModelError) as exc_impact:
+        load_product(root)
+    msg_impact = _words(str(exc_impact.value))
+    assert (
+        "status `impact` is gone in file format 2: use `draft`, and look at the impact with "
+        "`n2f ecr impact`"
+    ) in msg_impact
+    assert "Input should be" not in msg_impact and "Value error" not in msg_impact
+    # rejected stays readable; any other unknown status keeps pydantic's message
+    ecr.write_text("id: ECR-001\ntitle: Heavier shelf\nstatus: rejected\n")
+    assert load_product(root).ecrs["ECR-001"].status == "rejected"
+    ecr.write_text("id: ECR-001\ntitle: Heavier shelf\nstatus: bogus\n")
+    with pytest.raises(ModelError) as exc_bogus:
+        load_product(root)
+    assert "Input should be" in str(exc_bogus.value)
 
 
 def test_a_patch_that_no_longer_fits_refuses_the_whole_upgrade(tmp_path: Path) -> None:

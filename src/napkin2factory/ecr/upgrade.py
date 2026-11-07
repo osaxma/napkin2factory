@@ -13,10 +13,12 @@ The mapping, per request:
   edits, or its patch, are then applied to the model files, as ``ecr start --set`` would. An
   approved one loses its approval and is told to approve it again.
 * ``applied`` but not closed: ``approved`` for the model as it is, started from the state
-  before it was applied when the history still has it.
+  before it was applied when the history still has it (or ``closed`` when a lower id stays
+  open, because its edit is already part of the model).
 * ``closed`` and ``rejected``: unchanged (the patch file stays as a record).
-* More than one open: the lowest id stays open; the others become ``aborted`` with their
-  edit kept in their file (or their patch file), because one request is open at a time.
+* More than one open: the lowest id stays open; an ``applied`` one becomes ``closed`` and the
+  others become ``aborted`` with their edit kept in their file (or their patch file), because
+  one request is open at a time.
 
 Nothing is changed unless the open request's edits and patch still fit the model (checked on
 a scratch copy first); then the refusal names the request and the file. The steps leave
@@ -200,12 +202,21 @@ def _save_before(vcs: Vcs) -> str:
 
 
 def _set_aside(old: _Old) -> str:
-    """Make ``old`` aborted, its edit kept; returns the report line."""
-    again = "start it again with `n2f ecr start`"
+    """Close an ``applied`` request or make ``old`` aborted with its edit kept; the report line."""
+    data = old.data
     if old.status == "applied":
-        kept = "Its edit is already part of the model (it was applied but never closed)."
-        shown = "its edit is already part of the model, so there is nothing to start again"
-    elif old.patch:
+        data["status"] = "closed"
+        for key in ("patch", "impact", "approval"):
+            data.pop(key, None)
+        if "released_in" in data and data["released_in"] is None:
+            data.pop("released_in")
+        dump_roundtrip(old.path, data)
+        return (
+            f"{old.name}: was applied but never closed; its edit is already part of the model, "
+            "so it is closed. (One change request is open at a time.)"
+        )
+    again = "start it again with `n2f ecr start`"
+    if old.patch:
         kept = f"Its edit is kept in {old.patch}; {again}."
         shown = f"its patch stays in {old.patch}; {again}"
     elif old.edits:
@@ -214,8 +225,9 @@ def _set_aside(old: _Old) -> str:
     else:
         kept = f"Its tasks are kept in the list above; {again}."
         shown = f"its tasks stay in its file; {again}"
+    if old.status == "approved" or data.get("approval") is not None:
+        shown = f"its approval was cleared, and {shown}"
     reason = f"set aside when upgrading: one change request is open at a time. {kept}"
-    data = old.data
     data["status"] = "aborted"
     data["aborted_reason"] = reason
     for key in ("patch", "impact", "approval", "applied"):
