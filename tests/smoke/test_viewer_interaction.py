@@ -99,6 +99,12 @@ def test_viewer_picking_isolation_and_section_cuts(tmp_path: Path) -> None:
         page.mouse.down()
         page.mouse.move(left_pt["x"] + 40, left_pt["y"] + 10, steps=5)
         page.mouse.up()
+        # OrbitControls (damped) moves the camera in the frame loop, so wait for a frame
+        # rather than reading at once (a loaded host read the old position, S-232).
+        page.wait_for_function(
+            "(b) => window.n2fViewer.camera.position.toArray().some((v, i) => v !== b[i])",
+            arg=cam_before,
+        )
         cam_after = page.evaluate("window.n2fViewer.camera.position.toArray()")
         assert cam_after != cam_before
         assert page.evaluate("window.__selected") == "part://left"
