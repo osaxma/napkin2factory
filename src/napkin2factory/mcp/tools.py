@@ -19,6 +19,8 @@ Verbs left out, and why:
 * ``serve``: it never returns (the report web server), so a call would hang; open
   ``build/report/index.html`` instead.
 * ``skill``: it writes outside the product folder (a skills folder of the client).
+* ``engine start|status|stop``: the warm engine's own controls; a call here uses the engine
+  when one is up (see ``_run``), and an agent has no reason to manage it.
 
 Verbs that ask a question (``discard``, ``publish``) stay: they have a ``yes`` flag, and without
 it the process finds no one to ask and stops with an error, which the result reports.
@@ -35,7 +37,18 @@ from typing import Any
 
 import typer
 
-SKIPPED: frozenset[tuple[str, ...]] = frozenset({("mcp",), ("serve",), ("skill",)})
+from napkin2factory.cli import engine
+
+SKIPPED: frozenset[tuple[str, ...]] = frozenset(
+    {
+        ("mcp",),
+        ("serve",),
+        ("skill",),
+        ("engine", "start"),
+        ("engine", "status"),
+        ("engine", "stop"),
+    }
+)
 
 # A string option that names a file inside the folder. Path-typed options are found from their
 # type; this is the one place a verb takes a path as plain text.
@@ -349,7 +362,17 @@ class ToolRunner:
             return await self._run(argv)
 
     async def _run(self, argv: list[str]) -> ToolResult:
-        """Run the CLI with ``argv`` as a process in the folder."""
+        """Run the CLI with ``argv`` in the folder: through its warm engine when one is up.
+
+        The engine takes the same argv and streams back the same output (``cli/engine.py``,
+        S-305); when none answers (off, absent, refused) the CLI runs as a process.
+        """
+        try:
+            warm = await asyncio.to_thread(engine.capture, self.folder, argv, self.timeout)
+        except TimeoutError:
+            return ToolResult(f"stopped: the command ran longer than {self.timeout:.0f} s", True)
+        if warm is not None:
+            return _finish(warm[1], warm[2], warm[0])
         proc = await asyncio.create_subprocess_exec(
             sys.executable,
             "-m",
@@ -367,10 +390,14 @@ class ToolRunner:
             proc.kill()
             await proc.wait()
             return ToolResult(f"stopped: the command ran longer than {self.timeout:.0f} s", True)
-        stdout = out.decode("utf-8", "replace")
-        stderr = err.decode("utf-8", "replace")
-        code = proc.returncode or 0
-        if code == 0:
-            return ToolResult(_clip(stdout if stdout.strip() else _tail(stderr)), False, 0)
-        parts = [stdout.strip(), f"exit code {code}", _tail(stderr)]
-        return ToolResult(_clip("\n".join(p for p in parts if p)), True, code)
+        return _finish(
+            out.decode("utf-8", "replace"), err.decode("utf-8", "replace"), proc.returncode or 0
+        )
+
+
+def _finish(stdout: str, stderr: str, code: int) -> ToolResult:
+    """The result of a finished run: its output when it passed, else the exit code and stderr."""
+    if code == 0:
+        return ToolResult(_clip(stdout if stdout.strip() else _tail(stderr)), False, 0)
+    parts = [stdout.strip(), f"exit code {code}", _tail(stderr)]
+    return ToolResult(_clip("\n".join(p for p in parts if p)), True, code)

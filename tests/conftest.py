@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import sys
 import traceback
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +19,10 @@ import pytest
 # Never spawn the background CAD-kernel warm-up of `n2f init` from the suite (B-0016); the
 # subprocess CLI runs inherit this. Tests of the warm-up itself clear it explicitly.
 os.environ.setdefault("N2F_NO_WARMUP", "1")
+
+# No warm engine in the suite (S-305): a subprocess CLI run would start a background process per
+# product folder. tests/unit/test_engine_*.py opt in with their own fixture and always stop it.
+os.environ.setdefault("N2F_NO_ENGINE", "1")
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
@@ -259,3 +263,110 @@ def _n2f_in_process(
     if result.exception is not None and not isinstance(result.exception, SystemExit):
         stderr += "".join(traceback.format_exception(result.exception))
     return subprocess.CompletedProcess(["n2f", *args], result.exit_code, result.stdout, stderr)
+
+
+# --- the warm engine (S-305): tests opt in, and every engine they start is stopped ----------
+
+
+def engine_processes(root: Path) -> list[str]:
+    """Command lines of the engine processes serving ``root`` (empty when none is alive)."""
+    out = subprocess.run(
+        ["ps", "-axww", "-o", "pid=,stat=,command="], capture_output=True, text=True, check=False
+    ).stdout
+    real = os.path.realpath(root)
+    found = []
+    for line in out.splitlines():
+        fields = line.split(None, 2)
+        if len(fields) == 3 and "napkin2factory.cli.engine" in fields[2] and real in fields[2]:
+            if not fields[1].startswith("Z"):  # a finished child not yet reaped is not running
+                found.append(line)
+    return found
+
+
+class EngineGuard:
+    """Starts engines for a test and makes sure none outlives it (S-291, S-305)."""
+
+    def __init__(self) -> None:
+        """No engines yet."""
+        self.roots: list[Path] = []
+        self.procs: list[subprocess.Popen[bytes]] = []
+
+    def start(self, root: Path, timeout: float = 40.0) -> int:
+        """Start the engine of ``root``, wait until it answers, return its process id."""
+        import time
+
+        from napkin2factory.cli import engine
+
+        root = Path(os.path.realpath(root))
+        if root not in self.roots:
+            self.roots.append(root)
+        (root / "build").mkdir(exist_ok=True)
+        proc = engine.spawn(root)
+        if proc is not None:
+            self.procs.append(proc)
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            info = engine.engine_status(root)
+            if info is not None:
+                return int(info["pid"])
+            time.sleep(0.1)
+        raise AssertionError(f"the engine of {root} did not start in {timeout:.0f} s")
+
+    def track(self, root: Path) -> None:
+        """Include ``root`` in the final check (an engine a command started by itself)."""
+        root = Path(os.path.realpath(root))
+        if root not in self.roots:
+            self.roots.append(root)
+
+    def stop_all(self) -> None:
+        """Stop every engine of this test and assert nothing is left: process, socket, pid file."""
+        import time
+
+        from napkin2factory.cli import engine
+
+        for root in self.roots:
+            if (root / "build").is_dir():
+                engine.stop_engine(root, wait=10.0)
+        for proc in self.procs:
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+        left = []
+        for root in self.roots:
+            deadline = time.monotonic() + 5
+            while engine_processes(root) and time.monotonic() < deadline:
+                time.sleep(0.1)
+            if engine_processes(root):
+                left.append(f"process for {root}")
+            if engine.socket_path(root).exists():
+                left.append(f"socket {engine.socket_path(root)}")
+            if engine.pid_path(root).exists():
+                left.append(f"pid file of {root}")
+        self.roots.clear()
+        self.procs.clear()
+        assert not left, f"an engine was left behind: {left}"
+
+
+@pytest.fixture
+def engines(monkeypatch: pytest.MonkeyPatch) -> Iterator[EngineGuard]:
+    """Engines allowed (``N2F_NO_ENGINE`` removed), each one stopped and checked at the end."""
+    monkeypatch.delenv("N2F_NO_ENGINE", raising=False)
+    guard = EngineGuard()
+    yield guard
+    guard.stop_all()
+
+
+@pytest.fixture
+def short_product(engines: EngineGuard) -> Iterator[Path]:
+    """A bracket model (not built, ``build/`` empty) at a short path: the socket sits in it."""
+    import tempfile
+
+    base = Path(os.path.realpath(tempfile.mkdtemp(prefix="n2f-t-", dir="/tmp")))
+    root = copy_product(EXAMPLES / "bracket", base / "bracket", git=False)
+    (root / "build").mkdir()
+    engines.track(root)
+    yield root
+    engines.stop_all()
+    shutil.rmtree(base, ignore_errors=True)

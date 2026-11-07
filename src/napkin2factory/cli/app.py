@@ -13,6 +13,7 @@ from napkin2factory.cli import decide as decide_cmd
 from napkin2factory.cli import docs as docs_cmd
 from napkin2factory.cli import doctor as doctor_cmd
 from napkin2factory.cli import ecr as ecr_cmd
+from napkin2factory.cli import engine as engine_cmd
 from napkin2factory.cli import graph as graph_cmd
 from napkin2factory.cli import init as init_cmd
 from napkin2factory.cli import mcp as mcp_cmd
@@ -65,6 +66,7 @@ app.command("doctor")(doctor_cmd.doctor)
 app.command("docs")(docs_cmd.docs)
 app.add_typer(ecr_cmd.ecr_app, name="ecr")
 app.add_typer(concept_cmd.concept_app, name="concept")
+app.add_typer(engine_cmd.engine_app(), name="engine")
 app.command("release")(release_cmd.release)
 app.command("diff")(release_cmd.diff)
 app.command("publish")(publish_cmd.publish)
@@ -74,5 +76,7 @@ app.command("skill")(skill_cmd.skill)
 
 
 def main() -> None:
-    """Entry point used by the ``n2f`` console script."""
-    app()
+    """Entry point kept for installs whose ``n2f`` script still points here (see ``entry.py``)."""
+    from napkin2factory.cli.entry import main as entry_main
+
+    entry_main()
