@@ -111,8 +111,8 @@ nav.tree li[aria-expanded=false]>ul{display:none}
   .matrix td.rule,.matrix th.rule{min-width:180px}
   .stepgrid{display:block}
 }
-/* phone (V8, M3a): the bar wraps, the lens tabs sit at the bottom, the workbench stacks: 3D, inspector, tree;
-   wide tables scroll inside themselves, the page never scrolls sideways (M4 builds the sheets) */
+/* phone (V8, M3a): the bar wraps, the lens tabs sit at the bottom; wide tables scroll inside themselves,
+   the page never scrolls sideways.  The workbench's own phone layout is the next block (M4) */
 @media (max-width:767px){
   :root{--head-h:0px}
   header.top{position:static;padding:.7rem 1rem .6rem}
@@ -120,15 +120,75 @@ nav.tree li[aria-expanded=false]>ul{display:none}
   .tabs button{flex:1 1 0;min-width:0;padding:.7rem .2rem .6rem;font-size:.85rem;border-bottom:0;border-top:3px solid transparent}
   .tabs button[aria-selected=true]{border-top-color:var(--accent)}
   body{padding-bottom:3.4rem}
-  .wb{display:flex;flex-direction:column;height:auto;min-height:0}
-  .pane3d{order:1;height:60vh;flex:none}.insp{order:2;border-left:0;border-top:1px solid var(--line);overflow:visible}
-  nav.tree{order:3;border-right:0;border-top:1px solid var(--line);overflow:visible}
-  .toolbar3d input[type=range]{width:80px}
   .cards{padding:.8rem 1rem 1.5rem}
   main table{display:block;max-width:100%;overflow-x:auto}
   .grid{grid-template-columns:minmax(0,1fr)}
   .kv{grid-template-columns:minmax(0,1fr)}
   .scroll{max-width:100%}
+}
+/* the details toggle, the dock and the sheet heads exist for the phone only (V8, M4, S-324) */
+.hdr-toggle,.dock,.sheet-head{display:none}
+/* phone workbench (V8, M4, S-324): the 3D fills the screen, the parts list and the inspector are bottom sheets
+   above the tab bar, the view controls a small panel above the dock; one open at a time, `.wb[data-sheet]`.
+   `screen` keeps all of it out of the print packet, which a 700 px page would otherwise match */
+@media screen and (max-width:767px){
+  :root{--tab-h:56px;--dock-h:44px;--hdr-h:96px}
+  body{padding-bottom:calc(var(--tab-h) + .5rem)}
+  .tabs{height:var(--tab-h)}
+  header.top .row:first-child{flex-wrap:nowrap;gap:.5rem}
+  header.top h1{flex:0 1 auto;min-width:0;font-size:1.05rem;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}  /* the name wraps to two lines; the revision waits in Details (S-324) */
+  header.top:not(.open) .rev{display:none}
+  header.top .rev{flex:0 3 auto;min-width:0;font-size:.78rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .badge{flex:none}
+  header.top.open .row:first-child{flex-wrap:wrap}
+  header.top.open h1{flex:1 1 0;display:block;-webkit-line-clamp:unset}
+  header.top.open .hdr-toggle{order:4}
+  header.top.open .rev{order:5;flex:1 0 100%;white-space:normal;overflow:visible}  /* the whole state line, once the bar is open */
+  .hdr-toggle{display:inline-flex;align-items:center;flex:none;margin-left:auto;min-width:44px;min-height:44px;padding:0 .6rem;font:inherit;font-size:.88rem;color:inherit;background:#fff;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+  .hdr-toggle::after{content:"▾";margin-left:.35rem;font-size:.75rem}
+  .hdr-toggle[aria-expanded=true]::after{content:"▴"}
+  header.top:not(.open) .vitals,header.top:not(.open) .counts{display:none}
+  #lens-workbench{padding-bottom:var(--dock-h)}
+  .wb{display:block;height:auto;min-height:0;border-bottom:0}
+  .pane3d{height:max(320px,calc(100vh - var(--hdr-h) - var(--tab-h)));padding-bottom:var(--dock-h)}
+  .pane3d:focus{outline:none}
+  .help3d{bottom:calc(var(--dock-h) + .4rem)}
+  .dock{display:flex;position:fixed;left:0;right:0;bottom:var(--tab-h);height:var(--dock-h);z-index:26;background:#fff;border-top:1px solid var(--line)}
+  .dock button{flex:1 1 0;min-width:0;min-height:44px;display:flex;align-items:center;justify-content:center;gap:.35rem;padding:0 .5rem;font:inherit;font-size:.92rem;color:var(--fg);background:none;border:0;border-right:1px solid var(--line);cursor:pointer}
+  .dock button:last-child{border-right:0}
+  .dock button[hidden]{display:none}
+  .dock button[aria-expanded=true]{color:var(--accent);font-weight:600}
+  .dock .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dock .up{flex:none;font-size:.75rem;color:var(--muted)}
+  /* the sheets: closed = hidden and moved out (not tabbable, not announced); open = shown */
+  nav.tree,.insp,.toolbar3d{visibility:hidden;transition:transform .18s ease,opacity .18s ease,visibility 0s linear .18s}
+  nav.tree,.insp{position:fixed;left:0;right:0;bottom:var(--tab-h);z-index:28;max-height:70vh;max-height:min(70vh,70dvh);overflow:auto;overscroll-behavior:contain;padding:0 1rem 1.2rem;background:#fff;border:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.22);transform:translateY(100%)}
+  .wb[data-sheet=tree] nav.tree,.wb[data-sheet=inspector] .insp,.wb[data-sheet=view] .toolbar3d{visibility:visible;transform:none;opacity:1;transition:transform .18s ease,opacity .18s ease,visibility 0s}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;position:sticky;top:0;z-index:2;flex:0 0 100%;min-height:52px;margin:0 -1rem;padding:0 .4rem 0 1rem;background:#fff;border-bottom:1px solid var(--line)}
+  .sheet-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1.05rem;font-weight:600}
+  .sheet-close{flex:none;min-width:44px;height:44px;padding:0 .8rem;font:inherit;font-size:.92rem;color:var(--accent);background:none;border:0;border-radius:8px;cursor:pointer}
+  #inspector-head h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  nav.tree .row{min-height:44px;padding:.18rem .5rem}
+  nav.tree .lbl{white-space:normal;overflow-wrap:anywhere}
+  nav.tree .tog{width:1.6rem;font-size:.8rem}
+  .insp .btns button{min-height:44px;min-width:44px}
+  .insp ul.links li{display:flex;flex-wrap:wrap;align-items:center;gap:0 .3rem;min-height:44px;padding:.2rem 0;white-space:normal;overflow:visible}
+  /* the 3D controls: a panel above the dock, not over the model */
+  .toolbar3d{position:fixed;z-index:27;top:auto;left:.6rem;right:.6rem;bottom:calc(var(--tab-h) + var(--dock-h) + .5rem);max-height:60vh;overflow:auto;padding:0 .9rem .5rem;gap:.1rem 1rem;border-radius:12px;box-shadow:0 -4px 18px rgba(0,0,0,.2);opacity:0;transform:translateY(12px)}
+  .toolbar3d .sheet-head{margin:0 -.9rem}
+  .toolbar3d label{min-height:44px}
+  .toolbar3d>label{flex:1 1 100%}.toolbar3d>label input[type=range]{flex:1}
+  .secgrp{flex:1 1 100%;flex-wrap:wrap}
+  .toolbar3d input[type=range]{width:auto;min-width:0;flex:1 1 140px;height:44px}
+  .toolbar3d input[type=checkbox]{width:22px;height:22px}
+  .toolbar3d button{min-width:44px;min-height:44px}
+  .seg button{min-width:44px}
+  /* the build player's buttons (sections/build.html.j2) get the same size */
+  .player button{min-height:44px;min-width:44px}
+  @supports (height:100dvh){.pane3d{height:max(320px,calc(100dvh - var(--hdr-h) - var(--tab-h)))}}
+}
+@media screen and (max-width:767px) and (prefers-reduced-motion:reduce){
+  nav.tree,.insp,.toolbar3d{transition:none !important}
 }
 {% include "print.css.j2" ignore missing %}
 </style>
@@ -144,11 +204,11 @@ nav.tree li[aria-expanded=false]>ul{display:none}
 {% set shown_lenses = lenses | select('in', used_lenses) | list %}
 {% set vit = inspector_index['manifest://product'].vitals %}
 {% set later = later_count if later_count is defined else summary.get('later', 0) %}
-<noscript><style>.lens[hidden]{display:block}.tabs{display:none}</style></noscript>
+<noscript><style>.lens[hidden]{display:block}.tabs,.hdr-toggle,.dock,.sheet-head{display:none !important}header.top .vitals{display:flex !important}header.top .counts{display:block !important}.wb nav.tree,.wb .insp{position:static !important;visibility:visible !important;transform:none !important;max-height:none !important}</style></noscript>
 <header class="top">
-  <div class="row"><h1>{{ product.name }}</h1><span class="badge {{ stage_class }}">{{ stage_label }}</span><span class="muted">{{ revision_label }}</span></div>
-  <div class="row vitals">{% for key in ['total_mass', 'total_cost', 'envelope'] %}{% if vit.get(key) %}<span class="vital"><b>{{ vit[key].value }}</b> <span class="muted">{{ vit[key].label }}</span></span>{% endif %}{% endfor %}{% set oc = vit.get('open_choices') %}{% if oc %}<span class="vital"><a href="#waiting"><b>{{ oc.value }}</b></a></span>{% elif waiting %}<span class="vital"><a href="#waiting"><b>{{ waiting | length }} open choice{{ '' if waiting | length == 1 else 's' }}</b></a></span>{% else %}<span class="vital"><b>no open choices</b></span>{% endif %}</div>
-  <div class="row muted counts"><a href="#requirements">{{ summary.pass + summary.signed }} {{ w('pass') }}</a>{% if summary.fail %} · <a href="#requirements">{{ summary.fail }} {{ w('fail') }}</a>{% endif %}{% if summary['needs-human'] or not summary.example %} · <a href="#requirements">{{ summary['needs-human'] }} {{ w('needs-human') }}</a>{% endif %} · <a href="#requirements">{{ summary.warn }} {{ w('warn') }}</a> · <a href="#requirements">{{ summary.skip }} {{ w('skip') }}</a> · <a href="#requirements">{{ later }} {{ w('later') }}</a>{% if summary.example %} · <a href="#signoffs"><span class="example">{{ summary.example }} {{ w('example_one' if summary.example == 1 else 'example') }}</span></a>{% endif %}</div>
+  <div class="row"><h1>{{ product.name }}</h1><span class="badge {{ stage_class }}">{{ stage_label }}</span><span class="muted rev">{{ revision_label }}</span><button type="button" class="hdr-toggle" aria-expanded="false" aria-controls="hdr-vitals hdr-counts">Details</button></div>
+  <div class="row vitals" id="hdr-vitals">{% for key in ['total_mass', 'total_cost', 'envelope'] %}{% if vit.get(key) %}<span class="vital"><b>{{ vit[key].value }}</b> <span class="muted">{{ vit[key].label }}</span></span>{% endif %}{% endfor %}{% set oc = vit.get('open_choices') %}{% if oc %}<span class="vital"><a href="#waiting"><b>{{ oc.value }}</b></a></span>{% elif waiting %}<span class="vital"><a href="#waiting"><b>{{ waiting | length }} open choice{{ '' if waiting | length == 1 else 's' }}</b></a></span>{% else %}<span class="vital"><b>no open choices</b></span>{% endif %}</div>
+  <div class="row muted counts" id="hdr-counts"><a href="#requirements">{{ summary.pass + summary.signed }} {{ w('pass') }}</a>{% if summary.fail %} · <a href="#requirements">{{ summary.fail }} {{ w('fail') }}</a>{% endif %}{% if summary['needs-human'] or not summary.example %} · <a href="#requirements">{{ summary['needs-human'] }} {{ w('needs-human') }}</a>{% endif %} · <a href="#requirements">{{ summary.warn }} {{ w('warn') }}</a> · <a href="#requirements">{{ summary.skip }} {{ w('skip') }}</a> · <a href="#requirements">{{ later }} {{ w('later') }}</a>{% if summary.example %} · <a href="#signoffs"><span class="example">{{ summary.example }} {{ w('example_one' if summary.example == 1 else 'example') }}</span></a>{% endif %}</div>
   <div class="tabs" role="tablist" aria-label="views of this product">{% for l in shown_lenses %}<button type="button" role="tab" id="tab-{{ l }}" data-lens-tab="{{ l }}" aria-controls="lens-{{ l }}" aria-selected="{{ 'true' if loop.first else 'false' }}" tabindex="{{ '0' if loop.first else '-1' }}">{{ lens_label[l] }}</button>{% endfor %}</div>
 </header>
 <main>
@@ -158,14 +218,21 @@ nav.tree li[aria-expanded=false]>ul{display:none}
 {% for l in shown_lenses %}
 <div class="lens" id="lens-{{ l }}" data-lens="{{ l }}" role="tabpanel" aria-labelledby="tab-{{ l }}"{% if not loop.first %} hidden{% endif %}>
 {% if l == 'workbench' %}
-<div class="wb">
-  <nav class="tree" id="tree" aria-label="parts and objects"></nav>
+<div class="wb" data-sheet="none">
+  <nav class="tree" id="tree" aria-label="parts and objects"><div class="sheet-head"><span class="sheet-title">Parts</span><button type="button" class="sheet-close" data-sheet-close>Close</button></div></nav>
   {% for s in page_sections if s.id == 'model' %}{% with data = section_data.get(s.id, {}) %}{% include s.template %}{% endwith %}{% endfor %}
   <aside class="insp" id="inspector" aria-label="inspector" aria-live="polite">
+    <div class="sheet-head"><span class="sheet-title" id="inspector-sheet-title">{{ product.name }}</span><button type="button" class="sheet-close" data-sheet-close>Close</button></div>
     <div id="inspector-head"><h2 id="inspector-title">{{ product.name }}</h2></div>
     <div id="inspector-product" class="product-view">{% for s in page_sections if s.id == 'overview' %}{% with data = section_data.get(s.id, {}) %}{% include s.template %}{% endwith %}{% endfor %}</div>
     <div id="inspector-entry" hidden></div>
   </aside>
+  {# the phone's dock (V8, S-324): three buttons above the tab bar; shown below 768 px only, by the CSS #}
+  <div class="dock" role="group" aria-label="Panels">
+    <button type="button" data-sheet-open="tree" aria-expanded="false" aria-controls="tree"><span class="lbl">Parts</span><span class="up" aria-hidden="true">▴</span></button>
+    <button type="button" data-sheet-open="inspector" aria-expanded="false" aria-controls="inspector"><span class="lbl" id="dock-details">Product</span><span class="up" aria-hidden="true">▴</span></button>
+    {% if glbs %}<button type="button" data-sheet-open="view" aria-expanded="false" aria-controls="view-panel"><span class="lbl">View</span><span class="up" aria-hidden="true">▴</span></button>{% endif %}
+  </div>
 </div>
 {% endif %}
 <div class="cards">

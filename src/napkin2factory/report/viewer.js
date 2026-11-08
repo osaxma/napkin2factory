@@ -333,7 +333,9 @@ function n2fCreateViewer(container, options) {
     const center = box.getCenter(new Vector3());
     const radius = Math.max(size.x, size.y, size.z, 1);
     camera.up.set(0, 0, 1);
-    camera.position.copy(center).add(new Vector3(radius * 1.4, -radius * 1.6, radius * 1.1));
+    // a frame taller than wide (a phone's full-screen pane, S-324) would cut the sides: stand back by the shortfall
+    const back = camera.aspect < 0.75 ? 0.75 / camera.aspect : 1;
+    camera.position.copy(center).add(new Vector3(radius * 1.4, -radius * 1.6, radius * 1.1).multiplyScalar(back));
     camera.near = radius / 100;
     camera.far = radius * 100;
     camera.updateProjectionMatrix();

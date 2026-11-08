@@ -13,6 +13,7 @@
 //   current()    -> the selected URI
 //   index        -> the parsed #inspector-index
 // and the event `n2f:lens` (detail: {lens}) on document.
+// Below 768 px it also drives the phone's dock and bottom sheets through `.wb[data-sheet]` (V8, M4).
 (function () {
   'use strict';
   const PRODUCT = 'manifest://product';
@@ -423,7 +424,7 @@
   let fromHash = false;
   function select(uri) {
     uri = uri || PRODUCT;
-    if (uri === selected && rendered) return;
+    if (uri === selected && rendered) { if (!fromHash) sheetForSelection(); return; }
     selected = uri;
     rendered = true;
     markTree(uri);
@@ -434,7 +435,8 @@
     else renderEntry(uri);
     $('inspector').scrollTop = 0;
     sync3d();
-    if (!fromHash) writeHash();
+    paintTitles();
+    if (!fromHash) { sheetForSelection(); writeHash(); }
   }
   function writeHash() {
     const h = '#lens=' + lensName + (selected === PRODUCT ? '' : '&select=' + selected);
@@ -460,7 +462,7 @@
     });
     // a viewer made while its panel was hidden has no size yet: tell it the panel is on screen
     window.dispatchEvent(new Event('resize'));
-    if (changed) document.dispatchEvent(new CustomEvent('n2f:lens', { detail: { lens: name } }));
+    if (changed) { closeSheet(false); document.dispatchEvent(new CustomEvent('n2f:lens', { detail: { lens: name } })); }
     return name;
   }
   function lensFromUser(name) {
@@ -486,10 +488,12 @@
           const at = kv.indexOf('=');
           if (at > 0) { try { p[kv.slice(0, at)] = decodeURIComponent(kv.slice(at + 1)); } catch (err) { p[kv.slice(0, at)] = kv.slice(at + 1); } }
         });
+        const prev = selected;
         if (p.select) select(p.select);
         const before = lensName;
         setLens(p.lens || (p.select ? 'workbench' : lensName));
         if (lensName !== before) window.scrollTo(0, 0);
+        if (p.select && selected !== prev) sheetForSelection();  // a new pick from a link or a deep link shows its inspector
         return;
       }
       let id = raw;
@@ -497,6 +501,7 @@
       const target = id ? $(id) : null;
       if (!target) { setLens('workbench'); return; }
       if (target.closest('#inspector-product')) select(PRODUCT);
+      closeSheet(false);  // the page is about to scroll to its target: no sheet over it
       const holder = target.closest('[data-lens]');
       setLens(holder ? holder.getAttribute('data-lens') : 'workbench');
       target.scrollIntoView();
@@ -520,6 +525,87 @@
     ev.preventDefault();
     if (location.hash === h) applyHash(); else location.hash = h;
   });
+
+  // ---- phone sheets (V8, M4, S-324) ------------------------------------------------------------
+  // Below 768 px the parts list, the inspector and the 3D controls are bottom sheets opened from the dock;
+  // `.wb[data-sheet]` holds which one (tree | inspector | view | none) and the CSS does the rest.  All of
+  // it is inert on a wider screen (the attribute is ignored there), and matchMedia is read live.
+  const wb = document.querySelector('.wb');
+  const mq = window.matchMedia ? window.matchMedia('(max-width:767px)') : { matches: false };
+  const phone = () => mq.matches;
+  const dockBtns = Array.from(document.querySelectorAll('[data-sheet-open]'));
+  const sheetEls = { tree: $('tree'), inspector: $('inspector'), view: $('view-panel') };
+  let sheet = 'none';
+  let sheetOpener = null;  // the dock button that began this visit; null = a pick (focus then returns to the 3D pane)
+  let ready = false;       // false while the page draws itself: a deep link opens a sheet without taking focus
+  function paintSheet() {
+    if (wb) wb.setAttribute('data-sheet', sheet);
+    dockBtns.forEach((b) => b.setAttribute('aria-expanded', b.getAttribute('data-sheet-open') === sheet ? 'true' : 'false'));
+  }
+  function openSheet(name, opener) {
+    if (!wb || !sheetEls[name]) return;
+    if (opener !== undefined) sheetOpener = opener;
+    else if (sheet === 'none') sheetOpener = null;  // tree -> inspector keeps the button that opened the list
+    sheet = name;
+    paintSheet();
+    const close = sheetEls[name].querySelector('[data-sheet-close]');
+    if (ready && close) close.focus({ preventScroll: true });
+  }
+  function closeSheet(restore) {
+    if (sheet === 'none') return;
+    const had = sheetEls[sheet] && sheetEls[sheet].contains(document.activeElement);
+    const back = sheetOpener || $('model');
+    sheet = 'none';
+    sheetOpener = null;
+    paintSheet();
+    if (restore !== false && had && back) back.focus({ preventScroll: true });
+  }
+  function sheetForSelection() {
+    if (!phone() || lensName !== 'workbench') return;
+    if (selected === PRODUCT) closeSheet(); else openSheet('inspector');
+  }
+  // the dock's middle button names what the inspector shows; the sheet's head says the same
+  function paintTitles() {
+    const t = $('inspector-title');
+    const title = t ? t.textContent : '';
+    const d = $('dock-details');
+    if (d) d.textContent = selected === PRODUCT ? 'Product' : title;
+    const h = $('inspector-sheet-title');
+    if (h) h.textContent = title;
+  }
+  function paintRoles() {  // a sheet is a labelled region on a phone, the page's own landmark otherwise
+    [sheetEls.tree, sheetEls.inspector].forEach((e) => { if (e) { if (phone()) e.setAttribute('role', 'region'); else e.removeAttribute('role'); } });
+  }
+  dockBtns.forEach((b) => b.addEventListener('click', () => {
+    const name = b.getAttribute('data-sheet-open');
+    if (sheet === name) closeSheet(); else openSheet(name, b);
+  }));
+  document.addEventListener('click', (ev) => { if (ev.target.closest('[data-sheet-close]')) closeSheet(); });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && phone() && sheet !== 'none') closeSheet(); });
+  if (mq.addEventListener) mq.addEventListener('change', paintRoles);
+  paintRoles();
+  paintSheet();
+
+  // the top bar's vitals and counts sit behind one button on a phone (the CSS shows them at any width otherwise)
+  const head = document.querySelector('header.top');
+  const hdrToggle = document.querySelector('.hdr-toggle');
+  if (head && hdrToggle) hdrToggle.addEventListener('click', () => {
+    const open = hdrToggle.getAttribute('aria-expanded') !== 'true';
+    hdrToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    head.classList.toggle('open', open);
+  });
+  // the phone's 3D pane is as tall as what the bar leaves (CSS reads --hdr-h); tell the viewer when it changes
+  let hdrH = -1;
+  function phoneHeader() {
+    if (!head || !phone()) return;
+    const h = Math.round(head.getBoundingClientRect().height);
+    if (h === hdrH) return;
+    hdrH = h;
+    document.documentElement.style.setProperty('--hdr-h', h + 'px');
+    window.dispatchEvent(new Event('resize'));
+  }
+  if (window.ResizeObserver && head) new ResizeObserver(phoneHeader).observe(head);
+  else window.addEventListener('resize', phoneHeader);
 
   // ---- the 3D toolbar and the inspector's buttons -------------------------------------------------
   function wireToolbar() {
@@ -578,11 +664,14 @@
   select(PRODUCT);
   fromHash = false;
   if (location.hash.length > 1) applyHash(); else setLens(lensName);
+  ready = true;
   if (window.n2fViewerReady) {
     const pane = $('model');
     // S-232: a browser with no WebGL (or one that gives up on it) leaves the tree and inspector as they are
     const noThreeD = () => {
       if (pane) pane.classList.add('off');
+      dockBtns.forEach((b) => { if (b.getAttribute('data-sheet-open') === 'view') b.hidden = true; });
+      if (sheet === 'view') closeSheet();
       document.querySelectorAll('[data-n2f-glb]').forEach((c) => {
         if (c.querySelector('.n2f-fallback')) return;
         const note = el('p', { class: 'n2f-fallback' }, c.getAttribute('data-n2f-fallback') || 'This browser cannot show the 3D view.');

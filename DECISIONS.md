@@ -350,6 +350,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-320 | M3c: the build player, cut lists on the Build lens, the print packet | in force |
 | S-322 | M3b follow-up, cards and viewer | in force |
 | S-323 | M3b phone and plain titles | in force |
+| S-324 | M4 phone layout: sheets, dock, compact bar | in force |
 
 ---
 
@@ -2416,3 +2417,6 @@ Wave 4 was M3b (S-319, pan/zoom drawings and schematics) and M3c (S-320, build p
 
 ## S-323 — M3b phone and plain titles (2026-11-08)
 Amends S-322 (its text stands). Judged by the maintainer from phone screenshots. **Phone:** the viewer decides "narrow" from its own width (640 px and under, set when it opens and on every resize), not from a media query, so the list always starts collapsed, overlays the drawing, and a pick closes it. The bar stays on one row: buttons show a short sign (+, minus, Fit, x) with the full word as their accessible name, and the pan arrows sit behind a "Move" button as a small panel. Buttons are at least 36 px. At fit the drawing is centred in the space left and refits on rotate. **Plain titles:** cards, captions, the viewer header and the list show the part's name ("Steel apron frame"), from a `name` field the report's data gathering adds to each drawing (falls back to the id), never `part://...`; the sheet's own title block is the drawing and is untouched. `core/` files: 0 (V12).
+
+## S-324 — M4 phone layout (2026-11-08)
+Builds V8's phone half on S-316/S-317's page (amends nothing). Below 768 px the workbench lens is the 3D filling the screen, with a dock of three buttons above the tab bar: Parts (the tree), Details (the inspector; its label is the selected entry's title) and View (the 3D controls). Each opens a bottom sheet, one at a time, driven by `.wb[data-sheet]`; closed sheets are `visibility:hidden` so they leave the tab order. A pick, a tree row or an inspector link opens Details; the product, an empty pick, Escape, Close or a lens change closes; focus moves to Close on open and back to the dock button on close; sheets do not trap focus. The top bar keeps name and state; vitals, counts and the revision sit behind a Details toggle. Targets are 44 px. The viewer's `fit()` stands back for a frame taller than wide. Desktop is pixel-identical at 1440 px. The drawing viewer keeps its own phone layout (S-323). Tests: `tests/e2e/test_workbench_phone.py`, tier 1. `core/` files: 0 (V12).
