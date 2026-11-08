@@ -90,11 +90,9 @@ entry that closed them. Ids are never reused.
 | B-0173 | The supply-headroom fraction cites NEC 210.23(A)(2) for an EU supply | gate G (`docs/reviews/v0.6-gate-g.md`); a regional source, or say why the US rule is the default (`checks/electrical-v0.yaml`) |
 | B-0174 | The supply-headroom choice's owner text: the 16 A rating has no "given" label, neither option a cost, a file field reaches the owner ("`dedicated: true` in the wiring's supply file"), "a licensed electrician decides" is never said, and the report prints the `elec-rule://` command | gate H (`docs/reviews/v0.6-gate-h.md`); `domains/electrical/checks/stage.py:346,371` (after the gate G checks fix lands) |
 | B-0175 | Deciding a choice that holds nothing drops the stage from Verify back to Design, and the next line ("your agent makes the change: the electrician fits…") muddles who does what | gate H (`docs/reviews/v0.6-gate-h.md`); C2; `core/checks/choices.py` and the status stage |
-| B-0176 | In the report each diagram sits at full size (2313 px in a 694 px column): only the supply and terminal block show without sideways scrolling | gate H (`docs/reviews/v0.6-gate-h.md`); C5; fit to width with a click to enlarge (`owner/wiring.html.j2`) |
 | B-0177 | Wiring words a potter would not know, unexplained: AC-15/DC-13, "rated resistive", PE alone, "TT installation", H07V-K codes, "conductor table", "cross-section"; the kiln's installation manual says "drawn below" with no diagram there | gate H (`docs/reviews/v0.6-gate-h.md`); C6; owner glossary lines or plain words; `examples/kiln/model/docs/installation.md:36` |
 | B-0178 | `n2f diff` and `n2f ecr close` do not say the wiring was added; new parts show as "rev B" or "rev A → B"; the diff's "+4.00 USD" understates a change whose five new parts and cable have no cost | gate H (`docs/reviews/v0.6-gate-h.md`); C8; `ecr/lifecycle.py:475`, the diff's cost line says how many lines have no price |
 | B-0179 | The napkin card's "230V-16A … fits with a fifth to spare" reads as contradicting the later wiring check's "more than half of it" | gate H (`docs/reviews/v0.6-gate-h.md`); C9; the supply screen says what it compares (the load against the rating, not the headroom rule) |
-| B-0180 | `id="wiring"` appears twice in the report | gate H (`docs/reviews/v0.6-gate-h.md`); C10; one of the anchors renamed |
 | B-0181 | A refusal prints the known ids as a Python list | gate H (`docs/reviews/v0.6-gate-h.md`); C11; `core/product.py:235`, a comma-separated list |
 | B-0182 | `conductor-protection` checks I_n <= I_z only: not I_2 <= 1.45 I_z (a fuse's conventional fusing current), not an earth conductor's size against the device that must clear its fault (IEC 60364-5-54), not a lead fed through another of the product's devices | S-178; cited rows in a table of the calc kit and the walk extended (`domains/electrical/checks/`) |
 | B-0183 | `docs/electrical.md`'s rules table lacks `conductor-protection` and says the Class II case is "one pass row" | S-178; two lines in the table (`docs/electrical.md`, the docs task's file) |
@@ -151,6 +149,8 @@ entry that closed them. Ids are never reused.
 ## Closed
 
 | id | item | closed by |
+| B-0176 | In the report each diagram sits at full size (2313 px in a 694 px column): only the supply and terminal block show without sideways scrolling | closed by S-319 (M3b: pan/zoom frames fit the column; the repeated id dropped; tested) |
+| B-0180 | `id="wiring"` appears twice in the report | closed by S-319 (M3b: pan/zoom frames fit the column; the repeated id dropped; tested) |
 | B-0134 | The report's header counts and its "only what is not OK" filter say nothing of rows left for later | closed by S-317 (M3a: `later` in the top bar's counts; the filter keeps those rows, tested) |
 | B-0295 | The report's "Rendered views" are false-colour diagnostics beside the product viewer, uncaptioned (gate L C14) | closed by S-317 (M3a: a captioned "Check views" section in the Checks lens) |
 | B-0298 | The report is one scroll page of up to 16 sections, with the 3D model third; no lenses, no deep link to a selection | closed by S-317 (M3a: the workbench, five lenses, `#lens=…&select=…`) |

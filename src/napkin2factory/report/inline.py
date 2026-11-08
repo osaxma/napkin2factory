@@ -17,6 +17,7 @@ from pathlib import Path
 VENDOR_DIR = Path(__file__).parent / "vendor" / "three"
 VIEWER_JS = Path(__file__).parent / "viewer.js"
 WORKBENCH_JS = Path(__file__).parent / "workbench.js"
+PANZOOM_JS = Path(__file__).parent / "panzoom.js"
 THREE_VERSION = "0.170.0"
 
 #: Addon modules, in dependency order.  Each is wrapped and its exports re-bound.
@@ -84,6 +85,12 @@ def _workbench_source() -> str:
     return "\n// ---- workbench.js ----\n" + _strip_imports(_strip_exports(src))
 
 
+def _panzoom_source() -> str:
+    """``panzoom.js`` as an import-free body (an IIFE), for the drawings and wiring frames (M3b)."""
+    src = PANZOOM_JS.read_text(encoding="utf-8") if PANZOOM_JS.exists() else ""
+    return "\n// ---- panzoom.js ----\n" + _strip_imports(_strip_exports(src))
+
+
 def bundle_viewer() -> str:
     """Return three.js, ``viewer.js`` and ``workbench.js`` ready for one inline module script.
 
@@ -95,12 +102,13 @@ def bundle_viewer() -> str:
         + "\n// ---- viewer.js ----\n"
         + _strip_imports(_strip_exports(viewer))
         + _workbench_source()
+        + _panzoom_source()
     )
 
 
 def bundle_workbench() -> str:
-    """Return ``workbench.js`` alone, for a page with no 3D model: the tree and inspector work."""
-    return _workbench_source()
+    """Return ``workbench.js`` and ``panzoom.js``, for a page with no 3D model (tree, frames)."""
+    return _workbench_source() + _panzoom_source()
 
 
 def inline_module_script(body: str) -> str:
