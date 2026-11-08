@@ -11,6 +11,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import math
+import os
 import shutil
 import sys
 import time
@@ -103,9 +104,23 @@ def _load_module(path: Path, name: str) -> Any:
     if folder not in sys.path:
         sys.path.insert(0, folder)
     # Drop cached product-local modules so a helper edit is seen in the same process (gate-1 B6).
+    # S-330: with a kernel loaded sys.modules holds ~2,800 files; resolving each cost 0.2 s per
+    # call. A file that is not itself a link resolves as its folder's real path plus its name, and
+    # the folders are few, so each folder is resolved once.
+    real_dirs: dict[str, str] = {}
     for mod_name, mod in list(sys.modules.items()):
         mod_file = getattr(mod, "__file__", None)
-        if mod_file and str(Path(mod_file).resolve()).startswith(folder):
+        if not mod_file:
+            continue
+        mod_file = os.fspath(mod_file)
+        if os.path.islink(mod_file):
+            real = os.path.realpath(mod_file)
+        else:
+            head, tail = os.path.split(mod_file)
+            if head not in real_dirs:
+                real_dirs[head] = os.path.realpath(head)
+            real = os.path.join(real_dirs[head], tail)
+        if real.startswith(folder):
             del sys.modules[mod_name]
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
@@ -198,7 +213,12 @@ def build_part(
     out_dir = (build_dir or product.paths.build) / "parts" / part_id
     if out_dir.exists():
         shutil.rmtree(out_dir)  # never leave stale renders/flat patterns behind (gate-1 B4)
-    props = export_part(part.uri, result, out_dir, part.material, part.mass, render=render)
+    # S-330: tessellate once; the assembly rule reads the same mesh from the built part
+    # (a second tessellation cost 0.5 s on the table's frame and gave the same mesh).
+    tess = tessellate(result.shape)
+    props = export_part(
+        part.uri, result, out_dir, part.material, part.mass, render=render, tess=tess
+    )
     props["rev"] = part.rev
     props["reads"] = log.keys
     write_json(out_dir / "props.json", props)
@@ -209,6 +229,7 @@ def build_part(
         reads=log.keys,
         out_dir=out_dir,
         iface_reads=log.iface_reads,
+        _tess=tess,
     )
     built.duration = time.perf_counter() - t0
     return built

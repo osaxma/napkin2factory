@@ -109,3 +109,32 @@ def test_note_lines_for_an_assembly_and_an_unknown_remark(bracket: Path) -> None
     part_name = product.parts["l-bracket"].name
     assert lines[0].startswith(f"Cut-away picture of {asm_name}: {part_name} has a gap in its")
     assert lines[1] == f"Pictures of {part_name}: the renderer left a remark in renders/notes.json."
+
+
+def test_export_part_uses_the_mesh_it_is_given(tmp_path: Path) -> None:
+    # S-330: build_part tessellates once and hands the mesh on, so the assembly rule does not
+    # tessellate the same shape a second time; what is written is that mesh, not a new one.
+    from napkin2factory.geometry.exporters import tessellate
+
+    result = _open_sheet()
+    v, t = tessellate(result.shape)
+    given = (v + 0.0, t.copy())
+    export_part("part://sheet", result, tmp_path / "sheet", tess=given)
+    data = np.load(tmp_path / "sheet" / "mesh.npz")
+    assert np.array_equal(data["vertices"], v) and np.array_equal(data["triangles"], t)
+
+
+def test_built_part_keeps_its_tessellation(bracket: Path) -> None:
+    # S-330: the part's own mesh travels with the built part (no second tessellation later).
+    from napkin2factory.geometry.build import build_part
+
+    product = load_product(bracket)
+    built = build_part(
+        product,
+        sorted(p for p, v in product.parts.items() if v.has_geometry)[0],
+        bracket / "build",
+        render=False,
+    )
+    assert built._tess is not None
+    mesh = np.load(built.out_dir / "mesh.npz")
+    assert np.array_equal(built._tess[0], mesh["vertices"])

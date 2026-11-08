@@ -132,17 +132,19 @@ def build(
             print_render_notes(product)
         return
     from napkin2factory.core.graph.runner import run_build
+    from napkin2factory.core.vcs import memoized_reads
 
-    summary = run_build(
-        product,
-        target=target,
-        only_part=part,
-        clean=clean,
-        jobs=jobs,
-        render=not no_render,
-        quiet=json_out,
-        before_first_run=load_cad_kernel,
-    )
+    with memoized_reads():  # S-330: the rules ask git the same questions; ask it once
+        summary = run_build(
+            product,
+            target=target,
+            only_part=part,
+            clean=clean,
+            jobs=jobs,
+            render=not no_render,
+            quiet=json_out,
+            before_first_run=load_cad_kernel,
+        )
     if json_out:
         emit_json({**summary, "render_notes": _render_notes(product)})
     else:

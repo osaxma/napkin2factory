@@ -163,10 +163,15 @@ def export_part(
     material: Any = None,
     declared_mass: Any = None,
     render: bool = True,
+    tess: tuple[NDArray[np.float64], NDArray[np.int64]] | None = None,
 ) -> dict[str, Any]:
-    """Write every part artifact into ``out_dir`` and return the props."""
+    """Write every part artifact into ``out_dir`` and return the props.
+
+    ``tess`` is the shape's tessellation when the caller already has it (the caller keeps it
+    for the assemblies, S-330); without it the shape is tessellated here.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
-    v, t = tessellate(result.shape)
+    v, t = tess if tess is not None else tessellate(result.shape)
     props = compute_props(result.shape, material, declared_mass, (v, t))
     props.update({k: v_ for k, v_ in result.props.items() if k not in props})
     props["uri"] = uri

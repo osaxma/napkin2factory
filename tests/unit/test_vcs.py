@@ -204,3 +204,57 @@ def test_vcs_caches_is_tracked_and_identity(tmp_path: Path) -> None:
     from napkin2factory.core.vcs import _FALLBACK_IDENTITY_CACHE
 
     assert root in _FALLBACK_IDENTITY_CACHE
+
+
+def test_memoized_reads_ask_git_once_and_end_with_the_block(tmp_path: Path) -> None:
+    # S-330: inside a build the read-only questions are asked once per folder; outside the
+    # block (and after it) every call asks git again, so a later command never sees stale facts.
+    from napkin2factory.core import vcs as vcs_mod
+
+    root = tmp_path / "repo"
+    root.mkdir()
+    Vcs(root).init()
+    (root / "a.txt").write_text("1")
+    Vcs(root).snapshot("first")
+
+    calls: list[tuple[str, ...]] = []
+    real = Vcs._git
+
+    def counting(self: Vcs, *args: str, **kwargs: object) -> object:
+        calls.append(args)
+        return real(self, *args, **kwargs)  # type: ignore[arg-type]
+
+    vcs_mod.Vcs._git = counting  # type: ignore[method-assign]
+    try:
+        with vcs_mod.memoized_reads():
+            for _ in range(3):  # three Vcs objects, as three rules would make
+                v = Vcs(root)
+                assert v.is_tracked() and v.is_clean()
+                assert v.tag_for_head() is None and v.tags() == []
+                assert v.commit_date() != "unsnapshotted"
+            asked = len(calls)
+            assert asked == 5  # tracked, clean, describe, tag --list, log: once each
+            (root / "b.txt").write_text("2")  # not seen inside the block: it is one build
+            assert Vcs(root).is_clean()
+        assert vcs_mod._READS is None
+        assert not Vcs(root).is_clean()  # the block is over: git is asked again
+    finally:
+        vcs_mod.Vcs._git = real  # type: ignore[method-assign]
+
+
+def test_read_only_git_calls_skip_the_identity_lookup(tmp_path: Path) -> None:
+    # S-330: finding the fallback identity costs two git calls; a call that only reads needs none.
+    from napkin2factory.core import vcs as vcs_mod
+
+    root = tmp_path / "repo"
+    root.mkdir()
+    vcs_mod._FALLBACK_IDENTITY_CACHE.pop(root.resolve(), None)
+    v = Vcs(root)
+    v.init()  # writes nothing needing an identity
+    vcs_mod._FALLBACK_IDENTITY_CACHE.pop(v.root, None)
+    assert v.is_tracked()
+    assert v.tags() == []
+    assert v.root not in vcs_mod._FALLBACK_IDENTITY_CACHE
+    assert Vcs._reads_only(("tag", "--list", "--sort=creatordate"))
+    assert not Vcs._reads_only(("tag", "-a", "v1"))
+    assert not Vcs._reads_only(("commit", "-m", "x"))

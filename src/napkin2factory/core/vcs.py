@@ -12,9 +12,11 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import NoReturn
+from typing import Any, NoReturn
 
 import yaml
 
@@ -49,6 +51,33 @@ PAGES_LINE = "gh-pages"
 # S-302: fallback git identity cached once per process per repository
 # to avoid repeated subprocesses.
 _FALLBACK_IDENTITY_CACHE: dict[Path, dict[str, str]] = {}
+
+# S-330: while a build runs (``memoized_reads``) the read-only questions the build asks about
+# the repository (tracked, clean, tag, tags, date) are answered by git once per folder, not
+# once per rule that asks: each git call costs about 50 ms of a warm 4 s rebuild. None = off.
+_READS: dict[tuple[Path, str], Any] | None = None
+
+# git verbs that only read: they never use the author/committer identity (S-330).
+_READ_ONLY = frozenset({"rev-parse", "status", "describe", "log"})
+
+
+@contextmanager
+def memoized_reads() -> Iterator[None]:
+    """Answer the repository's read-only questions once per folder inside this block.
+
+    Only for a stretch in which nothing changes the repository (a build writes under
+    ``build/``, which is ignored). Nested use shares the outer block's answers; the answers
+    are dropped when the outermost block ends, so no later command sees them (S-330).
+    """
+    global _READS
+    outer = _READS
+    if outer is None:
+        _READS = {}
+    try:
+        yield
+    finally:
+        if outer is None:
+            _READS = None
 
 
 class VcsError(EnvironmentProblem):
@@ -117,12 +146,13 @@ class Vcs(StoreMixin):
         self._identity = missing
         return missing
 
-    def _env(self, env: dict[str, str] | None = None) -> dict[str, str]:
-        """The environment every git call runs in."""
+    def _env(self, env: dict[str, str] | None = None, *, identity: bool = True) -> dict[str, str]:
+        """The environment every git call runs in (``identity=False``: a call that only reads)."""
         full_env = dict(os.environ)
         # Never let a user's global hooks/pager/identity gaps break unattended runs.
         full_env.update({"GIT_PAGER": "cat", "GIT_TERMINAL_PROMPT": "0", "LC_ALL": "C"})
-        for key, value in self._fallback_identity().items():
+        # S-330: finding the fallback identity costs two git calls; a read never needs it.
+        for key, value in self._fallback_identity().items() if identity else ():
             full_env.setdefault(key, value)
         if env:
             full_env.update(env)
@@ -149,7 +179,7 @@ class Vcs(StoreMixin):
             encoding="utf-8",
             errors="replace",
             input=input_text,
-            env=self._env(env),
+            env=self._env(env, identity=not self._reads_only(args)),
             check=False,
         )
         if check and proc.returncode != 0:
@@ -159,6 +189,20 @@ class Vcs(StoreMixin):
                 code=self._code(proc),
             )
         return proc
+
+    @staticmethod
+    def _reads_only(args: tuple[str, ...]) -> bool:
+        """True for a git call that cannot write a commit or a tag (it needs no identity)."""
+        return bool(args) and (args[0] in _READ_ONLY or args[:2] == ("tag", "--list"))
+
+    def _memo(self, key: str, ask: Any) -> Any:
+        """``ask()``'s answer, remembered per folder while :func:`memoized_reads` is on."""
+        if _READS is None:
+            return ask()
+        slot = (self.root, key)
+        if slot not in _READS:
+            _READS[slot] = ask()
+        return _READS[slot]
 
     def _git_bytes(
         self, *args: str, env: dict[str, str] | None = None
@@ -214,8 +258,10 @@ class Vcs(StoreMixin):
         """True if ``root`` is inside any repository."""
         # S-302: cache per Vcs instance to avoid repeated rev-parse subprocess work.
         if self._is_tracked is None:
-            self._is_tracked = self._git("rev-parse", "--git-dir", check=False).returncode == 0
-        return self._is_tracked
+            self._is_tracked = self._memo(
+                "tracked", lambda: self._git("rev-parse", "--git-dir", check=False).returncode == 0
+            )
+        return bool(self._is_tracked)
 
     def require_repo_root(self) -> None:
         """Raise the persona-worded error unless this folder is a repository root."""
@@ -230,8 +276,14 @@ class Vcs(StoreMixin):
 
     def is_clean(self) -> bool:
         """True when there are no unsaved changes (ignored files excluded)."""
-        proc = self._git("status", "--porcelain", "--untracked-files=all")
-        return proc.stdout.strip() == ""
+        return bool(
+            self._memo(
+                "clean",
+                lambda: (
+                    self._git("status", "--porcelain", "--untracked-files=all").stdout.strip() == ""
+                ),
+            )
+        )
 
     def require_clean(self) -> None:
         """Raise unless the tree has no unsaved changes."""
@@ -252,13 +304,22 @@ class Vcs(StoreMixin):
 
     def tags(self) -> list[str]:
         """Released Revisions (tags), oldest first."""
-        proc = self._git("tag", "--list", "--sort=creatordate", check=False)
-        return [t for t in proc.stdout.split() if t] if proc.returncode == 0 else []
+
+        def ask() -> list[str]:
+            proc = self._git("tag", "--list", "--sort=creatordate", check=False)
+            return [t for t in proc.stdout.split() if t] if proc.returncode == 0 else []
+
+        return list(self._memo("tags", ask))
 
     def tag_for_head(self) -> str | None:
         """Revision name if HEAD is exactly a released Revision."""
-        proc = self._git("describe", "--tags", "--exact-match", "HEAD", check=False)
-        return proc.stdout.strip() if proc.returncode == 0 else None
+
+        def ask() -> str | None:
+            proc = self._git("describe", "--tags", "--exact-match", "HEAD", check=False)
+            return proc.stdout.strip() if proc.returncode == 0 else None
+
+        answer: str | None = self._memo("tag_for_head", ask)
+        return answer
 
     def revision_snapshot(self, name: str) -> str | None:
         """The snapshot id a released Revision (tag) marks, or None when there is no such one."""
@@ -267,10 +328,17 @@ class Vcs(StoreMixin):
 
     def commit_date(self, ref: str = "HEAD") -> str:
         """ISO date of a snapshot (used for title blocks, D14)."""
-        proc = self._git("log", "-1", "--format=%cs", ref, check=False)
-        return (
-            proc.stdout.strip() if proc.returncode == 0 and proc.stdout.strip() else "unsnapshotted"
-        )
+
+        def ask() -> str:
+            proc = self._git("log", "-1", "--format=%cs", ref, check=False)
+            return (
+                proc.stdout.strip()
+                if proc.returncode == 0 and proc.stdout.strip()
+                else "unsnapshotted"
+            )
+
+        answer: str = self._memo(f"date:{ref}", ask)
+        return answer
 
     def ref_exists(self, ref: str) -> bool:
         """True if a Revision or snapshot id resolves."""
