@@ -12,23 +12,23 @@
   <div class="stepgrid">
   {% if st.sheet_svg %}<figure id="sheet-{{ st.id }}"><div onclick="this.parentNode.classList.toggle('zoom')">{{ st.sheet_svg | safe }}</div><figcaption>assembly sheet · <span class="mono">build/drawings/assemblies/{{ st.id }}.svg</span></figcaption></figure>{% endif %}
   <div>
-  <table><thead><tr><th class="num">item</th><th>part</th><th>name</th><th class="num">qty</th><th>note</th></tr></thead><tbody>
+  <table><caption class="sr">Items of step {{ st.step }}</caption><thead><tr><th scope="col" class="num">item</th><th scope="col">part</th><th scope="col">name</th><th scope="col" class="num">qty</th><th scope="col">note</th></tr></thead><tbody>
   {% for it in st['items'] %}<tr{% if it.kind != 'unit' %} data-uri="{{ it.uri }}"{% endif %}><td class="num">{{ it.item }}</td><td>{% if it.kind == 'unit' %}<a href="#step-{{ it.id }}">step {{ it.step }}</a>{% else %}{{ it.uri | ref }}{% endif %}</td><td>{{ it.name }}</td><td class="num">{{ it.qty }}</td><td class="small">{{ it.notes | join(' · ') }}</td></tr>{% endfor %}
   </tbody></table>
   {%- if st.cut_lists %}<h3>Cut list (sizes in millimetres, as the build wrote them)</h3>
-  <table class="cuts"><thead><tr><th>part</th><th>piece</th><th>profile</th><th class="num">length (mm)</th><th class="num">qty</th><th class="num">width (mm)</th><th class="num">thickness (mm)</th></tr></thead><tbody>
+  <table class="cuts"><caption class="sr">Cut list of step {{ st.step }}</caption><thead><tr><th scope="col">part</th><th scope="col">piece</th><th scope="col">profile</th><th scope="col" class="num">length (mm)</th><th scope="col" class="num">qty</th><th scope="col" class="num">width (mm)</th><th scope="col" class="num">thickness (mm)</th></tr></thead><tbody>
   {% for cl in st.cut_lists %}{% for r in cl.rows %}<tr><td>{% if loop.first %}{{ cl.name }}{% endif %}</td><td>{{ r.piece }}</td><td class="small">{{ r.profile }}</td><td class="num">{{ r.length }}</td><td class="num">{{ r.qty }}</td><td class="num">{{ r.width if r.width is not none else '' }}</td><td class="num">{{ r.thickness if r.thickness is not none else '' }}</td></tr>{% endfor %}{% endfor %}
   </tbody></table>{% endif %}
   {%- if st.get('supplied') %}<h3>Supplied, not built here</h3>
-  <table><thead><tr><th>module</th><th class="num">qty</th><th>joints that fit it</th></tr></thead><tbody>
+  <table><caption class="sr">Modules supplied to step {{ st.step }}</caption><thead><tr><th scope="col">module</th><th scope="col" class="num">qty</th><th scope="col">joints that fit it</th></tr></thead><tbody>
   {% for x in st['supplied'] %}<tr><td>{{ x.name }}</td><td class="num">{{ x.qty }}</td><td class="small">{{ x.joints | join('; ') or 'none' }}</td></tr>{% endfor %}
   </tbody></table>{% endif %}
   {% if st.joints %}<h3>Joints closed in this step</h3>
-  <table><thead><tr><th>joint</th><th class="num">×</th><th class="num">holes</th><th>hardware</th></tr></thead><tbody>
+  <table><caption class="sr">Joints closed in step {{ st.step }}</caption><thead><tr><th scope="col">joint</th><th scope="col" class="num">×</th><th scope="col" class="num">holes</th><th scope="col">hardware</th></tr></thead><tbody>
   {% for j in st.joints %}<tr><td>{{ j.words }}{% if j.status_words %}<br><span class="small muted">{{ j.status_words }}</span>{% endif %}</td><td class="num">{{ j.occurrences }}</td><td class="num">{{ j.holes or 'none' }}</td><td class="small">{{ j.hardware_words }}</td></tr>{% endfor %}
   </tbody></table>{% endif %}
   {% set open_checks = st.check_rows | rejectattr('status', 'in', ['pass', 'signed']) | list %}{% if open_checks %}<h3>Checks of this step not {{ w('pass') }}</h3>
-  <table><tbody>{% for c in open_checks %}<tr><td>{{ badge(c.status) }}</td><td>{{ c.title }}</td><td class="small">{{ c.message }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+  <table><caption class="sr">Checks of step {{ st.step }} not {{ w('pass') }}</caption><thead class="sr"><tr><th scope="col">status</th><th scope="col">check</th><th scope="col">finding</th></tr></thead><tbody>{% for c in open_checks %}<tr><td>{{ badge(c.status) }}</td><td>{{ c.title }}</td><td class="small">{{ c.message }}</td></tr>{% endfor %}</tbody></table>{% endif %}
   </div></div></div>{% else %}<p class="muted">No assemblies yet, so no build plan.</p>{% endfor %}
 <style>
 .player{position:sticky;top:var(--head-h,0px);z-index:5;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem;margin:.6rem 0}

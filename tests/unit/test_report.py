@@ -215,7 +215,9 @@ def test_report_opens_from_file_url_without_console_errors(report: tuple[Path, s
         assert page.get_attribute("#viewer", "data-n2f-options") is None
         # the link is in the Build lens, which is hidden: click it from the page, as a script would
         page.evaluate("document.querySelector('a[data-show3d=\"part://lid\"]').click()")
-        card = page.inner_text("#inspector")
+        card = (
+            page.text_content("#inspector") or ""
+        )  # the address is there, hidden unless the engineer persona (S-325)
         card_links = page.eval_on_selector_all(
             "#inspector a", "els => els.map(e => e.getAttribute('href'))"
         )

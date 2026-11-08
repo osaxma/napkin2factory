@@ -219,6 +219,7 @@ function n2fCreateViewer(container, options) {
     settleState = state;
     api.glState = state;
     container.setAttribute('data-n2f-webgl', state);
+    if (state === 'unavailable') ['role', 'aria-label', 'tabindex'].forEach((n) => container.removeAttribute(n));  // the fallback notice must stay readable (S-325)
     resolveSettled(state);
   }
   let resolveSettled = null;

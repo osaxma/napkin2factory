@@ -3,7 +3,7 @@
 <section class="pane3d" id="model" aria-label="3D model" tabindex="-1">
   {% if glbs %}
   <div class="toolbar3d" id="view-panel" role="toolbar" aria-label="3D view controls" title="click a part to inspect it · double-click to isolate it · drag to orbit · click the model, then scroll to zoom">
-    <div class="sheet-head"><span class="sheet-title">View</span><button type="button" class="sheet-close" data-sheet-close>Close</button></div>
+    <div class="sheet-head"><span class="sheet-title">View</span><button type="button" class="sheet-close" data-sheet-close aria-label="Close the view controls">Close</button></div>
     <label>Explode <input id="explode" type="range" min="0" max="1" step="0.01" value="0" aria-label="Explode"></label>
     <span class="secgrp"><label><input id="section" type="checkbox"> Section</label>
     <span class="seg" role="group" aria-label="Section axis"><button type="button" data-axis="x" aria-pressed="false">X</button><button type="button" data-axis="y" aria-pressed="false">Y</button><button type="button" data-axis="z" aria-pressed="true">Z</button></span>
@@ -16,7 +16,7 @@
   {% set v_id = "viewer" if loop.first else "viewer-" ~ g.id %}
   {% set d_id = "glb-data" if loop.first else "glb-data-" ~ g.id %}
   {% set g_ex = g.exploded if g.exploded is defined else exploded %}
-  <div class="viewer" id="{{ v_id }}" data-n2f-glb="{{ d_id }}" data-explode-axis="{{ g_ex.axis }}" data-explode-spacing="{{ g_ex.spacing }}"{% if viewer_options %} data-n2f-options="{{ viewer_options }}"{% endif %} data-n2f-fallback="This browser cannot show the 3D view. The tree and the inspector still work."></div>
+  <div class="viewer" id="{{ v_id }}" tabindex="0" role="img" aria-label="3D view of the product. Choose a part in the parts tree to inspect it." data-n2f-glb="{{ d_id }}" data-explode-axis="{{ g_ex.axis }}" data-explode-spacing="{{ g_ex.spacing }}"{% if viewer_options %} data-n2f-options="{{ viewer_options }}"{% endif %} data-n2f-fallback="This browser cannot show the 3D view. The tree and the inspector still work."></div>
   <script type="text/plain" id="{{ d_id }}">{{ g.b64 }}</script>
   {% endfor %}
   <p class="help3d">click a part to inspect it · double-click to isolate · drag to orbit</p>

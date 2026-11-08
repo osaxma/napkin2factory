@@ -351,6 +351,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-322 | M3b follow-up, cards and viewer | in force |
 | S-323 | M3b phone and plain titles | in force |
 | S-324 | M4 phone layout: sheets, dock, compact bar | in force |
+| S-325 | M4 keyboard, screen readers, focus and contrast | in force |
 
 ---
 
@@ -2420,3 +2421,6 @@ Amends S-322 (its text stands). Judged by the maintainer from phone screenshots.
 
 ## S-324 — M4 phone layout (2026-11-08)
 Builds V8's phone half on S-316/S-317's page (amends nothing). Below 768 px the workbench lens is the 3D filling the screen, with a dock of three buttons above the tab bar: Parts (the tree), Details (the inspector; its label is the selected entry's title) and View (the 3D controls). Each opens a bottom sheet, one at a time, driven by `.wb[data-sheet]`; closed sheets are `visibility:hidden` so they leave the tab order. A pick, a tree row or an inspector link opens Details; the product, an empty pick, Escape, Close or a lens change closes; focus moves to Close on open and back to the dock button on close; sheets do not trap focus. The top bar keeps name and state; vitals, counts and the revision sit behind a Details toggle. Targets are 44 px. The viewer's `fit()` stands back for a frame taller than wide. Desktop is pixel-identical at 1440 px. The drawing viewer keeps its own phone layout (S-323). Tests: `tests/e2e/test_workbench_phone.py`, tier 1. `core/` files: 0 (V12).
+
+## S-325 — M4 keyboard, screen readers, focus and contrast (2026-11-08)
+Builds V8/V9 on S-316/S-324's page (amends nothing). **Keyboard:** two skip links first on the page ("Skip to the 3D view", "Skip to the inspector"; visible on focus, they open the workbench and focus the target); the tree is one tab stop (roving) with Home/End; the lens tabs take Home/End; Escape in the tree or the inspector clears the selection and leaves focus in the tree (a phone sheet still closes first); the 3D view is a focusable image with a label that says what to do, and a plain notice again when WebGL is missing. **Screen readers:** the inspector's whole-aside `aria-live` is gone; one hidden `role=status` says "Selected: <title>" per pick; a link that selects moves focus to the new title (its own link is gone); tree items carry their own names (a parent's content holds every child's); every table has a caption and `scope`d headers, the rule matrix's cells say their status in words, its rules are row headers. **Focus and contrast:** one `:focus-visible` ring (the inspector's link lists clip, so their ring sits on the row); forced-colours and reduced-motion rules; `--ok`, `--warn` and `--skip` darkened so white badges and the status text reach 4.5:1 on every tint of the page (measured: 5.4 to 7.0 on white). **N5:** the inspector's `part://…` address shows for the `engineer` persona only (CSS; the text stays for deep links). Tests: `tests/e2e/test_workbench_a11y.py`. `core/` files touched: none.

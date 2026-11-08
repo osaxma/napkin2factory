@@ -6,15 +6,21 @@
 <title>{{ product.name }} — napkin2factory report</title>
 {{ n2f_favicon }}
 <style>
-:root{--bg:#f7f6f2;--fg:#1d1d1b;--muted:#6b6a66;--line:#d9d7d0;--card:#fff;--ok:#1e7f4f;--fail:#b3261e;--warn:#9a6b00;--human:#7a3e9d;--signed:#0b6e8f;--skip:#8a8a8a;--accent:#1f5fbf;--hl:#fff6d6;--head-h:140px}
+:root{--bg:#f7f6f2;--fg:#1d1d1b;--muted:#6b6a66;--line:#d9d7d0;--card:#fff;--ok:#1a7344;--fail:#b3261e;--warn:#8a6000;--human:#7a3e9d;--signed:#0b6e8f;--skip:#6a6a6a;--accent:#1f5fbf;--hl:#fff6d6;--head-h:140px}
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:calc(var(--head-h) + 12px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 a{color:var(--accent)}a.ref{text-decoration:none;border-bottom:1px dotted currentColor}a.ref:hover{border-bottom-style:solid}
+/* keyboard, screen readers and contrast (M4, S-325): one focus ring for everything; .sr is for words that only a screen reader needs;
+   the status colours are dark enough for white text and for text on the page's tints (WCAG AA, 4.5:1) */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute !important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+.skip-link{position:absolute;z-index:40;left:.6rem;top:-4rem;padding:.5rem .9rem;background:#fff;color:var(--accent);border:2px solid var(--accent);border-radius:8px;font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link:focus-visible{top:.6rem}
 .badge{display:inline-block;padding:.1rem .55rem;border-radius:999px;font-size:.78rem;font-weight:600;color:#fff;background:var(--skip);white-space:nowrap}
 .badge.pass,.badge.ok{background:var(--ok)}.badge.fail{background:var(--fail)}.badge.warn{background:var(--warn)}.badge.needs-human{background:var(--human)}.badge.signed{background:var(--signed)}.badge.skip{background:var(--skip)}
 section.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem}
 section.card h2{margin:.2rem 0 .8rem;font-size:1.1rem;display:flex;align-items:baseline;gap:.5rem}
-h2 a.anchor{color:var(--line);text-decoration:none;font-weight:400}h2:hover a.anchor{color:var(--accent)}
+h2 a.anchor{color:var(--line);text-decoration:none;font-weight:400}h2:hover a.anchor,h2 a.anchor:focus-visible{color:var(--accent)}
 h3{font-size:.95rem;margin:1.2rem 0 .5rem}
 .lead{margin:0 0 .8rem;color:var(--muted);font-size:.9rem}
 .safety{border-color:#e4a3a0;background:#fff7f6}
@@ -31,7 +37,7 @@ figure.zoom{grid-column:1 / -1}figure.zoom svg{cursor:zoom-out}
 .matrix{font-size:.8rem}.matrix th,.matrix td{padding:.25rem .35rem}
 .matrix th.part{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;text-align:left;font-weight:500;padding:.5rem .2rem}
 .matrix th.part a{color:inherit;text-decoration:none}
-.matrix td.rule,.matrix th.rule{position:sticky;left:0;background:#fff;min-width:260px;z-index:1}.matrix th.rule{background:#f1f0eb}
+.matrix td.rule,.matrix th.rule{position:sticky;left:0;background:#fff;min-width:260px;z-index:1}.matrix thead th.rule{background:#f1f0eb}.matrix tbody th.rule{font-weight:400}
 .matrix td.cell{text-align:center}
 tr.module th{background:#f1f0eb;text-align:left;font-weight:600}.matrix th.module{font-size:.72rem;font-weight:500;text-align:left;border-left:1px solid #ddd;white-space:normal}
 .dot{display:inline-block;width:.85rem;height:.85rem;border-radius:50%;background:var(--skip);vertical-align:middle}
@@ -74,7 +80,8 @@ nav.tree .tog{width:1rem;flex:none;color:var(--muted);font-size:.7rem;text-align
 nav.tree .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 nav.tree .qty,nav.tree .sub{color:var(--muted);font-size:.8rem;white-space:nowrap}
 nav.tree li.head>.row{font-weight:600}nav.tree li.group>.row{color:var(--muted)}
-nav.tree li:focus{outline:none}nav.tree li:focus>.row{outline:2px solid var(--accent);outline-offset:-2px}
+nav.tree li:focus{outline:none}nav.tree li:focus>.row{outline:2px solid var(--accent);outline-offset:-2px}  /* the row carries the ring, not the whole li with its children */
+.pane3d:focus-visible,.pane3d .viewer:focus-visible{outline-offset:-3px}
 nav.tree li[aria-expanded=false]>ul{display:none}
 .pane3d{position:relative;background:#f4f4f2;display:flex;flex-direction:column;min-height:0}
 .pane3d .viewer{flex:1 1 0;min-height:0;position:relative;overflow:hidden}.pane3d .viewer canvas{display:block}.pane3d .viewer.n2f-active{outline:2px solid var(--accent);outline-offset:-2px}
@@ -91,6 +98,8 @@ nav.tree li[aria-expanded=false]>ul{display:none}
 .pane3d.off .toolbar3d{display:none}
 .insp{overflow:auto;border-left:1px solid var(--line);padding:.8rem 1rem 2rem}
 #inspector-head .kindline{font-size:.82rem;color:var(--muted)}
+/* an address like part://… is for the engineer persona; the text stays in the page for deep links (N5, S-325) */
+html:not([data-persona="engineer"]) #inspector-head .addr{display:none}
 #inspector-head h2{margin:.15rem 0 .4rem;font-size:1.2rem;overflow-wrap:anywhere}
 .insp a{text-decoration:none}.insp a:hover{text-decoration:underline}
 .insp .btns{display:flex;gap:.4rem;margin:.4rem 0 .8rem;flex-wrap:wrap}
@@ -101,6 +110,8 @@ nav.tree li[aria-expanded=false]>ul{display:none}
 #inspector-product h3{text-transform:none;letter-spacing:0;font-size:.95rem;color:var(--fg);margin:1rem 0 .4rem}
 .insp .kv .k{color:var(--muted)}.insp .kv .v .muted{font-size:.82rem;margin-left:.3rem}
 .insp ul.links{list-style:none;margin:0;padding:0}.insp ul.links li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the list clips long names, which would clip a link's ring: the ring goes on the row instead (S-325) */
+@supports selector(:has(a)){.insp ul.links li:has(a:focus-visible){outline:2px solid var(--accent);outline-offset:-2px;border-radius:4px}.insp ul.links a:focus-visible{outline:none}}
 .insp table{font-size:.85rem}.insp table td{padding:.25rem .35rem}
 .insp .files{display:flex;flex-direction:column;gap:.1rem}
 .st-pass,.st-signed{color:var(--ok);font-weight:600}.st-fail{color:var(--fail);font-weight:600}.st-warn{color:var(--warn);font-weight:600}.st-needs-human{color:var(--human);font-weight:600}.st-skip,.st-later{color:var(--muted)}
@@ -190,13 +201,27 @@ nav.tree li[aria-expanded=false]>ul{display:none}
 @media screen and (max-width:767px) and (prefers-reduced-motion:reduce){
   nav.tree,.insp,.toolbar3d{transition:none !important}
 }
+/* forced colours (Windows high contrast): borders and outlines stay, and what colour told is also said by weight (S-325) */
+@media (forced-colors:active){
+  :focus-visible{outline:2px solid Highlight}
+  .badge,.example,.dot{border:1px solid currentColor;forced-color-adjust:none}
+  .dot.pass,.dot.fail,.dot.warn,.dot.needs-human,.dot.signed{border-width:1px}
+  nav.tree li[aria-selected=true]>.row{font-weight:700;text-decoration:underline;border-left-color:Highlight}
+  .seg button[aria-pressed=true]{font-weight:700;text-decoration:underline;outline:2px solid Highlight;outline-offset:-2px}
+  .tabs button[aria-selected=true]{font-weight:700;text-decoration:underline;border-bottom-color:Highlight}
+  .toolbar3d button,.insp .btns button,.seg,.dock button,.hdr-toggle{border:1px solid ButtonText}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition:none !important;animation:none !important}
+}
 {% include "print.css.j2" ignore missing %}
 </style>
 </head>
 <body>
 {% macro w(st) -%}{{ words.get(st, st) }}{%- endmacro %}
 {% macro badge(st) -%}<span class="badge {{ st }}" title="{{ st }}">{{ w(st) }}</span>{%- endmacro %}
-{% macro h2(id, title) -%}<h2 id="h-{{ id }}">{{ title }} <a class="anchor" href="#{{ id }}" title="link to this section">#</a></h2>{%- endmacro %}
+{% macro h2(id, title) -%}<h2 id="h-{{ id }}">{{ title }} <a class="anchor" href="#{{ id }}" title="link to this section" aria-label="Link to {{ title }}">#</a></h2>{%- endmacro %}
 {# The page is one workbench (V1, V2): the top bar, then one panel per lens that has a shown section
    (V7: a lens with none gets no tab and no panel). Show/hide stays each section's own `show`. #}
 {% set lens_label = {'workbench': 'Workbench', 'drawings': 'Drawings', 'build': 'Build', 'verification': 'Checks', 'history': 'History'} %}
@@ -205,6 +230,7 @@ nav.tree li[aria-expanded=false]>ul{display:none}
 {% set vit = inspector_index['manifest://product'].vitals %}
 {% set later = later_count if later_count is defined else summary.get('later', 0) %}
 <noscript><style>.lens[hidden]{display:block}.tabs,.hdr-toggle,.dock,.sheet-head{display:none !important}header.top .vitals{display:flex !important}header.top .counts{display:block !important}.wb nav.tree,.wb .insp{position:static !important;visibility:visible !important;transform:none !important;max-height:none !important}</style></noscript>
+{% if 'workbench' in shown_lenses %}<a class="skip-link" href="#model" data-skip="model">{{ 'Skip to the 3D view' if page_sections | selectattr('id', 'equalto', 'model') | list else 'Skip to the parts list' }}</a><a class="skip-link" href="#inspector" data-skip="inspector">Skip to the inspector</a>{% endif %}
 <header class="top">
   <div class="row"><h1>{{ product.name }}</h1><span class="badge {{ stage_class }}">{{ stage_label }}</span><span class="muted rev">{{ revision_label }}</span><button type="button" class="hdr-toggle" aria-expanded="false" aria-controls="hdr-vitals hdr-counts">Details</button></div>
   <div class="row vitals" id="hdr-vitals">{% for key in ['total_mass', 'total_cost', 'envelope'] %}{% if vit.get(key) %}<span class="vital"><b>{{ vit[key].value }}</b> <span class="muted">{{ vit[key].label }}</span></span>{% endif %}{% endfor %}{% set oc = vit.get('open_choices') %}{% if oc %}<span class="vital"><a href="#waiting"><b>{{ oc.value }}</b></a></span>{% elif waiting %}<span class="vital"><a href="#waiting"><b>{{ waiting | length }} open choice{{ '' if waiting | length == 1 else 's' }}</b></a></span>{% else %}<span class="vital"><b>no open choices</b></span>{% endif %}</div>
@@ -219,14 +245,15 @@ nav.tree li[aria-expanded=false]>ul{display:none}
 <div class="lens" id="lens-{{ l }}" data-lens="{{ l }}" role="tabpanel" aria-labelledby="tab-{{ l }}"{% if not loop.first %} hidden{% endif %}>
 {% if l == 'workbench' %}
 <div class="wb" data-sheet="none">
-  <nav class="tree" id="tree" aria-label="parts and objects"><div class="sheet-head"><span class="sheet-title">Parts</span><button type="button" class="sheet-close" data-sheet-close>Close</button></div></nav>
+  <nav class="tree" id="tree" aria-label="parts and objects"><div class="sheet-head"><span class="sheet-title">Parts</span><button type="button" class="sheet-close" data-sheet-close aria-label="Close the parts list">Close</button></div></nav>
   {% for s in page_sections if s.id == 'model' %}{% with data = section_data.get(s.id, {}) %}{% include s.template %}{% endwith %}{% endfor %}
-  <aside class="insp" id="inspector" aria-label="inspector" aria-live="polite">
-    <div class="sheet-head"><span class="sheet-title" id="inspector-sheet-title">{{ product.name }}</span><button type="button" class="sheet-close" data-sheet-close>Close</button></div>
+  <aside class="insp" id="inspector" aria-label="inspector" tabindex="-1">
+    <div class="sheet-head"><span class="sheet-title" id="inspector-sheet-title">{{ product.name }}</span><button type="button" class="sheet-close" data-sheet-close aria-label="Close the inspector">Close</button></div>
     <div id="inspector-head"><h2 id="inspector-title">{{ product.name }}</h2></div>
     <div id="inspector-product" class="product-view">{% for s in page_sections if s.id == 'overview' %}{% with data = section_data.get(s.id, {}) %}{% include s.template %}{% endwith %}{% endfor %}</div>
     <div id="inspector-entry" hidden></div>
   </aside>
+  <div class="sr" id="inspector-status" role="status" aria-atomic="true"></div>
   {# the phone's dock (V8, S-324): three buttons above the tab bar; shown below 768 px only, by the CSS #}
   <div class="dock" role="group" aria-label="Panels">
     <button type="button" data-sheet-open="tree" aria-expanded="false" aria-controls="tree"><span class="lbl">Parts</span><span class="up" aria-hidden="true">▴</span></button>

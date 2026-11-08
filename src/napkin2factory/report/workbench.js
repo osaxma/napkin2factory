@@ -103,7 +103,9 @@
     const reached = new Set();
     const rowOf = (uri, label, opts) => {
       opts = opts || {};
-      const li = el('li', { role: 'treeitem', 'data-uri': uri, 'aria-selected': 'false', 'aria-level': opts.level, tabindex: '-1', class: opts.cls });
+      // the name is set by hand: from its content a parent's name would swallow every child's (S-325)
+      const li = el('li', { role: 'treeitem', 'data-uri': uri, 'aria-selected': 'false', 'aria-level': opts.level, tabindex: '-1', class: opts.cls,
+        'aria-label': opts.qty > 1 ? label + ', quantity ' + opts.qty : label });
       const row = el('div', { class: 'row' }, el('span', { class: 'tog', 'aria-hidden': 'true' }, ''),
         el('span', { class: 'lbl', title: label }, label));
       if (opts.qty > 1) row.appendChild(el('span', { class: 'qty' }, '× ' + opts.qty));
@@ -163,6 +165,12 @@
       if (uri) { li.focus(); select(uri); }
     });
     treeEl.addEventListener('keydown', onTreeKey);
+    treeEl.addEventListener('focusin', (ev) => { const li = ev.target.closest && ev.target.closest('li[role=treeitem]'); if (li) rove(li); });
+  }
+  // roving tabindex (S-325): the tree is one tab stop, on the item last focused or selected, so Tab reaches it
+  function rove(li) {
+    treeEl.querySelectorAll('li[role=treeitem][tabindex="0"]').forEach((o) => { if (o !== li) o.tabIndex = -1; });
+    li.tabIndex = 0;
   }
   function setOpen(li, open) {
     li.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -206,6 +214,7 @@
       if (on && !first) first = li;
     });
     if (!first) return;
+    rove(first);
     for (let p = first.parentElement.closest('li[role=treeitem]'); p; p = p.parentElement.closest('li[role=treeitem]')) setOpen(p, true);
     const row = first.querySelector('.row');
     const box = treeEl.getBoundingClientRect();
@@ -265,13 +274,14 @@
     const items = v.map((x) => (x && typeof x === 'object' ? x : { uri: x, qty: 1 })).filter((x) => x.uri && !seen.has(x.uri) && seen.add(x.uri));
     return el('ul', { class: 'links' }, items.map((x) => el('li', {}, uriLink(x.uri), x.qty > 1 ? el('span', { class: 'muted' }, ' × ' + x.qty) : '')));
   }
-  function renderTable(rows) {
+  function renderTable(rows, label) {
     const keys = [];
     rows.forEach((r) => Object.keys(r).forEach((k) => {
       if (!skipKey(k) && k !== 'message' && typeof r[k] !== 'object' && !empty(r[k]) && keys.indexOf(k) < 0) keys.push(k);
     }));
     const cols = [rows.some((r) => r.title || r.name) && '@title', ...keys, rows.some((r) => r.status_words || r.status) && '@status'].filter(Boolean);
     const tbody = el('tbody');
+    const thead = el('thead', { class: 'sr' }, el('tr', {}, cols.map((c) => el('th', { scope: 'col' }, c === '@title' ? 'Name' : c === '@status' ? 'Status' : humanize(c)))));
     rows.forEach((r) => {
       const tr = el('tr', {});
       cols.forEach((c) => {
@@ -284,14 +294,14 @@
       });
       tbody.appendChild(tr);
     });
-    return el('div', { class: 'scroll' }, el('table', {}, tbody));
+    return el('div', { class: 'scroll' }, el('table', {}, el('caption', { class: 'sr' }, label || 'Details'), thead, tbody));
   }
   function renderField(e, spec) {
     const [key, label, type] = spec;
     const v = e[key];
     if (empty(v)) return null;
     if (type === 'links') return [el('h3', {}, label), renderLinks(v)];
-    if (type === 'table') return [el('h3', {}, label), renderTable(v)];
+    if (type === 'table') return [el('h3', {}, label), renderTable(v, label)];
     if (type === 'files') {
       const paths = typeof v === 'string' ? [v] : Object.keys(v).map((k) => v[k]).filter((p) => !empty(p));
       return paths.length ? [el('h3', {}, label), el('div', { class: 'files' }, paths.map((p) => el('span', { class: 'mono wrap' }, scalar(p))))] : null;
@@ -337,9 +347,10 @@
   function renderHead(uri, e) {
     const head = $('inspector-head');
     head.textContent = '';
-    head.appendChild(el('div', { class: 'kindline' }, kindWords(e), ' · ', el('span', { class: 'mono' }, uri),
+    // the address is for the engineer persona only; the CSS hides it for the others, the text stays for deep links (N5, S-325)
+    head.appendChild(el('div', { class: 'kindline' }, kindWords(e), el('span', { class: 'addr' }, ' · ', el('span', { class: 'mono' }, uri)),
       e.status_words ? [' · ', el('span', { class: 'st-' + e.status }, e.status_words)] : ''));
-    head.appendChild(el('h2', { id: 'inspector-title' }, e.title || e.name || uri));
+    head.appendChild(el('h2', { id: 'inspector-title', tabindex: '-1' }, e.title || e.name || uri));
     if (document.querySelector('[data-n2f-glb]')) {
       const b = el('div', { class: 'btns need3d' });
       const mine = uri === PRODUCT ? [] : partsOf(uri);
@@ -357,7 +368,7 @@
     const e = index[uri];
     if (!e) {  // V4: the honest answer, never a guessed entry
       $('inspector-head').textContent = '';
-      $('inspector-head').appendChild(el('h2', { id: 'inspector-title' }, 'Nothing recorded'));
+      $('inspector-head').appendChild(el('h2', { id: 'inspector-title', tabindex: '-1' }, 'Nothing recorded'));
       box.appendChild(el('p', { class: 'muted', id: 'inspector-empty' }, 'This build records nothing for ' + uri + '.'));
       return;
     }
@@ -427,6 +438,8 @@
     if (uri === selected && rendered) { if (!fromHash) sheetForSelection(); return; }
     selected = uri;
     rendered = true;
+    const insp = $('inspector');
+    const focusWasInside = insp.contains(document.activeElement) && document.activeElement !== insp;
     markTree(uri);
     const isProduct = uri === PRODUCT;
     $('inspector-product').hidden = !isProduct;
@@ -434,6 +447,8 @@
     if (isProduct) renderHead(uri, index[PRODUCT] || { kind: 'product', title: document.querySelector('header.top h1').textContent });
     else renderEntry(uri);
     $('inspector').scrollTop = 0;
+    // the link that was clicked is gone with the old entry: focus goes to the new title, not to the page's top (S-325)
+    if (focusWasInside && !insp.contains(document.activeElement) && !phone()) { const t = $('inspector-title'); if (t) t.focus({ preventScroll: true }); }
     sync3d();
     paintTitles();
     if (!fromHash) { sheetForSelection(); writeHash(); }
@@ -472,7 +487,8 @@
   tabs.forEach((t, i) => {
     t.addEventListener('click', () => lensFromUser(t.getAttribute('data-lens-tab')));
     t.addEventListener('keydown', (ev) => {
-      const to = ev.key === 'ArrowRight' ? tabs[(i + 1) % tabs.length] : ev.key === 'ArrowLeft' ? tabs[(i + tabs.length - 1) % tabs.length] : null;
+      const to = ev.key === 'ArrowRight' ? tabs[(i + 1) % tabs.length] : ev.key === 'ArrowLeft' ? tabs[(i + tabs.length - 1) % tabs.length]
+        : ev.key === 'Home' ? tabs[0] : ev.key === 'End' ? tabs[tabs.length - 1] : null;
       if (to) { ev.preventDefault(); to.focus(); lensFromUser(to.getAttribute('data-lens-tab')); }
     });
   });
@@ -572,6 +588,8 @@
     if (d) d.textContent = selected === PRODUCT ? 'Product' : title;
     const h = $('inspector-sheet-title');
     if (h) h.textContent = title;
+    const st = $('inspector-status');  // one small announcement per pick, not the whole inspector re-read (S-325)
+    if (st && ready) st.textContent = 'Selected: ' + title;
   }
   function paintRoles() {  // a sheet is a labelled region on a phone, the page's own landmark otherwise
     [sheetEls.tree, sheetEls.inspector].forEach((e) => { if (e) { if (phone()) e.setAttribute('role', 'region'); else e.removeAttribute('role'); } });
@@ -582,6 +600,27 @@
   }));
   document.addEventListener('click', (ev) => { if (ev.target.closest('[data-sheet-close]')) closeSheet(); });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && phone() && sheet !== 'none') closeSheet(); });
+  // Escape in the tree or the inspector clears the selection (the product shows again) and leaves focus in the tree; on a
+  // phone an open sheet closes first, which the handler above does (S-325)
+  function onEscape(ev) {
+    if (ev.key !== 'Escape' || (phone() && sheet !== 'none')) return;
+    if (selected === PRODUCT) return;
+    const inTree = treeEl && treeEl.contains(ev.target);
+    select(null);
+    if (!inTree && treeEl) { const cur = treeEl.querySelector('li[role=treeitem][tabindex="0"]'); if (cur) cur.focus({ preventScroll: true }); }
+    ev.preventDefault();
+  }
+  if (treeEl) treeEl.addEventListener('keydown', onEscape);
+  $('inspector').addEventListener('keydown', onEscape);
+  // the skip links: they go where they say, and a lens that does not hold the target gives way to the workbench
+  document.querySelectorAll('a[data-skip]').forEach((a) => a.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    const name = a.getAttribute('data-skip');
+    if (lensName !== 'workbench') lensFromUser('workbench');
+    if (name === 'inspector' && phone()) { openSheet('inspector', null); return; }
+    const t = $(name);
+    if (t) t.focus();
+  }));
   if (mq.addEventListener) mq.addEventListener('change', paintRoles);
   paintRoles();
   paintSheet();
@@ -673,6 +712,7 @@
       dockBtns.forEach((b) => { if (b.getAttribute('data-sheet-open') === 'view') b.hidden = true; });
       if (sheet === 'view') closeSheet();
       document.querySelectorAll('[data-n2f-glb]').forEach((c) => {
+        ['role', 'aria-label', 'tabindex'].forEach((a) => c.removeAttribute(a));  // the notice is text again, not a picture (S-325)
         if (c.querySelector('.n2f-fallback')) return;
         const note = el('p', { class: 'n2f-fallback' }, c.getAttribute('data-n2f-fallback') || 'This browser cannot show the 3D view.');
         note.style.cssText = 'margin:0;padding:4rem 1rem;color:#6b6a66';
