@@ -45,8 +45,9 @@ def test_init_then_validate_and_lint(tmp_path: Path, template: str):
 def test_init_hint_points_to_build_and_warns_about_the_kernel(tmp_path: Path):
     r = n2f("init", str(tmp_path / "hinted"), "--template", "blank")
     assert r.returncode == 0, r.stderr
-    assert "next: sketch two directions — `n2f concept new" in r.stdout, r.stdout
-    assert "or go straight to `n2f build`" in r.stdout and "CAD kernel" in r.stdout, r.stdout
+    out = r.stdout.replace("\n", " ")
+    assert "spec on a card — `n2f concept new" in out, r.stdout
+    assert "promotion seeds the model" in out and "CAD kernel" in out, r.stdout
     assert "AI client" in r.stdout
     # gate B, B6: no ten-character snapshot id for the owner
     assert re.search(r"first snapshot saved\s*$", r.stdout, re.MULTILINE), r.stdout

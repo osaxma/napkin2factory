@@ -25,14 +25,20 @@ def slugify(name: str) -> str:
 
 
 NEXT_WARMING = (
-    '  next: sketch two directions — `n2f concept new "<title>"` — or go straight to '
-    "`n2f build`; then open the folder with your AI client. The CAD kernel is warming up in "
+    '  next: put the owner\'s idea or spec on a card — `n2f concept new "<title>"` — and '
+    "promote the one the owner picks; promotion seeds the model (S-338). Then open the folder "
+    "with your AI client. The CAD kernel is warming up in "
     "the background (one to two minutes the first time on a machine)"
 )
+#: A template that ships parts (bracket, enclosure) is a model already: build it (S-338).
+NEXT_BUILD = (
+    "  next: `n2f build` (the first run loads the CAD kernel; allow a couple of minutes); then "
+    "open the folder with your AI client"
+)
 NEXT_COLD = (
-    '  next: sketch two directions — `n2f concept new "<title>"` — or go straight to '
-    "`n2f build` (the first run loads the CAD kernel; allow a couple of minutes); then open "
-    "the folder with your AI client"
+    '  next: put the owner\'s idea or spec on a card — `n2f concept new "<title>"` — and '
+    "promote the one the owner picks; promotion seeds the model (S-338; the first build "
+    "loads the CAD kernel, allow a couple of minutes). Then open the folder with your AI client"
 )
 
 
@@ -422,4 +428,7 @@ def init(
             "  ask the owner which units they think in, then set `units:` in n2f.yaml",
             soft_wrap=True,
         )
-    console.print(NEXT_WARMING if warming else NEXT_COLD, soft_wrap=True)
+    if template != "blank":
+        console.print(NEXT_BUILD, soft_wrap=True)
+    else:
+        console.print(NEXT_WARMING if warming else NEXT_COLD, soft_wrap=True)

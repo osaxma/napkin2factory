@@ -348,7 +348,9 @@ async def init_product(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
         "next": {
             "say": (
                 "Read AGENTS.md and roles/pm.md in the folder. Then call n2f_promote_or_switch "
-                "with action=new and title=<the owner's idea in a few words>."
+                "with action=new and title=<the owner's idea in a few words>: every new product "
+                "starts with a card, a spec included (sizes in envelope, loads and budget in "
+                "site); promotion then seeds the model, so never write parts by hand."
             )
         },
     }

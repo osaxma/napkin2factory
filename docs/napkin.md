@@ -387,9 +387,10 @@ project-manager role (`roles/pm.md`, section "Napkin stage (before
 intake)") runs them as a conversation; the designer role (`roles/design.md`, "After the napkin
 stage") picks up after promotion. The protocol, in short:
 
-1. **When.** A new idea, a dropped sketch or photo, or "I'm not sure what I want yet". A
-   product born as a spec skips the stage (N11); `n2f status` says `stage: Napkin` while
-   cards exist and none is promoted.
+1. **When.** Every new product: a new idea, a dropped sketch or photo, "I'm not sure what I
+   want yet", or a spec with sizes and loads (they go on the card; promotion seeds the model
+   from it, S-338, amending N11). Only a product that already has parts skips the stage;
+   `n2f status` says `stage: Napkin` while cards exist and none is promoted.
 2. **Diverge first.** Ask only the two or three facts that split directions (where it sits →
    `site`; what goes in it → `envelope`; the look they like → `style.preset`), then propose
    **3–5 directions** that differ in layout, size class or use, each a card. Show, don't

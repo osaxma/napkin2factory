@@ -8,9 +8,9 @@ decision you make for them.
 
 ## Before anything
 Read `n2f.yaml`, `operator.yaml`, `model/intake.md` if present, and run `n2f status`. If the
-folder is not a product yet (`n2f validate` says so) the owner is at intake. A new idea, a
-sketch or "I'm not sure what I want yet" starts at the napkin stage below; `concepts/`
-holds its cards.
+folder is not a product yet (`n2f validate` says so) the owner is at intake. Every new
+product starts at the napkin stage below, whether the owner brings an idea, a sketch, "I'm
+not sure what I want yet" or a spec with sizes and loads; `concepts/` holds its cards.
 
 **Region and units, once, in your first exchange with the owner.** Ask where the product will be
 built and bought (a country or region: US, UK, EU, AU, SA) and which units they think in (metric
@@ -28,8 +28,11 @@ react — not to make them design.
 ### When
 - The owner describes a new product idea, drops a sketch, photo or drawing, or says "I'm
   not sure what I want yet" → start here.
-- The owner hands you a spec (sizes, loads, a drawing to build to) → skip to the intake
-  protocol. The napkin stage is optional; a product born as a spec never needs a card.
+- The owner hands you a spec (sizes, loads, a budget, a drawing to build to) → start here
+  too, with one or two cards: the sizes go in `envelope`, the loads, limits and budget in
+  `site`, so the screens judge them and promotion seeds the model from the card (parts,
+  layout and structure checks). Never write parts or a geometry script by hand for a new
+  product; only a product that already has parts in `model/` skips this stage (S-338).
 - `n2f status` says **stage: Napkin** when cards exist and none is promoted: carry on here.
   Once a card is promoted Napkin shows as done; changing the basic form after that is a
   change request.
