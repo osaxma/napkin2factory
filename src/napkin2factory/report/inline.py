@@ -16,6 +16,7 @@ from pathlib import Path
 
 VENDOR_DIR = Path(__file__).parent / "vendor" / "three"
 VIEWER_JS = Path(__file__).parent / "viewer.js"
+WORKBENCH_JS = Path(__file__).parent / "workbench.js"
 THREE_VERSION = "0.170.0"
 
 #: Addon modules, in dependency order.  Each is wrapped and its exports re-bound.
@@ -77,10 +78,29 @@ def bundle_three() -> str:
     return "\n".join(parts)
 
 
+def _workbench_source() -> str:
+    """``workbench.js`` as an import-free body (an IIFE: its names stay out of the viewer's)."""
+    src = WORKBENCH_JS.read_text(encoding="utf-8") if WORKBENCH_JS.exists() else ""
+    return "\n// ---- workbench.js ----\n" + _strip_imports(_strip_exports(src))
+
+
 def bundle_viewer() -> str:
-    """Return three.js plus ``viewer.js`` ready to be placed in one inline module script."""
+    """Return three.js, ``viewer.js`` and ``workbench.js`` ready for one inline module script.
+
+    The workbench (V1) comes last: it reads ``window.n2fViewerReady`` and the viewer's API.
+    """
     viewer = VIEWER_JS.read_text(encoding="utf-8") if VIEWER_JS.exists() else ""
-    return bundle_three() + "\n// ---- viewer.js ----\n" + _strip_imports(_strip_exports(viewer))
+    return (
+        bundle_three()
+        + "\n// ---- viewer.js ----\n"
+        + _strip_imports(_strip_exports(viewer))
+        + _workbench_source()
+    )
+
+
+def bundle_workbench() -> str:
+    """Return ``workbench.js`` alone, for a page with no 3D model: the tree and inspector work."""
+    return _workbench_source()
 
 
 def inline_module_script(body: str) -> str:

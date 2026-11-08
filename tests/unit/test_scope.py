@@ -612,8 +612,9 @@ def test_a_later_requirement_reads_left_for_later_in_the_checks(rig: Path) -> No
     html = (rig / "build" / "report" / "index.html").read_text(encoding="utf-8")
     req = html.split('id="req-REQ-002"', 1)[1].split("</tr>", 1)[0]
     assert 'title="later">left for later</span>' in req
-    tile = html.split('<a class="tile" href="#requirements">', 1)[1].split("</a>", 1)[0]
-    assert "1 left for later" in tile and "1 needs your sign-off" in tile
+    # the front tile is gone (M3a): the top bar's counts line says every status, later included
+    bar = html.split("<header", 1)[1].split("</header>", 1)[0]
+    assert "1 left for later" in bar and "1 needs your sign-off" in bar
 
 
 def test_a_product_without_a_later_scope_has_no_later_count() -> None:

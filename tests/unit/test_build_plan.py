@@ -386,7 +386,7 @@ def test_report_build_plan_section(built: Path) -> None:
     assert sum("cover group" in n for n in notes) == 3
     # P13 (M6): the joints between units, each with its units, parts, hardware and verdict
     joints = tree.css_first("#joints")
-    assert joints is not None and tree.css_first('nav a[data-sec="joints"]') is not None
+    assert joints is not None and tree.css_first("#lens-workbench #joints") is not None
     (row,) = joints.css("tbody tr")
     words = " ".join(row.text().split())
     assert row.attributes["id"] == "joint-pod-mount"

@@ -95,24 +95,31 @@ def test_navigation_and_links_without_toggle(report: tuple[Path, str]) -> None:
     root, html = report
     tree = LexborHTMLParser(html)
     assert tree.css_first("#btn-owner") is None and tree.css_first("#btn-engineer") is None
-    nav = {a.attributes.get("data-sec") for a in tree.css("nav.side a[data-sec]")}
+    # the page's sections sit in lens panels (M3a, V2); the old side index is gone
+    assert tree.css_first("nav.side") is None
+    on_page = {s.attributes.get("id") for s in tree.css(".lens section[id]")}
     # a domain's section with show() false for this product is left off (docs/domains.md §3.6)
     hidden = {
         s.id
         for s in registry().report_sections()
         if s.show is not None and not s.show(load_product(root))
     }
-    assert {sid for sid, _, _ in SECTIONS} - hidden <= nav
-    cards = [s.attributes.get("id") for s in tree.css("main > section.card")]
-    assert cards and all(c in nav for c in cards), cards
-    # safety is always on the page, never inside a collapsed or hidden container
+    assert {sid for sid, _, _ in SECTIONS} - hidden <= on_page
+    registered = {s.id for s in registry().report_sections()}
+    assert on_page <= registered, on_page - registered
+    # safety is always on the page, never inside a collapsed or hidden container; its lens panel
+    # is hidden only while another lens is open, and has a tab that opens it (V2)
     safety = tree.css_first("#safety")
     assert safety is not None
     assert "Sheet edges are sharp" in safety.text()
     node = safety
     while node is not None and node.tag != "html":
         attrs = node.attributes
-        assert "hidden" not in attrs, node.tag
+        if "hidden" in attrs:
+            assert node.attributes.get("role") == "tabpanel", node.tag
+            assert (
+                tree.css_first(f'[role=tab][aria-controls="{node.attributes["id"]}"]') is not None
+            )
         assert "display:none" not in (attrs.get("style") or "").replace(" ", ""), node.tag
         assert node.tag != "details" or "open" in attrs, "safety inside a collapsed <details>"
         node = node.parent
@@ -206,10 +213,11 @@ def test_report_opens_from_file_url_without_console_errors(report: tuple[Path, s
         )
         # a product without style.yaml keeps the hash colours: no viewer options at all (M3)
         assert page.get_attribute("#viewer", "data-n2f-options") is None
-        page.click('a[data-show3d="part://lid"]')
-        card = page.inner_text("#part-card")
+        # the link is in the Build lens, which is hidden: click it from the page, as a script would
+        page.evaluate("document.querySelector('a[data-show3d=\"part://lid\"]').click()")
+        card = page.inner_text("#inspector")
         card_links = page.eval_on_selector_all(
-            "#part-card a", "els => els.map(e => e.getAttribute('href'))"
+            "#inspector a", "els => els.map(e => e.getAttribute('href'))"
         )
         page.evaluate(
             "window.n2fViewer.explode(1); window.n2fViewer.section(true); "
@@ -330,8 +338,9 @@ def test_front_tile_counts_requirements_only_s_new1(report: tuple[Path, str]) ->
     """Gate L, B2: "n / m requirements" counts requirement rows, never rule rows."""
     root, html = report
     total = len(load_product(root).requirements)
-    m = re.search(r"(\d+) / (\d+)</div><div class=\"k\">requirements", html)
-    assert m and int(m.group(2)) == total and int(m.group(1)) <= total
+    # the front tile is gone (M3a); the requirements table still has one row per requirement
+    assert 'class="tile"' not in html
+    assert len(LexborHTMLParser(html).css("#req-table tbody tr")) == total
     assert '<span class="example">' in html or "not reached yet" in html or "done" in html
 
 

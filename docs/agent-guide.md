@@ -181,6 +181,11 @@ Open them for the owner with `open <file>` (macOS) or `xdg-open <file>` (Linux),
 `n2f serve` for a local address. Then say in a sentence or two what they are looking at and
 what you need from them. The owner chooses in conversation; the pages are read-only.
 
+The report opens at a lens (Workbench, Drawings, Build, Checks, History) and an object, so you can
+hand the owner the exact view: `build/report/index.html#lens=build&select=part://top-board` opens
+Build with that part in the inspector (either half may be left out; the URI is written as it is).
+Old anchors such as `#drawing-top-board` work too. `docs/report-anchors.md` lists every one.
+
 ## 6. Show the example (the kiln)
 
 When the owner wants to see what the tool does before starting their own product, use the

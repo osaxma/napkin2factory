@@ -23,6 +23,7 @@ import jinja2
 
 from napkin2factory import __version__
 from napkin2factory.core.checks.results import SUMMARY_KEYS
+from napkin2factory.core.domain import LENSES
 from napkin2factory.core.graph.hashing import sha256_text
 from napkin2factory.core.loader import Product
 from napkin2factory.core.uris import display_uri
@@ -500,7 +501,7 @@ def render_report(
     from napkin2factory.core.domain import SectionContext
     from napkin2factory.core.registry import registry
     from napkin2factory.report.brand import favicon_link, footer_mark, footer_wordmark
-    from napkin2factory.report.inline import bundle_viewer, inline_module_script
+    from napkin2factory.report.inline import bundle_viewer, bundle_workbench, inline_module_script
 
     reg = registry()
     fragments = {f"section:{sec.id}": reg.fragment_path(sec) for sec in reg.report_sections()}
@@ -547,11 +548,15 @@ def render_report(
     env.filters["ref"] = lambda uri: ref_html(uri, anchors, persona)
     env.filters["disp"] = lambda uri: display_uri(str(uri), persona)
     env.filters["display"] = lambda q: display(q, data["units"])
-    data["viewer_script"] = inline_module_script(bundle_viewer()) if data["glb_b64"] else ""
+    # the workbench (tree, inspector, lenses) runs with or without a 3D model (V1, S-232)
+    data["viewer_script"] = inline_module_script(
+        bundle_viewer() if data["glb_b64"] else bundle_workbench()
+    )
+    data["lenses"] = list(LENSES)
     data["build_id"] = build_id
     shown = {sid for sid, _, _ in data["sections"]}
     data["page_sections"] = [
-        {"id": sec.id, "template": f"section:{sec.id}"}
+        {"id": sec.id, "template": f"section:{sec.id}", "lens": sec.lens}
         for sec in reg.report_sections()
         if sec.id in shown
     ]

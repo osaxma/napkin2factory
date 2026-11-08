@@ -6,22 +6,12 @@
 <title>{{ product.name }} — napkin2factory report</title>
 {{ n2f_favicon }}
 <style>
-:root{--bg:#f7f6f2;--fg:#1d1d1b;--muted:#6b6a66;--line:#d9d7d0;--card:#fff;--ok:#1e7f4f;--fail:#b3261e;--warn:#9a6b00;--human:#7a3e9d;--signed:#0b6e8f;--skip:#8a8a8a;--accent:#1f5fbf;--hl:#fff6d6;--head-h:52px}
+:root{--bg:#f7f6f2;--fg:#1d1d1b;--muted:#6b6a66;--line:#d9d7d0;--card:#fff;--ok:#1e7f4f;--fail:#b3261e;--warn:#9a6b00;--human:#7a3e9d;--signed:#0b6e8f;--skip:#8a8a8a;--accent:#1f5fbf;--hl:#fff6d6;--head-h:140px}
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:calc(var(--head-h) + 12px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 a{color:var(--accent)}a.ref{text-decoration:none;border-bottom:1px dotted currentColor}a.ref:hover{border-bottom-style:solid}
-header.top{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:.55rem 1.2rem;display:flex;gap:.9rem;align-items:center;flex-wrap:wrap;min-height:var(--head-h)}
-header.top h1{font-size:1.15rem;margin:0}
-header.top .counts a{color:inherit;text-decoration:none}header.top .counts a:hover{text-decoration:underline}
 .badge{display:inline-block;padding:.1rem .55rem;border-radius:999px;font-size:.78rem;font-weight:600;color:#fff;background:var(--skip);white-space:nowrap}
 .badge.pass,.badge.ok{background:var(--ok)}.badge.fail{background:var(--fail)}.badge.warn{background:var(--warn)}.badge.needs-human{background:var(--human)}.badge.signed{background:var(--signed)}.badge.skip{background:var(--skip)}
-.layout{display:grid;grid-template-columns:230px minmax(0,1fr);max-width:1440px;margin:0 auto;gap:1.2rem;padding:1rem 1.2rem 4rem}
-nav.side{position:sticky;top:calc(var(--head-h) + 1rem);align-self:start;max-height:calc(100vh - var(--head-h) - 2rem);overflow:auto;font-size:.9rem}
-nav.side .group{margin:.7rem 0 .2rem;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-nav.side a{display:block;color:var(--fg);text-decoration:none;padding:.22rem .6rem;border-radius:6px;border-left:3px solid transparent}
-nav.side a:hover{background:#efeee8}nav.side a.active{border-left-color:var(--accent);background:#e8f0fe;color:var(--accent)}
-nav.side a.sub{padding-left:1.4rem;font-size:.85rem;color:var(--muted)}
-main{min-width:0;display:flex;flex-direction:column;gap:1.2rem}
 section.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem}
 section.card h2{margin:.2rem 0 .8rem;font-size:1.1rem;display:flex;align-items:baseline;gap:.5rem}
 h2 a.anchor{color:var(--line);text-decoration:none;font-weight:400}h2:hover a.anchor{color:var(--accent)}
@@ -34,16 +24,8 @@ tr:target>td,tr:target>th,.row-hl>td{background:var(--hl)}
 tr[id],details[id],figure[id]{scroll-margin-top:calc(var(--head-h) + 12px)}
 .scroll{overflow:auto;max-width:100%}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:.8rem;margin:.6rem 0 1rem}
-.tile{display:block;border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;background:#fafaf7;color:inherit;text-decoration:none}
-.tile:hover{border-color:var(--accent)}.tile .v{font-size:1.25rem;font-weight:600;line-height:1.3}.tile .k{font-size:.78rem;color:var(--muted)}
 figure{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}figure svg{width:100%;height:auto;display:block;cursor:zoom-in}figcaption{padding:.4rem .6rem;font-size:.85rem;color:var(--muted);border-top:1px solid var(--line)}
 figure.zoom{grid-column:1 / -1}figure.zoom svg{cursor:zoom-out}
-#viewer{width:100%;height:520px;border-radius:8px;overflow:hidden;background:#f4f4f2;position:relative}
-#viewer canvas{display:block}#viewer.n2f-active{outline:2px solid var(--accent)}
-.viewer-bar{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin:.6rem 0;font-size:.9rem}
-.viewer-bar input[type=range]{width:160px}
-#part-card{border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;font-size:.9rem;min-height:3rem;background:#fafaf7}
 .muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em}.small{font-size:.85rem}
 .example{display:inline-block;background:#ffe9a8;color:#5a4300;border:1px solid #e6c34a;border-radius:4px;padding:0 .4rem;font-size:.75rem;font-weight:700;letter-spacing:.04em}
 .matrix{font-size:.8rem}.matrix th,.matrix td{padding:.25rem .35rem}
@@ -65,61 +47,136 @@ table.only-open tr.st-pass,table.only-open tr.st-signed{display:none}
 .actions a{margin-right:.5rem;white-space:nowrap}
 .step{border-top:1px solid var(--line);padding-top:.4rem;margin-top:.8rem}.step:first-of-type{border-top:0;margin-top:0}.step h3{margin-top:.4rem}
 .stepgrid{display:grid;grid-template-columns:minmax(240px,1fr) minmax(0,2fr);gap:1rem;align-items:start}.stepgrid figure.zoom{grid-column:1 / -1}
+/* the workbench page (v0.9 M3a, V2): a sticky top bar, five lenses, the workbench lens in three panes */
+header.top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);padding:.7rem 1.1rem 0}
+header.top .row{display:flex;gap:.6rem 1rem;align-items:center;flex-wrap:wrap}
+header.top h1{font-size:1.15rem;margin:0}
+header.top .vitals{margin-top:.25rem;gap:.2rem 1.2rem}
+.vital b{font-weight:600}.vital .muted{font-size:.82rem;margin-left:.25rem}
+header.top .counts{display:block;margin-top:.1rem;font-size:.85rem}
+header.top .counts a,header.top .vitals a{color:inherit;text-decoration:none}header.top .counts a:hover,header.top .vitals a:hover{text-decoration:underline}
+.tabs{display:flex;gap:.2rem;margin-top:.5rem}
+.tabs button{font:inherit;font-size:.92rem;background:none;border:0;border-bottom:3px solid transparent;padding:.45rem .9rem .35rem;color:var(--muted);cursor:pointer}
+.tabs button:hover{color:var(--fg)}.tabs button[aria-selected=true]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.lens[hidden]{display:none}
+.cards{max-width:1440px;margin:0 auto;padding:1rem 1.2rem 2rem;display:flex;flex-direction:column;gap:1.2rem}
+.cards:empty{display:none}
+main footer{padding:.5rem 1.2rem 2rem;max-width:1440px;margin:0 auto}
+.wb{display:grid;grid-template-columns:260px minmax(0,1fr) 380px;height:calc(100vh - var(--head-h));min-height:440px;background:#fff;border-bottom:1px solid var(--line)}
+.wb>*{min-height:0;min-width:0}
+nav.tree{overflow:auto;padding:.6rem .5rem 1rem;border-right:1px solid var(--line);font-size:.9rem}
+nav.tree ul{list-style:none;margin:0;padding:0}nav.tree ul ul{padding-left:.9rem}
+nav.tree li{margin:0}
+nav.tree .row{display:flex;align-items:center;gap:.15rem;border-left:3px solid transparent;border-radius:6px;padding:.18rem .3rem;cursor:pointer}
+nav.tree .row:hover{background:#efeee8}
+nav.tree li[aria-selected=true]>.row{background:#e8f0fe;border-left-color:var(--accent);color:var(--accent)}
+nav.tree .tog{width:1rem;flex:none;color:var(--muted);font-size:.7rem;text-align:center}
+nav.tree .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+nav.tree .qty,nav.tree .sub{color:var(--muted);font-size:.8rem;white-space:nowrap}
+nav.tree li.head>.row{font-weight:600}nav.tree li.group>.row{color:var(--muted)}
+nav.tree li:focus{outline:none}nav.tree li:focus>.row{outline:2px solid var(--accent);outline-offset:-2px}
+nav.tree li[aria-expanded=false]>ul{display:none}
+.pane3d{position:relative;background:#f4f4f2;display:flex;flex-direction:column;min-height:0}
+.pane3d .viewer{flex:1 1 0;min-height:0;position:relative;overflow:hidden}.pane3d .viewer canvas{display:block}.pane3d .viewer.n2f-active{outline:2px solid var(--accent);outline-offset:-2px}
+.pane3d .none{margin:4rem 1rem}
+.toolbar3d{position:absolute;z-index:2;top:.6rem;left:.6rem;right:.6rem;display:flex;gap:.5rem 1rem;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem;font-size:.85rem}
+.toolbar3d label{display:inline-flex;gap:.35rem;align-items:center}
+.toolbar3d input[type=range]{width:110px}
+.toolbar3d button{font:inherit;font-size:.85rem;background:#fff;border:1px solid var(--line);border-radius:6px;padding:.15rem .6rem;cursor:pointer}
+.toolbar3d button:hover{border-color:var(--accent)}
+.secgrp{display:inline-flex;gap:.4rem;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:.15rem .55rem}.seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+.help3d{position:absolute;z-index:1;left:.8rem;bottom:.5rem;margin:0;font-size:.8rem;color:var(--muted);pointer-events:none}
+.pane3d.off .toolbar3d{display:none}
+.insp{overflow:auto;border-left:1px solid var(--line);padding:.8rem 1rem 2rem}
+#inspector-head .kindline{font-size:.82rem;color:var(--muted)}
+#inspector-head h2{margin:.15rem 0 .4rem;font-size:1.2rem;overflow-wrap:anywhere}
+.insp a{text-decoration:none}.insp a:hover{text-decoration:underline}
+.insp .btns{display:flex;gap:.4rem;margin:.4rem 0 .8rem;flex-wrap:wrap}
+.insp .btns button{font:inherit;font-size:.85rem;background:#fff;border:1px solid var(--line);border-radius:6px;padding:.2rem .7rem;cursor:pointer}
+.insp .btns button:hover{border-color:var(--accent)}
+.pane3d.off~.insp .btns .need3d{display:none}
+.insp h3{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:1.2rem 0 .4rem}
+#inspector-product h3{text-transform:none;letter-spacing:0;font-size:.95rem;color:var(--fg);margin:1rem 0 .4rem}
+.insp .kv .k{color:var(--muted)}.insp .kv .v .muted{font-size:.82rem;margin-left:.3rem}
+.insp ul.links{list-style:none;margin:0;padding:0}.insp ul.links li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.insp table{font-size:.85rem}.insp table td{padding:.25rem .35rem}
+.insp .files{display:flex;flex-direction:column;gap:.1rem}
+.st-pass,.st-signed{color:var(--ok);font-weight:600}.st-fail{color:var(--fail);font-weight:600}.st-warn{color:var(--warn);font-weight:600}.st-needs-human{color:var(--human);font-weight:600}.st-skip,.st-later{color:var(--muted)}
+.insp td.stc{white-space:nowrap}
+.product-view .kv{grid-template-columns:max-content minmax(0,1fr)}
+@media (max-width:1100px){.wb{grid-template-columns:220px minmax(0,1fr) 320px}}
 @media (max-width:960px){
-  .layout{display:block}
-  nav.side{position:static;max-height:none;display:flex;flex-wrap:wrap;gap:.2rem;margin-bottom:1rem}
-  nav.side .group{width:100%;margin:.4rem 0 0}nav.side a{padding:.15rem .5rem}nav.side a.sub{display:none}
   .matrix td.rule,.matrix th.rule{min-width:180px}
   .stepgrid{display:block}
 }
+/* phone (V8, M3a): the bar wraps, the lens tabs sit at the bottom, the workbench stacks: 3D, inspector, tree;
+   wide tables scroll inside themselves, the page never scrolls sideways (M4 builds the sheets) */
+@media (max-width:767px){
+  :root{--head-h:0px}
+  header.top{position:static;padding:.7rem 1rem .6rem}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;background:#fff;border-top:1px solid var(--line);justify-content:space-around;gap:0}
+  .tabs button{flex:1 1 0;min-width:0;padding:.7rem .2rem .6rem;font-size:.85rem;border-bottom:0;border-top:3px solid transparent}
+  .tabs button[aria-selected=true]{border-top-color:var(--accent)}
+  body{padding-bottom:3.4rem}
+  .wb{display:flex;flex-direction:column;height:auto;min-height:0}
+  .pane3d{order:1;height:60vh;flex:none}.insp{order:2;border-left:0;border-top:1px solid var(--line);overflow:visible}
+  nav.tree{order:3;border-right:0;border-top:1px solid var(--line);overflow:visible}
+  .toolbar3d input[type=range]{width:80px}
+  .cards{padding:.8rem 1rem 1.5rem}
+  main table{display:block;max-width:100%;overflow-x:auto}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .kv{grid-template-columns:minmax(0,1fr)}
+  .scroll{max-width:100%}
+}
+{% include "print.css.j2" ignore missing %}
 </style>
 </head>
 <body>
 {% macro w(st) -%}{{ words.get(st, st) }}{%- endmacro %}
 {% macro badge(st) -%}<span class="badge {{ st }}" title="{{ st }}">{{ w(st) }}</span>{%- endmacro %}
 {% macro h2(id, title) -%}<h2 id="h-{{ id }}">{{ title }} <a class="anchor" href="#{{ id }}" title="link to this section">#</a></h2>{%- endmacro %}
+{# The page is one workbench (V1, V2): the top bar, then one panel per lens that has a shown section
+   (V7: a lens with none gets no tab and no panel). Show/hide stays each section's own `show`. #}
+{% set lens_label = {'workbench': 'Workbench', 'drawings': 'Drawings', 'build': 'Build', 'verification': 'Checks', 'history': 'History'} %}
+{% set used_lenses = page_sections | map(attribute='lens') | list %}
+{% set shown_lenses = lenses | select('in', used_lenses) | list %}
+{% set vit = inspector_index['manifest://product'].vitals %}
+{% set later = later_count if later_count is defined else summary.get('later', 0) %}
+<noscript><style>.lens[hidden]{display:block}.tabs{display:none}</style></noscript>
 <header class="top">
-  <h1>{{ product.name }}</h1>
-  <span class="badge {{ stage_class }}">{{ stage_label }}</span>
-  <span class="muted">{{ revision_label }}</span>
-  <span class="muted counts"><a href="#requirements">{{ summary.fail }} {{ w('fail') }}</a>{% if summary['needs-human'] or not summary.example %} · <a href="#requirements">{{ summary['needs-human'] }} {{ w('needs-human') }}</a>{% endif %}{% if summary.example %} · <a href="#signoffs"><span class="example">{{ summary.example }} {{ w('example_one' if summary.example == 1 else 'example') }}</span></a>{% endif %} · <a href="#requirements">{{ summary.pass + summary.signed }} {{ w('pass') }}</a></span>
+  <div class="row"><h1>{{ product.name }}</h1><span class="badge {{ stage_class }}">{{ stage_label }}</span><span class="muted">{{ revision_label }}</span></div>
+  <div class="row vitals">{% for key in ['total_mass', 'total_cost', 'envelope'] %}{% if vit.get(key) %}<span class="vital"><b>{{ vit[key].value }}</b> <span class="muted">{{ vit[key].label }}</span></span>{% endif %}{% endfor %}{% set oc = vit.get('open_choices') %}{% if oc %}<span class="vital"><a href="#waiting"><b>{{ oc.value }}</b></a></span>{% elif waiting %}<span class="vital"><a href="#waiting"><b>{{ waiting | length }} open choice{{ '' if waiting | length == 1 else 's' }}</b></a></span>{% else %}<span class="vital"><b>no open choices</b></span>{% endif %}</div>
+  <div class="row muted counts"><a href="#requirements">{{ summary.pass + summary.signed }} {{ w('pass') }}</a>{% if summary.fail %} · <a href="#requirements">{{ summary.fail }} {{ w('fail') }}</a>{% endif %}{% if summary['needs-human'] or not summary.example %} · <a href="#requirements">{{ summary['needs-human'] }} {{ w('needs-human') }}</a>{% endif %} · <a href="#requirements">{{ summary.warn }} {{ w('warn') }}</a> · <a href="#requirements">{{ summary.skip }} {{ w('skip') }}</a> · <a href="#requirements">{{ later }} {{ w('later') }}</a>{% if summary.example %} · <a href="#signoffs"><span class="example">{{ summary.example }} {{ w('example_one' if summary.example == 1 else 'example') }}</span></a>{% endif %}</div>
+  <div class="tabs" role="tablist" aria-label="views of this product">{% for l in shown_lenses %}<button type="button" role="tab" id="tab-{{ l }}" data-lens-tab="{{ l }}" aria-controls="lens-{{ l }}" aria-selected="{{ 'true' if loop.first else 'false' }}" tabindex="{{ '0' if loop.first else '-1' }}">{{ lens_label[l] }}</button>{% endfor %}</div>
 </header>
-<div class="layout">
-<nav class="side" aria-label="sections">
-  {% set ns = namespace(group='') %}
-  {% for id, label, group in sections %}{% if group != ns.group %}{% set ns.group = group %}{% if group %}<div class="group">{{ group }}</div>{% endif %}{% endif %}<a href="#{{ id }}" data-sec="{{ id }}">{{ label if id != 'changes' else words.changes }}</a>{% if id == 'manuals' %}{% for d in docs %}<a class="sub" href="#doc-{{ d.id }}">{{ d.title }}</a>{% endfor %}{% endif %}{% endfor %}
-</nav>
 <main>
-
 {# One fragment per registered report section, in registry order (FOUNDATION F5): the
     mechanical sections are report/sections/*.html.j2; a domain's fragment lives in its own
-    package and reads its own `data`. #}{% for s in page_sections %}{% with data = section_data.get(s.id, {}) %}{% include s.template %}{% endwith %}
-
-{% endfor %}<footer class="muted" style="font-size:.8rem">{{ n2f_mark }}generated by {{ n2f_wordmark }} {{ version }} · {{ generated }} · report {{ build_id }}</footer>
-</main>
+    package and reads its own `data`.  Each sits in the panel of its registration's lens (V5). #}
+{% for l in shown_lenses %}
+<div class="lens" id="lens-{{ l }}" data-lens="{{ l }}" role="tabpanel" aria-labelledby="tab-{{ l }}"{% if not loop.first %} hidden{% endif %}>
+{% if l == 'workbench' %}
+<div class="wb">
+  <nav class="tree" id="tree" aria-label="parts and objects"></nav>
+  {% for s in page_sections if s.id == 'model' %}{% with data = section_data.get(s.id, {}) %}{% include s.template %}{% endwith %}{% endfor %}
+  <aside class="insp" id="inspector" aria-label="inspector" aria-live="polite">
+    <div id="inspector-head"><h2 id="inspector-title">{{ product.name }}</h2></div>
+    <div id="inspector-product" class="product-view">{% for s in page_sections if s.id == 'overview' %}{% with data = section_data.get(s.id, {}) %}{% include s.template %}{% endwith %}{% endfor %}</div>
+    <div id="inspector-entry" hidden></div>
+  </aside>
 </div>
+{% endif %}
+<div class="cards">
+{% for s in page_sections if s.lens == l and not (l == 'workbench' and s.id in ['model', 'overview']) %}{% with data = section_data.get(s.id, {}) %}{% include s.template %}{% endwith %}
+
+{% endfor %}</div>
+</div>
+{% endfor %}
+<footer class="muted" style="font-size:.8rem">{{ n2f_mark }}generated by {{ n2f_wordmark }} {{ version }} · {{ generated }} · report {{ build_id }}</footer>
+</main>
 <script type="application/json" id="inspector-index">{{ inspector_json | safe }}</script>
-<script>
-(function(){
-  var bom={{ bom_json | safe }};
-  function partLinks(uri){var row=bom[uri]||{};var out=[];if(row.in_bom)out.push('<a href="#part-'+row.id+'">parts list</a>');if(row.has_drawing)out.push('<a href="#drawing-'+row.id+'">drawing</a>');return out.length?'<br><span class="small">'+out.join(' · ')+'</span>':'';}
-  window.n2fPartCard=function(uri){var card=document.getElementById('part-card');if(!card)return;if(!uri){card.textContent='Click a part.';card.className='muted';return;}var row=bom[uri]||{};card.className='';card.innerHTML='<strong>'+(row.name||uri)+'</strong> <span class="mono muted">'+uri+'</span><br>'+(row.kind==='cots'?'bought':(row.kind||''))+(row.total_qty?' · qty '+row.total_qty:'')+(row.unit_cost!=null?' · '+row.unit_cost.toFixed(2)+' USD each':'')+(row.manufacturer?'<br><span class="muted">'+row.manufacturer+'</span>':'')+partLinks(uri);document.querySelectorAll('#bom tr').forEach(function(tr){tr.classList.toggle('row-hl',tr.getAttribute('data-uri')===uri)});};
-  document.addEventListener('n2f:select',function(ev){window.n2fPartCard(ev.detail.uri)},true);
-  var viewerEl=document.getElementById('viewer');
-  if(viewerEl){viewerEl.addEventListener('n2f:select',function(ev){window.n2fPartCard(ev.detail.uri)});
-    var ex=document.getElementById('explode');if(ex)ex.oninput=function(){if(window.n2fViewer)window.n2fViewer.explode(parseFloat(ex.value))};
-    var sec=document.getElementById('section');if(sec)sec.onchange=function(){if(window.n2fViewer)window.n2fViewer.section(sec.checked)};
-    var fit=document.getElementById('fit');if(fit)fit.onclick=function(){if(window.n2fViewer)window.n2fViewer.fit()};
-    document.querySelectorAll('[data-show3d]').forEach(function(a){a.addEventListener('click',function(){var uri=a.getAttribute('data-show3d');if(window.n2fViewer){window.n2fViewer.select(uri);}else{window.n2fPartCard(uri);}});});
-  }
-  var only=document.getElementById('req-open-only');if(only)only.onchange=function(){document.getElementById('req-table').classList.toggle('only-open',only.checked)};
-  // section index: highlight the section in view
-  var links={};document.querySelectorAll('nav.side a[data-sec]').forEach(function(a){links[a.getAttribute('data-sec')]=a});
-  var visible={};
-  function refresh(){var best=null,top=Infinity;Object.keys(visible).forEach(function(id){if(visible[id]<top){top=visible[id];best=id}});Object.keys(links).forEach(function(id){links[id].classList.toggle('active',id===best)});}
-  if('IntersectionObserver' in window){var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)visible[e.target.id]=e.boundingClientRect.top;else delete visible[e.target.id]});refresh();},{rootMargin:'-60px 0px -40% 0px',threshold:[0,0.1]});document.querySelectorAll('main > section.card').forEach(function(s){io.observe(s)});}
-})();
-</script>
 {{ viewer_script | safe }}
 </body>
 </html>

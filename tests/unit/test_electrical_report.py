@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from selectolax.lexbor import LexborHTMLParser
 from typer.testing import CliRunner
 
 from napkin2factory.cli.app import app
@@ -196,9 +197,14 @@ def test_the_section_is_in_the_report_and_its_index(built: tuple[Path, Product])
     # the diagram is inline exactly when the elec rule drew one (M2), whichever lands first
     drawn = (root / "build/electrical/heater/diagram.svg").is_file()
     assert ("<svg" in section) == drawn
-    nav = html.split('<nav class="side"', 1)[1].split("</nav>", 1)[0]
-    assert nav.index('data-sec="joints"') < nav.index('data-sec="wiring"')
-    assert nav.index('data-sec="wiring"') < nav.index("Verification")
+    # the wiring sits in the Drawings lens (V5): after the workbench's joints, before Checks
+    drawings = [
+        s.attributes.get("id") for s in LexborHTMLParser(html).css("#lens-drawings section[id]")
+    ]
+    assert "wiring" in drawings
+    assert (
+        html.index('id="joints"') < html.index('id="wiring"') < html.index('id="lens-verification"')
+    )
     assert json.loads((root / "build/report/report.json").read_text())["within_budget"]
     reads = json.loads((root / "build/.n2f/manifest.json").read_text())["entries"]["report"][
         "reads"
@@ -266,7 +272,7 @@ def test_a_product_without_wiring_has_no_section(tmp_path: Path) -> None:
     assert not show_wiring(bracket)
     assert "wiring" not in [sid for sid, _, _ in sections(bracket)]
     html = render_report(bracket, tmp_path / "build", "2026-11-02")
-    assert 'id="wiring"' not in html and 'data-sec="wiring"' not in html
+    assert 'id="wiring"' not in html
     assert "Wiring" not in html
 
 

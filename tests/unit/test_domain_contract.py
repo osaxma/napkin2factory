@@ -156,11 +156,14 @@ def test_report_section_renders(toy_built: tuple[Path, Any, Any]) -> None:
     root, _, _ = toy_built
     html = (root / "build/report/index.html").read_text()
     assert '<section class="card" id="toy">' in html and "<td>Widget</td>" in html
-    nav = html.split('<nav class="side"', 1)[1].split("</nav>", 1)[0]
-    # at the end of its group: after the last Product section, before Verification
-    # ("joints" is not on a lite page with one unit, W6; "build" always is)
-    assert nav.index('data-sec="build"') < nav.index('data-sec="toy"')
-    assert nav.index('data-sec="toy"') < nav.index("Verification")
+    # a section that names no lens lands in Checks (V5), in registry order (its group "Product"
+    # puts it after the Product sections: the build plan, in an earlier lens, comes before it)
+    from selectolax.lexbor import LexborHTMLParser
+
+    tree = LexborHTMLParser(html)
+    checks = [s.attributes.get("id") for s in tree.css("#lens-verification section[id]")]
+    assert "toy" in checks
+    assert html.index('id="build"') < html.index('id="toy"')
     assert json.loads((root / "build/report/report.json").read_text())["within_budget"]
     reads = json.loads((root / "build/.n2f/manifest.json").read_text())["entries"]["report"][
         "reads"
