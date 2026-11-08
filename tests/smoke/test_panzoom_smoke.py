@@ -1,13 +1,13 @@
-"""M3b: pan/zoom frames in a browser, from ``file://`` (S-319, B-0176).
+"""M3b: preview cards and the drawing viewer in a browser, from ``file://`` (S-319, S-322, B-0176).
 
-A prebuilt table (drawings) and the electrical fixture (a wiring diagram): the drawing starts fitted
-to its frame, zoom changes the transform, Reset returns to fit, a plain wheel does not zoom (no
-scroll trap), the keys work, and the wiring frame is no wider than its column.
+A prebuilt table (drawings) and the electrical fixture (a wiring diagram): a card is a title and a
+static preview with no controls; clicking it opens a modal viewer with the drawing fitted and
+centred; zoom changes the SVG's size, the pan arrows and the keys move it, the list switches
+drawing, Escape returns focus to the card; the same at phone width.
 """
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterator
 from typing import Any
 
@@ -51,84 +51,181 @@ def browser() -> Iterator[Any]:
         b.close()
 
 
-def _scale(frame: Any) -> float:
-    return float(frame.get_attribute("data-pz-scale"))
+def _scale(page: Any) -> float:
+    return float(page.locator(".pzv").get_attribute("data-pz-scale"))
 
 
-def _open(browser: Any, url: str, sel: str, errors: list[str]) -> tuple[Any, Any]:
-    page = browser.new_page(viewport={"width": 1100, "height": 900})
+def _open_page(browser: Any, url: str, errors: list[str], width: int = 1440) -> Any:
+    page = browser.new_page(viewport={"width": width, "height": 900})
     page.set_default_timeout(15000)
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
     page.goto(url + "#lens=drawings")
-    frame = page.locator(sel).first
-    frame.wait_for(state="visible")
-    page.wait_for_function("(s) => document.querySelector(s).classList.contains('pz-on')", arg=sel)
-    return page, frame
+    page.locator("[data-pzcard]").first.wait_for(state="visible")
+    return page
 
 
-def test_drawing_fits_zooms_and_resets(browser: Any, table_url: str) -> None:
+def _centred(page: Any) -> None:
+    view = page.locator(".pzv-view").bounding_box()
+    svg = page.locator(".pzv-view svg").bounding_box()
+    assert abs((svg["x"] + svg["width"] / 2) - (view["x"] + view["width"] / 2)) <= 3
+    assert abs((svg["y"] + svg["height"] / 2) - (view["y"] + view["height"] / 2)) <= 3
+    assert svg["width"] <= view["width"] + 1 and svg["height"] <= view["height"] + 1
+
+
+def test_card_opens_viewer_fitted_and_centred(browser: Any, table_url: str) -> None:
     errors: list[str] = []
-    page, frame = _open(browser, table_url, "section#drawings .pz", errors)
+    page = _open_page(browser, table_url, errors)
     try:
-        fit = _scale(frame)
-        view = frame.locator(".pz-view")
-        box = view.bounding_box()
-        svg = frame.locator(".pz-stage svg").bounding_box()
-        assert (
-            svg["width"] <= box["width"] + 1 and svg["height"] <= box["height"] + 1
-        )  # whole drawing
-        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-        frame.get_by_role("button", name="Zoom in").click()
-        assert _scale(frame) > fit * 1.4
-        # drag pans
-        x0 = frame.locator(".pz-stage").evaluate("e => e.style.transform")
-        view.hover()
-        page.mouse.down()
-        page.mouse.move(
-            box["x"] + box["width"] / 2 + 60, box["y"] + box["height"] / 2 + 40, steps=4
+        card = page.locator("section#drawings [data-pzcard]").first
+        assert card.locator("button").count() == 1  # the preview itself, nothing else
+        assert page.locator(".pzv").is_hidden()
+        opener = card.locator("button.pz-open")
+        opener.click()
+        dlg = page.get_by_role("dialog")
+        dlg.wait_for(state="visible")
+        assert dlg.get_attribute("aria-modal") == "true"
+        assert page.evaluate("document.activeElement.closest('.pzv') !== null")
+        page.wait_for_function("document.querySelector('.pzv-view svg')")
+        _centred(page)
+        # the viewer's own svg repeats no id of the page
+        assert page.evaluate(
+            "[...document.querySelectorAll('.pzv [id]')].every("
+            "e => document.querySelectorAll('[id=\"' + e.id + '\"]').length === 1)"
         )
-        page.mouse.up()
-        assert frame.locator(".pz-stage").evaluate("e => e.style.transform") != x0
-        # a plain wheel is left to the page; ctrl + wheel zooms
-        s1 = _scale(frame)
-        page.mouse.wheel(0, 100)
-        assert _scale(frame) == s1
-        page.keyboard.down("Control")
-        page.mouse.wheel(0, -200)
-        page.keyboard.up("Control")
-        assert _scale(frame) > s1
-        frame.get_by_role("button", name="Reset to fit the width").click()
-        assert _scale(frame) == pytest.approx(fit, rel=1e-3)
-        assert frame.locator(".pz-stage").evaluate("e => e.style.transform") != ""
-        # keys, with the frame focused
-        view.focus()
-        page.keyboard.press("+")
-        assert _scale(frame) > fit
+        fit = _scale(page)
+        for name in ("Zoom in", "Zoom out", "Fit", "Close"):
+            assert dlg.get_by_role("button", name=name, exact=True).count() == 1
+        before = page.locator(".pzv-view svg").bounding_box()["width"]
+        dlg.get_by_role("button", name="Zoom in").click()
+        assert _scale(page) > fit * 1.4
+        assert page.locator(".pzv-view svg").bounding_box()["width"] > before * 1.4
+        # zoom is the svg's own size, never a CSS transform (S-322: sharp lines)
+        assert (
+            page.evaluate("getComputedStyle(document.querySelector('.pzv-view svg')).transform")
+            == "none"
+        )
+        # pan arrows and keys move it
+        left0 = page.locator(".pzv-view svg").bounding_box()["x"]
+        dlg.get_by_role("button", name="Pan right").click()
+        assert page.locator(".pzv-view svg").bounding_box()["x"] < left0
+        x1 = page.locator(".pzv-view svg").bounding_box()["x"]
+        page.locator(".pzv-view").focus()
         page.keyboard.press("ArrowLeft")
+        assert page.locator(".pzv-view svg").bounding_box()["x"] > x1
+        # drag pans
+        box = page.locator(".pzv-view").bounding_box()
+        y0 = page.locator(".pzv-view svg").bounding_box()["y"]
+        page.mouse.move(box["x"] + 300, box["y"] + 300)
+        page.mouse.down()
+        page.mouse.move(box["x"] + 300, box["y"] + 360, steps=4)
+        page.mouse.up()
+        assert page.locator(".pzv-view svg").bounding_box()["y"] != y0
+        # wheel zooms (a modal: no page to scroll), keys zoom and fit
+        s1 = _scale(page)
+        page.mouse.wheel(0, -300)
+        assert _scale(page) > s1
         page.keyboard.press("0")
-        assert _scale(frame) == pytest.approx(fit, rel=1e-3)
-        # double click zooms in, and out again
-        view.dblclick()
-        assert _scale(frame) > fit * 2
-        view.dblclick()
-        assert _scale(frame) == pytest.approx(fit, rel=1e-3)
+        assert _scale(page) == pytest.approx(fit, rel=1e-3)
+        _centred(page)
+        page.keyboard.press("+")
+        assert _scale(page) > fit
+        dlg.get_by_role("button", name="Fit").click()
+        page.locator(".pzv-view").dblclick()
+        assert _scale(page) > fit * 2
+        page.locator(".pzv-view").dblclick()
+        assert _scale(page) == pytest.approx(fit, rel=1e-3)
+        # a window resize at fit refits and recentres
+        page.set_viewport_size({"width": 1000, "height": 700})
+        page.wait_for_function("document.querySelector('.pzv-view').clientWidth < 1000")
+        page.wait_for_timeout(100)
+        _centred(page)
+        # Escape closes and focus returns to the card that opened it
+        page.keyboard.press("Escape")
+        assert page.locator(".pzv").is_hidden()
+        assert opener.evaluate("e => e === document.activeElement")
+        # Enter on the focused card opens it again; Close closes
+        page.keyboard.press("Enter")
+        dlg.wait_for(state="visible")
+        dlg.get_by_role("button", name="Close").click()
+        assert page.locator(".pzv").is_hidden()
+        assert opener.evaluate("e => e === document.activeElement")
         assert real_page_errors(errors) == []
     finally:
         page.close()
 
 
-def test_wiring_diagram_fits_its_column(browser: Any, wired_url: str) -> None:
+def test_sidebar_lists_every_drawing_and_switches(browser: Any, table_url: str) -> None:
     errors: list[str] = []
-    page, frame = _open(browser, wired_url, "section#wiring .pz", errors)
+    page = _open_page(browser, table_url, errors)
     try:
-        col = page.locator("section#wiring").bounding_box()["width"]
-        fw = frame.bounding_box()["width"]
-        assert fw <= col  # B-0176: the frame is never wider than the column
-        svg = frame.locator(".pz-stage svg").bounding_box()
-        assert svg["width"] <= fw + 1  # the whole diagram shows, no sideways scroll
-        assert re.match(r"^[0-9.]+$", frame.get_attribute("data-pz-scale"))
+        n = page.locator("[data-pzcard]").count()
+        assert n > 1
+        page.locator("section#drawings [data-pzcard] button.pz-open").first.click()
+        dlg = page.get_by_role("dialog")
+        toggle = dlg.get_by_role("button", name="Drawings", exact=True)
+        assert toggle.get_attribute("aria-expanded") == "true"  # wide: starts open
+        entries = dlg.locator(".pzv-side button")
+        assert entries.count() == n
+        assert dlg.locator(".pzv-side [aria-current=true]").count() == 1
+        entries.nth(1).click()
+        assert entries.nth(1).get_attribute("aria-current") == "true"
+        assert entries.nth(0).get_attribute("aria-current") is None
+        assert dlg.locator(".pzv-title").inner_text() == entries.nth(1).inner_text()
+        _centred(page)
+        toggle.click()
+        assert toggle.get_attribute("aria-expanded") == "false"
+        assert dlg.locator(".pzv-side").is_hidden()
+        page.wait_for_timeout(100)
+        _centred(page)
+        assert real_page_errors(errors) == []
+    finally:
+        page.close()
+
+
+def test_phone_sidebar_starts_collapsed_and_overlays(browser: Any, table_url: str) -> None:
+    errors: list[str] = []
+    page = _open_page(browser, table_url, errors, width=390)
+    try:
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.locator("section#drawings [data-pzcard] button.pz-open").first.click()
+        dlg = page.get_by_role("dialog")
+        dlg.wait_for(state="visible")
+        toggle = dlg.get_by_role("button", name="Drawings", exact=True)
+        assert toggle.get_attribute("aria-expanded") == "false"
+        assert dlg.locator(".pzv-side").is_hidden()
+        _centred(page)
+        w0 = page.locator(".pzv-view").bounding_box()["width"]
+        toggle.click()
+        assert dlg.locator(".pzv-side").is_visible()
+        assert page.locator(".pzv-view").bounding_box()["width"] == w0  # overlays, no squeeze
+        dlg.locator(".pzv-side button").nth(1).click()
+        assert dlg.locator(".pzv-side").is_hidden()  # picking one closes the overlay
+        _centred(page)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.keyboard.press("Escape")
+        assert page.locator(".pzv").is_hidden()
+        assert real_page_errors(errors) == []
+    finally:
+        page.close()
+
+
+def test_wiring_card_opens_viewer(browser: Any, wired_url: str) -> None:
+    errors: list[str] = []
+    page = _open_page(browser, wired_url, errors)
+    try:
+        card = page.locator("section#wiring [data-pzcard]").first
+        col = page.locator("section#wiring").bounding_box()["width"]
+        assert card.bounding_box()["width"] <= col  # B-0176: never wider than the column
+        assert card.locator("button").count() == 1
+        card.locator("button.pz-open").click()
+        dlg = page.get_by_role("dialog")
+        dlg.wait_for(state="visible")
+        page.wait_for_function("document.querySelector('.pzv-view svg')")
+        _centred(page)
+        assert dlg.locator(".pzv-title").inner_text() == card.get_attribute("data-title")
+        page.keyboard.press("Escape")
+        assert card.locator("button.pz-open").evaluate("e => e === document.activeElement")
         assert real_page_errors(errors) == []
     finally:
         page.close()

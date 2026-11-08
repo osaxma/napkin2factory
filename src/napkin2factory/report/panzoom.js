@@ -1,32 +1,37 @@
-// Pan/zoom frames for the report's drawings and wiring diagrams (v0.9 M3b, S-319).
+// The drawing viewer for the report's drawings and wiring diagrams (v0.9 M3b, S-319, amended by S-322).
 //
 // Markup (written by the section templates, so the page reads without this script):
-//   <div class="pz" data-panzoom>
-//     <div class="pz-bar">buttons with data-pz="in|out|fit|full"</div>
-//     <div class="pz-view" role="group" tabindex="0" aria-label="..."><div class="pz-stage"><svg/></div></div>
-//   </div>
-// The start state is the whole drawing fitted to the frame.  Plain wheel scrolls the page (no scroll
-// trap); ctrl or meta + wheel (and a trackpad pinch) zooms.  Import-free IIFE: inline.py inlines it as is.
+//   <div class="pz-card" data-pzcard data-title="Bracket"><button type="button" class="pz-open" aria-label="Open Bracket drawing"><svg/></button></div>
+// A card is a title and a static preview, no controls.  Opening one builds ONE full-screen viewer
+// (a modal dialog) for the page: a slim bar (Drawings list, pan arrows, Zoom in, Zoom out, Fit, Close),
+// a collapsible list of every drawing on the page, and a clone of the card's SVG.  Zoom sets the SVG's
+// own width and height (no CSS transform), so lines stay sharp at any zoom.  Import-free IIFE.
 (function () {
   'use strict';
   const CSS = [
-    '.pz{border:1px solid var(--line,#d9d7d0);border-radius:8px;overflow:hidden;background:#fff;position:relative}',
-    '.pz-bar{display:flex;flex-wrap:wrap;gap:.3rem;padding:.3rem .4rem;border-bottom:1px solid var(--line,#d9d7d0);background:var(--bg,#f7f6f2)}',
-    '.pz-bar button{font:inherit;font-size:.8rem;padding:.2rem .6rem;border:1px solid var(--line,#d9d7d0);border-radius:6px;background:#fff;color:inherit;cursor:pointer;min-height:2rem}',
-    '.pz-bar button:hover{border-color:var(--accent,#1f5fbf)}',
-    '.pz-view{position:relative;overflow:hidden;outline-offset:-2px;touch-action:pan-y}',
-    '.pz.pz-on .pz-view{cursor:grab;height:var(--pz-h,60vh)}',
-    '.pz.pz-on .pz-view.pz-zoomed{touch-action:none}',
-    '.pz.pz-on .pz-view.pz-drag{cursor:grabbing}',
-    '.pz-stage{transform-origin:0 0;will-change:transform}',
-    '.pz.pz-on .pz-stage{position:absolute;left:0;top:0}',
-    '.pz.pz-on .pz-stage svg{max-width:none!important;min-width:0!important;cursor:inherit!important;display:block}',
-    '.pz.pz-full{position:fixed;inset:0;z-index:1000;border-radius:0;display:flex;flex-direction:column}',
-    '.pz:fullscreen{display:flex;flex-direction:column;border-radius:0}',
-    '.pz.pz-full .pz-view,.pz:fullscreen .pz-view{flex:1;height:auto!important}',
-    '@media print{.pz-bar{display:none}.pz-view,.pz.pz-on .pz-view{height:auto!important;overflow:visible}',
-    '.pz.pz-on .pz-stage{position:static;transform:none!important;width:auto!important;height:auto!important}',
-    '.pz.pz-on .pz-stage svg{width:100%!important;height:auto!important;max-width:100%!important}}'
+    '.pz-card{margin:0}',
+    '.pz-open{display:block;width:100%;margin:0;padding:0;border:0;background:#fff;font:inherit;color:inherit;cursor:zoom-in;text-align:left}',
+    '.pz-open:hover{outline:2px solid var(--accent,#1f5fbf);outline-offset:-2px}',
+    '.pz-open:focus-visible{outline:3px solid var(--accent,#1f5fbf);outline-offset:-3px}',
+    '.pzv{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;background:var(--bg,#f7f6f2);color:var(--ink,#1c1b19)}',
+    '.pzv[hidden]{display:none}',
+    '.pzv-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;padding:.35rem .5rem;border-bottom:1px solid var(--line,#d9d7d0);background:var(--bg,#f7f6f2)}',
+    '.pzv-bar button,.pzv-side button{font:inherit;font-size:.85rem;padding:.2rem .65rem;border:1px solid var(--line,#d9d7d0);border-radius:6px;background:#fff;color:inherit;cursor:pointer;min-height:2.1rem}',
+    '.pzv-bar button:hover,.pzv-side button:hover{border-color:var(--accent,#1f5fbf)}',
+    '.pzv-bar button:focus-visible,.pzv-side button:focus-visible,.pzv-view:focus-visible{outline:3px solid var(--accent,#1f5fbf);outline-offset:-1px}',
+    '.pzv-title{flex:1 1 8rem;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.pzv-pan{display:inline-flex;gap:.2rem}',
+    '.pzv-body{position:relative;flex:1;display:flex;min-height:0}',
+    '.pzv-side{flex:0 0 15rem;max-width:70vw;overflow:auto;border-right:1px solid var(--line,#d9d7d0);background:var(--bg,#f7f6f2);padding:.4rem}',
+    '.pzv-side[hidden]{display:none}',
+    '.pzv-side ul{list-style:none;margin:0;padding:0;display:grid;gap:.25rem}',
+    '.pzv-side button{display:block;width:100%;text-align:left;overflow-wrap:anywhere}',
+    '.pzv-side button[aria-current="true"]{border-color:var(--accent,#1f5fbf);background:#e8f0fc;font-weight:600}',
+    '.pzv-view{position:relative;flex:1;min-width:0;overflow:hidden;background:#fff;cursor:grab;touch-action:none}',
+    '.pzv-view.pz-drag{cursor:grabbing}',
+    '.pzv-view svg{position:absolute;max-width:none!important;min-width:0!important;cursor:inherit!important;display:block}',
+    '@media (max-width:600px){.pzv-side{position:absolute;z-index:2;top:0;bottom:0;left:0;box-shadow:2px 0 8px rgba(0,0,0,.25)}}',
+    '@media print{.pzv{display:none!important}.pz-open{display:block!important;cursor:default}}'
   ].join('\n');
 
   function naturalSize(svg) {
@@ -42,95 +47,188 @@
     return { w: w * k, h: h * k };
   }
 
-  function setup(root) {
-    const view = root.querySelector('.pz-view');
-    const stage = root.querySelector('.pz-stage');
-    const svg = stage && stage.querySelector('svg');
-    if (!view || !svg || root.__pz) return;
-    const nat = naturalSize(svg);
-    svg.style.width = nat.w + 'px';
-    svg.style.height = nat.h + 'px';
-    root.classList.add('pz-on');
-    const st = { s: 1, x: 0, y: 0, fit: 1 };
-    root.__pz = st;
-    let atFit = true;
+  // the clone lives beside the card's SVG: give every id a prefix (and its references) so none repeats
+  function uniqueIds(svg, prefix) {
+    const ids = new Set();
+    svg.querySelectorAll('[id]').forEach((e) => { ids.add(e.id); });
+    if (svg.id) ids.add(svg.id);
+    if (!ids.size) return;
+    const fix = (v) => v.replace(/url\(\s*(['"]?)#([^)'"]+)\1\s*\)/g, (m, q, id) => (ids.has(id) ? 'url(#' + prefix + id + ')' : m));
+    const all = [svg, ...svg.querySelectorAll('*')];
+    all.forEach((e) => {
+      if (e.id) e.id = prefix + e.id;
+      for (const a of [...e.attributes]) {
+        if ((a.name === 'href' || a.name === 'xlink:href') && a.value.charAt(0) === '#' && ids.has(a.value.slice(1))) a.value = '#' + prefix + a.value.slice(1);
+        else if (a.value.indexOf('url(') >= 0) a.value = fix(a.value);
+      }
+    });
+  }
 
-    function size() { return { w: view.clientWidth, h: view.clientHeight }; }
+  function el(tag, attrs, text) {
+    const e = document.createElement(tag);
+    for (const k in (attrs || {})) e.setAttribute(k, attrs[k]);
+    if (text) e.textContent = text;
+    return e;
+  }
+
+  let viewer = null;
+
+  function build(cards) {
+    const root = el('div', { class: 'pzv', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Drawing viewer', hidden: '' });
+    const bar = el('div', { class: 'pzv-bar' });
+    const toggle = el('button', { type: 'button', 'aria-expanded': 'false', 'aria-controls': 'pzv-side' }, 'Drawings');
+    const title = el('span', { class: 'pzv-title', 'aria-live': 'polite' });
+    const pan = el('span', { class: 'pzv-pan', role: 'group', 'aria-label': 'Move the drawing' });
+    [['left', '←'], ['right', '→'], ['up', '↑'], ['down', '↓']].forEach((d) => {
+      pan.appendChild(el('button', { type: 'button', 'data-pan': d[0], 'aria-label': 'Pan ' + d[0] }, d[1]));
+    });
+    const bIn = el('button', { type: 'button', 'data-pz': 'in' }, 'Zoom in');
+    const bOut = el('button', { type: 'button', 'data-pz': 'out' }, 'Zoom out');
+    const bFit = el('button', { type: 'button', 'data-pz': 'fit' }, 'Fit');
+    const bClose = el('button', { type: 'button', 'data-pz': 'close' }, 'Close');
+    if (cards.length > 1) bar.appendChild(toggle);
+    [title, pan, bIn, bOut, bFit, bClose].forEach((e) => bar.appendChild(e));
+    const body = el('div', { class: 'pzv-body' });
+    const side = el('nav', { class: 'pzv-side', id: 'pzv-side', 'aria-label': 'All drawings', hidden: '' });
+    const ul = el('ul');
+    const items = cards.map((c, i) => {
+      const li = el('li');
+      const b = el('button', { type: 'button', 'data-i': String(i) }, c.getAttribute('data-title') || 'Drawing ' + (i + 1));
+      li.appendChild(b); ul.appendChild(li);
+      return b;
+    });
+    side.appendChild(ul);
+    const view = el('div', { class: 'pzv-view', tabindex: '0', role: 'group', 'aria-label': 'Drawing: arrow keys move, plus and minus zoom, 0 fits' });
+    body.appendChild(side); body.appendChild(view);
+    root.appendChild(bar); root.appendChild(body);
+    document.body.appendChild(root);
+
+    const st = { s: 1, x: 0, y: 0, fit: 1, i: -1, nat: { w: 1, h: 1 }, svg: null, opener: null };
+    let atFit = true;
+    const narrow = () => window.matchMedia('(max-width:600px)').matches;
+    const isOpen = () => !root.hidden;
+
     function clamp() {
-      const v = size();
-      const sw = nat.w * st.s, sh = nat.h * st.s;
-      st.x = sw <= v.w ? (v.w - sw) / 2 : Math.min(0, Math.max(v.w - sw, st.x));
-      st.y = sh <= v.h ? (v.h - sh) / 2 : Math.min(0, Math.max(v.h - sh, st.y));
+      const w = view.clientWidth, h = view.clientHeight;
+      const sw = st.nat.w * st.s, sh = st.nat.h * st.s;
+      st.x = sw <= w ? (w - sw) / 2 : Math.min(0, Math.max(w - sw, st.x));
+      st.y = sh <= h ? (h - sh) / 2 : Math.min(0, Math.max(h - sh, st.y));
     }
     function apply() {
+      if (!st.svg) return;
       clamp();
-      stage.style.transform = 'translate(' + st.x + 'px,' + st.y + 'px) scale(' + st.s + ')';
+      const s = st.svg.style;
+      s.setProperty('width', st.nat.w * st.s + 'px', 'important');
+      s.setProperty('height', st.nat.h * st.s + 'px', 'important');
+      s.left = st.x + 'px'; s.top = st.y + 'px';
       atFit = Math.abs(st.s - st.fit) < 1e-6;
-      view.classList.toggle('pz-zoomed', !atFit);
       root.setAttribute('data-pz-scale', st.s.toFixed(4));
       root.setAttribute('data-pz-fit', st.fit.toFixed(4));
     }
-    function frameHeight() {
-      // the whole drawing fits the width; the height follows it, up to most of the window
-      const full = root.classList.contains('pz-full') || document.fullscreenElement === root;
-      if (full) { view.style.removeProperty('--pz-h'); return; }
-      const w = view.clientWidth || root.clientWidth;
-      const cap = Math.max(240, Math.round(window.innerHeight * 0.7));
-      view.style.setProperty('--pz-h', Math.min(cap, Math.max(160, Math.round(nat.h * w / nat.w))) + 'px');
-    }
     function reset() {
-      frameHeight();
-      const v = size();
-      st.fit = Math.min(v.w / nat.w, v.h / nat.h) || 1;
+      const w = view.clientWidth, h = view.clientHeight;
+      st.fit = (Math.min(w / st.nat.w, h / st.nat.h) * 0.96) || 1;
       st.s = st.fit; st.x = 0; st.y = 0;
       apply();
     }
     function zoomAt(k, cx, cy) {
-      const s2 = Math.min(st.fit * 24, Math.max(st.fit, st.s * k));
+      const s2 = Math.min(st.fit * 12, Math.max(st.fit, st.s * k));
       const r = s2 / st.s;
       st.x = cx - (cx - st.x) * r;
       st.y = cy - (cy - st.y) * r;
       st.s = s2;
       apply();
     }
-    function centre() { const v = size(); return { x: v.w / 2, y: v.h / 2 }; }
-    function local(ev) { const b = view.getBoundingClientRect(); return { x: ev.clientX - b.left, y: ev.clientY - b.top }; }
+    const centre = () => ({ x: view.clientWidth / 2, y: view.clientHeight / 2 });
+    function move(dx, dy) { st.x += dx; st.y += dy; apply(); }
 
-    // buttons
+    function show(i) {
+      const card = cards[i];
+      const src = card.querySelector('svg');
+      if (!src) return;
+      if (st.svg) st.svg.remove();
+      const svg = src.cloneNode(true);
+      uniqueIds(svg, 'pzv' + i + '-');
+      svg.removeAttribute('width'); svg.removeAttribute('height'); svg.removeAttribute('style');
+      st.nat = naturalSize(src);
+      st.svg = svg; st.i = i;
+      view.appendChild(svg);
+      title.textContent = card.getAttribute('data-title') || '';
+      root.setAttribute('aria-label', (card.getAttribute('data-title') || 'Drawing') + ' drawing');
+      items.forEach((b, j) => { if (j === i) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
+      reset();
+    }
+    function setSide(open) {
+      side.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+    }
+    function open(i, opener) {
+      st.opener = opener;
+      root.hidden = false;
+      document.documentElement.style.overflow = 'hidden';
+      setSide(!narrow() && cards.length > 1);
+      show(i);
+      view.focus();
+    }
+    function close() {
+      root.hidden = true;
+      document.documentElement.style.overflow = '';
+      if (st.svg) { st.svg.remove(); st.svg = null; }
+      const o = st.opener; st.opener = null;
+      if (o && o.focus) o.focus();
+    }
+    viewer = { open, isOpen };
+
+    toggle.addEventListener('click', () => setSide(side.hidden));
+    items.forEach((b) => b.addEventListener('click', () => {
+      show(Number(b.getAttribute('data-i')));
+      if (narrow()) setSide(false);
+      view.focus();
+    }));
     root.addEventListener('click', (ev) => {
-      const b = ev.target.closest('button[data-pz]');
+      const b = ev.target.closest('button');
       if (!b || !root.contains(b)) return;
       const c = centre();
       const act = b.getAttribute('data-pz');
+      const p = b.getAttribute('data-pan');
       if (act === 'in') zoomAt(1.5, c.x, c.y);
       else if (act === 'out') zoomAt(1 / 1.5, c.x, c.y);
       else if (act === 'fit') reset();
-      else if (act === 'full') toggleFull();
-    });
-    function toggleFull() {
-      const on = document.fullscreenElement === root || root.classList.contains('pz-full');
-      if (on) {
-        if (document.fullscreenElement === root) document.exitFullscreen();
-        root.classList.remove('pz-full');
-        after();
-      } else if (root.requestFullscreen) {
-        root.requestFullscreen().then(after, () => { root.classList.add('pz-full'); after(); });
-      } else { root.classList.add('pz-full'); after(); }
-      const fb = root.querySelector('button[data-pz="full"]');
-      if (fb) fb.setAttribute('aria-pressed', String(!on));
-    }
-    function after() { requestAnimationFrame(() => { const keep = atFit; if (keep) reset(); else apply(); }); }
-    document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) root.classList.remove('pz-full'); after(); });
-    root.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape' && root.classList.contains('pz-full')) { toggleFull(); }
+      else if (act === 'close') close();
+      else if (p) { const d = 120; move(p === 'left' ? d : p === 'right' ? -d : 0, p === 'up' ? d : p === 'down' ? -d : 0); }
     });
 
-    // wheel: ctrl or meta zooms; a plain wheel is left to the page
+    root.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') { ev.preventDefault(); close(); return; }
+      if (ev.key === 'Tab') { // keep focus inside the dialog
+        const f = [...root.querySelectorAll('button,[tabindex="0"]')].filter((e) => !e.closest('[hidden]'));
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+        else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+        return;
+      }
+      if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.target.closest('button')) return;
+      const c = centre();
+      let used = true;
+      switch (ev.key) {
+        case 'ArrowLeft': move(48, 0); break;
+        case 'ArrowRight': move(-48, 0); break;
+        case 'ArrowUp': move(0, 48); break;
+        case 'ArrowDown': move(0, -48); break;
+        case '+': case '=': zoomAt(1.25, c.x, c.y); break;
+        case '-': case '_': zoomAt(1 / 1.25, c.x, c.y); break;
+        case '0': reset(); break;
+        default: used = false;
+      }
+      if (used) ev.preventDefault();
+    });
+
+    // wheel: the viewer is a modal, so a plain wheel zooms too (ctrl and a trackpad pinch faster)
     view.addEventListener('wheel', (ev) => {
-      if (!(ev.ctrlKey || ev.metaKey)) return;
       ev.preventDefault();
-      const p = local(ev);
-      zoomAt(Math.exp(-ev.deltaY * 0.01), p.x, p.y);
+      const b = view.getBoundingClientRect();
+      zoomAt(Math.exp(-ev.deltaY * ((ev.ctrlKey || ev.metaKey) ? 0.01 : 0.002)), ev.clientX - b.left, ev.clientY - b.top);
     }, { passive: false });
 
     // drag to pan, two pointers to pinch
@@ -160,8 +258,7 @@
         moved += Math.abs(dx) + Math.abs(dy);
         if (moved > 3) view.classList.add('pz-drag');
         last = { x: ev.clientX, y: ev.clientY };
-        st.x += dx; st.y += dy;
-        apply();
+        move(dx, dy);
       }
     });
     function up(ev) {
@@ -173,37 +270,20 @@
     view.addEventListener('pointerup', up);
     view.addEventListener('pointercancel', up);
     view.addEventListener('dblclick', (ev) => {
-      if (!atFit) reset(); else { const p = local(ev); zoomAt(3, p.x, p.y); }
-    });
-    view.addEventListener('keydown', (ev) => {
-      if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
-      const c = centre();
-      const step = 48;
-      let used = true;
-      switch (ev.key) {
-        case 'ArrowLeft': st.x += step; apply(); break;
-        case 'ArrowRight': st.x -= step; apply(); break;
-        case 'ArrowUp': st.y += step; apply(); break;
-        case 'ArrowDown': st.y -= step; apply(); break;
-        case '+': case '=': zoomAt(1.25, c.x, c.y); break;
-        case '-': case '_': zoomAt(1 / 1.25, c.x, c.y); break;
-        case '0': reset(); break;
-        default: used = false;
-      }
-      if (used) ev.preventDefault();
+      if (!atFit) reset(); else { const b = view.getBoundingClientRect(); zoomAt(3, ev.clientX - b.left, ev.clientY - b.top); }
     });
 
-    // a lens that was hidden has no width yet: fit when it first has one, and when the column changes
-    let lastW = 0;
+    // a resize (window, or the list opening beside the drawing) refits while the drawing is at fit
+    let lw = 0, lh = 0;
     function onSize() {
-      const w = view.clientWidth;
-      if (!w || w === lastW) return;
-      lastW = w;
+      if (!isOpen() || !st.svg) return;
+      const w = view.clientWidth, h = view.clientHeight;
+      if (!w || (w === lw && h === lh)) return;
+      lw = w; lh = h;
       if (atFit) reset(); else apply();
     }
     if (window.ResizeObserver) new ResizeObserver(onSize).observe(view);
     window.addEventListener('resize', onSize);
-    reset(); lastW = view.clientWidth;
   }
 
   function init() {
@@ -212,7 +292,13 @@
       s.id = 'pz-style'; s.textContent = CSS;
       document.head.appendChild(s);
     }
-    document.querySelectorAll('[data-panzoom]').forEach(setup);
+    const cards = [...document.querySelectorAll('[data-pzcard]')];
+    if (!cards.length) return;
+    build(cards);
+    cards.forEach((c, i) => {
+      const b = c.querySelector('button.pz-open');
+      if (b) b.addEventListener('click', () => viewer.open(i, b));
+    });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
