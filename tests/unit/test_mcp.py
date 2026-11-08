@@ -251,6 +251,47 @@ def test_napkin_sync_lint_failure_stops_before_the_build(tmp_path: Path) -> None
     assert len(body["lint"]["problems"]) == 10 and body["lint"]["more"]["problems"] == 4
 
 
+def test_lint_findings_come_as_objects_and_reasons_whole(tmp_path: Path) -> None:
+    """The trial's two cuts (S-333): findings were Python reprs, a sag reason lost its end."""
+    finding = {
+        "severity": "error",
+        "rule": "C8-number-kinds",
+        "file": str(tmp_path.resolve() / "concepts" / "C-001.yaml"),
+        "subject": "C-001",
+        "message": "site.point_load is 150 kg, which is not a force",
+        "hint": "give it as a force with its unit, like 1471.5 N",
+    }
+    runner, _ = _runner(tmp_path, {("concept", "lint"): (1, {"ok": False, "problems": [finding]})})
+    body, err = _call(runner, "n2f_napkin_sync")
+    assert err and body["lint"]["problems"] == [
+        {
+            "subject": "C-001",
+            "message": finding["message"],
+            "hint": finding["hint"],
+            "severity": "error",
+            "file": "concepts/C-001.yaml",
+        }
+    ]
+    reason = "the top sags 4.22 mm, beyond the 2 mm limit " + "x" * 600 + " to pass: a deeper top"
+    card = {
+        "id": "C-001",
+        "title": "Bench",
+        "verdict": "red",
+        "summary": "1600 mm",
+        "screening": {
+            "rules": [{"id": "structural-deflection", "status": "fail", "message": reason}]
+        },
+    }
+    answers = {
+        ("concept", "lint"): {"ok": True, "problems": []},
+        ("concept", "build"): {"concepts": [card], "errors": []},
+        ("concept", "board"): {"board": "build/concepts/board.html"},
+    }
+    runner, _ = _runner(tmp_path, answers)
+    body, _ = _call(runner, "n2f_napkin_sync")
+    assert body["cards"][0]["reasons"][0]["message"].endswith("to pass: a deeper top")
+
+
 def test_napkin_sync_summarises_each_card(tmp_path: Path) -> None:
     card = {
         "id": "C-001",

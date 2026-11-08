@@ -38,6 +38,7 @@ from napkin2factory.mcp.tools import (
 
 LIST_CAP = 10  # items of a list in a summary
 TEXT_CAP = 300  # characters of one text in a summary
+REASON_CAP = 1200  # characters of one screening reason: its numbers, limit and formula
 SUMMARY_LIMIT = 4000  # characters of a default result (a test holds the real results to it)
 PAGE_LIMIT = 4000  # a docs page longer than this is offered as sections (S-327)
 
@@ -347,7 +348,13 @@ def _card(card: dict[str, Any]) -> dict[str, Any]:
     """One screened napkin card, short: id, title, verdict, the reasons it is not green."""
     rules = (card.get("screening") or {}).get("rules", [])
     reasons = [
-        {"id": r.get("id"), "status": r.get("status"), "message": _clip(str(r.get("message")))}
+        # The whole reason: what was computed, against what limit, and how (a 300-character cut
+        # sent a trial agent to the source for the rest of a sag screen, S-333).
+        {
+            "id": r.get("id"),
+            "status": r.get("status"),
+            "message": _clip(str(r.get("message")), REASON_CAP),
+        }
         for r in rules
         if r.get("status") in ("fail", "warn")
     ]
@@ -364,14 +371,26 @@ def _card(card: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _finding(problem: Any, folder: Path) -> Any:
+    """One lint finding as an object with the file relative to the folder (not its repr)."""
+    if not isinstance(problem, dict):
+        return _clip(str(problem))
+    out = {k: problem[k] for k in ("subject", "message", "hint", "severity") if problem.get(k)}
+    if problem.get("file"):
+        path = Path(str(problem["file"]))
+        out["file"] = str(path.relative_to(folder)) if path.is_relative_to(folder) else str(path)
+    return {k: _clip(str(v)) for k, v in out.items()}
+
+
 async def napkin_sync(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
     """Lint the cards, build them, rebuild the board."""
     given = _only(args, ("concept", "render"), {"concept": str, "render": bool})
     lint = await c.go(("concept", "lint"), {}, ok_exits=(0, 1))
-    problems = [str(p) for p in (lint or {}).get("problems", [])] if isinstance(lint, dict) else []
+    raw = (lint or {}).get("problems", []) if isinstance(lint, dict) else []
+    problems = [_finding(p, c.folder) for p in raw]
     if (isinstance(lint, dict) and not lint.get("ok", True)) or c.steps[-1].exit != 0:
         out: dict[str, Any] = {"ok": False, "lint": {"ok": False}}
-        _capped(out["lint"], "problems", [_clip(p) for p in problems])
+        _capped(out["lint"], "problems", problems)
         out["next"] = {
             "say": "Fix the card files the findings name (concepts/), then call n2f_napkin_sync."
         }
