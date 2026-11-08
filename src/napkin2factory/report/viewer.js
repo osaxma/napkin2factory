@@ -7,6 +7,7 @@
 //   instanceCount(uri)     -> number of scene instances for a part URI
 //   select(uri)            -> highlight one part, fire 'n2f:select' on the container
 //   highlight(uris, color) -> colour a set of parts (changed-part highlighting)
+//   clearHighlights()      -> undo highlight() only; selection, ghosting and explode stay (build player)
 //   frame(uri)             -> orbit target to part's centre and fit distance along current view
 //   ghost(uris)            -> make every part not in uris transparent; ghost([]) restores all
 //   screenPoint(uri)       -> {x, y} client pixels of part's projected bounding-box centre
@@ -433,6 +434,7 @@ function n2fCreateViewer(container, options) {
     requestRender();
   }
 
+  const highlighted = new Set();  // uris coloured by highlight(), for clearHighlights()
   const api = {
     scene, camera, renderer, controls,
     nodes() { return Array.from(partNodes.keys()).sort(); },
@@ -444,9 +446,14 @@ function n2fCreateViewer(container, options) {
       container.dispatchEvent(new CustomEvent('n2f:select', { detail: { uri } }));
     },
     highlight(uris, hex) {
-      for (const uri of uris) setColor(uri, hex === undefined ? 0x2e8b57 : hex, 0x002200);
+      for (const uri of uris) { highlighted.add(uri); setColor(uri, hex === undefined ? 0x2e8b57 : hex, 0x002200); }
+    },
+    clearHighlights() {
+      for (const uri of highlighted) if (uri !== selected) setColor(uri, null);
+      highlighted.clear();
     },
     reset() {
+      highlighted.clear();
       for (const uri of partNodes.keys()) setColor(uri, null);
       selected = null;
       ghost([]);

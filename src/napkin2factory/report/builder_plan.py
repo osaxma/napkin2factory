@@ -101,6 +101,31 @@ def _spec_summary(spec: Any, product: Product | None = None, units: str = "metri
     return type(spec).__name__
 
 
+def _cut_rows(build_dir: Path, part_id: str) -> list[dict[str, Any]]:
+    """A part's cut list as the build wrote it (``parts/<id>/features.json``), nothing added.
+
+    Lengths, widths and thicknesses are millimetres, as the generators record them (S-320);
+    a part with no cut list, or no file, gives no rows.
+    """
+    data = _read_json(build_dir / "parts" / part_id / "features.json")
+    rows = data.get("cut_list") if isinstance(data, dict) else None
+    out = []
+    for c in rows or []:
+        if not isinstance(c, dict) or c.get("length") is None:
+            continue
+        out.append(
+            {
+                "piece": str(c.get("description", "")),
+                "profile": c.get("profile") or "",
+                "length": c["length"],
+                "qty": c.get("qty", 1),
+                "width": c.get("width"),
+                "thickness": c.get("thickness"),
+            }
+        )
+    return out
+
+
 def _build_steps(
     build_dir: Path, results: dict[str, dict[str, Any]], words: dict[str, str]
 ) -> list[dict[str, Any]]:
@@ -131,6 +156,13 @@ def _build_steps(
             {**it, "notes": [n for n in item_notes(it) if not n.startswith("built ")]}
             for it in step.get("items", [])
         ]
+        # the cut lists of this step's own parts, for the Build lens (S-320)
+        step["cut_lists"] = [
+            {"id": it["id"], "uri": it["uri"], "name": it["name"], "rows": rows}
+            for it in step["items"]
+            if it.get("kind") != "unit" and (rows := _cut_rows(build_dir, str(it["id"])))
+        ]
+        step["part_uris"] = [it["uri"] for it in step["items"] if it.get("kind") != "unit"]
         step["joints"] = [
             {**j, "hardware_words": hardware_words(j), "status_words": joint_status_words(j)}
             for j in step.get("joints", [])

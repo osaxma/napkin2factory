@@ -1,0 +1,48 @@
+/* The print packet (M3c, Track C 3.4; S-320): screen is untouched, `@media print` only.
+   Order: cover sheet (title, vitals, overview), the parts list and build steps (one page each),
+   drawings (landscape), wiring, then the checks and the history. Every status keeps its words. */
+@page{size:A4 portrait;margin:14mm 12mm}
+@page drawings{size:A4 landscape;margin:10mm}
+@media print{
+  :root{--head-h:0px}
+  body{background:#fff;color:#000;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding-bottom:0}
+  /* what only works on screen */
+  .tabs,.tree,#tree,.pane3d,#model,.player,.anchor,.toolbar3d,.viewer,canvas,#inspector-head,#inspector-entry,
+  .btns,.need3d,noscript,.zoombar,.pz-bar,button{display:none !important}
+  header.top{position:static;border-bottom:2px solid #000;padding:0 0 .4rem;break-after:avoid}
+  /* every lens panel shown, in packet order (the DOM order is the screen's) */
+  .lens[hidden],.lens{display:block !important}
+  main{display:flex;flex-direction:column}
+  #lens-workbench{order:0}#lens-build{order:1}#lens-drawings{order:2}#lens-verification{order:3}#lens-history{order:4}
+  main footer{order:5}
+  .wb{display:block;height:auto;min-height:0;border:0}
+  .insp{display:block;border:0;overflow:visible;height:auto;width:auto;padding:0}
+  #inspector-product{display:block !important}
+  .cards{display:block;max-width:none;padding:0}
+  .card{break-inside:auto;margin:0 0 .8rem;box-shadow:none;border:0;padding:0}
+  /* page breaks */
+  .wb{break-after:page}
+  #parts{break-before:page}
+  #build .step ~ .step{break-before:page}
+  #lens-drawings{break-before:page}
+  #drawings,#wiring{page:drawings}
+  #lens-verification{break-before:page}
+  #lens-history{break-before:page}
+  h2,h3{break-after:avoid}
+  tr,figure,.stepgrid figure,svg,img{break-inside:avoid}
+  thead{display:table-header-group}
+  /* a step shows whole, whatever the player did on screen */
+  #build.playing .step:not(.current){opacity:1 !important}
+  #build.playing .step:not(.current) .stepgrid{display:block !important}
+  #build .step.current{outline:0 !important}
+  .stepgrid{display:block}
+  .stepgrid figure{margin:0 0 .6rem;max-width:100%}
+  figure svg{max-width:100%;height:auto}
+  figure.zoom{grid-column:auto}
+  table{width:100%;font-size:9pt}
+  .scroll{overflow:visible;max-width:none}
+  /* links read as text, not URLs */
+  a,a:visited{color:inherit;text-decoration:none}
+  a[href]::after{content:none !important}
+  .step tr.sel td{background:none}
+}

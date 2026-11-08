@@ -1,15 +1,24 @@
 <section class="card" id="build">
   {{ h2('build', 'Build plan') }}
   <p class="lead">How the product goes together: one step for each unit put together on its own, smaller units first. Parts that are not put together on their own (a lining, say) are laid in place in the step that contains them, and marked in the note column. A joint between units is where two units built separately meet. Item numbers match the assembly sheet and the parts list.</p>
-  {% for st in build_steps %}<div class="step" id="step-{{ st.id }}">
+  {% if build_steps %}<div class="player" id="build-player" role="group" aria-label="Build steps" hidden>
+  <button type="button" data-player="prev">Previous</button><button type="button" data-player="next">Next</button>
+  <span class="pstate" aria-live="polite" data-player="state">{{ build_steps | length }} steps</span>
+  <button type="button" data-player="all" class="plain">Show all</button>
+  </div>{% endif %}
+  {% for st in build_steps %}<div class="step" id="step-{{ st.id }}" data-step="{{ st.id }}" data-title="{{ st.title }}" data-parts="{{ st.part_uris | tojson | forceescape }}">
   <h3>Step {{ st.step }}: {{ st.title }}</h3>
   <p class="small muted">{% if st.why %}{{ st.why }} {% endif %}{% for fw in st.folded_words %}{{ fw }} {% endfor %}{% if st.built_per_product != 1 %}Built {{ st.built_per_product }} times per product. {% endif %}{% for pa in st.parent_steps %}Fitted in <a href="#step-{{ pa.unit | replace('asm://', '') }}">step {{ pa.step }}</a> ({{ pa.title }}). {% endfor %}{% if st.check_summary %}Checks of this step (its joints, counts and requirements; a requirement shared by two steps counts in both): {{ st.check_summary }}.{% endif %}</p>
   <div class="stepgrid">
   {% if st.sheet_svg %}<figure id="sheet-{{ st.id }}"><div onclick="this.parentNode.classList.toggle('zoom')">{{ st.sheet_svg | safe }}</div><figcaption>assembly sheet · <span class="mono">build/drawings/assemblies/{{ st.id }}.svg</span></figcaption></figure>{% endif %}
   <div>
   <table><thead><tr><th class="num">item</th><th>part</th><th>name</th><th class="num">qty</th><th>note</th></tr></thead><tbody>
-  {% for it in st['items'] %}<tr><td class="num">{{ it.item }}</td><td>{% if it.kind == 'unit' %}<a href="#step-{{ it.id }}">step {{ it.step }}</a>{% else %}{{ it.uri | ref }}{% endif %}</td><td>{{ it.name }}</td><td class="num">{{ it.qty }}</td><td class="small">{{ it.notes | join(' · ') }}</td></tr>{% endfor %}
+  {% for it in st['items'] %}<tr{% if it.kind != 'unit' %} data-uri="{{ it.uri }}"{% endif %}><td class="num">{{ it.item }}</td><td>{% if it.kind == 'unit' %}<a href="#step-{{ it.id }}">step {{ it.step }}</a>{% else %}{{ it.uri | ref }}{% endif %}</td><td>{{ it.name }}</td><td class="num">{{ it.qty }}</td><td class="small">{{ it.notes | join(' · ') }}</td></tr>{% endfor %}
   </tbody></table>
+  {%- if st.cut_lists %}<h3>Cut list (sizes in millimetres, as the build wrote them)</h3>
+  <table class="cuts"><thead><tr><th>part</th><th>piece</th><th>profile</th><th class="num">length (mm)</th><th class="num">qty</th><th class="num">width (mm)</th><th class="num">thickness (mm)</th></tr></thead><tbody>
+  {% for cl in st.cut_lists %}{% for r in cl.rows %}<tr><td>{% if loop.first %}{{ cl.name }}{% endif %}</td><td>{{ r.piece }}</td><td class="small">{{ r.profile }}</td><td class="num">{{ r.length }}</td><td class="num">{{ r.qty }}</td><td class="num">{{ r.width if r.width is not none else '' }}</td><td class="num">{{ r.thickness if r.thickness is not none else '' }}</td></tr>{% endfor %}{% endfor %}
+  </tbody></table>{% endif %}
   {%- if st.get('supplied') %}<h3>Supplied, not built here</h3>
   <table><thead><tr><th>module</th><th class="num">qty</th><th>joints that fit it</th></tr></thead><tbody>
   {% for x in st['supplied'] %}<tr><td>{{ x.name }}</td><td class="num">{{ x.qty }}</td><td class="small">{{ x.joints | join('; ') or 'none' }}</td></tr>{% endfor %}
@@ -21,4 +30,68 @@
   {% set open_checks = st.check_rows | rejectattr('status', 'in', ['pass', 'signed']) | list %}{% if open_checks %}<h3>Checks of this step not {{ w('pass') }}</h3>
   <table><tbody>{% for c in open_checks %}<tr><td>{{ badge(c.status) }}</td><td>{{ c.title }}</td><td class="small">{{ c.message }}</td></tr>{% endfor %}</tbody></table>{% endif %}
   </div></div></div>{% else %}<p class="muted">No assemblies yet, so no build plan.</p>{% endfor %}
+<style>
+.player{position:sticky;top:var(--head-h,0px);z-index:5;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem;margin:.6rem 0}
+.player[hidden]{display:none}
+.player button{font:inherit;font-size:.85rem;background:#fff;border:1px solid var(--line);border-radius:6px;padding:.2rem .7rem;cursor:pointer}
+.player button:hover,.player button:focus-visible{border-color:var(--accent)}.player button:disabled{opacity:.45;cursor:default}
+.pstate{font-weight:600}
+#build.playing .step:not(.current){opacity:.5}
+#build.playing .step:not(.current) .stepgrid{display:none}
+.step.current{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
+.step tr[data-uri]{cursor:pointer}.step tr[data-uri].sel td{background:#fff4e0}
+</style>
+<script>
+(function () {
+  var sec = document.getElementById('build'), bar = document.getElementById('build-player');
+  if (!sec || !bar) return;
+  var steps = Array.prototype.slice.call(sec.querySelectorAll('.step[data-step]'));
+  var state = bar.querySelector('[data-player=state]'), prev = bar.querySelector('[data-player=prev]'), next = bar.querySelector('[data-player=next]');
+  var cur = -1;
+  bar.hidden = false;
+  function show(k, scroll) {
+    if (k < 0 || k >= steps.length) return;
+    cur = k;
+    sec.classList.add('playing');
+    steps.forEach(function (s, i) { s.classList.toggle('current', i === k); });
+    var st = steps[k];
+    state.textContent = 'Step ' + (k + 1) + ' of ' + steps.length + ': ' + st.getAttribute('data-title');
+    prev.disabled = k === 0; next.disabled = k === steps.length - 1;
+    var v = window.n2fViewer;
+    if (v) {
+      var uris = []; try { uris = JSON.parse(st.getAttribute('data-parts') || '[]'); } catch (e) {}
+      if (v.clearHighlights) v.clearHighlights();
+      if (uris.length && v.highlight) v.highlight(uris, 0x2e8b57);
+    }
+    if (scroll !== false && st.scrollIntoView) st.scrollIntoView({ block: 'start' });
+  }
+  function all() {
+    cur = -1; sec.classList.remove('playing');
+    steps.forEach(function (s) { s.classList.remove('current'); });
+    state.textContent = steps.length + ' steps'; prev.disabled = false; next.disabled = false;
+    if (window.n2fViewer && window.n2fViewer.clearHighlights) window.n2fViewer.clearHighlights();
+  }
+  prev.addEventListener('click', function () { show(cur < 0 ? 0 : cur - 1); });
+  next.addEventListener('click', function () { show(cur < 0 ? 0 : cur + 1); });
+  bar.querySelector('[data-player=all]').addEventListener('click', all);
+  bar.addEventListener('keydown', function (ev) {
+    if (ev.key === 'ArrowLeft') { ev.preventDefault(); show(cur < 0 ? 0 : cur - 1); }
+    else if (ev.key === 'ArrowRight') { ev.preventDefault(); show(cur < 0 ? 0 : cur + 1); }
+  });
+  sec.addEventListener('click', function (ev) {
+    var tr = ev.target.closest && ev.target.closest('tr[data-uri]');
+    if (!tr || ev.target.closest('a')) return;
+    sec.querySelectorAll('tr.sel').forEach(function (r) { r.classList.remove('sel'); });
+    tr.classList.add('sel');
+    if (window.n2fWorkbench && window.n2fWorkbench.select) window.n2fWorkbench.select(tr.getAttribute('data-uri'));
+  });
+  function fromHash() {
+    var m = /^#step-(.+)$/.exec(location.hash); if (!m) return;
+    var id; try { id = decodeURIComponent(m[1]); } catch (e) { id = m[1]; }
+    for (var i = 0; i < steps.length; i++) if (steps[i].getAttribute('data-step') === id) { show(i, false); return; }
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
 </section>
