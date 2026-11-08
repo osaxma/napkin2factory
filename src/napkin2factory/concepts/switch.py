@@ -226,7 +226,11 @@ def switch(
     stamp = (now or dt.datetime.now()).replace(microsecond=0)
     at = stamp.isoformat()
     vcs = Vcs(root)
-    target = cm.load_card(root, card_id)
+    try:
+        target = cm.load_card(root, card_id)
+    except N2FError as exc:
+        where = f" --dir {root}" if root != Path.cwd() else ""
+        raise N2FError(str(exc), next=f"n2f concept list{where}") from exc
     current = _preflight(root, vcs, target, fresh)
     assert current.decision is not None and current.decision.dec is not None
     old_dec = current.decision.dec
@@ -297,9 +301,11 @@ def switch(
             if product is None or problems.errors:
                 first = problems.errors[0] if problems.errors else None
                 what = f" ({first.subject}: {first.message})" if first else ""
+                where = f" --dir {root}" if root != Path.cwd() else ""
                 raise N2FError(
                     f"{target.id} does not fit the product as it stands now{what}, so nothing "
-                    "was switched"
+                    "was switched",
+                    next=f"n2f validate{where}",
                 )
             result.seeded_requirements = _brought_requirements(product, target)
         else:

@@ -144,8 +144,10 @@ def build_part(
     """
     t0 = time.perf_counter()
     if part_id not in product.parts:
+        where = f" --dir {product.root}" if product.root != Path.cwd() else ""
         raise GeometryError(
-            f"part://{part_id} does not exist; known parts: {', '.join(sorted(product.parts))}"
+            f"part://{part_id} does not exist; known parts: {', '.join(sorted(product.parts))}",
+            next=f"n2f status{where}",
         )
     part = product.parts[part_id]
     if not part.has_geometry:

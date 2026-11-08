@@ -203,19 +203,27 @@ _ECR = re.compile(r"^(?:ecr://)?(ECR-\d+)$")
 def _resolve(root: Path, vcs: Vcs, log: list[Checkpoint], target: str) -> tuple[str, str, Vitals]:
     """``(state id, words for the label, vitals)`` of a rollback target, or an error."""
     text = target.strip()
+    where = f" --dir {root}" if root != Path.cwd() else ""
     if m := _NUMBER.match(text):
         number = int(m.group(1))
         cp = next((c for c in log if c.number == number), None)
         if cp is None:
-            raise VcsError(
+            err = VcsError(
                 f"there is no checkpoint #{number}; `n2f checkpoints --all` lists them",
                 code="no-such-checkpoint",
             )
+            err.next_step = f"n2f checkpoints{where}"
+            raise err
         return cp.id, _ref(cp), cp.vitals
     if m := _ECR.match(text):
         ecr = load_product(root).ecrs.get(m.group(1))
         if ecr is None:
-            raise VcsError(f"there is no change request {m.group(1)}", code="no-such-ecr")
+            err = VcsError(
+                f"there is no change request {m.group(1)}",
+                code="no-such-ecr",
+            )
+            err.next_step = f"n2f ecr list{where}"
+            raise err
         if ecr.baseline is None:
             raise VcsError(
                 f"{ecr.id} does not record where it started, so there is nothing to go back to",
@@ -229,11 +237,13 @@ def _resolve(root: Path, vcs: Vcs, log: list[Checkpoint], target: str) -> tuple[
         by_label = next((c for c in log if text in (c.label, c.since)), None)
         if by_label is not None:
             return by_label.id, _ref(by_label), by_label.vitals
-        raise VcsError(
+        err = VcsError(
             f"{target!r} is not a checkpoint number, a change request or a released "
             "Revision; `n2f checkpoints` lists checkpoints",
             code="no-such-target",
         )
+        err.next_step = f"n2f checkpoints{where}"
+        raise err
     cp = next((c for c in log if c.id == state), None)
     return state, f"Revision {text}", cp.vitals if cp else Vitals()
 

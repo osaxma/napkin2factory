@@ -29,7 +29,11 @@ def serve(
     root = product_root(dir)
     folder = root / "build" / ("site" if site else "report")
     if not (folder / "index.html").is_file():
-        raise N2FError(f"nothing to serve yet in {folder}; run `n2f build` first")
+        where = f" --dir {dir}" if dir is not None else ""
+        raise N2FError(
+            f"nothing to serve yet in {folder}; run `n2f build` first",
+            next=f"n2f build{where}",
+        )
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(folder))
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", port), handler) as httpd:

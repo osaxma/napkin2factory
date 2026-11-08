@@ -173,15 +173,28 @@ def select_cards(
     Set-aside cards are built too: the board needs a picture of each, and a red card is
     information (review gate B, B1).
     """
+    where = f" --dir {root}" if root != Path.cwd() else ""
     if concept_id is not None and all_:
-        raise N2FError("name one card (e.g. C-002) or pass --all, not both")
+        raise N2FError(
+            "name one card (e.g. C-002) or pass --all, not both",
+            next=f"n2f concept list{where}",
+        )
     if concept_id is None and not all_:
-        raise N2FError("name a card to build (e.g. `n2f concept build C-002`) or pass --all")
+        raise N2FError(
+            "name a card to build (e.g. `n2f concept build C-002`) or pass --all",
+            next=f"n2f concept list{where}",
+        )
     if concept_id is not None:
-        return [cm.load_card(root, concept_id)]
+        try:
+            return [cm.load_card(root, concept_id)]
+        except N2FError as exc:
+            raise N2FError(str(exc), next=f"n2f concept list{where}") from exc
     cards = cm.load_concepts(root, problems)
     if not cards and not problems.items:
-        raise N2FError('there are no concepts yet — `n2f concept new "<title>"` starts one')
+        raise N2FError(
+            'there are no concepts yet — `n2f concept new "<title>"` starts one',
+            next=f"n2f concept list{where}",
+        )
     return list(cards.values())
 
 

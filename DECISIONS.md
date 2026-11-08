@@ -358,6 +358,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-329 | M8: the seven MCP tools, built through the warm engine; short results, `full`, docs by section | in force |
 | S-330 | M7b: the warm one-parameter rebuild, three exact speed-ups and a table of what is left | in force |
 | S-331 | M10: n2f doctor --fix and agent MCP server setup in skill and guide | in force |
+| S-332 | M9: errors an agent can act on (B-0309, B-0310) | in force |
 
 ---
 
@@ -2452,3 +2453,5 @@ Adds `MCP server` check row (`ok` when `mcp` imports, else `warn` with install c
 `--json`, each check row carries `fixed` (bool) and `next` (string or null). `SKILL.md` adds
 "With the MCP server" section with setup, timeout, and the seven tools in loop order.
 `docs/agent-guide.md` updates the MCP row and adds "Using the MCP server". Guide size: before 5,137 words (est. 6,832 tokens); after 5,373 words (est. 7,146 tokens, tokens ≈ words × 1.33). `core/` files: 0.
+## S-332 — M9: errors an agent can act on (2026-11-08)
+Closes B-0309 and B-0310. **B-0309 (warm engine internal error):** when an unhandled exception escapes `run_in_process` under `--json`, it writes stdout JSON `{"error": "engine_internal", "message": <last line>, "next": <cmd>, "log": <log_path>}`, traceback to stderr, and exits 70 (`EXIT_INTERNAL`). Safe verbs rerun with `N2F_NO_ENGINE=1`; state-changing verbs run their `look_at` command. Without `--json`, output is unchanged and exit code remains 1. **B-0310 (actionable errors):** unknown ids (part, assembly, requirement, concept card, change request, check, checkpoint, template, topic) name exact listing commands (`n2f status`, `n2f concept list`, `n2f ecr list`, `n2f checkpoints`, `n2f docs`, `n2f init --help`) preserving `--dir`; missing files name the making command (`n2f build`, `n2f init`); bad values list allowed choices. 39 of the 75 `N2FError`/`ModelError` sites now carry `next=`. The rest stay generic: model validation errors carry `ModelError`'s validate instruction, syntax/YAML errors, and calculations where fixed discrete choices do not apply. `core/` files: 0.

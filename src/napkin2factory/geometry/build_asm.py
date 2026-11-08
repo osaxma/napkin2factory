@@ -135,7 +135,11 @@ def build_assembly(
     """Build one assembly from already-built children; export GLB, props, instances, renders."""
     t0 = time.perf_counter()
     if asm_id not in product.assemblies:
-        raise GeometryError(f"asm://{asm_id} does not exist")
+        where = f" --dir {product.root}" if product.root != Path.cwd() else ""
+        raise GeometryError(
+            f"asm://{asm_id} does not exist",
+            next=f"n2f status{where}",
+        )
     asm = product.assemblies[asm_id]
     asms = asms or {}
     P, I, log = make_accessors(product)

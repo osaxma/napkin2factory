@@ -95,7 +95,10 @@ class KitError(N2FError, ValueError):
 def get_module(name: str) -> Any:
     """Import ``napkin2factory.geometry.kit.<name>`` or raise :class:`KitError`."""
     if name not in GENERATORS:
-        raise KitError(f"unknown kit generator {name!r}; available: {', '.join(GENERATORS)}")
+        raise KitError(
+            f"unknown kit generator {name!r}; available: {', '.join(GENERATORS)}",
+            next=f"choose one of: {', '.join(sorted(GENERATORS))}",
+        )
     return importlib.import_module(f"napkin2factory.geometry.kit.{name}")
 
 

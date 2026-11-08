@@ -83,20 +83,24 @@ def _top_assembly(product: Any) -> tuple[str | None, str | None]:
 def _bbox(root: Path, product: Any, aid: str) -> dict[str, float]:
     """The top assembly's bounding box (``{x, y, z}`` in mm) from its build props."""
     path = product.paths.build / "assemblies" / aid / "props.json"
+    where = f" --dir {root}" if root != Path.cwd() else ""
     if not path.is_file():
         raise N2FError(
-            f"the built design has no measurements for {aid} — run `n2f build`, then fork it"
+            f"the built design has no measurements for {aid} — run `n2f build`, then fork it",
+            next=f"n2f build{where}",
         )
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise N2FError(
-            f"the built design has no measurements for {aid} — run `n2f build`, then fork it"
+            f"the built design has no measurements for {aid} — run `n2f build`, then fork it",
+            next=f"n2f build{where}",
         ) from exc
     bbox = data.get("bbox") if isinstance(data, dict) else None
     if not isinstance(bbox, dict) or not all(k in bbox for k in "xyz"):
         raise N2FError(
-            f"the built design has no bounding box for {aid} — run `n2f build`, then fork it"
+            f"the built design has no bounding box for {aid} — run `n2f build`, then fork it",
+            next=f"n2f build{where}",
         )
     return {k: float(bbox[k]) for k in "xyz"}
 
@@ -276,7 +280,11 @@ def fork_from_model(root: Path | str, title: str | None = None) -> ForkResult:
     vitals = current_vitals(product)
     top, top_note = _top_assembly(product)
     if top is None:
-        raise N2FError("the built design has no top assembly — run `n2f build`, then fork it")
+        where = f" --dir {root}" if root != Path.cwd() else ""
+        raise N2FError(
+            "the built design has no top assembly — run `n2f build`, then fork it",
+            next=f"n2f build{where}",
+        )
     bbox = _bbox(root, product, top)
     fail_rows = _failed_requirement_rows(product.paths.build / "checks" / "checks.json")
     renamed = cm.param_names(root)

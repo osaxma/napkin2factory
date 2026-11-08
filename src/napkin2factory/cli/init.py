@@ -71,7 +71,10 @@ def write_style(dest: Path, preset: str = "industrial") -> Path:
     from napkin2factory.core.model.style import PRESETS
 
     if preset not in PRESETS:
-        raise N2FError(f"unknown style {preset!r}; choose one of {' | '.join(PRESETS)}")
+        raise N2FError(
+            f"unknown style {preset!r}; choose one of {' | '.join(PRESETS)}",
+            next=f"choose one of: {', '.join(PRESETS)}",
+        )
     path = dest / "style.yaml"
     data = StyleFile.model_validate({"preset": preset}).resolved().model_dump(mode="json")
     body = yaml.safe_dump(data, sort_keys=False, default_flow_style=False)
@@ -107,6 +110,7 @@ def check_place(region: str | None, units: str | None) -> tuple[str | None, str 
         message = str(err["msg"]).removeprefix("Value error, ")
         if field == "units":
             message = f"unknown units {units!r}; choose metric or imperial"
+            raise N2FError(f"--{field}: {message}", next="choose one of: metric, imperial") from exc
         raise N2FError(f"--{field}: {message}") from exc
     return code, units or None
 
@@ -130,13 +134,20 @@ def write_skeleton(
     from napkin2factory.core.model.style import PRESETS
 
     if style not in PRESETS:
-        raise N2FError(f"unknown style {style!r}; choose one of {' | '.join(PRESETS)}")
+        raise N2FError(
+            f"unknown style {style!r}; choose one of {' | '.join(PRESETS)}",
+            next=f"choose one of: {', '.join(PRESETS)}",
+        )
     if template not in TEMPLATE_NAMES:
-        raise N2FError(f"unknown template {template!r}; choose one of {', '.join(TEMPLATE_NAMES)}")
+        raise N2FError(
+            f"unknown template {template!r}; choose one of {', '.join(TEMPLATE_NAMES)}",
+            next="n2f init --help",
+        )
     src = TEMPLATES_DIR / template
     if not src.is_dir():
         raise N2FError(
-            f"template {template!r} is not installed (run `make templates` in the system repo)"
+            f"template {template!r} is not installed (run `make templates` in the system repo)",
+            next="make templates",
         )
     # A folder may already hold the owner's own files (a brief, notes): refuse only when a
     # file we write is there, naming it (S-231).

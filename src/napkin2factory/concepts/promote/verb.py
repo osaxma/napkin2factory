@@ -120,7 +120,11 @@ def promote(
 
     root = Path(root)
     stamp = (now or dt.datetime.now()).replace(microsecond=0)
-    card = cm.load_card(root, card_id)
+    try:
+        card = cm.load_card(root, card_id)
+    except N2FError as exc:
+        where = f" --dir {root}" if root != Path.cwd() else ""
+        raise N2FError(str(exc), next=f"n2f concept list{where}") from exc
     cid = card.id
     cards = cm.load_concepts(root)
     # 1. gates
@@ -155,9 +159,11 @@ def promote(
     if product is None or problems.errors:
         first = problems.errors[0] if problems.errors else None
         what = f" ({first.subject}: {first.message})" if first else ""
+        where = f" --dir {root}" if root != Path.cwd() else ""
         raise N2FError(
             f"the product model has problems{what}, so nothing was promoted — "
-            "fix them first (`n2f validate`)"
+            "fix them first (`n2f validate`)",
+            next=f"n2f validate{where}",
         )
     paths = product.paths
     notes: list[str] = []
@@ -409,7 +415,8 @@ def _check_texts(params: str, reqs: str, decs: str, n_reqs: int) -> None:
             # gate C, C4: plain words first; the validator's own text stays in the chain
             raise N2FError(
                 f"promotion could not edit model/{name}.yaml cleanly, so nothing was written; "
-                f"check that the file still reads (`n2f lint`) — {_first_error(exc)}"
+                f"check that the file still reads (`n2f lint`) — {_first_error(exc)}",
+                next="n2f lint",
             ) from exc
     rf = checked["requirements"]
     if len(rf.requirements) != n_reqs:
@@ -444,9 +451,11 @@ def _write_all(root: Path, writes: dict[Path, str], validate: Any) -> None:
         product, problems = validate(root)
         if product is None or problems.errors:
             first = problems.errors[0]
+            where = f" --dir {root}" if root != Path.cwd() else ""
             raise N2FError(
                 f"promotion would leave the model invalid ({first.subject}: {first.message}); "
-                "nothing was written"
+                "nothing was written",
+                next=f"n2f validate{where}",
             )
     except BaseException:
         for path, old in before.items():

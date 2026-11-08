@@ -45,7 +45,10 @@ def plan_style(card: ConceptCard, root: Path, notes: list[str]) -> tuple[str, St
     if created:
         preset = str(card_style.get("preset", "industrial"))
         if preset not in PRESETS:
-            raise N2FError(f"{card.id}: style preset {preset!r} is not one of {', '.join(PRESETS)}")
+            raise N2FError(
+                f"{card.id}: style preset {preset!r} is not one of {', '.join(PRESETS)}",
+                next=f"choose one of: {', '.join(PRESETS)}",
+            )
         doc: Any = CommentedMap(
             StyleFile.model_validate({"preset": preset}).resolved().model_dump(mode="json")
         )

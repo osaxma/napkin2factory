@@ -179,7 +179,8 @@ def _location(card_id: str, call: MassingCall) -> Any:
     if unknown:
         raise N2FError(
             f"{card_id}/{call.as_}: at: has {', '.join(unknown)}; a placement takes "
-            f"{', '.join(AT_KEYS)} (e.g. at: {{x: 300 mm, z: 700 mm, rz: 90 deg}})"
+            f"{', '.join(AT_KEYS)} (e.g. at: {{x: 300 mm, z: 700 mm, rz: 90 deg}})",
+            next=f"choose one of: {', '.join(AT_KEYS)}",
         )
     values: dict[str, float] = {}
     for key, unit in AT_KEYS.items():

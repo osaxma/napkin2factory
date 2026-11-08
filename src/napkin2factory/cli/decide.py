@@ -47,6 +47,7 @@ def decide(
     from napkin2factory.core.checks.choices import (
         AGENT_WORDS,
         DEFAULT_BLOCKS,
+        ChoiceError,
         append_decision,
         decision_entry,
         find_choice,
@@ -59,8 +60,18 @@ def decide(
 
     product = load_product(root)
     data = _ensure_checks(product)  # the choice as the current model offers it
-    row = find_choice(data["results"], check)
-    entry = decision_entry(product, row, pick, by, note, agent)
+    where = f" --dir {dir}" if dir is not None else ""
+    try:
+        row = find_choice(data["results"], check)
+    except ChoiceError as exc:
+        raise ChoiceError(str(exc), next=f"n2f status{where}") from exc
+    try:
+        entry = decision_entry(product, row, pick, by, note, agent)
+    except ChoiceError as exc:
+        ids = [str(o["id"]) for o in (row.get("detail") or {}).get("options", [])]
+        if ids:
+            raise ChoiceError(str(exc), next=f"choose one of: {', '.join(ids)}") from exc
+        raise
     save_edits_first(product)  # the owner's loose edits stay their own step (R4)
     append_decision(product.paths.decisions, entry)
     # refresh the checks so `n2f status` agrees, and save: a decision is a record

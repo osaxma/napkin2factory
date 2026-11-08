@@ -492,7 +492,11 @@ def write_board(root: Path) -> BoardResult:
     if not data["cards"]:
         from napkin2factory.core.errors import N2FError
 
-        raise N2FError('there are no concepts yet — `n2f concept new "<title>"` starts one')
+        where = f" --dir {root}" if root != Path.cwd() else ""
+        raise N2FError(
+            'there are no concepts yet — `n2f concept new "<title>"` starts one',
+            next=f"n2f concept list{where}",
+        )
     dropped: set[str] = set()
     page = render_board(data, dropped)
     for what in DROP_ORDER:

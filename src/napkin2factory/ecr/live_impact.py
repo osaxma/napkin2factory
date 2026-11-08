@@ -246,7 +246,8 @@ def compute(product: Product, ecr: Ecr) -> dict[str, Any]:
     if not vcs.ref_exists(base_id):
         raise N2FError(
             f"{ecr.id} started from a saved state that is no longer in this folder's history "
-            f"({base_id[:8]}); abort it with `n2f ecr abort {ecr.id}`"
+            f"({base_id[:8]}); abort it with `n2f ecr abort {ecr.id}`",
+            next=f"n2f ecr abort {ecr.id}",
         )
     files = _files(vcs, base_id)
     model_at = model_hash(vcs)

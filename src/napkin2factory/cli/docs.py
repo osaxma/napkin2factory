@@ -58,10 +58,16 @@ def read_topic(topic: str, root: Path | None = None) -> tuple[str, str]:
             page is missing from this install.
     """
     if topic not in TOPICS:
-        raise N2FError(f"no docs topic {topic!r}; the topics are: {', '.join(TOPICS)}")
+        raise N2FError(
+            f"no docs topic {topic!r}; the topics are: {', '.join(TOPICS)}",
+            next="n2f docs",
+        )
     path = (root or docs_dir()) / f"{topic}.md"
     if not path.is_file():
-        raise N2FError(f"the page for {topic!r} is missing from this install ({path})")
+        raise N2FError(
+            f"the page for {topic!r} is missing from this install ({path})",
+            next="n2f docs",
+        )
     text = path.read_text(encoding="utf-8")
     return _title(text, topic), text
 

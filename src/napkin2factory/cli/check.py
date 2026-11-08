@@ -420,9 +420,11 @@ def signoff(
 
     product = load_product(product_root(dir))
     rid = requirement.replace("req://", "")
+    where = f" --dir {dir}" if dir is not None else ""
     if rid not in product.requirements:
         raise N2FError(
-            f"requirement {rid} does not exist; known: {', '.join(sorted(product.requirements))}"
+            f"requirement {rid} does not exist; known: {', '.join(sorted(product.requirements))}",
+            next=f"n2f status{where}",
         )
     req = product.requirements[rid]
     data = _ensure_checks(product)
@@ -445,7 +447,8 @@ def signoff(
     if missing:
         raise N2FError(
             f"cannot bind the sign-off: no evidence yet for {', '.join(missing)} "
-            "(build first, or pass --evidence)"
+            "(build first, or pass --evidence)",
+            next=f"n2f build{where}",
         )
     payload = {
         "requirement": f"req://{rid}",

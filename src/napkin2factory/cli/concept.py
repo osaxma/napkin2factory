@@ -32,7 +32,7 @@ from napkin2factory.cli.common import (
 )
 from napkin2factory.cli.kernel import warm_kernel_in_background
 from napkin2factory.core import concepts as concepts_mod
-from napkin2factory.core.errors import GateBlocked, Problems
+from napkin2factory.core.errors import GateBlocked, N2FError, Problems
 from napkin2factory.core.model import ConceptCard, Screening
 
 concept_app = typer.Typer(
@@ -209,7 +209,11 @@ def show(
     """Show one concept card and where its screening stands."""
     _warm()
     root = product_root(dir)
-    card = concepts_mod.load_card(root, concept_id)
+    try:
+        card = concepts_mod.load_card(root, concept_id)
+    except N2FError as exc:
+        where = f" --dir {dir}" if dir is not None else ""
+        raise N2FError(str(exc), next=f"n2f concept list{where}") from exc
     data = card.model_dump(mode="json", by_alias=True)
     if json_out:
         emit_json({**data, "summary": screening_line(card)})
@@ -390,7 +394,11 @@ def reject(
     """Set a concept aside (status: rejected); the card is kept as a record."""
     _warm()
     root = product_root(dir)
-    card = concepts_mod.load_card(root, concept_id)
+    try:
+        card = concepts_mod.load_card(root, concept_id)
+    except N2FError as exc:
+        where = f" --dir {dir}" if dir is not None else ""
+        raise N2FError(str(exc), next=f"n2f concept list{where}") from exc
     if concepts_mod.recorded_promotion(card, root):  # a status typed by hand may be undone
         raise GateBlocked(
             f"{card.id} is the chosen direction (promoted), so it cannot be rejected; "

@@ -627,9 +627,34 @@ def run_in_process(req: dict[str, Any], out: TextIO, err: TextIO, root: Path) ->
             code, text = _exit_code(exc.code)
             if text:
                 err.write(text)
-        except Exception:
-            err.write(traceback.format_exc())
-            code = 1
+        except Exception as exc:
+            tb = traceback.format_exc()
+            err.write(tb)
+            argv = list(req.get("argv", []))
+            if "--json" in argv:
+                lines = tb.rstrip().splitlines()
+                last_line = lines[-1] if lines else str(exc)
+                klass = verb_class(argv)
+                if klass is not None and klass.changes_state and klass.look_at:
+                    dir_toks = _dir_tokens(argv)
+                    if dir_toks:
+                        cmd = shlex.join([*shlex.split(klass.look_at), *dir_toks])
+                    else:
+                        cmd = klass.look_at
+                else:
+                    cmd = (
+                        f"N2F_NO_ENGINE=1 n2f {shlex.join(argv)}" if argv else "N2F_NO_ENGINE=1 n2f"
+                    )
+                payload = {
+                    "error": "engine_internal",
+                    "message": last_line,
+                    "next": cmd,
+                    "log": str(log_path(root)),
+                }
+                out.write(json.dumps(payload) + "\n")
+                code = EXIT_INTERNAL
+            else:
+                code = 1
     finally:
         with contextlib.suppress(Exception):
             out.flush()

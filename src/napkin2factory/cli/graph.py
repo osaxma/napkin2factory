@@ -47,14 +47,21 @@ def impact(
     product = load_product(product_root(dir))
     edits = [parse_set(s) for s in set_]
     kind, tasks = "parametric", []
+    where = f" --dir {dir}" if dir is not None else ""
     if ecr:
         if ecr not in product.ecrs:
-            raise N2FError(f"change request {ecr} does not exist; `n2f ecr list` shows them")
+            raise N2FError(
+                f"change request {ecr} does not exist; `n2f ecr list` shows them",
+                next=f"n2f ecr list{where}",
+            )
         e = product.ecrs[ecr]
         edits = list(e.edits) + edits
         kind, tasks = e.kind, list(e.tasks)
     if not edits and kind == "parametric":
-        raise N2FError("nothing to assess: pass --ecr ECR-xxx or --set param://x=50mm")
+        raise N2FError(
+            "nothing to assess: pass --ecr ECR-xxx or --set param://x=50mm",
+            next=f"n2f ecr list{where}",
+        )
     report = compute_impact(product, edits, kind=kind, tasks=tasks)
     if json_out:
         emit_json(report.to_dict())

@@ -31,16 +31,22 @@ def _require(product: Product, ecr_id: str) -> Ecr:
     ecr_id = ecr_id.replace("ecr://", "")
     if ecr_id not in product.ecrs:
         known = ", ".join(sorted(product.ecrs)) or "none yet"
+        where = f" --dir {product.root}" if product.root != Path.cwd() else ""
         raise EcrError(
-            f"change request {ecr_id} does not exist (known: {known}); `n2f ecr start` opens one"
+            f"change request {ecr_id} does not exist (known: {known}); `n2f ecr start` opens one",
+            next=f"n2f ecr list{where}",
         )
     return product.ecrs[ecr_id]
 
 
 def _transition(product: Product, ecr: Ecr, to: str, **fields: Any) -> None:
     if not ecr.can_transition(to):
-        allowed = ", ".join(TRANSITIONS[ecr.status]) or "nothing (it is final)"
-        raise EcrError(f"{ecr.id} is {ecr.status}; from there it can only go to: {allowed}")
+        allowed_list = TRANSITIONS.get(ecr.status, ())
+        allowed = ", ".join(allowed_list) or "nothing (it is final)"
+        raise EcrError(
+            f"{ecr.id} is {ecr.status}; from there it can only go to: {allowed}",
+            next=f"choose one of: {', '.join(allowed_list)}" if allowed_list else "",
+        )
     path = _ecr_path(product, ecr.id)
     data = load_roundtrip(path)
     data["status"] = to

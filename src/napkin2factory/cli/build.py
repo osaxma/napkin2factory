@@ -18,6 +18,7 @@ from napkin2factory.cli.common import (
     warn_if_pin_excludes,
 )
 from napkin2factory.cli.kernel import KERNEL_NOTE, load_cad_kernel
+from napkin2factory.core.errors import N2FError
 from napkin2factory.core.loader import Product, load_product
 
 __all__ = ["KERNEL_NOTE", "build", "load_cad_kernel", "targets"]
@@ -71,6 +72,14 @@ def build(
         raise typer.BadParameter(f"--target must be one of {', '.join(known)}")
     product = load_product(root)
     aid = None
+    if part is not None:
+        pid = part.removeprefix("part://")
+        if pid not in product.parts:
+            where = f" --dir {root}" if dir is not None else ""
+            raise N2FError(
+                f"part://{pid} does not exist; known parts: {', '.join(sorted(product.parts))}",
+                next=f"n2f status{where}",
+            )
     if asm is not None:
         from napkin2factory.cli.build_asm import assembly_id, check_target
 
