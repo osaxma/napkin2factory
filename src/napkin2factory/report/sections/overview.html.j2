@@ -1,6 +1,7 @@
 {# The inspector's view of the product (V2): where it stands, what waits on the owner, the scope, the next step.
    The numbers moved to the top bar. No AI mark in generated output: how the design was made is the owner's to say (S-194). #}
 <section class="product-view-body" id="overview">
+  <p class="muted small">{{ rollups.part_count }} parts, {{ rollups.custom_count }} custom{% if rollups.max_lead_time %} · longest lead time {{ rollups.max_lead_time }} days{% endif %}</p>
   <h3>Where this product stands</h3>
   <div class="kv" id="stage">
     {% for g in stage.gates %}{% set reasons = g.blockers + g.caveats %}<div><span class="badge {{ 'ok' if g.ok else 'warn' if g.open_only_by_caveats else 'skip' }}">{{ g.name }}</span></div><div>{% if g.ok %}done{% else %}{% if g.detail.get('why') %}<span class="example">{{ g.detail.why }}</span> · {% endif %}{% if not reasons %}not reached yet{% endif %}{{ (reasons[:3] | join('; ')) | replace('`', '') }}{% if reasons | length > 3 %} … ({{ reasons | length }} items){% endif %}{% endif %}</div>{% endfor %}

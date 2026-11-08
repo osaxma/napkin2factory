@@ -69,7 +69,6 @@ entry that closed them. Ids are never reused.
 | B-0131 | A domain field whose key is a Python keyword (`class`, `from`) is addressed by its attribute (`device://x#class_`): `select` refuses `#class` and `n2f impact --set device://x#class=II` says nothing is rebuilt | S-153; honour pydantic aliases in `Product.select`, the recording accessor and impact (a core seam), or rename the fields [revisit] |
 | B-0132 | A domain named like a fixed folder of the release package (`step`, `drawings`, `bom`, `manuals`, `flat-patterns`) merges its files into that folder | S-142 task; refuse such a domain name at `register`, or put domain folders under `domains/` in the package |
 | B-0133 | `n2f impact` names the checks for an edit of a scope entry's note, though the build does not rerun them (a field edit widened to the whole entry) | S-149 task; compare impact's widening of `manifest://scope` with the state-only read the checks record |
-| B-0134 | The report's header counts and its "only what is not OK" filter say nothing of rows left for later | S-149 task; count `later` rows in the header and keep them visible under the filter (`report/`) |
 | B-0137 | No field says how many conductors a device's terminal takes, so the wiring rule `terminal-conductors` writes no row | S-158; an optional per-terminal limit on `Device` (a `model/` change) or a datasheet row the check reads |
 | B-0138 | The calc kit's materials table has no electrical column: the earth-path check carries its own keyword table (`domains/electrical/checks/conduction.yaml`), outside `make verify-list` | S-158; a `conducts:` column in `calckit/data/materials.yaml` with its source, the domain table removed |
 | B-0141 | `make verify-list` reads the calc kit's tables only: a domain's rule-pack params (`electrical-v0.yaml`, `verify: true`) are listed nowhere but their DECISIONS line | S-158; scan each installed domain's packs and tables in `scripts/verify_list.py` |
@@ -135,8 +134,6 @@ entry that closed them. Ids are never reused.
 | B-0274 | `make health` measures only core to domains and domain to domain imports; upward imports from `core/`, `calckit/` and `ecr/` into `cli/` are unmeasured (1 today after B-0270 moved the other three: `core/graph/runner.py:203`; `mcp/tools.py:213` imports `cli.app` by design) | S-257; add a measure to `scripts/health.py` with its trend column, baseline 1, target 0 (the runner's console import goes with it); ~30 min |
 | B-0287 | `make health` counts commits without a `Task-started` trailer as unstamped, so docs-only handoff commits made straight on `main` (3 in the v0.8 close window: `3cb4912`, `a70981f`, `f74ace9`) read as a worse trend | S-276; either exempt commits that touch only `docs/handoffs/` and `STATUS.md` in `scripts/health.py`, or land them through `make task`; ~20 min |
 | B-0291 | Screening failures print the formula, handbook and data path to the owner (switch refusal, `concept build`, the board); the owner wants one sentence, the derivation in `concept show` and `--json` (gate L C2) | S-280 |
-| B-0295 | The report's "Rendered views" are false-colour diagnostics beside the product viewer, uncaptioned (gate L C14) | S-280 |
-| B-0298 | The report is one scroll page of up to 16 sections, with the 3D model third; no lenses, no deep link to a selection | S-287 (v0.9 M3a) |
 | B-0299 | The report has no build-step player, shows none of the cut lists the build writes (`features.json`), and has no print stylesheet | S-287 (v0.9 M3c) |
 | B-0300 | The report has no phone layout, no keyboard path through the model, and no interaction tests that pick, inspect or deep-link | S-287 (v0.9 M4) |
 | B-0302 | v0.9's gates are not run: Gate C (three tiers, desktop and phone, the maintainer's judgment), the two-vendor cold-agent trial, gates M and N | S-287 (v0.9 M6) |
@@ -154,6 +151,9 @@ entry that closed them. Ids are never reused.
 ## Closed
 
 | id | item | closed by |
+| B-0134 | The report's header counts and its "only what is not OK" filter say nothing of rows left for later | closed by S-317 (M3a: `later` in the top bar's counts; the filter keeps those rows, tested) |
+| B-0295 | The report's "Rendered views" are false-colour diagnostics beside the product viewer, uncaptioned (gate L C14) | closed by S-317 (M3a: a captioned "Check views" section in the Checks lens) |
+| B-0298 | The report is one scroll page of up to 16 sections, with the 3D model third; no lenses, no deep link to a selection | closed by S-317 (M3a: the workbench, five lenses, `#lens=…&select=…`) |
 | B-0289 | A card made by `fork-from-model` is set aside as "rejected" when another card becomes the direction (the promotion's sibling rule), though it holds the built design, not a rival idea (gate B, DeepSeek trial) | closed by S-301 (M5c part C) |
 | B-0290 | After `concept switch` to a never-promoted card, `n2f check` judges the earlier direction's parts and exits 0; both gate B agents expected the card's failure there (the switch now says so, S-277) | closed by S-301 (M5c part C) |
 | B-0288 | Promotion and `concept switch` still seed a copy of a held requirement when the two say the same by other means: the sag limit (the seeded one is manual, no target) and the weight limit (assembly mass against the parts-list total); each copy of a safety one needs its own sign-off | closed by S-301 (M5c part C) |
