@@ -1,17 +1,17 @@
-"""One tool per ``n2f`` verb, generated from the command tree (S-255, R14).
+"""The verb table behind the seven MCP tools, and the step runner (S-255, R14, S-327).
 
-The tool list is not written by hand: :func:`build_tools` walks the Typer/Click tree and makes
-one tool from every leaf command, named ``n2f_<group>_<verb>`` (``n2f_build``,
-``n2f_ecr_start``, ``n2f_concept_build``), with an input schema built from its parameters. A
-verb added to the CLI appears here with no edit. This module does not import the protocol
-library, so the tool list and a call can be tested without the ``mcp`` extra.
+The tools an agent sees are the seven in ``combined.py``. This module is what they are built
+from: :func:`build_tools` walks the Typer/Click tree and makes one :class:`Tool` (a *verb
+entry*, not an MCP tool) from every leaf command, with the parameters the command takes.
+:func:`build_argv` turns a verb entry and an argument dict into a command line, checking every
+argument: unknown key, ``dir`` refused, types, choices, paths inside the folder. A verb added to
+the CLI appears here with no edit. This module does not import the protocol library.
 
-A call runs the CLI as a process (its own exit code, nothing in this process changes
-directory) with ``--json`` whenever the verb has it, and the folder the server was opened on
-fixed as ``--dir``. A tool argument may not point anywhere else: ``dir`` is not in any schema,
-and a path argument that resolves outside the folder (``..``, an absolute path, a symlink out)
-is refused (Track D section 3.4). Calls run one at a time, as the CLI does not expect two
-runs on one folder.
+A step runs the CLI with ``--json`` whenever the verb has it and the folder the server was
+opened on fixed as ``--dir``. An argument may not point anywhere else: ``dir`` is in no
+schema, and a path argument that resolves outside the folder (``..``, an absolute path, a
+symlink out) is refused (Track D section 3.4). Steps run one at a time (a lock in the
+runner), as the CLI does not expect two runs on one folder.
 
 Verbs left out, and why:
 
@@ -19,11 +19,8 @@ Verbs left out, and why:
 * ``serve``: it never returns (the report web server), so a call would hang; open
   ``build/report/index.html`` instead.
 * ``skill``: it writes outside the product folder (a skills folder of the client).
-* ``engine start|status|stop``: the warm engine's own controls; a call here uses the engine
-  when one is up (see ``_run``), and an agent has no reason to manage it.
-
-Verbs that ask a question (``discard``, ``publish``) stay: they have a ``yes`` flag, and without
-it the process finds no one to ask and stops with an error, which the result reports.
+* ``engine start|status|stop``: the warm engine's own controls; a step uses the engine when
+  one is up (see :class:`StepRunner`), and an agent has no reason to manage it.
 """
 
 from __future__ import annotations
@@ -31,6 +28,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -55,7 +53,7 @@ SKIPPED: frozenset[tuple[str, ...]] = frozenset(
 _PATH_TEXT_PARAMS = frozenset({"patch"})
 
 DEFAULT_TIMEOUT = 1800.0  # seconds; a cold build of the largest example takes about a minute
-MAX_TEXT = 200_000  # characters of one result
+MAX_TEXT = 200_000  # characters of one result (only with ``full``, S-327)
 STDERR_LINES = 20
 
 
@@ -336,43 +334,76 @@ def _tail(text: str, lines: int = STDERR_LINES) -> str:
     return "\n".join(text.strip().splitlines()[-lines:])
 
 
-class ToolRunner:
-    """Lists the tools of one product folder and runs their calls."""
+@dataclass(frozen=True)
+class Step:
+    """One finished command: what ran, how it ended, and through which process."""
 
-    def __init__(
-        self, folder: Path, tools: list[Tool] | None = None, timeout: float = DEFAULT_TIMEOUT
-    ) -> None:
-        """Open the runner on ``folder`` with ``tools`` (default: those of the real CLI)."""
+    argv: list[str]
+    exit: int
+    stdout: str
+    stderr: str
+    engine: str  # "warm" (the folder's engine ran it) or "cold" (a process of its own)
+    seconds: float
+
+
+class StepRunner:
+    """Runs the steps of one product folder: through its warm engine, else as a process.
+
+    The engine takes the same argv and streams back the same output (``cli/engine.py``, S-305).
+    When none answers (off, absent, refused) the CLI runs as a process, and ``capture`` has
+    started an engine for the next step. A verb the engine never forwards (``init``,
+    ``decide``) also starts one afterwards, so no call leaves the folder without an engine
+    (S-327). Steps take turns.
+    """
+
+    def __init__(self, folder: Path, timeout: float = DEFAULT_TIMEOUT) -> None:
+        """Open the runner on ``folder``."""
         self.folder = folder.resolve()
-        self.tools = tools if tools is not None else build_tools()
         self.timeout = timeout
-        self._by_name = {t.name: t for t in self.tools}
         self._lock = asyncio.Lock()
+        self._had_engine = False
 
-    async def call(self, name: str, arguments: dict[str, Any] | None) -> ToolResult:
-        """Run the tool ``name``; a bad call comes back as an error result, never raises."""
-        tool = self._by_name.get(name)
-        if tool is None:
-            return ToolResult(f"no tool named {name!r}", True)
-        try:
-            argv = build_argv(tool, arguments or {}, self.folder)
-        except ToolError as exc:
-            return ToolResult(str(exc), True)
+    async def start(self) -> None:
+        """At server start: note whether an engine answers; start one for a product folder."""
+        if engine.engine_disabled():
+            return
+        self._had_engine = await asyncio.to_thread(engine.engine_status, self.folder) is not None
+        await self._ensure_engine()
+
+    async def close(self) -> None:
+        """At server exit: stop an engine this server started; leave another's alone (S-291)."""
+        if engine.engine_disabled() or self._had_engine:
+            return
+        if await asyncio.to_thread(engine.engine_status, self.folder) is not None:
+            await asyncio.to_thread(engine.request_stop, self.folder)
+
+    async def _ensure_engine(self) -> None:
+        """Start the folder's engine when it is a product folder and none runs or starts."""
+        if engine.engine_disabled() or not (self.folder / "n2f.yaml").is_file():
+            return
+        await asyncio.to_thread(engine.spawn, self.folder)
+
+    async def run(self, argv: list[str]) -> Step:
+        """Run ``argv`` (the arguments after ``n2f``) in the folder and report how it ended."""
         async with self._lock:
-            return await self._run(argv)
+            began = time.monotonic()
+            step = await self._run(argv)
+            step = Step(
+                step.argv, step.exit, step.stdout, step.stderr, step.engine,
+                round(time.monotonic() - began, 2),
+            )  # fmt: skip
+            if step.engine == "cold" and engine.verb_class(argv) is None:
+                await self._ensure_engine()
+            return step
 
-    async def _run(self, argv: list[str]) -> ToolResult:
-        """Run the CLI with ``argv`` in the folder: through its warm engine when one is up.
-
-        The engine takes the same argv and streams back the same output (``cli/engine.py``,
-        S-305); when none answers (off, absent, refused) the CLI runs as a process.
-        """
+    async def _run(self, argv: list[str]) -> Step:
+        """The step, without its timing."""
         try:
             warm = await asyncio.to_thread(engine.capture, self.folder, argv, self.timeout)
         except TimeoutError:
-            return ToolResult(f"stopped: the command ran longer than {self.timeout:.0f} s", True)
+            return Step(argv, 124, "", self._timed_out(), "warm", 0.0)
         if warm is not None:
-            return _finish(warm[1], warm[2], warm[0])
+            return Step(argv, warm[0], warm[1], warm[2], "warm", 0.0)
         proc = await asyncio.create_subprocess_exec(
             sys.executable,
             "-m",
@@ -389,15 +420,16 @@ class ToolRunner:
         except TimeoutError:
             proc.kill()
             await proc.wait()
-            return ToolResult(f"stopped: the command ran longer than {self.timeout:.0f} s", True)
-        return _finish(
-            out.decode("utf-8", "replace"), err.decode("utf-8", "replace"), proc.returncode or 0
+            return Step(argv, 124, "", self._timed_out(), "cold", 0.0)
+        return Step(
+            argv,
+            proc.returncode or 0,
+            out.decode("utf-8", "replace"),
+            err.decode("utf-8", "replace"),
+            "cold",
+            0.0,
         )
 
-
-def _finish(stdout: str, stderr: str, code: int) -> ToolResult:
-    """The result of a finished run: its output when it passed, else the exit code and stderr."""
-    if code == 0:
-        return ToolResult(_clip(stdout if stdout.strip() else _tail(stderr)), False, 0)
-    parts = [stdout.strip(), f"exit code {code}", _tail(stderr)]
-    return ToolResult(_clip("\n".join(p for p in parts if p)), True, code)
+    def _timed_out(self) -> str:
+        """The stderr of a step that ran too long."""
+        return f"stopped: the command ran longer than {self.timeout:.0f} s"

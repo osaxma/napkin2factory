@@ -1,6 +1,7 @@
-"""``n2f mcp``: serve the verbs as tools to an agent client over stdio (S-255, R14).
+"""``n2f mcp``: serve seven combined tools to an agent client over stdio (S-255, R14, S-327).
 
-Experimental. The server needs the optional extra (``pip install "napkin2factory[mcp]"``);
+Experimental. Each step goes to the folder's warm engine (started if none
+answers). The server needs the optional extra (``pip install "napkin2factory[mcp]"``);
 without it this verb says so and stops. Every tool acts only inside the folder given here.
 """
 
@@ -31,7 +32,9 @@ def _sdk_present() -> bool:
 
 
 def mcp(dir_: Path | None = DirOption) -> None:
-    """Serve the n2f verbs as tools over stdio (experimental); needs the mcp extra.
+    """Serve seven tools (init, napkin, promote, context, sync, decide, ecr) over stdio.
+
+    Experimental; needs the mcp extra. Steps run in the folder's warm engine.
 
     Not this: `n2f serve` (the report on localhost) and `n2f engine` (a warm process that makes
     commands faster).

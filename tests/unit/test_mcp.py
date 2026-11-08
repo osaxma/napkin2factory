@@ -1,5 +1,5 @@
-"""The thin MCP server and the skill (S-255, R14): tools generated from the CLI, scoped to
-one folder, and the skill file."""
+"""The seven MCP tools (S-255, R14, S-327): sequencing with a fake step runner, the argument
+checks, the sizes, the `next` mapping against the real command tree, and the skill file."""
 
 from __future__ import annotations
 
@@ -16,12 +16,32 @@ import yaml
 from mcp import types
 
 from napkin2factory.cli.app import app
+from napkin2factory.mcp import combined
 from napkin2factory.mcp import tools as tools_mod
+from napkin2factory.mcp.combined import (
+    COMMAND_TOOLS,
+    CONCEPT_ACTIONS,
+    ECR_ACTIONS,
+    SUMMARY_LIMIT,
+    UNMAPPED,
+    ToolRunner,
+    command_to_call,
+    next_from,
+)
 from napkin2factory.mcp.server import INSTRUCTIONS, make_server
-from napkin2factory.mcp.tools import SKIPPED, ToolError, ToolRunner, build_argv, build_tools
-from tests.conftest import EXAMPLES, copy_product, n2f
+from napkin2factory.mcp.tools import SKIPPED, Step, ToolError, build_argv, build_tools
+from tests.conftest import n2f
 
 SKILL = Path(__file__).resolve().parents[2] / "src" / "napkin2factory" / "skill" / "SKILL.md"
+SEVEN = [
+    "n2f_init_product",
+    "n2f_napkin_sync",
+    "n2f_promote_or_switch",
+    "n2f_context",
+    "n2f_sync",
+    "n2f_decide",
+    "n2f_ecr",
+]
 
 
 def _leaf_paths(command: Any, path: tuple[str, ...] = ()) -> set[tuple[str, ...]]:
@@ -34,115 +54,348 @@ def _leaf_paths(command: Any, path: tuple[str, ...] = ()) -> set[tuple[str, ...]
     return out
 
 
-def _by_name() -> dict[str, tools_mod.Tool]:
-    return {t.name: t for t in build_tools()}
+class Fake:
+    """A step runner with no process: canned (exit, json) by command path; logs every run."""
+
+    def __init__(self, answers: dict[tuple[str, ...], Any]) -> None:
+        self.answers = answers
+        self.ran: list[list[str]] = []
+
+    async def run(self, argv: list[str]) -> Step:
+        self.ran.append(argv)
+        key = tuple(w for w in argv if not w.startswith("-"))
+        for n in (2, 1):
+            if key[:n] in self.answers:
+                ans = self.answers[key[:n]]
+                code, data = ans if isinstance(ans, tuple) else (0, ans)
+                return Step(argv, code, json.dumps(data), "", "warm", 0.1)
+        return Step(argv, 0, "{}", "", "warm", 0.1)
+
+    def paths(self) -> list[str]:
+        return [" ".join(w for w in a if not w.startswith("-")) for a in self.ran]
 
 
-def test_every_leaf_verb_is_a_tool() -> None:
+def _runner(tmp_path: Path, answers: dict[tuple[str, ...], Any]) -> tuple[ToolRunner, Fake]:
+    fake = Fake(answers)
+    return ToolRunner(tmp_path, steps=fake), fake
+
+
+def _call(runner: ToolRunner, _tool: str, **args: Any) -> tuple[dict[str, Any], bool]:
+    res = asyncio.run(runner.call(_tool, args))
+    return json.loads(res.text), res.is_error
+
+
+STATUS = {
+    "gates": [
+        {"name": "design", "ok": True, "blockers": []},
+        {"name": "verify", "ok": False, "blockers": ["REQ-009: needs sign-off"]},
+    ],
+    "next_step": "REQ-009: sign off with `n2f signoff REQ-009 --by <name>`",
+}
+
+
+def test_the_seven_tools_and_their_schemas() -> None:
+    tools = ToolRunner(Path("/tmp")).tools
+    assert [t.name for t in tools] == SEVEN
+    for t in tools:
+        assert t.schema["additionalProperties"] is False
+        assert t.schema["properties"]["full"]["type"] == "boolean"
+        assert "dir" not in t.schema["properties"]
+        assert "experimental" not in t.description.lower() and t.description
+    by = {t.name: t.schema for t in tools}
+    assert by["n2f_init_product"]["required"] == ["name", "region", "units"]
+    assert by["n2f_ecr"]["properties"]["set"]["type"] == "array"
+    assert set(by["n2f_ecr"]["properties"]["action"]["enum"]) == set(ECR_ACTIONS)
+    assert set(by["n2f_promote_or_switch"]["properties"]["action"]["enum"]) == set(CONCEPT_ACTIONS)
+
+
+def test_instructions_are_short_generic_and_say_experimental_once() -> None:
+    assert len(INSTRUCTIONS) < 1500
+    assert INSTRUCTIONS.lower().count("experimental") == 1
+    for tool in SEVEN:
+        assert tool in INSTRUCTIONS
+    assert "agent-guide" in INSTRUCTIONS and "section" in INSTRUCTIONS
+    for word in ("claude", "anthropic", "openai", "gemini", "cursor", "codex", "gpt"):
+        assert word not in INSTRUCTIONS.lower()
+
+
+def test_every_action_and_mapped_command_exists_in_the_real_command_tree() -> None:
     leaves = _leaf_paths(typer.main.get_command(app))
-    assert SKIPPED <= leaves  # the skipped verbs exist (and are named in the module docstring)
-    expected = {"n2f_" + "_".join(p).replace("-", "_") for p in leaves - SKIPPED}
-    names = [t.name for t in build_tools()]
-    assert len(names) == len(set(names))
-    assert set(names) == expected
-    assert {"n2f_build", "n2f_ecr_start", "n2f_concept_build", "n2f_undo", "n2f_docs"} <= expected
-    assert not {"n2f_ecr_new", "n2f_ecr_apply", "n2f_ecr_reject"} & set(names)
-    for skipped in ("mcp", "serve", "skill"):
-        assert f"n2f_{skipped}" not in names
-        assert skipped in (tools_mod.__doc__ or "")
+    for path in (*CONCEPT_ACTIONS.values(), *ECR_ACTIONS.values(), *COMMAND_TOOLS):
+        assert path in leaves, path
+    names = {t.name: t for t in ToolRunner(Path("/tmp")).tools}
+    for tool, action, positional in COMMAND_TOOLS.values():
+        props = names[tool].schema["properties"]
+        assert action is None or action in props["action"]["enum"]
+        assert positional is None or positional in props, (tool, positional)
+    # a verb added to the CLI has to choose: a tool, or the unmapped list
+    assert leaves - SKIPPED - set(COMMAND_TOOLS) == UNMAPPED
+    assert not UNMAPPED & set(COMMAND_TOOLS)
 
 
-def test_schemas_of_two_known_verbs() -> None:
-    tools = _by_name()
-    build = tools["n2f_build"].schema
-    props = build["properties"]
-    assert props["clean"]["type"] == "boolean"
-    assert props["jobs"]["type"] == "integer" and props["jobs"]["default"] == 1
-    assert props["target"]["default"] == "all"
-    assert "required" not in build and build["additionalProperties"] is False
-    # the folder and the JSON switch are the server's, never the agent's
-    for hidden in ("dir", "json", "json_out", "C"):
-        assert hidden not in props
-    ecr_start = tools["n2f_ecr_start"].schema
-    assert ecr_start["required"] == ["title"]
-    assert ecr_start["properties"]["set"] == {
-        "type": "array",
-        "items": {"type": "string"},
-        "description": ecr_start["properties"]["set"]["description"],
+def test_next_commands_become_tool_calls() -> None:
+    assert command_to_call("n2f ecr list --dir /x") == {
+        "tool": "n2f_ecr",
+        "arguments": {"action": "list"},
     }
-    assert tools["n2f_concept_build"].schema["properties"]["concept_id"]["type"] == "string"
-    assert tools["n2f_ecr_start"].description  # the verb's own help text
-    assert "experimental" not in " ".join(t.description for t in tools.values()).lower()
+    assert command_to_call("n2f concept promote C-002 --by <name>") == {
+        "tool": "n2f_promote_or_switch",
+        "arguments": {"action": "promote", "concept_id": "C-002"},
+    }
+    assert command_to_call("n2f checkpoints")["tool"] == "n2f_ecr"  # type: ignore[index]
+    assert command_to_call("n2f decide fastening://a/b --pick 1")["arguments"] == {  # type: ignore[index]
+        "check": "fastening://a/b"
+    }
+    assert command_to_call("n2f release v1.0") is None
+    assert next_from("run `n2f release v1` or `n2f build`") == {
+        "tool": "n2f_sync",
+        "arguments": {},
+    }
+    assert next_from("sign off: `n2f signoff REQ-1 --by <name>`")["say"].startswith("sign off")
 
 
-def test_a_verb_added_later_is_a_tool() -> None:
-    clone = copy.copy(app)
-    clone.registered_commands = list(app.registered_commands)
-    clone.registered_groups = list(app.registered_groups)
-
-    def frobnicate(
-        part: str = typer.Argument(..., help="Which part."),
-        size_mm: int = typer.Option(3, "--size-mm", help="How big."),
-        loud: bool = typer.Option(False, "--loud"),
-        dir: Path | None = typer.Option(None, "--dir", "-C"),
-        json_out: bool = typer.Option(False, "--json"),
-    ) -> None:
-        """Make a part more frobnicated."""
-
-    sub = typer.Typer()
-    sub.command("deep-dive")(frobnicate)
-    clone.command("frobnicate")(frobnicate)
-    clone.add_typer(sub, name="extra")
-    tools = {t.name: t for t in build_tools(clone)}
-    assert {"n2f_frobnicate", "n2f_extra_deep_dive"} <= set(tools)
-    tool = tools["n2f_frobnicate"]
-    assert tool.description == "Make a part more frobnicated."
-    assert tool.schema["required"] == ["part"]
-    assert tool.schema["properties"]["size_mm"]["type"] == "integer"
-    argv = build_argv(tool, {"part": "-x", "size_mm": 7, "loud": True}, Path("/tmp"))
-    assert argv[:1] == ["frobnicate"]
-    assert "--size-mm=7" in argv and "--loud" in argv and "--json" in argv
-    assert argv[-2:] == ["--", "-x"]  # a positional that looks like an option stays a value
-
-
-def test_folder_is_fixed_and_cannot_be_overridden(tmp_path: Path) -> None:
+def test_argument_checks(tmp_path: Path) -> None:
     folder = tmp_path / "product"
     folder.mkdir()
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     (folder / "link").symlink_to(elsewhere)
-    tools = _by_name()
-    argv = build_argv(tools["n2f_status"], {}, folder)
-    assert argv == ["status", "--json", f"--dir={folder}"]
-    with pytest.raises(ToolError, match="only inside"):
-        build_argv(tools["n2f_status"], {"dir": str(elsewhere)}, folder)
-    with pytest.raises(ToolError, match="only inside"):
-        build_argv(tools["n2f_status"], {"C": "/"}, folder)
+    verbs = {t.name: t for t in build_tools()}
+    assert build_argv(verbs["n2f_status"], {}, folder) == ["status", "--json", f"--dir={folder}"]
     for bad in ("../elsewhere/x", str(elsewhere / "x"), "link/x", "/etc/passwd"):
         with pytest.raises(ToolError, match="outside the product folder"):
-            build_argv(tools["n2f_diff"], {"ref_a": "a", "ref_b": "b", "out": bad}, folder)
-    with pytest.raises(ToolError, match="unknown argument"):  # the patch option went (S-261)
-        build_argv(tools["n2f_ecr_start"], {"title": "t", "patch": "../p.diff"}, folder)
-    ok = build_argv(tools["n2f_diff"], {"ref_a": "a", "ref_b": "b", "out": "site/diff"}, folder)
-    assert "--out=site/diff" in ok
-    with pytest.raises(ToolError, match="required"):
-        build_argv(tools["n2f_diff"], {"ref_a": "a"}, folder)
-    with pytest.raises(ToolError, match="unknown argument"):
-        build_argv(tools["n2f_status"], {"nope": 1}, folder)
+            build_argv(verbs["n2f_diff"], {"ref_a": "a", "ref_b": "b", "out": bad}, folder)
     with pytest.raises(ToolError, match="whole number"):
-        build_argv(tools["n2f_build"], {"jobs": "two"}, folder)
-    # the verb that creates a product takes the folder as its positional, fixed the same way
-    assert build_argv(tools["n2f_init"], {"name": "Thing"}, folder)[-2:] == ["--", str(folder)]
-    runner = ToolRunner(folder)
-    result = asyncio.run(runner.call("n2f_status", {"dir": "/"}))
-    assert result.is_error and "only inside" in result.text
+        build_argv(verbs["n2f_build"], {"jobs": "two"}, folder)
+    assert build_argv(verbs["n2f_init"], {"name": "T"}, folder)[-2:] == ["--", str(folder)]
+    runner, fake = _runner(folder, {})
+    for args, text in (
+        ({"dir": "/"}, "only inside"),
+        ({"C": "/"}, "only inside"),
+        ({"nope": 1}, "unknown argument"),
+        ({"render": "yes"}, "true or false"),
+        ({"full": "yes"}, "true or false"),
+    ):
+        body, err = _call(runner, "n2f_sync", **args)
+        assert err and text in body["error"]["message"] and body["steps"] == []
+        assert "next" in body
+    body, err = _call(runner, "n2f_decide", check="x")
+    assert err and "'pick' is required" in body["error"]["message"]
+    body, err = _call(runner, "n2f_ecr", action="frobnicate")
+    assert err and "must be one of" in body["error"]["message"]
+    body, err = _call(runner, "n2f_ecr", action="list", bogus="1")
+    assert err and "unknown argument" in body["error"]["message"]
+    assert fake.ran == []
     assert asyncio.run(runner.call("n2f_nothing", {})).is_error
 
 
-def test_a_real_call_through_the_handler(tmp_path: Path) -> None:
-    product = copy_product(EXAMPLES / "bracket", tmp_path / "bracket", git=True)
-    server, _ = make_server(product)
-    assert "experimental" in INSTRUCTIONS and INSTRUCTIONS.lower().count("experimental") == 1
+def test_sync_runs_five_steps_and_a_failing_check_is_an_outcome(tmp_path: Path) -> None:
+    check = {
+        "summary": {"fail": 1, "pass": 3},
+        "results": [{"id": "req://REQ-1", "status": "fail", "message": "too heavy"}],
+    }
+    runner, fake = _runner(tmp_path, {("check",): (5, check), ("status",): STATUS})
+    body, err = _call(runner, "n2f_sync")
+    assert fake.paths() == ["validate", "lint", "build", "check", "status"]
+    assert not err and body["ok"] and body["check_exit"] == 5
+    assert body["failing_checks"] == [{"id": "req://REQ-1", "message": "too heavy"}]
+    assert [s["engine"] for s in body["steps"]] == ["warm"] * 5
+    assert all("error" not in s and "result" not in s for s in body["steps"])
+    assert body["gates"][1] == {"name": "verify", "ok": False}
+    assert "Fix req://REQ-1" in body["next"]["say"]
+
+
+def test_a_failing_step_stops_and_names_a_next_call(tmp_path: Path) -> None:
+    err_obj = {"error": "model_error", "message": "bad", "next": "run `n2f concept list`"}
+    runner, fake = _runner(tmp_path, {("validate",): (3, err_obj)})
+    body, is_err = _call(runner, "n2f_sync")
+    assert is_err and not body["ok"] and fake.paths() == ["validate"]
+    assert body["failed_step"] == 1 and body["steps"][0]["error"]["message"] == "bad"
+    assert body["next"] == {"tool": "n2f_promote_or_switch", "arguments": {"action": "list"}}
+
+
+def test_sync_sizes_more_and_full(tmp_path: Path) -> None:
+    results = [
+        {"id": f"req://R{i}", "status": "fail", "message": "x" * 500, "detail": {"blob": "y" * 900}}
+        for i in range(30)
+    ]
+    choice = {
+        "id": "fastening://a/b",
+        "status": "choice",
+        "detail": {"options": [{"id": f"o{i}", "summary": "s" * 400} for i in range(9)]},
+    }
+    check = {"summary": {}, "results": [*results, choice]}
+    status = {"gates": [{"name": "g", "ok": False, "blockers": ["b" * 600] * 25}]}
+    runner, _ = _runner(tmp_path, {("check",): (5, check), ("status",): status})
+    res = asyncio.run(runner.call("n2f_sync", {}))
+    body = json.loads(res.text)
+    assert len(res.text) < SUMMARY_LIMIT
+    # extreme input: lists are cut at ten, then further until the result fits; nothing is lost
+    # without a count
+    assert len(body["failing_checks"]) + body["more"]["failing_checks"] == 30
+    assert len(body["blockers"]) + body["more"]["blockers"] == 25
+    assert len(body["failing_checks"]) <= 10 and len(body["blockers"]) <= 10
+    assert body["next"]["tool"] == "n2f_decide" and "ask the owner" in body["next"]["first"]
+    assert body["next"]["arguments"]["check"] == "fastening://a/b"
+    full = json.loads(asyncio.run(runner.call("n2f_sync", {"full": True})).text)
+    assert full["steps"][3]["result"]["results"][0]["detail"]["blob"] == "y" * 900
+
+
+def test_napkin_sync_lint_failure_stops_before_the_build(tmp_path: Path) -> None:
+    lint = {"ok": False, "cards": 2, "problems": [f"card {i}: no title" for i in range(14)]}
+    runner, fake = _runner(tmp_path, {("concept", "lint"): (1, lint)})
+    body, err = _call(runner, "n2f_napkin_sync")
+    assert err and fake.paths() == ["concept lint"]
+    assert len(body["lint"]["problems"]) == 10 and body["lint"]["more"]["problems"] == 4
+
+
+def test_napkin_sync_summarises_each_card(tmp_path: Path) -> None:
+    card = {
+        "id": "C-001",
+        "title": "Legs",
+        "verdict": "red",
+        "summary": "1600 mm",
+        "screening": {
+            "rules": [{"id": f"r{i}", "status": "fail", "message": "too tall"} for i in range(5)]
+        },
+    }
+    ok = {**card, "id": "C-002", "verdict": "green", "screening": {"rules": []}}
+    answers = {
+        ("concept", "lint"): {"ok": True, "problems": []},
+        ("concept", "build"): {"concepts": [card, ok], "errors": []},
+        ("concept", "board"): {"board": "build/concepts/board.html"},
+    }
+    runner, fake = _runner(tmp_path, answers)
+    body, err = _call(runner, "n2f_napkin_sync", render=False)
+    assert not err and fake.paths() == ["concept lint", "concept build", "concept board"]
+    assert "--all" in fake.ran[1] and "--no-render" in fake.ran[1]
+    first = body["cards"][0]
+    assert first["screened"] == "fail" and len(first["reasons"]) == 3
+    assert first["more_reasons"] == 2 and body["cards"][1]["screened"] == "pass"
+    assert body["board"] == "build/concepts/board.html"
+    assert body["next"]["arguments"] == {"action": "promote", "concept_id": "C-002"}
+    _call(runner, "n2f_napkin_sync", concept="C-001")
+    assert "C-001" in fake.ran[-2] and "--all" not in fake.ran[-2]
+
+
+def test_promote_and_switch_name_sync_next(tmp_path: Path) -> None:
+    runner, fake = _runner(tmp_path, {})
+    body, _ = _call(runner, "n2f_promote_or_switch", action="switch", concept_id="C-003")
+    assert fake.paths() == ["concept switch C-003"]
+    assert body["next"] == {"tool": "n2f_sync", "arguments": {}}
+    body, err = _call(runner, "n2f_promote_or_switch", action="fork")
+    assert not err and fake.paths()[-1] == "concept fork-from-model"
+    body, err = _call(runner, "n2f_promote_or_switch", action="new", title="Oak table", bogus=1)
+    assert err and "unknown argument" in body["error"]["message"]
+    body, err = _call(
+        runner, "n2f_promote_or_switch", action="new", **{"title": "Oak", "from": "C-1"}
+    )
+    assert not err and "--from=C-1" in fake.ran[-1]
+
+
+def test_ecr_wraps_a_changing_action_in_two_status_steps(tmp_path: Path) -> None:
+    quick = {
+        "id": "ECR-001",
+        "mass": {"before": 47.1, "after": 47.3, "delta": 0.2, "unit": "kg"},
+        "cost": {"before": 1000.0, "after": 1000.0, "delta": 0.0, "unit": "USD"},
+    }
+    runner, fake = _runner(tmp_path, {("ecr", "quick"): quick, ("status",): STATUS})
+    body, err = _call(runner, "n2f_ecr", action="quick", set=["param://h=760 mm"], reason="r")
+    assert not err and fake.paths() == ["status", "ecr quick", "status"]
+    assert "--set=param://h=760 mm" in fake.ran[1]
+    assert body["before"] == body["after"] == {"gates_open": ["verify"], "blockers": 1}
+    assert body["delta"]["mass"]["delta"] == 0.2 and body["delta"]["blockers"] == 0
+    assert body["next"] == {"tool": "n2f_sync", "arguments": {}}
+    body, _ = _call(runner, "n2f_ecr", action="list")
+    assert fake.paths()[3:] == ["ecr list"] and "before" not in body
+
+
+def test_a_dropped_engine_stops_a_changing_tool_and_names_what_to_look_at(tmp_path: Path) -> None:
+    dropped = {
+        "error": "engine_stopped",
+        "message": "the n2f engine stopped during `n2f undo`",
+        "look_at": f"n2f checkpoints --dir={tmp_path}",
+        "exit": 70,
+    }
+    runner, fake = _runner(tmp_path, {("undo",): (70, dropped), ("status",): STATUS})
+    body, err = _call(runner, "n2f_ecr", action="undo")
+    assert err and fake.paths() == ["status", "undo"]
+    assert body["next"] == {"tool": "n2f_ecr", "arguments": {"action": "checkpoints"}}
+    assert "repeat" in body["then"] and body["failed_step"] == 2
+
+
+def test_decide_then_status_then_sync(tmp_path: Path) -> None:
+    runner, fake = _runner(tmp_path, {("status",): STATUS, ("decide",): {"decision": "DEC-001"}})
+    body, err = _call(runner, "n2f_decide", check="a://b", pick="1", by="Sam")
+    assert not err and fake.paths() == ["decide a://b", "status"]
+    assert body["decision"] == {"decision": "DEC-001"} and body["gates_open"] == ["verify"]
+    assert body["next"]["tool"] == "n2f_sync"
+
+
+def test_init_refuses_an_existing_product_and_asks_for_the_owner_facts(tmp_path: Path) -> None:
+    runner, fake = _runner(tmp_path, {("init",): {"product": "p", "files": 26}})
+    body, err = _call(runner, "n2f_init_product", name="P", region="EU")
+    assert err and "'units' is required" in body["error"]["message"]
+    body, err = _call(runner, "n2f_init_product", name="P", region="EU", units="metric")
+    assert not err and body["read_first"] == ["AGENTS.md", "roles/pm.md"] and body["files"] == 26
+    assert fake.ran[0][0] == "init" and fake.ran[0][-2:] == ["--", str(tmp_path.resolve())]
+    (tmp_path / "n2f.yaml").write_text("x")
+    body, err = _call(runner, "n2f_init_product", name="P", region="EU", units="metric")
+    assert err and body["next"]["tool"] == "n2f_sync" and len(fake.ran) == 1
+
+
+def test_context_sections(tmp_path: Path) -> None:
+    long = (
+        "# Guide\n\nintro\n\n## One\n"
+        + "alpha " * 1000
+        + "\n```\n# not a heading\n```\n## Two\nbeta\n"
+    )
+    short = "# Tiny\nhello"
+    runner, _ = _runner(
+        tmp_path,
+        {("docs",): {"topic": "t", "text": long}, ("context",): {"module": "table"}},
+    )
+    body, _ = _call(runner, "n2f_context", topic="t")
+    assert "text" not in body and len(json.dumps(body)) < 1000
+    assert [s["heading"] for s in body["sections"]] == ["Guide", "One", "Two"]
+    assert body["next"]["arguments"] == {"topic": "t", "section": 1}
+    for want in ("2", "two", "One"):
+        body, err = _call(runner, "n2f_context", topic="t", section=want)
+        assert not err and body["section"]["heading"] in ("One", "Two")
+    assert "beta" in _call(runner, "n2f_context", topic="t", section="Two")[0]["text"]
+    assert "# not a heading" in _call(runner, "n2f_context", topic="t", section="One")[0]["text"]
+    body, err = _call(runner, "n2f_context", topic="t", section="nope")
+    assert err and "sections" in body
+    runner2, _ = _runner(tmp_path, {("docs",): {"topic": "t", "text": short}})
+    assert _call(runner2, "n2f_context", topic="t")[0]["text"] == short
+    body, err = _call(runner, "n2f_context", uri="part://x")
+    assert (
+        err and body["kinds"] == ["asm://<assembly id>"] and body["next"]["tool"] == "n2f_context"
+    )
+    assert not _call(runner, "n2f_context", uri="asm://table")[1]
+    body, err = _call(runner, "n2f_context", uri="asm://t", topic="t")
+    assert err and "not both" in body["error"]["message"]
+    body, err = _call(runner, "n2f_context", section="1")
+    assert err
+
+
+def test_the_real_guide_comes_as_sections(tmp_path: Path) -> None:
+    (tmp_path / "n2f.yaml").write_text("x")  # not needed by docs; a plain folder
+    runner = ToolRunner(tmp_path)
+    res = asyncio.run(runner.call("n2f_context", {"topic": "agent-guide"}))
+    body = json.loads(res.text)
+    assert not res.is_error and len(res.text) < SUMMARY_LIMIT, res.text[:200]
+    assert len(body["sections"]) > 8
+    one = json.loads(
+        asyncio.run(runner.call("n2f_context", {"topic": "agent-guide", "section": "3"})).text
+    )
+    assert one["ok"] and one["text"].startswith("#")
+
+
+def test_a_real_failing_call_and_the_protocol_handler(tmp_path: Path) -> None:
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    server, runner = make_server(empty)
     assert server.instructions == INSTRUCTIONS
 
     async def go() -> tuple[Any, Any, Any]:
@@ -156,23 +409,34 @@ def test_a_real_call_through_the_handler(tmp_path: Path) -> None:
                 method="tools/call", params=types.CallToolRequestParams(name=name, arguments=args)
             )
 
-        ok = await call(req("n2f_checkpoints", {}))
-        bad = await call(req("n2f_checkpoints", {"dir": "/"}))
-        return listed, ok, bad
+        return listed, await call(req("n2f_sync", {})), await call(req("n2f_sync", {"dir": "/"}))
 
-    listed, ok, bad = asyncio.run(go())
-    assert {t.name for t in listed.root.tools} == {t.name for t in build_tools()}
-    assert not ok.root.isError, ok.root.content[0].text
-    assert isinstance(json.loads(ok.root.content[0].text), dict | list)
+    listed, failing, bad = asyncio.run(go())
+    assert [t.name for t in listed.root.tools] == SEVEN
+    body = json.loads(failing.root.content[0].text)
+    assert failing.root.isError and not body["ok"] and body["failed_step"] == 1
+    assert body["steps"][0]["engine"] == "cold" and body["next"]
     assert bad.root.isError and "only inside" in bad.root.content[0].text
 
 
-def test_a_failing_verb_is_an_error_result_with_its_exit_code(tmp_path: Path) -> None:
-    empty = tmp_path / "empty"
-    empty.mkdir()
-    result = asyncio.run(ToolRunner(empty).call("n2f_status", {}))
-    assert result.is_error and result.exit_code not in (0, None)
-    assert f"exit code {result.exit_code}" in result.text
+def test_a_verb_added_later_is_still_in_the_verb_table() -> None:
+    clone = copy.copy(app)
+    clone.registered_commands = list(app.registered_commands)
+    clone.registered_groups = list(app.registered_groups)
+
+    def frobnicate(
+        part: str = typer.Argument(..., help="Which part."),
+        size_mm: int = typer.Option(3, "--size-mm", help="How big."),
+        dir: Path | None = typer.Option(None, "--dir", "-C"),
+        json_out: bool = typer.Option(False, "--json"),
+    ) -> None:
+        """Make a part more frobnicated."""
+
+    clone.command("frobnicate")(frobnicate)
+    tool = {t.name: t for t in build_tools(clone)}["n2f_frobnicate"]
+    argv = build_argv(tool, {"part": "-x", "size_mm": 7}, Path("/tmp"))
+    assert "--size-mm=7" in argv and argv[-2:] == ["--", "-x"]
+    assert tools_mod.MAX_TEXT == combined.MAX_TEXT
 
 
 def test_mcp_without_the_extra_says_how_to_install_it(
@@ -202,3 +466,41 @@ def test_init_writes_neither_the_skill_nor_a_server_config(tmp_path: Path) -> No
     assert n2f("init", str(product), "--name", "Thing").returncode == 0
     found = [p.name for p in product.rglob("*") if "mcp" in p.name.lower() or p.name == "SKILL.md"]
     assert not found
+
+
+class Undoing(Fake):
+    """Undo answers that walk back through a request's checkpoints, one per call."""
+
+    def __init__(self, labels: list[tuple[str, str]]) -> None:
+        super().__init__({("status",): STATUS})
+        self.labels = labels  # (stepped over, now in effect)
+
+    async def run(self, argv: list[str]) -> Step:
+        if argv[0] != "undo":
+            return await super().run(argv)
+        self.ran.append(argv)
+        if not self.labels:
+            return Step(argv, 0, json.dumps({"undone": False}), "", "warm", 0.1)
+        over, now = self.labels.pop(0)
+        data = {
+            "undone": True,
+            "checkpoint": {"label": f"Undid: {over}"},
+            "restored": {"label": now},
+        }
+        return Step(argv, 0, json.dumps(data), "", "warm", 0.1)
+
+
+def test_undo_takes_back_a_whole_change_request_and_a_plain_undo_is_one_step(
+    tmp_path: Path,
+) -> None:
+    fake = Undoing([("ECR-001", "ECR-001: set h"), ("ECR-001: set h", "Started ECR-001: h")])
+    runner = ToolRunner(tmp_path, steps=fake)
+    body, err = _call(runner, "n2f_ecr", action="undo")
+    assert not err and fake.paths() == ["status", "undo", "undo", "status"]
+    assert body["undid"] == ["ECR-001", "ECR-001: set h"] and "before" in body and "after" in body
+    plain = Undoing([("Start edits", "Start")])
+    body, _ = _call(ToolRunner(tmp_path, steps=plain), "n2f_ecr", action="undo")
+    assert plain.paths() == ["status", "undo", "status"] and body["undid"] == ["Start edits"]
+    nothing = Undoing([])
+    body, err = _call(ToolRunner(tmp_path, steps=nothing), "n2f_ecr", action="undo")
+    assert not err and "undid" not in body
