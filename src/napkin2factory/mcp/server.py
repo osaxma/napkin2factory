@@ -27,7 +27,8 @@ INSTRUCTIONS = (
     "1. In an empty folder: ask the owner for the product name, region and units, then call "
     "n2f_init_product. Then read AGENTS.md and roles/pm.md in the folder.\n"
     "2. n2f_promote_or_switch action=new for each idea; fill in the card file; n2f_napkin_sync "
-    "to screen it; show the owner concepts/ board; action=promote for the one they choose.\n"
+    "to screen it; show the owner the board (its path is in the result); action=promote "
+    "for the one they choose.\n"
     "3. Edit the files under model/, then n2f_sync. Fix what it lists, repeat.\n"
     "4. A choice waiting on the owner: ask them, then n2f_decide. Never pick for them.\n"
     '5. Changes to a finished design: n2f_ecr action=quick set=["uri=value"]. '

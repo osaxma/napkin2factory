@@ -51,7 +51,7 @@ you edit model files with your own file tools):
 1. `n2f_init_product`: ask the owner for the product name, region and units, then initialize the folder; read `AGENTS.md` and `roles/pm.md`.
 2. `n2f_context`: rules on talking to the owner (`topic="agent-guide"`, one section at a time), docs, or model elements.
 3. `n2f_promote_or_switch`: draft ideas (`action="new"`), switch directions, or promote the card the owner chooses (`action="promote"`).
-4. `n2f_napkin_sync`: lint cards, build concept models, and render the board (`concepts/board.html`) to show the owner.
+4. `n2f_napkin_sync`: lint cards, build concept models, and render the board (`build/concepts/board.html`) to show the owner.
 5. `n2f_sync`: validate, lint, build, check gates, and inspect status after editing files under `model/`.
 6. `n2f_decide`: record the owner's choice when a check waits on them; never pick for them.
 7. `n2f_ecr`: change a finished design (`action="quick"` or `action="start"`), or undo the last change (`action="undo"`).

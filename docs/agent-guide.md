@@ -175,7 +175,7 @@ The design loop proceeds in order:
 2. **Context:** call `n2f_context` with `topic="agent-guide"` to read instructions one section
    at a time, or inspect reference pages and model element slices.
 3. **Napkin stage:** draft candidate directions with `n2f_promote_or_switch` (`action="new"`),
-   screen and render them with `n2f_napkin_sync`, show the owner `concepts/board.html`, and promote
+   screen and render them with `n2f_napkin_sync`, show the owner `build/concepts/board.html`, and promote
    their chosen card (`action="promote"`).
 4. **Detailed design:** write and edit files under `model/` using your client's own file tools.
    Call `n2f_sync` to validate, lint, build, check, and inspect status. Fix any findings and repeat.
