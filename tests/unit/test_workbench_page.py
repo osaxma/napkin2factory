@@ -31,7 +31,7 @@ WORKBENCH_JS = ROOT / "src" / "napkin2factory" / "report" / "workbench.js"
 
 #: Ids the page has for its own machinery, not as link targets (the doc says so too).
 CONTROLS = re.compile(
-    r"^(viewer(-.+)?|glb-data(-.+)?|explode|section|section-axis|section-offset|fit|show-all|"
+    r"^(viewer(-.+)?|glb-data(-.+)?|explode|section|section-axis|section-offset|fit|show-all|build-player|"
     r"tree|inspector(-.+)?|lens-.+|tab-.+|req-table|req-open-only)$"
 )
 
