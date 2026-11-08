@@ -110,6 +110,8 @@ A thin, explicitly experimental version (the CLI verbs wrapped one-to-one, `--js
 
 Eliminate the per-command cold-start tax during active design sessions, without a second long-lived process:
 
+> Amended by S-327 (v0.9 wave 6): the MCP server reuses the warm engine of S-305 (one per product folder, shared with the CLI) instead of holding the kernel itself; the engine came in v0.8, after this was written. Point 1 below stands as history.
+
 1. **The MCP process is the warm engine.** `n2f mcp` already lives for the whole agent session, so it holds `build123d` / `OCP`, `pint` registries, domain registries and a reusable headless browser page (for [`viewer.js`](../../src/napkin2factory/report/viewer.js) screenshots) in memory and serves every tool call in-process. No socket daemon: a separate background worker would add stale-code, stale-state and local-socket security problems, and `n2f serve` is already the name of the report HTTP server (`cli/serve.py`).
    - CLI commands stay direct, as today. If the cold CLI later proves a measured bottleneck for shell-only agents, a worker is a separate decision with its own measurements.
    - **Targets are per tier and measured:** warm incremental rebuild after a one-parameter change under 1 s for Tier 1; tiers 2 and 3 set from Gate A's measurements (a kiln rebuild that re-runs OCCT booleans will not be sub-second, and the plan says so).
