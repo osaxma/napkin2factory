@@ -276,6 +276,7 @@ The card fields the installed screens read are in the skeleton `n2f concept new`
 `site.width`, `site.depth` and `site.height`; `envelope.door_swing` narrows the fit. A card with a
 load on its `site` also gets the generic `structural` screen. `n2f docs napkin` explains the
 screens, the structural one included, and the stage; a product's own screens live in `model/screens/`.
+`n2f docs materials` lists every material a card may name (keywords, density, stiffness, strength and process class).
 
 A card may name the units the product is built from (`modules: {door: {driver: [built-as-unit]}}`,
 and `module: door` on the massing lines that make them up). Promotion then seeds the top assembly and

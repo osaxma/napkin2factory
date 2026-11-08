@@ -22,6 +22,7 @@ from napkin2factory.mcp.combined import (
     COMMAND_TOOLS,
     CONCEPT_ACTIONS,
     ECR_ACTIONS,
+    PAGE_LIMIT,
     SUMMARY_LIMIT,
     UNMAPPED,
     ToolRunner,
@@ -446,6 +447,39 @@ def test_the_real_guide_comes_as_sections(tmp_path: Path) -> None:
         asyncio.run(runner.call("n2f_context", {"topic": "agent-guide", "section": "3"})).text
     )
     assert one["ok"] and one["text"].startswith("#")
+
+
+def test_context_materials(tmp_path: Path) -> None:
+    (tmp_path / "n2f.yaml").write_text("x")
+    runner = ToolRunner(tmp_path)
+
+    # 1. Whole list in one call (under PAGE_LIMIT)
+    res = asyncio.run(runner.call("n2f_context", {"topic": "materials"}))
+    body = json.loads(res.text)
+    assert not res.is_error and body["ok"]
+    assert "sections" not in body
+    assert "mild steel" in body["text"]
+    assert len(body["text"]) <= PAGE_LIMIT
+
+    # 2. One row whole by name
+    res_one = asyncio.run(
+        runner.call("n2f_context", {"topic": "materials", "section": "mild steel"})
+    )
+    body_one = json.loads(res_one.text)
+    assert not res_one.is_error and body_one["ok"]
+    assert body_one["material"]["name"] == "mild steel"
+    assert "carbon steel" in body_one["material"]["source"]
+    assert "density: 7850" in body_one["text"]
+
+    # 3. Unknown name says which names exist
+    res_err = asyncio.run(
+        runner.call("n2f_context", {"topic": "materials", "section": "unobtainium"})
+    )
+    body_err = json.loads(res_err.text)
+    assert not body_err["ok"]
+    assert "no material 'unobtainium'" in body_err["error"]["message"]
+    assert "mild steel" in body_err["error"]["message"]
+    assert "mild steel" in body_err["materials"]
 
 
 def test_a_real_failing_call_and_the_protocol_handler(tmp_path: Path) -> None:

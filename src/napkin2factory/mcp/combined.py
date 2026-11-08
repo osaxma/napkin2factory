@@ -530,6 +530,37 @@ async def context(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
             "topics": names,
             "next": {"tool": "n2f_context", "arguments": {"topic": "agent-guide"}},
         }
+    if topic == "materials":
+        data = await c.go(("docs",), {"topic": topic})
+        text = str((data or {}).get("text", ""))
+        if section is None:
+            return {"ok": True, "topic": topic, "text": text, "next": {"say": "Read it, then act."}}
+        from napkin2factory.cli.docs import (
+            format_material_row_whole,
+            known_materials,
+            lookup_material,
+        )
+
+        want = str(section).strip()
+        row = lookup_material(want)
+        if row is None:
+            names = known_materials()
+            msg = f"no material {_clip(want, 80)!r}; known materials: {', '.join(names)}"
+            return {
+                "ok": False,
+                "error": {"message": msg},
+                "materials": names,
+                "next": {"tool": "n2f_context", "arguments": {"topic": "materials"}},
+            }
+        whole_text = format_material_row_whole(row)
+        return {
+            "ok": True,
+            "topic": "materials",
+            "section": row["name"],
+            "material": row,
+            "text": whole_text,
+            "next": {"say": f"Use {row['name']} on your card massing, then call n2f_napkin_sync."},
+        }
     data = await c.go(("docs",), {"topic": topic})
     text = str((data or {}).get("text", ""))
     parts = _sections(text)
