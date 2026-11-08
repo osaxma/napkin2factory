@@ -76,13 +76,93 @@ def test_screening_skips_a_wrong_alcove_instead_of_failing() -> None:
     assert any(n.startswith("the alcove width on the card (3 kg) is not a length") for n in s.notes)
 
 
-def test_a_force_given_in_pounds_is_told_to_say_lbf(tmp_path: Path) -> None:
-    """Gate J, C1 (S-226): "330 lb" is a weight; the hint says it as a force in both units."""
+def test_a_force_given_as_a_mass_is_accepted_by_lint(tmp_path: Path) -> None:
+    """B-0321 (S-336): a mass (e.g. 150 kg or 330 lb) given on a force field is accepted."""
     d = tmp_path / "concepts"
     d.mkdir()
     (d / "C-001.yaml").write_text(
-        "id: C-001\ntitle: t\nsite: {point_load: 330 lb, mass_limit: 150 lb}\n"
+        "id: C-001\ntitle: t\nsite: {point_load: 150 kg, edge_load: 330 lb}\n"
     )
-    (err,) = [p for p in cm.lint_concepts(tmp_path).errors if p.rule == "C8-number-kinds"]
-    assert err.message == "site.point_load is 330 lb, which is not a force"
-    assert err.hint == "give it as a force with its unit, like 330 lbf or 1470 N"
+    problems = cm.lint_concepts(tmp_path)
+    assert not [p for p in problems.errors if p.rule == "C8-number-kinds"]
+
+
+def test_a_force_given_a_length_or_bare_number_is_refused_by_lint(tmp_path: Path) -> None:
+    """B-0321: a length or bare number on a force field is still refused."""
+    d = tmp_path / "concepts"
+    d.mkdir()
+    (d / "C-001.yaml").write_text(
+        "id: C-001\ntitle: t\nsite: {point_load: 330 mm, edge_load: 50}\n"
+    )
+    errors = [p for p in cm.lint_concepts(tmp_path).errors if p.rule == "C8-number-kinds"]
+    messages = {p.message for p in errors}
+    assert "site.point_load is 330 mm, which is not a force" in messages
+    assert "site.edge_load is 50, which is not a force" in messages
+
+
+def test_force_field_quantity_converts_mass_at_standard_gravity() -> None:
+    """Checklist 1: quantity() returns force = mass * STANDARD_GRAVITY."""
+    from napkin2factory.calckit.structural import STANDARD_GRAVITY
+    from napkin2factory.concepts.screens.structural_base import POINT_LOAD
+    from napkin2factory.core.model.concepts import ConceptCard
+    from napkin2factory.core.units import ureg
+
+    card = ConceptCard.model_validate(
+        {
+            "id": "C-001",
+            "title": "t",
+            "site": {"point_load": "150 kg"},
+        }
+    )
+    q = POINT_LOAD.quantity(card)
+    expected = (ureg("150 kg") * STANDARD_GRAVITY).to("N")
+    assert q is not None
+    assert abs(q.magnitude - expected.magnitude) < 1e-6
+    assert str(q.units) == "newton"
+
+    # A length or bare number returns None
+    card_len = ConceptCard.model_validate(
+        {
+            "id": "C-002",
+            "title": "t",
+            "site": {"point_load": "150 mm"},
+        }
+    )
+    assert POINT_LOAD.quantity(card_len) is None
+
+    card_bare = ConceptCard.model_validate(
+        {
+            "id": "C-003",
+            "title": "t",
+            "site": {"point_load": 150},
+        }
+    )
+    assert POINT_LOAD.quantity(card_bare) is None
+
+
+def test_screening_given_value_records_mass_as_weight() -> None:
+    """Checklist 2: screen given value says '150 kg, read as 1471 N (its weight)'."""
+    from napkin2factory.concepts.massing import compose
+    from napkin2factory.concepts.screening import screen
+    from napkin2factory.core.model import ConceptCard
+
+    card = ConceptCard.model_validate(
+        {
+            "id": "C-001",
+            "title": "t",
+            "site": {"point_load": "150 kg"},
+            "massing": [
+                {
+                    "kit": "block",
+                    "as": "top",
+                    "role": "body",
+                    "material": "mild steel",
+                    "args": {"length": "1000 mm", "width": "500 mm", "height": "20 mm"},
+                }
+            ],
+        }
+    )
+    s = screen(card, compose(card, write=False))
+    assert "point_load" in s.given
+    assert s.given["point_load"].value == "150 kg, read as 1471 N (its weight)"
+    assert s.given["point_load"].ref == "site.point_load"

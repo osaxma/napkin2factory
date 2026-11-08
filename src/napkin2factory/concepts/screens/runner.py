@@ -28,6 +28,7 @@ from napkin2factory.concepts.screens.base import (
     CardField,
     ScreenValues,
     fields_of,
+    fmt,
     phase_of,
 )
 from napkin2factory.concepts.screens.generic import GENERIC_SCREENS as _BASE_SCREENS
@@ -187,6 +188,29 @@ def _name_cost_basis(values: ScreenValues) -> None:
         values.estimate.out[key] = lv.model_copy(update={"source": source})
 
 
+def _format_mass_loads(values: ScreenValues, card: ConceptCard, fields: list[CardField]) -> None:
+    """A force field given a mass is recorded in the given values in words (S-336).
+
+    Says for example ``150 kg, read as 1471 N (its weight)``.
+    """
+    from napkin2factory.core.units import is_quantity
+
+    for f in fields:
+        if not f.is_force:
+            continue
+        raw = f.raw(card)
+        if not is_quantity(raw) or not raw.check("[mass]"):
+            continue
+        for key in (f.key, *f.aliases):
+            lv = values.given.out.get(key)
+            if lv is not None:
+                q = values.given.raw.get(key)
+                force_text = fmt(q, f.unit or "N") if is_quantity(q) else lv.value
+                mass_text = f"{raw.magnitude:g} {raw.units:~}"
+                text = f"{mass_text}, read as {force_text} (its weight)"
+                values.given.out[key] = lv.model_copy(update={"value": text})
+
+
 def _product_file(screen: Screen, root: Path | None) -> str | None:
     """``model/screens/shelf.py`` when ``screen`` comes from the product's own pack, else None."""
     import sys
@@ -262,6 +286,7 @@ def run_screens(
                 if s in GENERIC_SCREENS:
                     system_rows.update(id(r) for r in got)
     _name_cost_basis(values)
+    _format_mass_loads(values, card, declared_fields(chosen))
     rules = run_concept_rules(
         card, values.computed.raw, values.estimate.raw, massing, values.shared
     )

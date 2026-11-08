@@ -115,3 +115,17 @@ def test_overwriting_a_parameter_keeps_the_next_line_apart() -> None:
     assert _edit_param_value(text, "a-b", "9") == (
         "parameters:\n  a-b: {value: 9, unit: mm}\n  c: {value: 2, unit: mm}\n"
     )
+
+
+def test_a_mass_given_as_a_load_is_seeded_as_its_weight(tmp_path: Path) -> None:
+    """Checklist 3: promotion seeds load parameter as converted force with mass in source."""
+    root = _table(tmp_path, point_load="150 kg")
+    result = promote(root, "C-002", snapshot=False)
+    by_name = {p.name: p for p in result.params}
+    assert by_name["point-load"].status == "new"
+    assert by_name["point-load"].source == "site.point_load (150 kg)"
+    assert by_name["point-load"].value == "1471 N"
+    seeded = _file(root, "model/parameters.yaml")["parameters"]
+    assert seeded["point-load"]["owner"] == "napkin"
+    assert seeded["point-load"]["unit"] == "N"
+    assert round(float(seeded["point-load"]["value"])) == 1471

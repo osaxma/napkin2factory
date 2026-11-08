@@ -25,6 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from napkin2factory.calckit.structural import STANDARD_GRAVITY
 from napkin2factory.core.domain import SCREEN_PHASES
 from napkin2factory.core.units import is_quantity, ureg
 
@@ -98,6 +99,16 @@ class CardField:
         key = self.written(card)
         return None if key is None else getattr(card, self.section).get(key)
 
+    @property
+    def is_force(self) -> bool:
+        """True when this field expects a force (S-336)."""
+        if not self.unit:
+            return False
+        try:
+            return bool(ureg.Quantity(1, self.unit).check("[force]"))
+        except Exception:
+            return False
+
     def wrong_kind(self, value: Any) -> tuple[str, str, str] | None:
         """Why ``value`` is not this field's kind of number, else None.
 
@@ -107,23 +118,18 @@ class CardField:
         if self.unit is None or value is None:
             return None
         if is_quantity(value):
+            if self.is_force and value.check("[mass]"):
+                return None  # S-336: a mass given as a load is read as its weight
             try:
                 value.to(self.unit)
             except Exception:  # pint DimensionalityError: another kind of quantity
-                return f"{value.magnitude:g} {value.units:~}", self.kind, self._example_for(value)
+                shown = f"{value.magnitude:g} {value.units:~}".strip()
+                return shown, self.kind, self._example_for(value)
             return None
         return str(value), self.kind, self.example
 
     def _example_for(self, value: Any) -> str:
-        """The example to show for a wrong number: pounds on a force field mean ``lbf`` (C1).
-
-        An owner who writes ``330 lb`` means a weight pressing down; the pound-force is the
-        same number, so the hint says it in both units: ``330 lbf or 1470 N``.
-        """
-        if self.unit == "N" and str(value.units) in ("pound", "lb"):
-            lbf = float(value.magnitude)
-            newtons = float((lbf * ureg("lbf")).to("N").magnitude)
-            return f"{lbf:g} lbf or {float(f'{newtons:.3g}'):g} N"
+        """The example to show for a wrong number."""
         return self.example
 
     def quantity(self, card: ConceptCard) -> Any | None:
@@ -131,6 +137,10 @@ class CardField:
         value = self.raw(card)
         if not is_quantity(value) or self.wrong_kind(value) is not None:
             return None
+        if self.is_force and value.check("[mass]"):
+            # S-336: a mass given as a load is converted to force at standard gravity
+            force = value * STANDARD_GRAVITY
+            return force.to(self.unit) if self.unit else force
         return value
 
 

@@ -51,7 +51,13 @@ def load_seeds(
                 "not seeded, so the model has no trace of it"
             )
             continue
-        out.append((seed_name(f.key, f.param), value, f"site.{written}", None))
+        if f.is_force and value.check("[mass]"):
+            # S-336: a mass given as a load seeds the converted force, source naming the mass
+            force = f.quantity(card)
+            source = f"site.{written} ({value.magnitude:g} {value.units:~})"
+            out.append((seed_name(f.key, f.param), force, source, None))
+        else:
+            out.append((seed_name(f.key, f.param), value, f"site.{written}", None))
     return out
 
 
