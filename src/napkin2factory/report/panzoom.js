@@ -1,7 +1,7 @@
 // The drawing viewer for the report's drawings and wiring diagrams (v0.9 M3b, S-319, amended by S-322).
 //
 // Markup (written by the section templates, so the page reads without this script):
-//   <div class="pz-card" data-pzcard data-title="Bracket"><button type="button" class="pz-open" aria-label="Open Bracket drawing"><svg/></button></div>
+//   <div class="pz-card" data-pzcard data-title="Bracket">(a button, class pz-open, holding the svg)</div>
 // A card is a title and a static preview, no controls.  Opening one builds ONE full-screen viewer
 // (a modal dialog) for the page: a slim bar (Drawings list, pan arrows, Zoom in, Zoom out, Fit, Close),
 // a collapsible list of every drawing on the page, and a clone of the card's SVG.  Zoom sets the SVG's
