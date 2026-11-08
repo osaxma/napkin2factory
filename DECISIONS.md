@@ -359,6 +359,8 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-330 | M7b: the warm one-parameter rebuild, three exact speed-ups and a table of what is left | in force |
 | S-331 | M10: n2f doctor --fix and agent MCP server setup in skill and guide | in force |
 | S-332 | M9: errors an agent can act on (B-0309, B-0310) | in force |
+| S-333 | MCP summaries after the persona trial: whole screening reasons, lint findings as objects, listing rows kept | in force |
+| S-334 | Wave 6 persona trial over MCP: outcome, cost, findings | in force |
 
 ---
 
@@ -2455,3 +2457,9 @@ Adds `MCP server` check row (`ok` when `mcp` imports, else `warn` with install c
 `docs/agent-guide.md` updates the MCP row and adds "Using the MCP server". Guide size: before 5,137 words (est. 6,832 tokens); after 5,373 words (est. 7,146 tokens, tokens ≈ words × 1.33). `core/` files: 0.
 ## S-332 — M9: errors an agent can act on (2026-11-08)
 Closes B-0309 and B-0310. **B-0309 (warm engine internal error):** when an unhandled exception escapes `run_in_process` under `--json`, it writes stdout JSON `{"error": "engine_internal", "message": <last line>, "next": <cmd>, "log": <log_path>}`, traceback to stderr, and exits 70 (`EXIT_INTERNAL`). Safe verbs rerun with `N2F_NO_ENGINE=1`; state-changing verbs run their `look_at` command. Without `--json`, output is unchanged and exit code remains 1. **B-0310 (actionable errors):** unknown ids (part, assembly, requirement, concept card, change request, check, checkpoint, template, topic) name exact listing commands (`n2f status`, `n2f concept list`, `n2f ecr list`, `n2f checkpoints`, `n2f docs`, `n2f init --help`) preserving `--dir`; missing files name the making command (`n2f build`, `n2f init`); bad values list allowed choices. 39 of the 75 `N2FError`/`ModelError` sites now carry `next=`. The rest stay generic: model validation errors carry `ModelError`'s validate instruction, syntax/YAML errors, and calculations where fixed discrete choices do not apply. `core/` files: 0.
+
+## S-333 — MCP summaries after the persona trial (2026-11-08)
+From the trial's session log (S-334). A screening reason keeps up to 1,200 characters (its numbers, limit and formula; it was cut at 300 mid-sentence and the agent read the screen's source for the rest). Lint findings are objects (`subject`, `message`, `hint`, `severity`, `file` relative to the folder), not Python reprs. `n2f_ecr` `list`, `show` and `checkpoints` keep one more level, so a request's fields show instead of "5 fields"; other results stay two levels deep to hold the 4,000-character summary. `core/` files: 0.
+
+## S-334 — Wave 6 persona trial over MCP (2026-11-08)
+A subagent playing an owner who has never heard of n2f drove an outside web agent client (DeepSeek V4.1 Flash through OpenRouter, S-328) with the n2f MCP server, on Gate D's workbench prompt. 76 min; about 0.77 USD (estimated from tokens at list price). Concepts at 10 min; first usable list and picture at 68 min; the change and the step back about 2 min each. **Structure failed for this trial**, and the run after the agent's first source read (5.5 min) is outside the test: it never called `n2f_sync`, hand-wrote the model after promotion and read the repository 155 times. Findings and the owner's feedback: `docs/reviews/v0.9-wave6-persona-trial.md`. Fixed now: S-333. Backlog: B-0316 to B-0322. The next trial installs n2f from a built wheel (no source in reach) and opens the client on the product folder. `core/` files: 0.

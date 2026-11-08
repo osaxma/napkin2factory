@@ -560,3 +560,11 @@ def test_undo_takes_back_a_whole_change_request_and_a_plain_undo_is_one_step(
     nothing = Undoing([])
     body, err = _call(ToolRunner(tmp_path, steps=nothing), "n2f_ecr", action="undo")
     assert not err and "undid" not in body
+
+
+def test_a_listing_keeps_its_rows(tmp_path: Path) -> None:
+    """``ecr list`` showed "5 fields" for each request in the trial (S-333)."""
+    row = {"id": "ECR-001", "title": "Widen", "status": "draft", "kind": "parametric", "by": "x"}
+    runner, _ = _runner(tmp_path, {("ecr", "list"): {"ecrs": [row]}})
+    body, err = _call(runner, "n2f_ecr", action="list")
+    assert not err and body["result"]["ecrs"][0]["id"] == "ECR-001"

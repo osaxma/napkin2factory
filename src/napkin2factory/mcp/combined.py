@@ -175,21 +175,25 @@ def _clip(text: str, limit: int = TEXT_CAP) -> str:
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
-def compact(value: Any, depth: int = 0) -> Any:
-    """A short form of a verb's JSON for a summary: scalars, short lists, no deep objects."""
+def compact(value: Any, depth: int = 0, levels: int = 2) -> Any:
+    """A short form of a verb's JSON for a summary: scalars, short lists, no deep objects.
+
+    ``levels=3`` keeps a listing's rows (``ecr list``: result, requests, one request); the
+    trial's agent saw "5 fields" where the requests were (S-333).
+    """
     if isinstance(value, str):
         return _clip(value)
     if isinstance(value, bool | int | float) or value is None:
         return value
     if isinstance(value, list):
-        if depth >= 2:
+        if depth >= levels:
             return f"{len(value)} items"
-        shown = [compact(v, depth + 1) for v in value[:LIST_CAP]]
+        shown = [compact(v, depth + 1, levels) for v in value[:LIST_CAP]]
         return shown if len(value) <= LIST_CAP else [*shown, f"… {len(value) - LIST_CAP} more"]
     if isinstance(value, dict):
-        if depth >= 2:
+        if depth >= levels:
             return f"{len(value)} fields"
-        return {str(k): compact(v, depth + 1) for k, v in list(value.items())[:20]}
+        return {str(k): compact(v, depth + 1, levels) for k, v in list(value.items())[:20]}
     return _clip(str(value))
 
 
@@ -646,7 +650,8 @@ async def ecr(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
     stepped: list[str] = []
     if action in ("undo", "redo"):
         data, stepped = await _whole_change(c, action, rest, data)
-    out: dict[str, Any] = {"ok": True, "action": action, "result": compact(data)}
+    levels = 3 if action in ("list", "show", "checkpoints") else 2
+    out: dict[str, Any] = {"ok": True, "action": action, "result": compact(data, levels=levels)}
     if stepped:
         out["undid" if action == "undo" else "redid"] = stepped
     if changing and before is not None:
