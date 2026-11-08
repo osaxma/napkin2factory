@@ -568,3 +568,37 @@ def test_a_listing_keeps_its_rows(tmp_path: Path) -> None:
     runner, _ = _runner(tmp_path, {("ecr", "list"): {"ecrs": [row]}})
     body, err = _call(runner, "n2f_ecr", action="list")
     assert not err and body["result"]["ecrs"][0]["id"] == "ECR-001"
+
+
+def test_promote_lists_what_it_seeded_and_names_the_build(tmp_path: Path) -> None:
+    """Promotion seeds parts, a layout and structure checks; the agent sees them and builds next."""
+    seeded = {
+        "model": True,
+        "skipped": None,
+        "parts": [
+            {"uri": "part://leg", "qty": 4, "kit": "block", "stretched_by": ["param://leg-height"]},
+            {"uri": "part://shelf", "qty": 1, "kit": "block", "stretched_by": []},
+        ],
+        "overall_sizes": {"x": "param://top-width", "y": "param://top-depth", "z": "param://h"},
+        "layout": ["model/geometry/bench.py"],
+        "structure_checks": ["req://REQ-004"],
+    }
+    answers = {("concept", "promote"): {"id": "C-001", "summary": "done", "seeded": seeded}}
+    runner, _ = _runner(tmp_path, answers)
+    body, err = _call(runner, "n2f_promote_or_switch", action="promote", concept_id="C-001")
+    assert not err and body["next"] == {"tool": "n2f_sync", "arguments": {}}
+    view = body["result"]["seeded"]
+    assert view["parts"] == [
+        "part://leg x4 (block), follows param://leg-height",
+        "part://shelf x1 (block)",
+    ]
+    assert view["layout"] == ["model/geometry/bench.py"] and view["structure_checks"] == [
+        "req://REQ-004"
+    ]
+    assert "never rewrite them by hand" in view["note"] and "n2f_sync" in view["note"]
+    # a product that already had parts: nothing seeded, and the result says so
+    held = {**seeded, "model": False, "parts": [], "skipped": "the product already has parts"}
+    runner, _ = _runner(tmp_path, {("concept", "promote"): {"id": "C-001", "seeded": held}})
+    body, _ = _call(runner, "n2f_promote_or_switch", action="promote", concept_id="C-001")
+    assert body["result"]["seeded"]["skipped"] == "the product already has parts"
+    assert "note" not in body["result"]["seeded"]

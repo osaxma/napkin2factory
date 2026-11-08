@@ -373,6 +373,12 @@ def promote(
     console.print(f"[green]✓[/green] {escape(result.summary())}", soft_wrap=True)
     for a in result.assemblies:  # P10: the structure seeded from the card's modules
         console.print(f"  + {escape(a.file)}", soft_wrap=True, highlight=False)
+    for sp in result.seed.parts:  # the rough shapes' model (S-336)
+        console.print(
+            f"  + {escape(sp.file)} ({sp.qty} x {escape(sp.kit)})", soft_wrap=True, highlight=False
+        )
+    for g in result.seed.geometry_files:
+        console.print(f"  + {escape(g)} (where each part sits)", soft_wrap=True, highlight=False)
     for r in result.requirements:
         console.print(f"  + {r.id} {escape(r.title)}", soft_wrap=True, highlight=False)
     if result.suggestion:

@@ -1,9 +1,10 @@
-# Seeded from concept C-001 by `n2f concept promote`: the whole product, one
-# sub-assembly per module the concept sketched. Parts that belong to no module go
-# straight under `children:` here.
+# Seeded from concept C-001 by `n2f concept promote`: its parts, from the
+# card's rough shapes; where they sit is in geometry/module_kiln.py.
 id: module-kiln
 name: Module kiln
+geometry: {module: geometry/module_kiln.py}
 children:
   - {asm: asm://door}
   - {asm: asm://controls}
   - {asm: asm://stand}
+  - {part: part://body, qty: 1}

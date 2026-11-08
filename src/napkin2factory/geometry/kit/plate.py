@@ -94,6 +94,11 @@ class Args(KitArgs):
 ARGS = Args
 
 
+def size_axes(a: Args) -> dict[str, str]:
+    """Which world axis each size argument runs along (promotion's stretch rule, S-336)."""
+    return {"width": "x", "depth": "y", "thickness": "z"}
+
+
 def hole_centers(a: Args) -> list[tuple[float, float]]:
     """Grid of hole centres in plate coordinates (origin at the plate centre)."""
     if a.holes is None or a.holes.count_x * a.holes.count_y == 0:

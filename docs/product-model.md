@@ -41,9 +41,9 @@ tags}]`. `category` is one of the categories on file (`performance`, `geometry`,
 `mass`, `safety`, `manufacturing`, `usability`, `interface`) or an installed domain's.
 `verify.kind` is an installed verify kind (`n2f doctor` lists them; an unknown one is an
 error listing them): the system's are `param_bound | geometry_prop | bom_rollup | calc |
-interference | count | interface | manual | rule`; the target scheme must match the kind
+interference | count | interface | structure | manual | rule`; the target scheme must match the kind
 (`param://`, `part://x#props.…`, `bom://rollups#…`, `calc://m.f`, `asm://`, `part://`
-(count), `iface://`, `rule://<pack>/<rule>`; `rule` takes no `op`/`value` — see
+(count), `asm://top#props.<measure>` (structure), `iface://`, `rule://<pack>/<rule>`; `rule` takes no `op`/`value` — see
 [checks.md](checks.md)). `tags: [electrical]` ties a requirement to a domain for scope. `n2f lint` adds:
 a measurable value with a unit in the statement (unless the kind is binary), a verify block,
 an allocation, and `safety: true` requirements need verify and a tag `hazard:<kind>` (kinds

@@ -43,6 +43,14 @@ class Args(KitArgs):
 ARGS = Args
 
 
+def size_axes(a: Args) -> dict[str, str]:
+    """Which world axis each size argument runs along (promotion's stretch rule, S-336).
+
+    Only the length: the tube runs along ``axis``; its section keeps its size.
+    """
+    return {"length": a.axis}
+
+
 def is_solid(a: Args) -> bool:
     """Whether the arguments describe a solid bar rather than a hollow section."""
     return a.wall <= 0 or a.wall >= a.size / 2

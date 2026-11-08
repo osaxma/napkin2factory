@@ -1,0 +1,44 @@
+# Concept card C-001
+id: C-001
+title: Timber bench with a two-ply top
+status: exploring
+refs: []
+layout:
+  load: top-and-shelf
+  stand: four-leg bolted timber, joist-levels under the joists
+  controls: none
+  door: none
+envelope:
+  worktop: [1600 mm, 800 mm, 180 mm]
+  open_height: 850 mm
+  shelf_height: 150 mm
+  deck_load: 150 kg
+site:
+  width: 1600 mm
+  depth: 800 mm
+  height: 850 mm
+  budget: 2500 USD
+  point_load: 1471.5 N
+  max_deflection: 2 mm
+  dead_load: 40 kg
+style: {preset: industrial, fastener_visibility: hidden-front}
+modules: {}
+massing:
+  - {kit: block, as: leg-front-left, material: southern-yellow-pine, process_class: woodworking, role: support, args: {length: 70 mm, width: 70 mm, height: 590 mm}, at: {x: -700 mm, y: 355 mm}}
+  - {kit: block, as: leg-front-right, material: southern-yellow-pine, process_class: woodworking, role: support, args: {length: 70 mm, width: 70 mm, height: 590 mm}, at: {x: 700 mm, y: 355 mm}}
+  - {kit: block, as: leg-back-left, material: southern-yellow-pine, process_class: woodworking, role: support, args: {length: 70 mm, width: 70 mm, height: 590 mm}, at: {x: -700 mm, y: -355 mm}}
+  - {kit: block, as: leg-back-right, material: southern-yellow-pine, process_class: woodworking, role: support, args: {length: 70 mm, width: 70 mm, height: 590 mm}, at: {x: 700 mm, y: -355 mm}}
+  - {kit: block, as: joist-level-left, material: southern-yellow-pine, process_class: woodworking, role: support, args: {length: 70 mm, width: 780 mm, height: 140 mm}, at: {x: -700 mm, z: 590 mm}}
+  - {kit: block, as: joist-level-right, material: southern-yellow-pine, process_class: woodworking, role: support, args: {length: 70 mm, width: 780 mm, height: 140 mm}, at: {x: 700 mm, z: 590 mm}}
+  - {kit: block, as: joist-front, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1530 mm, width: 90 mm, height: 140 mm}, at: {y: 355 mm, z: 590 mm}}
+  - {kit: block, as: joist-back, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1530 mm, width: 90 mm, height: 140 mm}, at: {y: -355 mm, z: 590 mm}}
+  - {kit: block, as: joist-middle, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1530 mm, width: 90 mm, height: 140 mm}, at: {y: 0 mm, z: 590 mm}}
+  - {kit: block, as: rail-front, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1330 mm, width: 70 mm, height: 70 mm}, at: {y: 355 mm, z: 150 mm}}
+  - {kit: block, as: rail-back, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1330 mm, width: 70 mm, height: 70 mm}, at: {y: -355 mm, z: 150 mm}}
+  - {kit: block, as: worktop-lower-skin, material: plywood, process_class: woodworking, role: body, args: {length: 1600 mm, width: 800 mm, height: 20 mm}, at: {z: 730 mm}}
+  - {kit: block, as: worktop, material: plywood, process_class: woodworking, role: body, args: {length: 1600 mm, width: 800 mm, height: 20 mm}, at: {z: 750 mm}}
+  - {kit: block, as: shelf, material: plywood, process_class: woodworking, role: body, args: {length: 1330 mm, width: 700 mm, height: 18 mm}, at: {z: 180 mm}}
+notes: >-
+  A block-built bench for the promotion-seeding test (S-336): four pine legs, joists on levels
+  between them under a two-ply plywood top, two rails and a shelf. Given: a 1600 x 800 mm top,
+  850 mm high, 150 kg on top, about 2500 USD, industrial look.

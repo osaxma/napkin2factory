@@ -23,6 +23,7 @@ error listing them).
 | `interference` | pairwise boolean common volume > 1 mm³ on an assembly | the assembly |
 | `count` | occurrences of a part across top assemblies | the assemblies |
 | `interface` | both parties' recorded patterns agree within 0.5 mm; placed, their frames meet (below) | both parties |
+| `structure` | `asm://top#props.deflection|yield_factor|buckling_factor|tip_over_factor`: the napkin stage's structural screen run on the built assembly (loads from the `point-load`, `distributed-load`, `edge-load` … parameters promotion seeds); a construction the screen does not cover is `needs-human` with the screen's words, never a pass (S-336) | the assembly and the load parameters |
 | `manual` | always needs a human | — |
 | `rule` | the rule-pack rows of the same run for `rule://<pack>/<rule>`: any `fail` row fails it, a `warn` row makes it `warn` (never a failure), a `pass` row passes it; no applicable part → `skip` "no part this rule applies to yet" while the parts are not built, then `needs-human` once every part with geometry is built ("no part declares a style role yet; add `role:` … or sign off by hand") — a form requirement is never silently skipped; `n2f lint` warns `L12-form-needs-roles` meanwhile | the parts the rows cover |
 

@@ -22,7 +22,8 @@ open a file. Talk to them in plain words.
    Every product verb takes `--dir <folder>` (`-C`), so you can run them from anywhere without
    changing directory.
 4. Napkin stage: `n2f concept new "<title>"` per direction, `n2f concept build`,
-   `n2f concept board`; the owner picks, `n2f concept promote C-00x`. Or edit `model/` directly.
+   `n2f concept board`; the owner picks, `n2f concept promote C-00x`, which seeds the parts, layout and
+   structure checks from the card (build next; never rewrite them by hand). Or edit `model/` directly.
 5. `n2f build`, then `n2f check`; fix and repeat until the checks are green.
 6. Show the owner the report, `build/report/index.html` (step 5). `n2f engine status` and
    `N2F_NO_ENGINE=1` are for when you want to see or switch off the engine.
@@ -176,7 +177,8 @@ The design loop proceeds in order:
    at a time, or inspect reference pages and model element slices.
 3. **Napkin stage:** draft candidate directions with `n2f_promote_or_switch` (`action="new"`),
    screen and render them with `n2f_napkin_sync`, show the owner `build/concepts/board.html`, and promote
-   their chosen card (`action="promote"`).
+   their chosen card (`action="promote"`): that seeds the parts, layout and structure checks, so call
+   `n2f_sync` next and do not rewrite what it seeded by hand.
 4. **Detailed design:** write and edit files under `model/` using your client's own file tools.
    Call `n2f_sync` to validate, lint, build, check, and inspect status. Fix any findings and repeat.
 5. **Decide:** when a check requires an owner choice, ask them and record it with `n2f_decide`.
@@ -277,8 +279,22 @@ screens, the structural one included, and the stage; a product's own screens liv
 
 A card may name the units the product is built from (`modules: {door: {driver: [built-as-unit]}}`,
 and `module: door` on the massing lines that make them up). Promotion then seeds the top assembly and
-one empty `model/assemblies/<module>.yaml` per module, each with three size budgets from its rough
+one `model/assemblies/<module>.yaml` per module, each with three size budgets from its rough
 shapes; a product that already has assemblies only gets the suggestion.
+
+**Promotion seeds a model that builds.** The card's rough shapes are kit calls with a material and a
+placement, so promotion turns them into the model itself: one part under `model/parts/` per group of
+identical calls (`qty` is the group's size), the three overall sizes as parameters (an envelope number
+that already equals an axis, else `overall-length`, `overall-width`, `overall-height`), the parts that
+span an overall size as expressions of it (`<part>-<argument>`), a layout in `model/geometry/<assembly>.py`
+(a table with one row per placed part), and the sag and strength limits as `structure` requirements that
+`n2f check` runs on the built model. The result (`--json`, or the `result.seeded` object of
+`n2f_promote_or_switch`) lists what was seeded and `next` is the build (`n2f build`, or `n2f_sync`). So:
+promotion seeds the parts, layout and structure checks; build next; never rewrite them by hand. To
+change the design, change the overall sizes or a part's numbers in `model/parameters.yaml`, or move a
+part by editing its row in the layout table; the rough shapes' joints (notches, fasteners) are the next
+design step and are not seeded. A product that already has parts or assemblies is never seeded: the
+result says so and writes nothing there.
 
 The kit list is in the product's `AGENTS.md`; `n2f docs napkin` explains the stage.
 

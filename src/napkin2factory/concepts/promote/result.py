@@ -12,6 +12,7 @@ from napkin2factory.concepts.promote.common import (
     _count,
 )
 from napkin2factory.concepts.promote.modules import SeededAssembly
+from napkin2factory.concepts.promote.seeding import SeedPlan
 
 
 @dataclass
@@ -41,6 +42,11 @@ class PromotionResult:
     suggestion: str | None = None
     #: the product's word for the space it must fit (its screens' ``WORDS``; S-137)
     space: str = "space"
+    #: what the card's rough shapes became: parts, sizes, layout (B-0316, S-336)
+    seed: SeedPlan = field(default_factory=SeedPlan)
+
+    #: the command that builds what promotion seeded (the MCP tool ``n2f_sync`` runs it)
+    NEXT = "n2f build"
 
     def summary(self) -> str:
         """The owner's line: what changed, what was kept, what to do next."""
@@ -58,7 +64,18 @@ class PromotionResult:
         abouts: dict[str, int] = {}
         for r in self.requirements:
             abouts[r.about] = abouts.get(r.about, 0) + 1
-        order = ("form", "space", "supply", "sag", "cost", "weight", "budget")
+        order = (
+            "form",
+            "space",
+            "supply",
+            "sag",
+            "yield",
+            "buckling",
+            "tip-over",
+            "cost",
+            "weight",
+            "budget",
+        )
         words = {**_ABOUT_WORDS, "space": f"the {self.space}"}
         parts = [f"{abouts[a]} about {words[a]}" for a in order if a in abouts]
         reqs = _count(len(self.requirements), "requirement") + (
@@ -74,10 +91,20 @@ class PromotionResult:
         else:
             line = f"{head} {params}, {reqs}, {style}."
         stubs = [a.id.replace("-", " ") for a in self.assemblies if not a.top]
+        if self.seed.seeded:
+            pieces = sum(p.qty for p in self.seed.parts)
+            line += (
+                f" Its rough shapes became {_count(len(self.seed.parts), 'part')} "
+                f"({_count(pieces, 'piece')}), placed where the card drew them and driven by "
+                "the overall sizes, with the sag and strength checks on the built model: "
+                "build next, and change the sizes, never the seeded parts or layout by hand."
+            )
         if stubs:
             line += (
                 f" The product's structure starts from its {_count(len(stubs), 'module')}: "
-                f"{_and(stubs)}, each still empty, inside the top assembly."
+                f"{_and(stubs)}, "
+                + ("each with its parts" if self.seed.seeded else "each still empty")
+                + ", inside the top assembly."
             )
         if self.rejected or self.parked:
             n = len(self.rejected) + len(self.parked)
@@ -86,6 +113,33 @@ class PromotionResult:
             noun = "an alternative" if n == 1 else "alternatives"
             line += f" {names} {verb} kept as {noun}."
         return line + " Next: `n2f build && n2f check`."
+
+    def _seeded_dict(self) -> dict[str, Any]:
+        """What the rough shapes became, for ``--json`` (empty lists when nothing was seeded)."""
+        seed = self.seed
+        return {
+            "model": seed.seeded,
+            "skipped": seed.skipped,
+            "parts": [
+                {
+                    "uri": f"part://{p.id}",
+                    "qty": p.qty,
+                    "kit": p.kit,
+                    "file": p.file,
+                    "from": p.calls,
+                    "module": p.module,
+                    "stretched_by": [f"param://{n}" for n in p.stretched],
+                }
+                for p in seed.parts
+            ],
+            "overall_sizes": {a: f"param://{n}" for a, n in seed.sizes.items()},
+            "layout": seed.geometry_files,
+            "structure_checks": [
+                f"req://{r.id}"
+                for r in self.requirements
+                if (r.data.get("verify") or {}).get("kind") == "structure"
+            ],
+        }
 
     def to_dict(self) -> dict[str, Any]:
         """JSON form for ``--json``: every id."""
@@ -134,6 +188,8 @@ class PromotionResult:
                 for a in self.assemblies
             ],
             "modules": self.modules,
+            "seeded": self._seeded_dict(),
+            "next": self.NEXT,
             "suggestion": self.suggestion,
             "notes": self.notes,
             "summary": self.summary(),
@@ -150,4 +206,7 @@ _ABOUT_WORDS = {
     "budget": "module sizes",
     "sag": "the sag limit",  # B-0230: what the card's loads and limits become
     "cost": "the cost budget",
+    "yield": "strength",  # S-336: the structural factors the built model re-checks
+    "buckling": "buckling",
+    "tip-over": "tipping over",
 }

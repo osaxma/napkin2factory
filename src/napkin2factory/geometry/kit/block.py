@@ -36,6 +36,11 @@ class Args(KitArgs):
 ARGS = Args
 
 
+def size_axes(a: Args) -> dict[str, str]:
+    """Which world axis each size argument runs along (promotion's stretch rule, S-336)."""
+    return {"length": "x", "width": "y", "height": "z"}
+
+
 def _validate(a: Args) -> None:
     """Raise ``ValueError`` on non-positive sizes or an edge treatment that does not fit."""
     require_positive(length=a.length, width=a.width, height=a.height)

@@ -164,12 +164,26 @@ def plan_parameters(
         )
         new_lines.append(line)
         seeded.append(SeededParam(name, value_text, "new", source=source))
-    if new_lines:
-        m = re.search(r"^(\s+)[a-z0-9][a-z0-9-]*\s*:", text, re.MULTILINE)
-        indent = m.group(1) if m else "  "
-        text = re.sub(r"^parameters:\s*\{\}\s*$", "parameters:", text, count=1, flags=re.M)
-        if not text.endswith("\n"):
-            text += "\n"
-        text += f"{indent}# --- from concept {card.id} (n2f concept promote) ---\n"
-        text += "".join(f"{indent}{ln}" for ln in new_lines)
-    return seeded, text, conflicts
+    return seeded, append_param_lines(text, card.id, new_lines), conflicts
+
+
+def param_line(name: str, fields: dict[str, Any]) -> str:
+    """One new parameter as a line of ``parameters.yaml`` (flow style, as the file is written)."""
+    return yaml.safe_dump(
+        {name: fields}, sort_keys=False, default_flow_style=None, allow_unicode=True, width=10**6
+    )
+
+
+def append_param_lines(
+    text: str, card_id: str, new_lines: list[str], header: str | None = None
+) -> str:
+    """``parameters.yaml``'s text with the new parameter lines added under a promotion header."""
+    if not new_lines:
+        return text
+    m = re.search(r"^(\s+)[a-z0-9][a-z0-9-]*\s*:", text, re.MULTILINE)
+    indent = m.group(1) if m else "  "
+    text = re.sub(r"^parameters:\s*\{\}\s*$", "parameters:", text, count=1, flags=re.M)
+    if not text.endswith("\n"):
+        text += "\n"
+    text += f"{indent}# --- {header or f'from concept {card_id} (n2f concept promote)'} ---\n"
+    return text + "".join(f"{indent}{ln}" for ln in new_lines)

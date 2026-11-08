@@ -25,6 +25,10 @@ validated before the first byte is written; a refusal writes nothing):
    the module's rough shapes, labelled computed); the site and form requirements then go to
    that top assembly. When assemblies exist, the modules are only suggested (printed and
    recorded in the decision). A card without modules promotes as before (P14).
+   3c. **The rough shapes become the model** (B-0316, S-336) — in a product with no parts or
+   assemblies, the card's massing calls become parts (one per group of identical calls), the three
+   overall sizes as parameters, a layout module per assembly and ``structure`` requirements for the
+   sag limit and the strength factors; a product that has parts or assemblies is not touched.
 4. **Form requirements** — style and layout choices become requirements verified by the
    ``form-v0`` rule pack (``verify: {kind: rule, target: rule://form-v0/<rule>}``).
 5. **style.yaml** — the card's ``style`` keys (and its ``layout``) override the product's.
@@ -39,8 +43,8 @@ is a one-line change); ``style.yaml`` and the cards go through ruamel round-trip
 comments and key order survive.
 
 One module per seeder (F15, S-131): ``parameters`` (step 2), ``swing`` and ``site`` (step 3),
-``modules`` (3b), ``form`` (4), ``style`` (5), ``decision`` (6 and 7); ``packs`` reads what a
-product's own screens seed (B-0086); ``verb`` runs them in
+``modules`` (3b), ``seeding`` (3c), ``form`` (4), ``style`` (5), ``decision`` (6 and 7);
+``packs`` reads what a product's own screens seed (B-0086); ``verb`` runs them in
 order and writes once; ``result`` says what happened. Every public name is importable from
 here, as it was when promotion was one file.
 """
@@ -65,6 +69,7 @@ from napkin2factory.concepts.promote.parameters import (
     seed_plan,
 )
 from napkin2factory.concepts.promote.result import PromotionResult
+from napkin2factory.concepts.promote.seeding import SeededPart, SeedPlan, plan_seed
 from napkin2factory.concepts.promote.site import site_requirements
 from napkin2factory.concepts.promote.style import STYLE_HEADER, plan_style
 from napkin2factory.concepts.promote.swing import (
@@ -95,7 +100,9 @@ __all__ = [
     "ModulePlan",
     "NewRequirement",
     "PromotionResult",
+    "SeedPlan",
     "SeededAssembly",
+    "SeededPart",
     "SeededParam",
     "door_seeds",
     "door_swing",
@@ -104,6 +111,7 @@ __all__ = [
     "module_boxes",
     "plan_modules",
     "plan_parameters",
+    "plan_seed",
     "plan_style",
     "promote",
     "seed_plan",

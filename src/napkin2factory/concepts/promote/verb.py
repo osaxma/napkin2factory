@@ -29,8 +29,9 @@ from napkin2factory.concepts.promote.decision import (
 )
 from napkin2factory.concepts.promote.form import form_requirements
 from napkin2factory.concepts.promote.modules import plan_modules
-from napkin2factory.concepts.promote.parameters import plan_parameters
+from napkin2factory.concepts.promote.parameters import append_param_lines, plan_parameters
 from napkin2factory.concepts.promote.result import PromotionResult
+from napkin2factory.concepts.promote.seeding import plan_seed
 from napkin2factory.concepts.promote.site import site_requirements
 from napkin2factory.concepts.promote.style import plan_style, stated_style_keys
 from napkin2factory.concepts.screens import SPACE_WORDS
@@ -185,10 +186,26 @@ def promote(
     style_text, style, style_created = plan_style(card, root, notes)
     # 3b. modules (P10): the structure and its budgets, or only a suggestion
     modules = plan_modules(card, product, notes)
+    # 3c. the rough shapes become parts, sizes and a layout, or nothing (S-336)
+    seed = plan_seed(card, product, seeded, modules, notes)
+    for rel in seed.texts:
+        if (root / rel).exists():
+            raise GateBlocked(
+                f"{rel} already exists; promotion never overwrites a file — move it away, "
+                "then promote again"
+            )
+    if seed.seeded:
+        params_text = append_param_lines(
+            params_text,
+            cid,
+            seed.param_lines,
+            f"from the rough shapes of {cid} (n2f concept promote)",
+        )
+        seeded = seeded + seed.new_params
     # 3 + 4. requirements: at the seeded top assembly when there was none before
-    top = _top_assembly(product, notes) or modules.top
+    top = _top_assembly(product, notes) or modules.top or seed.top
     planned = (
-        site_requirements(card, seeded, top, notes, root)
+        site_requirements(card, seeded, top, notes, root, structure=seed.seeded)
         + form_requirements(card, style, top, notes, stated_style_keys(card, root))
         + modules.budgets
     )
@@ -264,12 +281,23 @@ def promote(
     )
     stubs = [a for a in modules.seeded if not a.top]
     if stubs:
+        filling = (
+            "each with the parts its rough shapes became and"
+            if seed.seeded
+            else "each an empty sub-assembly with"
+        )
         decision_text += (
             f" The product starts from the modules it sketched: the top assembly {top} "
-            f"holds {_and(modules.words)}, each an empty sub-assembly with "
+            f"holds {_and(modules.words)}, {filling} "
             f"{_count(len(modules.budgets), 'size budget')} in all from the rough shapes."
         )
-    elif modules.suggestion is not None:
+    if seed.seeded:
+        decision_text += (
+            f" Its rough shapes become {_count(len(seed.parts), 'part')} placed where the card "
+            "drew them, driven by the overall sizes, and the sag and strength limits are "
+            "checked on the built model."
+        )
+    if modules.suggestion is not None and not stubs:
         context.append(
             f"{cid} sketches the modules {_and(modules.words)}; the product already had its "
             "assemblies, so they were suggested, not written."
@@ -283,6 +311,7 @@ def promote(
         [f"req://{r.id}" for r in new_reqs]
         + [f"param://{p.name}" for p in seeded]
         + [f"asm://{a.id}" for a in modules.seeded]
+        + [f"part://{p.id}" for p in seed.parts]
         + ([f"dec://{supersedes}"] if supersedes else [])
     )
     assert card.screening is not None
@@ -356,7 +385,7 @@ def promote(
         paths.decisions: dec_text,
         style_path(root): style_text,
         **{cm.card_path(root, k): v for k, v in card_texts.items()},
-        **{root / rel: text for rel, text in modules.texts.items()},
+        **{root / rel: text for rel, text in {**modules.texts, **seed.texts}.items()},
     }
     if snapshot:
         from napkin2factory.ecr.checkpointing import save_edits_first
@@ -376,7 +405,8 @@ def promote(
         already_rejected=already,
         notes=notes,
         files=sorted(_rel(root, p) for p in writes),
-        assemblies=modules.seeded,
+        assemblies=seed.assemblies if seed.seeded else modules.seeded,
+        seed=seed,
         modules=modules.words,
         suggestion=modules.suggestion,
         space=product_words(root).get("space", SPACE_WORDS),

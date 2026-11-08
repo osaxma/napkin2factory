@@ -198,14 +198,24 @@ def _location(card_id: str, call: MassingCall) -> Any:
 
 
 def _build_piece(card: ConceptCard, call: MassingCall) -> MassingPiece:
-    from napkin2factory.geometry import kit
-    from napkin2factory.geometry.assembly import transform_points
-    from napkin2factory.geometry.materials import density_kg_m3
-
     prefix = f"{card.id}/{call.as_}"
     _refuse_model_refs(card.id, call, call.args, "args")
     _refuse_model_refs(card.id, call, call.at or {}, "at")
     location = _location(card.id, call)
+    return build_piece_at(prefix, concept_uri(card.id, call.as_), call, location)
+
+
+def build_piece_at(prefix: str, uri: str, call: MassingCall, location: Any) -> MassingPiece:
+    """Run one kit call at massing fidelity and place it at ``location``.
+
+    ``prefix`` heads an error message (``C-003/leg``); ``uri`` names the piece. The structure
+    check builds its pieces from a built assembly's instances with this same function (S-336), so
+    the screen sees exactly what it sees on a card.
+    """
+    from napkin2factory.geometry import kit
+    from napkin2factory.geometry.assembly import transform_points
+    from napkin2factory.geometry.materials import density_kg_m3
+
     ctx = kit.KitContext(part_id=call.as_, material_name=call.material or "", fidelity="massing")
     try:
         result = kit.run(call.kit, call.args, ctx)
@@ -235,7 +245,7 @@ def _build_piece(card: ConceptCard, call: MassingCall) -> MassingPiece:
     return MassingPiece(
         name=call.as_,
         kit=call.kit,
-        uri=concept_uri(card.id, call.as_),
+        uri=uri,
         call=call,
         args=args,
         built=built,
@@ -407,6 +417,7 @@ __all__ = [
     "MassingPiece",
     "MassingResult",
     "Silhouette",
+    "build_piece_at",
     "compose",
     "concept_build_dir",
     "concept_uri",

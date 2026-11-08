@@ -427,6 +427,31 @@ async def napkin_sync(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _seeded_view(seeded: dict[str, Any]) -> dict[str, Any]:
+    """What promotion seeded as short lines (a deep object would read as "N fields", S-336)."""
+    parts = [
+        f"{p['uri']} x{p['qty']} ({p['kit']})"
+        + (f", follows {', '.join(p['stretched_by'])}" if p.get("stretched_by") else "")
+        for p in seeded.get("parts", [])
+    ]
+    view: dict[str, Any] = {
+        "model_seeded": bool(seeded.get("model")),
+        "parts": parts,
+        "overall_sizes": seeded.get("overall_sizes", {}),
+        "layout": seeded.get("layout", []),
+        "structure_checks": seeded.get("structure_checks", []),
+    }
+    if seeded.get("skipped"):
+        view["skipped"] = seeded["skipped"]
+    elif seeded.get("model"):
+        view["note"] = (
+            "promotion seeded the parts, layout and structure checks: call n2f_sync to build "
+            "and check, and never rewrite them by hand (change the overall sizes in "
+            "parameters.yaml, or a part's row in its geometry module)"
+        )
+    return compact(view, 0, 3)  # type: ignore[no-any-return]
+
+
 async def promote_or_switch(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
     """Run one ``concept`` verb."""
     action = args.get("action")
@@ -437,6 +462,8 @@ async def promote_or_switch(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
         rest["card"] = rest.pop("concept_id")
     data = await c.go(CONCEPT_ACTIONS[action], rest)
     out: dict[str, Any] = {"ok": True, "action": action, "result": compact(data)}
+    if action == "promote" and isinstance(data, dict) and isinstance(data.get("seeded"), dict):
+        out["result"]["seeded"] = _seeded_view(data["seeded"])
     if action in ("promote", "switch"):
         out["next"] = {"tool": "n2f_sync", "arguments": {}}
     elif action in ("new", "fork"):

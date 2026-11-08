@@ -86,21 +86,28 @@ def test_promotion_seeds_the_top_assembly_stubs_and_budgets(promoted: tuple[Path
         assert text == golden.read_text(encoding="utf-8"), f"{rel} differs from {golden}"
     model = load_product(root)
     top = model.assemblies[PRODUCT]
-    assert [c.uri for c in top.children] == ["asm://door", "asm://controls", "asm://stand"]
+    # the modules, then the part that belongs to no module (its rough shapes became parts, S-336)
+    assert [c.uri for c in top.children] == [
+        "asm://door",
+        "asm://controls",
+        "asm://stand",
+        "part://body",
+    ]
     assert model.assemblies["door"].driver == ["built-as-unit", "serviced-as-unit"]
     assert model.assemblies["controls"].driver == [
         "separate-process-or-supplier",
         "tested-as-unit",
     ]
     assert model.assemblies["stand"].driver == []  # named by its line only: no reason given
-    assert all(not model.assemblies[m].children for m in ("door", "controls", "stand"))
+    assert [c.uri for c in model.assemblies["door"].children] == ["part://door"]
+    assert [c.uri for c in model.assemblies["controls"].children] == ["part://controls"]
     assert [a["uri"] for a in result.to_dict()["assemblies"]] == [
         f"asm://{PRODUCT}",
         "asm://door",
         "asm://controls",
         "asm://stand",
     ]
-    assert "3 modules: door, controls and stand, each still empty" in result.summary()
+    assert "3 modules: door, controls and stand, each with its parts" in result.summary()
     assert "9 about module sizes" in result.summary()
     assert any("body belongs to no module" in n for n in result.notes)
     # the site and form requirements go to the seeded top assembly, not `unallocated`
@@ -144,36 +151,32 @@ def test_three_budgets_per_module_from_the_rough_shapes(promoted: tuple[Path, An
         assert "changing a budget is a decision" in r["rationale"]
 
 
-def test_build_and_check_are_green_with_empty_modules_as_warn(
+def test_build_and_check_run_on_the_seeded_modules(
     promoted: tuple[Path, Any], tmp_path: Path
 ) -> None:
+    """The modules arrive with their parts, so no module is empty and the budgets are judged."""
     root = copy_product(promoted[0], tmp_path / PRODUCT, git=False)
     r = n2f("build", "--no-render", cwd=root)
     assert r.returncode == 0, r.stdout + r.stderr
     r = n2f("check", "--json", cwd=root)
-    assert r.returncode == 0, r.stdout + r.stderr
     payload = json.loads(r.stdout)
     rows = {row["id"]: row for row in payload["results"]}
-    assert payload["summary"]["fail"] == 0
-    for module in ("door", "controls", "stand"):
-        row = rows[f"rule://general-v0/module-has-parts@{module}"]
-        assert row["status"] == "warn" and row["subject"] == f"asm://{module}"
-        assert row["message"].endswith(
-            "has no parts yet: give it its parts, or fold it into the assembly above it"
-        )
-        assert f"layout://{module}" not in rows  # nothing to lay out: the rule speaks for it
-    assert rows[f"rule://general-v0/module-has-parts@{PRODUCT}"]["status"] == "pass"
-    # a budget on an empty stub waits for parts instead of passing at 0 mm
+    # the card's enclosure has 1.5 mm bends under style.yaml's 8 mm corner radius: a real finding
+    # the empty stubs hid; nothing else fails (S-336)
+    failing = {i for i, row in rows.items() if row["status"] == "fail"}
+    assert {i.split("@")[0] for i in failing if "@" in i} == {"rule://form-v0/form-corner-radius"}
+    for module in ("door", "controls", "stand", PRODUCT):
+        assert rows[f"rule://general-v0/module-has-parts@{module}"]["status"] == "pass"
     budget_rows = [row for row in payload["results"] if row.get("kind") == "requirement"]
     door_x = next(
         row
         for row in budget_rows
         if row.get("title") == "The door module fits the width the concept gave it"
     )
-    assert door_x["status"] == "skip" and "no parts yet" in door_x["message"]
+    assert door_x["status"] == "pass"  # the built door is the 300 mm the rough shape drew
 
 
-def test_a_card_without_modules_seeds_no_structure(fresh: Path, tmp_path: Path) -> None:
+def test_a_card_without_modules_seeds_the_top_assembly_only(fresh: Path, tmp_path: Path) -> None:
     root = tmp_path / PRODUCT
     shutil.copytree(fresh, root, ignore=shutil.ignore_patterns("build"))
     path = cm.card_path(root, "C-001")
@@ -183,9 +186,10 @@ def test_a_card_without_modules_seeds_no_structure(fresh: Path, tmp_path: Path) 
         call.pop("module", None)
     path.write_text(yaml.safe_dump(data, sort_keys=False))
     result = promote(root, "C-001", now=NOW, snapshot=False)
-    assert result.assemblies == [] and result.suggestion is None
-    assert not list((root / "model" / "assemblies").glob("*.yaml"))
-    assert any("no assembly yet" in n for n in result.notes)  # as in v0.3 (P14)
+    # no modules: the parts hang straight under the top assembly (S-336)
+    assert [a.id for a in result.assemblies] == [PRODUCT] and result.suggestion is None
+    assert [p.name for p in (root / "model" / "assemblies").glob("*.yaml")] == [f"{PRODUCT}.yaml"]
+    assert not any("no assembly yet" in n for n in result.notes)
 
 
 def test_a_card_seeding_no_requirement_promotes(fresh: Path, tmp_path: Path) -> None:

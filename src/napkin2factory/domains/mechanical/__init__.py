@@ -169,6 +169,14 @@ VERIFY_KINDS = (
         hypothetical=lazy(f"{_IMPACT}:hyp_after_rebuild"),
     ),
     VerifyKind(
+        "structure",
+        lazy("napkin2factory.domains.mechanical.structure:eval_structure"),
+        target_schemes=("asm",),
+        compares=True,
+        check=lazy("napkin2factory.domains.mechanical.structure:check_structure"),
+        hypothetical=lazy(f"{_IMPACT}:hyp_after_rebuild"),
+    ),
+    VerifyKind(
         "manual",
         lazy(f"{_EVAL}:eval_manual"),
         binary=True,

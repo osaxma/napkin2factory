@@ -34,13 +34,15 @@ def site_requirements(
     top: str | None,
     notes: list[str],
     root: Path | None = None,
+    structure: bool = False,
 ) -> list[tuple[str, dict[str, Any]]]:
     """``(about, requirement fields)`` for each site constraint on the card.
 
     The space it must fit, then what the product's own screens seed (``root``'s
     ``model/screens/``, :mod:`.packs`), then the weight. The rows name the space in the
     product's own word (``WORDS`` of its screens, else "space"), and name a door only when
-    the card names a hinged one (gate F, S-137).
+    the card names a hinged one (gate F, S-137). ``structure``: the model was seeded from the
+    rough shapes, so the loads' limits are checked by the ``structure`` kind (S-336).
     """
     from napkin2factory.core.packs import product_words
     from napkin2factory.core.units import Quantity
@@ -190,7 +192,7 @@ def site_requirements(
     # what only the product's own screens know (a heated box's supply, B-0086)
     out += pack_requirements(root, card, seeded, top, notes)
     # the loads' limits and the budget (B-0230)
-    out += limit_requirements(card, top, root)
+    out += limit_requirements(card, top, root, structure)
     mass_limit: Any = card.site.get("mass_limit")
     basis = f"site.mass_limit on {card.id}"
     if not is_quantity(mass_limit) and isinstance(card.site.get("lift_class"), str):

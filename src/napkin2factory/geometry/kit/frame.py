@@ -92,6 +92,12 @@ class Args(KitArgs):
 
 ARGS = Args
 
+
+def size_axes(a: Args) -> dict[str, str]:
+    """Which world axis each size argument runs along (promotion's stretch rule, S-336)."""
+    return {"length": "x", "width": "y", "height": "z"}
+
+
 __all__ = [
     "ARGS",
     "Args",

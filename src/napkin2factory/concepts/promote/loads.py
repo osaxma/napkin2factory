@@ -55,12 +55,74 @@ def load_seeds(
     return out
 
 
+#: The structural checks a seeded model re-runs (S-336): the screening's computed value, the
+#: ``structure`` measure it becomes, the factor-of-safety check, the load case that sets the
+#: factor it needs, the ``about`` of its requirement and the owner's words for it.
+STRUCTURE_FACTORS: tuple[tuple[str, str, str, str, str], ...] = (
+    ("yield_factor", "yield", "load", "yield", "its bending stress stays under yield"),
+    ("buckling_factor", "buckling", "load", "buckling", "its legs or column do not buckle"),
+    ("tip_over_factor", "tip_over", "edge_load", "tip-over", "it does not tip over"),
+)
+
+
+def _load_kind(card: ConceptCard) -> str:
+    """``cyclic`` once the card gives a cycle count, else ``static`` (as the screen reads it)."""
+    from napkin2factory.concepts.screens.structural_base import CYCLES
+
+    cycles = CYCLES.quantity(card)
+    return "cyclic" if cycles is not None and float(cycles.magnitude) > 0 else "static"
+
+
+def _structure_factors(card: ConceptCard, top: str, under: str) -> list[tuple[str, dict[str, Any]]]:
+    """One requirement per factor the card's screening computed, at the screen's own minimum.
+
+    The minimum is ``calckit.joints.factor_of_safety`` for the load case the screen used, so
+    the requirement and the screening agree (S-336).
+    """
+    from napkin2factory.calckit import joints
+
+    if card.screening is None:
+        return []
+    out: list[tuple[str, dict[str, Any]]] = []
+    for name, measure, case, about, words in STRUCTURE_FACTORS:
+        if name not in card.screening.computed:
+            continue
+        need = joints.factor_of_safety(measure, _load_kind(card) if case == "load" else case)
+        text = f"{need:g}"
+        out.append(
+            (
+                about,
+                {
+                    "title": f"The structure holds: {words}",
+                    "statement": f"{under} {words}, with a safety factor of at least {text}.",
+                    "category": "performance",
+                    "verify": {
+                        "kind": "structure",
+                        "target": f"asm://{top}#props.{name}",
+                        "op": ">=",
+                        "value": text,
+                    },
+                    "allocation": [f"asm://{top}"],
+                    "rationale": f"The structural screening of {card.id} computed this factor; "
+                    "the check runs the same screen on the built model (S-336).",
+                },
+            )
+        )
+    return out
+
+
 def limit_requirements(
     card: ConceptCard,
     top: str | None,
     root: Path | None,
+    structure: bool = False,
 ) -> list[tuple[str, dict[str, Any]]]:
-    """The sag limit and the budget as requirements, in the product's display units."""
+    """The sag limit and the budget as requirements, in the product's display units.
+
+    With ``structure`` (a seeded model that builds, S-336) the sag limit is checked by the
+    ``structure`` verify kind on the top assembly instead of being left for a person, and each
+    factor the card's screening computed becomes a requirement too.
+    """
     units = display_units(root)
     fields = {f.key: f for f in _fields(root)}
     out: list[tuple[str, dict[str, Any]]] = []
@@ -79,6 +141,19 @@ def limit_requirements(
             and k not in ("edge_offset",)
         ]
         under = f"Under the loads on {card.id} ({'; '.join(loads)}), the" if loads else "The"
+        if structure and top:
+            verify: dict[str, Any] = {
+                "kind": "structure",
+                "target": f"asm://{top}#props.deflection",
+                "op": "<=",
+                "value": _q_text(sag),
+            }
+        else:
+            verify = {
+                "kind": "manual",
+                "note": "no sag calculation is in the model yet: check it by hand, "
+                "or add a calc and point this requirement at it",
+            }
         out.append(
             (
                 "sag",
@@ -86,11 +161,7 @@ def limit_requirements(
                     "title": "Sag stays within the limit",
                     "statement": f"{under} sag is at most {_shown(sag, units)}.",
                     "category": "performance",
-                    "verify": {
-                        "kind": "manual",
-                        "note": "no sag calculation is in the model yet: check it by hand, "
-                        "or add a calc and point this requirement at it",
-                    },
+                    "verify": verify,
                     "allocation": allocation,
                     "rationale": f"site.{SAG_KEY} on {card.id}.",
                 },
@@ -120,6 +191,18 @@ def limit_requirements(
                 },
             )
         )
+    if structure and top:
+        loads_said = [
+            f"{_shown(card.site[k], units)}, {f.said()}"
+            for k, f in fields.items()
+            if f.group
+            and k not in (SAG_KEY, "cycles", "edge_offset")
+            and is_quantity(card.site.get(k))
+        ]
+        said = (
+            f"Under the loads on {card.id} ({'; '.join(loads_said)})," if loads_said else "Loaded,"
+        )
+        out += _structure_factors(card, top, said)
     src = f"concept {card.id} site constraint"
     for _, data in out:
         data["source"] = src

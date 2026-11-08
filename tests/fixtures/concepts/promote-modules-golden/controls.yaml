@@ -1,8 +1,8 @@
-# Seeded from concept C-001 by `n2f concept promote`: the controls module, still empty.
-# Give it its parts under `children:` (design it flat inside; split it further only for
-# a reason). The size it must keep to is three requirements taken from C-001's rough
-# shapes; changing one is a decision.
+# Seeded from concept C-001 by `n2f concept promote`: its parts, from the
+# card's rough shapes; where they sit is in geometry/controls.py.
 id: controls
 name: Controls
 driver: [separate-process-or-supplier, tested-as-unit]
-children: []
+geometry: {module: geometry/controls.py}
+children:
+  - {part: part://controls, qty: 1}
