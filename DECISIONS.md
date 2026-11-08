@@ -361,6 +361,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-332 | M9: errors an agent can act on (B-0309, B-0310) | in force |
 | S-333 | MCP summaries after the persona trial: whole screening reasons, lint findings as objects, listing rows kept | in force |
 | S-334 | Wave 6 persona trial over MCP: outcome, cost, findings | in force |
+| S-335 | Wave 6 boundary: the count, the timings, `make check` | in force |
 
 ---
 
@@ -2463,3 +2464,6 @@ From the trial's session log (S-334). A screening reason keeps up to 1,200 chara
 
 ## S-334 — Wave 6 persona trial over MCP (2026-11-08)
 A subagent playing an owner who has never heard of n2f drove an outside web agent client (DeepSeek V4.1 Flash through OpenRouter, S-328) with the n2f MCP server, on Gate D's workbench prompt. 76 min; about 0.77 USD (estimated from tokens at list price). Concepts at 10 min; first usable list and picture at 68 min; the change and the step back about 2 min each. **Structure failed for this trial**, and the run after the agent's first source read (5.5 min) is outside the test: it never called `n2f_sync`, hand-wrote the model after promotion and read the repository 155 times. Findings and the owner's feedback: `docs/reviews/v0.9-wave6-persona-trial.md`. Fixed now: S-333. Backlog: B-0316 to B-0322. The next trial installs n2f from a built wheel (no source in reach) and opens the client on the product folder. `core/` files: 0.
+
+## S-335 — Wave 6 boundary: the count, the timings, `make check` (2026-11-08)
+Wave 6 (S-327, S-328): M8 the seven MCP tools through the shared warm engine (S-329) and its fixes (S-333), M7b the warm rebuild (S-330), M9 errors (S-332), M10 doctor and skill (S-331), the smoke run and the persona trial (S-334). **`core/` files touched in v0.9: 12**, unchanged (wave 6 touched `core/vcs.py`, already on the list, S-330). **§11** (scratch copies from the main folder, `N2F_NO_ENGINE=1`; load average 8.1 / 6.4 / 4.7 at the start of each tier): cold builds 11.9 / 21.8 / 51.3 s (table / test stand / kiln); no-change builds 1.17, 1.12 / 1.47, 1.29 / 2.02, 1.83 s (tier 1 under R12's 2 s); report 2.1 / 3.2 / 4.3 MB against 20 MB; page open to first frame not measured this wave (the page did not change). Warm one-parameter rebuild: S-330's figures (tier 1 about 3.7 s, from the task folder). **Smoke run** (headless client, one `n2f_context` call over MCP): 15 s, 8,388 tokens, about 0.0001 USD (estimated). **`make check` on `main` at 9e8a4d0: green, 2,291 passed, 6 skipped, 8 min 24 s, load 3.8 to 7.0**; at dc8d5f0 before the trial fixes: 2,288 passed, 8 min 30 s. No engine, client or browser left running. `core/` files: 0.
