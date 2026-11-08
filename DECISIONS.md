@@ -362,6 +362,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-333 | MCP summaries after the persona trial: whole screening reasons, lint findings as objects, listing rows kept | in force |
 | S-334 | Wave 6 persona trial over MCP: outcome, cost, findings | in force |
 | S-335 | Wave 6 boundary: the count, the timings, `make check` | in force |
+| S-336 | Wave 7 before M6: fix what the persona trial needs, then rerun it | in force |
 
 ---
 
@@ -2467,3 +2468,6 @@ A subagent playing an owner who has never heard of n2f drove an outside web agen
 
 ## S-335 — Wave 6 boundary: the count, the timings, `make check` (2026-11-08)
 Wave 6 (S-327, S-328): M8 the seven MCP tools through the shared warm engine (S-329) and its fixes (S-333), M7b the warm rebuild (S-330), M9 errors (S-332), M10 doctor and skill (S-331), the smoke run and the persona trial (S-334). **`core/` files touched in v0.9: 12**, unchanged (wave 6 touched `core/vcs.py`, already on the list, S-330). **§11** (scratch copies from the main folder, `N2F_NO_ENGINE=1`; load average 8.1 / 6.4 / 4.7 at the start of each tier): cold builds 11.9 / 21.8 / 51.3 s (table / test stand / kiln); no-change builds 1.17, 1.12 / 1.47, 1.29 / 2.02, 1.83 s (tier 1 under R12's 2 s); report 2.1 / 3.2 / 4.3 MB against 20 MB; page open to first frame not measured this wave (the page did not change). Warm one-parameter rebuild: S-330's figures (tier 1 about 3.7 s, from the task folder). **Smoke run** (headless client, one `n2f_context` call over MCP): 15 s, 8,388 tokens, about 0.0001 USD (estimated). **`make check` on `main` at 9e8a4d0: green, 2,291 passed, 6 skipped, 8 min 24 s, load 3.8 to 7.0**; at dc8d5f0 before the trial fixes: 2,288 passed, 8 min 30 s. No engine, client or browser left running. `core/` files: 0.
+
+## S-336 — Wave 7 before M6: fix what the persona trial needs, then rerun it (2026-11-08)
+The maintainer decided (2026-11-08), after the wave 6 persona trial (S-334): "let's fix all what needs fixing for the trial to succeed", then rerun it, before M6 (Gates C, M and N, the cold-agent trial, the health review, 0.9.0). Scope: B-0316 (promotion seeds a model that builds, and checks its own structure through a `structure` verify kind), B-0317 (the screen covers the everyday timber bench, says "not covered" otherwise), B-0318 to B-0322, and a trial set-up outside the repository (n2f from a built wheel, the client opened on the product folder, a sandbox that keeps the agent out of the rest of the home). The rerun succeeds on a sound design, a right 3D model, a parts list and a cost, a change and an undo, with no source reads and no structural hand calculation. Design: `docs/handoffs/v0.9-wave7-design.md`. `core/` files: 0 (the design allows one, the manifest model, in `w7-cost`).
