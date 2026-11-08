@@ -365,6 +365,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-336 | Wave 7 before M6: fix what the persona trial needs, then rerun it | in force |
 | S-337 | Wave 7 fixes landed: promotion seeds a model that builds, the bench screened, who makes it, the small rows | in force |
 | S-338 | Every new product starts with a concept card, a spec included (amends N11) | in force |
+| S-339 | Wave 7 persona rerun: two runs, the model came right, two criteria still failed | in force |
 
 ---
 
@@ -2479,3 +2480,6 @@ Design `docs/handoffs/v0.9-wave7-design.md` (S-336). B-0316: promotion turns the
 
 ## S-338 — Every new product starts with a concept card, a spec included (2026-11-08)
 Amends N11 (v0.2: the napkin stage is optional; "a product born as a spec never needs a card"). In the wave 7 rerun the owner's first message was a spec (1600 × 800 mm, 150 kg, 450 USD); the product role sent the agent "straight to intake", so it never made a card, never promoted, and hand-wrote parts, a geometry script and its own structural calcs again (the 3D model came out wrong), although promotion now seeds a model that builds (S-337). So every new product starts at the napkin stage: a spec's sizes go in `envelope`, its loads, limits and budget in `site`; only a product that already has parts skips it. Changed: `roles/pm.md` (template and examples, synced), `docs/napkin.md`, init's `next` (CLI for a blank product, and `n2f_init_product`). `core/` files: 0.
+
+## S-339 — Wave 7 persona rerun: two runs, the model came right, two criteria still failed (2026-11-08)
+Report: `docs/reviews/v0.9-wave7-persona-trial.md`. Set-up (S-336 §5) held in both runs: n2f from a wheel, the product folder as the client's first workspace, no approval prompt, a `sandbox-exec` profile keeping the agent out of the repository, the home and the key. Run 1 (`main` 1995c97): the agent skipped the napkin stage for a spec (N11) and hand-wrote the model, which came out wrong; fixed in S-338. Run 2 (`main` 65e7e42): cards, promotion at minute 11, and the seeded model built right; first full result at 41 min, the 1800 mm change 35 min, the undo 1 min, a materials-only list (180.94 / 249.44 USD). Two criteria failed: the agent installed n2f from PyPI and read its source (121 reads, from minute 28.5) after `n2f_sync` cut a validate error to a fragment and `concept switch` failed nine times; and it computed the sag by hand 14 times, mostly during the change. Backlog B-0323 to B-0327. Cost not measured; about 0.64 and 0.70 USD at wave 6's rates. `core/` files: 0.
