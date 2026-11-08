@@ -108,11 +108,17 @@ def test_init_without_them_asks_nothing_but_tells_the_agent_to_ask_the_owner(tmp
     dest = tmp_path / "unplaced"
     r = n2f("init", str(dest))
     assert r.returncode == 0, r.stderr
-    assert "ask the owner where it will be built and bought" in r.stdout.replace("\n", " ")
+    out = r.stdout.replace("\n", " ")
+    assert "where it will be built and bought" in out and "who makes the custom parts" in out
     assert "region:" not in (dest / "n2f.yaml").read_text()
-    # both given: no reminder
-    done = n2f("init", str(tmp_path / "placed2"), "--region", "UK", "--units", "metric")
-    assert "ask the owner" not in done.stdout.replace("\n", " ")
+    # all given: no question, only the confirmation
+    done = n2f(
+        "init", str(tmp_path / "placed2"), "--region", "UK", "--units", "metric", "--maker", "owner"
+    )
+    told = done.stdout.replace("\n", " ")
+    assert "where it will be built" not in told and "who makes the custom parts" not in told
+    # given, they are repeated for the owner to confirm (S-336)
+    assert "ask the owner whether this is right before reading costs" in told
 
 
 def test_init_flags_are_refused_on_an_existing_product(tmp_path: Path):

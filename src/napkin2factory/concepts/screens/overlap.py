@@ -39,6 +39,20 @@ def _exact(piece: Any) -> bool:
     return bool(piece.kit in EXACT_KITS and piece.material_volume is None)
 
 
+def _edge_joint(a: Any, b: Any) -> bool:
+    """The pieces cross only along an edge, by the thinner one's thickness (S-336).
+
+    Two panels meeting at a corner are drawn overlapping there (a sketch's butt joint): their
+    common box is no thicker than the thinner piece on two axes. Members that cross through
+    each other (a joist through a bearer) share a box thicker than that on two axes.
+    """
+    thin = min(*a.size, *b.size) + 0.5
+    common = [
+        min(a.bbox_max[i], b.bbox_max[i]) - max(a.bbox_min[i], b.bbox_min[i]) for i in range(3)
+    ]
+    return sum(1 for d in common if d <= thin) >= 2
+
+
 def overlaps(pieces: list[Any]) -> list[tuple[str, str, float]]:
     """``(a, b, mm³)`` for each pair of exact silhouettes over the model's threshold."""
     from napkin2factory.core.checks.interference import (
@@ -51,7 +65,7 @@ def overlaps(pieces: list[Any]) -> list[tuple[str, str, float]]:
     found: list[tuple[str, str, float]] = []
     for i, (pa, sa) in enumerate(placed):
         for pb, sb in placed[i + 1 :]:
-            if not _bbox_overlap(sa, sb):
+            if not _bbox_overlap(sa, sb) or _edge_joint(pa, pb):
                 continue
             volume = _common_volume(sa, sb)
             if volume > THRESHOLD_MM3:

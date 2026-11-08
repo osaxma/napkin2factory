@@ -123,11 +123,14 @@ def cost_init_feedback(region: str | None, maker: str | None) -> tuple[str, str 
 
     ask: list[str] = []
     if region is None:
-        ask.append("Where will it be built and bought? Region code: US, UK, EU, AU or SA.")
+        ask.append(
+            "where it will be built and bought (US, UK, EU, AU or SA), "
+            "then set `region:` in n2f.yaml"
+        )
     if maker is None:
         ask.append(
-            "Who makes the custom parts? (owner: materials only, retail stock; "
-            "shop: job-shop rates)."
+            "who makes the custom parts: the owner (materials only, from retail stock) or a "
+            "shop (shop rates), then set `maker:` in n2f.yaml"
         )
 
     return costs, confirm, ask
