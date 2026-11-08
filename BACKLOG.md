@@ -149,6 +149,7 @@ entry that closed them. Ids are never reused.
 | B-0311 | One place to switch the display units (metric or imperial) after `n2f init`: an easy toggle the owner can ask for and the agent runs, instead of editing `units:` in `n2f.yaml` (see B-0196 and B-0231 for what imperial still leaves in mm) | maintainer, 2026-11-08 (later, not v0.9); closed when one verb or setting switches them and the report, board and terminal follow |
 | B-0312 | Currency and vendor prices, a design first: the owner's currency apart from the region's cost bands; how vendor prices are pulled, how a cost is estimated when no price is found, and how the agent running n2f supplies or updates prices it finds online (n2f never stores every vendor's prices), each with its source and date (N5, `verify`) | maintainer, 2026-11-08 (later, not v0.9); closed by a design decision and its first build |
 | B-0313 | The agent guide's method for setting units and currency from the owner's region (what to ask, what to infer, what to confirm), so the agent sets both at `n2f init` and when the region changes | maintainer, 2026-11-08 (later, with B-0311 and B-0312) |
+| B-0314 | The report's History lens lists no design directions: the report rule cannot record concept-card reads | S-287 / M3a: card reads live outside the build graph (N1); recording them cleanly requires core changes in values.py and uris.py |
 
 ## Closed
 

@@ -307,6 +307,7 @@ def gather(
     ]
     rule_results = [r for r in checks.get("results", []) if r["kind"] != "requirement"]
     rule_summary = {k: sum(1 for r in rule_results if r["status"] == k) for k in SUMMARY_KEYS}
+    later_count = req_summary.get("later", 0) + rule_summary.get("later", 0)
     module_groups, other_groups, rule_matrix = _by_module(checks, other_rows)
 
     docs = []
@@ -469,6 +470,7 @@ def gather(
         "safety_reqs": safety_reqs,
         "other_rows": other_rows,
         "rule_summary": rule_summary,
+        "later_count": later_count,
         "rule_matrix": rule_matrix,
         "module_groups": module_groups,
         "other_groups": other_groups,

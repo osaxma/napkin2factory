@@ -1,0 +1,9 @@
+<section class="card" id="check-views">
+  {{ h2('check-views', 'Check views') }}
+  <p class="lead">Check renders: flat colours tell the parts apart; they are for checking the geometry, not the finish.</p>
+  {% if renders %}
+  <div class="grid">{% for r in renders %}<figure><img src="data:image/png;base64,{{ r.b64 }}" alt="{{ r.label | disp }}" style="width:100%"><figcaption>{{ r.label | disp | replace('asm://', '') | replace(' · iso', ' — from the corner') | replace(' · section', ' — cut through the middle') }}</figcaption></figure>{% endfor %}</div>
+  {% else %}
+  <p class="muted">No check renders in this build.</p>
+  {% endif %}
+</section>

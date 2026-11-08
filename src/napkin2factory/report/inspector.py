@@ -318,6 +318,17 @@ def inspector_index(
     basis_raw = cost_basis_of(rollups)
     cost_label = "estimate" if basis_raw == "estimate" else "given"
 
+    tops = top_assemblies(product)
+    unit_uris = [f"asm://{a}" for a in tops]
+    build_unit_uris = [f"asm://{u}" for u in BuildUnits(product).order()]
+
+    n_choices = len(waiting)
+    choice_val = (
+        "no open choices"
+        if n_choices == 0
+        else ("1 open choice" if n_choices == 1 else f"{n_choices} open choices")
+    )
+
     vitals: dict[str, Any] = {
         "part_count": {
             "value": f"{part_count} parts",
@@ -337,7 +348,66 @@ def inspector_index(
             "complete": cost_complete,
             "label": cost_label,
         },
+        "open_choices": {
+            "value": choice_val,
+            "raw": n_choices,
+            "label": "given",
+        },
     }
+
+    # Envelope: combined bbox of all top units from build_dir/assemblies/<id>/props.json.
+    top_ids = [u.removeprefix("asm://") for u in (unit_uris if unit_uris else build_unit_uris)]
+    props_bboxes: list[dict[str, Any]] = []
+    if top_ids and build_dir is not None:
+        all_props_found = True
+        for aid in top_ids:
+            props_file = build_dir / "assemblies" / aid / "props.json"
+            if not props_file.is_file():
+                all_props_found = False
+                break
+            try:
+                pdata = json.loads(props_file.read_text(encoding="utf-8"))
+                if isinstance(pdata, dict) and isinstance(pdata.get("bbox"), dict):
+                    props_bboxes.append(pdata["bbox"])
+                else:
+                    all_props_found = False
+                    break
+            except Exception:
+                all_props_found = False
+                break
+        if all_props_found and props_bboxes:
+            min_pts = [b["min"] for b in props_bboxes if "min" in b]
+            max_pts = [b["max"] for b in props_bboxes if "max" in b]
+            if (
+                min_pts
+                and max_pts
+                and len(min_pts) == len(props_bboxes)
+                and len(max_pts) == len(props_bboxes)
+            ):
+                raw_x = round(float(max(p[0] for p in max_pts) - min(p[0] for p in min_pts)), 4)
+                raw_y = round(float(max(p[1] for p in max_pts) - min(p[1] for p in min_pts)), 4)
+                raw_z = round(float(max(p[2] for p in max_pts) - min(p[2] for p in min_pts)), 4)
+            elif len(props_bboxes) == 1 and all(k in props_bboxes[0] for k in ("x", "y", "z")):
+                raw_x = round(float(props_bboxes[0]["x"]), 4)
+                raw_y = round(float(props_bboxes[0]["y"]), 4)
+                raw_z = round(float(props_bboxes[0]["z"]), 4)
+            else:
+                raw_x = raw_y = raw_z = None
+
+            if raw_x is not None and raw_y is not None and raw_z is not None:
+
+                def _format_dim(v: float) -> str:
+                    r = round(v, 1)
+                    if r.is_integer() or round(v) == r:
+                        return str(round(v))
+                    return f"{r:.1f}"
+
+                dim_str = f"{_format_dim(raw_x)} × {_format_dim(raw_y)} × {_format_dim(raw_z)} mm"
+                vitals["envelope"] = {
+                    "value": display(dim_str, units),
+                    "raw": [raw_x, raw_y, raw_z],
+                    "label": "computed",
+                }
 
     summary_counts: dict[str, int] = {
         k: int(v) for k, v in (checks.get("summary") or {}).items() if isinstance(v, (int, float))
@@ -401,10 +471,6 @@ def inspector_index(
                 "description": display(str(p_desc), units) if p_desc else "",
             }
         )
-
-    tops = top_assemblies(product)
-    unit_uris = [f"asm://{a}" for a in tops]
-    build_unit_uris = [f"asm://{u}" for u in BuildUnits(product).order()]
 
     index["manifest://product"] = {
         "kind": "product",
@@ -471,6 +537,20 @@ def inspector_index(
         a_mass_str = display(f"{round(a_mass_kg, 3)} kg", units) if a_mass_kg is not None else None
         a_cost_str = f"{round(a_cost_usd, 2):.2f} USD"
 
+        structure: dict[str, list[dict[str, Any]]] = rollups.get("structure", {})
+        found = _find_asm_node(structure, auri)
+        asm_children: list[dict[str, Any]] = []
+        if found is not None:
+            child_lines, mult = found
+            for ln in child_lines:
+                if "uri" in ln:
+                    child_qty = (
+                        int(ln["qty"])
+                        if "qty" in ln
+                        else max(int(ln.get("total_qty", 0) or 0) // mult, 0)
+                    )
+                    asm_children.append({"uri": str(ln["uri"]), "qty": child_qty})
+
         asm_entry: dict[str, Any] = {
             "kind": "assembly",
             "id": aid,
@@ -479,6 +559,7 @@ def inspector_index(
             "title": aname,
             "build": abuild,
             "part_count": a_part_count,
+            "children": asm_children,
             "mass": a_mass_str,
             "mass_kg": a_mass_kg,
             "mass_label": "computed",

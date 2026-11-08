@@ -252,6 +252,7 @@ REPORT_SECTIONS = (
     ),
     _section("requirements", "Requirements", "Verification", lens="verification"),
     _section("rules", "Rule checks", "Verification", lens="verification"),
+    _section("check-views", "Check views", "Verification", lens="verification"),
     _section(
         "signoffs",
         "Sign-offs",

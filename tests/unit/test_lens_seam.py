@@ -22,6 +22,7 @@ EXPECTED_LENSES: dict[str, str] = {
     "safety": "verification",
     "requirements": "verification",
     "rules": "verification",
+    "check-views": "verification",
     "signoffs": "verification",
     "manuals": "verification",
     "parameters": "history",

@@ -97,9 +97,17 @@ def test_inspector_index_completeness_and_schemes(
         prod_entry = idx["manifest://product"]
         assert prod_entry["kind"] == "product"
         assert prod_entry["name"] == prod.manifest.product.name
-        for vital_key in ("part_count", "total_mass", "total_cost"):
+        for vital_key in ("part_count", "total_mass", "total_cost", "open_choices"):
             vital = prod_entry["vitals"][vital_key]
             assert vital["label"] in ("given", "computed", "estimate")
+        assert prod_entry["vitals"]["open_choices"]["label"] == "given"
+        assert isinstance(prod_entry["vitals"]["open_choices"]["raw"], int)
+        if "envelope" in prod_entry["vitals"]:
+            env = prod_entry["vitals"]["envelope"]
+            assert env["label"] == "computed"
+            assert isinstance(env["raw"], list) and len(env["raw"]) == 3
+            assert all(isinstance(v, (int, float)) for v in env["raw"])
+            assert " × " in env["value"] and " mm" in env["value"]
         assert prod_entry["unit_uris"]
         assert all(u.startswith("asm://") for u in prod_entry["unit_uris"])
         for param in prod_entry["parameters"]:
@@ -111,6 +119,10 @@ def test_inspector_index_completeness_and_schemes(
             assert a_entry["kind"] == "assembly"
             assert isinstance(a_entry["part_count"], int)
             assert "bom_cost" in a_entry
+            assert "children" in a_entry and isinstance(a_entry["children"], list)
+            for ch in a_entry["children"]:
+                assert "uri" in ch and "qty" in ch
+                assert isinstance(ch["qty"], int) and ch["qty"] >= 1
             sheet_svg = prod.paths.build / "drawings" / "assemblies" / f"{aid}.svg"
             assert ("sheet" in a_entry) == sheet_svg.is_file()
             for st in a_entry.get("build_steps", []):
