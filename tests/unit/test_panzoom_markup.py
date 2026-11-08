@@ -38,6 +38,7 @@ def _check_card(card) -> None:
     b = buttons[0]
     assert b.attributes["type"] == "button" and "pz-open" in b.attributes["class"]
     assert b.attributes["aria-label"].startswith("Open ") and card.attributes["data-title"]
+    assert "part://" not in card.attributes["data-title"] + b.attributes["aria-label"]
     assert b.css_first("svg") is not None
     assert not b.css("a"), "a link inside the button"  # captions stay outside it
 
@@ -57,6 +58,12 @@ def test_drawings_are_cards_with_no_click_toggle(table: str) -> None:
     assert cards
     for c in cards:
         _check_card(c)
+    # plain titles, never an identifier, in the caption and the card (N5, D17; S-323)
+    for fig in LexborHTMLParser(table).css("section#drawings figure"):
+        for v in fig.css("svg"):  # the sheet's own title block is the drawing itself
+            v.decompose()
+        assert "part://" not in fig.text()
+    assert "Open " in cards[0].css_first("button").attributes["aria-label"]
     assert "onclick" not in LexborHTMLParser(table).css_first("section#drawings").html
     # the 3D callout stays a link in the caption, outside the button
     assert "data-show3d" in LexborHTMLParser(table).css_first("section#drawings figcaption").html

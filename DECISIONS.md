@@ -349,6 +349,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-319 | M3b, pan/zoom frames for drawings and wiring diagrams | amended by S-322 |
 | S-320 | M3c: the build player, cut lists on the Build lens, the print packet | in force |
 | S-322 | M3b follow-up, cards and viewer | in force |
+| S-323 | M3b phone and plain titles | in force |
 
 ---
 
@@ -2412,3 +2413,6 @@ Amends S-319; its text stands as history. Judged by the maintainer: "the cards s
 
 ## S-321 — Wave 4 boundary: the count, the timings, `make check` (2026-11-08)
 Wave 4 was M3b (S-319, pan/zoom drawings and schematics) and M3c (S-320, build player, cut lists, print packet). **`core/` files touched in v0.9: 12**, unchanged (wave 4 touched none, V12). **§11 timings** (scratch copies of the examples from the main folder's environment, `N2F_NO_ENGINE=1`; load average 1 min at the start of each tier 8.9 / 6.4 / 6.2, falling from other runs ending): cold builds 12.0 / 27.1 / 73.9 s (table / test stand / kiln); two no-change builds 1.48, 1.44 / 1.94, 2.04 / 2.49, 2.34 s (tier 1 under R12's 2 s; wave 3 had 1.47 to 1.50, 2.28 to 2.51 for the kiln, so the pan/zoom and player markup cost nothing measurable); report size 2.0 / 3.2 / 4.2 MB against 20 MB. Page open to first frame: not measured this wave. **`make check` on `main` at 7fff471:** green, 2,207 passed, 7 skipped, 9 min 33 s, load 12 falling (wave 3: 2,200 passed). The two new smoke files add the pan/zoom and player interaction tests.
+
+## S-323 — M3b phone and plain titles (2026-11-08)
+Amends S-322 (its text stands). Judged by the maintainer from phone screenshots. **Phone:** the viewer decides "narrow" from its own width (640 px and under, set when it opens and on every resize), not from a media query, so the list always starts collapsed, overlays the drawing, and a pick closes it. The bar stays on one row: buttons show a short sign (+, minus, Fit, x) with the full word as their accessible name, and the pan arrows sit behind a "Move" button as a small panel. Buttons are at least 36 px. At fit the drawing is centred in the space left and refits on rotate. **Plain titles:** cards, captions, the viewer header and the list show the part's name ("Steel apron frame"), from a `name` field the report's data gathering adds to each drawing (falls back to the id), never `part://...`; the sheet's own title block is the drawing and is untouched. `core/` files: 0 (V12).

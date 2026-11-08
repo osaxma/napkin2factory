@@ -15,12 +15,19 @@
     '.pz-open:focus-visible{outline:3px solid var(--accent,#1f5fbf);outline-offset:-3px}',
     '.pzv{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;background:var(--bg,#f7f6f2);color:var(--ink,#1c1b19)}',
     '.pzv[hidden]{display:none}',
-    '.pzv-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;padding:.35rem .5rem;border-bottom:1px solid var(--line,#d9d7d0);background:var(--bg,#f7f6f2)}',
-    '.pzv-bar button,.pzv-side button{font:inherit;font-size:.85rem;padding:.2rem .65rem;border:1px solid var(--line,#d9d7d0);border-radius:6px;background:#fff;color:inherit;cursor:pointer;min-height:2.1rem}',
+    '.pzv-bar{display:flex;flex-wrap:nowrap;align-items:center;gap:.35rem;padding:.35rem .5rem;border-bottom:1px solid var(--line,#d9d7d0);background:var(--bg,#f7f6f2)}',
+    '.pzv-bar button,.pzv-side button{font:inherit;font-size:.85rem;padding:.2rem .65rem;border:1px solid var(--line,#d9d7d0);border-radius:6px;background:#fff;color:inherit;cursor:pointer;min-height:2.25rem;min-width:2.25rem}',
     '.pzv-bar button:hover,.pzv-side button:hover{border-color:var(--accent,#1f5fbf)}',
     '.pzv-bar button:focus-visible,.pzv-side button:focus-visible,.pzv-view:focus-visible{outline:3px solid var(--accent,#1f5fbf);outline-offset:-1px}',
-    '.pzv-title{flex:1 1 8rem;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.pzv-title{flex:1 1 0;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.pzv-pan{display:inline-flex;gap:.2rem}',
+    '.pzv-more,.pzv-bar .s{display:none}',
+    '.pzv-narrow .pzv-bar .l{display:none}',
+    '.pzv-narrow .pzv-bar .s{display:inline;font-size:1.1rem;line-height:1}',
+    '.pzv-narrow .pzv-bar button{padding:.2rem .5rem}',
+    '.pzv-narrow .pzv-more{display:inline-block}',
+    '.pzv-narrow .pzv-pan{position:absolute;z-index:3;right:.5rem;bottom:.75rem;display:none;padding:.3rem;border:1px solid var(--line,#d9d7d0);border-radius:8px;background:var(--bg,#f7f6f2);box-shadow:0 2px 8px rgba(0,0,0,.25)}',
+    '.pzv-narrow .pzv-pan.pz-on{display:inline-flex}',
     '.pzv-body{position:relative;flex:1;display:flex;min-height:0}',
     '.pzv-side{flex:0 0 15rem;max-width:70vw;overflow:auto;border-right:1px solid var(--line,#d9d7d0);background:var(--bg,#f7f6f2);padding:.4rem}',
     '.pzv-side[hidden]{display:none}',
@@ -30,7 +37,7 @@
     '.pzv-view{position:relative;flex:1;min-width:0;overflow:hidden;background:#fff;cursor:grab;touch-action:none}',
     '.pzv-view.pz-drag{cursor:grabbing}',
     '.pzv-view svg{position:absolute;max-width:none!important;min-width:0!important;cursor:inherit!important;display:block}',
-    '@media (max-width:600px){.pzv-side{position:absolute;z-index:2;top:0;bottom:0;left:0;box-shadow:2px 0 8px rgba(0,0,0,.25)}}',
+    '.pzv-narrow .pzv-side{position:absolute;z-index:2;top:0;bottom:0;left:0;box-shadow:2px 0 8px rgba(0,0,0,.25)}',
     '@media print{.pzv{display:none!important}.pz-open{display:block!important;cursor:default}}'
   ].join('\n');
 
@@ -82,12 +89,20 @@
     [['left', '←'], ['right', '→'], ['up', '↑'], ['down', '↓']].forEach((d) => {
       pan.appendChild(el('button', { type: 'button', 'data-pan': d[0], 'aria-label': 'Pan ' + d[0] }, d[1]));
     });
-    const bIn = el('button', { type: 'button', 'data-pz': 'in' }, 'Zoom in');
-    const bOut = el('button', { type: 'button', 'data-pz': 'out' }, 'Zoom out');
-    const bFit = el('button', { type: 'button', 'data-pz': 'fit' }, 'Fit');
-    const bClose = el('button', { type: 'button', 'data-pz': 'close' }, 'Close');
+    // a button shows its full word, or a short sign on a phone; its accessible name is always the word
+    const mk = (act, word, sign) => {
+      const b = el('button', { type: 'button', 'data-pz': act, 'aria-label': word });
+      b.appendChild(el('span', { class: 'l', 'aria-hidden': 'true' }, word));
+      b.appendChild(el('span', { class: 's', 'aria-hidden': 'true' }, sign));
+      return b;
+    };
+    const bIn = mk('in', 'Zoom in', '+');
+    const bOut = mk('out', 'Zoom out', '\u2212');
+    const bFit = mk('fit', 'Fit', 'Fit');
+    const bClose = mk('close', 'Close', '\u00d7');
+    const more = el('button', { type: 'button', class: 'pzv-more', 'aria-expanded': 'false', 'aria-label': 'Move the drawing' }, 'Move');
     if (cards.length > 1) bar.appendChild(toggle);
-    [title, pan, bIn, bOut, bFit, bClose].forEach((e) => bar.appendChild(e));
+    [title, pan, more, bIn, bOut, bFit, bClose].forEach((e) => bar.appendChild(e));
     const body = el('div', { class: 'pzv-body' });
     const side = el('nav', { class: 'pzv-side', id: 'pzv-side', 'aria-label': 'All drawings', hidden: '' });
     const ul = el('ul');
@@ -105,7 +120,9 @@
 
     const st = { s: 1, x: 0, y: 0, fit: 1, i: -1, nat: { w: 1, h: 1 }, svg: null, opener: null };
     let atFit = true;
-    const narrow = () => window.matchMedia('(max-width:600px)').matches;
+    // phone layout is decided by the viewer's own width, not the media query (S-323)
+    const narrow = () => root.clientWidth <= 640;
+    const mark = () => root.classList.toggle('pzv-narrow', narrow());
     const isOpen = () => !root.hidden;
 
     function clamp() {
@@ -166,6 +183,8 @@
       st.opener = opener;
       root.hidden = false;
       document.documentElement.style.overflow = 'hidden';
+      mark();
+      pan.classList.remove('pz-on'); more.setAttribute('aria-expanded', 'false');
       setSide(!narrow() && cards.length > 1);
       show(i);
       view.focus();
@@ -180,6 +199,10 @@
     viewer = { open, isOpen };
 
     toggle.addEventListener('click', () => setSide(side.hidden));
+    more.addEventListener('click', () => {
+      const on = !pan.classList.contains('pz-on');
+      pan.classList.toggle('pz-on', on); more.setAttribute('aria-expanded', String(on));
+    });
     items.forEach((b) => b.addEventListener('click', () => {
       show(Number(b.getAttribute('data-i')));
       if (narrow()) setSide(false);
@@ -277,6 +300,9 @@
     let lw = 0, lh = 0;
     function onSize() {
       if (!isOpen() || !st.svg) return;
+      const wasNarrow = root.classList.contains('pzv-narrow');
+      mark();
+      if (narrow() && !wasNarrow) setSide(false);
       const w = view.clientWidth, h = view.clientHeight;
       if (!w || (w === lw && h === lh)) return;
       lw = w; lh = h;

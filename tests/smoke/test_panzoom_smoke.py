@@ -56,7 +56,7 @@ def _scale(page: Any) -> float:
 
 
 def _open_page(browser: Any, url: str, errors: list[str], width: int = 1440) -> Any:
-    page = browser.new_page(viewport={"width": width, "height": 900})
+    page = browser.new_page(viewport={"width": width, "height": 844 if width < 600 else 900})
     page.set_default_timeout(15000)
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
@@ -71,6 +71,31 @@ def _centred(page: Any) -> None:
     assert abs((svg["x"] + svg["width"] / 2) - (view["x"] + view["width"] / 2)) <= 3
     assert abs((svg["y"] + svg["height"] / 2) - (view["y"] + view["height"] / 2)) <= 3
     assert svg["width"] <= view["width"] + 1 and svg["height"] <= view["height"] + 1
+
+
+def _no_ids(page: Any) -> None:
+    """No `part://` text shows in the open viewer or a card caption (N5, D17)."""
+    # the sheet's own title block is the drawing, not page chrome, so svg text is left out
+    shown = page.evaluate(
+        "[...document.querySelectorAll('.pzv:not([hidden]), [data-pzcard], figcaption')].map(e => {"
+        " const c = e.cloneNode(true); c.querySelectorAll('svg').forEach(v => v.remove());"
+        " return c.textContent + ' ' + (e.getAttribute('data-title') || ''); }).join(' ')"
+    )
+    assert "part://" not in shown and "asm://" not in shown
+    labels = page.evaluate(
+        "[...document.querySelectorAll('.pzv [aria-label], [data-pzcard] [aria-label]')]"
+        ".map(e => e.getAttribute('aria-label')).join(' ')"
+    )
+    assert "part://" not in labels
+
+
+def _inside(page: Any) -> None:
+    """The drawing's box lies fully inside the area the viewer leaves for it."""
+    view = page.locator(".pzv-view").bounding_box()
+    svg = page.locator(".pzv-view svg").bounding_box()
+    assert svg["x"] >= view["x"] - 1 and svg["y"] >= view["y"] - 1
+    assert svg["x"] + svg["width"] <= view["x"] + view["width"] + 1
+    assert svg["y"] + svg["height"] <= view["y"] + view["height"] + 1
 
 
 def test_card_opens_viewer_fitted_and_centred(browser: Any, table_url: str) -> None:
@@ -88,6 +113,7 @@ def test_card_opens_viewer_fitted_and_centred(browser: Any, table_url: str) -> N
         assert page.evaluate("document.activeElement.closest('.pzv') !== null")
         page.wait_for_function("document.querySelector('.pzv-view svg')")
         _centred(page)
+        _no_ids(page)
         # the viewer's own svg repeats no id of the page
         assert page.evaluate(
             "[...document.querySelectorAll('.pzv [id]')].every("
@@ -165,6 +191,8 @@ def test_sidebar_lists_every_drawing_and_switches(browser: Any, table_url: str) 
         dlg = page.get_by_role("dialog")
         toggle = dlg.get_by_role("button", name="Drawings", exact=True)
         assert toggle.get_attribute("aria-expanded") == "true"  # wide: starts open
+        _no_ids(page)
+        page.screenshot(path="/private/tmp/claude-503/m3b3-sidebar.png")
         entries = dlg.locator(".pzv-side button")
         assert entries.count() == n
         assert dlg.locator(".pzv-side [aria-current=true]").count() == 1
@@ -188,20 +216,51 @@ def test_phone_sidebar_starts_collapsed_and_overlays(browser: Any, table_url: st
     page = _open_page(browser, table_url, errors, width=390)
     try:
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        _no_ids(page)
+        page.screenshot(path="/private/tmp/claude-503/m3b3-lens.png")
         page.locator("section#drawings [data-pzcard] button.pz-open").first.click()
         dlg = page.get_by_role("dialog")
         dlg.wait_for(state="visible")
+        page.wait_for_function("document.querySelector('.pzv-view svg')")
         toggle = dlg.get_by_role("button", name="Drawings", exact=True)
         assert toggle.get_attribute("aria-expanded") == "false"
         assert dlg.locator(".pzv-side").is_hidden()
         _centred(page)
+        _inside(page)
+        _no_ids(page)
+        # the bar stays on one row, with touch-sized buttons
+        tops = page.evaluate(
+            "[...document.querySelectorAll('.pzv-bar button')]"
+            ".filter(b => b.offsetParent).map(b => b.getBoundingClientRect().top)"
+        )
+        assert len(tops) >= 5 and max(tops) - min(tops) <= 2
+        sizes = page.evaluate(
+            "[...document.querySelectorAll('.pzv-bar button')].filter(b => b.offsetParent)"
+            ".map(b => Math.min(b.offsetWidth, b.offsetHeight))"
+        )
+        assert min(sizes) >= 36
+        for name in ("Zoom in", "Zoom out", "Fit", "Close", "Move the drawing"):
+            assert dlg.get_by_role("button", name=name, exact=True).is_visible()
+        page.screenshot(path="/private/tmp/claude-503/m3b3-phone.png")
+        # the arrows sit behind Move
+        assert dlg.get_by_role("button", name="Pan left").is_hidden()
+        dlg.get_by_role("button", name="Move the drawing").click()
+        assert dlg.get_by_role("button", name="Pan left").is_visible()
+        dlg.get_by_role("button", name="Move the drawing").click()
         w0 = page.locator(".pzv-view").bounding_box()["width"]
         toggle.click()
         assert dlg.locator(".pzv-side").is_visible()
         assert page.locator(".pzv-view").bounding_box()["width"] == w0  # overlays, no squeeze
+        page.screenshot(path="/private/tmp/claude-503/m3b3-phone-sidebar.png")
         dlg.locator(".pzv-side button").nth(1).click()
         assert dlg.locator(".pzv-side").is_hidden()  # picking one closes the overlay
         _centred(page)
+        _inside(page)
+        # rotating (a resize) at fit refits
+        page.set_viewport_size({"width": 844, "height": 390})
+        page.wait_for_timeout(200)
+        _centred(page)
+        _inside(page)
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.keyboard.press("Escape")
         assert page.locator(".pzv").is_hidden()

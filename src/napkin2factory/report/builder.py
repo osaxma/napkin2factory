@@ -217,6 +217,7 @@ def gather(
                 {
                     "id": part.id,
                     "uri": part.uri,
+                    "name": part.name or part.id,  # the plain title the owner reads (S-323)
                     "rev": part.rev,
                     "svg": text,
                     "has_flat": (build_dir / "drawings" / f"{part.id}-flat.dxf").is_file(),
