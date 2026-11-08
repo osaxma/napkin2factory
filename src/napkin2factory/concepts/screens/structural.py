@@ -12,11 +12,13 @@ are read from the card's massing, never guessed. Two kinds of shape:
   at the column foot, buckling of the column.
 
 A check whose inputs are not on the card or in the massing is a row that says which one is
-missing and that it was not run. Factors compare against ``calckit.joints.factor_of_safety``
-(load kind ``cyclic`` once the card gives ``site.cycles``, else ``static``; tip-over uses
-the edge-load row). The screen runs only when the card gives a point, distributed or edge load.
-Fatigue and the rails' own stress are not checked here. The values the screen adds to a card's
-screening are listed in docs/napkin.md ("The structural screen").
+missing and that it was not run. A shape the screen does not model is a ``not covered`` row
+naming the builds it would model, never a pass. Factors compare against
+``calckit.joints.factor_of_safety`` (load kind ``cyclic`` once the card gives ``site.cycles``,
+else ``static``; tip-over uses the edge-load row). The screen runs only when the card gives a
+point, distributed or edge load. Fatigue and the rails' own stress are not checked here. The
+values the screen adds to a card's screening are listed in docs/napkin.md ("The structural
+screen").
 """
 
 from __future__ import annotations
@@ -38,6 +40,7 @@ from napkin2factory.concepts.screens.structural_base import (
     deflection_row,
     length_text,
     piece_section,
+    rule_row,
     skip_row,
     stock_of,
     yield_row,
@@ -50,15 +53,25 @@ from napkin2factory.core.units import Quantity
 # --- a column with an arm -----------------------------------------------------------------
 
 
-#: What the screen says of a shape that is not one column with one arm (gate I wording).
-NOT_MODELLED = (
-    "this card's shape is not one the structural screen models: it takes one column and one arm "
-    "of the same material"
-)
+def not_covered_row(found: str, rid: str = "structural-deflection") -> RuleRow:
+    """The screen does not model this shape: one skip row that says so in plain words (S-336).
+
+    ``found`` is what the massing showed in the owner's words (for example "two upright columns
+    (a gantry or a portal)"); the message names the builds the screen does model so the agent
+    knows the next step. ``rid`` is ``structural-support`` when nothing carries the load, so the
+    board says sag and tip-over are unknown (B1, S-226).
+    """
+    return rule_row(
+        rid,
+        "skip",
+        "not covered: the structural check models a top on legs, a frame, trestles, or a column "
+        f"with an arm; this card is {found}. Use one of those builds, or keep it and mark the sag "
+        "for a person to check",
+    )
 
 
 def _column_and_arm(pieces: list[Any]) -> tuple[Any, Any] | str | None:
-    """The one column and its arm, else the owner's reason this shape is not one (S-233).
+    """The one column and its arm, else what this shape is in words, else None (S-233, S-336).
 
     A second upright at least half as tall as the first makes a portal or a gantry, whose
     stiffness is the two uprights and their bridges together: reading its tallest upright and
@@ -71,10 +84,7 @@ def _column_and_arm(pieces: list[Any]) -> tuple[Any, Any] | str | None:
         return None
     col = max(cols, key=lambda p: p.size[2])
     if any(p is not col and p.size[2] >= 0.5 * col.size[2] for p in cols):
-        return (
-            f"{NOT_MODELLED}; this card has two upright columns (a gantry or a portal), so its "
-            "sag is unknown here"
-        )
+        return "two upright columns (a gantry or a portal)"
     cx = [(col.bbox_min[i] + col.bbox_max[i]) / 2 for i in (0, 1)]
 
     def reach(p: Any) -> float:
@@ -100,7 +110,7 @@ def _cantilever(ctx: Ctx, col: Any, arm: Any) -> list[RuleRow]:
     if isinstance(astock, str):
         return [skip_row("structural-deflection", astock)]
     if col.material != arm.material:
-        return [skip_row("structural-deflection", NOT_MODELLED)]
+        return [not_covered_row("a column and an arm of different materials")]
     ax = 0 if arm.size[0] >= arm.size[1] else 1
     centre = (col.bbox_min[ax] + col.bbox_max[ax]) / 2
     reach = Quantity(max(abs(arm.bbox_max[ax] - centre), abs(arm.bbox_min[ax] - centre)), "mm")
@@ -111,13 +121,13 @@ def _cantilever(ctx: Ctx, col: Any, arm: Any) -> list[RuleRow]:
     if isinstance(s_arm, str):
         return [skip_row("structural-deflection", s_arm)]
     if float(height.magnitude) <= 0 or float(reach.magnitude) <= 0:
-        return [skip_row("structural-deflection", NOT_MODELLED)]
+        return [not_covered_row("a column whose arm does not reach out from above its foot")]
     try:
         res = structural.beam_deflection_cantilever(
             tip, reach, height, cstock.E, s_arm.Ix, s_col.Ix
         )
     except ValueError:  # a shape the formula cannot take is a skip, never a traceback (S-233)
-        return [skip_row("structural-deflection", NOT_MODELLED)]
+        return [not_covered_row("a column and an arm the bending formulas cannot take")]
     how = (
         f"{res.formula} for an arm reaching {length_text(reach)} from the column's centre line, "
         f"{length_text(height)} above its foot; {res.source}; {cstock.ref}"
@@ -156,13 +166,12 @@ def run(card: ConceptCard, massing: Any, values: ScreenValues) -> list[RuleRow]:
     pieces = [] if massing is None else massing.pieces
     pair = _column_and_arm(pieces)
     if isinstance(pair, str):
-        return [skip_row("structural-deflection", pair)]
+        return [not_covered_row(pair)]
     if pair is not None:
         return _cantilever(ctx, *pair)
-    why = (
-        "the rough shapes show no frame with a top or column with an arm: nothing carries the load"
-    )
-    return [skip_row("structural-support", why)]
+    return [
+        not_covered_row("a rough shape with nothing that carries the load", "structural-support")
+    ]
 
 
 STRUCTURAL = Screen("structural", run, title="Stays up under load")

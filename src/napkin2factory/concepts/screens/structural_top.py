@@ -1,15 +1,19 @@
 """The structural screen's cases for a top on a stand (W4, S-206, S-235).
 
 A card's massing is read, never guessed. The top is the widest flat board (a ``block``,
-``plate`` or ``panel`` call); what carries it is the first of these that fits:
+``plate`` or ``panel`` call), or several boards stacked face to face with the same plan — one
+layered top whose layers' E·I add, each about its own axis (not glued, conservative). What
+carries it is the first of these that fits:
 
 * a **frame** (one ``frame`` call): its four legs at the corners, with or without rails. The
   top spans the frame's long side between the legs; with top rails the two long rails share
   that span (their stiffness adds to the top's). A tube or block across the frame's width that
   the top rests on is a **cross member**: the centre load reaches the long rails through it, and
   its dip adds to the sag along the length.
-* **bare legs**: three or more upright tubes or blocks under the top, reaching up to it. The
-  top spans between the outermost leg lines along its long side.
+* **bare legs**: three or more upright tubes or blocks under the top, reaching up to it (directly
+  or through a chain of pieces stacked between them). The top spans between the outermost leg
+  lines along its long side. Joists between the legs and the top that run along the span share
+  the bending, their E·I adding to the top's.
 * **trestle ends**: two or more upright plates (thin, tall ``block`` or ``panel`` calls), or two
   or more frames, under the top. The top spans between the ends along the plates' normal.
 
@@ -21,6 +25,7 @@ belongs to tip-over alone (B-0217, SPEC section 4).
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -89,6 +94,89 @@ def _under(p: Any, top: Any) -> bool:
     return bool(inside and reach and top.bbox_min[2] >= p.bbox_min[2])
 
 
+def _plans_overlap(a: Any, b: Any) -> bool:
+    """The pieces' plan rectangles overlap (x and y, within 1 mm)."""
+    return all(
+        max(a.bbox_min[ax], b.bbox_min[ax]) <= min(a.bbox_max[ax], b.bbox_max[ax]) + 1.0
+        for ax in (0, 1)
+    )
+
+
+def _stacked_on(lower: Any, upper: Any) -> bool:
+    """``upper`` rests on ``lower``: plans overlap, faces meet within 1 mm along z (S-336)."""
+    return _plans_overlap(lower, upper) and abs(upper.bbox_min[2] - lower.bbox_max[2]) <= 1.0
+
+
+def _reaches_top(p: Any, top: Any, pieces: list[Any]) -> bool:
+    """Whether ``p`` reaches the top's underside: directly (S-235) or stacked pieces (S-336).
+
+    A leg that does not reach the top itself still stands under it when a chain of pieces stacked
+    between them (each touching the next within 1 mm along z, plans overlapping) reaches the top.
+    """
+    if _under(p, top):
+        return True
+    seen = {id(p)}
+    frontier = [p]
+    while frontier:
+        cur = frontier.pop()
+        for nxt in pieces:
+            if id(nxt) in seen or not _stacked_on(cur, nxt):
+                continue
+            if _plate(nxt):
+                # a trestle end carries the top through its plates, so a chain that crosses one
+                # is a trestle, not a bare-leg stand (S-336)
+                continue
+            if _plans_overlap(nxt, top) and abs(nxt.bbox_max[2] - top.bbox_min[2]) <= 1.0:
+                return True
+            seen.add(id(nxt))
+            frontier.append(nxt)
+    return False
+
+
+def _same_plan(a: Any, b: Any) -> bool:
+    """The boards have the same plan (x and y extent) within 1 mm (S-336)."""
+    return all(
+        abs(a.bbox_min[ax] - b.bbox_min[ax]) <= 1.0 and abs(a.bbox_max[ax] - b.bbox_max[ax]) <= 1.0
+        for ax in (0, 1)
+    )
+
+
+def _top_layers(top: Any, pieces: list[Any]) -> list[Any]:
+    """Boards stacked face to face on ``top`` with the same plan: one layered top (S-336)."""
+    boards = [p for p in pieces if p.kit in ("block", "plate", "panel") and _same_plan(p, top)]
+    boards.sort(key=lambda p: p.bbox_min[2])
+    runs: list[list[Any]] = []
+    for p in boards:
+        if runs and abs(p.bbox_min[2] - runs[-1][-1].bbox_max[2]) <= 1.0:
+            runs[-1].append(p)
+        else:
+            runs.append([p])
+    for run in runs:
+        if any(p is top for p in run):
+            return run
+    return [top]
+
+
+_SMALL_COUNTS = ("one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+
+
+def _count(n: int) -> str:
+    """A small count in words (the screen's plain-words rule, S-336)."""
+    return _SMALL_COUNTS[n - 1] if 1 <= n <= len(_SMALL_COUNTS) else str(n)
+
+
+def _shared_name(pieces: list[Any]) -> str:
+    """The pieces' longest common hyphen prefix (their name in words), else the first's name."""
+    names = [p.name.split("-") for p in pieces]
+    prefix: list[str] = []
+    for part in zip(*names):
+        if all(p == part[0] for p in part):
+            prefix.append(part[0])
+        else:
+            break
+    return "-".join(prefix) if prefix else pieces[0].name
+
+
 def _post(p: Any) -> bool:
     return bool(p.kit in ("tube", "block") and p.size[2] >= 2 * max(p.size[0], p.size[1]))
 
@@ -124,7 +212,7 @@ def find_stand(pieces: list[Any], top: Any | None) -> Stand | None:
         )
         cs = [_centre(p, ax) for p in ends]
         return Stand("trestles", ax, min(cs), max(cs)) if _spread(cs) else None
-    posts = [p for p in pieces if _post(p) and _under(p, top)]
+    posts = [p for p in pieces if _post(p) and _reaches_top(p, top, pieces)]
     top_ax = 0 if top.size[0] >= top.size[1] else 1
     if len(posts) >= 3 and all(_spread([_centre(p, a) for p in posts]) for a in (0, 1)):
         cs = [_centre(p, top_ax) for p in posts]
@@ -171,6 +259,63 @@ def _cross_member(pieces: list[Any], frame: Any, top: Any | None, ax: int) -> An
     return min(found, key=lambda p: abs(_centre(p, ax) - _centre(frame, ax)), default=None)
 
 
+@dataclass(frozen=True)
+class Stiffeners:
+    """Pieces that share the top's span: their E·I, weight and a name in words (S-206, S-336)."""
+
+    ei: Qty
+    weight: Qty
+    words: str  # "the two long rails" / "three joists"
+    phrase: str  # "the two long top rails sharing it (E·I of top + rails)"
+
+
+def _span_stiffeners(
+    st: Stand, pieces: list[Any], top: Any, layers: list[Any]
+) -> Stiffeners | None:
+    """E·I and weight of the pieces that bend with the top along the span (S-206, S-336).
+
+    A frame's two long top rails share the span (S-206); under bare legs, the joists between the
+    legs and the top do: pieces that run at least ``SPANS`` of the span and touch the top's
+    underside. Their E·I adds to the top's, exactly as the long rails already did.
+    """
+    if st.frame is not None:
+        rails = _rails(st.frame, stock_of(st.frame))
+        if rails is None:
+            return None
+        return Stiffeners(
+            rails[0],
+            rails[1],
+            "the two long rails",
+            "the two long top rails sharing it (E·I of top + rails)",
+        )
+    found: list[tuple[Stock, Any, Any]] = []
+    for p in pieces:
+        if p is top or any(p is layer for layer in layers):
+            continue
+        if _post(p) or _plate(p) or p.kit == "frame":
+            continue
+        if p.size[st.axis] < SPANS * st.span:
+            continue
+        if abs(p.bbox_max[2] - top.bbox_min[2]) > 1.0 or not _plans_overlap(p, top):
+            continue
+        s = stock_of(p)
+        if isinstance(s, str):
+            continue
+        sec = piece_section(p, 2, 1 - st.axis)
+        if isinstance(sec, str):
+            continue
+        found.append((s, sec, p))
+    if not found:
+        return None
+    ei = sum((s.E * sec.Ix for s, sec, _p in found), Quantity(0.0, "N*m^2"))
+    weight = sum(
+        (Quantity((_p.mass or 0.0) * G, "N") for _s, _sec, _p in found), Quantity(0.0, "N")
+    )
+    name = _shared_name([p for _s, _sec, p in found])
+    words = f"{_count(len(found))} {name}s"
+    return Stiffeners(ei, weight, words, f"{words} sharing it (E·I of top + {name}s)")
+
+
 def judge(ctx: Ctx) -> list[RuleRow] | None:
     """Rows for a card whose top stands on a frame, bare legs or trestle ends; None if not."""
     pieces = [] if ctx.massing is None else ctx.massing.pieces
@@ -199,26 +344,44 @@ def judge(ctx: Ctx) -> list[RuleRow] | None:
 
 def _top_rows(ctx: Ctx, st: Stand, top: Any, cross: Any | None) -> list[RuleRow]:
     """Sag and yield of the top as a simply supported beam; with a cross member, its dip too."""
-    stock = stock_of(top)
-    if isinstance(stock, str):
-        return [skip_row("structural-deflection", stock), skip_row("structural-yield", stock)]
+    pieces = [] if ctx.massing is None else ctx.massing.pieces
+    layers = _top_layers(top, pieces)
+    stocks: list[Stock] = []
+    for layer in layers:
+        s = stock_of(layer)
+        if isinstance(s, str):
+            return [skip_row("structural-deflection", s), skip_row("structural-yield", s)]
+        stocks.append(s)
     point, spread = ctx.loads["point_load"], ctx.loads["distributed_load"]
     across = 1 - st.axis
-    section = structural.rect_section(mm(top.size[across]), mm(top.size[2]))
     span = mm(st.span)
-    frame_stock = stock_of(st.frame) if st.frame is not None else "no frame"
-    rails = _rails(st.frame, frame_stock) if st.frame is not None else None
-    ei_top = stock.E * section.I
-    share = 1.0 if rails is None else float((ei_top / (ei_top + rails[0])).to("").magnitude)
-    stiff = section.I / share  # the top's I scaled so E·I is the top and the rails together
+    # the top's own E·I: one board, or boards stacked face to face whose E·I add (not glued, so
+    # each layer bends about its own axis, conservative, S-336)
+    ei_top = Quantity(0.0, "N*m^2")
+    top_weight = Quantity(0.0, "N")
+    layer_ei: list[Qty] = []
+    layer_z: list[Qty] = []
+    thickness = 0.0
+    for layer, s in zip(layers, stocks):
+        sec = structural.rect_section(mm(layer.size[across]), mm(layer.size[2]))
+        ei = s.E * sec.I
+        ei_top = ei_top + ei
+        layer_ei.append(ei)
+        layer_z.append(sec.Z)
+        top_weight = top_weight + Quantity((layer.mass or 0.0) * G, "N")
+        thickness += layer.size[2]
+    stiffeners = _span_stiffeners(st, pieces, top, layers)
+    total_ei = ei_top + (stiffeners.ei if stiffeners is not None else Quantity(0.0, "N*m^2"))
+    # ``stiff`` is an I such that E·I is the top and its sharers together (S-206, S-336)
+    stiff = total_ei / stocks[0].E
     # what stands on the beam: the cross member's weight is a point load at the middle, the top's
-    # and the long rails' weights are spread along it (SPEC section 4.1)
+    # and its sharers' weights are spread along it (SPEC section 4.1)
     centre = point if point is not None else Quantity(0.0, "N")
-    uniform = Quantity((top.mass or 0.0) * G, "N")
+    uniform = top_weight
     weights = [f"self weight of the top {fmt(uniform, 'N')}"]
-    if rails is not None:
-        uniform = uniform + rails[1]
-        weights.append(f"of the two long rails {fmt(rails[1], 'N')}")
+    if stiffeners is not None:
+        uniform = uniform + stiffeners.weight
+        weights.append(f"of {stiffeners.words} {fmt(stiffeners.weight, 'N')}")
     if spread is not None:
         uniform = uniform + spread
         weights.append(f"distributed load {fmt(spread, 'N')}")
@@ -229,18 +392,20 @@ def _top_rows(ctx: Ctx, st: Stand, top: Any, cross: Any | None) -> list[RuleRow]
     parts, moment = [], 0.0
     span_m = float(span.to("m").magnitude)
     if centre.magnitude > 0:
-        parts.append(structural.beam_deflection_simply_supported(centre, span, stock.E, stiff))
+        parts.append(structural.beam_deflection_simply_supported(centre, span, stocks[0].E, stiff))
         moment += float(centre.to("N").magnitude) * span_m / 4  # Roark T8.1 case 2a [verify]
     parts.append(
-        structural.beam_deflection_simply_supported(uniform, span, stock.E, stiff, "uniform")
+        structural.beam_deflection_simply_supported(uniform, span, stocks[0].E, stiff, "uniform")
     )
     moment += float(uniform.to("N").magnitude) * span_m / 8  # Roark T8.1 case 2e [verify]
     along = sum((p.deflection.to("mm") for p in parts), mm(0.0))
-    shared = ", with the two long top rails sharing it (E·I of top + rails)" if rails else ""
+    shared = f", with {stiffeners.phrase}" if stiffeners is not None else ""
+    top_words = "top" if len(layers) == 1 else f"{_count(len(layers))}-layer top"
+    refs = ", ".join(dict.fromkeys(s.ref for s in stocks))
     how = (
         f"{' + '.join(p.formula for p in parts)} on the {length_text(mm(top.size[across]))} wide, "
-        f"{length_text(mm(top.size[2]))} thick top over a {length_text(span)} span between its "
-        f"supports{shared}, {', '.join(weights)}; {parts[0].source}; {stock.ref}"
+        f"{length_text(mm(thickness))} thick {top_words} over a {length_text(span)} span between "
+        f"its supports{shared}, {', '.join(weights)}; {parts[0].source}; {refs}"
     )
     ctx.values.computed.add(
         "deflection_along", along, length_text(along), "computed from the card and the massing", how
@@ -263,8 +428,27 @@ def _top_rows(ctx: Ctx, st: Stand, top: Any, cross: Any | None) -> list[RuleRow]
             out += cross_rows
     if not any(r.id == "structural-deflection" for r in out):
         out.insert(0, deflection_row(ctx, total, what, how))
-    yield_how = "M = F·L/4 + W·L/8, the top's share" if centre.magnitude > 0 else "M = W·L/8"
-    out.insert(1, yield_row(ctx, moment * share, section.Z, stock, "the top", yield_how))
+    # each layer takes its share of the moment, M·(E·I)_i/Σ(E·I), over its own Z (S-336); the
+    # worst layer rules the top's yield factor
+    layer_moments = [moment * float((ei / total_ei).to("").magnitude) for ei in layer_ei]
+    worst = min(
+        range(len(layers)),
+        key=lambda i: (
+            structural.beam_bending_stress(
+                Quantity(layer_moments[i], "N*m"), layer_z[i], stocks[i].yield_strength
+            ).yield_factor
+            or math.inf
+        ),
+    )
+    layer_note = (
+        "" if len(layers) == 1 else f"; each of the {_count(len(layers))} layers about its own axis"
+    )
+    yield_how = (
+        "M = F·L/4 + W·L/8, the top's share" if centre.magnitude > 0 else "M = W·L/8"
+    ) + layer_note
+    out.insert(
+        1, yield_row(ctx, layer_moments[worst], layer_z[worst], stocks[worst], "the top", yield_how)
+    )
     return out
 
 

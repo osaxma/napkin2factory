@@ -183,14 +183,15 @@ def test_a_column_with_an_arm_deflects_at_its_tip() -> None:
 
 
 def test_a_plate_gantry_is_not_a_cantilever_and_does_not_raise() -> None:
-    # two 880 mm steel side plates, two bridges and four block feet (B-0235, S-233): the old
-    # reading took a bridge for the arm and a foot sat below the column ("column_height must be
-    # non-negative")
+    # two 880 mm steel side plates, two bridges and four block feet (B-0235, S-233, S-336): the
+    # old reading took a bridge for the arm and a foot sat below the column ("column_height must
+    # be non-negative"); the screen now says plainly it does not cover this shape
     s = _screen("plate-gantry")
     row = _row(s, "deflection")
-    assert row.status == "skip" and row.message.startswith("not run:")
-    assert "not one the structural screen models" in row.message
-    assert "two upright columns" in row.message and "cantilever" not in row.message
+    assert row.status == "skip" and row.message.startswith("not covered:")
+    assert "this card is two upright columns (a gantry or a portal)" in row.message
+    assert "cantilever" not in row.message
+    assert "mark the sag for a person to check" in row.message
     assert "deflection" not in s.computed  # never a guessed sag
 
 
@@ -205,6 +206,93 @@ def test_a_looser_limit_passes_the_arm() -> None:
     s = _screen("column-arm", max_deflection="0.25 mm")
     assert _row(s, "deflection").status == "pass"
     assert s.verdict == "green"
+
+
+def test_the_everyday_bench_finds_its_legs_through_bearers_and_joists() -> None:
+    # Four 70 mm block legs stand under side bearers (70 x 780 x 140) and three joists
+    # (90 x 140 deep); the top is two 20 mm plywood boards stacked face to face (B-0317, S-336).
+    # The legs do not reach the top themselves, so the screen must find four legs, not a gantry.
+    s = _screen("bench")
+    for kind in ROWS:
+        assert _row(s, kind) is not None
+    # span L = 1400 mm between the leg lines. Top: two plywood layers, each E 6.0 GPa and
+    # I = 0.8 * 0.020^3 / 12 = 5.333e-7 m^4 -> E I 3200 N m^2; two layers add to 6400 N m^2.
+    # Joists: three pine 90 x 140, each I = 0.09 * 0.140^3 / 12 = 2.058e-5 m^4,
+    # E I = 12.3e9 * 2.058e-5 = 253134 N m^2; three add to 759402 N m^2; total 765802 N m^2.
+    # d_P = F L^3 / (48 E I) = 1471.5 * 1.4^3 / (48 * 765802) = 0.1099 mm
+    # W = top 2 * 1.6 * 0.8 * 0.02 * 600 * 9.80665 + joists 3 * 1.53 * 0.09 * 0.14 * 590 * 9.80665
+    #   = 301.3 + 334.6 = 635.9 N
+    # d_W = 5 W L^3 / (384 E I) = 5 * 635.9 * 1.4^3 / (384 * 765802) = 0.0297 mm -> 0.1395 mm
+    assert _mm(s) == pytest.approx(0.1395, abs=0.002)
+    row = _row(s, "deflection")
+    assert row.status == "pass"
+    assert "two-layer top" in row.message and "with three joists sharing it" in row.message
+    # M = F L/4 + W L/8 = 515.0 + 111.3 = 626.3 N m; a layer's share is its E I / total,
+    # 3200 / 765802, so M_layer = 2.617 N m over Z = 0.8 * 0.020^2 / 6 = 5.333e-5 m^3:
+    # stress 0.0491 MPa, factor = 20 / 0.0491 = 408
+    assert float(s.computed["yield_factor"].value) == pytest.approx(407.6, rel=0.01)
+    assert "each of the two layers about its own axis" in _row(s, "yield").message
+    # leg 70 x 70 x 590 pine: A 0.0049 m^2, I 2.0008e-6 m^4, r 20.21 mm, K 2 -> slenderness 58.4
+    # (< 70.0, Johnson): sigma_cr = 32.32 MPa, P_cr = 158.4 kN; load = 98.4 kg / 4 * 9.80665 +
+    # 1471.5 N = 1712.8 N -> factor 92.5
+    assert float(s.computed["buckling_factor"].value) == pytest.approx(92.5, rel=0.01)
+    assert _row(s, "buckling").status == "pass"
+    # tip-over: mass 98.4 kg symmetric about the leg lines (y = +-355 mm), centre 355 mm inside:
+    # FS = m g 0.355 / (490.5 * 0.150)
+    mass = _massing("bench").mass
+    expected = mass * G * 0.355 / (490.5 * 0.150)
+    assert float(s.computed["tip_over_factor"].value) == pytest.approx(expected, rel=0.01)
+    assert _row(s, "tip-over").status == "pass"
+    assert s.verdict == "green"
+
+
+def test_two_boards_stacked_face_to_face_are_one_layered_top() -> None:
+    # Two 20 mm plywood boards with the same 1600 x 800 plan, one on the other, are one top whose
+    # layers' E I add (each about its own axis, not glued): two * 3200 = 6400 N m^2 (S-336).
+    data = {
+        "id": "C-008",
+        "title": "Two-board top on four legs",
+        "site": {"point_load": "1471.5 N", "max_deflection": "2 mm"},
+        "massing": [
+            {
+                "kit": "block",
+                "as": f"leg-{i}",
+                "material": "southern-yellow-pine",
+                "args": {"length": "70 mm", "width": "70 mm", "height": "590 mm"},
+                "at": {"x": f"{x} mm", "y": f"{y} mm"},
+            }
+            for i, (x, y) in enumerate(((700, 355), (-700, 355), (700, -355), (-700, -355)))
+        ]
+        + [
+            {
+                "kit": "block",
+                "as": "lower-skin",
+                "material": "plywood",
+                "args": {"length": "1600 mm", "width": "800 mm", "height": "20 mm"},
+                "at": {"z": "590 mm"},
+            },
+            {
+                "kit": "block",
+                "as": "upper-skin",
+                "material": "plywood",
+                "args": {"length": "1600 mm", "width": "800 mm", "height": "20 mm"},
+                "at": {"z": "610 mm"},
+            },
+        ],
+    }
+    card = ConceptCard.model_validate(data)
+    s = screen(card, compose(card, write=False))
+    # L = 1400 mm; E I = 6400 N m^2. d_P = 1471.5 * 1.4^3 / (48 * 6400) = 13.14 mm
+    # W = 2 * 1.6 * 0.8 * 0.02 * 600 * 9.80665 = 301.3 N;
+    # d_W = 5 * 301.3 * 1.4^3 / (384 * 6400) = 1.682 mm -> 14.83 mm, over the 2 mm limit.
+    assert _mm(s) == pytest.approx(14.8, abs=0.05)
+    row = _row(s, "deflection")
+    assert row.status == "fail"
+    assert "two-layer top" in row.message
+    # M = 515.0 + 52.7 = 567.8 N m; each layer takes half (283.9 N m) over Z 5.333e-5 m^3:
+    # stress 5.32 MPa, factor = 20 / 5.32 = 3.76
+    assert float(s.computed["yield_factor"].value) == pytest.approx(3.76, rel=0.01)
+    assert "each of the two layers about its own axis" in _row(s, "yield").message
 
 
 def test_a_check_missing_an_input_says_which_and_is_not_run() -> None:
@@ -239,7 +327,8 @@ def test_a_massing_with_no_supports_says_so() -> None:
     card = ConceptCard.model_validate(data)
     s = screen(card, compose(card, write=False))
     row = _row(s, "support")
-    assert row.status == "skip" and "nothing carries the load" in row.message
+    assert row.status == "skip" and row.message.startswith("not covered:")
+    assert "this card is a rough shape with nothing that carries the load" in row.message
 
 
 def test_a_card_without_a_load_gets_no_structural_rows() -> None:
