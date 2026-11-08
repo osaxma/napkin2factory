@@ -6,6 +6,9 @@ the seven combined tools (``combined.py``), whose input schemas are handed over 
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import signal
 from pathlib import Path
 
 from mcp import types
@@ -61,6 +64,12 @@ def make_server(folder: Path, runner: ToolRunner | None = None) -> tuple[Server,
 async def serve(folder: Path) -> None:
     """Serve over stdin and stdout until the client closes them."""
     server, runner = make_server(folder)
+    # A client may end the server with SIGTERM instead of closing stdin: cancel the serving
+    # task, so the engine this server started still stops below (S-291).
+    task = asyncio.current_task()
+    if task is not None:
+        with contextlib.suppress(NotImplementedError, RuntimeError):
+            asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, task.cancel)
     await runner.start()  # the folder's warm engine, shared with the CLI (S-327)
     try:
         async with stdio_server() as (read, write):

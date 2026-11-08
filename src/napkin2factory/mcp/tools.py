@@ -371,11 +371,20 @@ class StepRunner:
         await self._ensure_engine()
 
     async def close(self) -> None:
-        """At server exit: stop an engine this server started; leave another's alone (S-291)."""
+        """At server exit: stop an engine this server started; leave another's alone (S-291).
+
+        One still loading the CAD kernel does not answer yet, so it is found by its lock or pid
+        file and stopped all the same (an agent session leaves no process behind).
+        """
         if engine.engine_disabled() or self._had_engine:
             return
-        if await asyncio.to_thread(engine.engine_status, self.folder) is not None:
-            await asyncio.to_thread(engine.request_stop, self.folder)
+        await asyncio.to_thread(self._stop_ours)
+
+    def _stop_ours(self) -> None:
+        """Stop the folder's engine if one runs or is loading."""
+        running = engine.engine_status(self.folder) is not None
+        if running or engine.engine_starting(self.folder):
+            engine.stop_engine(self.folder, wait=5.0)
 
     async def _ensure_engine(self) -> None:
         """Start the folder's engine when it is a product folder and none runs or starts."""
@@ -398,12 +407,20 @@ class StepRunner:
 
     async def _run(self, argv: list[str]) -> Step:
         """The step, without its timing."""
+        if not (self.folder / "n2f.yaml").is_file():
+            # Not a product yet (an empty folder before init): no engine is started here, as
+            # `capture` would; `n2f docs` and `init` run cold (S-291, S-327).
+            return await self._cold(argv)
         try:
             warm = await asyncio.to_thread(engine.capture, self.folder, argv, self.timeout)
         except TimeoutError:
             return Step(argv, 124, "", self._timed_out(), "warm", 0.0)
         if warm is not None:
             return Step(argv, warm[0], warm[1], warm[2], "warm", 0.0)
+        return await self._cold(argv)
+
+    async def _cold(self, argv: list[str]) -> Step:
+        """Run ``argv`` as a process of its own."""
         proc = await asyncio.create_subprocess_exec(
             sys.executable,
             "-m",
