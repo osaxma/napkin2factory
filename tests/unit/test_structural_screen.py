@@ -416,3 +416,15 @@ def test_table_spec_c002_reproduces_spec_figures() -> None:
     buckling_row = _row(s, "buckling")
     assert buckling_row.status == "pass"
     assert "Johnson" in buckling_row.message
+
+
+def test_a_layered_top_sags_the_same_whatever_the_order_of_its_boards() -> None:
+    # find_top picks one of two equal boards by order; the screen reads the stack from its
+    # lowest board, so the joists under it share the span either way (S-336)
+    data = copy.deepcopy(_data("bench"))
+    sags = []
+    for massing in (data["massing"], list(reversed(data["massing"]))):
+        card = ConceptCard.model_validate({**data, "massing": massing})
+        s = screen(card, compose(card, write=False))
+        sags.append(s.computed["deflection"].value)
+    assert sags[0] == sags[1]

@@ -320,6 +320,10 @@ def judge(ctx: Ctx) -> list[RuleRow] | None:
     """Rows for a card whose top stands on a frame, bare legs or trestle ends; None if not."""
     pieces = [] if ctx.massing is None else ctx.massing.pieces
     top = find_top(pieces)
+    if top is not None:
+        # a layered top is read from its lowest board, the face its supports and joists meet,
+        # whichever equal board find_top picked (piece order must not change the sag, S-336)
+        top = _top_layers(top, pieces)[0]
     st = find_stand(pieces, top)
     if st is None:
         return None
