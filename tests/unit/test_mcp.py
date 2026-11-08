@@ -104,7 +104,7 @@ def test_the_seven_tools_and_their_schemas() -> None:
         assert "dir" not in t.schema["properties"]
         assert "experimental" not in t.description.lower() and t.description
     by = {t.name: t.schema for t in tools}
-    assert by["n2f_init_product"]["required"] == ["name", "region", "units"]
+    assert by["n2f_init_product"]["required"] == ["name", "units"]
     assert by["n2f_ecr"]["properties"]["set"]["type"] == "array"
     assert set(by["n2f_ecr"]["properties"]["action"]["enum"]) == set(ECR_ACTIONS)
     assert set(by["n2f_promote_or_switch"]["properties"]["action"]["enum"]) == set(CONCEPT_ACTIONS)
@@ -380,13 +380,12 @@ def test_init_refuses_an_existing_product_and_asks_for_the_owner_facts(tmp_path:
     runner, fake = _runner(tmp_path, {("init",): {"product": "p", "files": 26}})
     # Every missing argument at once, with its allowed values, and the owner has the answers
     body, err = _call(runner, "n2f_init_product", name="P")
-    assert err and body["error"]["missing"] == ["region", "units"] and fake.ran == []
+    assert err and body["error"]["missing"] == ["units"] and fake.ran == []
     assert body["allowed"] == {
-        "region": ["US", "UK", "EU", "AU", "SA"],
         "units": ["metric", "imperial"],
     }
     assert "one of metric, imperial" in body["error"]["message"]
-    assert body["next"]["say"].startswith("Ask the owner for region, units")
+    assert body["next"]["say"].startswith("Ask the owner for units")
     body, err = _call(runner, "n2f_init_product", name="P", region="XX", units="metric")
     assert (
         err

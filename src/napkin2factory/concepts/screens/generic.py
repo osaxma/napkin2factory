@@ -268,19 +268,99 @@ def cost_region(card: ConceptCard, values: ScreenValues) -> tuple[str | None, st
     return (usable[0] if usable else None), note
 
 
+#: Who makes it, in the owner's words (W7, B-0319); no maker means shop rates (S-227).
+MAKER_WORDS = {
+    "owner": "materials only, the owner builds it",
+    "shop": "made by a shop",
+}
+
+
+def _item_cost(
+    pclass: str,
+    kg: float | None,
+    extent: tuple[float, float] | None,
+    region: str | None,
+    band_basis: str | None,
+) -> tuple[Any, Any]:
+    """The band and estimate for one priced item (a rough shape or a ``cost_items`` entry).
+
+    ``kg`` is the piece's mass (``None`` when unknown), ``extent`` its longest side (mm) and
+    biggest face (mm²). Raises ``ValueError`` when the band needs a dimension that was not
+    given (W3, B-0211).
+    """
+    from napkin2factory.calckit import mass_cost
+
+    b = mass_cost.cost_band(pclass, region=region, basis=band_basis)
+    c = mass_cost.cost_estimate(
+        pclass,
+        mass=None if kg is None else Quantity(kg, "kg"),
+        length=None if extent is None else Quantity(extent[0], "mm"),
+        area=None if extent is None else Quantity(extent[1], "mm**2"),
+        region=region,
+        basis=band_basis,
+    )
+    return b, c
+
+
+def _materials_figure(
+    items: list[tuple[str, str, float | None, tuple[float, float] | None]], region: str | None
+) -> tuple[float, float] | None:
+    """The materials-only cost totals in USD, or ``None`` when they cannot be one figure.
+
+    Only pieces whose process has a ``materials`` band count (W7, B-0319); the others are
+    left out, as they have no materials price. Used for the ``cost-vs-budget`` hint when the
+    product names no maker and the shop rate misses the budget.
+    """
+    totals: dict[str, list[float]] = {}
+    for _name, pclass, kg, extent in items:
+        try:
+            b, c = _item_cost(pclass, kg, extent, region, "materials")
+        except ValueError:
+            continue
+        if not c.known or c.low is None or c.high is None:
+            continue
+        lo_hi = totals.setdefault(b.currency, [0.0, 0.0])
+        lo_hi[0] += float(c.low.to(b.currency).magnitude)
+        lo_hi[1] += float(c.high.to(b.currency).magnitude)
+    if len(totals) != 1:
+        return None
+    ((currency, (low, high)),) = totals.items()
+    return (low, high) if currency == "USD" else None
+
+
+def _materials_hint(budget: float, materials: tuple[float, float] | None) -> str:
+    """The materials-only figure and next step, when it would pass (W7, B-0319)."""
+    if materials is None:
+        return ""
+    mlo, mhi = materials
+    if mhi > budget:
+        return ""
+    mlo_s, mhi_s = (fmt(Quantity(x, "USD"), "USD") for x in (mlo, mhi))
+    return (
+        f"; if the owner builds it, the materials alone are {mlo_s} to {mhi_s} — "
+        "set `maker: owner` in n2f.yaml"
+    )
+
+
 @reads(BUDGET, phase="total")
 def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[RuleRow]:
     """A rough cost range: every rough shape and ``cost_items`` entry priced per process.
 
     Bands are read for the card's or product's region (:func:`cost_region`); with none
-    declared the US bands are read and the line says so. Amounts stay in the band's own
-    currency: nothing is converted, and a card whose bands mix currencies is not summed.
-    With ``site.budget`` on the card it also returns the ``cost-vs-budget`` row: pass when the
-    band's high end is within the budget, fail when its low end is over it, otherwise a
-    warning that the budget sits inside the band (S-207).
+    declared the US bands are read and the line says so. The band's basis matches the
+    product's ``maker`` (``values.shared["maker"]``): ``owner`` prices the ``materials``
+    bands, anything else (or none) prices the ``made`` shop-rate bands as today (W7, B-0319).
+    Amounts stay in the band's own currency: nothing is converted, and a card whose bands mix
+    currencies is not summed. With ``site.budget`` on the card it also returns the
+    ``cost-vs-budget`` row: pass when the band's high end is within the budget, fail when its
+    low end is over it, otherwise a warning that the budget sits inside the band (S-207).
+    Without a maker, when the shop rate misses the budget but the materials-only figure would
+    pass, the row names that figure and the next step (set ``maker: owner``).
     """
     from napkin2factory.calckit import mass_cost
 
+    maker = str(values.shared.get("maker") or "").strip().lower() or None
+    band_basis = "materials" if maker == "owner" else "made"
     notes = values.notes
     region, region_note = cost_region(card, values)
     if region_note:
@@ -301,14 +381,7 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
     no_size: list[str] = []
     for name, pclass, kg, extent in items:
         try:
-            b = mass_cost.cost_band(pclass, region=region)
-            c = mass_cost.cost_estimate(
-                pclass,
-                mass=None if kg is None else Quantity(kg, "kg"),
-                length=None if extent is None else Quantity(extent[0], "mm"),
-                area=None if extent is None else Quantity(extent[1], "mm**2"),
-                region=region,
-            )
+            b, c = _item_cost(pclass, kg, extent, region, band_basis)
         except ValueError as exc:
             if "pass mass=" in str(exc):
                 no_material.append(name)
@@ -363,6 +436,9 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
     values.shared["cost_basis"] = basis
     ref = "mass_cost.cost_estimate (" + "; ".join(counted) + ") [verify]"
     words = f"rough cost of the {and_(owner_names(priced))} from the {basis}"
+    maker_word = MAKER_WORDS.get(maker)
+    if maker_word:
+        words += f"; {maker_word}"
     if unpriced:
         left = owner_names(unpriced)
         verb = "is" if len(left) == 1 else "are"
@@ -381,11 +457,14 @@ def cost_band(card: ConceptCard, massing: Any, values: ScreenValues) -> list[Rul
         )
         return []
     values.given.add("budget", budget, fmt(budget, "USD"), "on the card", "site.budget")
-    return [_budget_row(low, high, float(budget.to("USD").magnitude))]
+    materials = None if maker is not None else _materials_figure(items, region)
+    return [_budget_row(low, high, float(budget.to("USD").magnitude), materials=materials)]
 
 
-def _budget_row(low: float, high: float, budget: float) -> RuleRow:
-    """The ``cost-vs-budget`` row: the cost band held against the budget (S-207)."""
+def _budget_row(
+    low: float, high: float, budget: float, *, materials: tuple[float, float] | None = None
+) -> RuleRow:
+    """The ``cost-vs-budget`` row: the cost band held against the budget (S-207, B-0319)."""
     lo, hi, bud = (fmt(Quantity(x, "USD"), "USD") for x in (low, high, budget))
     title = "Within the budget"
     relies: list[Label] = ["given", "estimate"]
@@ -397,11 +476,13 @@ def _budget_row(low: float, high: float, budget: float) -> RuleRow:
         )  # fmt: skip
     if low > budget:
         msg = f"even the low end of the cost, {lo}, is over the {bud} budget"
+        msg += _materials_hint(budget, materials)
         return RuleRow(
             id="cost-vs-budget", title=title, severity="fail", status="fail",
             message=msg, relies_on=relies,
         )  # fmt: skip
     msg = f"the {bud} budget sits inside the cost band, {lo} to {hi}"
+    msg += _materials_hint(budget, materials)
     return RuleRow(
         id="cost-vs-budget", title=title, severity="warn", status="warn",
         message=msg, relies_on=relies,

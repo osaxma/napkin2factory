@@ -16,7 +16,7 @@ open a file. Talk to them in plain words.
 ## The path in order
 
 1. `n2f version` (install if missing, step 1), then `n2f doctor`.
-2. Ask the owner the region and units, then `n2f init <folder> --name "…" --region … --units …`
+2. Ask the owner the region, maker and units, then `n2f init <folder> --name "…" --region … --maker … --units …`
    (step 3). It also starts the folder's warm engine, which speeds up every later command.
 3. Read `<folder>/AGENTS.md` and `roles/pm.md`; from here the folder's own instructions rule.
    Every product verb takes `--dir <folder>` (`-C`), so you can run them from anywhere without
@@ -124,13 +124,16 @@ CAD kernel in the background (see "Timing" below). The folder may already hold f
 owner's (a brief, notes): `n2f init` leaves them alone and stops only if it would overwrite
 one, naming it.
 
-**Ask the owner two things, in your first exchange, and set them**: where the product will be
-built and bought (a country or region) and which units they think in. `n2f init <folder>
---region <code> --units metric|imperial` writes them into `n2f.yaml` (region codes: US, UK, EU,
-AU, SA; an unknown one lists the known ones); on an existing folder edit `region:` and `units:`
-there. The region picks the cost bands and the electrical tables, and the units set what the
-owner reads in reports and on the board; drawings and files stay in millimetres whatever the
-units. Without a region the costs read the US bands, and `n2f check` and the board say so.
+**Ask the owner three things, in your first exchange, and set them**: where the product will be
+built and bought (a country or region), who will make it (the owner or a shop), and which units
+they think in. `n2f init <folder> --region <code> --maker owner|shop --units metric|imperial`
+writes them into `n2f.yaml` (region codes: US, UK, EU, AU, SA; an unknown one lists the known ones;
+maker: `owner` for materials only from retail stock, `shop` for job-shop rates; ask the owner for
+both region and maker, never infer); on an existing folder edit `region:`, `maker:` and `units:`
+there. The region picks the cost bands and the electrical tables, `maker` picks the materials or
+shop rate band, and the units set what the owner reads in reports and on the board; drawings and
+files stay in millimetres whatever the units. Without a region the costs read the US bands, and
+`n2f check` and the board say so.
 
 ## 4. Hand over to the folder's own instructions
 

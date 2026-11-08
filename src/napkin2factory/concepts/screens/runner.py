@@ -142,6 +142,25 @@ def product_region(root: Path | None) -> str | None:
     return str(region).strip().upper() if isinstance(region, str) and region.strip() else None
 
 
+def product_maker(root: Path | None) -> str | None:
+    """Who ``n2f.yaml`` says makes the product (``owner``, ``shop``), or None: not declared.
+
+    Read for the cost screen (W7, B-0319); the manifest validates the word when the product
+    loads, so a word that is not a string here means a folder that does not load.
+    """
+    if root is None:
+        return None
+    from napkin2factory.core.product import MANIFEST
+    from napkin2factory.core.yamlio import read_yaml
+
+    try:
+        data = read_yaml(Path(root) / MANIFEST)
+    except Exception:  # a folder that does not load says so itself, with its own message
+        return None
+    maker = data.get("maker") if isinstance(data, dict) else None
+    return str(maker).strip().lower() if isinstance(maker, str) and maker.strip() else None
+
+
 def _name_cost_basis(values: ScreenValues) -> None:
     """Make sure the cost values say which bands they come from, whatever screen wrote them.
 
@@ -230,6 +249,7 @@ def run_screens(
     space = product_words(root).get("space", SPACE_WORDS)
     values.shared["space_words"] = space
     values.shared["region"] = product_region(root)  # None: not declared (the cost line says so)
+    values.shared["maker"] = product_maker(root)  # None: shop rates (W7, B-0319)
     own_rows: dict[str, list[RuleRow]] = {p: [] for p in PHASES}
     system_rows: set[int] = set()  # id() of the rows the system's own screens gave
     for phase in PHASES:
@@ -280,6 +300,7 @@ __all__ = [
     "declared_fields",
     "generic_fields",
     "installed_screens",
+    "product_maker",
     "product_region",
     "run_screens",
     "screens_key",

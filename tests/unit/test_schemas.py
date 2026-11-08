@@ -277,6 +277,7 @@ def test_manifest_operator_signoff_decision():
     v1_manifest = Manifest.model_validate(load_roundtrip(v1_path))
     assert v1_manifest.region is None
     assert v1_manifest.units == "metric"
+    assert v1_manifest.maker is None
     assert Operator().domains["thermal"] == "novice"
     s = Signoff.model_validate(
         {

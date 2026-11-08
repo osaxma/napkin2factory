@@ -100,6 +100,10 @@ class Manifest(Model):
 
     ``region`` (W7) is the product's target region code for electrical and cost lookups.
     ``units`` (W8) sets display units for reports and the board (``metric`` or ``imperial``).
+    ``maker`` (W7, B-0319) says who makes it: ``owner`` (materials only, priced on the
+    ``materials`` cost band) or ``shop`` (made, priced on the ``made`` band).  Absent is the
+    old behaviour (shop rates) and changes nothing, so the field needs no schema bump
+    (``docs/schema-policy.md`` rule 1).
     ``ceremony`` (W6) may raise the derived ceremony to ``standard``; it never lowers it.
     ``scope`` (F11) records, per domain, whether its work is ``in`` this product, done
     elsewhere (``external``) or ``later``.  A domain not listed is ``in`` when the product
@@ -112,6 +116,7 @@ class Manifest(Model):
     product: ProductInfo
     region: str | None = None  # W7
     units: Literal["metric", "imperial"] = "metric"  # W8
+    maker: Literal["owner", "shop"] | None = None  # W7 (B-0319): who makes it
     ceremony: Literal["standard"] | None = None  # W6: raise-only
     manufacturer_profile: str | None = None
     scope: dict[Slug, ScopeEntry] = Field(default_factory=dict)

@@ -27,6 +27,8 @@ Qty = Any
 
 #: The bands read when a product declares no region; the cost line says so (S-227).
 DEFAULT_REGION = "US"
+#: The band read when no basis is asked: ``made`` (shop rates), today's behaviour (W7, B-0319).
+DEFAULT_BASIS = "made"
 
 
 def density(material: str) -> tuple[Qty, str]:
@@ -52,6 +54,7 @@ class CostBand:
 
     Attributes:
         process_class: process class name (e.g. ``sheet-metal``, ``woodworking``).
+        basis: ``made`` (shop rates) or ``materials`` (stock, the owner builds).
         unit: rate basis: ``per_kg``, ``per_m``, ``per_m2``, or ``per_item``.
         low: lower bound rate per unit.
         high: upper bound rate per unit.
@@ -65,6 +68,7 @@ class CostBand:
     """
 
     process_class: str
+    basis: str = "made"
     unit: str = "per_kg"
     low: float | None = None
     high: float | None = None
@@ -94,9 +98,10 @@ def _is_stale(as_of: str, today: dt.date | None = None) -> bool:
 def cost_band(
     process_class: str,
     region: str | None = None,
+    basis: str | None = None,
     today: dt.date | None = None,
 ) -> CostBand:
-    """The dated regional cost band for ``process_class`` (W3).
+    """The dated regional cost band for ``process_class`` on one ``basis`` (W3, W7).
 
     Reads ``calckit/data/cost_bands.yaml``.
 
@@ -107,11 +112,14 @@ def cost_band(
             ones); callers whose owner did not declare a region say so (S-227). When
             specified, fails loudly naming the table and its regions if the table holds no
             rows for that region.
+        basis: ``made`` (shop rates) or ``materials`` (stock, the owner builds). ``None``
+            reads :data:`DEFAULT_BASIS` (``made``), today's behaviour (W7, B-0319).
         today: reference date for the 24-month staleness check (defaults to today).
 
     Returns:
         A :class:`CostBand` representing the matching band, marked ``stale`` if
-        older than 24 months, or with ``known=False`` if the process class has no band.
+        older than 24 months, or with ``known=False`` if the process class has no band on
+        that basis.
 
     Raises:
         ValueError: ``region`` is given but no row in ``cost_bands.yaml`` has that region.
@@ -124,15 +132,19 @@ def cost_band(
             f"table 'cost_bands' has no rows for region {region!r}; "
             f"regions on file: {', '.join(all_regions)}"
         )
+    basis_code = (basis if basis is not None else DEFAULT_BASIS).strip().lower()
     matching = [
         r
         for r in rows
-        if r["process_class"] == process_class and str(r.get("region", "")).upper() == reg_code
+        if r["process_class"] == process_class
+        and str(r.get("region", "")).upper() == reg_code
+        and str(r.get("basis", DEFAULT_BASIS)).strip().lower() == basis_code
     ]
 
     if not matching:
         return CostBand(
             process_class=process_class,
+            basis=basis_code,
             low=None,
             high=None,
             region=reg_code,  # the region asked for, not the dataclass default (gate I, B2)
@@ -149,6 +161,7 @@ def cost_band(
     hi = float(row["high"]) if "high" in row else float(row["high_usd"])
     return CostBand(
         process_class=str(row["process_class"]),
+        basis=str(row.get("basis", DEFAULT_BASIS)),
         unit=str(row.get("unit", "per_kg")),
         low=lo,
         high=hi,
@@ -216,19 +229,21 @@ def cost_estimate(
     length: Qty | None = None,
     count: int = 1,
     region: str | None = None,
+    basis: str | None = None,
     today: dt.date | None = None,
 ) -> CostEstimate:
-    """Cost band for ``count`` items of one process class at quantity 1 (W3).
+    """Cost band for ``count`` items of one process class at quantity 1 (W3, W7).
 
     Reads ``calckit/data/cost_bands.yaml`` via :func:`cost_band`:
     ``per_kg`` multiplies by ``mass``, ``per_m2`` by ``area``, ``per_m`` by ``length``,
-    ``per_item`` by ``count`` alone.
+    ``per_item`` by ``count`` alone. ``basis`` is ``made`` or ``materials`` (see
+    :func:`cost_band`).
 
     Raises:
         ValueError: the row needs a mass, area, or length that was not given, or
             the region has no rows in the table.
     """
-    band = cost_band(process_class, region=region, today=today)
+    band = cost_band(process_class, region=region, basis=basis, today=today)
     if not band.known or band.low is None or band.high is None:
         return CostEstimate(
             low=None,
@@ -475,6 +490,7 @@ __all__ = [
     "CASES",
     "CostBand",
     "CostEstimate",
+    "DEFAULT_BASIS",
     "DEFAULT_REGION",
     "LiftVerdict",
     "StockVerdict",

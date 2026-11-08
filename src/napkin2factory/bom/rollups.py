@@ -18,7 +18,7 @@ from napkin2factory.core.ceremony import (
 )
 from napkin2factory.core.loader import Product
 from napkin2factory.core.model import Part
-from napkin2factory.core.units import format_quantity, parse_quantity
+from napkin2factory.core.units import Quantity, format_quantity, parse_quantity
 from napkin2factory.geometry.accessors import ReadLog
 
 
@@ -39,6 +39,7 @@ class BomLine:
     tolerance_class: str = ""
     unit_cost: float | None = None
     cost_basis: str = ""
+    cost_note: str = ""
     lead_time_days: float | None = None
     mass_kg: float | None = None
     mass_source: str = ""
@@ -101,6 +102,43 @@ def sourcing_status(part: Part) -> str:
     return "verified" if part.source.verified else "unverified"
 
 
+def _auto_unit_cost(
+    part: Part, mass: float | None, basis: str, region: str | None = None
+) -> tuple[float | None, str]:
+    """The unit-cost estimate for a made part priced from its built mass (W7, B-0319).
+
+    Returns ``(unit_cost_usd, note)``. The figure is the mid-point of the ``basis`` band for
+    the part's process, times the built mass (per-kg bands only, so it follows a size change;
+    S-227's mid-point convention). A band in another currency yields no USD figure — the
+    parts list is USD and nothing is converted (D21) — and the note says why.
+    """
+    from napkin2factory.calckit import mass_cost
+
+    if mass is None:
+        return None, "no built mass to price from"
+    try:
+        band = mass_cost.cost_band(part.process, region=region, basis=basis)
+    except ValueError:
+        return None, f"no {basis} cost band on file for {part.process}"
+    if not band.known or band.low is None or band.high is None:
+        return None, f"no {basis} cost band on file for {part.process}"
+    if band.unit != "per_kg":
+        return None, f"{part.process} is priced by {band.unit}, not by mass"
+    est = mass_cost.cost_estimate(
+        part.process, mass=Quantity(mass, "kg"), region=region, basis=basis
+    )
+    if est.low is None or est.high is None:
+        return None, f"no {basis} cost band on file for {part.process}"
+    note = (
+        f"{band.basis} {band.region} {band.process_class} band, as of {band.as_of}: "
+        f"{band.currency} {band.low:g}–{band.high:g}/kg × {mass:g} kg; mid-point"
+    )
+    if band.currency != "USD":
+        return None, note + " (the parts list is in USD; nothing is converted)"
+    midpoint = (float(est.low.magnitude) + float(est.high.magnitude)) / 2.0
+    return midpoint, note
+
+
 def build_lines(
     product: Product,
     asm_id: str,
@@ -113,6 +151,11 @@ def build_lines(
     asm = product.assemblies[asm_id]
     ceremony = derive_ceremony(product)
     log.add(f"asm://{asm_id}#children")
+    # W7 (B-0319): only a product that declares who makes it auto-prices its made parts;
+    # absent maker means today's behaviour (no estimate), so no golden moves (S-336).
+    maker = getattr(product.manifest, "maker", None) or None
+    region = getattr(product.manifest, "region", None) or None
+    auto_basis = "materials" if maker == "owner" else "made" if maker == "shop" else None
     lines: list[BomLine] = []
     for child in asm.children:
         if child.part is not None:
@@ -140,6 +183,15 @@ def build_lines(
             log.add(f"{part.uri}#geometry")
             if part.mass is None and part.has_geometry:
                 log.add(f"{part.uri}#props.mass")
+            if part.cost is not None:
+                unit_cost = float(part.cost.unit.to("USD").magnitude)
+                cost_basis = part.cost.basis
+                cost_note = ""
+            elif part.kind == "custom" and auto_basis is not None:
+                unit_cost, cost_note = _auto_unit_cost(part, mass, auto_basis, region=region)
+                cost_basis = "estimate" if unit_cost is not None else ""
+            else:
+                unit_cost, cost_basis, cost_note = None, "", ""
             lines.append(
                 BomLine(
                     level=level,
@@ -153,8 +205,9 @@ def build_lines(
                     material=(part.material.spec or part.material.name) if part.material else "",
                     finish=part.finish or "",
                     tolerance_class=tolerance or "",
-                    unit_cost=float(part.cost.unit.to("USD").magnitude) if part.cost else None,
-                    cost_basis=part.cost.basis if part.cost else "",
+                    unit_cost=unit_cost,
+                    cost_basis=cost_basis,
+                    cost_note=cost_note,
                     lead_time_days=float(part.lead_time.to("day").magnitude)
                     if part.lead_time
                     else None,

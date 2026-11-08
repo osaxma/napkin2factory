@@ -324,20 +324,26 @@ def _gates(status: Any) -> tuple[list[str], list[str]]:
 
 async def init_product(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
     """Make the product folder: ``init <folder>``."""
-    _need(args, "name", "region", "units")
+    _need(args, "name", "units")
     if (c.folder / "n2f.yaml").exists():
         return {
             "ok": False,
             "error": {"message": "this folder already has a product (n2f.yaml)"},
             "next": {"tool": "n2f_sync", "arguments": {}},
         }
-    keys = ("name", "region", "units", "template", "style")
+    keys = ("name", "region", "units", "maker", "template", "style")
     data = await c.go(("init",), _only(args, keys, dict.fromkeys(keys, str)))
     data = data if isinstance(data, dict) else {}
-    return {
+    from napkin2factory.cli.init import cost_init_feedback
+
+    region = args.get("region")
+    maker = args.get("maker")
+    costs, confirm, ask = cost_init_feedback(region, maker)
+    out: dict[str, Any] = {
         "ok": True,
         "product": data.get("product"),
         "files": data.get("files"),
+        "costs": data.get("costs") or costs,
         "read_first": ["AGENTS.md", "roles/pm.md"],
         "next": {
             "say": (
@@ -346,6 +352,13 @@ async def init_product(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
             )
         },
     }
+    conf = data.get("confirm") or confirm
+    if conf:
+        out["confirm"] = conf
+    ask_qs = data.get("ask") or ask
+    if ask_qs:
+        out["ask"] = ask_qs
+    return out
 
 
 def _card(card: dict[str, Any]) -> dict[str, Any]:
@@ -833,21 +846,29 @@ def build_combined() -> list[CombinedTool]:
     return [
         CombinedTool(
             "n2f_init_product",
-            "Make a new product folder here. Ask the owner for the name, the region and the "
-            "units first.",
+            "Make a new product folder here. Ask the owner for the name, units, region and "
+            "maker first; never infer region or maker from the machine or its time zone.",
             _obj(
                 {
                     "name": {**_S, "description": "Product display name."},
+                    "units": {"type": "string", "enum": ["metric", "imperial"]},
                     "region": {
                         "type": "string",
                         "enum": ["US", "UK", "EU", "AU", "SA"],
-                        "description": "Where it is built and bought.",
+                        "description": "Where it is built and bought. Ask the owner, never infer.",
                     },
-                    "units": {"type": "string", "enum": ["metric", "imperial"]},
+                    "maker": {
+                        "type": "string",
+                        "enum": ["owner", "shop"],
+                        "description": (
+                            "Who makes the custom parts (owner builds from retail stock; "
+                            "shop quotes job-shop rates). Ask the owner, never infer."
+                        ),
+                    },
                     "template": {**_S, "description": "blank (default), bracket or enclosure."},
                     "style": {**_S, "description": "industrial (default), appliance or lab."},
                 },
-                ["name", "region", "units"],
+                ["name", "units"],
             ),
             init_product,
         ),

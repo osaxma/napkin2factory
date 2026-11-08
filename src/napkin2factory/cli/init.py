@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.markup import escape
@@ -82,26 +83,81 @@ def write_style(dest: Path, preset: str = "industrial") -> Path:
     return path
 
 
-def check_place(region: str | None, units: str | None) -> tuple[str | None, str | None]:
-    """Validate ``--region`` and ``--units`` the way ``n2f.yaml`` does; return them cleaned.
+#: What a region means for costs, in words (W7, B-0320): only US and EU have cost bands on file
+#: (calckit/data/cost_bands.yaml); a region without them says so instead of naming a currency.
+REGION_PRICES = {
+    "US": "costs in US dollars, from US prices",
+    "EU": "costs in euros, from EU prices",
+    "UK": "built in the UK: no UK prices on file yet, so costs cannot be read",
+    "AU": "built in Australia: no Australian prices on file yet, so costs cannot be read",
+    "SA": "built in Saudi Arabia: no Saudi prices on file yet, so costs cannot be read",
+}
+
+MAKER_PHRASES = {
+    "owner": "the owner builds it",
+    "shop": "made by a shop",
+}
+
+
+def cost_init_feedback(region: str | None, maker: str | None) -> tuple[str, str | None, list[str]]:
+    """(costs_words, confirm_or_None, ask_questions) for init (W7, B-0319, B-0320).
+
+    Given region and maker, repeats them in words ("costs in US dollars, from US prices;
+    the owner builds it") with confirm: "ask the owner whether this is right before reading costs".
+    Missing, names each as a question for the owner (ask), and costs says "region not set".
+    """
+    reg_words = (
+        REGION_PRICES.get(region, f"costs from {region} prices") if region else "region not set"
+    )
+    m_words = MAKER_PHRASES.get(maker) if maker else None
+    if m_words:
+        costs = f"{reg_words}; {m_words}"
+    else:
+        costs = reg_words
+
+    confirm = (
+        "ask the owner whether this is right before reading costs"
+        if (region is not None or maker is not None)
+        else None
+    )
+
+    ask: list[str] = []
+    if region is None:
+        ask.append("Where will it be built and bought? Region code: US, UK, EU, AU or SA.")
+    if maker is None:
+        ask.append(
+            "Who makes the custom parts? (owner: materials only, retail stock; "
+            "shop: job-shop rates)."
+        )
+
+    return costs, confirm, ask
+
+
+def check_place(
+    region: str | None, units: str | None, maker: str | None = None
+) -> tuple[str | None, str | None, str | None]:
+    """Validate ``--region``, ``--units`` and ``--maker`` the way ``n2f.yaml`` does.
 
     A region code is matched without regard to case (``us`` is ``US``); an unknown one lists
-    the known codes, as ``n2f validate`` does (S-236, W7, W8).
+    the known codes, as ``n2f validate`` does (S-236, W7, W8). Maker is ``owner`` or ``shop``
+    (W7, B-0319).
 
     Raises:
-        N2FError: the region is not a known code, or the units are not metric or imperial.
+        N2FError: region, units or maker is not valid.
     """
     from pydantic import ValidationError
 
     from napkin2factory.core.model import Manifest
 
     code = region.strip().upper() if region and region.strip() else None
+    maker_val = maker.strip().lower() if maker and maker.strip() else None
     try:
         Manifest.model_validate(
             {
                 "product": {"id": "x", "name": "x"},
                 **({"region": code} if code else {}),
                 **({"units": units} if units else {}),
+                **({"maker": maker_val} if maker_val else {}),
             }
         )
     except ValidationError as exc:
@@ -111,6 +167,9 @@ def check_place(region: str | None, units: str | None) -> tuple[str | None, str 
         if field == "units":
             message = f"unknown units {units!r}; choose metric or imperial"
             raise N2FError(f"--{field}: {message}", next="choose one of: metric, imperial") from exc
+        if field == "maker":
+            message = f"unknown maker {maker!r}; choose owner or shop"
+            raise N2FError(f"--{field}: {message}", next="choose one of: owner, shop") from exc
         if field == "region":
             from napkin2factory.calckit.wiring import known_regions
 
@@ -119,7 +178,7 @@ def check_place(region: str | None, units: str | None) -> tuple[str | None, str 
                 next=f"ask the owner where it will be built: one of {', '.join(known_regions())}",
             ) from exc
         raise N2FError(f"--{field}: {message}") from exc
-    return code, units or None
+    return code, units or None, maker_val
 
 
 def write_skeleton(
@@ -130,14 +189,15 @@ def write_skeleton(
     style: str = "industrial",
     region: str | None = None,
     units: str | None = None,
+    maker: str | None = None,
 ) -> list[Path]:
     """Copy a template plus the common agent-layer files into ``dest``; return files written.
 
     A new product also gets ``style.yaml`` (written here, not shipped in ``_common``, which
-    is copied onto existing products too). ``region`` and ``units``, when given, are written
-    into ``n2f.yaml`` (S-236).
+    is copied onto existing products too). ``region``, ``units`` and ``maker``, when given,
+    are written into ``n2f.yaml`` (S-236, B-0319).
     """
-    region, units = check_place(region, units)
+    region, units, maker = check_place(region, units, maker)
     from napkin2factory.core.model.style import PRESETS
 
     if style not in PRESETS:
@@ -186,6 +246,8 @@ def write_skeleton(
         data["region"] = region
     if units:
         data["units"] = units
+    if maker:
+        data["maker"] = maker
     dump_roundtrip(manifest, data)
     write_style(dest, style)
     return [dest / rel for rel in planned]
@@ -289,6 +351,12 @@ def init(
         help="metric | imperial: the units the owner thinks in, for reports and the board "
         "(drawings stay in mm). Written to n2f.yaml; ask the owner.",
     ),
+    maker: str | None = typer.Option(
+        None,
+        "--maker",
+        help="owner | shop: who makes the custom parts (owner = materials only, retail stock; "
+        "shop = job-shop rates). Written to n2f.yaml; ask the owner.",
+    ),
     no_tracking: bool = typer.Option(
         False, "--no-tracking", help="Skip change tracking setup (tests only)."
     ),
@@ -296,37 +364,43 @@ def init(
 ) -> None:
     """Start a new product folder from a template."""
     dest = Path(directory).resolve()
-    region, units = check_place(region, units)  # before anything is written
+    region, units, maker = check_place(region, units, maker)  # before anything is written
     if (dest / "n2f.yaml").is_file():
-        if region or units:
+        if region or units or maker:
             raise N2FError(
-                f"{dest} is already a product: set region and units in its n2f.yaml "
-                "(`region:` and `units:`), not with `n2f init`"
+                f"{dest} is already a product: set region, units and maker in its n2f.yaml "
+                "(`region:`, `units:`, `maker:`), not with `n2f init`"
             )
         upgrade_existing(dest, json_out)
         return
     product_id = slugify(dest.name)
     display = name or dest.name.replace("-", " ").replace("_", " ").strip().capitalize()
-    files = write_skeleton(dest, template, product_id, display, style, region, units)
+    files = write_skeleton(dest, template, product_id, display, style, region, units, maker)
     snapshot = None
     if not no_tracking:
         vcs = Vcs(dest)
         vcs.init()
         snapshot = vcs.snapshot(f"Start of {display}")
     warming = start_kernel_warmup(dest)
+    costs, confirm, ask = cost_init_feedback(region, maker)
     if json_out:
-        emit_json(
-            {
-                "dir": str(dest),
-                "product": product_id,
-                "template": template,
-                "region": region,
-                "units": units or "metric",
-                "files": len(files),
-                "snapshot": snapshot,
-                "kernel_warmup": warming,
-            }
-        )
+        out: dict[str, Any] = {
+            "dir": str(dest),
+            "product": product_id,
+            "template": template,
+            "region": region,
+            "units": units or "metric",
+            "maker": maker,
+            "costs": costs,
+            "files": len(files),
+            "snapshot": snapshot,
+            "kernel_warmup": warming,
+        }
+        if confirm:
+            out["confirm"] = confirm
+        if ask:
+            out["ask"] = ask
+        emit_json(out)
         return
     console.print(
         f"[green]✓[/green] started [bold]{display}[/bold] in {dest} "
@@ -334,10 +408,15 @@ def init(
     )
     if snapshot:
         console.print("  first snapshot saved")
-    if not region or not units:
+    if confirm:
+        console.print(f"  {costs}")
+        console.print(f"  confirm: {confirm}")
+    if ask:
+        for q in ask:
+            console.print(f"  ask the owner: {q}")
+    if not units:
         console.print(
-            "  ask the owner where it will be built and bought and which units they think in, "
-            "then set `region:` and `units:` in n2f.yaml",
+            "  ask the owner which units they think in, then set `units:` in n2f.yaml",
             soft_wrap=True,
         )
     console.print(NEXT_WARMING if warming else NEXT_COLD, soft_wrap=True)
