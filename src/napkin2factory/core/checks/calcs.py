@@ -135,6 +135,9 @@ def run_calc(product: Product, uri: str) -> CalcRecord:
         raise CalcError(
             f"{uri} must return a pint quantity or a number, got {type(value).__name__}"
         )
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and not is_quantity(value):
+        # S-336: a bare number from a calc is read as a dimensionless quantity so it can be checked
+        value = parse_quantity(value)
     inputs = {k: _value_str(product, k) for k in log.keys}
     formatted = format_quantity(value) if is_quantity(value) else str(value)
     key = sha256_json(

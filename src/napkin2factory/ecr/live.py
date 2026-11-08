@@ -373,5 +373,33 @@ def quick(
         sets=sets,
         requested_by=requested_by,
     )
-    ecr, block, text = impact(load_product(product.root), started["ecr"])
+    ecr_id = started["ecr"]
+    try:
+        ecr, block, text = impact(load_product(product.root), ecr_id)
+    except Exception as exc:
+        # S-336: a failed quick change leaves nothing open (B-0322).
+        try:
+            abort(load_product(product.root), ecr_id, reason=f"failed quick change: {exc}")
+            aborted = True
+        except Exception:
+            aborted = False
+        if not aborted:
+            raise EcrError(
+                f"{exc}; {ecr_id} could not be aborted automatically",
+                next=f"`n2f ecr abort {ecr_id}`",
+            ) from exc
+        next_step = getattr(exc, "next_step", "")
+        if not next_step or "n2f build" in next_step or "n2f --help" in next_step:
+            raw = str(exc)
+            if raw.startswith("checks failed: "):
+                detail = raw.removeprefix("checks failed: ")
+            elif " failed: " in raw:
+                detail = raw.partition(" failed: ")[2]
+            else:
+                detail = raw
+            next_step = f"fix {detail}, then retry the change"
+        raise EcrError(
+            f"{exc}; the change was not made and nothing is left open",
+            next=next_step,
+        ) from exc
     return {**started, "impact": block, "text": text, "title": ecr.title}
