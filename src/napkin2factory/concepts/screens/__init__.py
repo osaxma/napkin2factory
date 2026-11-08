@@ -35,8 +35,8 @@ from napkin2factory.concepts.screens.base import (
     sig,
     the,
 )
-from napkin2factory.concepts.screens.generic import GENERIC_SCREENS
 from napkin2factory.concepts.screens.runner import (
+    GENERIC_SCREENS,
     card_fields,
     declared_fields,
     generic_fields,

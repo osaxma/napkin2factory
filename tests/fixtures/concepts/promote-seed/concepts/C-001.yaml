@@ -30,15 +30,16 @@ massing:
   - {kit: block, as: leg-back-right, material: southern-yellow-pine, process_class: woodworking, role: support, args: {length: 70 mm, width: 70 mm, height: 590 mm}, at: {x: 700 mm, y: -355 mm}}
   - {kit: block, as: joist-level-left, material: southern-yellow-pine, process_class: woodworking, role: support, args: {length: 70 mm, width: 780 mm, height: 140 mm}, at: {x: -700 mm, z: 590 mm}}
   - {kit: block, as: joist-level-right, material: southern-yellow-pine, process_class: woodworking, role: support, args: {length: 70 mm, width: 780 mm, height: 140 mm}, at: {x: 700 mm, z: 590 mm}}
-  - {kit: block, as: joist-front, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1530 mm, width: 90 mm, height: 140 mm}, at: {y: 355 mm, z: 590 mm}}
-  - {kit: block, as: joist-back, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1530 mm, width: 90 mm, height: 140 mm}, at: {y: -355 mm, z: 590 mm}}
-  - {kit: block, as: joist-middle, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1530 mm, width: 90 mm, height: 140 mm}, at: {y: 0 mm, z: 590 mm}}
+  - {kit: block, as: joist-front, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1330 mm, width: 90 mm, height: 140 mm}, at: {y: 355 mm, z: 590 mm}}
+  - {kit: block, as: joist-back, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1330 mm, width: 90 mm, height: 140 mm}, at: {y: -355 mm, z: 590 mm}}
+  - {kit: block, as: joist-middle, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1330 mm, width: 90 mm, height: 140 mm}, at: {y: 0 mm, z: 590 mm}}
   - {kit: block, as: rail-front, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1330 mm, width: 70 mm, height: 70 mm}, at: {y: 355 mm, z: 150 mm}}
   - {kit: block, as: rail-back, material: southern-yellow-pine, process_class: woodworking, role: body, args: {length: 1330 mm, width: 70 mm, height: 70 mm}, at: {y: -355 mm, z: 150 mm}}
   - {kit: block, as: worktop-lower-skin, material: plywood, process_class: woodworking, role: body, args: {length: 1600 mm, width: 800 mm, height: 20 mm}, at: {z: 730 mm}}
   - {kit: block, as: worktop, material: plywood, process_class: woodworking, role: body, args: {length: 1600 mm, width: 800 mm, height: 20 mm}, at: {z: 750 mm}}
-  - {kit: block, as: shelf, material: plywood, process_class: woodworking, role: body, args: {length: 1330 mm, width: 700 mm, height: 18 mm}, at: {z: 180 mm}}
+  - {kit: block, as: shelf, material: plywood, process_class: woodworking, role: body, args: {length: 1330 mm, width: 700 mm, height: 18 mm}, at: {z: 220 mm}}
 notes: >-
-  A block-built bench for the promotion-seeding test (S-336): four pine legs, joists on levels
-  between them under a two-ply plywood top, two rails and a shelf. Given: a 1600 x 800 mm top,
+  A block-built bench for the promotion-seeding test (S-336): four pine legs, level boards across
+  their tops, joists butted between the level boards under a two-ply plywood top, two rails
+  between the legs and a shelf resting on them; every piece meets the next face to face. Given: a 1600 x 800 mm top,
   850 mm high, 150 kg on top, about 2500 USD, industrial look.

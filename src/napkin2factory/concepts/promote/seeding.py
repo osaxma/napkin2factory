@@ -68,6 +68,8 @@ class _Instance:
     anchors: dict[str, tuple[str, float]] = field(default_factory=dict)
     #: world axis -> (argument name, mm the gaps take from the overall size)
     stretch: dict[str, tuple[str, float]] = field(default_factory=dict)
+    #: the call's place in the card's massing: the table keeps the card's order (S-336)
+    index: int = 0
 
 
 @dataclass
@@ -198,7 +200,7 @@ def _measure(
     for piece in pieces:
         at = piece.call.at or {}
         rz = float(_degrees(at.get("rz", 0)))
-        inst = _Instance(piece.name, piece, rz)
+        inst = _Instance(piece.name, piece, rz, index=len(out))
         turns = _rot90(rz)
         axes_of: dict[str, str] = {}
         size_axes = getattr(kit_mod.get_module(piece.kit), "size_axes", None)
@@ -608,9 +610,13 @@ def _assemblies(
     ) -> None:
         rows: list[str] = [f'    {{"asm": "{k}"}},\n' for k in modules_in]
         children = [f"  - {{asm: asm://{k}}}" for k in modules_in]
+        placed: list[tuple[int, str]] = []
         for pid, members in owned:
             children.append(f"  - {{part: part://{pid}, qty: {len(members)}}}")
-            rows += [_row(m, pid) for m in members]
+            placed += [(m.index, _row(m, pid)) for m in members]
+        # the card's order, not the groups': a screen that breaks a tie by order sees the same
+        # rough shapes in the same order on the built model (S-336)
+        rows += [row for _, row in sorted(placed)]
         fname = f"{asm_id.replace('-', '_')}.py"
         plan.texts[f"{geometry_dir}/{fname}"] = _geometry_text(
             card, name, plan.sizes, centre, floor, rows

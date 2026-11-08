@@ -243,7 +243,9 @@ def test_the_everyday_bench_finds_its_legs_through_bearers_and_joists() -> None:
     expected = mass * G * 0.355 / (490.5 * 0.150)
     assert float(s.computed["tip_over_factor"].value) == pytest.approx(expected, rel=0.01)
     assert _row(s, "tip-over").status == "pass"
-    assert s.verdict == "green"
+    # the bench as drawn has joists through its bearers, so the card is red on the overlap
+    # screen (S-336) and on nothing else: every structural row passes
+    assert [r.id for r in s.failing] == ["rough-shapes-overlap"]
 
 
 def test_two_boards_stacked_face_to_face_are_one_layered_top() -> None:

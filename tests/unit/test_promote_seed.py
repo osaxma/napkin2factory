@@ -98,8 +98,16 @@ def test_promotion_writes_parts_sizes_and_a_layout(bench: tuple[Path, Any]) -> N
     assert "rough shapes" in (product.parameters["overall-height"].description or "")
     # a part that spans an overall size follows it: its length is that size less its gaps
     assert product.parameters["joist-length"].expr == "worktop-width - joist-length-gap"
-    assert float(product.parameter_value("joist-length").to("mm").magnitude) == 1530.0
+    assert float(product.parameter_value("joist-length").to("mm").magnitude) == 1330.0
     assert product.parts["worktop"].geometry.args["length"] == "param://worktop-width"  # type: ignore[union-attr]
+
+
+def _factors(root: Path) -> dict[str, str]:
+    """The structural factors the bench's own screening computed (the screen judges it, B-0317)."""
+    card = cm.load_card(root, "C-001")
+    assert card.screening is not None
+    names = ("yield_factor", "buckling_factor", "tip_over_factor")
+    return {k: v.value for k, v in card.screening.computed.items() if k in names}
 
 
 def test_json_lists_what_was_seeded_and_names_the_build(bench: tuple[Path, Any]) -> None:
@@ -113,7 +121,7 @@ def test_json_lists_what_was_seeded_and_names_the_build(bench: tuple[Path, Any])
     assert leg["stretched_by"] == ["param://leg-height"]
     assert seeded["overall_sizes"]["z"] == "param://overall-height"
     assert seeded["layout"] == ["model/geometry/bench.py"]
-    assert seeded["structure_checks"] == ["req://REQ-004"]
+    assert len(seeded["structure_checks"]) == 1 + len(_factors(bench[0]))
     assert any(a["uri"] == "asm://bench" and a["top"] for a in data["assemblies"])
     assert "build next" in data["summary"] and "never the seeded parts" in data["summary"]
 
@@ -177,14 +185,36 @@ def test_check_runs_on_the_seeded_model(bench: tuple[Path, Any], tmp_path: Path)
     payload = json.loads(r.stdout)
     rows = {row["id"]: row for row in payload["results"]}
     failing = {i for i, row in rows.items() if row["status"] == "fail"}
-    # the card's rough shapes overlap (joists run through the level boards): the seeded model
-    # keeps them as drawn and says so; nothing else fails, and joints are not required (S-336)
-    assert failing <= {f"interference://{PRODUCT}"}, failing
+    # every piece meets the next face to face, so nothing fails and joints are not required
+    assert failing == set(), failing
+    assert r.returncode == 0, r.stdout[-600:] + r.stderr[-300:]
     assert rows["count://bench"]["status"] == "pass"
     assert rows["req://REQ-001"]["status"] == "pass"  # the width: a real geometry check now
+    # the sag requirement reports the card's own screening figure, and one factor requirement
+    # exists for every factor the screening computed (yield and buckling; no edge load, no tip-over)
+    model = load_product(root)
+    card = cm.load_card(root, "C-001")
+    assert card.screening is not None
+    figure = float(card.screening.computed["deflection"].value.split()[0])
     sag = rows["req://REQ-004"]
-    assert sag["status"] != "pass" or "deflection" in sag["message"]  # judged, or left to a person
-    assert load_product(root).requirements["REQ-004"].verify.kind == "structure"  # type: ignore[union-attr]
+    assert model.requirements["REQ-004"].verify.kind == "structure"  # type: ignore[union-attr]
+    assert sag["status"] == "pass"
+    assert float(re.search(r"deflection = ([0-9.]+)", sag["message"]).group(1)) == pytest.approx(  # type: ignore[union-attr]
+        figure, rel=0.01
+    )
+    factors = _factors(root)
+    assert set(factors) >= {"yield_factor", "buckling_factor"}
+    for name, text in factors.items():
+        req = next(
+            r
+            for r in model.requirements.values()
+            if r.verify and str(r.verify.target or "").endswith(f"#props.{name}")
+        )
+        row = rows[f"req://{req.id}"]
+        assert row["status"] == "pass"
+        assert float(row["message"].split("=")[1].split()[0]) == pytest.approx(
+            float(text), rel=0.01
+        )
 
 
 def test_an_uncovered_construction_is_never_a_pass(
@@ -205,9 +235,30 @@ def test_an_uncovered_construction_is_never_a_pass(
     assert res.status == "needs-human" and why in res.message
 
 
-def test_notes_say_what_stays_literal_and_what_overlaps(bench: tuple[Path, Any]) -> None:
+def test_a_bench_that_meets_face_to_face_has_no_overlap_note(bench: tuple[Path, Any]) -> None:
     _, result = bench
-    assert any("pair(s) of the card's rough shapes overlap" in n for n in result.notes)
+    assert not any("overlap" in n for n in result.notes)
+
+
+def test_the_trial_bench_as_drawn_screens_red_on_overlap(tmp_path: Path) -> None:
+    """Joists through the level boards and a shelf through the rails: the napkin says so."""
+    drawn = FIXTURES / "concepts" / "promote-seed-drawn" / "concepts"
+    root = _blank(tmp_path / "drawn", "Drawn")
+    shutil.copytree(drawn, root / "concepts", dirs_exist_ok=True)
+    _screened(root)
+    card = cm.load_card(root, "C-001")
+    assert card.screening is not None and card.verdict == "red"
+    row = next(r for r in card.screening.rules if r.id == "rough-shapes-overlap")
+    assert row.status == "fail" and "8 pair(s)" in row.message
+    assert "joist-level-left and joist-" in row.message and "cm³" in row.message
+    assert "meet face to face, or make one shorter" in row.message
+    # the corrected bench has no such row at all
+    root2 = _blank(tmp_path / "fixed", "Fixed")
+    shutil.copytree(BENCH, root2 / "concepts", dirs_exist_ok=True)
+    _screened(root2)
+    fixed = cm.load_card(root2, "C-001")
+    assert fixed.screening is not None
+    assert "rough-shapes-overlap" not in {r.id for r in fixed.screening.rules}
 
 
 def test_a_product_with_parts_is_not_seeded(tmp_path: Path) -> None:

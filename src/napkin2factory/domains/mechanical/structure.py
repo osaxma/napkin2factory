@@ -49,6 +49,37 @@ def _location(translation: list[float], quaternion: list[float]) -> Any:
     return Location(trsf)
 
 
+def _in_card_order(ctx: EvalContext, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The instances in the order of the layout tables promotion wrote (the card's order).
+
+    ``instances.json`` is sorted by part and label. The screen breaks some ties by order (two
+    equal boards: which is "the top"), so the pieces go in the order the card had them, read from
+    each seeded assembly's ``ROWS`` (S-336). Instances no table names keep their place at the end.
+    """
+    import importlib.util
+
+    from napkin2factory.core.model.parts import ModuleGeometry
+
+    rank: dict[str, int] = {}
+    for asm in ctx.product.assemblies.values():
+        if not isinstance(asm.geometry, ModuleGeometry):
+            continue
+        path = ctx.product.paths.model / asm.geometry.module
+        if not path.is_file():
+            continue
+        try:
+            spec = importlib.util.spec_from_file_location(f"n2f_rows_{asm.id}", path)
+            assert spec is not None and spec.loader is not None
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            for row in getattr(module, "ROWS", []):
+                if row.get("label") is not None:
+                    rank.setdefault(str(row["label"]), len(rank))
+        except Exception:  # noqa: BLE001 — a layout that is not a table keeps the file's order
+            continue
+    return sorted(records, key=lambda r: rank.get(str(r.get("label")), len(rank)))
+
+
 def _pieces(ctx: EvalContext, top: str) -> list[Any] | str:
     """The built assembly's instances as the screen's pieces, else why there are none."""
     from napkin2factory.concepts.massing import build_piece_at
@@ -60,7 +91,7 @@ def _pieces(ctx: EvalContext, top: str) -> list[Any] | str:
     path = ctx.build_dir / "assemblies" / top / "instances.json"
     if not path.is_file():
         return f"asm://{top} has not been built"
-    records = json.loads(path.read_text(encoding="utf-8"))
+    records = _in_card_order(ctx, json.loads(path.read_text(encoding="utf-8")))
     P, I, _log = make_accessors(ctx.product)  # noqa: N806, E741 — the accessors' usual names
     pieces: list[Any] = []
     for rec in records:

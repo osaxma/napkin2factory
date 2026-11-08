@@ -30,10 +30,15 @@ from napkin2factory.concepts.screens.base import (
     fields_of,
     phase_of,
 )
-from napkin2factory.concepts.screens.generic import GENERIC_SCREENS
+from napkin2factory.concepts.screens.generic import GENERIC_SCREENS as _BASE_SCREENS
+from napkin2factory.concepts.screens.overlap import OVERLAP_SCREEN
 from napkin2factory.core.domain import Screen
 from napkin2factory.core.errors import N2FError
 from napkin2factory.core.model.concepts import ConceptCard, RuleRow, Screening
+
+#: The generic screens and the overlap screen (kept out of ``generic.py``, which other tasks
+#: own); every system row of either is the system's own (S-233, S-336).
+GENERIC_SCREENS = (*_BASE_SCREENS, OVERLAP_SCREEN)
 
 
 def installed_screens(root: Path | None = None) -> list[Screen]:
