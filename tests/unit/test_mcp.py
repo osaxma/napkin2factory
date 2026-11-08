@@ -180,9 +180,11 @@ def test_argument_checks(tmp_path: Path) -> None:
         assert err and text in body["error"]["message"] and body["steps"] == []
         assert "next" in body
     body, err = _call(runner, "n2f_decide", check="x")
-    assert err and "'pick' is required" in body["error"]["message"]
+    assert err and body["error"]["missing"] == ["pick", "by"]
     body, err = _call(runner, "n2f_ecr", action="frobnicate")
-    assert err and "must be one of" in body["error"]["message"]
+    assert (
+        err and body["error"]["not_allowed"] == ["action"] and "undo" in body["allowed"]["action"]
+    )
     body, err = _call(runner, "n2f_ecr", action="list", bogus="1")
     assert err and "unknown argument" in body["error"]["message"]
     assert fake.ran == []
@@ -334,8 +336,21 @@ def test_decide_then_status_then_sync(tmp_path: Path) -> None:
 
 def test_init_refuses_an_existing_product_and_asks_for_the_owner_facts(tmp_path: Path) -> None:
     runner, fake = _runner(tmp_path, {("init",): {"product": "p", "files": 26}})
-    body, err = _call(runner, "n2f_init_product", name="P", region="EU")
-    assert err and "'units' is required" in body["error"]["message"]
+    # Every missing argument at once, with its allowed values, and the owner has the answers
+    body, err = _call(runner, "n2f_init_product", name="P")
+    assert err and body["error"]["missing"] == ["region", "units"] and fake.ran == []
+    assert body["allowed"] == {
+        "region": ["US", "UK", "EU", "AU", "SA"],
+        "units": ["metric", "imperial"],
+    }
+    assert "one of metric, imperial" in body["error"]["message"]
+    assert body["next"]["say"].startswith("Ask the owner for region, units")
+    body, err = _call(runner, "n2f_init_product", name="P", region="XX", units="metric")
+    assert (
+        err
+        and body["error"]["not_allowed"] == ["region"]
+        and "got 'XX'" in body["error"]["message"]
+    )
     body, err = _call(runner, "n2f_init_product", name="P", region="EU", units="metric")
     assert not err and body["read_first"] == ["AGENTS.md", "roles/pm.md"] and body["files"] == 26
     assert fake.ran[0][0] == "init" and fake.ran[0][-2:] == ["--", str(tmp_path.resolve())]

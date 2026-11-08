@@ -920,11 +920,11 @@ class ToolRunner:
             full = args.pop("full", False)
             if not isinstance(full, bool):
                 raise ToolError("'full' must be true or false")
-            for key in tool.schema.get("required", []):
-                if key != "full":
-                    _need(args, key)
         except ToolError as exc:
             return self._refusal(name, str(exc))
+        problem = self._missing_or_unknown(tool, args)
+        if problem is not None:
+            return problem
         call = _Call(self.steps, self._verbs, self.folder)
         try:
             body = await tool.run(call, args)
@@ -941,6 +941,50 @@ class ToolRunner:
         text = _render(payload, full)
         last = call.steps[-1].exit if call.steps else None
         return ToolResult(text, not ok, None if ok else last)
+
+    def _missing_or_unknown(self, tool: CombinedTool, args: dict[str, Any]) -> ToolResult | None:
+        """Every missing required argument and every value outside its list, in one refusal.
+
+        A small model fixes one named argument per call; naming them all with their allowed
+        values, and for a new product saying the owner has the answers, saves it a loop and a
+        guess (S-328).
+        """
+        props: dict[str, Any] = tool.schema["properties"]
+        missing = [
+            k for k in tool.schema.get("required", []) if k != "full" and args.get(k) in (None, "")
+        ]
+        wrong = [
+            k
+            for k, v in args.items()
+            if "enum" in props.get(k, {}) and v not in (None, "") and v not in props[k]["enum"]
+        ]
+        if not missing and not wrong:
+            return None
+
+        def named(key: str) -> str:
+            allowed = props.get(key, {}).get("enum")
+            return f"{key} (one of {', '.join(allowed)})" if allowed else key
+
+        parts = []
+        if missing:
+            parts.append("missing: " + "; ".join(named(k) for k in missing))
+        if wrong:
+            parts.append("not allowed: " + "; ".join(f"{named(k)}, got {args[k]!r}" for k in wrong))
+        message = ". ".join(parts)
+        keys = ", ".join(missing + wrong)
+        if tool.name == "n2f_init_product":
+            say = f"Ask the owner for {keys}, then call {tool.name} again with every argument."
+        else:
+            say = f"Call {tool.name} again with {keys} set ({message})."
+        payload = {
+            "tool": tool.name,
+            "ok": False,
+            "steps": [],
+            "error": {"message": message, "missing": missing, "not_allowed": wrong},
+            "allowed": {k: props[k]["enum"] for k in missing + wrong if "enum" in props.get(k, {})},
+            "next": {"say": say},
+        }
+        return ToolResult(_render(payload, False), True, None)
 
     def _refusal(
         self, name: str, message: str, call: _Call | None = None, full: bool = False
