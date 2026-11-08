@@ -160,8 +160,32 @@ client lacks it:
 | looking at renders (`build/parts/<id>/renders/*.png`) | say you cannot see images, check the numbers in `build/parts/<id>/props.json`, and ask the owner to look at the report's 3D view |
 | opening a page for the owner | give them the file path and say how to open it (double-click, or drag it into a browser) |
 | reaching the network | set `N2F_OFFLINE=1`; everything but the vendor-link check works offline |
-| the MCP server, which gives you each command as a tool (`pip install "napkin2factory[mcp]"`, then run `n2f mcp --dir <product folder>`) | use the command line and this guide, as everywhere above; the server is optional |
+| the MCP server, which gives you seven tools for a product folder (`n2f_init_product`, `n2f_napkin_sync`, `n2f_promote_or_switch`, `n2f_context`, `n2f_sync`, `n2f_decide`, `n2f_ecr`; setup: `pip install "napkin2factory[mcp]"` or `uv tool install "napkin2factory[mcp]"`, check with `n2f doctor --fix`, then run `n2f mcp --dir <product folder>`, or with nothing installed `uvx --from "napkin2factory[mcp]" n2f mcp --dir <product folder>`) | use the command line and this guide, as everywhere above; the server is optional |
 | the skill, which lets your client suggest napkin2factory on its own (`n2f skill --write <your client's skills folder>`) | nothing is lost: the README's prompt sends you to this guide |
+
+### Using the MCP server
+
+When your client connects to `n2f mcp --dir <folder>`, you drive the product through seven
+tools instead of running shell commands. Set your client's per-call tool timeout to 10 minutes
+so a cold first build does not time out.
+
+The design loop proceeds in order:
+1. **Initialize:** in an empty folder, ask the owner for the product name, region, and units,
+   then call `n2f_init_product`. Read the generated `AGENTS.md` and `roles/pm.md`.
+2. **Context:** call `n2f_context` with `topic="agent-guide"` to read instructions one section
+   at a time, or inspect reference pages and model element slices.
+3. **Napkin stage:** draft candidate directions with `n2f_promote_or_switch` (`action="new"`),
+   screen and render them with `n2f_napkin_sync`, show the owner `concepts/board.html`, and promote
+   their chosen card (`action="promote"`).
+4. **Detailed design:** write and edit files under `model/` using your client's own file tools.
+   Call `n2f_sync` to validate, lint, build, check, and inspect status. Fix any findings and repeat.
+5. **Decide:** when a check requires an owner choice, ask them and record it with `n2f_decide`.
+   Never decide for them.
+6. **Changes:** manage revisions with `n2f_ecr` (`action="quick"` or `action="start"`). Revert
+   mistakes with `action="undo"`.
+
+Every tool returns JSON with `ok`, summary fields, and an exact `next` action. Follow `next` to
+advance through the workflow.
 
 Commands that work on a product take `--json` (`graph` uses `--format json`, `serve` has none).
 Prefer it whenever you parse output.

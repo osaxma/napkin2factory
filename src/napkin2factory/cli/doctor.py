@@ -12,6 +12,7 @@ import importlib
 import importlib.util
 import platform
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -22,7 +23,7 @@ from napkin2factory import __version__
 from napkin2factory.cli.common import JsonOption, console, emit_json
 
 
-def _pin_row(start: Path | None = None, version: str = __version__) -> dict[str, str] | None:
+def _pin_row(start: Path | None = None, version: str = __version__) -> dict[str, Any] | None:
     """The product's version pin vs the running version; None outside a product folder."""
     from napkin2factory.core.loader import MANIFEST, find_product_root
     from napkin2factory.core.model import Manifest
@@ -35,32 +36,85 @@ def _pin_row(start: Path | None = None, version: str = __version__) -> dict[str,
     try:
         manifest = Manifest.model_validate(read_yaml(root / MANIFEST))
     except Exception as exc:
-        return {"check": check, "status": "warn", "detail": f"n2f.yaml unreadable: {exc}"}
+        return {
+            "check": check,
+            "status": "warn",
+            "detail": f"n2f.yaml unreadable: {exc}",
+            "fixed": False,
+            "next": "n2f init .",
+        }
     if manifest.pin_includes(version):
-        return {"check": check, "status": "ok", "detail": f"{manifest.system} includes {version}"}
+        return {
+            "check": check,
+            "status": "ok",
+            "detail": f"{manifest.system} includes {version}",
+            "fixed": False,
+            "next": None,
+        }
     return {
         "check": check,
         "status": "warn",
         "detail": f"{manifest.system} does not include {version}; it keeps working; once you "
         f"are happy with the results, set `system:` to a range that includes {version}",
+        "fixed": False,
+        "next": "n2f init .",
     }
 
 
-def _probe() -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
+def _launch_chromium() -> None:
+    """Launch and close Chromium using Playwright."""
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        b.close()
+
+
+def _probe_mcp() -> dict[str, Any]:
+    """Check whether the MCP server dependencies are importable."""
+    try:
+        importlib.import_module("mcp")
+        importlib.import_module("mcp.server.lowlevel")
+        return {
+            "check": "MCP server",
+            "status": "ok",
+            "detail": "ready",
+            "fixed": False,
+            "next": None,
+        }
+    except Exception:
+        return {
+            "check": "MCP server",
+            "status": "warn",
+            "detail": "needs napkin2factory[mcp] extra",
+            "fixed": False,
+            "next": 'uv tool install "napkin2factory[mcp]"',
+        }
+
+
+def _probe(fix: bool = False) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     py = sys.version.split()[0]
     rows.append(
         {
             "check": "python",
             "status": "ok" if sys.version_info >= (3, 13) else "warn",
             "detail": f"{py} ({platform.platform()})",
+            "fixed": False,
+            "next": None if sys.version_info >= (3, 13) else "uv python install 3.13",
         }
     )
     try:
         import build123d  # noqa: F401
 
         rows.append(
-            {"check": "build123d", "status": "ok", "detail": getattr(build123d, "__version__", "?")}
+            {
+                "check": "build123d",
+                "status": "ok",
+                "detail": getattr(build123d, "__version__", "?"),
+                "fixed": False,
+                "next": None,
+            }
         )
     except Exception as exc:  # pragma: no cover - environment dependent
         rows.append(
@@ -68,6 +122,8 @@ def _probe() -> list[dict[str, str]]:
                 "check": "build123d",
                 "status": "fail",
                 "detail": f"not importable: {exc}; run `uv sync`",
+                "fixed": False,
+                "next": "uv sync",
             }
         )
     try:
@@ -81,23 +137,41 @@ def _probe() -> list[dict[str, str]]:
                 "detail": "with VTK"
                 if vtk
                 else "novtk wheel (renders use the built-in rasterizer)",
+                "fixed": False,
+                "next": None,
             }
         )
     except Exception as exc:  # pragma: no cover
-        rows.append({"check": "OCP kernel", "status": "fail", "detail": f"not importable: {exc}"})
+        rows.append(
+            {
+                "check": "OCP kernel",
+                "status": "fail",
+                "detail": f"not importable: {exc}",
+                "fixed": False,
+                "next": "uv sync",
+            }
+        )
     git = shutil.which("git")
     rows.append(
         {
             "check": "change tracking",
             "status": "ok" if git else "fail",
             "detail": git or "not found; install git so snapshots and releases work",
+            "fixed": False,
+            "next": None if git else "install git",
         }
     )
     try:
         import typst  # noqa: F401
 
         rows.append(
-            {"check": "typst (PDF manuals)", "status": "ok", "detail": "typst-py importable"}
+            {
+                "check": "typst (PDF manuals)",
+                "status": "ok",
+                "detail": "typst-py importable",
+                "fixed": False,
+                "next": None,
+            }
         )
     except Exception as exc:  # pragma: no cover
         rows.append(
@@ -105,38 +179,87 @@ def _probe() -> list[dict[str, str]]:
                 "check": "typst (PDF manuals)",
                 "status": "warn",
                 "detail": f"not importable: {exc}; PDFs will be skipped",
+                "fixed": False,
+                "next": "uv pip install typst",
             }
         )
     if importlib.util.find_spec("playwright") is not None:
         try:
-            from playwright.sync_api import sync_playwright
-
-            with sync_playwright() as p:
-                b = p.chromium.launch()
-                b.close()
+            _launch_chromium()
             rows.append(
                 {
                     "check": "playwright chromium (optional)",
                     "status": "ok",
                     "detail": "browser smoke tests available",
+                    "fixed": False,
+                    "next": None,
                 }
             )
         except Exception:
-            rows.append(
-                {
-                    "check": "playwright chromium (optional)",
-                    "status": "warn",
-                    "detail": "installed but no browser; run `uv run playwright install chromium`",
-                }
-            )
+            if fix:
+                cmd = [sys.executable, "-m", "playwright", "install", "chromium"]
+                tail = ""
+                try:
+                    proc = subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    out = ((proc.stdout or "") + "\n" + (proc.stderr or "")).strip()
+                    tail = "\n".join(out.splitlines()[-5:]) if out else ""
+                except Exception as run_exc:
+                    tail = f"failed to run install: {run_exc}"
+                try:
+                    _launch_chromium()
+                    tail_str = f" ({tail})" if tail else ""
+                    rows.append(
+                        {
+                            "check": "playwright chromium (optional)",
+                            "status": "ok",
+                            "detail": f"browser smoke tests available{tail_str}",
+                            "fixed": True,
+                            "next": None,
+                        }
+                    )
+                except Exception as reprobe_exc:
+                    fail_detail = (
+                        f"installed but no browser; install failed: {tail}"
+                        if tail
+                        else f"installed but no browser: {reprobe_exc}"
+                    )
+                    rows.append(
+                        {
+                            "check": "playwright chromium (optional)",
+                            "status": "warn",
+                            "detail": fail_detail,
+                            "fixed": False,
+                            "next": f"{sys.executable} -m playwright install chromium",
+                        }
+                    )
+            else:
+                rows.append(
+                    {
+                        "check": "playwright chromium (optional)",
+                        "status": "warn",
+                        "detail": (
+                            "installed but no browser; run `uv run playwright install chromium`"
+                        ),
+                        "fixed": False,
+                        "next": f"{sys.executable} -m playwright install chromium",
+                    }
+                )
     else:
         rows.append(
             {
                 "check": "playwright (optional)",
                 "status": "warn",
                 "detail": "not installed; only needed for browser tests",
+                "fixed": False,
+                "next": "uv tool run playwright install chromium",
             }
         )
+    rows.append(_probe_mcp())
     return rows
 
 
@@ -249,14 +372,24 @@ def _print_domains(domains: list[dict[str, Any]], screens: dict[str, Any]) -> No
         console.print(f"  [yellow]![/yellow] {screens['error']}")
 
 
-def doctor(json_out: bool = JsonOption) -> None:
+def doctor(
+    json_out: bool = JsonOption,
+    fix: bool = typer.Option(
+        False,
+        "--fix",
+        help=(
+            "Install missing components that can be fixed automatically "
+            "(Playwright's Chromium browser)."
+        ),
+    ),
+) -> None:
     """Check that this machine can run napkin2factory, and list the installed domains.
 
     The domains come with their verify kinds, check stages and napkin screens (F14).
     """
     from napkin2factory.core.loader import find_product_root
 
-    rows = _probe()
+    rows = _probe(fix=fix)
     pin = _pin_row()
     if pin is not None:
         rows.append(pin)
@@ -265,7 +398,13 @@ def doctor(json_out: bool = JsonOption) -> None:
     except Exception as exc:  # a broken installed domain must not hide the machine checks
         domains = []
         rows.append(
-            {"check": "installed domains", "status": "fail", "detail": f"cannot load: {exc}"}
+            {
+                "check": "installed domains",
+                "status": "fail",
+                "detail": f"cannot load: {exc}",
+                "fixed": False,
+                "next": "uv sync",
+            }
         )
     screens = other_screens(find_product_root())
     if json_out:
@@ -277,7 +416,13 @@ def doctor(json_out: bool = JsonOption) -> None:
                 r["status"]
             ]
             console.print(f"  {mark} {r['check']}: {r['detail']}")
+            if r.get("next") and r["status"] != "ok":
+                console.print(f"    next: {r['next']}")
         if domains:
             _print_domains(domains, screens)
-    if any(r["status"] == "fail" for r in rows):
-        raise typer.Exit(code=4)
+    if fix:
+        if any(r["status"] == "fail" for r in rows):
+            raise typer.Exit(code=1)
+    else:
+        if any(r["status"] == "fail" for r in rows):
+            raise typer.Exit(code=4)

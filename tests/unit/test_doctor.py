@@ -102,3 +102,163 @@ def test_inside_a_product_its_own_screens_are_listed(tmp_path):
     # the supply is the wiring domain's screen now (E8), listed with the domain
     wiring = next(d for d in data["domains"] if d["name"] == "electrical")
     assert [s["name"] for s in wiring["screens"]] == ["supply"]
+
+
+def test_doctor_fix_installs_playwright_chromium_and_reprobes(monkeypatch):
+    import subprocess
+    import sys
+
+    from typer.testing import CliRunner
+
+    import napkin2factory.cli.doctor as doctor_mod
+    from napkin2factory.cli.app import app
+
+    calls = 0
+
+    def fake_launch():
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("Chromium missing")
+        return None
+
+    run_calls = []
+
+    def fake_run(cmd, capture_output=True, text=True, check=False):
+        run_calls.append(cmd)
+        return subprocess.CompletedProcess(
+            cmd, 0, stdout="Downloading Chromium\nChromium downloaded to /cache", stderr=""
+        )
+
+    monkeypatch.setattr(doctor_mod, "_launch_chromium", fake_launch)
+    monkeypatch.setattr(doctor_mod.subprocess, "run", fake_run)
+
+    res = CliRunner().invoke(app, ["doctor", "--fix", "--json"])
+    assert res.exit_code == 0, res.output
+    data = json.loads(res.output)
+    pw = next(c for c in data["checks"] if c["check"] == "playwright chromium (optional)")
+    assert pw["status"] == "ok"
+    assert pw["fixed"] is True
+    assert pw["next"] is None
+    assert "Chromium downloaded to /cache" in pw["detail"]
+    assert run_calls == [[sys.executable, "-m", "playwright", "install", "chromium"]]
+    assert calls == 2
+
+
+def test_doctor_without_fix_does_not_install(monkeypatch):
+    import sys
+
+    from typer.testing import CliRunner
+
+    import napkin2factory.cli.doctor as doctor_mod
+    from napkin2factory.cli.app import app
+
+    def fake_launch():
+        raise RuntimeError("Chromium missing")
+
+    run_calls = []
+
+    def fake_run(cmd, *args, **kwargs):
+        run_calls.append(cmd)
+        return None
+
+    monkeypatch.setattr(doctor_mod, "_launch_chromium", fake_launch)
+    monkeypatch.setattr(doctor_mod.subprocess, "run", fake_run)
+
+    res = CliRunner().invoke(app, ["doctor", "--json"])
+    assert res.exit_code == 0, res.output
+    data = json.loads(res.output)
+    pw = next(c for c in data["checks"] if c["check"] == "playwright chromium (optional)")
+    assert pw["status"] == "warn"
+    assert pw["fixed"] is False
+    assert pw["next"] == f"{sys.executable} -m playwright install chromium"
+    assert run_calls == []
+
+
+def test_doctor_mcp_row_ok_and_warn(monkeypatch):
+    import importlib
+
+    from napkin2factory.cli.doctor import _probe_mcp
+
+    # Normal environment has mcp installed
+    ok_row = _probe_mcp()
+    assert ok_row["check"] == "MCP server"
+    assert ok_row["status"] == "ok"
+    assert ok_row["fixed"] is False
+    assert ok_row["next"] is None
+
+    # When mcp fails to import
+    real_import = importlib.import_module
+
+    def fake_import(name, *args, **kwargs):
+        if name.startswith("mcp"):
+            raise ImportError(f"No module named {name}")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib, "import_module", fake_import)
+    warn_row = _probe_mcp()
+    assert warn_row["check"] == "MCP server"
+    assert warn_row["status"] == "warn"
+    assert warn_row["fixed"] is False
+    assert warn_row["next"] == 'uv tool install "napkin2factory[mcp]"'
+
+
+def test_doctor_exit_codes_with_and_without_fix(monkeypatch):
+    from typer.testing import CliRunner
+
+    import napkin2factory.cli.doctor as doctor_mod
+    from napkin2factory.cli.app import app
+
+    failing_rows = [
+        {
+            "check": "change tracking",
+            "status": "fail",
+            "detail": "git missing",
+            "fixed": False,
+            "next": "install git",
+        }
+    ]
+    passing_rows = [
+        {
+            "check": "change tracking",
+            "status": "ok",
+            "detail": "/usr/bin/git",
+            "fixed": False,
+            "next": None,
+        }
+    ]
+
+    # When a check fails
+    monkeypatch.setattr(doctor_mod, "_probe", lambda fix=False: list(failing_rows))
+    monkeypatch.setattr(doctor_mod, "_pin_row", lambda *a, **kw: None)
+
+    res_no_fix = CliRunner().invoke(app, ["doctor"])
+    assert res_no_fix.exit_code == 4
+
+    res_fix = CliRunner().invoke(app, ["doctor", "--fix"])
+    assert res_fix.exit_code == 1
+
+    # When all checks pass
+    monkeypatch.setattr(doctor_mod, "_probe", lambda fix=False: list(passing_rows))
+    res_no_fix_ok = CliRunner().invoke(app, ["doctor"])
+    assert res_no_fix_ok.exit_code == 0
+
+    res_fix_ok = CliRunner().invoke(app, ["doctor", "--fix"])
+    assert res_fix_ok.exit_code == 0
+
+
+def test_doctor_json_all_rows_have_fixed_and_next():
+    from typer.testing import CliRunner
+
+    from napkin2factory.cli.app import app
+
+    res = CliRunner().invoke(app, ["doctor", "--json"])
+    assert res.exit_code == 0, res.output
+    data = json.loads(res.output)
+    assert "checks" in data
+    for check in data["checks"]:
+        assert isinstance(check["fixed"], bool)
+        if check["status"] == "ok":
+            assert check["next"] is None
+        else:
+            assert isinstance(check["next"], str) and len(check["next"]) > 0
