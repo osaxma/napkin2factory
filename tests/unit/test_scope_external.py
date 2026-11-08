@@ -458,3 +458,19 @@ def test_golden_diff_sections(tmp_path: Path) -> None:
         if os.environ.get("N2F_UPDATE_GOLDENS") != "1":
             pytest.skip("golden diff-sections.json recorded for the first time; re-run to compare")
     assert got == path.read_text(encoding="utf-8"), "diff-sections.json drifted from its golden"
+
+
+def test_a_page_frozen_before_the_workbench_still_lists_its_sections(tmp_path: Path) -> None:
+    """A Revision frozen before v0.9 has the side index, not ``#report-sections`` (S-317)."""
+    old = tmp_path / "index.html"
+    old.write_text(
+        '<nav class="side" aria-label="sections"><div class="group">Product</div>'
+        '<a href="#model" data-sec="model">3D model</a>'
+        '<a href="#wiring" data-sec="wiring">Wiring</a>'
+        '<a class="sub" href="#doc-x">X</a></nav>',
+        encoding="utf-8",
+    )
+    assert page_sections(old) == [
+        {"id": "model", "label": "3D model"},
+        {"id": "wiring", "label": "Wiring"},
+    ]

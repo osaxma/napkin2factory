@@ -35,6 +35,10 @@ TITLEBLOCK_RE = re.compile(r'<g id="titleblock".*?</g>\s*', re.DOTALL)
 CHANGED, ADDED, REMOVED = "changed", "added", "removed"
 #: A ref's report sections and scope states, written beside a scratch build's data.
 SECTIONS_FILE = "sections.json"
+#: The workbench page's embedded section list (v0.9 on): ``[{"id", "label"}]`` as JSON.
+SECTIONS_BLOCK_RE = re.compile(
+    r'<script type="application/json" id="report-sections">(.*?)</script>', re.S
+)
 #: One entry of the report's side index: ``<a href="#id" data-sec="id">label</a>``.
 NAV_ENTRY_RE = re.compile(r'data-sec="([^"]+)"[^>]*>([^<]*)</a>')
 #: Scope states whose domain the package does not include: the cover's "Not included in
@@ -87,12 +91,20 @@ def _data_for_ref(product: Product, ref: str, scratch: Path, render: bool) -> Pa
 def page_sections(report: Path) -> list[dict[str, str]] | None:
     """The sections a report page shows, in page order: ``[{"id", "label"}]``.
 
-    Read from the page's side index, which lists exactly the sections on the page (a
-    section whose ``show`` says no is not there); ``None`` when there is no page.
+    Read from the page's embedded ``#report-sections`` list, or from the side index of a page
+    built before the workbench; both list exactly the sections on the page (a section whose
+    ``show`` says no is not there). ``None`` when there is no page.
     """
     if not report.is_file():
         return None
     page = report.read_text(encoding="utf-8")
+    # the workbench page (v0.9) embeds the list; a page frozen before it has the side index (S-317)
+    block = SECTIONS_BLOCK_RE.search(page)
+    if block:
+        return [
+            {"id": str(e["id"]), "label": str(e["label"]).strip()}
+            for e in json.loads(block.group(1))
+        ]
     nav = page.split('<nav class="side"', 1)
     if len(nav) < 2:
         return None
