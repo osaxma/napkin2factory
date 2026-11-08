@@ -111,6 +111,13 @@ def check_place(region: str | None, units: str | None) -> tuple[str | None, str 
         if field == "units":
             message = f"unknown units {units!r}; choose metric or imperial"
             raise N2FError(f"--{field}: {message}", next="choose one of: metric, imperial") from exc
+        if field == "region":
+            from napkin2factory.calckit.wiring import known_regions
+
+            raise N2FError(
+                f"--{field}: {message}",
+                next=f"ask the owner where it will be built: one of {', '.join(known_regions())}",
+            ) from exc
         raise N2FError(f"--{field}: {message}") from exc
     return code, units or None
 

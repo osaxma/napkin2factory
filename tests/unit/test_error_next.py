@@ -81,6 +81,14 @@ def test_unknown_template_gives_init_help_next(tmp_path: Path) -> None:
     assert data["next"] == "n2f init --help"
 
 
+def test_unknown_region_names_the_known_ones(tmp_path: Path) -> None:
+    """An unknown region says to ask the owner and lists the regions (S-328)."""
+    res = n2f("init", "--region", "XX", str(tmp_path / "p"), "--json")
+    data = json.loads(res.stdout)
+    assert data["next"] != GENERIC_FALLBACK
+    assert data["next"].startswith("ask the owner") and "EU" in data["next"]
+
+
 def test_unknown_checkpoint_gives_checkpoints_next(tmp_path: Path) -> None:
     """An unknown checkpoint directs the agent to `n2f checkpoints`."""
     prod = copy_product(EXAMPLES / "bracket", tmp_path / "bracket", git=True)
