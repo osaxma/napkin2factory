@@ -366,6 +366,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-337 | Wave 7 fixes landed: promotion seeds a model that builds, the bench screened, who makes it, the small rows | in force |
 | S-338 | Every new product starts with a concept card, a spec included (amends N11) | in force |
 | S-339 | Wave 7 persona rerun: two runs, the model came right, two criteria still failed | in force |
+| S-340 | Wave 7 boundary: the count, the timings, `make check` | in force |
 
 ---
 
@@ -2483,3 +2484,6 @@ Amends N11 (v0.2: the napkin stage is optional; "a product born as a spec never 
 
 ## S-339 — Wave 7 persona rerun: two runs, the model came right, two criteria still failed (2026-11-08)
 Report: `docs/reviews/v0.9-wave7-persona-trial.md`. Set-up (S-336 §5) held in both runs: n2f from a wheel, the product folder as the client's first workspace, no approval prompt, a `sandbox-exec` profile keeping the agent out of the repository, the home and the key. Run 1 (`main` 1995c97): the agent skipped the napkin stage for a spec (N11) and hand-wrote the model, which came out wrong; fixed in S-338. Run 2 (`main` 65e7e42): cards, promotion at minute 11, and the seeded model built right; first full result at 41 min, the 1800 mm change 35 min, the undo 1 min, a materials-only list (180.94 / 249.44 USD). Two criteria failed: the agent installed n2f from PyPI and read its source (121 reads, from minute 28.5) after `n2f_sync` cut a validate error to a fragment and `concept switch` failed nine times; and it computed the sag by hand 14 times, mostly during the change. Backlog B-0323 to B-0327. Cost not measured; about 0.64 and 0.70 USD at wave 6's rates. `core/` files: 0.
+
+## S-340 — Wave 7 boundary: the count, the timings, `make check` (2026-11-09)
+Wave 7 (S-336 to S-339). **`core/` files touched in v0.9: 14** (`core/checks/calcs.py` and `core/model/manifest.py` in this wave, S-337). **§11** (scratch copies from the main folder, `N2F_NO_ENGINE=1`, load 2.2 to 2.8): cold builds 15.0 / 20.5 / 51.7 s (table / test stand / kiln); no-change builds 1.16, 1.15 / 1.36, 1.35 / 1.96, 1.93 s; report 2.1 / 3.2 / 4.3 MB against 20 MB; page open to first frame not measured (the page did not change). **`make check` on `main` at 5b99f6f: green, 2,337 passed, 7 skipped, 8 min 49 s, load 3.8 to 9.5.** Correction to S-339: run 2's final model is not right; it is the agent's hand-written layout after two switches (which re-seed nothing), and its legs carry nothing (B-0328, B-0329; the report is corrected). Stopped at the plan's weekly usage limit (96 %); next: B-0323 to B-0329, a third run, then M6. No engine, client or browser left running. `core/` files: 0.
