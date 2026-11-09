@@ -794,6 +794,18 @@ async def ecr(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
                 delta["restored"] = {k: data["restored"].get(k) for k in ("label", "mass", "cost")}
         out |= {"before": before, "after": after, "delta": delta}
     out["next"] = _ecr_next(action, data)
+    if isinstance(data, dict):
+        req_lines = data.get("requirement_lines")
+        if req_lines is None and "requirements" in data:
+            req_lines = [
+                r.get("line") for r in data["requirements"] if isinstance(r, dict) and r.get("line")
+            ]
+        if req_lines is None and data.get("has_structure") is False:
+            req_lines = ["No structure requirement: the sag and tipping are not checked."]
+        if req_lines is not None:
+            out["requirements"] = list(req_lines)[:10]
+            if isinstance(out.get("result"), dict):
+                out["result"]["requirements"] = list(req_lines)[:10]
     return out
 
 
@@ -844,6 +856,8 @@ async def _whole_change(
 
 def _ecr_next(action: str, data: Any) -> dict[str, Any]:
     """What to call after an ``n2f_ecr`` action."""
+    if isinstance(data, dict) and data.get("has_structure") is False:
+        return {"say": "ask the owner for the load and add a structure requirement"}
     ecr_id = data.get("id") if isinstance(data, dict) else None
     if action == "start" and ecr_id:
         return {"tool": "n2f_ecr", "arguments": {"action": "impact", "ecr_id": ecr_id}}

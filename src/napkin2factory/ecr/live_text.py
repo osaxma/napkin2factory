@@ -6,6 +6,7 @@ from typing import Any
 
 from napkin2factory.core.graph.impact import _grouped
 from napkin2factory.core.loader import Product
+from napkin2factory.core.units import compare, format_quantity, parse_quantity
 from napkin2factory.ecr import stale_text
 
 #: How the checks' statuses read to an owner.
@@ -165,23 +166,119 @@ def _rebuilt(impact: dict[str, Any], persona: str) -> list[str]:
     return out
 
 
+def is_structure_req(req: Any) -> bool:
+    """Whether a requirement is checked by a structure.* calc or is of kind structure."""
+    if req is None or getattr(req, "verify", None) is None:
+        return False
+    v = req.verify
+    if getattr(v, "kind", None) == "structure":
+        return True
+    if getattr(v, "kind", None) == "calc":
+        target = str(getattr(v, "target", None) or "")
+        return target.startswith(("calc://structure.", "structure."))
+    return False
+
+
+def parse_figure(msg: str, op: str | None = None) -> tuple[str, str]:
+    """Extract (value_str, limit_str) from a check message."""
+    clean = msg.split(" — ")[0].split(" -- ")[0].strip()
+    if "=" in clean:
+        clean = clean.partition("=")[2].strip()
+    ops = [op] if op else []
+    ops += ["<=", ">=", "==", "!=", "<", ">"]
+    for candidate in ops:
+        if candidate and candidate in clean:
+            val_part, _, limit_part = clean.partition(candidate)
+            return val_part.strip(), limit_part.strip()
+    return clean, ""
+
+
+def figure_verdict(
+    val_str: str, op: str | None, limit_str: str, after_status: str | None = None
+) -> str:
+    """Verdict as 'passes' or 'fails' in plain words."""
+    if after_status == "fail":
+        return "fails"
+    if op and val_str and limit_str and val_str != "not measured":
+        try:
+            q_val = parse_quantity(val_str)
+            q_lim = parse_quantity(limit_str)
+            return "passes" if compare(q_val, op, q_lim) else "fails"
+        except Exception:
+            pass
+    if after_status in ("pass", "signed"):
+        return "passes"
+    return "fails" if after_status == "fail" else "passes"
+
+
+def format_structure_line(
+    req: Any,
+    before_msg: str,
+    after_msg: str,
+    after_status: str | None,
+) -> str:
+    """Format one structure line: '<title>: <before> → <after> against <limit> (<passes|fails>)'."""
+    v = getattr(req, "verify", None)
+    op = v.op if v else None
+    before_val, _ = parse_figure(before_msg, op)
+    after_val, limit_val = parse_figure(after_msg, op)
+    if not before_val:
+        before_val = "not measured"
+    if not after_val:
+        after_val = "not measured"
+    if not limit_val and v and getattr(v, "value", None) is not None:
+        limit_val = format_quantity(v.value)
+    verdict = figure_verdict(after_val, op, limit_val, after_status)
+    title = req.title if req is not None else ""
+    return f"{title}: {before_val} → {after_val} against {limit_val} ({verdict})"
+
+
+def format_req_line(req: Any, before_status: str | None, after_status: str | None) -> str:
+    """Format a non-structure requirement line in plain words."""
+    safety = " **(safety)**" if req and getattr(req, "safety", False) else ""
+    was_w = _status(before_status)
+    now_w = _status(after_status)
+    verdict = now_w if before_status == after_status else f"{was_w} → {now_w}"
+    title = req.title if req is not None else ""
+    return f"{title}{safety}: {verdict}"
+
+
 def _requirements(impact: dict[str, Any]) -> list[str]:
-    rows = impact["requirements"]
+    lines = impact.get("requirement_lines")
     out: list[str] = []
-    if rows:
-        out += ["## Requirements", ""]
-        for r in rows:
-            safety = " **(safety)**" if r["safety"] else ""
-            was, now = r["before"], r["after"]
-            verdict = _status(now) if was == now else f"{_status(was)} → {_status(now)}"
-            out.append(f"- {r['id']} {r['title']}{safety}: {verdict}")
-            if now == "fail" and (r.get("after_message") or r.get("before_message")):
-                before = r.get("before_message") or "no figure"
-                out.append(
-                    f"  - figures: before {before}; after {r.get('after_message') or 'none'}"
-                )
-        out.append("")
-    broken = [c for c in impact["other_checks"] if c["after"] == "fail"]
+    if lines is not None:
+        if lines:
+            out += ["## Requirements", ""]
+            for line in lines:
+                out.append(f"- {line}")
+            out.append("")
+        elif impact.get("has_structure") is False:
+            out += [
+                "## Requirements",
+                "",
+                "- No structure requirement: the sag and tipping are not checked.",
+                "",
+            ]
+    else:
+        rows = impact.get("requirements", [])
+        if rows or impact.get("has_structure") is False:
+            out += ["## Requirements", ""]
+            if impact.get("has_structure") is False:
+                out.append("- No structure requirement: the sag and tipping are not checked.")
+            for r in rows:
+                if r.get("line"):
+                    out.append(f"- {r['line']}")
+                else:
+                    safety = " **(safety)**" if r.get("safety") else ""
+                    was, now = r.get("before"), r.get("after")
+                    verdict = _status(now) if was == now else f"{_status(was)} → {_status(now)}"
+                    out.append(f"- {r.get('id', '')} {r.get('title', '')}{safety}: {verdict}")
+                    if now == "fail" and (r.get("after_message") or r.get("before_message")):
+                        before = r.get("before_message") or "no figure"
+                        after = r.get("after_message") or "none"
+                        out.append(f"  - figures: before {before}; after {after}")
+            out.append("")
+    broken = [c for c in impact.get("other_checks", []) if c.get("after") == "fail"]
     if broken:
         out += ["## Other checks that now fail", ""]
         out += [f"- {c['message'] or c['id']}" for c in broken]
@@ -217,13 +314,15 @@ def _signoffs(impact: dict[str, Any]) -> list[str]:
 
 def failing(impact: dict[str, Any]) -> list[str]:
     """The requirements and other checks this change leaves failing."""
-    ids = [r["id"] for r in impact["requirements"] if r["after"] == "fail"]
-    ids += [c["id"] for c in impact["other_checks"] if c["after"] == "fail"]
+    ids = [r["id"] for r in impact.get("requirements", []) if r.get("after") == "fail"]
+    ids += [c["id"] for c in impact.get("other_checks", []) if c.get("after") == "fail"]
     return ids
 
 
 def next_step(impact: dict[str, Any], ecr_id: str, approve_first: bool = True) -> str:
     """What to do next: on a failure, drop or fix it; otherwise approve and close."""
+    if impact.get("has_structure") is False:
+        return "ask the owner for the load and add a structure requirement"
     bad = failing(impact)
     if bad:
         names = ", ".join(i.removeprefix("req://") for i in bad[:5])

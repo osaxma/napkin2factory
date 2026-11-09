@@ -33,7 +33,7 @@ from napkin2factory.core.graph.runner import explain_build, run_build
 from napkin2factory.core.loader import Product, load_product
 from napkin2factory.core.model import Ecr
 from napkin2factory.core.vcs import Vcs
-from napkin2factory.ecr import stale_text
+from napkin2factory.ecr import live_text, stale_text
 from napkin2factory.ecr.checkpointing import APPROVAL_HASH_EXCLUDE
 
 #: The folder whose files are not part of a change (its own record, S-252).
@@ -102,7 +102,7 @@ def figures(product: Product, build_dir: Path) -> dict[str, Any]:
         if r.get("status") == "fail" and "id" in r
     }
     out["req_messages"] = {
-        str(r["id"]): str(r.get("persona_message") or r.get("message") or "")
+        str(r["id"]): str(r.get("message") or r.get("persona_message") or "")
         for r in checks.get("results", [])
         if str(r.get("id", "")).startswith("req://")
     }
@@ -336,20 +336,47 @@ def _block(
         for cid in set(base["checks"]) | set(now["checks"])
         if cid.startswith("req://") and base["checks"].get(cid) != now["checks"].get(cid)
     }
+    has_structure = any(live_text.is_structure_req(r) for r in product.requirements.values())
+    struct_rids = sorted(
+        rid for rid, r in product.requirements.items() if live_text.is_structure_req(r)
+    )
+    other_rids = sorted(rid for rid in (set(affected) | moved) if rid not in set(struct_rids))
+    all_rids = struct_rids + other_rids
+
     requirements = []
-    for rid in sorted(set(affected) | moved):
+    requirement_lines = []
+    if not has_structure:
+        requirement_lines.append("No structure requirement: the sag and tipping are not checked.")
+
+    for rid in all_rids:
         req = product.requirements.get(rid)
+        is_struct = live_text.is_structure_req(req)
+        before_msg = base.get("req_messages", {}).get(f"req://{rid}", "")
+        after_msg = now.get("req_messages", {}).get(f"req://{rid}", "")
+        before_stat = base["checks"].get(f"req://{rid}")
+        after_stat = now["checks"].get(f"req://{rid}")
+        if is_struct:
+            line = live_text.format_structure_line(req, before_msg, after_msg, after_stat)
+        else:
+            line = live_text.format_req_line(req, before_stat, after_stat)
+        requirement_lines.append(line)
         requirements.append(
             {
                 "id": rid,
                 "title": req.title if req is not None else "",
-                "why": affected[rid].why if rid in affected else "its result moved",
-                "before": base["checks"].get(f"req://{rid}"),
-                "after": now["checks"].get(f"req://{rid}"),
+                "why": (
+                    affected[rid].why
+                    if rid in affected
+                    else ("structure requirement" if is_struct else "its result moved")
+                ),
+                "before": before_stat,
+                "after": after_stat,
                 "safety": bool(req.safety) if req is not None else False,
                 # the figures behind a verdict, as the check wrote them (gate L, S-281)
-                "before_message": base.get("req_messages", {}).get(f"req://{rid}", ""),
-                "after_message": now.get("req_messages", {}).get(f"req://{rid}", ""),
+                "before_message": before_msg,
+                "after_message": after_msg,
+                "structure": is_struct,
+                "line": line,
             }
         )
     other_checks = [
@@ -392,6 +419,8 @@ def _block(
         "rules": sorted(rebuilt),
         "rebuilt": rebuilt,
         "requirements": requirements,
+        "requirement_lines": requirement_lines,
+        "has_structure": has_structure,
         "other_checks": other_checks,
         "signoffs_invalidated": redo,
         "signoffs_waiting": waiting,

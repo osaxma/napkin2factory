@@ -371,6 +371,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-342 | `concept switch` refuses a missing or broken parameters file before changing anything | in force |
 | S-343 | The napkin overlap screen tests a frame kit's members (B-0323) | in force |
 | S-344 | Promotion reports a limit the card already breaks instead of seeding it (B-0324) | in force |
+| S-345 | A quick change shows structure figures first (B-0327) | in force |
 
 ---
 
@@ -2503,3 +2504,6 @@ Closes B-0323. In the wave 7 persona trial (S-339), C-004's cross member ran thr
 
 ## S-344 — Promotion reports a limit the card already breaks instead of seeding it (2026-11-09)
 Closes B-0324. In the wave 7 persona trial (S-339), promotion seeded REQ-008 "mass at most 33 kg" (the card's one-person lift limit) although the card's own screening put the bench at 76.5 kg; nothing at the napkin said so, and the seeded model failed its own requirement. When promoting without `--override`, `_check_conflict` in `concepts/promote/verb.py` now compares each planned requirement's limit against the card's recorded screening figures (mass, cost, sag, dimensions, factors). A broken limit is not written to `model/requirements.yaml`, but reported under `conflicts` in `PromotionResult` (`{title, limit, figure, say}`) and printed in the CLI plain output. When conflicts exist, `result.next` directs asking the owner before building: drop the limit, or change the design. `core/` files: 0.
+
+## S-345 — A quick change shows structure figures first (2026-11-09)
+Closes B-0327. In the wave 7 persona trial (S-339), after an 1800 mm change the agent computed the sag by hand 14 times. `live_impact.py` now identifies structure requirements (kind `structure` or target `calc://structure.*`) and places them first in the impact report, formatting each as `<title>: <before> → <after> against <limit> (<passes|fails>)` in plain words with units. When a product has no structure requirement, the impact adds 'No structure requirement: the sag and tipping are not checked.' and `next` directs asking the owner for the load and adding one. In `mcp/combined.py`, `n2f_ecr` keeps the requirement lines first and whole in its summary, capped at 10. `core/` files: 0.
