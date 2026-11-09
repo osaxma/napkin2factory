@@ -16,8 +16,10 @@ from napkin2factory.concepts.promote.common import (
     _list_indent,
     _next_id,
     _rel,
+    _shown,
     _yaml_block,
     append_reason,
+    display_units,
     held_requirement,
 )
 from napkin2factory.concepts.promote.decision import (
@@ -39,6 +41,7 @@ from napkin2factory.core import concepts as cm
 from napkin2factory.core.errors import GateBlocked, N2FError
 from napkin2factory.core.model.concepts import ConceptCard
 from napkin2factory.core.packs import product_words
+from napkin2factory.core.units import is_quantity, parse_quantity
 
 
 def _refuse_red(card: ConceptCard) -> GateBlocked:
@@ -57,6 +60,228 @@ def _top_assembly(product: Any, notes: list[str]) -> str | None:
     if len(tops) > 1:
         notes.append(f"more than one top assembly ({', '.join(tops)}): allocated to {tops[0]}")
     return tops[0] if tops else None
+
+
+def _is_broken(fig_mag: float, lim_mag: float, op: str) -> bool:
+    if op == "<":
+        return fig_mag >= lim_mag
+    if op == "<=":
+        return fig_mag > lim_mag
+    if op == ">":
+        return fig_mag <= lim_mag
+    if op == ">=":
+        return fig_mag < lim_mag
+    return False
+
+
+def _check_conflict(
+    card: ConceptCard,
+    about: str,
+    data: dict[str, Any],
+    root: Path | None = None,
+    override: bool = False,
+) -> dict[str, Any] | None:
+    """Check whether a planned requirement conflicts with the card's screening figures (B-0324).
+
+    If the card's recorded screening figure breaks the limit in the requirement,
+    returns ``{title, limit, figure, say}``; otherwise None. An explicit override seeds the
+    requirement anyway.
+    """
+    if override or card.screening is None:
+        return None
+    verify = data.get("verify")
+    if not isinstance(verify, dict):
+        return None
+
+    op = verify.get("op")
+    raw_limit = verify.get("value")
+    target = str(verify.get("target") or "")
+    category = str(data.get("category") or "")
+    title_lower = str(data.get("title") or "").lower()
+
+    # 1. Mass / weight
+    if about == "weight" or target.endswith("#props.mass") or category == "mass":
+        if raw_limit is None:
+            ml = card.site.get("mass_limit")
+            if not is_quantity(ml) and isinstance(card.site.get("lift_class"), str):
+                from napkin2factory.calckit import load_table
+
+                lbl = card.site["lift_class"]
+                row = next((r for r in load_table("lift_classes") if r["label"] == lbl), None)
+                if row is not None and row.get("max_kg") is not None:
+                    raw_limit = f"{row['max_kg']} kg"
+            elif ml is not None:
+                raw_limit = ml
+            op = "<"
+
+        if raw_limit is not None and op:
+            lv = card.screening.values.get("total_mass") or card.screening.values.get("mass")
+            if lv is not None:
+                try:
+                    limit = parse_quantity(raw_limit)
+                    figure = parse_quantity(lv.value)
+                    fig_mag = figure.to(limit.units).magnitude
+                    lim_mag = limit.magnitude
+                    if _is_broken(fig_mag, lim_mag, op):
+                        units = display_units(root)
+                        fig_str = _shown(figure, units)
+                        lim_str = _shown(limit, units)
+                        lift_class = card.site.get("lift_class")
+                        limit_name = f"{lift_class} lift limit" if lift_class else "lift limit"
+                        say = (
+                            f"The design weighs {fig_str} on the napkin, over the "
+                            f"{lim_str} {limit_name}. Ask the owner: drop the limit, "
+                            "or change the design."
+                        )
+                        return {
+                            "title": data["title"],
+                            "limit": lim_str,
+                            "figure": fig_str,
+                            "say": say,
+                        }
+                except Exception:
+                    pass
+
+    # 2. Cost / budget
+    if about == "cost" or target.endswith("#total_cost") or category == "cost":
+        if raw_limit is None:
+            raw_limit = card.site.get("budget")
+            op = "<="
+        if raw_limit is not None and op:
+            lv = (
+                card.screening.estimates.get("cost_high")
+                or card.screening.values.get("cost_high")
+                or card.screening.estimates.get("cost_low")
+                or card.screening.values.get("cost_low")
+            )
+            if lv is not None:
+                try:
+                    limit = parse_quantity(raw_limit)
+                    figure = parse_quantity(lv.value)
+                    fig_mag = figure.to(limit.units).magnitude
+                    lim_mag = limit.magnitude
+                    if _is_broken(fig_mag, lim_mag, op):
+                        units = display_units(root)
+                        fig_str = _shown(figure, units)
+                        lim_str = _shown(limit, units)
+                        say = (
+                            f"The design costs {fig_str} on the napkin, over the "
+                            f"{lim_str} budget. Ask the owner: drop the limit, "
+                            "or change the design."
+                        )
+                        return {
+                            "title": data["title"],
+                            "limit": lim_str,
+                            "figure": fig_str,
+                            "say": say,
+                        }
+                except Exception:
+                    pass
+
+    # 3. Sag / deflection
+    if about == "sag" or target.endswith("#props.deflection"):
+        if raw_limit is None:
+            raw_limit = card.site.get("max_deflection")
+            op = "<="
+        if raw_limit is not None and op:
+            lv = card.screening.computed.get("deflection") or card.screening.values.get(
+                "deflection"
+            )
+            if lv is not None:
+                try:
+                    limit = parse_quantity(raw_limit)
+                    figure = parse_quantity(lv.value)
+                    fig_mag = figure.to(limit.units).magnitude
+                    lim_mag = limit.magnitude
+                    if _is_broken(fig_mag, lim_mag, op):
+                        units = display_units(root)
+                        fig_str = _shown(figure, units)
+                        lim_str = _shown(limit, units)
+                        say = (
+                            f"The design sags {fig_str} on the napkin, over the "
+                            f"{lim_str} sag limit. Ask the owner: drop the limit, "
+                            "or change the design."
+                        )
+                        return {
+                            "title": data["title"],
+                            "limit": lim_str,
+                            "figure": fig_str,
+                            "say": say,
+                        }
+                except Exception:
+                    pass
+
+    # 4. Dimensions / space
+    if about == "space":
+        if "bbox.x" in target or "width" in title_lower:
+            name = "width"
+        elif "bbox.y" in target or "depth" in title_lower or "deep" in title_lower:
+            name = "depth"
+        elif "bbox.z" in target or "height" in title_lower or "tall" in title_lower:
+            name = "height"
+        else:
+            name = None
+
+        if name:
+            if raw_limit is None:
+                raw_limit = card.site.get(name)
+                op = "<="
+            if raw_limit is not None and op:
+                word = "wide" if name == "width" else ("deep" if name == "depth" else "tall")
+                lv = card.screening.computed.get(name) or card.screening.values.get(name)
+                if lv is not None:
+                    try:
+                        limit = parse_quantity(raw_limit)
+                        figure = parse_quantity(lv.value)
+                        fig_mag = figure.to(limit.units).magnitude
+                        lim_mag = limit.magnitude
+                        if _is_broken(fig_mag, lim_mag, op):
+                            units = display_units(root)
+                            fig_str = _shown(figure, units)
+                            lim_str = _shown(limit, units)
+                            say = (
+                                f"The design is {fig_str} {word} on the napkin, over the "
+                                f"{lim_str} space limit. Ask the owner: drop the limit, "
+                                "or change the design."
+                            )
+                            return {
+                                "title": data["title"],
+                                "limit": lim_str,
+                                "figure": fig_str,
+                                "say": say,
+                            }
+                    except Exception:
+                        pass
+
+    # 5. Structural safety factors
+    if about in ("yield", "buckling", "tip-over"):
+        factor_name = target.split("#props.")[-1] if "#props." in target else f"{about}_factor"
+        if raw_limit is not None and op:
+            lv = card.screening.computed.get(factor_name) or card.screening.values.get(factor_name)
+            if lv is not None:
+                try:
+                    limit = parse_quantity(raw_limit)
+                    figure = parse_quantity(lv.value)
+                    fig_mag = figure.magnitude
+                    lim_mag = limit.magnitude
+                    if _is_broken(fig_mag, lim_mag, op):
+                        fig_str = f"{fig_mag:g}"
+                        lim_str = f"{lim_mag:g}"
+                        say = (
+                            f"The structural factor for {about} is {fig_str} on the napkin, "
+                            f"under the {lim_str} minimum. Ask the owner: drop the limit, "
+                            "or change the design."
+                        )
+                        return {
+                            "title": data["title"],
+                            "limit": lim_str,
+                            "figure": fig_str,
+                            "say": say,
+                        }
+                except Exception:
+                    pass
+
+    return None
 
 
 def _parked_sibling_built(root: Path, card: ConceptCard, at: str) -> dict[str, Any]:
@@ -212,10 +437,15 @@ def promote(
     req_ids: list[str] = []
     existing_reqs = list(product.requirements)
     new_reqs: list[NewRequirement] = []
+    conflicts: list[dict[str, Any]] = []
     req_text = paths.requirements.read_text(encoding="utf-8")
     indent = _list_indent(req_text, "requirements")
     blocks = []
     for about, data in planned:
+        conflict = _check_conflict(card, about, data, root, override=override)
+        if conflict is not None:
+            conflicts.append(conflict)
+            continue
         asked = held_requirement(product.requirements, data["verify"], card_field=about)
         if asked is not None:  # the model already asks this: no second copy to sign off (S-277)
             notes.append(f"{asked} already asks this: {product.requirements[asked].title}")
@@ -399,6 +629,7 @@ def promote(
         override=override,
         params=seeded,
         requirements=new_reqs,
+        conflicts=conflicts,
         style_created=style_created,
         rejected=rejected,
         parked=parked,

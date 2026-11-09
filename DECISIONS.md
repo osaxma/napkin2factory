@@ -370,6 +370,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-341 | n2f_sync returns a failed validate's problems whole | in force |
 | S-342 | `concept switch` refuses a missing or broken parameters file before changing anything | in force |
 | S-343 | The napkin overlap screen tests a frame kit's members (B-0323) | in force |
+| S-344 | Promotion reports a limit the card already breaks instead of seeding it (B-0324) | in force |
 
 ---
 
@@ -2499,3 +2500,6 @@ Closes B-0326. In the wave 7 persona rerun (S-339), `concept switch` failed nine
 
 ## S-343 — The napkin overlap screen tests a frame kit's members (2026-11-09)
 Closes B-0323. In the wave 7 persona trial (S-339), C-004's cross member ran through a frame kit's member; `rough-shapes-overlap` skipped frames as hollow shapes, screened green, and the seeded model failed interference (50,388 mm³). `overlaps` in `concepts/screens/overlap.py` now decomposes a `frame` piece into its members' axis-aligned boxes in card coordinates using `geometry/kit/frame.py` (`pieces`, `_solid_span`, `_box`). Exact silhouettes (block, plate, solid tube) and other frames are compared against each member box, reporting overlaps above `THRESHOLD_MM3` and naming the frame and member (`<frame>'s <member>`), while pieces in the frame's open space or touching on a face pass. `core/` files: 0.
+
+## S-344 — Promotion reports a limit the card already breaks instead of seeding it (2026-11-09)
+Closes B-0324. In the wave 7 persona trial (S-339), promotion seeded REQ-008 "mass at most 33 kg" (the card's one-person lift limit) although the card's own screening put the bench at 76.5 kg; nothing at the napkin said so, and the seeded model failed its own requirement. When promoting without `--override`, `_check_conflict` in `concepts/promote/verb.py` now compares each planned requirement's limit against the card's recorded screening figures (mass, cost, sag, dimensions, factors). A broken limit is not written to `model/requirements.yaml`, but reported under `conflicts` in `PromotionResult` (`{title, limit, figure, say}`) and printed in the CLI plain output. When conflicts exist, `result.next` directs asking the owner before building: drop the limit, or change the design. `core/` files: 0.

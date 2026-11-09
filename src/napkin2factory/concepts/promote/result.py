@@ -44,9 +44,21 @@ class PromotionResult:
     space: str = "space"
     #: what the card's rough shapes became: parts, sizes, layout (B-0316, S-336)
     seed: SeedPlan = field(default_factory=SeedPlan)
+    #: limits the card's screening already fails, reported for the owner instead of seeded (B-0324)
+    conflicts: list[dict[str, Any]] = field(default_factory=list)
 
     #: the command that builds what promotion seeded (the MCP tool ``n2f_sync`` runs it)
     NEXT = "n2f build"
+
+    @property
+    def next(self) -> str:
+        """The command or next action: ask about conflicts, else build."""
+        if self.conflicts:
+            return (
+                "Ask the owner about each conflict before building: "
+                "drop the limit, or change the design."
+            )
+        return self.NEXT
 
     def summary(self) -> str:
         """The owner's line: what changed, what was kept, what to do next."""
@@ -83,7 +95,8 @@ class PromotionResult:
         )
         style = "wrote style.yaml" if self.style_created else "updated style.yaml"
         head = f"{self.card_id} is now the design direction ({self.dec_id})."
-        if not self.params and not self.requirements:  # nothing seeded: say so (gate B, B4)
+        if not self.params and not self.requirements and not self.conflicts:
+            # nothing seeded: say so (gate B, B4)
             line = (
                 f"{head} The card had no sizes or site limits, so no numbers or requirements "
                 "were added; the look is recorded in style.yaml."
@@ -112,6 +125,9 @@ class PromotionResult:
             verb = "is" if n == 1 else "are"
             noun = "an alternative" if n == 1 else "alternatives"
             line += f" {names} {verb} kept as {noun}."
+        if self.conflicts:
+            conflict_lines = "\n".join(f"  conflict: {c['say']}" for c in self.conflicts)
+            return f"{line}\n{conflict_lines}\nNext: {self.next}"
         return line + " Next: `n2f build && n2f check`."
 
     def _seeded_dict(self) -> dict[str, Any]:
@@ -167,6 +183,7 @@ class PromotionResult:
                 }
                 for r in self.requirements
             ],
+            "conflicts": self.conflicts,
             "style": {"file": self.style_file, "created": self.style_created},
             "rejected": self.rejected,
             "parked": self.parked,
@@ -189,7 +206,7 @@ class PromotionResult:
             ],
             "modules": self.modules,
             "seeded": self._seeded_dict(),
-            "next": self.NEXT,
+            "next": self.next,
             "suggestion": self.suggestion,
             "notes": self.notes,
             "summary": self.summary(),
