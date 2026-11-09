@@ -240,7 +240,9 @@ def format_req_line(req: Any, before_status: str | None, after_status: str | Non
     now_w = _status(after_status)
     verdict = now_w if before_status == after_status else f"{was_w} → {now_w}"
     title = req.title if req is not None else ""
-    return f"{title}{safety}: {verdict}"
+    rid = getattr(req, "id", "") if req is not None else ""
+    prefix = f"{rid} " if rid else ""
+    return f"{prefix}{title}{safety}: {verdict}"
 
 
 def _requirements(impact: dict[str, Any]) -> list[str]:
@@ -251,6 +253,18 @@ def _requirements(impact: dict[str, Any]) -> list[str]:
             out += ["## Requirements", ""]
             for line in lines:
                 out.append(f"- {line}")
+                r = None
+                for req_item in impact.get("requirements", []):
+                    rid = req_item.get("id", "")
+                    title = req_item.get("title", "")
+                    if (rid and rid in line) or (title and title in line):
+                        r = req_item
+                        break
+                if r and r.get("after") == "fail" and not r.get("structure"):
+                    if r.get("after_message") or r.get("before_message"):
+                        before = r.get("before_message") or "no figure"
+                        after = r.get("after_message") or "none"
+                        out.append(f"  - figures: before {before}; after {after}")
             out.append("")
         elif impact.get("has_structure") is False:
             out += [
@@ -321,8 +335,6 @@ def failing(impact: dict[str, Any]) -> list[str]:
 
 def next_step(impact: dict[str, Any], ecr_id: str, approve_first: bool = True) -> str:
     """What to do next: on a failure, drop or fix it; otherwise approve and close."""
-    if impact.get("has_structure") is False:
-        return "ask the owner for the load and add a structure requirement"
     bad = failing(impact)
     if bad:
         names = ", ".join(i.removeprefix("req://") for i in bad[:5])
@@ -330,6 +342,8 @@ def next_step(impact: dict[str, Any], ecr_id: str, approve_first: bool = True) -
             f"this change makes {names} fail, and a failing change cannot close: drop it with "
             f"`n2f ecr abort {ecr_id}`, or edit the files and run `n2f ecr impact {ecr_id}` again"
         )
+    if impact.get("has_structure") is False:
+        return "ask the owner for the load and add a structure requirement"
     if approve_first:
         return (
             f"`n2f ecr approve {ecr_id} --by <name>`, or keep editing and run "

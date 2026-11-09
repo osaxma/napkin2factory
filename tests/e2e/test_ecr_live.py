@@ -279,8 +279,7 @@ def test_quick(root: Path) -> None:
     r = _run("ecr", "quick", "--set", "param://bracket-width=70mm", "--reason", "stiffer", cwd=root)
     out = " ".join(r.stdout.split())
     assert "started ECR-001" in out and "Mass (computed):" in out
-    assert "n2f ecr approve ECR-001 --by <name> && n2f ecr close ECR-001" in out
-    assert "n2f ecr abort ECR-001" in out
+    assert "ask the owner for the load and add a structure requirement" in out
     data = _ecr(root)
     assert data["status"] == "draft" and data["impact"]["mass"]["delta"] > 0
     assert data["reason"] == "stiffer" and data["title"] == "Set bracket-width to 70mm"
