@@ -74,7 +74,7 @@ def test_colour_and_width_follow_each_request_not_the_last_one(product: Path) ->
         r = n2f("status", cwd=product, process=True, env={**env, **extra})
         return r.returncode, r.stdout, r.stderr
 
-    colour = {"FORCE_COLOR": "1", "COLUMNS": "60"}
+    colour = {"FORCE_COLOR": "1", "TERM": "xterm-256color", "COLUMNS": "60"}
     plain = {"COLUMNS": "200"}
     cold_colour, cold_plain = run(colour, False), run(plain, False)
     assert "\x1b[" in cold_colour[1] and "\x1b[" not in cold_plain[1]
