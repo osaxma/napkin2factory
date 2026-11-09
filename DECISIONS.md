@@ -373,6 +373,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-344 | Promotion reports a limit the card already breaks instead of seeding it (B-0324) | in force |
 | S-345 | A quick change shows structure figures first (B-0327) | in force |
 | S-346 | A check that every part is held up down to the floor (B-0328) | in force |
+| S-347 | Wave 8 boundary: the tasks, make check, the handoff | in force |
 
 ---
 
@@ -2511,3 +2512,6 @@ Closes B-0327. In the wave 7 persona trial (S-339), after an 1800 mm change the 
 
 ## S-346 — A check that every part is held up down to the floor (2026-11-09)
 Closes B-0328. In each assembly, placed instances' world bounding boxes are checked for connection to ground (lowest min Z within 0.5 mm). Two boxes connect when they touch on a face patch >= 1 mm² (gap <= 0.5 mm on one axis) or a declared interface names both parts across a gap of 0.5 mm to 30 mm. Walking connections from ground identifies unsupported parts, failing `support://<aid>` and naming each unsupported part. Registered in `domains/mechanical/support.py` after interference. `core/` files: 0.
+
+## S-347 — Wave 8 boundary: the tasks, make check, the handoff (2026-11-09)
+Wave 8 closes open rows from the persona trial (S-339): T1–T6 landed (S-341 B-0325, S-342 B-0326, S-343 B-0323, S-344 B-0324, S-345 B-0327, S-346 B-0328), T7 done (sandbox blocks package installs), T8 landed (B-0329 design note). Commits: 4611e01 (runbook), 1d52ca6 (B-0325), 72d44ce (B-0326), 2becc77 (B-0323), 38185e0 (B-0324), bb00f94 (B-0327), 285236d (B-0328), abaf11e (B-0329). **`core/` files touched in v0.9: 14** (unchanged; 0 in wave 8; `core` diff since abd544b is empty). **`make check` on `main` at abaf11e: 5 failed, 2,349 passed, 7 skipped, 1 warning in 494.44 s (8 min 14 s), exit 2**; failures: `test_migrate_change_requests`, `test_ecr_live` (2 tests), `test_engine_warm_cold`, `test_benchmarks` [test-stand]. Next: fix the 5 failures on `main`, wave 8 review, B-0329 implementation, third persona run, M6. No engine or browser left running. `core/` files: 0.
