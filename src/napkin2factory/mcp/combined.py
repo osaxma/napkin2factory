@@ -618,13 +618,65 @@ async def context(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _validate_problem(problem: Any, folder: Path) -> dict[str, Any]:
+    """One validate finding as an object with relative file, field, whole message and fix."""
+    if not isinstance(problem, dict):
+        return {"file": "", "field": "", "message": str(problem), "fix": ""}
+    file_val = ""
+    if problem.get("file"):
+        path = Path(str(problem["file"]))
+        try:
+            if path.is_relative_to(folder):
+                file_val = str(path.relative_to(folder))
+            elif path.resolve().is_relative_to(folder.resolve()):
+                file_val = str(path.resolve().relative_to(folder.resolve()))
+            else:
+                file_val = str(path)
+        except (ValueError, RuntimeError):
+            file_val = str(path)
+
+    raw_msg = str(problem.get("message", ""))
+    field_val = str(problem.get("field", ""))
+    if field_val:
+        message_val = raw_msg
+    elif ": " in raw_msg:
+        field_val, message_val = raw_msg.split(": ", 1)
+    else:
+        field_val = str(problem.get("subject", ""))
+        message_val = raw_msg
+
+    if field_val == "(top level)" and problem.get("subject"):
+        field_val = str(problem["subject"])
+
+    fix_val = str(problem.get("fix") or problem.get("hint") or "")
+    return {
+        "file": file_val,
+        "field": field_val,
+        "message": message_val,
+        "fix": fix_val,
+    }
+
+
 async def sync(c: _Call, args: dict[str, Any]) -> dict[str, Any]:
     """validate, lint, build, check, status: the gates and what fails."""
     given = _only(args, ("target", "part", "render"), {"target": str, "part": str, "render": bool})
     build_args = {k: v for k, v in given.items() if k in ("target", "part")}
     if given.get("render") is False:
         build_args["no_render"] = True
-    await c.go(("validate",), {})
+    val = await c.go(("validate",), {}, ok_exits=(0, 1))
+    if (isinstance(val, dict) and not val.get("ok", True)) or c.steps[-1].exit != 0:
+        if isinstance(val, dict) and "problems" in val:
+            raw_problems = val.get("problems", [])
+            problems = [_validate_problem(p, c.folder) for p in raw_problems]
+            out: dict[str, Any] = {"ok": False, "problems": problems[:20]}
+            if len(problems) > 20:
+                out["more"] = len(problems) - 20
+            first = problems[0] if problems else {"field": "model", "file": "model", "message": ""}
+            msg_120 = first["message"][:120]
+            target = f"{first['field']} in {first['file']}"
+            out["next"] = {"say": f"Fix {target} ({msg_120}), then call n2f_sync again."}
+            return out
+        raise _Stop(c.steps[-1], _error_of(c.steps[-1]), len(c.steps))
     await c.go(("lint",), {})
     await c.go(("build",), build_args)
     check = await c.go(("check",), {}, ok_exits=(0, CHECK_EXIT))
@@ -1144,8 +1196,12 @@ def _render(payload: dict[str, Any], full: bool) -> str:
                 break
             key = max(lists, key=lambda k: len(json.dumps(payload[k])))
             payload[key].pop()
-            more = payload.setdefault("more", {})
-            more[key] = more.get(key, 0) + 1
+            if isinstance(payload.get("more"), int):
+                payload["more"] += 1
+            elif isinstance(payload.get("more"), dict):
+                payload["more"][key] = payload["more"].get(key, 0) + 1
+            else:
+                payload["more"] = {key: 1}
             text = json.dumps(payload, ensure_ascii=False)
         return text
     if len(text) <= MAX_TEXT:

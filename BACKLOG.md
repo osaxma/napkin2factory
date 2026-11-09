@@ -136,7 +136,6 @@ entry that closed them. Ids are never reused.
 | B-0315 | `n2f undo` right after `n2f ecr quick` first saves the open request's record as a checkpoint and undoes only that; the edit itself takes a second `undo` (and `redo` two). An owner or agent expects one. The MCP tool `n2f_ecr` folds the steps of one request (S-329); the CLI does not | wave 6 review of M8 |
 | B-0323 | `rough-shapes-overlap` compares blocks, plates and tubes only, so a cross member through a `frame` kit's member screens green and the seeded model fails interference (wave 7 run 2: 50,388 mm³). Test a piece against each frame member's own box | S-339 |
 | B-0324 | A requirement promotion seeds from the card (a 33 kg lift limit) can contradict the card's own screening (76.5 kg) with nothing said at the napkin; say it there, or seed it only when the screening passes it | S-339 |
-| B-0325 | `n2f_sync` summarises a failed `n2f validate` as a JSON fragment (`"assemblies": 1, … } }`); give the problems whole (file, field, message, fix), as S-333 did for screening reasons | S-339 |
 | B-0326 | `concept switch` fails with `engine_internal` `FileNotFoundError: model/parameters.yaml` (exit 70) when the file is missing or being rewritten; refuse with the file to restore and the next step, and say once which model problem blocks it | S-339 |
 | B-0327 | After a size change the agent computed the sag by hand: `ecr quick`'s impact should show the `structure` requirements' new figures first, and a product promoted before S-337 has none | S-339 |
 | B-0328 | No check finds an unsupported part: in wave 7 run 2 the legs stopped at 735 mm under top rails at 735 to 824 mm between the leg lines, so the top rested on nothing, and the screens and `n2f check` passed it. Check that every part bears on another down to the floor (a face contact, not an edge) | S-339 |
@@ -152,6 +151,7 @@ entry that closed them. Ids are never reused.
 ## Closed
 
 | id | item | closed by |
+| B-0325 | `n2f_sync` summarises a failed `n2f validate` as a JSON fragment (`"assemblies": 1, … } }`); give the problems whole (file, field, message, fix), as S-333 did for screening reasons | closed by S-341 |
 | B-0176 | In the report each diagram sits at full size (2313 px in a 694 px column): only the supply and terminal block show without sideways scrolling | closed by S-319 (M3b: pan/zoom frames fit the column; the repeated id dropped; tested) |
 | B-0180 | `id="wiring"` appears twice in the report | closed by S-319 (M3b: pan/zoom frames fit the column; the repeated id dropped; tested) |
 | B-0299 | The report has no build-step player, shows none of the cut lists the build writes, and has no print stylesheet | closed by S-320 (M3c: the player, the cut lists, `print.css.j2`) |

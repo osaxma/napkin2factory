@@ -367,6 +367,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-338 | Every new product starts with a concept card, a spec included (amends N11) | in force |
 | S-339 | Wave 7 persona rerun: two runs, the model came right, two criteria still failed | in force |
 | S-340 | Wave 7 boundary: the count, the timings, `make check` | in force |
+| S-341 | n2f_sync returns a failed validate's problems whole | in force |
 
 ---
 
@@ -2487,3 +2488,6 @@ Report: `docs/reviews/v0.9-wave7-persona-trial.md`. Set-up (S-336 §5) held in b
 
 ## S-340 — Wave 7 boundary: the count, the timings, `make check` (2026-11-09)
 Wave 7 (S-336 to S-339). **`core/` files touched in v0.9: 14** (`core/checks/calcs.py` and `core/model/manifest.py` in this wave, S-337). **§11** (scratch copies from the main folder, `N2F_NO_ENGINE=1`, load 2.2 to 2.8): cold builds 15.0 / 20.5 / 51.7 s (table / test stand / kiln); no-change builds 1.16, 1.15 / 1.36, 1.35 / 1.96, 1.93 s; report 2.1 / 3.2 / 4.3 MB against 20 MB; page open to first frame not measured (the page did not change). **`make check` on `main` at 5b99f6f: green, 2,337 passed, 7 skipped, 8 min 49 s, load 3.8 to 9.5.** Correction to S-339: run 2's final model is not right; it is the agent's hand-written layout after two switches (which re-seed nothing), and its legs carry nothing (B-0328, B-0329; the report is corrected). Stopped at the plan's weekly usage limit (96 %); next: B-0323 to B-0329, a third run, then M6. No engine, client or browser left running. `core/` files: 0.
+
+## S-341 — n2f_sync returns a failed validate's problems whole (2026-11-09)
+Closes B-0325. In the wave 7 persona rerun (S-339), `n2f_sync` summarised a failed `n2f validate` as a tail JSON fragment (`"assemblies": 1, … } }`), hiding the wrong field and prompting 121 source reads. `sync()` in `mcp/combined.py` now runs validate with `ok_exits=(0, 1)`. On failure, it extracts `problems` as `{file, field, message, fix}` with relative paths and unclipped messages, capped at 20 with `more: <n>` when there are more, and sets `next` to advise fixing the first problem's field in its file. `core/` files: 0.
