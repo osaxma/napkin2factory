@@ -372,6 +372,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-343 | The napkin overlap screen tests a frame kit's members (B-0323) | in force |
 | S-344 | Promotion reports a limit the card already breaks instead of seeding it (B-0324) | in force |
 | S-345 | A quick change shows structure figures first (B-0327) | in force |
+| S-346 | A check that every part is held up down to the floor (B-0328) | in force |
 
 ---
 
@@ -2507,3 +2508,6 @@ Closes B-0324. In the wave 7 persona trial (S-339), promotion seeded REQ-008 "ma
 
 ## S-345 — A quick change shows structure figures first (2026-11-09)
 Closes B-0327. In the wave 7 persona trial (S-339), after an 1800 mm change the agent computed the sag by hand 14 times. `live_impact.py` now identifies structure requirements (kind `structure` or target `calc://structure.*`) and places them first in the impact report, formatting each as `<title>: <before> → <after> against <limit> (<passes|fails>)` in plain words with units. When a product has no structure requirement, the impact adds 'No structure requirement: the sag and tipping are not checked.' and `next` directs asking the owner for the load and adding one. In `mcp/combined.py`, `n2f_ecr` keeps the requirement lines first and whole in its summary, capped at 10. `core/` files: 0.
+
+## S-346 — A check that every part is held up down to the floor (2026-11-09)
+Closes B-0328. In each assembly, placed instances' world bounding boxes are checked for connection to ground (lowest min Z within 0.5 mm). Two boxes connect when they touch on a face patch >= 1 mm² (gap <= 0.5 mm on one axis) or a declared interface names both parts across a gap of 0.5 mm to 30 mm. Walking connections from ground identifies unsupported parts, failing `support://<aid>` and naming each unsupported part. Registered in `domains/mechanical/support.py` after interference. `core/` files: 0.

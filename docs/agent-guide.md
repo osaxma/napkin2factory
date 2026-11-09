@@ -327,7 +327,8 @@ A product calc (`model/calcs/<name>.py`) carries its reference cases in
 `model/calcs/<name>.cases.yaml`: inputs, the expected result with its unit, a tolerance and
 a source (a hand computation written out, or a handbook example). `n2f check` runs them as
 `calc-case` rows; a missing case is "worth a look", a wrong one fails naming the calc
-(`n2f docs calckit`).
+(`n2f docs calckit`). The support check (`support://<aid>`) confirms every placed part connects
+down to the floor through face contacts or declared interfaces, naming any part left unsupported.
 
 `n2f build` also writes the build plan, derived from the assemblies: one step per unit
 (`build/bom/build-plan.json`, a "Build plan" sheet in `bom.xlsx`, the report's Build plan, and

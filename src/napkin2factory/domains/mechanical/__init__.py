@@ -196,6 +196,11 @@ VERIFY_KINDS = (
 CHECK_STAGES = (
     CheckStage("interface", lazy(f"{_ENGINE}:interface_stage")),
     CheckStage("interference", lazy(f"{_ENGINE}:interference_stage"), after=("interface",)),
+    CheckStage(
+        "support",
+        lazy("napkin2factory.domains.mechanical.support:support_stage"),
+        after=("interference",),
+    ),
     # rule-pack rows first inside: `rule` requirements (form requirements) read them
     CheckStage(
         "requirements",
