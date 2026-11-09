@@ -137,22 +137,14 @@ def check_support(product: Product, asm_id: str, build_dir: Path) -> SupportRepo
     ground_nodes = {p[0] for p in placed if p[2][0][2] <= min_z_all + 0.5}
     report.ground = sorted(ground_nodes)
 
-    # Pairs with a declared interface
-    interface_pairs: set[frozenset[str]] = set()
-    for iface in product.interfaces.values():
-        parties = frozenset(str(p).replace("part://", "") for p in iface.parties)
-        interface_pairs.add(parties)
-
     # Build adjacency graph
     nodes = [p[0] for p in placed]
     adj: dict[str, set[str]] = {n: set() for n in nodes}
 
     for i in range(len(placed)):
-        node_a, uri_a, box_a = placed[i]
-        pid_a = uri_a.replace("part://", "")
+        node_a, _, box_a = placed[i]
         for j in range(i + 1, len(placed)):
-            node_b, uri_b, box_b = placed[j]
-            pid_b = uri_b.replace("part://", "")
+            node_b, _, box_b = placed[j]
             # Two parts connect by face contact or hardware bridging across gaps <= 30 mm
             if _boxes_connected(box_a, box_b, has_interface=True):
                 adj[node_a].add(node_b)
