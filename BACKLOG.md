@@ -134,7 +134,6 @@ entry that closed them. Ids are never reused.
 | B-0302 | v0.9's gates are not run: Gate C (three tiers, desktop and phone, the maintainer's judgment), the two-vendor cold-agent trial, gates M and N | S-287 (v0.9 M6) |
 | B-0303 | The warm one-parameter rebuild is 3.5 to 3.8 s on tier 1 (4.8 s before M7b; 5.1 to 5.9 s tier 2, 36 to 39 s the kiln) against road §2.1's 1 s target; left: renders 1.1 s (B-0308), tessellation 0.6, bolt-pattern cuts 0.3, checks 0.27 + report 0.25 (incremental stages), git 0.24, bookkeeping ~0.3, generators ~0.5 | S-283, S-295, S-330 (M7b took three exact speed-ups) |
 | B-0315 | `n2f undo` right after `n2f ecr quick` first saves the open request's record as a checkpoint and undoes only that; the edit itself takes a second `undo` (and `redo` two). An owner or agent expects one. The MCP tool `n2f_ecr` folds the steps of one request (S-329); the CLI does not | wave 6 review of M8 |
-| B-0323 | `rough-shapes-overlap` compares blocks, plates and tubes only, so a cross member through a `frame` kit's member screens green and the seeded model fails interference (wave 7 run 2: 50,388 mm³). Test a piece against each frame member's own box | S-339 |
 | B-0324 | A requirement promotion seeds from the card (a 33 kg lift limit) can contradict the card's own screening (76.5 kg) with nothing said at the napkin; say it there, or seed it only when the screening passes it | S-339 |
 | B-0327 | After a size change the agent computed the sag by hand: `ecr quick`'s impact should show the `structure` requirements' new figures first, and a product promoted before S-337 has none | S-339 |
 | B-0328 | No check finds an unsupported part: in wave 7 run 2 the legs stopped at 735 mm under top rails at 735 to 824 mm between the leg lines, so the top rested on nothing, and the screens and `n2f check` passed it. Check that every part bears on another down to the floor (a face contact, not an edge) | S-339 |
@@ -150,6 +149,7 @@ entry that closed them. Ids are never reused.
 ## Closed
 
 | id | item | closed by |
+| B-0323 | `rough-shapes-overlap` compares blocks, plates and tubes only, so a cross member through a `frame` kit's member screens green and the seeded model fails interference (wave 7 run 2: 50,388 mm³). Test a piece against each frame member's own box | closed by S-343 |
 | B-0326 | `concept switch` fails with `engine_internal` `FileNotFoundError: model/parameters.yaml` (exit 70) when the file is missing or being rewritten; refuse with the file to restore and the next step, and say once which model problem blocks it | closed by S-342 |
 | B-0325 | `n2f_sync` summarises a failed `n2f validate` as a JSON fragment (`"assemblies": 1, … } }`); give the problems whole (file, field, message, fix), as S-333 did for screening reasons | closed by S-341 |
 | B-0176 | In the report each diagram sits at full size (2313 px in a 694 px column): only the supply and terminal block show without sideways scrolling | closed by S-319 (M3b: pan/zoom frames fit the column; the repeated id dropped; tested) |

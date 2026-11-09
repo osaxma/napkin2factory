@@ -369,6 +369,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-340 | Wave 7 boundary: the count, the timings, `make check` | in force |
 | S-341 | n2f_sync returns a failed validate's problems whole | in force |
 | S-342 | `concept switch` refuses a missing or broken parameters file before changing anything | in force |
+| S-343 | The napkin overlap screen tests a frame kit's members (B-0323) | in force |
 
 ---
 
@@ -2495,3 +2496,6 @@ Closes B-0325. In the wave 7 persona rerun (S-339), `n2f_sync` summarised a fail
 
 ## S-342 — Concept switch refuses missing or broken parameters before changing anything (2026-11-09)
 Closes B-0326. In the wave 7 persona rerun (S-339), `concept switch` failed nine times with `engine_internal` `FileNotFoundError: model/parameters.yaml` (exit 70) or schema errors while rewriting files. `_preflight` in `concepts/switch.py` now checks that `model/parameters.yaml` exists, parses as valid YAML, and that the product model validates before saving checkpoints or moving files. A missing file raises `N2FError` pointing to `n2f undo --dir <folder>`, syntax errors name the file and line, and model validation failures report the first problem's file, field and message pointing to `n2f validate --json --dir <folder>`. `core/` files: 0.
+
+## S-343 — The napkin overlap screen tests a frame kit's members (2026-11-09)
+Closes B-0323. In the wave 7 persona trial (S-339), C-004's cross member ran through a frame kit's member; `rough-shapes-overlap` skipped frames as hollow shapes, screened green, and the seeded model failed interference (50,388 mm³). `overlaps` in `concepts/screens/overlap.py` now decomposes a `frame` piece into its members' axis-aligned boxes in card coordinates using `geometry/kit/frame.py` (`pieces`, `_solid_span`, `_box`). Exact silhouettes (block, plate, solid tube) and other frames are compared against each member box, reporting overlaps above `THRESHOLD_MM3` and naming the frame and member (`<frame>'s <member>`), while pieces in the frame's open space or touching on a face pass. `core/` files: 0.
