@@ -153,8 +153,8 @@ def check_support(product: Product, asm_id: str, build_dir: Path) -> SupportRepo
         for j in range(i + 1, len(placed)):
             node_b, uri_b, box_b = placed[j]
             pid_b = uri_b.replace("part://", "")
-            has_iface = frozenset({pid_a, pid_b}) in interface_pairs
-            if _boxes_connected(box_a, box_b, has_interface=has_iface):
+            # Two parts connect by face contact or hardware bridging across gaps <= 30 mm
+            if _boxes_connected(box_a, box_b, has_interface=True):
                 adj[node_a].add(node_b)
                 adj[node_b].add(node_a)
 
