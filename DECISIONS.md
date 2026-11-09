@@ -368,6 +368,7 @@ live in `docs/decisions/v0.1.md` (S-001–S-054, gates 1–4, kiln) and `docs/de
 | S-339 | Wave 7 persona rerun: two runs, the model came right, two criteria still failed | in force |
 | S-340 | Wave 7 boundary: the count, the timings, `make check` | in force |
 | S-341 | n2f_sync returns a failed validate's problems whole | in force |
+| S-342 | `concept switch` refuses a missing or broken parameters file before changing anything | in force |
 
 ---
 
@@ -2491,3 +2492,6 @@ Wave 7 (S-336 to S-339). **`core/` files touched in v0.9: 14** (`core/checks/cal
 
 ## S-341 — n2f_sync returns a failed validate's problems whole (2026-11-09)
 Closes B-0325. In the wave 7 persona rerun (S-339), `n2f_sync` summarised a failed `n2f validate` as a tail JSON fragment (`"assemblies": 1, … } }`), hiding the wrong field and prompting 121 source reads. `sync()` in `mcp/combined.py` now runs validate with `ok_exits=(0, 1)`. On failure, it extracts `problems` as `{file, field, message, fix}` with relative paths and unclipped messages, capped at 20 with `more: <n>` when there are more, and sets `next` to advise fixing the first problem's field in its file. `core/` files: 0.
+
+## S-342 — Concept switch refuses missing or broken parameters before changing anything (2026-11-09)
+Closes B-0326. In the wave 7 persona rerun (S-339), `concept switch` failed nine times with `engine_internal` `FileNotFoundError: model/parameters.yaml` (exit 70) or schema errors while rewriting files. `_preflight` in `concepts/switch.py` now checks that `model/parameters.yaml` exists, parses as valid YAML, and that the product model validates before saving checkpoints or moving files. A missing file raises `N2FError` pointing to `n2f undo --dir <folder>`, syntax errors name the file and line, and model validation failures report the first problem's file, field and message pointing to `n2f validate --json --dir <folder>`. `core/` files: 0.

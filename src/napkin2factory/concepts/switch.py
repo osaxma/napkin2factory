@@ -19,6 +19,7 @@ puts the folder back to the saved state taken there and the parked marker as it 
 from __future__ import annotations
 
 import datetime as dt
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -39,6 +40,7 @@ from napkin2factory.core.concept_lint import recorded_promotion
 from napkin2factory.core.errors import GateBlocked, N2FError
 from napkin2factory.core.model.concepts import ConceptCard
 from napkin2factory.core.vcs import FileChange, Vcs
+from napkin2factory.core.yamlio import safe_load
 from napkin2factory.ecr.checkpointing import (
     checkpoint,
     open_change_request,
@@ -53,6 +55,7 @@ NO_HISTORY = (
 )
 REQUIREMENTS = "model/requirements.yaml"
 DECISIONS = "model/decisions.yaml"
+PARAMETERS = "model/parameters.yaml"
 
 
 @dataclass
@@ -198,6 +201,46 @@ def _preflight(root: Path, vcs: Vcs, card: ConceptCard, fresh: bool) -> ConceptC
             "(it was copied without it). Run `n2f concept switch "
             f"{card.id} --fresh` to start from its sketch instead."
         )
+    params_path = root / PARAMETERS
+    if not params_path.is_file():
+        raise N2FError(
+            "model/parameters.yaml is missing, so the switch cannot start",
+            next=f"n2f undo --dir {root}, then run the switch again",
+        )
+    try:
+        safe_load(params_path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        mark = getattr(exc, "problem_mark", None) or getattr(exc, "context_mark", None)
+        if mark and getattr(mark, "line", None) is not None:
+            line = mark.line + 1
+        else:
+            m = re.search(r"line\s+(\d+)", str(exc))
+            line = int(m.group(1)) if m else 1
+        raise N2FError(
+            f"model/parameters.yaml line {line} is not valid YAML",
+            next=f"fix model/parameters.yaml line {line}, then run the switch again",
+        ) from exc
+    from napkin2factory.core.loader import validate
+
+    _, problems = validate(root)
+    if problems.errors:
+        first = problems.errors[0]
+        try:
+            rel = str(Path(first.file).relative_to(root))
+        except ValueError:
+            rel = str(first.file)
+        if (
+            first.subject
+            and first.subject != Path(first.file).name
+            and not first.message.startswith(first.subject)
+        ):
+            msg = f"{rel}: {first.subject}: {first.message}"
+        else:
+            msg = f"{rel}: {first.message}"
+        raise N2FError(
+            msg,
+            next=f"n2f validate --json --dir {root}",
+        )
     return current[0]
 
 
@@ -222,7 +265,7 @@ def switch(
     from napkin2factory.core.loader import load_product, validate
     from napkin2factory.core.vitals import current_vitals, recorded_vitals
 
-    root = Path(root)
+    root = Path(root).resolve()
     stamp = (now or dt.datetime.now()).replace(microsecond=0)
     at = stamp.isoformat()
     vcs = Vcs(root)

@@ -126,7 +126,9 @@ def test_switch_back_restores_the_parked_files_exactly(root: Path) -> None:
     }
     go(root, "C-001", *OVERRIDE)
     # the sketch's look replaced style.yaml; an owner edit to a part goes too
-    (root / "model" / "parts" / "extra-part.yaml").write_text("id: extra-part\n", encoding="utf-8")
+    (root / "model" / "parts" / "extra-part.yaml").write_text(
+        "id: extra-part\nname: Extra part\n", encoding="utf-8"
+    )
     data = go(root, "C-002")
     assert data["route"] == "restored" and data["parked"] == "C-001"
     for path, content in keep.items():
@@ -340,10 +342,14 @@ def test_an_invalid_result_puts_everything_back(
     from napkin2factory.core import loader
 
     real = loader.validate
+    calls = 0
 
     def broken(r: Path):  # type: ignore[no-untyped-def]
+        nonlocal calls
+        calls += 1
         product, problems = real(r)
-        problems.add(r / "model", "REQ-001", "a requirement checks a part that is gone", "fix")
+        if calls > 1:
+            problems.add(r / "model", "REQ-001", "a requirement checks a part that is gone", "fix")
         return product, problems
 
     monkeypatch.setattr(loader, "validate", broken)
