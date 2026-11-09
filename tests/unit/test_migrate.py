@@ -63,7 +63,9 @@ def _files(root: Path) -> dict[str, str]:
     return {
         str(p.relative_to(root)): p.read_text(encoding="utf-8")
         for p in sorted(root.rglob("*"))
-        if p.is_file() and ".git" not in p.relative_to(root).parts
+        if p.is_file()
+        and ".git" not in p.relative_to(root).parts
+        and "__pycache__" not in p.relative_to(root).parts
     }
 
 
